@@ -244,6 +244,7 @@ public:
     enum OpenType {dynaset=0,snapshot=1,forwardOnly=2,dynamic=3};
     using FetchType=OpenType;
     enum EditMode {noMode=0,edit=1,addnew=2};
+    enum LockMode {optimistic,pessimistic};
     void MarkForUpdate();void MarkForAddNew();
     void FreeDataCache();
     void FreeRowset();

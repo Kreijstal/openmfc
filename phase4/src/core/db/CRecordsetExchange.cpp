@@ -2,6 +2,41 @@
 #define OPENMFC_APPCORE_IMPL
 #include "detail/CRecordsetSupport.h"
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+// Native AddNew/Edit (RVAs 0x1f8f20/0x1f8fb0) prepare buffers and cache;
+// Update performs the eventual write. Reentering either operation restores
+// the previous snapshot before storing a fresh one.
+void CRecordset::AddNew() {
+    if (!m_bAppendable) ThrowDBException(0x3f1,nullptr);
+    if (m_dwOptions&useMultiRowFetch) return;
+    if (m_bCheckCacheForDirtyFields && m_nFields) {
+        if (m_nEditMode) LoadFields();
+        StoreFields();
+    }
+    SetFieldNull(nullptr,TRUE);
+    SetFieldDirty(nullptr,FALSE);
+    m_nEditMode=addnew;
+}
+void CRecordset::Edit() {
+    if (!m_bUpdatable) ThrowDBException(0x3f1,nullptr);
+    if (m_dwOptions&useMultiRowFetch) return;
+    if (m_bEOF || m_bBOF || m_bDeleted) ThrowDBException(0x3ef,nullptr);
+    if ((m_nOpenType==dynaset || m_nOpenType==dynamic) && m_nLockMode==1) {
+        RETCODE code;
+        // The native pessimistic Edit path passes SQL_LOCK_UNLOCK (2),
+        // despite the locking mode's name. Preserve the driver protocol.
+        do {code=::SQLSetPos(m_hstmt,1,SQL_POSITION,SQL_LOCK_UNLOCK);} while(code==SQL_STILL_EXECUTING);
+        if (!Check(code)) ThrowDBException(code,nullptr);
+    }
+    if (m_bCheckCacheForDirtyFields && m_nFields) {
+        if (m_nEditMode) LoadFields();
+        StoreFields();
+    }
+    m_nEditMode=edit;
+}
+// Symbol: ?AddNew@CRecordset@@UEAAXXZ
+extern "C" void MS_ABI impl__AddNew_CRecordset__UEAAXXZ(CRecordset* rs) {rs->CRecordset::AddNew();}
+// Symbol: ?Edit@CRecordset@@UEAAXXZ
+extern "C" void MS_ABI impl__Edit_CRecordset__UEAAXXZ(CRecordset* rs) {rs->CRecordset::Edit();}
 void CRecordset::StoreFields() {
     CFieldExchange exchange(CFieldExchange::StoreField,this);
     DoFieldExchange(&exchange);

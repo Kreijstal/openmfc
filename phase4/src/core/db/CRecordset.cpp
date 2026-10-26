@@ -219,14 +219,6 @@ void CRecordset::MovePrev() {
 void CRecordset::SetAbsolutePosition(long nRows) {
     Move(nRows, SQL_FETCH_ABSOLUTE);
 }
-void CRecordset::AddNew() {
-    if (m_lOpen!=1 || (m_dwOptions & CRecordset::readOnly)) return;
-    m_nEditMode = 1; // addNew
-}
-void CRecordset::Edit() {
-    if (m_lOpen!=1 || (m_dwOptions & CRecordset::readOnly)) return;
-    m_nEditMode = 2; // edit
-}
 void CRecordset::Delete() {
     if (m_lOpen!=1 || (m_dwOptions & CRecordset::readOnly)) return;
     m_nEditMode = 3; // delete

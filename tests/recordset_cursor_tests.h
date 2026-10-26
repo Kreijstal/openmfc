@@ -6,6 +6,8 @@ extern "C" void MS_ABI impl__SetLockingMode_CRecordset__QEAAXI_Z(CRecordset*,UIN
 extern "C" void MS_ABI impl__StoreFields_CRecordset__QEAAXXZ(CRecordset*);
 extern "C" void MS_ABI impl__LoadFields_CRecordset__QEAAXXZ(CRecordset*);
 extern "C" void MS_ABI impl__CancelUpdate_CRecordset__QEAAXXZ(CRecordset*);
+extern "C" void MS_ABI impl__AddNew_CRecordset__UEAAXXZ(CRecordset*);
+extern "C" void MS_ABI impl__Edit_CRecordset__UEAAXXZ(CRecordset*);
 namespace recordset_cursor_test {
 using namespace recordset_move_test;
 struct API {
@@ -16,6 +18,8 @@ struct API {
     decltype(&impl__StoreFields_CRecordset__QEAAXXZ) store;
     decltype(&impl__LoadFields_CRecordset__QEAAXXZ) load;
     decltype(&impl__CancelUpdate_CRecordset__QEAAXXZ) cancel;
+    decltype(&impl__AddNew_CRecordset__UEAAXXZ) add;
+    decltype(&impl__Edit_CRecordset__UEAAXXZ) edit;
 };
 static bool changeHandle;
 static SQLUINTEGER supported;
@@ -34,7 +38,10 @@ static SQLRETURN SQL_API lockInfo(SQLHDBC connection,SQLUSMALLINT kind,SQLPOINTE
 static void MS_ABI cachedExchange(CRecordset* rs,CFieldExchange* fx) {
     event(22,fx->m_nOperation,rs->m_pbFieldFlags[0],rs->m_pbFieldFlags[1],rs->m_pbFieldFlags[2],rs->m_nEditMode,INT64(UINT_PTR(fx->m_hstmt)));
     ordinary(rs,fx);
+    if(fx->m_nOperation==CFieldExchange::SetFieldNull)
+        check(fx->m_bField==TRUE && !fx->m_nFieldFound,"AddNew selects all fields for the native NULL initialization exchange");
 }
+static void MS_ABI forbiddenEdit(CRecordset*) {throw 999;}
 static void saveState(std::vector<Event>& result,Fixture& fixture,int caught=0) {
     event(23,fixture.rs.m_nLockMode,fixture.rs.m_lOpen,INT64(UINT_PTR(fixture.rs.m_hstmt)),fixture.rs.m_bCheckCacheForDirtyFields);
     save(result,fixture,caught);
@@ -120,6 +127,51 @@ static std::vector<Event> caching(const API& functions) {
     }
     return result;
 }
+static std::vector<Event> editing(const API& functions) {
+    std::vector<Event> result;
+    for(bool add:{false,true})for(bool capable:{false,true})for(bool returns:{false,true})for(UINT type:{0u,1u,2u,3u})
+    for(DWORD options:{0ul,0x4ul,0x200ul})for(UINT editMode:{0u,1u,2u,83u})for(BOOL cache:{FALSE,BOOL(69)}) {
+        Fixture f;f.table[10]=f.table[11]=reinterpret_cast<void*>(&forbiddenEdit);f.table[19]=reinterpret_cast<void*>(&cachedExchange);
+        f.rs.m_bDeleted=FALSE;f.rs.m_bAppendable=f.rs.m_bUpdatable=capable?69:0;f.rs.m_nOpenType=type;f.rs.m_dwOptions=options;
+        f.rs.m_nEditMode=editMode;f.rs.m_bCheckCacheForDirtyFields=cache;f.rs.m_nLockMode=1;returningThrow=returns;changeHandle=false;
+        steps={{SQL_STILL_EXECUTING},{SQL_SUCCESS}};
+        int caught=invoke([&]{(add?functions.add:functions.edit)(&f.rs);});saveState(result,f,caught);
+    }
+    for(BOOL eof:{FALSE,BOOL(69)})for(BOOL bof:{FALSE,BOOL(71)})for(BOOL deletedRow:{FALSE,BOOL(73)})for(bool returns:{false,true}) {
+        Fixture f;f.rs.m_bUpdatable=TRUE;f.rs.m_bEOF=eof;f.rs.m_bBOF=bof;f.rs.m_bDeleted=deletedRow;returningThrow=returns;
+        int caught=invoke([&]{functions.edit(&f.rs);});saveState(result,f,caught);
+    }
+    for(UINT type:{0u,1u,2u,3u})for(int lock:{0,1,2})for(RETCODE code:{RETCODE(SQL_SUCCESS),RETCODE(SQL_SUCCESS_WITH_INFO),RETCODE(SQL_ERROR),RETCODE(SQL_NO_DATA)})
+    for(bool accepted:{false,true})for(bool returns:{false,true})for(bool changed:{false,true}) {
+        Fixture f;f.rs.m_bUpdatable=TRUE;f.rs.m_bDeleted=FALSE;f.rs.m_nOpenType=type;f.rs.m_nLockMode=lock;
+        steps={{SQL_STILL_EXECUTING},{SQL_STILL_EXECUTING},{code}};recordset_move_test::accept=accepted;returningThrow=returns;changeHandle=changed;
+        int caught=invoke([&]{functions.edit(&f.rs);});saveState(result,f,caught);
+    }
+    for(bool add:{false,true})for(UINT fields:{0u,3u})for(long open:{0L,1L,37L})for(bool missing:{false,true}) {
+        Fixture f;f.rs.m_bAppendable=f.rs.m_bUpdatable=TRUE;f.rs.m_bDeleted=FALSE;f.rs.m_nFields=fields;f.rs.m_lOpen=open;
+        if(missing)f.rs.m_hstmt=nullptr;
+        int caught=invoke([&]{(add?functions.add:functions.edit)(&f.rs);});saveState(result,f,caught);
+    }
+    for(bool add:{false,true})for(int failAt:{1,4,5,11,14,15,111,112,113,211,212,213}) {
+        Fixture f;f.table[19]=reinterpret_cast<void*>(&cachedExchange);f.rs.m_bAppendable=f.rs.m_bUpdatable=TRUE;
+        f.rs.m_bDeleted=FALSE;f.rs.m_nOpenType=CRecordset::dynaset;f.rs.m_nLockMode=1;
+        failure=failAt;recordset_move_test::accept=false;changeHandle=false;steps={{SQL_ERROR}};
+        int caught=invoke([&]{(add?functions.add:functions.edit)(&f.rs);});saveState(result,f,caught);
+    }
+    for(bool add:{false,true}) {
+        Fixture f;CFieldInfo info{};info.m_nDataType=3;info.m_nLength=sizeof(int);f.rs.m_rgFieldInfos=&info;f.rs.m_nFields=1;
+        f.rs.m_nEditMode=0;f.rs.m_bAppendable=f.rs.m_bUpdatable=TRUE;f.rs.m_bDeleted=FALSE;f.flags[0]=0;fieldValue=42;
+        f.table[19]=reinterpret_cast<void*>(&realExchange);
+        (add?functions.add:functions.edit)(&f.rs);
+        check(f.rs.m_nEditMode==UINT(add?CRecordset::addnew:CRecordset::edit) &&
+            fieldValue==(add?0x7ee4:42) && f.flags[0]==(add?2:0),
+            "AddNew and Edit use native edit modes, store real field snapshots and initialize new values as NULL");
+        fieldValue=91;f.flags[0]=1;functions.cancel(&f.rs);
+        check(fieldValue==42 && !f.flags[0] && !f.rs.m_nEditMode,"CancelUpdate restores the pre-edit value after actual AddNew or Edit field exchanges");
+        event(24,fieldValue,info.m_nLength,info.m_bStatus);saveState(result,f);f.rs.m_rgFieldInfos=nullptr;
+    }
+    return result;
+}
 }
 extern "C" SQLRETURN SQL_API SQLSetPos(SQLHSTMT statement,SQLSETPOSIROW row,SQLUSMALLINT operation,SQLUSMALLINT lock) {
     return recordset_cursor_test::setPosition(statement,row,operation,lock);
@@ -128,8 +180,9 @@ static void recordsetCursor() {
     using namespace recordset_cursor_test;
     auto oldInfo=database_strings_test::infoHook;database_strings_test::infoHook=&lockInfo;
     recordset_cursor_test::API local{&impl__ResetCursor_CRecordset__QEAAXXZ,&impl__RefreshRowset_CRecordset__QEAAXGG_Z,&impl__SetRowsetCursorPosition_CRecordset__QEAAXGG_Z,
-        &impl__SetLockingMode_CRecordset__QEAAXI_Z,&impl__StoreFields_CRecordset__QEAAXXZ,&impl__LoadFields_CRecordset__QEAAXXZ,&impl__CancelUpdate_CRecordset__QEAAXXZ};
-    auto states=cursors(local);auto locking=locks(local);auto cache=caching(local);
+        &impl__SetLockingMode_CRecordset__QEAAXI_Z,&impl__StoreFields_CRecordset__QEAAXXZ,&impl__LoadFields_CRecordset__QEAAXXZ,&impl__CancelUpdate_CRecordset__QEAAXXZ,
+        &impl__AddNew_CRecordset__UEAAXXZ,&impl__Edit_CRecordset__UEAAXXZ};
+    auto states=cursors(local);auto locking=locks(local);auto cache=caching(local);auto edits=editing(local);
     wchar_t path[1024];if(::GetEnvironmentVariableW(L"OPENMFC_NATIVE_RECORDSET_CURSOR_DLL",path,1024)) {
         auto module=::LoadLibraryW(path);check(module!=nullptr,"load native MFC for cursor and cached-field comparison");
         if(module) {
@@ -140,12 +193,14 @@ static void recordsetCursor() {
                 for(auto& p:patches){auto** slot=reinterpret_cast<void**>(base+p.rva);p.saved=*slot;::VirtualProtect(slot,8,PAGE_READWRITE,&p.protection);*slot=p.function;}
                 recordset_cursor_test::API native{reinterpret_cast<decltype(local.reset)>(base+0x1fb3a0),reinterpret_cast<decltype(local.refresh)>(base+0x1fb930),
                     reinterpret_cast<decltype(local.position)>(base+0x1fb9a0),reinterpret_cast<decltype(local.lock)>(base+0x1f9ac0),
-                    reinterpret_cast<decltype(local.store)>(base+0x1fcfc0),reinterpret_cast<decltype(local.load)>(base+0x1fd010),reinterpret_cast<decltype(local.cancel)>(base+0x1f9180)};
+                    reinterpret_cast<decltype(local.store)>(base+0x1fcfc0),reinterpret_cast<decltype(local.load)>(base+0x1fd010),reinterpret_cast<decltype(local.cancel)>(base+0x1f9180),
+                    reinterpret_cast<decltype(local.add)>(base+0x1f8f20),reinterpret_cast<decltype(local.edit)>(base+0x1f8fb0)};
                 auto compare=[&](const std::vector<Event>& actual,const std::vector<Event>& expected,const char* label){
                     if(actual!=expected)for(size_t i=0;i<std::min(actual.size(),expected.size());++i)if(actual[i]!=expected[i]){std::printf("%s mismatch %zu local:",label,i);for(auto n:expected[i])std::printf(" %lld",n);std::printf(" native:");for(auto n:actual[i])std::printf(" %lld",n);puts("");break;}check(actual==expected,label);};
                 compare(cursors(native),states,"cursor reset, positioning, asynchronous refresh, fixup gates and interrupted state match native MFC");
                 compare(locks(native),locking,"locking capabilities, virtual status handling and assignment after returning throws match native MFC");
                 compare(caching(native),cache,"field snapshot, restore and CancelUpdate behavior including RFX values, NULLs and failures match native MFC");
+                compare(editing(native),edits,"AddNew and Edit capability checks, bulk gates, pessimistic locks, cache transitions, NULL setup and failures match native MFC");
                 for(auto& p:patches){auto** slot=reinterpret_cast<void**>(base+p.rva);*slot=p.saved;DWORD ignored;::VirtualProtect(slot,8,p.protection,&ignored);}
             }
             ::FreeLibrary(module);
