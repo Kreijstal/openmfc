@@ -1,8 +1,18 @@
 #pragma once
+#include <exception>
 extern "C" void* MS_ABI impl__GetDataBuffer_CRecordset__SAPEAXAEAVCDBVariant__FPEA_JF_K_Z(CDBVariant*,short,SQLLEN*,short,SQLULEN);
 extern "C" void MS_ABI impl__GetLongCharDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__FF_Z(CDatabase*,HSTMT,short,SQLLEN,void**,SQLLEN,CString*,short,short);
 extern "C" void MS_ABI impl__GetLongCharDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__FF_Z(CDatabase*,HSTMT,short,SQLLEN,void**,SQLLEN,void*,short,short);
 extern "C" void MS_ABI impl__GetLongBinaryDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAVCDBVariant__F_Z(CDatabase*,HSTMT,short,SQLLEN,void**,SQLLEN,CDBVariant*,short);
+extern "C" short MS_ABI impl__GetFieldIndexByName_CRecordset__QEAAFPEB_W_Z(CRecordset*,const wchar_t*);
+extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z(CRecordset*,short,CODBCFieldInfo*);
+extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z(CRecordset*,const wchar_t*,CODBCFieldInfo*);
+extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXFAEAVCDBVariant__F_Z(CRecordset*,short,CDBVariant*,short);
+extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAVCDBVariant__F_Z(CRecordset*,const wchar_t*,CDBVariant*,short);
+extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CRecordset*,short,CString*);
+extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CRecordset*,const wchar_t*,CString*);
+extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z(CRecordset*,short,void*);
+extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z(CRecordset*,const wchar_t*,void*);
 namespace recordset_value_test {
 using namespace recordset_move_test;
 struct ValueAPI {
@@ -10,6 +20,17 @@ struct ValueAPI {
     decltype(&impl__GetLongCharDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__FF_Z) wide;
     decltype(&impl__GetLongCharDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__FF_Z) narrow;
     decltype(&impl__GetLongBinaryDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAVCDBVariant__F_Z) binary;
+};
+struct FieldAPI {
+    decltype(&impl__GetFieldIndexByName_CRecordset__QEAAFPEB_W_Z) index;
+    decltype(&impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z) info;
+    decltype(&impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z) namedInfo;
+    decltype(&impl__GetFieldValue_CRecordset__QEAAXFAEAVCDBVariant__F_Z) variant;
+    decltype(&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAVCDBVariant__F_Z) namedVariant;
+    decltype(&impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z) wide;
+    decltype(&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z) namedWide;
+    decltype(&impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z) narrow;
+    decltype(&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z) namedNarrow;
 };
 using GlobalAllocate=HGLOBAL(WINAPI*)(UINT,SIZE_T);
 using GlobalReallocate=HGLOBAL(WINAPI*)(HGLOBAL,SIZE_T,UINT);
@@ -48,16 +69,31 @@ static std::vector<Step> steps;
 static size_t nextStep;
 static void* stringObject;
 static CLongBinary* activeBinary;
+static CDBVariant* activeVariant;
+static bool terminatedPayloads;
+static bool ownedVariantData;
 static int driverFailure;
 static SQLRETURN SQL_API data(SQLHSTMT statement,SQLUSMALLINT field,SQLSMALLINT type,SQLPOINTER output,SQLLEN capacity,SQLLEN* indicator) {
     void* base=stringObject?*static_cast<void**>(stringObject):nullptr;
+    if(activeVariant) {
+        if(activeVariant->m_dwType>=DBVT_DATE && activeVariant->m_dwType<=DBVT_WSTRING)ownedVariantData=true;
+        if(activeVariant->m_dwType==DBVT_ASTRING || activeVariant->m_dwType==DBVT_WSTRING)base=*reinterpret_cast<void**>(activeVariant->m_pstring);
+        else if(activeVariant->m_dwType==DBVT_BINARY)activeBinary=activeVariant->m_pbinary;
+        else if(activeVariant->m_dwType==DBVT_DATE)base=activeVariant->m_pdate;
+        else base=&activeVariant->m_lVal;
+    }
     if(activeBinary){base=::GlobalLock(activeBinary->m_hData);::GlobalUnlock(activeBinary->m_hData);}
-    event(82,INT64(UINT_PTR(statement)),field,type,capacity,INT64(UINT_PTR(output)-UINT_PTR(base)));
+    event(82,INT64(UINT_PTR(statement)),field,type,capacity,output?INT64(UINT_PTR(output)-UINT_PTR(base)):-1);
     if(nextStep>=steps.size())std::abort();auto step=steps[nextStep++];
     if(driverFailure==1)throw 77;
     if(driverFailure==2)throw static_cast<CException*>(new CDBException(77));
     *indicator=step.length;
-    if(output && capacity>0 && !step.bytes.empty())memcpy(output,step.bytes.data(),std::min<size_t>(size_t(capacity),step.bytes.size()));
+    if(output && capacity>0 && !step.bytes.empty()) {
+        if(terminatedPayloads && (type==SQL_C_CHAR || type==SQL_C_WCHAR)) {
+            size_t width=type==SQL_C_WCHAR?2:1;
+            if(size_t(capacity)>=width){size_t count=std::min(size_t(capacity)-width,step.bytes.size());count-=count%width;memcpy(output,step.bytes.data(),count);memset(static_cast<BYTE*>(output)+count,0,width);}
+        } else memcpy(output,step.bytes.data(),std::min<size_t>(size_t(capacity),step.bytes.size()));
+    }
     return step.code;
 }
 template<class F> static int invoke(F action) {
@@ -68,7 +104,7 @@ template<class F> static int invoke(F action) {
     catch(CException* error){error->Delete();return 1;}catch(int code){return code==19?1:code;}
 }
 static void reset() {
-    events.clear();captureGlobals=false;failAllocate=failReallocate=false;driverFailure=0;stringObject=nullptr;activeBinary=nullptr;nextStep=0;
+    events.clear();captureGlobals=false;failAllocate=failReallocate=false;driverFailure=0;stringObject=nullptr;activeBinary=nullptr;activeVariant=nullptr;terminatedPayloads=false;ownedVariantData=false;nextStep=0;
     steps={{SQL_STILL_EXECUTING,0,{}},{SQL_SUCCESS,2,{'Z',0}}};longbinary_rfx_test::reset({},{{L"HY000",5,L"[Driver] field retrieval failed"}});
 }
 static void save(std::vector<Event>& result,int caught) {
@@ -154,6 +190,119 @@ static std::vector<Event> binary(const ValueAPI& functions) {
     }
     return result;
 }
+static void stringState(int kind,void* object,int width,bool content=true) {
+    auto* bytes=*static_cast<BYTE**>(object);auto* header=reinterpret_cast<CStringData*>(bytes)-1;
+    event(kind,header->nDataLength,header->nAllocLength,header->nRefs>1?2:header->nRefs);
+    if(content)for(int i=0;i<std::min(64,header->nDataLength*width);++i)event(91,i,bytes[i]);
+}
+static std::vector<Event> metadata(const FieldAPI& functions) {
+    std::vector<Event> result;
+    for(short columns:{short(-1),short(0),short(1),short(3)})for(const wchar_t* name:{L"VALUE",L"other",L"missing",L""})for(bool returns:{false,true}) {
+        Fixture f;reset();CODBCFieldInfo info[5];f.rs.m_rgODBCFieldInfos=info+1;f.rs.m_nResultCols=columns;
+        info[0].m_strName=L"before";info[1].m_strName=L"value";info[2].m_strName=L"other";info[3].m_strName=L"VALUE";info[4].m_strName=L"after";
+        for(int i=0;i<5;++i){info[i].m_nSQLType=short(SQL_INTEGER+i);info[i].m_nPrecision=(1ULL<<40)+i;info[i].m_nScale=short(i);info[i].m_nNullability=short(7+i);}
+        returningThrow=returns;short index=-7;int caught=invoke([&]{index=functions.index(&f.rs,name);});event(94,index);save(result,caught);
+        for(short field:{short(-1),short(0),short(1)}) {
+            reset();returningThrow=returns;CODBCFieldInfo output;memset(reinterpret_cast<BYTE*>(&output)+8,0xa5,24);output.m_strName=L"old";
+            caught=invoke([&]{functions.info(&f.rs,field,&output);});stringState(95,&output.m_strName,2);
+            for(int i=8;i<32;++i)event(91,i,reinterpret_cast<BYTE*>(&output)[i]);save(result,caught);
+        }
+        reset();returningThrow=returns;CODBCFieldInfo output;memset(reinterpret_cast<BYTE*>(&output)+8,0xa5,24);output.m_strName=L"old";
+        caught=invoke([&]{functions.namedInfo(&f.rs,name,&output);});stringState(95,&output.m_strName,2);
+        for(int i=8;i<32;++i)event(91,i,reinterpret_cast<BYTE*>(&output)[i]);save(result,caught);
+        f.rs.m_rgODBCFieldInfos=nullptr;
+    }
+    return result;
+}
+static std::vector<Event> fields(const FieldAPI& functions) {
+    std::vector<Event> result;
+    auto run=[&](int kind,bool named,short sqlType,short cType,SQLLEN reported,short columns=1,short index=0,RETCODE code=SQL_SUCCESS,
+                 bool returns=false,bool missingStatement=false,bool missingName=false,bool oldOwned=false,bool locked=false,bool shared=false,SQLULEN precision=7,int failAt=0) {
+        Fixture f;reset();Manager manager;CODBCFieldInfo info[3];for(auto& field:info){field.m_strName=L"value";field.m_nSQLType=sqlType;field.m_nPrecision=precision;field.m_nScale=0;field.m_nNullability=1;}
+        f.rs.m_rgODBCFieldInfos=info+1;f.rs.m_nResultCols=columns;f.rs.m_lOpen=1;if(missingStatement)f.rs.m_hstmt=nullptr;
+        const wchar_t* name=missingName?nullptr:index==1?L"missing":L"value";
+        CDBVariant value;value.m_dwType=DBVT_LONG;UINT64 bits=0xa5a5a5a5a5a5a5a5ULL;memcpy(&value.m_lVal,&bits,8);
+        auto* old=manager.Allocate(128,kind==2?1:2);old->nDataLength=3;old->nRefs=locked?-1:shared?2:1;
+        if(kind==2)memcpy(old+1,"old",4);else memcpy(old+1,L"old",8);
+        void* object=old+1;
+        if(oldOwned){auto** string=static_cast<void**>(::operator new(sizeof(void*)));*string=object;value.m_dwType=DBVT_WSTRING;value.m_pstring=reinterpret_cast<CString*>(string);}
+        stringObject=kind?&object:nullptr;activeVariant=kind?nullptr:&value;terminatedPayloads=true;driverFailure=failAt;returningThrow=returns;
+        short actualType=cType?cType:CRecordset::GetDefaultFieldType(sqlType);
+        bool wide=kind==1 || (!kind && actualType==SQL_C_WCHAR);bool binaryType=!kind && actualType==SQL_C_BINARY;
+        std::vector<BYTE> payload;
+        if(kind || actualType==SQL_C_CHAR || actualType==SQL_C_WCHAR) {
+            for(char c:std::string("ABCDEF")){payload.push_back(BYTE(c));if(wide)payload.push_back(0);}
+        } else for(int i=0;i<16;++i)payload.push_back(BYTE(0x31+i));
+        steps={{SQL_STILL_EXECUTING,0,{}},{code,reported,payload},{SQL_STILL_EXECUTING,0,{}},
+            {SQL_SUCCESS,binaryType?SQLLEN(5):wide?SQLLEN(12):SQLLEN(2),binaryType?std::vector<BYTE>{0x32,0x33,0x34,0x35,0x36}:wide?payload:std::vector<BYTE>{'Z'}}};
+        captureGlobals=true;
+        int caught=invoke([&]{
+            if(!kind){if(named)functions.namedVariant(&f.rs,name,&value,cType);else functions.variant(&f.rs,index,&value,cType);}
+            else if(kind==1){if(named)functions.namedWide(&f.rs,name,reinterpret_cast<CString*>(&object));else functions.wide(&f.rs,index,reinterpret_cast<CString*>(&object));}
+            else {if(named)functions.namedNarrow(&f.rs,name,&object);else functions.narrow(&f.rs,index,&object);}
+        });captureGlobals=false;
+        if(kind)stringState(96,&object,kind==1?2:1);
+        else {
+            event(97,value.m_dwType);
+            if(value.m_dwType==DBVT_ASTRING || value.m_dwType==DBVT_WSTRING)stringState(96,value.m_pstring,value.m_dwType==DBVT_WSTRING?2:1,!caught);
+            else if(value.m_dwType==DBVT_BINARY) {
+                auto* binary=value.m_pbinary;event(98,binary->m_dwDataLength,::GlobalFlags(binary->m_hData)&GMEM_LOCKCOUNT);
+                if(!caught){auto* data=static_cast<BYTE*>(::GlobalLock(binary->m_hData));for(int i=0;i<std::min<SQLULEN>(16,binary->m_dwDataLength);++i)event(91,i,data[i]);::GlobalUnlock(binary->m_hData);}
+                while(::GlobalUnlock(binary->m_hData)){}
+            } else if(value.m_dwType==DBVT_DATE) {
+                if(!caught)for(int i=0;i<16;++i)event(91,i,reinterpret_cast<BYTE*>(value.m_pdate)[i]);
+            } else if(!oldOwned){memcpy(&bits,&value.m_lVal,8);event(99,ownedVariantData?INT64(bits!=0):INT64(bits));}
+        }
+        event(100,manager.frees,manager.allocations,manager.reallocations,manager.clones);save(result,caught);
+        if(!oldOwned) {
+            auto* output=reinterpret_cast<CStringData*>(object)-1;if(output->Release())output->pStringMgr->Free(output);
+            if(shared && !locked)manager.Free(old);
+        }
+        f.rs.m_rgODBCFieldInfos=nullptr;activeVariant=nullptr;activeBinary=nullptr;stringObject=nullptr;
+    };
+    for(int kind:{0,1,2})for(bool named:{false,true})for(short sqlType:{short(SQL_INTEGER),short(SQL_VARCHAR),short(SQL_WVARCHAR),short(SQL_LONGVARCHAR),
+        short(SQL_WLONGVARCHAR),short(SQL_VARBINARY),short(SQL_LONGVARBINARY),short(SQL_TIMESTAMP)}) {
+        SQLLEN normal=sqlType==SQL_TIMESTAMP?16:kind==1 || (!kind && CRecordset::GetDefaultFieldType(sqlType)==SQL_C_WCHAR)?12:6;
+        for(SQLLEN reported:{SQLLEN(SQL_NULL_DATA),normal})run(kind,named,sqlType,0,reported);
+    }
+    for(short type:{short(SQL_C_BIT),short(SQL_C_UTINYINT),short(SQL_C_SSHORT),short(SQL_C_SLONG),short(SQL_C_FLOAT),short(SQL_C_DOUBLE),short(SQL_C_TIMESTAMP),short(SQL_C_CHAR),short(SQL_C_WCHAR),short(SQL_C_BINARY),short(4)})
+        run(0,false,SQL_VARCHAR,type,type==SQL_C_TIMESTAMP?16:type==SQL_C_DOUBLE?8:4);
+    for(int kind:{0,1,2})for(bool named:{false,true})for(short columns:{short(-1),short(0),short(1)})for(short index:{short(-1),short(0),short(1)})
+        run(kind,named,SQL_INTEGER,0,4,columns,index);
+    for(int kind:{0,1,2})for(bool named:{false,true})for(RETCODE code:{RETCODE(SQL_SUCCESS_WITH_INFO),RETCODE(SQL_ERROR),RETCODE(SQL_NO_DATA)})for(int failAt:{0,1,2})
+        run(kind,named,SQL_VARCHAR,0,6,1,0,code,false,false,false,false,false,false,7,failAt);
+    for(int kind:{0,1,2})for(bool named:{false,true})for(bool missingStatement:{false,true})
+        run(kind,named,SQL_VARCHAR,0,6,1,0,SQL_SUCCESS,false,missingStatement);
+    for(int kind:{0,1,2})for(bool named:{false,true})for(bool owned:{false,true})for(short columns:{short(0),short(1)})
+        run(kind,named,SQL_INTEGER,0,4,columns,0,SQL_SUCCESS,false,false,false,owned && !kind);
+    for(int kind:{1,2})for(bool locked:{false,true})for(bool shared:{false,true})run(kind,false,SQL_VARCHAR,0,6,1,0,SQL_SUCCESS,false,false,false,false,locked,shared);
+    for(int kind:{0,1,2})run(kind,false,SQL_VARCHAR,0,6,1,0,SQL_SUCCESS,false,false,false,false,false,false,1ULL<<40);
+    for(int kind:{0,1,2})for(bool returns:{false,true})run(kind,false,SQL_INTEGER,0,4,1,-1,SQL_SUCCESS,returns);
+    // Wide by-name validates a null name before looking at the column count.
+    for(short columns:{short(-1),short(0),short(1)})run(1,true,SQL_INTEGER,0,4,columns,0,SQL_SUCCESS,false,false,true);
+    for(int kind:{0,1,2})run(kind,true,SQL_INTEGER,0,4,0,0,SQL_SUCCESS,false,false,true);
+    return result;
+}
+static void termination(bool native) {
+    wchar_t path[2048];::GetModuleFileNameW(nullptr,path,2048);::SetEnvironmentVariableW(L"OPENMFC_FIELD_NAME_TERMINATION_CHILD",native?L"1":L"0");
+    std::wstring command=L"\""+std::wstring(path)+L"\"";std::vector<wchar_t> input(command.begin(),command.end());input.push_back(0);
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION child{};
+    BOOL started=::CreateProcessW(path,input.data(),nullptr,nullptr,FALSE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&child);
+    ::SetEnvironmentVariableW(L"OPENMFC_FIELD_NAME_TERMINATION_CHILD",nullptr);check(started!=FALSE,"start an isolated null field-name comparison");
+    if(started){DWORD waited=::WaitForSingleObject(child.hProcess,10000);if(waited!=WAIT_OBJECT_0)::TerminateProcess(child.hProcess,96);
+        DWORD code=0;::GetExitCodeProcess(child.hProcess,&code);::CloseHandle(child.hThread);::CloseHandle(child.hProcess);
+        if(waited!=WAIT_OBJECT_0 || code!=3)std::printf("null-name child native=%d wait=%lu code=%lu\n",int(native),waited,code);
+        check(waited==WAIT_OBJECT_0 && code==3,"a null lookup name terminates at native CString's no-throw comparison boundary");}
+}
+}
+static bool recordsetFieldNameTerminationChild() {
+    wchar_t mode[8];if(!::GetEnvironmentVariableW(L"OPENMFC_FIELD_NAME_TERMINATION_CHILD",mode,8))return false;
+    ::SetErrorMode(SEM_NOGPFAULTERRORBOX|SEM_FAILCRITICALERRORS);std::set_terminate([]{::ExitProcess(3);});
+    auto query=&impl__GetFieldIndexByName_CRecordset__QEAAFPEB_W_Z;
+    if(_wtoi(mode)) {wchar_t path[2048];if(!::GetEnvironmentVariableW(L"OPENMFC_NATIVE_RECORDSET_VALUES_DLL",path,2048))::ExitProcess(95);
+        auto module=::LoadLibraryW(path);if(!module)::ExitProcess(94);query=reinterpret_cast<decltype(query)>(reinterpret_cast<char*>(module)+0x1fc8c0);}
+    CRecordset rs;CODBCFieldInfo info;info.m_strName=L"value";rs.m_nResultCols=1;rs.m_rgODBCFieldInfos=&info;
+    try{query(&rs,nullptr);}catch(...){::ExitProcess(97);}::ExitProcess(98);
 }
 static void recordsetValues() {
     using namespace recordset_value_test;
@@ -166,7 +315,11 @@ static void recordsetValues() {
         &impl__GetLongCharDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__FF_Z,
         &impl__GetLongCharDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__FF_Z,
         &impl__GetLongBinaryDataAndCleanup_CRecordset__SAXPEAVCDatabase__PEAXF_JPEAPEAX2AEAVCDBVariant__F_Z};
-    auto allocated=buffers(local);auto strings=text(local);auto blobs=binary(local);
+    FieldAPI localFields{&impl__GetFieldIndexByName_CRecordset__QEAAFPEB_W_Z,&impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z,&impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z,
+        &impl__GetFieldValue_CRecordset__QEAAXFAEAVCDBVariant__F_Z,&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAVCDBVariant__F_Z,
+        &impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z,&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z,
+        &impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z,&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z};
+    auto allocated=buffers(local);auto strings=text(local);auto blobs=binary(local);auto information=metadata(localFields);auto values=fields(localFields);termination(false);
     wchar_t path[1024];if(::GetEnvironmentVariableW(L"OPENMFC_NATIVE_RECORDSET_VALUES_DLL",path,1024)) {
         auto module=::LoadLibraryW(path);check(module!=nullptr,"load native MFC for field-buffer comparisons");
         if(module) {
@@ -177,11 +330,18 @@ static void recordsetValues() {
                 Patch d(reinterpret_cast<void**>(base+0x3e9120),reinterpret_cast<void*>(&SQLGetData)),e(reinterpret_cast<void**>(base+0x3e90e0),reinterpret_cast<void*>(&SQLErrorW));
                 ValueAPI native{reinterpret_cast<decltype(local.buffer)>(base+0x1fd570),reinterpret_cast<decltype(local.wide)>(base+0x1fd970),
                     reinterpret_cast<decltype(local.narrow)>(base+0x1fdb60),reinterpret_cast<decltype(local.binary)>(base+0x1fdd50)};
+                FieldAPI nativeFields{reinterpret_cast<decltype(localFields.index)>(base+0x1fc8c0),reinterpret_cast<decltype(localFields.info)>(base+0x1f9290),reinterpret_cast<decltype(localFields.namedInfo)>(base+0x1f9250),
+                    reinterpret_cast<decltype(localFields.variant)>(base+0x1f9350),reinterpret_cast<decltype(localFields.namedVariant)>(base+0x1f92f0),
+                    reinterpret_cast<decltype(localFields.wide)>(base+0x1f9600),reinterpret_cast<decltype(localFields.namedWide)>(base+0x1f9560),
+                    reinterpret_cast<decltype(localFields.narrow)>(base+0x1f9780),reinterpret_cast<decltype(localFields.namedNarrow)>(base+0x1f95c0)};
                 auto compare=[&](const std::vector<Event>& actual,const std::vector<Event>& expected,const char* label){
                     if(actual!=expected)for(size_t i=0;i<std::min(actual.size(),expected.size());++i)if(actual[i]!=expected[i]){std::printf("%s mismatch %zu local:",label,i);for(auto n:expected[i])std::printf(" %lld",n);std::printf(" native:");for(auto n:actual[i])std::printf(" %lld",n);puts("");break;}check(actual==expected,label);};
                 compare(buffers(native),allocated,"variant data-buffer types, sizes, inline bits, ownership and full-width allocation failures match native MFC");
                 compare(text(native),strings,"ANSI/Unicode continuation offsets, manager ownership, release lengths, asynchronous fetches and failures match native MFC");
                 compare(binary(native),blobs,"long binary reallocation, retained handles, fetch offsets, lengths and interrupted lock state match native MFC");
+                compare(metadata(nativeFields),information,"field-name lookup, metadata copying, signed column counts, ownership and padding match native MFC");
+                compare(fields(nativeFields),values,"all six field-value overloads, typed variants, NULLs, continuation reads, name lookup, output ownership and failures match native MFC");
+                termination(true);
             }
             ::FreeLibrary(module);
         }

@@ -320,6 +320,7 @@ static void ownershipAndRecreation() {
 #include "typelib_cache_tests.h"
 
 int main() {
+    if(recordsetFieldNameTerminationChild())return 0;
     if(recordsetRequeryTerminationChild())return 0;
     std::setvbuf(stdout,nullptr,_IONBF,0);
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);

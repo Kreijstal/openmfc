@@ -253,6 +253,11 @@ public:
     static SQLLEN GetData(CDatabase*,HSTMT,short,short,void*,SQLLEN,short);
     static short GetDefaultFieldType(short);static SQLLEN GetTextLen(short,SQLULEN);
     static void* GetDataBuffer(CDBVariant&,short,SQLLEN*,short,SQLULEN);
+    short GetFieldIndexByName(const wchar_t*);
+    void GetODBCFieldInfo(short,CODBCFieldInfo&);void GetODBCFieldInfo(const wchar_t*,CODBCFieldInfo&);
+    void GetFieldValue(short,CDBVariant&,short=0);void GetFieldValue(const wchar_t*,CDBVariant&,short=0);
+    void GetFieldValue(short,CString&);void GetFieldValue(const wchar_t*,CString&);
+    void GetFieldValue(short,CStringA&);void GetFieldValue(const wchar_t*,CStringA&);
     void ResetCursor();void RefreshRowset(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetRowsetCursorPosition(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetLockingMode(UINT);
