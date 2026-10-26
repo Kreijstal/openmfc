@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <exception>
 #include <type_traits>
 
 extern "C" CCmdTarget* AFXAPI impl___0CCmdTarget__QEAA_XZ(CCmdTarget*);
@@ -60,6 +61,7 @@ static void* callbackObject;
 static void* callbackModule;
 static int disconnectCalls;
 static bool mutate;
+static bool throwDisconnect;
 static void AFXAPI disconnect(void* embedded) {
     ++disconnectCalls;
     check(embedded==static_cast<unsigned char*>(callbackObject)+32,
@@ -68,6 +70,7 @@ static void AFXAPI disconnect(void* embedded) {
         "module state remains available during dispatch disconnection");
     check(load<UINT_PTR>(callbackObject,0)==UINT_PTR(0xa5a5a5a5a5a5a5a5ull),
         "base destruction preserves the incoming derived vfptr");
+    if(throwDisconnect)throw 41;
     if(mutate) {
         store(callbackObject,0,UINT_PTR(0x1111222233334444ull));
         store(callbackObject,8,DWORD(23));
@@ -103,11 +106,42 @@ static void crossover(Constructor ctor,Destructor dtor) {
     check(!std::memcmp(actual.bytes,expected,sizeof(expected)),
         "constructors and destructors from either DLL accept the same native object layout");
 }
-int main() {
+[[noreturn]] static void terminateChild(Destructor dtor) {
+    Storage actual;actual.reset();
+    void* table[8]{};table[7]=reinterpret_cast<void*>(&disconnect);
+    store(actual.object(),32,static_cast<void*>(table));
+    callbackObject=actual.object();callbackModule=load<void*>(callbackObject,56);
+    disconnectCalls=0;mutate=false;throwDisconnect=true;
+    std::set_terminate([] {
+        bool intact=!failures && disconnectCalls==1 &&
+            load<void*>(callbackObject,56)==callbackModule &&
+            load<UINT_PTR>(callbackObject,0)==UINT_PTR(0xa5a5a5a5a5a5a5a5ull);
+        ExitProcess(intact ? 86:87);
+    });
+    try { dtor(actual.object()); }catch(...) { ExitProcess(88); }
+    ExitProcess(89);
+}
+static void terminationCheck(const wchar_t* argument) {
+    wchar_t path[1024],command[1200];
+    GetModuleFileNameW(nullptr,path,1024);
+    _snwprintf_s(command,_countof(command),_TRUNCATE,L"\"%ls\" %ls",path,argument);
+    STARTUPINFOW startup{};startup.cb=sizeof(startup);PROCESS_INFORMATION child{};
+    bool created=CreateProcessW(nullptr,command,nullptr,nullptr,FALSE,0,nullptr,nullptr,&startup,&child)!=FALSE;
+    check(created,"launch destructor exception-contract check");
+    if(!created)return;
+    DWORD wait=WaitForSingleObject(child.hProcess,30000),code=0;
+    if(wait!=WAIT_OBJECT_0)TerminateProcess(child.hProcess,90);
+    GetExitCodeProcess(child.hProcess,&code);
+    check(wait==WAIT_OBJECT_0 && code==86,
+        "throwing dispatch disconnection terminates before module/vfptr cleanup");
+    CloseHandle(child.hThread);CloseHandle(child.hProcess);
+}
+int main(int argc,char** argv) {
     static_assert(sizeof(CCmdTarget)==64,"native base layout");
     static_assert(std::is_abstract<CObject>::value,"CObject has a pure destructor in the SDK");
     auto sourceCtor=reinterpret_cast<Constructor>(&impl___0CCmdTarget__QEAA_XZ);
     auto sourceDtor=reinterpret_cast<Destructor>(&impl___1CCmdTarget__UEAA_XZ);
+    if(argc>1 && !std::strcmp(argv[1],"--terminate-source"))terminateChild(sourceDtor);
     constructorChecks(sourceCtor,sourceModule,true);
     check(getterCalls==1,"base constructor looks up module state once");
     Storage actual,expected;actual.reset();expected.reset();observed=&actual;throwGetter=true;
@@ -117,6 +151,7 @@ int main() {
     check(propagated && !std::memcmp(actual.bytes,expected.bytes,sizeof(actual.bytes)),
         "module lookup failure propagates without modifying storage");
     destructorChecks(sourceDtor);crossover(sourceCtor,sourceDtor);
+    terminationCheck(L"--terminate-source");
     if(const char* path=std::getenv("OPENMFC_NATIVE_CMDTARGET_DLL")) {
         HMODULE native=LoadLibraryA(path);
         check(native!=nullptr,"load the native MFC comparison DLL");
@@ -134,8 +169,10 @@ int main() {
             auto ctor=reinterpret_cast<Constructor>(bytes+0x1de3f0);
             auto dtor=reinterpret_cast<Destructor>(bytes+0x1de430);
             auto get=reinterpret_cast<ModuleGetter>(bytes+0x133930);
+            if(argc>1 && !std::strcmp(argv[1],"--terminate-native"))terminateChild(dtor);
             constructorChecks(ctor,get(),false);destructorChecks(dtor);
             crossover(sourceCtor,dtor);crossover(ctor,sourceDtor);
+            terminationCheck(L"--terminate-native");
         }
         if(native)FreeLibrary(native);
     }
