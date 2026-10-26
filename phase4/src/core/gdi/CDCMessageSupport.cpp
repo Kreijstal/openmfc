@@ -14,12 +14,6 @@ template<class Result,class Fn> Result Both(CDC* dc,Result initial,Fn call) {
     if(dc->m_hAttribDC)result=call(dc->m_hAttribDC);
     return result;
 }
-template<class Fn> CPoint Origin(CDC* dc,Fn call) {
-    POINT previous{};
-    if(dc->m_hDC!=dc->m_hAttribDC)call(dc->m_hDC,&previous);
-    if(dc->m_hAttribDC)call(dc->m_hAttribDC,&previous);
-    return CPoint(previous.x,previous.y);
-}
 template<class Fn> CSize Extent(CDC* dc,Fn call) {
     SIZE previous{};
     if(dc->m_hDC!=dc->m_hAttribDC)call(dc->m_hDC,&previous);
@@ -56,8 +50,6 @@ CFont* CDC::SelectObject(CFont* font) {
 COLORREF CDC::SetBkColor(COLORREF color) { return Both<COLORREF>(this,CLR_INVALID,[&](HDC dc) { return ::SetBkColor(dc,color); }); }
 COLORREF CDC::SetTextColor(COLORREF color) { return Both<COLORREF>(this,CLR_INVALID,[&](HDC dc) { return ::SetTextColor(dc,color); }); }
 int CDC::SetMapMode(int mode) { return Both<int>(this,0,[&](HDC dc) { return ::SetMapMode(dc,mode); }); }
-CPoint CDC::SetViewportOrg(int x,int y) { return Origin(this,[&](HDC dc,POINT* previous) { ::SetViewportOrgEx(dc,x,y,previous); }); }
-CPoint CDC::OffsetViewportOrg(int x,int y) { return Origin(this,[&](HDC dc,POINT* previous) { ::OffsetViewportOrgEx(dc,x,y,previous); }); }
 CSize CDC::SetViewportExt(int x,int y) { return Extent(this,[&](HDC dc,SIZE* previous) { ::SetViewportExtEx(dc,x,y,previous); }); }
 CSize CDC::ScaleViewportExt(int xn,int xd,int yn,int yd) { return Extent(this,[&](HDC dc,SIZE* previous) { ::ScaleViewportExtEx(dc,xn,xd,yn,yd,previous); }); }
 CSize CDC::SetWindowExt(int x,int y) { return Extent(this,[&](HDC dc,SIZE* previous) { ::SetWindowExtEx(dc,x,y,previous); }); }
@@ -102,10 +94,6 @@ extern "C" COLORREF MS_ABI impl__SetBkColor_CDC__UEAAKK_Z(CDC* self,COLORREF col
 extern "C" COLORREF MS_ABI impl__SetTextColor_CDC__UEAAKK_Z(CDC* self,COLORREF color) { return self->CDC::SetTextColor(color); }
 // Symbol: ?SetMapMode@CDC@@UEAAHH@Z
 extern "C" int MS_ABI impl__SetMapMode_CDC__UEAAHH_Z(CDC* self,int mode) { return self->CDC::SetMapMode(mode); }
-// Symbol: ?SetViewportOrg@CDC@@UEAA?AVCPoint@@HH@Z
-extern "C" CPoint* MS_ABI impl__SetViewportOrg_CDC__UEAA_AVCPoint__HH_Z(CDC* self,CPoint* output,int x,int y) { *output=self->CDC::SetViewportOrg(x,y);return output; }
-// Symbol: ?OffsetViewportOrg@CDC@@UEAA?AVCPoint@@HH@Z
-extern "C" CPoint* MS_ABI impl__OffsetViewportOrg_CDC__UEAA_AVCPoint__HH_Z(CDC* self,CPoint* output,int x,int y) { *output=self->CDC::OffsetViewportOrg(x,y);return output; }
 // Symbol: ?SetViewportExt@CDC@@UEAA?AVCSize@@HH@Z
 extern "C" CSize* MS_ABI impl__SetViewportExt_CDC__UEAA_AVCSize__HH_Z(CDC* self,CSize* output,int x,int y) { *output=self->CDC::SetViewportExt(x,y);return output; }
 // Symbol: ?ScaleViewportExt@CDC@@UEAA?AVCSize@@HHHH@Z

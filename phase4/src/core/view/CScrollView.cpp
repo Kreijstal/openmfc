@@ -27,10 +27,6 @@ extern "C" intptr_t MS_ABI impl__HandleMButtonDown_CScrollView__QEAA_J_K_J_Z(CSc
     const POINTS pts = MAKEPOINTS(point);
     return static_cast<intptr_t>(::SendMessageW(pThis->m_hWnd, WM_MBUTTONDOWN, nFlags, MAKELPARAM(pts.x, pts.y)));
 }
-// Symbol: ?OnPrepareDC@CScrollView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z
-extern "C" void MS_ABI impl__OnPrepareDC_CScrollView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(CScrollView* pThis, CDC* dc, void*) { if (dc && dc->m_hDC && pThis) ::SetMapMode(dc->m_hDC, pThis->m_nMapMode); }
-// Symbol: ?OnPrintClient@CScrollView@@QEAA_JPEAVCDC@@I@Z
-extern "C" intptr_t MS_ABI impl__OnPrintClient_CScrollView__QEAA_JPEAVCDC__I_Z(CScrollView* pThis, CDC* dc, unsigned int) { if (pThis) pThis->OnDraw(dc); return TRUE; }
 CScrollView::CScrollView() { impl___0CScrollView__QEAA_XZ(this); }
 CScrollView::~CScrollView() { impl___1CScrollView__UEAA_XZ(this); }
 void CScrollView::OnInitialUpdate() { impl__OnInitialUpdate_CScrollView__UEAAXXZ(this); }
@@ -66,5 +62,3 @@ void CScrollView::ResizeParentToFit(int bShrinkOnly) {
     ::SetWindowPos(hWndParent, nullptr, 0, 0, nWidth, nHeight,
                    SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
-
-void CScrollView::OnPrepareDC(CDC* dc,void* info) { impl__OnPrepareDC_CScrollView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(this,dc,info); }

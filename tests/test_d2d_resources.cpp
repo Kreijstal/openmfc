@@ -317,6 +317,7 @@ static void ownershipAndRecreation() {
 #include "scroll_view_input_tests.h"
 #include "scroll_view_sizing_tests.h"
 #include "scroll_view_coordinate_tests.h"
+#include "scroll_view_print_tests.h"
 #include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
@@ -329,6 +330,7 @@ static void ownershipAndRecreation() {
 #include "typelib_cache_tests.h"
 
 int main() {
+    wchar_t scrollPrintChild[32];if(GetEnvironmentVariableW(L"OPENMFC_SCROLL_PRINT_CHILD",scrollPrintChild,32)){scrollViewPrinting();return 0;}
     if(borrowedDCTerminationChild())return 0;
     if(auxDataTerminationChild())return 0;
     if(recordsetFieldNameTerminationChild())return 0;
@@ -383,6 +385,7 @@ int main() {
     if (SUCCEEDED(hr)) scrollViewInput();
     if (SUCCEEDED(hr)) scrollViewSizing();
     if (SUCCEEDED(hr)) scrollViewCoordinates();
+    if (SUCCEEDED(hr)) scrollViewPrinting();
     if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();

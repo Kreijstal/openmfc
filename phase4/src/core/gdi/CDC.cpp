@@ -164,29 +164,7 @@ extern "C" void MS_ABI impl__LPtoDP_CDC__QEBAXPEAUtagSIZE___Z(const CDC* pThis, 
     lpSize->cy = pt.y;
 }
 // CDC::SaveDC (virtual override, UEAA)
-// Symbol: ?SetWindowOrg@CDC@@QEAA?AVCPoint@@HH@Z
-extern "C" CPoint MS_ABI impl__SetWindowOrg_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis, int x, int y) {
-    CPoint pt(0, 0);
-    if (!pThis || !pThis->m_hDC) return pt;
-    POINT old;
-    ::GetWindowOrgEx(pThis->m_hDC, &old);
-    ::SetWindowOrgEx(pThis->m_hDC, x, y, nullptr);
-    pt.x = old.x;
-    pt.y = old.y;
-    return pt;
-}
 // CDC::ScaleWindowExt (virtual, UEAA)
-// Symbol: ?OffsetWindowOrg@CDC@@QEAA?AVCPoint@@HH@Z
-extern "C" CPoint MS_ABI impl__OffsetWindowOrg_CDC__QEAA_AVCPoint__HH_Z(CDC* pThis, int nWidth, int nHeight) {
-    CPoint pt(0, 0);
-    if (!pThis || !pThis->m_hDC) return pt;
-    POINT old;
-    ::GetWindowOrgEx(pThis->m_hDC, &old);
-    ::OffsetWindowOrgEx(pThis->m_hDC, nWidth, nHeight, nullptr);
-    pt.x = old.x;
-    pt.y = old.y;
-    return pt;
-}
 // CDC::SetPolyFillMode
 // Symbol: ?SetPolyFillMode@CDC@@QEAAHH@Z
 extern "C" int MS_ABI impl__SetPolyFillMode_CDC__QEAAHH_Z(CDC* pThis, int nPolyFillMode) {

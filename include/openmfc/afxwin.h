@@ -3542,6 +3542,7 @@ public:
     void FillOutsideRect(CDC*,CBrush*);
     void CenterOnPoint(CPoint);
     void ResizeParentToFit(BOOL = TRUE);
+    LRESULT OnPrintClient(CDC*,UINT);
     void OnDraw(void*) override;
     // These convenience overrides do not add slots to the native table.
     void OnInitialUpdate() override;
