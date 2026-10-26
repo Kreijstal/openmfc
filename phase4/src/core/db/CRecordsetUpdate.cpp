@@ -99,7 +99,13 @@ BOOL CRecordset::UpdateInsertDelete() {
             m_bDeleted=TRUE;SetFieldNull(nullptr,TRUE);
         }
         m_nEditMode=noMode;
-    } catch (CException* error) {error->Delete();}
+    } catch (CException* error) {
+        // Native CException::Delete tests its signed flag for >0. The
+        // convenience inline currently treats any nonzero value as true.
+        int autoDelete;
+        std::memcpy(&autoDelete,reinterpret_cast<const BYTE*>(error)+sizeof(void*),sizeof(autoDelete));
+        if (autoDelete>0) error->Delete();
+    }
     if (m_bCheckCacheForDirtyFields && !(m_dwOptions&optimizeBulkAdd)) SetFieldDirty(nullptr,FALSE);
     return TRUE;
 }

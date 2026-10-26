@@ -208,6 +208,13 @@ static void MS_ABI sqlExchange(CRecordset* rs,CFieldExchange* fx) {
         check(fx->m_lpszSeparator && !wcscmp(fx->m_lpszSeparator,L","),"write SQL field exchanges use the native comma separator");
     }
 }
+struct PostFailure:Failure {explicit PostFailure(int flag){m_bAutoDelete=flag;}};
+static int postAutoDelete;
+static PostFailure* postFailure;
+static void MS_ABI postExchange(CRecordset* rs,CFieldExchange* fx) {
+    ordinary(rs,fx);
+    if(fx->m_nOperation==CFieldExchange::LoadField){postFailure=new PostFailure(postAutoDelete);throw static_cast<CException*>(postFailure);}
+}
 static std::vector<Event> construction(const UpdateAPI& functions) {
     std::vector<Event> result;
     auto run=[&](UINT mode,DWORD flags,bool cached,int nameCase,unsigned accepted=~0u,int failAt=0,bool returns=false,bool noDatabase=false) {
@@ -282,6 +289,15 @@ static std::vector<Event> pipeline(const UpdateAPI& functions) {
     for(UINT mode:{0u,1u,2u})for(bool useSQL:{false,true})for(int failAt:{1,2,3,4,11,12,13,14,int(Position),Position+10,int(Direct),Direct+10,103,104,107,111,113,203,204,207,211,213})
         run(0,mode,useSQL,0,true,true,failAt);
     for(UINT mode:{0u,1u,2u})for(bool useSQL:{false,true})run(mode?1:2,mode,useSQL,0,true,true,0,false,1,5,true,true,false,true);
+    for(int autoDelete:{-7,0,1,69}) {
+        Fixture f;f.rs.m_nEditMode=2;f.rs.m_bAppendable=TRUE;f.rs.m_bDeleted=FALSE;f.table[19]=reinterpret_cast<void*>(&postExchange);
+        autoDrive=true;changeHandles=false;writePosition=0;postAutoDelete=autoDelete;postFailure=nullptr;
+        BOOL written=functions.write(&f.rs);
+        check(written==TRUE && deleted==int(autoDelete>0) && f.rs.m_nEditMode==2,
+            "post-write framework failures are swallowed while respecting the native signed exception ownership flag and interrupted edit mode");
+        event(62,written,autoDelete,deleted);saveState(result,f);
+        if(autoDelete<=0)delete postFailure;
+    }
     {
         Fixture f;CFieldInfo info{};CODBCFieldInfo metadata{};info.m_nDataType=3;info.m_nLength=4;metadata.m_nSQLType=SQL_INTEGER;metadata.m_nPrecision=5;
         f.rs.m_rgFieldInfos=&info;f.rs.m_rgODBCFieldInfos=&metadata;f.rs.m_nFields=1;f.rs.m_nEditMode=0;f.rs.m_bDeleted=FALSE;
