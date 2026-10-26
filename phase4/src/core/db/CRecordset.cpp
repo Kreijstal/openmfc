@@ -65,8 +65,6 @@ extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLT
     }
 }
 extern "C" BOOL MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset*);
-// Symbol: ?BuildUpdateSQL@CRecordset@@IEAAXXZ
-extern "C" void MS_ABI impl__BuildUpdateSQL_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = true; }
 // Symbol: ?FlushResultSet@CRecordset@@QEAAHXZ
 extern "C" int MS_ABI impl__FlushResultSet_CRecordset__QEAAHXZ(CRecordset* pThis) { if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return FALSE; while (SQLMoreResults(pThis->m_hstmt) == SQL_SUCCESS) {} return TRUE; }
 // Symbol: ?GetBookmark@CRecordset@@QEAAXAEAVCDBVariant@@@Z
@@ -105,8 +103,6 @@ extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFie
 extern "C" long long MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short sqlType, unsigned long precision) { return (sqlType==SQL_WCHAR||sqlType==SQL_WVARCHAR||sqlType==SQL_WLONGVARCHAR)?static_cast<long long>(precision)*sizeof(wchar_t):precision; }
 // Symbol: ?PreBindFields@CRecordset@@UEAAXXZ
 extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset*) {}
-// Symbol: ?UpdateInsertDelete@CRecordset@@IEAAHXZ
-extern "C" int MS_ABI impl__UpdateInsertDelete_CRecordset__IEAAHXZ(CRecordset* pThis) { return pThis ? pThis->Update() : FALSE; }
 CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
     // Release x64 construction allocates a statement for an existing connection
     // and registers the recordset at the head of the database's list.
@@ -178,22 +174,6 @@ void CRecordset::MovePrev() {
 }
 void CRecordset::SetAbsolutePosition(long nRows) {
     Move(nRows, SQL_FETCH_ABSOLUTE);
-}
-void CRecordset::Delete() {
-    if (m_lOpen!=1 || (m_dwOptions & CRecordset::readOnly)) return;
-    m_nEditMode = 3; // delete
-    m_bDeleted = TRUE;
-}
-BOOL CRecordset::Update() {
-    if (m_lOpen!=1 || m_nEditMode == 0 || (m_dwOptions & CRecordset::readOnly)) {
-        return FALSE;
-    }
-    m_bDeleted = FALSE;
-    m_nEditMode = 0;
-    auto& state = EnsureRecordsetState(this);
-    state.dirtyFields.clear();
-    state.nullFields.clear();
-    return TRUE;
 }
 BOOL CRecordset::CanAppend() const {
     if (!m_pDatabase || !m_pDatabase->IsOpen()) return FALSE;

@@ -1,9 +1,124 @@
-// Native release x64 recordset update statement and field binding.
+// Native release x64 recordset SQL construction and write execution.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/CRecordsetSupport.h"
 #include "openmfc/afxdao.h"
+#include "detail/DatabaseStringBuffer.h"
+#include <cstdint>
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(RETCODE,CDatabase*,HSTMT);
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long);
+extern "C" void MS_ABI impl__ReplaceBrackets_CDatabase__QEAAXPEA_W_Z(CDatabase*,wchar_t*);
+extern "C" UINT MS_ABI impl__AppendNames_CRecordset__QEAAIPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CRecordset*,CString*,const wchar_t*);
+extern "C" UINT MS_ABI impl__AppendValues_CRecordset__QEAAIPEAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CRecordset*,void*,CString*,const wchar_t*);
+extern "C" UINT MS_ABI impl__AppendNamesValues_CRecordset__QEAAIPEAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(CRecordset*,void*,CString*,const wchar_t*);
+using openmfc::detail::DatabaseStringBuffer;
+
+// RVA 0x1fbf10. Cursor names are cached separately from each SQL string.
+void CRecordset::BuildUpdateSQL() {
+    DatabaseStringBuffer sql(m_strUpdateSQL);
+    auto table=[&]{sql.append(m_strTableName.GetString(),m_strTableName.GetLength());};
+    auto finish=[&](wchar_t last) {
+        int length=m_strUpdateSQL.GetLength();
+        if (length<1) {impl__AfxThrowOleException__YAXJ_Z(E_INVALIDARG);return;}
+        sql.get(length)[length-1]=last;sql.release(length);
+    };
+    if (m_nEditMode==addnew) {
+        sql.set(L"INSERT INTO ");table();sql.append(L" (");
+        impl__AppendNames_CRecordset__QEAAIPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(this,&m_strUpdateSQL,L",");finish(L')');
+        sql.append(L" VALUES (");
+        impl__AppendValues_CRecordset__QEAAIPEAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(this,m_hstmtUpdate,&m_strUpdateSQL,L",");finish(L')');
+    } else if (m_nEditMode==edit) {
+        sql.set(L"UPDATE ");table();sql.append(L" SET ");
+        impl__AppendNamesValues_CRecordset__QEAAIPEAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(this,m_hstmtUpdate,&m_strUpdateSQL,L",");finish(L' ');
+    } else if (!m_nEditMode) {sql.set(L"DELETE FROM ");table();}
+    if (m_nEditMode<=edit) {
+        sql.append(L" WHERE CURRENT OF ");
+        if (!m_strCursorName.GetLength()) {
+            wchar_t cursor[41];SQLSMALLINT length=40;
+            RETCODE code=::SQLGetCursorNameW(m_hstmt,reinterpret_cast<SQLWCHAR*>(cursor),41,&length);
+            if (code==SQL_SUCCESS_WITH_INFO && length>40) {
+                // Native has only a GS unwind handler here, without C++
+                // cleanup. Release at the explicit success/rejection points.
+                auto* buffer=new wchar_t[size_t(length)+1];
+                code=::SQLGetCursorNameW(m_hstmt,reinterpret_cast<SQLWCHAR*>(buffer),SQLSMALLINT(length+1),&length);
+                if (!Check(code)) {delete[] buffer;ThrowDBException(code,nullptr);}
+                else {DatabaseStringBuffer(m_strCursorName).set(buffer);delete[] buffer;}
+            } else if (!Check(code)) ThrowDBException(code,nullptr);
+            else DatabaseStringBuffer(m_strCursorName).set(cursor);
+        }
+        sql.append(m_strCursorName.GetString(),m_strCursorName.GetLength());
+    }
+    if (!m_pDatabase) {impl__AfxThrowInvalidArgException__YAXXZ();return;}
+    impl__ReplaceBrackets_CDatabase__QEAAXPEA_W_Z(m_pDatabase,sql.get(0));sql.release(-1);
+    if (m_dwOptions&firstBulkAdd) {
+        auto* text=reinterpret_cast<SQLWCHAR*>(const_cast<wchar_t*>(m_strUpdateSQL.GetString()));
+        RETCODE code;
+        do {code=::SQLPrepareW(m_hstmtUpdate,text,SQL_NTS);} while(code==SQL_STILL_EXECUTING);
+        if (!Check(code)) ThrowDBException(code,m_hstmtUpdate);
+    }
+}
+// Symbol: ?BuildUpdateSQL@CRecordset@@IEAAXXZ
+extern "C" void MS_ABI impl__BuildUpdateSQL_CRecordset__IEAAXXZ(CRecordset* rs) {rs->BuildUpdateSQL();}
+
+// RVA 0x1fd290. Only post-write currency/cache failures are swallowed.
+BOOL CRecordset::UpdateInsertDelete() {
+    if (m_nEditMode==addnew) {
+        if (!m_bAppendable) ThrowDBException(0x3f1,nullptr);
+    } else {
+        if (!m_bUpdatable) ThrowDBException(0x3f1,nullptr);
+        if (m_bEOF || m_bBOF || m_bDeleted) ThrowDBException(0x3ef,nullptr);
+    }
+    if (m_nEditMode && !IsFieldDirty(nullptr)) return FALSE;
+    if (!m_bUseUpdateSQL) ExecuteSetPosUpdate();
+    else {
+        HSTMT previous=m_hstmtUpdate;
+        PrepareUpdateHstmt();
+        if ((m_dwOptions&optimizeBulkAdd) && previous)
+            impl__AppendValues_CRecordset__QEAAIPEAXPEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(this,m_hstmtUpdate,&m_strUpdateSQL,L",");
+        else {
+            if (m_dwOptions&optimizeBulkAdd) {m_dwOptions&=~optimizeBulkAdd;m_dwOptions|=firstBulkAdd;}
+            BuildUpdateSQL();
+            if (m_dwOptions&firstBulkAdd) {m_dwOptions&=~firstBulkAdd;m_dwOptions|=optimizeBulkAdd;}
+        }
+        ExecuteUpdateSQL();
+    }
+    try {
+        if (m_nEditMode==addnew) {
+            m_bBOF=m_bEOF=FALSE;
+            if (!m_pDatabase) {impl__AfxThrowInvalidArgException__YAXXZ();return FALSE;}
+            if (m_pDatabase->m_bIncRecordCountOnAdd && m_lCurrentRecord>=0) {
+                if (m_lRecordCount!=-1) m_lRecordCount=long(uint32_t(m_lRecordCount)+1);
+                m_lCurrentRecord=long(uint32_t(m_lCurrentRecord)+1);
+            }
+            if (m_bCheckCacheForDirtyFields && m_nFields) LoadFields();
+        } else if (!m_nEditMode) {
+            if (m_lCurrentRecord>=0) {
+                if (m_lRecordCount>0) --m_lRecordCount;
+                --m_lCurrentRecord;
+            }
+            m_bDeleted=TRUE;SetFieldNull(nullptr,TRUE);
+        }
+        m_nEditMode=noMode;
+    } catch (CException* error) {error->Delete();}
+    if (m_bCheckCacheForDirtyFields && !(m_dwOptions&optimizeBulkAdd)) SetFieldDirty(nullptr,FALSE);
+    return TRUE;
+}
+// Symbol: ?UpdateInsertDelete@CRecordset@@IEAAHXZ
+extern "C" BOOL MS_ABI impl__UpdateInsertDelete_CRecordset__IEAAHXZ(CRecordset* rs) {return rs->UpdateInsertDelete();}
+BOOL CRecordset::Update() {
+    if (m_dwOptions&useMultiRowFetch) return FALSE;
+    if (m_nEditMode!=edit && m_nEditMode!=addnew) ThrowDBException(0x3ed,nullptr);
+    return UpdateInsertDelete();
+}
+void CRecordset::Delete() {
+    if (m_dwOptions&useMultiRowFetch) return;
+    if (m_nEditMode) ThrowDBException(0x3ed,nullptr);
+    UpdateInsertDelete();
+}
+// Symbol: ?Update@CRecordset@@UEAAHXZ
+extern "C" BOOL MS_ABI impl__Update_CRecordset__UEAAHXZ(CRecordset* rs) {return rs->CRecordset::Update();}
+// Symbol: ?Delete@CRecordset@@UEAAXXZ
+extern "C" void MS_ABI impl__Delete_CRecordset__UEAAXXZ(CRecordset* rs) {rs->CRecordset::Delete();}
 
 // RVA 0x1f9d30: the primary cancellation is unconditional; the optional
 // update handle is read again after that driver call.

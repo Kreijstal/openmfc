@@ -1136,11 +1136,6 @@ extern "C" void* MS_ABI impl__ToVariant_CDataSourceControl__QEAA_AVCOleVariant__
 extern "C" void* MS_ABI impl___0CDatabase__QEAA_XZ(void* pThis) {
     return new(pThis) CDatabase();
 }
-// Symbol: ?Delete@CRecordset@@UEAAXXZ
-// CRecordset::Delete
-extern "C" void MS_ABI impl__Delete_CRecordset__UEAAXXZ(CRecordset* pThis) {
-    pThis->Delete();
-}
 
 // Symbol: ?IsFieldDirty@CRecordset@@QEAAHPEAX@Z
 // CRecordset::IsFieldDirty
@@ -1151,9 +1146,4 @@ extern "C" int MS_ABI impl__IsFieldDirty_CRecordset__QEAAHPEAX_Z(CRecordset* pTh
 // CRecordset::IsFieldNull
 extern "C" int MS_ABI impl__IsFieldNull_CRecordset__QEAAHPEAX_Z(CRecordset* pThis, void* p0) {
     return (int)pThis->IsFieldNull(p0);
-}
-// Symbol: ?Update@CRecordset@@UEAAHXZ
-// CRecordset::Update
-extern "C" int MS_ABI impl__Update_CRecordset__UEAAHXZ(CRecordset* pThis) {
-    return (int)pThis->Update();
 }

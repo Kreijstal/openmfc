@@ -229,6 +229,7 @@ public:
     void PrepareUpdateHstmt();void BindFieldsForUpdate();void UnbindFieldsForUpdate();
     void Cancel();void SendLongBinaryData(HSTMT);
     void ExecuteSetPosUpdate();void ExecuteUpdateSQL();
+    void BuildUpdateSQL();BOOL UpdateInsertDelete();
     void ResetCursor();void RefreshRowset(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetRowsetCursorPosition(WORD,WORD=SQL_LOCK_NO_CHANGE);
     void SetLockingMode(UINT);
