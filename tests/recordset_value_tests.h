@@ -13,6 +13,8 @@ extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT__WV_
 extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CRecordset*,const wchar_t*,CString*);
 extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z(CRecordset*,short,void*);
 extern "C" void MS_ABI impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z(CRecordset*,const wchar_t*,void*);
+extern "C" BOOL MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(const CRecordset*,DWORD);
+extern "C" BOOL MS_ABI impl__IsFieldNullable_CRecordset__QEAAHPEAX_Z(CRecordset*,void*);
 namespace recordset_value_test {
 using namespace recordset_move_test;
 struct ValueAPI {
@@ -31,6 +33,8 @@ struct FieldAPI {
     decltype(&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z) namedWide;
     decltype(&impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z) narrow;
     decltype(&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z) namedNarrow;
+    decltype(&impl__IsFieldNullable_CRecordset__QEBAHK_Z) nullable;
+    decltype(&impl__IsFieldNullable_CRecordset__QEAAHPEAX_Z) boundNullable;
 };
 using GlobalAllocate=HGLOBAL(WINAPI*)(UINT,SIZE_T);
 using GlobalReallocate=HGLOBAL(WINAPI*)(HGLOBAL,SIZE_T,UINT);
@@ -283,6 +287,36 @@ static std::vector<Event> fields(const FieldAPI& functions) {
     for(int kind:{0,1,2})run(kind,true,SQL_INTEGER,0,4,0,0,SQL_SUCCESS,false,false,true);
     return result;
 }
+static std::vector<Event> nullability(const FieldAPI& functions) {
+    std::vector<Event> result;
+    for(short columns:{short(-1),short(0),short(1),short(2)})for(UINT declared:{0u,7u})for(short nullable:{short(-7),short(0),short(1),short(2),short(69)})
+    for(DWORD index:{0ul,1ul,2ul,0x7ffffffful,0x80000000ul,0xfffffffful}) {
+        Fixture f;reset();CODBCFieldInfo metadata[2];metadata[0].m_nNullability=nullable;metadata[1].m_nNullability=nullable;
+        f.rs.m_rgODBCFieldInfos=metadata;f.rs.m_nResultCols=columns;f.rs.m_nFields=declared;BOOL returned=-7;
+        int caught=invoke([&]{returned=functions.nullable(&f.rs,index);});event(103,returned);save(result,caught);f.rs.m_rgODBCFieldInfos=nullptr;
+    }
+    for(short columns:{short(0),short(2)})for(UINT_PTR value:{UINT_PTR(0),UINT_PTR(1),UINT_PTR(2),UINT_PTR(3),UINT_PTR(0xffffffffu),UINT_PTR(0x80000000u),UINT_PTR(0x100000001ULL)})
+    for(bool found:{false,true})for(bool null:{false,true})for(bool returns:{false,true}) {
+        Fixture f;reset();CODBCFieldInfo metadata[2];metadata[0].m_nNullability=SQL_NULLABLE;metadata[1].m_nNullability=SQL_NO_NULLS;
+        f.rs.m_rgODBCFieldInfos=metadata;f.rs.m_nResultCols=columns;int field=0;
+        if(found)f.rs.m_mapFieldIndex.SetAt(&field,reinterpret_cast<void*>(value));returningThrow=returns;BOOL returned=-7;
+        int caught=invoke([&]{returned=functions.boundNullable(&f.rs,null?nullptr:&field);});event(103,returned);save(result,caught);f.rs.m_rgODBCFieldInfos=nullptr;
+    }
+    return result;
+}
+static void capabilityGetters() {
+    // afxdb.inl in the shipping 14.51 SDK supplies these release contracts.
+    Fixture f;f.rs.m_hstmt=nullptr;f.rs.m_lOpen=0;f.rs.m_pDatabase=nullptr;f.rs.m_dwOptions=CRecordset::readOnly;f.rs.m_bDeleted=TRUE;
+    f.rs.m_bAppendable=69;f.rs.m_bUpdatable=71;f.rs.m_bScrollable=73;
+    check(f.rs.CanAppend()==69 && f.rs.CanUpdate()==71 && f.rs.CanScroll()==73 && f.rs.CanRestart()==TRUE && events.empty(),
+        "SDK release capability getters preserve full BOOL flags independently of open state, deleted rows and read-only options");
+    f.rs.m_dwOptions|=CRecordset::executeDirect;
+    check(f.rs.CanRestart()==FALSE,"SDK CanRestart rejects direct-execution recordsets using their stored option flag");
+    f.rs.m_pDatabase=&f.db;f.db.m_hdbc=nullptr;f.db.m_bTransactions=69;
+    check(f.rs.CanTransact()==69,"SDK CanTransact returns the database's full transaction capability flag");
+    f.rs.m_pDatabase=nullptr;
+    check(invoke([&]{f.rs.CanTransact();})==1,"SDK CanTransact raises the framework user exception for a missing database");
+}
 static void termination(bool native) {
     wchar_t path[2048];::GetModuleFileNameW(nullptr,path,2048);::SetEnvironmentVariableW(L"OPENMFC_FIELD_NAME_TERMINATION_CHILD",native?L"1":L"0");
     std::wstring command=L"\""+std::wstring(path)+L"\"";std::vector<wchar_t> input(command.begin(),command.end());input.push_back(0);
@@ -318,8 +352,9 @@ static void recordsetValues() {
     FieldAPI localFields{&impl__GetFieldIndexByName_CRecordset__QEAAFPEB_W_Z,&impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z,&impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z,
         &impl__GetFieldValue_CRecordset__QEAAXFAEAVCDBVariant__F_Z,&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAVCDBVariant__F_Z,
         &impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z,&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z,
-        &impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z,&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z};
-    auto allocated=buffers(local);auto strings=text(local);auto blobs=binary(local);auto information=metadata(localFields);auto values=fields(localFields);termination(false);
+        &impl__GetFieldValue_CRecordset__QEAAXFAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z,&impl__GetFieldValue_CRecordset__QEAAXPEB_WAEAV__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL___Z,
+        &impl__IsFieldNullable_CRecordset__QEBAHK_Z,&impl__IsFieldNullable_CRecordset__QEAAHPEAX_Z};
+    capabilityGetters();auto allocated=buffers(local);auto strings=text(local);auto blobs=binary(local);auto information=metadata(localFields);auto values=fields(localFields);auto nullable=nullability(localFields);termination(false);
     wchar_t path[1024];if(::GetEnvironmentVariableW(L"OPENMFC_NATIVE_RECORDSET_VALUES_DLL",path,1024)) {
         auto module=::LoadLibraryW(path);check(module!=nullptr,"load native MFC for field-buffer comparisons");
         if(module) {
@@ -333,7 +368,8 @@ static void recordsetValues() {
                 FieldAPI nativeFields{reinterpret_cast<decltype(localFields.index)>(base+0x1fc8c0),reinterpret_cast<decltype(localFields.info)>(base+0x1f9290),reinterpret_cast<decltype(localFields.namedInfo)>(base+0x1f9250),
                     reinterpret_cast<decltype(localFields.variant)>(base+0x1f9350),reinterpret_cast<decltype(localFields.namedVariant)>(base+0x1f92f0),
                     reinterpret_cast<decltype(localFields.wide)>(base+0x1f9600),reinterpret_cast<decltype(localFields.namedWide)>(base+0x1f9560),
-                    reinterpret_cast<decltype(localFields.narrow)>(base+0x1f9780),reinterpret_cast<decltype(localFields.namedNarrow)>(base+0x1f95c0)};
+                    reinterpret_cast<decltype(localFields.narrow)>(base+0x1f9780),reinterpret_cast<decltype(localFields.namedNarrow)>(base+0x1f95c0),
+                    reinterpret_cast<decltype(localFields.nullable)>(base+0x1fcbd0),reinterpret_cast<decltype(localFields.boundNullable)>(base+0x1f8970)};
                 auto compare=[&](const std::vector<Event>& actual,const std::vector<Event>& expected,const char* label){
                     if(actual!=expected)for(size_t i=0;i<std::min(actual.size(),expected.size());++i)if(actual[i]!=expected[i]){std::printf("%s mismatch %zu local:",label,i);for(auto n:expected[i])std::printf(" %lld",n);std::printf(" native:");for(auto n:actual[i])std::printf(" %lld",n);puts("");break;}check(actual==expected,label);};
                 compare(buffers(native),allocated,"variant data-buffer types, sizes, inline bits, ownership and full-width allocation failures match native MFC");
@@ -341,6 +377,7 @@ static void recordsetValues() {
                 compare(binary(native),blobs,"long binary reallocation, retained handles, fetch offsets, lengths and interrupted lock state match native MFC");
                 compare(metadata(nativeFields),information,"field-name lookup, metadata copying, signed column counts, ownership and padding match native MFC");
                 compare(fields(nativeFields),values,"all six field-value overloads, typed variants, NULLs, continuation reads, name lookup, output ownership and failures match native MFC");
+                compare(nullability(nativeFields),nullable,"nullable result columns, bound-field maps, zero-based indices, signed flags and exception paths match native MFC");
                 termination(true);
             }
             ::FreeLibrary(module);

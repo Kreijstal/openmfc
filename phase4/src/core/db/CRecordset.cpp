@@ -8,6 +8,7 @@
 #include "detail/CPtrListSupport.h"
 extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int);
 extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int);
+extern "C" void MS_ABI impl__AfxThrowUserException__YAXXZ();
 
 // Symbol: ??0CRecordset@@QEAA@PEAVCDatabase@@@Z
 extern "C" void* MS_ABI impl___0CRecordset__QEAA_PEAVCDatabase___Z(void* pThis, CDatabase* pDatabase) {
@@ -73,15 +74,6 @@ BOOL CRecordset::IsFieldNull(void* field) {
     if(index<0)ThrowDBException(0x402,nullptr);
     return IsFieldStatusNull(index);
 }
-BOOL CRecordset::IsFieldNullable(unsigned long dwField) {
-    LoadRecordsetFields(this);
-    auto it = g_recordsetStates.find(this);
-    if (it == g_recordsetStates.end()) return TRUE;
-    auto& fields = it->second.fields;
-    if (dwField == 0 || dwField > fields.size()) return TRUE;
-    const auto& field = fields[dwField - 1];
-    return field.m_nNullability != SQL_NO_NULLS;
-}
 void CRecordset::MoveFirst() {
     Move(1, SQL_FETCH_FIRST);
 }
@@ -98,20 +90,20 @@ void CRecordset::SetAbsolutePosition(long nRows) {
     Move(nRows, SQL_FETCH_ABSOLUTE);
 }
 BOOL CRecordset::CanAppend() const {
-    if (!m_pDatabase || !m_pDatabase->IsOpen()) return FALSE;
-    return (m_dwOptions & CRecordset::readOnly) == 0;
+    return m_bAppendable;
 }
 BOOL CRecordset::CanRestart() const {
-    return IsOpen();
+    return !(m_dwOptions & executeDirect);
 }
 BOOL CRecordset::CanScroll() const {
-    return IsOpen() && m_nOpenType != CRecordset::forwardOnly;
+    return m_bScrollable;
 }
 BOOL CRecordset::CanTransact() const {
-    return m_pDatabase ? m_pDatabase->CanTransact() : FALSE;
+    if(!m_pDatabase)impl__AfxThrowUserException__YAXXZ();
+    return m_pDatabase->m_bTransactions;
 }
 BOOL CRecordset::CanUpdate() const {
-    return m_pDatabase && !m_bDeleted && (m_dwOptions & CRecordset::readOnly) == 0;
+    return m_bUpdatable;
 }
 CString CRecordset::GetDefaultConnect() {
     return L"ODBC;";
@@ -138,23 +130,6 @@ void CRecordset::OnFieldChange(void* pvField, LONG* plLength) {
     }
     state.dirtyFields.insert(static_cast<unsigned long>(fieldIndex));
 }
-
-// === Moved from ManualThunks.cpp ===
-// Symbol: ?IsFieldNullable@CRecordset@@QEAAHPEAX@Z
-extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEAAHPEAX_Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0;
-}
-
-
-// Symbol: ?IsFieldNullable@CRecordset@@QEBAHK@Z
-extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0;
-}
-
 
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(short,void*,void*);
 void CRecordset::PreBindFields() {impl__PreBindFields_CRecordset__UEAAXXZ(this);}

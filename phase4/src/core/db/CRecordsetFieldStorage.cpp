@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstddef>
+#include <climits>
+#include <cstdint>
 #ifndef MS_ABI
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
@@ -73,6 +75,22 @@ void CRecordset::SetFieldDirty(void* field,BOOL dirty) {
     if(field) {first=last=GetBoundFieldIndex(field)-1;if(first<0)return;}
     for(int i=first;i<=last;++i) {if(dirty)SetDirtyFieldStatus(i);else ClearDirtyFieldStatus(i);}
 }
+// Native result metadata is zero-based and independent of the declared RFX
+// field count. Invalid result indices use the framework's user exception.
+BOOL CRecordset::IsFieldNullable(DWORD index) const {
+    if(index>INT_MAX || static_cast<int>(index)>=m_nResultCols)impl__AfxThrowUserException__YAXXZ();
+    return m_rgODBCFieldInfos[index].m_nNullability!=SQL_NO_NULLS;
+}
+BOOL CRecordset::IsFieldNullable(void* field) {
+    if(!field)return FALSE;
+    long index=long(uint32_t(GetBoundFieldIndex(field))-1);
+    if(index<0)ThrowDBException(0x402,nullptr);
+    return IsFieldNullable(DWORD(index));
+}
+// Symbol: ?IsFieldNullable@CRecordset@@QEBAHK@Z
+extern "C" BOOL MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(const CRecordset* rs,DWORD index) {return rs->IsFieldNullable(index);}
+// Symbol: ?IsFieldNullable@CRecordset@@QEAAHPEAX@Z
+extern "C" BOOL MS_ABI impl__IsFieldNullable_CRecordset__QEAAHPEAX_Z(CRecordset* rs,void* field) {return rs->IsFieldNullable(field);}
 void CRecordset::FreeDataCache() {
     // Native release type IDs from afxdb_.h; unknown types remain untouched.
     for(UINT i=0;i<m_nFields;++i) {

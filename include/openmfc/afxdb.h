@@ -239,7 +239,7 @@ public:
     BOOL IsDeleted() const;
     BOOL IsFieldDirty(void*);
     BOOL IsFieldNull(void*);
-    BOOL IsFieldNullable(unsigned long);
+    BOOL IsFieldNullable(unsigned long) const;BOOL IsFieldNullable(void*);
     void MoveFirst();void MoveLast();void MoveNext();void MovePrev();
     void SetAbsolutePosition(long);
     long GetAbsolutePosition() const {return m_lCurrentRecord;}
