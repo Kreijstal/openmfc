@@ -303,6 +303,7 @@ static void ownershipAndRecreation() {
 #include "recordset_sql_tests.h"
 #include "recordset_open_tests.h"
 #include "recordset_move_tests.h"
+#include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
 #include "dlginit_tests.h"
@@ -314,6 +315,7 @@ static void ownershipAndRecreation() {
 #include "typelib_cache_tests.h"
 
 int main() {
+    if(recordsetRequeryTerminationChild())return 0;
     std::setvbuf(stdout,nullptr,_IONBF,0);
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
@@ -350,6 +352,7 @@ int main() {
     if (SUCCEEDED(hr)) recordsetSQL();
     if (SUCCEEDED(hr)) recordsetOpen();
     if (SUCCEEDED(hr)) recordsetMove();
+    if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();
     if (SUCCEEDED(hr)) dlgInit();

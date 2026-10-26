@@ -13,6 +13,8 @@ static SQLULEN reportedConcurrency;
 static BOOL accepted;
 static bool returningThrow;
 static int failure,checkFailure,checks;
+using ExecuteHook=SQLRETURN (SQL_API*)(SQLHSTMT);
+static ExecuteHook executeHook=nullptr;
 static void event(INT64 kind,INT64 a=0,INT64 b=0,INT64 c=0,INT64 d=0,INT64 e=0){events.push_back({kind,a,b,c,d,e});}
 static RETCODE take(Kind kind) {
     if(position>=steps.size() || steps[position].kind!=kind){std::printf("unexpected execution step %d at %zu\n",kind,position);std::abort();}
@@ -95,7 +97,7 @@ static std::vector<INT64> exercise(Execute execute) {
 }
 }
 extern "C" SQLRETURN SQL_API SQLPrepareW(SQLHSTMT statement,SQLWCHAR* sql,SQLINTEGER length){return recordset_execute_test::prepare(statement,sql,length);}
-extern "C" SQLRETURN SQL_API SQLExecute(SQLHSTMT statement){return recordset_execute_test::run(statement);}
+extern "C" SQLRETURN SQL_API SQLExecute(SQLHSTMT statement){if(recordset_execute_test::executeHook)return recordset_execute_test::executeHook(statement);return recordset_execute_test::run(statement);}
 extern "C" SQLRETURN SQL_API SQLGetStmtAttrW(SQLHSTMT statement,SQLINTEGER kind,SQLPOINTER output,SQLINTEGER capacity,SQLINTEGER* bytes){return recordset_execute_test::attribute(statement,kind,output,capacity,bytes);}
 static void recordsetExecute() {
     using namespace recordset_execute_test;

@@ -22,36 +22,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CRecordset__UEBAPEAUCRunt
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordset__SAPEAUCRuntimeClass__XZ() {
     return CRecordset::GetThisClass();
 }
-// Symbol: ?Requery@CRecordset@@UEAAHXZ
-extern "C" int MS_ABI impl__Requery_CRecordset__UEAAHXZ(CRecordset* pThis) {
-    if (!pThis || !pThis->IsOpen()) return FALSE;
-    RETCODE rc = SQLCloseCursor(pThis->GetHSTMT());
-    if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
-        return FALSE;
-    }
-
-    rc = SQLExecute(pThis->GetHSTMT());
-    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
-        return TRUE;
-    }
-
-    CString sql;
-    {
-        std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
-        auto it = g_recordsetSql.find(pThis);
-        if (it != g_recordsetSql.end()) {
-            sql = it->second;
-        }
-    }
-    if (sql.IsEmpty()) {
-        sql = pThis->GetDefaultSQL();
-    }
-    if (sql.IsEmpty()) {
-        return FALSE;
-    }
-    rc = SQLExecDirectW(pThis->GetHSTMT(), (SQLWCHAR*)(const wchar_t*)sql, SQL_NTS);
-    return (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) ? TRUE : FALSE;
-}
 // Symbol: ?GetDefaultFieldType@CRecordset@@SAFF@Z
 extern "C" short MS_ABI impl__GetDefaultFieldType_CRecordset__SAFF_Z(short nSQLType) {
     switch (nSQLType) {
@@ -351,7 +321,6 @@ extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(void* pThis, vo
 
 
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(short,void*,void*);
-BOOL CRecordset::Requery() {return impl__Requery_CRecordset__UEAAHXZ(this);}
 void CRecordset::OnSetUpdateOptions(HSTMT statement) {impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(this,statement);}
 void CRecordset::PreBindFields() {impl__PreBindFields_CRecordset__UEAAXXZ(this);}
 void CRecordset::ThrowDBException(RETCODE code,HSTMT statement) {
