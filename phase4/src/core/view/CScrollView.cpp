@@ -49,10 +49,6 @@ extern "C" void MS_ABI impl___1CScrollView__UEAA_XZ(CScrollView* pThis) {
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CScrollView__UEBAPEAUCRuntimeClass__XZ(const CScrollView*) { return &CScrollView::classCScrollView; }
 // Symbol: ?GetThisClass@CScrollView@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CScrollView__SAPEAUCRuntimeClass__XZ() { return &CScrollView::classCScrollView; }
-// Symbol: ?GetMessageMap@CScrollView@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CScrollView__MEBAPEBUAFX_MSGMAP__XZ(const CScrollView*) { return &g_docviewEmptyMap; }
-// Symbol: ?GetThisMessageMap@CScrollView@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CScrollView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
 // CScrollView residuals.
 // Symbol: ?sizeDefault@CScrollView@@2UtagSIZE@@B
 extern "C" SIZE impl__sizeDefault_CScrollView__2UtagSIZE__B = {0, 0};
@@ -105,7 +101,7 @@ CScrollView::~CScrollView() { impl___1CScrollView__UEAA_XZ(this); }
 void CScrollView::SetScrollSizes(int nMapMode, const SIZE& sizeTotal, const SIZE& sizePage, const SIZE& sizeLine) { impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(this, nMapMode, &sizeTotal, &sizePage, &sizeLine); }
 void CScrollView::OnInitialUpdate() { impl__OnInitialUpdate_CScrollView__UEAAXXZ(this); }
 void CScrollView::OnDraw(void* pDC) { impl__OnDraw_CScrollView__UEAAXPEAX_Z(this, pDC); }
-void CScrollView::OnUpdate(CView* pSender, unsigned long lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
+void CScrollView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
 void CScrollView::GetScrollBarSizes(SIZE& sizeSb) {
     sizeSb.cx = ::GetSystemMetrics(SM_CXVSCROLL);
     sizeSb.cy = ::GetSystemMetrics(SM_CYHSCROLL);
@@ -207,3 +203,8 @@ void CScrollView::ResizeParentToFit(int bShrinkOnly) {
     ::SetWindowPos(hWndParent, nullptr, 0, 0, nWidth, nHeight,
                    SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
+
+void CScrollView::OnPrepareDC(CDC* dc,void* info) { impl__OnPrepareDC_CScrollView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(this,dc,info); }
+CSize CScrollView::GetWheelScrollDistance(CSize size,BOOL horizontal,BOOL vertical) { CSize result;impl__GetWheelScrollDistance_CScrollView__UEAA_AVCSize__V2_HH_Z(&result,this,size,horizontal,vertical);return result; }
+BOOL CScrollView::OnScroll(UINT code,UINT position,BOOL scroll) { return impl__OnScroll_CScrollView__UEAAHIIH_Z(this,code,position,scroll); }
+BOOL CScrollView::OnScrollBy(CSize size,BOOL scroll) { return impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(this,size,scroll); }

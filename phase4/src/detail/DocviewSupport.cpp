@@ -40,14 +40,14 @@ extern "C" void MS_ABI impl__AddView_CDocument__UEAAXPEAVCView___Z(
 
     // Set view's document
     pView->m_pDocument = pThis;
-    pView->m_pNextView = nullptr;
+    NextView(pView) = nullptr;
 
     // Add to end of list
     if (!pThis->m_pFirstView) {
         pThis->m_pFirstView = pView;
         pThis->m_pLastView = pView;
     } else {
-        pThis->m_pLastView->m_pNextView = pView;
+        NextView(pThis->m_pLastView) = pView;
         pThis->m_pLastView = pView;
     }
 }
@@ -62,19 +62,19 @@ extern "C" void MS_ABI impl__RemoveView_CDocument__UEAAXPEAVCView___Z(
     while (pCur) {
         if (pCur == pView) {
             if (pPrev) {
-                pPrev->m_pNextView = pCur->m_pNextView;
+                NextView(pPrev) = NextView(pCur);
             } else {
-                pThis->m_pFirstView = pCur->m_pNextView;
+                pThis->m_pFirstView = NextView(pCur);
             }
             if (pThis->m_pLastView == pView) {
                 pThis->m_pLastView = pPrev;
             }
             pView->m_pDocument = nullptr;
-            pView->m_pNextView = nullptr;
+            ForgetView(pView);
             break;
         }
         pPrev = pCur;
-        pCur = pCur->m_pNextView;
+        pCur = NextView(pCur);
     }
 }
 extern "C" void* MS_ABI impl__GetFirstViewPosition_CDocument__UEBAPEAXXZ(
@@ -88,11 +88,11 @@ extern "C" CView* MS_ABI impl__GetNextView_CDocument__UEBAPEAVCView__AEAPEAX_Z(
     if (!pThis || !pos) return nullptr;
 
     CView* pView = static_cast<CView*>(pos);
-    pos = pView->m_pNextView;
+    pos = NextView(pView);
     return pView;
 }
 extern "C" void MS_ABI impl__UpdateAllViews_CDocument__UEAAXPEAVCView__KPEAVCObject___Z(
-    CDocument* pThis, CView* pSender, unsigned long lHint, CObject* pHint)
+    CDocument* pThis, CView* pSender, LPARAM lHint, CObject* pHint)
 {
     if (!pThis) return;
 
@@ -101,7 +101,7 @@ extern "C" void MS_ABI impl__UpdateAllViews_CDocument__UEAAXPEAVCView__KPEAVCObj
         if (pView != pSender) {
             pView->OnUpdate(pSender, lHint, pHint);
         }
-        pView = pView->m_pNextView;
+        pView = NextView(pView);
     }
 }
 extern "C" void MS_ABI impl__Serialize_CDocument__UEAAXAEAVCArchive___Z(
@@ -120,7 +120,7 @@ extern "C" void MS_ABI impl___0CView__QEAA_XZ(CView* pThis) {
     if (!pThis) return;
     pThis->m_hWnd = nullptr;
     pThis->m_pDocument = nullptr;
-    pThis->m_pNextView = nullptr;
+    pThis->m_bInitialRedraw = FALSE;
 }
 extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(
     const CView* pThis)
@@ -128,7 +128,7 @@ extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(
     return pThis ? pThis->m_pDocument : nullptr;
 }
 extern "C" void MS_ABI impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(
-    CView* pThis, CView* pSender, unsigned long lHint, CObject* pHint)
+    CView* pThis, CView* pSender, LPARAM lHint, CObject* pHint)
 {
     (void)pSender;
     (void)lHint;
@@ -192,7 +192,9 @@ extern "C" void MS_ABI impl___0CScrollView__QEAA_XZ(CScrollView* pThis) {
     pThis->m_pageDev.cy = 0;
     pThis->m_lineDev.cx = 0;
     pThis->m_lineDev.cy = 0;
-    pThis->m_nMapMode = MM_TEXT;
+    pThis->m_nMapMode = 0;
+    pThis->m_pAnchorWindow=nullptr; pThis->m_totalDev={0,0};
+    pThis->m_bCenter=FALSE; pThis->m_bInsideUpdate=FALSE;
 }
 extern "C" void MS_ABI impl__SetScrollSizes_CScrollView__UEAAXHAEBUtagSIZE__00_Z(
     CScrollView* pThis, int nMapMode, const SIZE* sizeTotal,
@@ -262,7 +264,9 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_XZ(CFormView* pThis) {
     if (!pThis) return;
     impl___0CScrollView__QEAA_XZ(pThis);
     pThis->m_lpszTemplateName = nullptr;
-    pThis->m_nIDHelp = 0;
+    pThis->m_pCreateContext=nullptr; pThis->m_hWndFocus=nullptr;
+    pThis->m_bInitDlgCompleted=FALSE; pThis->m_pOccDialogInfo=nullptr; pThis->m_pCreatedOccDialogInfo=nullptr;
+    pThis->m_bEnableActiveAccessibility=true;
 }
 extern "C" void MS_ABI impl__OnDraw_CFormView__UEAAXPEAX_Z(
     CFormView* pThis, void* pDC)
@@ -498,6 +502,10 @@ extern "C" void MS_ABI impl___0CMultiDocTemplate__QEAA_XZ(CMultiDocTemplate* pTh
     pThis->m_pLastDoc = nullptr;
 }
 namespace openmfc { namespace detail { namespace docview {
+static std::unordered_map<CView*,CView*> viewLinks;
+CView*& NextView(CView* view) { return viewLinks[view]; }
+void ForgetView(CView* view) { viewLinks.erase(view); }
+
 bool LoadTemplateDocString(UINT resourceId, int index, CString& out) {
     out.Empty();
     if (resourceId == 0 || index < 0 || index >= kDocStringCount) {
@@ -614,15 +622,19 @@ extern "C" void MS_ABI impl___0CFormView__QEAA_PEB_W_Z(
     if (!pThis) return;
     impl___0CScrollView__QEAA_XZ(pThis);
     pThis->m_lpszTemplateName = lpszTemplateName;
-    pThis->m_nIDHelp = 0;
+    pThis->m_pCreateContext=nullptr; pThis->m_hWndFocus=nullptr;
+    pThis->m_bInitDlgCompleted=FALSE; pThis->m_pOccDialogInfo=nullptr; pThis->m_pCreatedOccDialogInfo=nullptr;
+    pThis->m_bEnableActiveAccessibility=true;
 }
 extern "C" void MS_ABI impl___0CFormView__QEAA_I_Z(
     CFormView* pThis, unsigned int nIDTemplate)
 {
     if (!pThis) return;
     impl___0CScrollView__QEAA_XZ(pThis);
-    pThis->m_lpszTemplateName = MAKEINTRESOURCEW(nIDTemplate);
-    pThis->m_nIDHelp = nIDTemplate;
+    pThis->m_lpszTemplateName = MAKEINTRESOURCEW(static_cast<WORD>(nIDTemplate));
+    pThis->m_pCreateContext=nullptr; pThis->m_hWndFocus=nullptr;
+    pThis->m_bInitDlgCompleted=FALSE; pThis->m_pOccDialogInfo=nullptr; pThis->m_pCreatedOccDialogInfo=nullptr;
+    pThis->m_bEnableActiveAccessibility=true;
 }
 const AFX_MSGMAP_ENTRY g_docviewEmptyEntries[] = {
     {0, 0, 0, 0, AfxSig_end, (AFX_PMSG)0}

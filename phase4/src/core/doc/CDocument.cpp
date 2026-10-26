@@ -169,7 +169,7 @@ extern "C" void MS_ABI impl___1CDocument__UEAA_XZ(CDocument* pThis) {
     // Disconnect all views
     CView* pView = pThis->m_pFirstView;
     while (pView) {
-        CView* pNext = pView->m_pNextView;
+        CView* pNext = NextView(pView);
         pView->m_pDocument = nullptr;
         pView = pNext;
     }
@@ -232,7 +232,7 @@ extern "C" void MS_ABI impl__OnCloseDocument_CDocument__UEAAXXZ(CDocument* pThis
     // Destroy all views
     CView* pView = pThis->m_pFirstView;
     while (pView) {
-        CView* pNext = pView->m_pNextView;
+        CView* pNext = NextView(pView);
         if (pView->m_hWnd) {
             ::DestroyWindow(pView->m_hWnd);
         }
@@ -339,9 +339,9 @@ extern "C" void MS_ABI impl__PreCloseFrame_CDocument__UEAAXPEAVCFrameWnd___Z(CDo
 extern "C" void MS_ABI impl__DisconnectViews_CDocument__QEAAXXZ(CDocument* pThis) {
     if (!pThis) return;
     for (CView* view = pThis->m_pFirstView; view; ) {
-        CView* next = view->m_pNextView;
+        CView* next = NextView(view);
         view->m_pDocument = nullptr;
-        view->m_pNextView = nullptr;
+        NextView(view) = nullptr;
         view = next;
     }
     pThis->m_pFirstView = pThis->m_pLastView = nullptr;
@@ -349,7 +349,7 @@ extern "C" void MS_ABI impl__DisconnectViews_CDocument__QEAAXXZ(CDocument* pThis
 // Symbol: ?SendInitialUpdate@CDocument@@QEAAXXZ
 extern "C" void MS_ABI impl__SendInitialUpdate_CDocument__QEAAXXZ(CDocument* pThis) {
     if (!pThis) return;
-    for (CView* view = pThis->m_pFirstView; view; view = view->m_pNextView) view->OnInitialUpdate();
+    for (CView* view = pThis->m_pFirstView; view; view = NextView(view)) view->OnInitialUpdate();
 }
 // Symbol: ?UpdateFrameCounts@CDocument@@UEAAXXZ
 extern "C" void MS_ABI impl__UpdateFrameCounts_CDocument__UEAAXXZ(CDocument* pThis) { if (pThis) pThis->UpdateAllViews(nullptr, 0, nullptr); }

@@ -331,24 +331,23 @@ static_assert(sizeof(CRecordset)==440 && sizeof(CFieldInfo)==24 && sizeof(CODBCF
 class CRecordView : public CFormView {
     DECLARE_DYNAMIC(CRecordView)
 public:
-    CRecordView(UINT nIDTemplate);
-    CRecordView(const wchar_t* lpszTemplateName);
+    CRecordView(UINT);
+    CRecordView(const wchar_t*);
     virtual ~CRecordView();
-
-    virtual BOOL OnMove(UINT nIDMoveCommand);
-    virtual BOOL IsOnFirstRecord();
-    virtual BOOL IsOnLastRecord();
-
-    CRecordset* GetRecordset() { return m_pSet; }
-    virtual CRecordset* OnGetRecordset();
-
-public:
-    CRecordset* m_pSet;
-    BOOL m_bOnFirstRecord;
-    BOOL m_bOnLastRecord;
-
-protected:
-    char _crecordview_padding[32];
+    virtual CRecordset* OnGetRecordset() = 0; // SDK slot 112
+    BOOL IsOnFirstRecord();
+    BOOL IsOnLastRecord();
+    virtual BOOL OnMove(UINT);              // SDK slot 113
+    void OnInitialUpdate() override;
+    CRecordset* GetRecordset() { return OnGetRecordset(); }
+    const AFX_MSGMAP* GetMessageMap() const override;
+    static const AFX_MSGMAP* GetThisMessageMap();
+    void OnUpdateRecordFirst(CCmdUI*);
+    void OnUpdateRecordPrev(CCmdUI*);
+    void OnUpdateRecordNext(CCmdUI*);
+    void OnUpdateRecordLast(CCmdUI*);
+    BOOL m_bOnFirstRecord,m_bOnLastRecord;
 };
+static_assert(sizeof(CRecordView)==360,"native CRecordView layout");
 
 #endif // OPENMFC_AFXDB_H

@@ -45,6 +45,7 @@ extern "C" void MS_ABI impl___1CView__UEAA_XZ(CView* pThis) {
     if (pThis->m_pDocument) {
         pThis->m_pDocument->RemoveView(pThis);
     }
+    ForgetView(pThis);
 }
 // OnInitialUpdate
 // Symbol: ?OnInitialUpdate@CView@@UEAAXXZ
@@ -81,10 +82,6 @@ extern "C" void MS_ABI impl__OnActivateView_CView__MEAAXHPEAV1_0_Z(
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CView__UEBAPEAUCRuntimeClass__XZ(const CView*) { return &CView::classCView; }
 // Symbol: ?GetThisClass@CView@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CView__SAPEAUCRuntimeClass__XZ() { return &CView::classCView; }
-// Symbol: ?GetMessageMap@CView@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CView__MEBAPEBUAFX_MSGMAP__XZ(const CView*) { return &g_docviewEmptyMap; }
-// Symbol: ?GetThisMessageMap@CView@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
 // CView residuals.
 // Symbol: ?CalcWindowRect@CView@@UEAAXPEAUtagRECT@@I@Z
 extern "C" void MS_ABI impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(CView* pThis, RECT* rect, unsigned int adjustType) {
@@ -320,7 +317,7 @@ extern "C" int MS_ABI impl__PreCreateWindow_CView__MEAAHAEAUtagCREATESTRUCTW___Z
 CView::CView() { impl___0CView__QEAA_XZ(this); }
 CView::~CView() { impl___1CView__UEAA_XZ(this); }
 CDocument* CView::GetDocument() const { return impl__GetDocument_CView__UEBAPEAVCDocument__XZ(this); }
-void CView::OnUpdate(CView* pSender, unsigned long lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
+void CView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) { impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(this, pSender, lHint, pHint); }
 void CView::OnInitialUpdate() { impl__OnInitialUpdate_CView__UEAAXXZ(this); }
 int CView::OnPreparePrinting(void* pInfo) { return impl__OnPreparePrinting_CView__UEAAHPEAX_Z(this, pInfo); }
 void CView::OnBeginPrinting(void* pDC, void* pInfo) { impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(this, pDC, pInfo); }
@@ -342,19 +339,26 @@ BOOL CView::OnDrop(COleDataObject* pDataObject, DWORD dropEffect, CPoint point) 
 DWORD CView::OnDropEx(COleDataObject* pDataObject, DWORD dropDefault, DWORD /*dropList*/, CPoint point) {
     return OnDrop(pDataObject, dropDefault, point);
 }
+extern "C" void* MS_ABI impl___0CWnd__QEAA_XZ(void*);
 // Symbol: ??0CView@@IEAA@XZ
 // CView::CView()
-extern "C" void* MS_ABI impl___0CView__IEAA_XZ() {
-    struct CViewFactoryShim : public CView {
-        void OnDraw(void* pDC) override { (void)pDC; }
-    };
-    return new CViewFactoryShim();
+extern "C" void* MS_ABI impl___0CView__IEAA_XZ(void* self) {
+    impl___0CWnd__QEAA_XZ(self);
+    impl___0CView__QEAA_XZ(static_cast<CView*>(self));
+    return self;
 }
 
-// === Moved from ManualThunks.cpp ===
 // Symbol: ?OnUpdate@CView@@MEAAXPEAV1@_JPEAVCObject@@@Z
-extern "C" void MS_ABI impl__OnUpdate_CView__MEAAXPEAV1__JPEAVCObject___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
+extern "C" void MS_ABI impl__OnUpdate_CView__MEAAXPEAV1__JPEAVCObject___Z(CView* self,CView* sender,LPARAM hint,CObject* object) {
+    impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(self,sender,hint,object);
 }
 
+BOOL CView::IsSelected(const CObject* item) const { return impl__IsSelected_CView__UEBAHPEBVCObject___Z(this,item); }
+BOOL CView::OnScroll(UINT code,UINT pos,BOOL scroll) { return impl__OnScroll_CView__UEAAHIIH_Z(this,code,pos,scroll); }
+BOOL CView::OnScrollBy(CSize size,BOOL scroll) { return impl__OnScrollBy_CView__UEAAHVCSize__H_Z(this,size,scroll); }
+void CView::OnDragLeave() { impl__OnDragLeave_CView__UEAAXXZ(this); }
+DWORD CView::OnDragScroll(DWORD keys,CPoint point) { return impl__OnDragScroll_CView__UEAAKKVCPoint___Z(this,keys,point); }
+void CView::OnPrepareDC(CDC* dc,void* info) { impl__OnPrepareDC_CView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(this,dc,info); }
+void CView::OnActivateFrame(UINT state,CFrameWnd* frame) { impl__OnActivateFrame_CView__MEAAXIPEAVCFrameWnd___Z(this,state,frame); }
+void CView::OnPrint(CDC* dc,void* info) { impl__OnPrint_CView__MEAAXPEAVCDC__PEAUCPrintInfo___Z(this,dc,info); }
+void CView::OnEndPrintPreview(CDC* dc,void* info,POINT point,CPreviewView* preview) { impl__OnEndPrintPreview_CView__MEAAXPEAVCDC__PEAUCPrintInfo__UtagPOINT__PEAVCPreviewView___Z(this,dc,info,point,preview); }

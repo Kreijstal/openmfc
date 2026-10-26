@@ -87,6 +87,10 @@ on:
       - 'tests/database_variant_tests.h'
       - 'tests/recordset_result_tests.h'
       - 'tests/recordset_value_tests.h'
+      - 'tests/recordview_command_tests.h'
+      - 'phase4/src/core/view/CRecordViewCommands.cpp'
+      - 'phase4/src/core/view/CFormViewInitialization.cpp'
+      - 'phase4/src/core/view/ViewMessageMaps.cpp'
       - 'tests/recordset_requery_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
@@ -300,6 +304,10 @@ on:
       - 'tests/database_variant_tests.h'
       - 'tests/recordset_result_tests.h'
       - 'tests/recordset_value_tests.h'
+      - 'tests/recordview_command_tests.h'
+      - 'phase4/src/core/view/CRecordViewCommands.cpp'
+      - 'phase4/src/core/view/CFormViewInitialization.cpp'
+      - 'phase4/src/core/view/ViewMessageMaps.cpp'
       - 'tests/recordset_requery_tests.h'
       - 'tests/cstring_ownership_tests.h'
       - 'tests/native_string_fixture.cpp'
@@ -523,6 +531,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CRecordViewCommands.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewInitialization.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/ViewMessageMaps.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetValues.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetResults.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDBVariant.cpp"
@@ -715,6 +726,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CRecordViewCommands.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewInitialization.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/ViewMessageMaps.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetValues.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetResults.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDBVariant.cpp"
@@ -823,7 +837,7 @@ jobs:
           )
           cl @resources.rsp
           cl /nologo /LD /EHs /MT /std:c++17 /W0 /I"%VCToolsInstallDir%atlmfc\include" "%GITHUB_WORKSPACE%/tests/native_string_fixture.cpp" /link /OUT:native_string_fixture.dll /LIBPATH:"%VCToolsInstallDir%atlmfc\lib\x64" user32.lib advapi32.lib ole32.lib
-      - name: Compile affected database sources with MSVC
+      - name: Compile affected database and view sources with MSVC
         shell: cmd
         working-directory: ${{ runner.temp }}
         run: |
@@ -875,6 +889,17 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordset.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetIsOpen.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetAllocation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CRecordViewCommands.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormViewInitialization.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/ViewMessageMaps.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CView.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollView.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CFormView.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CRecordView.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CCtrlView.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/Thunks.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/doc/CDocument.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/DocviewSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetValues.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CRecordsetResults.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDBVariant.cpp"

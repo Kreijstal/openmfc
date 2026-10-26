@@ -3466,112 +3466,99 @@ protected:
     char _document_padding[272];
 };
 
-// CView - View base class
+class CPreviewView;
+
+// View virtuals follow the release MSVC SDK slots 91..110. Helpers such as
+// GetDocument and GetParentFrame are nonvirtual in MFC.
 class CView : public CWnd {
     DECLARE_DYNAMIC(CView)
 public:
     CView();
     virtual ~CView();
-    int OnCmdMsg(UINT id,int code,void* extra,AFX_CMDHANDLERINFO* info) override;
-
-    // Document access
-    virtual CDocument* GetDocument() const;
-    virtual void OnUpdate(CView* pSender, unsigned long lHint = 0, CObject* pHint = nullptr);
+    const AFX_MSGMAP* GetMessageMap() const override;
+    static const AFX_MSGMAP* GetThisMessageMap();
+    int OnCmdMsg(UINT,int,void*,AFX_CMDHANDLERINFO*) override;
+    CDocument* GetDocument() const;
+    virtual BOOL IsSelected(const CObject*) const;
+    virtual BOOL OnScroll(UINT,UINT,BOOL = TRUE);
+    virtual BOOL OnScrollBy(CSize,BOOL = TRUE);
+    virtual DWORD OnDragEnter(COleDataObject*,DWORD,CPoint);
+    virtual DWORD OnDragOver(COleDataObject*,DWORD,CPoint);
+    virtual void OnDragLeave();
+    virtual BOOL OnDrop(COleDataObject*,DWORD,CPoint);
+    virtual DWORD OnDropEx(COleDataObject*,DWORD,DWORD,CPoint);
+    virtual DWORD OnDragScroll(DWORD,CPoint);
+    virtual void OnPrepareDC(CDC*,void* = nullptr);
     virtual void OnInitialUpdate();
-    
-    // Drawing
-    virtual void OnDraw(void* pDC) = 0; // CDC* pDC
-    
-    // Printing
-    virtual int OnPreparePrinting(void* pInfo); // CPrintInfo* pInfo
-    virtual void OnBeginPrinting(void* pDC, void* pInfo); // CDC* pDC, CPrintInfo* pInfo
-    virtual void OnEndPrinting(void* pDC, void* pInfo); // CDC* pDC, CPrintInfo* pInfo
-    
-    // Activation
-    virtual void OnActivateView(int bActivate, CView* pActivateView, CView* pDeactiveView);
-
-    // OLE drag/drop defaults
-    virtual DWORD OnDragEnter(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
-    virtual DWORD OnDragOver(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
-    virtual BOOL OnDrop(COleDataObject* pDataObject, DWORD dropEffect, CPoint point);
-    virtual DWORD OnDropEx(COleDataObject* pDataObject, DWORD dropDefault, DWORD dropList, CPoint point);
-    
-    // Frame window
-    virtual CFrameWnd* GetParentFrame() const;
-    
-public:
-    CDocument* m_pDocument;       // Associated document
-    CView* m_pNextView;           // Next view in document's view list
-    
-protected:
-    // Padding for ABI compatibility
+    virtual void OnActivateView(BOOL,CView*,CView*);
+    virtual void OnActivateFrame(UINT,CFrameWnd*);
+    virtual void OnUpdate(CView*,LPARAM = 0,CObject* = nullptr);
+    virtual void OnDraw(void*) = 0;
+    virtual BOOL OnPreparePrinting(void*);
+    virtual void OnBeginPrinting(void*,void*);
+    virtual void OnPrint(CDC*,void*);
+    virtual void OnEndPrinting(void*,void*);
+    virtual void OnEndPrintPreview(CDC*,void*,POINT,CPreviewView*);
+    CFrameWnd* GetParentFrame() const;
+    CDocument* m_pDocument;
+    BOOL m_bInitialRedraw;
 };
+static_assert(sizeof(CView)==248,"native CView layout");
 
-// CScrollView - Scrollable view
 class CScrollView : public CView {
     DECLARE_DYNCREATE(CScrollView)
 public:
     CScrollView();
     virtual ~CScrollView();
-
-    // Scroll operations
-    virtual void SetScrollSizes(int nMapMode, const SIZE& sizeTotal,
-                                const SIZE& sizePage = {0, 0},
-                                const SIZE& sizeLine = {0, 0});
-    virtual void GetScrollBarSizes(SIZE& sizeSb);
-    virtual void GetTrueClientSize(SIZE& size, SIZE& sizeSb) const;
-    
-    virtual void ScrollToPosition(POINT pt);
-    virtual CPoint GetScrollPosition() const;
-    
-    virtual void FillOutsideRect(void* pDC, void* pBrush); // CDC* pDC, CBrush* pBrush
-    virtual void ResizeParentToFit(int bShrinkOnly = 1);
-    
-    // Overrides
-    virtual void OnDraw(void* pDC) override;
-    virtual void OnInitialUpdate() override;
-    virtual void OnUpdate(CView* pSender, unsigned long lHint = 0, CObject* pHint = nullptr) override;
-    
-public:
-    SIZE m_totalLog;    // Total logical size
-    SIZE m_pageDev;     // Page size in device units
-    SIZE m_lineDev;     // Line size in device units
-    int m_nMapMode;               // Mapping mode
-
-protected:
-    // Padding for ABI compatibility
-    char _scrollview_padding[24];
+    const AFX_MSGMAP* GetMessageMap() const override;
+    static const AFX_MSGMAP* GetThisMessageMap();
+    void SetScrollSizes(int,const SIZE&,const SIZE& = {0,0},const SIZE& = {0,0});
+    void GetScrollBarSizes(SIZE&);
+    void GetTrueClientSize(SIZE&,SIZE&) const;
+    void ScrollToPosition(POINT);
+    CPoint GetScrollPosition() const;
+    void FillOutsideRect(void*,void*);
+    void ResizeParentToFit(BOOL = TRUE);
+    void OnDraw(void*) override;
+    // These convenience overrides do not add slots to the native table.
+    void OnInitialUpdate() override;
+    void OnUpdate(CView*,LPARAM = 0,CObject* = nullptr) override;
+    void OnPrepareDC(CDC*,void* = nullptr) override;
+    virtual CSize GetWheelScrollDistance(CSize,BOOL,BOOL);
+    BOOL OnScroll(UINT,UINT,BOOL = TRUE) override;
+    BOOL OnScrollBy(CSize,BOOL = TRUE) override;
+    void* m_pAnchorWindow;
+    int m_nMapMode;
+    SIZE m_totalLog,m_totalDev,m_pageDev,m_lineDev;
+    BOOL m_bCenter,m_bInsideUpdate;
 };
+static_assert(sizeof(CScrollView)==304,"native CScrollView layout");
 
-// CFormView - Form-based view
 class CFormView : public CScrollView {
     DECLARE_DYNCREATE(CFormView)
 public:
-    CFormView() : CScrollView(), m_lpszTemplateName(nullptr), m_nIDHelp(0) { memset(_formview_padding, 0, sizeof(_formview_padding)); }
-    CFormView(const wchar_t* lpszTemplateName) : CScrollView(), m_lpszTemplateName(lpszTemplateName), m_nIDHelp(0) { memset(_formview_padding, 0, sizeof(_formview_padding)); }
-    CFormView(unsigned int nIDTemplate) : CScrollView(), m_lpszTemplateName(nullptr), m_nIDHelp(nIDTemplate) { memset(_formview_padding, 0, sizeof(_formview_padding)); }
+    CFormView() : CFormView(static_cast<const wchar_t*>(nullptr)) {}
+    CFormView(const wchar_t* name) : CScrollView(),m_lpszTemplateName(name),
+        m_pCreateContext(nullptr),m_hWndFocus(nullptr),m_bInitDlgCompleted(FALSE),
+        m_pOccDialogInfo(nullptr),m_pCreatedOccDialogInfo(nullptr) { m_bEnableActiveAccessibility=true; }
+    CFormView(UINT id) : CFormView(MAKEINTRESOURCEW(static_cast<WORD>(id))) {}
     virtual ~CFormView();
-
-    // Creation
-    virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
-                       DWORD dwStyle, const struct tagRECT& rect,
-                       CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext = nullptr) override;
-    
-    // Dialog data exchange
-    virtual void DoDataExchange(void* pDX); // CDataExchange* pDX
-    
-    // Overrides
-    virtual void OnInitialUpdate() override;
-    virtual void OnDraw(void* pDC) override;
-    
-public:
-    const wchar_t* m_lpszTemplateName; // Dialog template name
-    unsigned int m_nIDHelp;            // Help ID
-    
-protected:
-    // Padding for ABI compatibility
-    char _formview_padding[32];
+    const AFX_MSGMAP* GetMessageMap() const override;
+    static const AFX_MSGMAP* GetThisMessageMap();
+    BOOL Create(const wchar_t*,const wchar_t*,DWORD,const RECT&,CWnd*,UINT,CCreateContext* = nullptr) override;
+    using CWnd::DoDataExchange;
+    void DoDataExchange(void*);
+    void OnInitialUpdate() override;
+    void OnDraw(void*) override;
+    BOOL IsInitDlgCompleted() const { return m_bInitDlgCompleted; }
+    const wchar_t* m_lpszTemplateName;
+    CCreateContext* m_pCreateContext;
+    HWND m_hWndFocus;
+    BOOL m_bInitDlgCompleted;
+    _AFX_OCC_DIALOG_INFO* m_pOccDialogInfo;
+    _AFX_OCC_DIALOG_INFO* m_pCreatedOccDialogInfo;
 };
+static_assert(sizeof(CFormView)==352,"native CFormView layout");
 
 // CEditView - Edit control-based view
 class CEditView : public CView {

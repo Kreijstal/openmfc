@@ -1113,16 +1113,6 @@
 
 // Generated 1074 thunks
 // Errors (could not parse): 0
-// Symbol: ??0CRecordView@@IEAA@I@Z
-// Constructor: CRecordView::CRecordView
-extern "C" void* MS_ABI impl___0CRecordView__IEAA_I_Z(void* pThis, unsigned int p0) {
-    return new(pThis) CRecordView(p0);
-}
-// Symbol: ??0CRecordView@@IEAA@PEB_W@Z
-// Constructor: CRecordView::CRecordView
-extern "C" void* MS_ABI impl___0CRecordView__IEAA_PEB_W_Z(void* pThis, const wchar_t* p0) {
-    return new(pThis) CRecordView(p0);
-}
 // Symbol: ??0CRichEditView@@QEAA@XZ
 // Constructor: CRichEditView::CRichEditView
 extern "C" void* MS_ABI impl___0CRichEditView__QEAA_XZ(void* pThis) {
@@ -1132,11 +1122,6 @@ extern "C" void* MS_ABI impl___0CRichEditView__QEAA_XZ(void* pThis) {
 // Constructor: CScrollView::CScrollView
 extern "C" void* MS_ABI impl___0CScrollView__IEAA_XZ(void* pThis) {
     return new(pThis) CScrollView();
-}
-// Symbol: ??1CRecordView@@UEAA@XZ
-// Destructor: CRecordView::~CRecordView
-extern "C" void MS_ABI impl___1CRecordView__UEAA_XZ(void* pThis) {
-    ((CRecordView*)pThis)->~CRecordView();
 }
 // Symbol: ?CanPaste@CRichEditView@@QEBAHXZ
 // CRichEditView::CanPaste
@@ -1168,16 +1153,6 @@ extern "C" int MS_ABI impl__FindTextW_CRichEditView__QEAAHPEB_WHHH_Z(CRichEditVi
 extern "C" void MS_ABI impl__GetScrollPosition_CScrollView__QEBA_AVCPoint__XZ(const CScrollView* pThis, CPoint* __ret) {
     *__ret = pThis->GetScrollPosition();
 }
-// Symbol: ?IsOnFirstRecord@CRecordView@@QEAAHXZ
-// CRecordView::IsOnFirstRecord
-extern "C" int MS_ABI impl__IsOnFirstRecord_CRecordView__QEAAHXZ(CRecordView* pThis) {
-    return (int)pThis->IsOnFirstRecord();
-}
-// Symbol: ?IsOnLastRecord@CRecordView@@QEAAHXZ
-// CRecordView::IsOnLastRecord
-extern "C" int MS_ABI impl__IsOnLastRecord_CRecordView__QEAAHXZ(CRecordView* pThis) {
-    return (int)pThis->IsOnLastRecord();
-}
 // Symbol: ?OnDraw@CFormView@@MEAAXPEAVCDC@@@Z
 // CFormView::OnDraw
 extern "C" void MS_ABI impl__OnDraw_CFormView__MEAAXPEAVCDC___Z(CFormView* pThis, CDC* p0) {
@@ -1187,11 +1162,6 @@ extern "C" void MS_ABI impl__OnDraw_CFormView__MEAAXPEAVCDC___Z(CFormView* pThis
 // CRichEditView::OnInitialUpdate
 extern "C" void MS_ABI impl__OnInitialUpdate_CRichEditView__MEAAXXZ(CRichEditView* pThis) {
     pThis->OnInitialUpdate();
-}
-// Symbol: ?OnMove@CRecordView@@UEAAHI@Z
-// CRecordView::OnMove
-extern "C" int MS_ABI impl__OnMove_CRecordView__UEAAHI_Z(CRecordView* pThis, unsigned int p0) {
-    return (int)pThis->OnMove(p0);
 }
 // Symbol: ?OnTextNotFound@CRichEditView@@MEAAXPEB_W@Z
 // CRichEditView::OnTextNotFound

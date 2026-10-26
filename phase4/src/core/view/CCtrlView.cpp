@@ -63,14 +63,9 @@ constexpr DWORD kAfxWsDefaultView = WS_CHILD | WS_VISIBLE | WS_BORDER;
 //   m_dwDefaultStyle (+0x100) = dwStyle;  return this
 // Retail's CView::CView (0x277530) is: CWnd::CWnd(this) (call 0x28a700 =
 // ??0CWnd@@QEAA@XZ); m_pDocument (+0xe8) = NULL; m_bInitialRedraw (+0xf0) = 0.
-// Deviation: OpenMFC's exported ??0CView@@IEAA@XZ thunk (core/view/CView.cpp:348)
-// ignores `this` and heap-allocates a new object, so it cannot be used to
-// construct a base subobject.  That body is inlined here instead: the CWnd
-// placement-constructor thunk, then the internal CView field helper, which
-// nulls m_hWnd (already null), m_pDocument (+0xe8) and the 8-byte OpenMFC
-// m_pNextView at +0xf0 (a superset of retail's 4-byte m_bInitialRedraw store;
-// +0xf4 is padding in retail).  m_strClass is built with OpenMFC's CString,
-// which yields the same string value as retail's nil-then-SetString sequence
+// The CWnd placement constructor and internal view-field helper establish
+// m_pDocument and the native four-byte m_bInitialRedraw field. m_strClass
+// is built with OpenMFC's CString, yielding the same value as retail's setup
 // for NULL, empty and non-empty lpszClass (neither performs CStringT's implicit
 // MAKEINTRESOURCE load); the representation differs -- OpenMFC's empty string
 // is its locked static nil, not the string manager's AddRef'd nil.

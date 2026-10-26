@@ -17,32 +17,23 @@ extern "C" intptr_t MS_ABI impl__OnPrintClient_CScrollView__QEAA_JPEAVCDC__I_Z(C
 extern "C" void MS_ABI impl___0CFormView__IEAA_PEB_W_Z(
     CFormView* pThis, const wchar_t* lpszTemplateName)
 {
-    impl___0CFormView__QEAA_PEB_W_Z(pThis, lpszTemplateName);
+    new(pThis) CFormView(lpszTemplateName);
 }
 // Symbol: ??0CFormView@@IEAA@I@Z
 extern "C" void MS_ABI impl___0CFormView__IEAA_I_Z(
     CFormView* pThis, unsigned int nIDTemplate)
 {
-    impl___0CFormView__QEAA_I_Z(pThis, nIDTemplate);
+    new(pThis) CFormView(nIDTemplate);
 }
 // Destructor
 // Symbol: ??1CFormView@@UEAA@XZ
 extern "C" void MS_ABI impl___1CFormView__UEAA_XZ(CFormView* pThis) {
     impl___1CScrollView__UEAA_XZ(pThis);
 }
-// OnInitialUpdate (CFormView)
-// Symbol: ?OnInitialUpdate@CFormView@@UEAAXXZ
-extern "C" void MS_ABI impl__OnInitialUpdate_CFormView__UEAAXXZ(CFormView* pThis) {
-    impl__OnInitialUpdate_CScrollView__UEAAXXZ(pThis);
-}
 // Symbol: ?GetRuntimeClass@CFormView@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFormView__UEBAPEAUCRuntimeClass__XZ(const CFormView*) { return &CFormView::classCFormView; }
 // Symbol: ?GetThisClass@CFormView@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFormView__SAPEAUCRuntimeClass__XZ() { return &CFormView::classCFormView; }
-// Symbol: ?GetMessageMap@CFormView@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CFormView__MEBAPEBUAFX_MSGMAP__XZ(const CFormView*) { return &g_docviewEmptyMap; }
-// Symbol: ?GetThisMessageMap@CFormView@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFormView__KAPEBUAFX_MSGMAP__XZ() { return &g_docviewEmptyMap; }
 // CFormView residuals.
 // Symbol: ?GetOccDialogInfo@CFormView@@MEAAPEAU_AFX_OCC_DIALOG_INFO@@XZ
 extern "C" void* MS_ABI impl__GetOccDialogInfo_CFormView__MEAAPEAU_AFX_OCC_DIALOG_INFO__XZ(CFormView* pThis) {
@@ -78,7 +69,6 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CFormView__MEAAHPEAUtagMSG___Z(C
 extern "C" int MS_ABI impl__SaveFocusControl_CFormView__IEAAHXZ(CFormView* pThis) { return pThis && pThis->m_hWnd && ::GetFocus() != nullptr; }
 CFormView::~CFormView() { impl___1CFormView__UEAA_XZ(this); }
 void CFormView::OnDraw(void* pDC) { impl__OnDraw_CFormView__UEAAXPEAX_Z(this, pDC); }
-void CFormView::OnInitialUpdate() { impl__OnInitialUpdate_CFormView__UEAAXXZ(this); }
 void CFormView::DoDataExchange(void* pDX) { impl__DoDataExchange_CFormView__UEAAXPEAX_Z(this, pDX); }
 int CFormView::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                       DWORD dwStyle, const struct tagRECT& rect, CWnd* pParentWnd,

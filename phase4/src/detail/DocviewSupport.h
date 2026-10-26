@@ -215,13 +215,13 @@ extern "C" void MS_ABI impl__AddView_CDocument__UEAAXPEAVCView___Z(CDocument* pT
 extern "C" void MS_ABI impl__RemoveView_CDocument__UEAAXPEAVCView___Z(CDocument* pThis, CView* pView);
 extern "C" void* MS_ABI impl__GetFirstViewPosition_CDocument__UEBAPEAXXZ(const CDocument* pThis);
 extern "C" CView* MS_ABI impl__GetNextView_CDocument__UEBAPEAVCView__AEAPEAX_Z(const CDocument* pThis, void*& pos);
-extern "C" void MS_ABI impl__UpdateAllViews_CDocument__UEAAXPEAVCView__KPEAVCObject___Z(CDocument* pThis, CView* pSender, unsigned long lHint, CObject* pHint);
+extern "C" void MS_ABI impl__UpdateAllViews_CDocument__UEAAXPEAVCView__KPEAVCObject___Z(CDocument* pThis, CView* pSender, LPARAM lHint, CObject* pHint);
 extern "C" int MS_ABI impl__SaveModified_CDocument__UEAAHXZ(CDocument* pThis);
 extern "C" int MS_ABI impl__DoSave_CDocument__UEAAHPEB_WH_Z(CDocument* pThis, const wchar_t* lpszPathName, int bReplace);
 extern "C" int MS_ABI impl__DoFileSave_CDocument__UEAAHXZ(CDocument* pThis);
 extern "C" void MS_ABI impl__Serialize_CDocument__UEAAXAEAVCArchive___Z(CDocument* pThis, CArchive* ar);
 extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(const CView* pThis);
-extern "C" void MS_ABI impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(CView* pThis, CView* pSender, unsigned long lHint, CObject* pHint);
+extern "C" void MS_ABI impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(CView* pThis, CView* pSender, LPARAM lHint, CObject* pHint);
 extern "C" void MS_ABI impl__OnInitialUpdate_CView__UEAAXXZ(CView* pThis);
 extern "C" int MS_ABI impl__OnPreparePrinting_CView__UEAAHPEAX_Z(CView* pThis, void* pInfo);
 extern "C" void MS_ABI impl__OnBeginPrinting_CView__UEAAXPEAX0_Z(CView* pThis, void* pDC, void* pInfo);
@@ -377,7 +377,7 @@ extern "C" CView* MS_ABI impl__GetNextView_CDocument__UEBAPEAVCView__AEAPEAX_Z(
 
 // UpdateAllViews
 extern "C" void MS_ABI impl__UpdateAllViews_CDocument__UEAAXPEAVCView__KPEAVCObject___Z(
-    CDocument* pThis, CView* pSender, unsigned long lHint, CObject* pHint);
+    CDocument* pThis, CView* pSender, LPARAM lHint, CObject* pHint);
 
 
 
@@ -400,7 +400,7 @@ extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(
 
 // OnUpdate
 extern "C" void MS_ABI impl__OnUpdate_CView__UEAAXPEAV1_KPEAVCObject___Z(
-    CView* pThis, CView* pSender, unsigned long lHint, CObject* pHint);
+    CView* pThis, CView* pSender, LPARAM lHint, CObject* pHint);
 
 
 // OnPreparePrinting
@@ -649,3 +649,8 @@ extern "C" int MS_ABI impl__GetThumbnail_CDocument__UEAAHIPEAPEAUHBITMAP____PEAW
 
 
 
+
+namespace openmfc { namespace detail { namespace docview {
+CView*& NextView(CView*);
+void ForgetView(CView*);
+} } }
