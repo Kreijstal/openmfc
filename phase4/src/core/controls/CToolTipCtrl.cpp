@@ -192,13 +192,6 @@ extern "C" void MS_ABI impl__DelTool_CToolTipCtrl__QEAAXPEAVCWnd___K_Z(
     FillToolInfo(&info, pWnd, nIDTool);
     ::SendMessageW(ToolTipHwnd(pThis), TTM_DELTOOLW, 0, (LPARAM)&info);
 }
-// Symbol: ?DestroyToolTipCtrl@CToolTipCtrl@@QEAAHXZ
-extern "C" int MS_ABI impl__DestroyToolTipCtrl_CToolTipCtrl__QEAAHXZ(CToolTipCtrl* pThis) {
-    if (!pThis || !pThis->m_hWnd) return FALSE;
-    HWND hWnd = pThis->m_hWnd;
-    pThis->m_hWnd = nullptr;
-    return ::DestroyWindow(hWnd);
-}
 // Symbol: ?FillInToolInfo@CToolTipCtrl@@QEBAXAEAUtagTOOLINFOW@@PEAVCWnd@@_K@Z
 extern "C" void MS_ABI impl__FillInToolInfo_CToolTipCtrl__QEBAXAEAUtagTOOLINFOW__PEAVCWnd___K_Z(
     const CToolTipCtrl* pThis, TOOLINFOW* pInfo, CWnd* pWnd, UINT_PTR nIDTool) {

@@ -61,11 +61,6 @@ namespace openmfc { namespace detail { namespace manualsmallstubimplementations 
 HFONT GetChevronOwnerDrawMenuFont();
 } } }
 
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-struct CTempHandleObject_ManualSmallStubImplementations : public CObject {
-    void* m_handle = nullptr;
-};
-} } }
 
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
 struct CD2DSizeF_ManualSmallStubImplementations {
@@ -566,12 +561,6 @@ namespace openmfc { namespace detail { namespace manualsmallstubimplementations 
 extern std::unordered_map<void*, void*> g_bitmapRenderTargetBitmaps;
 } } }
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-extern std::mutex g_handleMapMutex;
-} } }
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-extern std::unordered_map<void*, std::unordered_map<void*, CTempHandleObject_ManualSmallStubImplementations*>> g_tempHandleMap;
-} } }
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
 extern std::mutex g_innerUnknownMutex;
 } } }
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
@@ -637,15 +626,9 @@ struct LocalAFX_MODULE_STATE {
 };
 } } }
 
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-struct AFX_MODULE_THREAD_STATE_ManualSmallStubImplementations {
-    int m_nTempMapLock{};
-};
-} } }
 
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(AFX_MODULE_STATE*);
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
-extern "C" AFX_MODULE_THREAD_STATE_ManualSmallStubImplementations* MS_ABI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
 
 
 

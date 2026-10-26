@@ -90,7 +90,10 @@ int main() {
     // Drain the list, then add a node and confirm allocator hands back memory.
     impl__RemoveAll_CPtrList__QEAAXXZ(L);
     CHECK(L->GetCount() == 0, "RemoveAll empties list");
-    CHECK(impl__RemoveHead_CPtrList__QEAAPEAXXZ(L) == nullptr, "RemoveHead on empty null");
+    bool emptyHeadThrew = false;
+    try { impl__RemoveHead_CPtrList__QEAAPEAXXZ(L); }
+    catch (...) { emptyHeadThrew = true; }
+    CHECK(emptyHeadThrew, "RemoveHead rejects an empty native list");
     CHECK(impl__RemoveTail_CPtrList__QEAAPEAXXZ(L) == nullptr, "RemoveTail on empty null");
 
     // After RemoveAll, add 6 (> block size 4) to force a second plex block.

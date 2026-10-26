@@ -11,6 +11,7 @@ using namespace openmfc::detail::regcore;
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "openmfc/afxstat_.h"
+#include "CThreadLocalObjectSupport.h"
 #include <windows.h>
 #include <cstring>
 
@@ -138,11 +139,15 @@ public:
     void (AFXAPI* m_pfnFilterToolTipMessage)(MSG*,CWnd*)=nullptr;
     BYTE m_reservedToOccManager[0xa0-0x88]{};
     void* m_pOccManager{};
+    BYTE m_reservedToModuleThreadSlot[0xf8-0xa8]{};
+    S_Cthreadlocalobject m_moduleThreadState{};
+    ~AFX_MODULE_STATE() override { impl___1CThreadLocalObject__QEAA_XZ(&m_moduleThreadState); }
 };
 static_assert(offsetof(AFX_MODULE_STATE,m_pCurrentWinApp)==8,"native module application prefix");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnAfxWndProc)==0x70,"native framework window procedure");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnFilterToolTipMessage)==0x80,"native tooltip filter");
 static_assert(offsetof(AFX_MODULE_STATE,m_pOccManager)==0xa0,"native OLE manager");
+static_assert(offsetof(AFX_MODULE_STATE,m_moduleThreadState)==0xf8,"native module thread slot");
 
 namespace openmfc { namespace detail { namespace regcore {
 extern AFX_MODULE_STATE g_moduleStateStatic;
@@ -155,20 +160,3 @@ AFX_MODULE_STATE* ResolveCurrentModuleState();
 namespace openmfc { namespace detail { namespace regcore {
 void RefreshStaticModuleState();
 } } }
-
-
-
-
-// =============================================================================
-// Module Thread State
-// =============================================================================
-
-struct AFX_MODULE_THREAD_STATE_Regcore {
-    // Simplified to the fields that are currently needed by OpenMFC callers.
-    int m_nTempMapLock;
-};
-
-namespace openmfc { namespace detail { namespace regcore {
-extern thread_local AFX_MODULE_THREAD_STATE_Regcore g_moduleThreadState;
-} } }
-

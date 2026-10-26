@@ -399,8 +399,6 @@ std::mutex g_bitmapButtonStateMutex;
 std::unordered_map<void*, CBitmapButtonState> g_bitmapButtonStates;
 std::mutex g_bitmapRenderTargetMutex;
 std::unordered_map<void*, void*> g_bitmapRenderTargetBitmaps;
-std::mutex g_handleMapMutex;
-std::unordered_map<void*, std::unordered_map<void*, CTempHandleObject_ManualSmallStubImplementations*>> g_tempHandleMap;
 std::mutex g_innerUnknownMutex;
 std::unordered_map<void*, unsigned long> g_innerUnknownRefCounts;
 std::mutex g_coleUIlinkInfoMutex;

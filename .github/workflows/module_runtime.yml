@@ -1,0 +1,88 @@
+name: Module runtime ABI
+on:
+  push:
+    paths:
+      - 'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/Globals.cpp'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'phase4/src/detail/RegcoreSupport.*'
+      - 'phase4/src/detail/MemcoreSupport.*'
+      - 'phase4/src/core/collections/CHandleMap.cpp'
+      - 'phase4/src/detail/CHandleMapSupport.*'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/core/collections/CPlex.cpp'
+      - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
+      - 'phase4/src/detail/CPtrListSupport.*'
+      - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
+      - 'phase4/src/core/runtime/CThread*.cpp'
+      - 'phase4/src/detail/CThread*Support.*'
+      - 'include/openmfc/afxstat_.h'
+      - 'include/openmfc/afx.h'
+      - 'include/openmfc/afxwin.h'
+      - 'tests/test_module_runtime_native.cpp'
+      - 'tests/test_chandlemap_logic.cpp'
+      - 'tests/thread_state_test_runtime.*'
+      - 'tests/run_module_runtime.sh'
+      - '.github/workflows/module_runtime.yml'
+  pull_request:
+    paths:
+      - 'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/Globals.cpp'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'phase4/src/detail/RegcoreSupport.*'
+      - 'phase4/src/detail/MemcoreSupport.*'
+      - 'phase4/src/core/collections/CHandleMap.cpp'
+      - 'phase4/src/detail/CHandleMapSupport.*'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/core/collections/CPlex.cpp'
+      - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
+      - 'phase4/src/detail/CPtrListSupport.*'
+      - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
+      - 'phase4/src/core/runtime/CThread*.cpp'
+      - 'phase4/src/detail/CThread*Support.*'
+      - 'include/openmfc/afxstat_.h'
+      - 'include/openmfc/afx.h'
+      - 'include/openmfc/afxwin.h'
+      - 'tests/test_module_runtime_native.cpp'
+      - 'tests/test_chandlemap_logic.cpp'
+      - 'tests/thread_state_test_runtime.*'
+      - 'tests/run_module_runtime.sh'
+      - '.github/workflows/module_runtime.yml'
+  workflow_dispatch:
+jobs:
+  module-runtime:
+    name: Module runtime (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '/O2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile module/thread state, handle maps and allocation implementations
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          set "MR_FLAGS=/nologo /EHs /MD /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /DOPENMFC_EXPORTS /D_WIN32_WINNT=0x0601 /FIwinsock2.h /FIobjbase.h /FIcommdlg.h /FIshellapi.h ${{ matrix.flags }}"
+          cl %MR_FLAGS% /c /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CHandleMap.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CHandleMapSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/MemcoreSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CPtrListSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/controls/CToolTipCtrlLifetime.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CFixedAllocSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPlex.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CThreadLocalObject.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CThreadSlotData.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CThreadLocalObjectSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/detail/CThreadSlotDataSupport.cpp" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/_AFX_THREAD_STATE.cpp" "%GITHUB_WORKSPACE%/tests/test_module_runtime_native.cpp" "%GITHUB_WORKSPACE%/tests/test_chandlemap_logic.cpp" "%GITHUB_WORKSPACE%/tests/thread_state_test_runtime.cpp"
+          if errorlevel 1 exit /b %errorlevel%
+      - name: Link and run native trace, exception and ownership regressions
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          set "MR_OBJECTS=AFX_MODULE_THREAD_STATE.obj CHandleMap.obj CHandleMapSupport.obj MemcoreSupport.obj CMapPtrToPtrStorage.obj CPtrListSupport.obj CToolTipCtrlLifetime.obj CFixedAllocSupport.obj CPlex.obj CThreadLocalObject.obj CThreadSlotData.obj CThreadLocalObjectSupport.obj CThreadSlotDataSupport.obj _AFX_THREAD_STATE.obj"
+          link /nologo /OUT:test_module_runtime_native.exe /SUBSYSTEM:CONSOLE /OPT:REF %MR_OBJECTS% test_module_runtime_native.obj kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_module_runtime_native.exe
+          if errorlevel 1 exit /b %errorlevel%
+          link /nologo /OUT:test_chandlemap_logic.exe /SUBSYSTEM:CONSOLE /OPT:REF %MR_OBJECTS% test_chandlemap_logic.obj thread_state_test_runtime.obj kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_chandlemap_logic.exe
+          if errorlevel 1 exit /b %errorlevel%

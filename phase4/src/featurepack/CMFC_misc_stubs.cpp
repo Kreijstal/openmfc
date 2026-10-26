@@ -681,7 +681,6 @@ extern "C" unsigned long MS_ABI impl__ApplicationRecoveryCallback_CWinApp__UEAAK
 
 namespace {
 int g_bPerUserRegistration = 0;
-void* g_pfnNewHandler = nullptr;
 
 // Reference count for AfxGlobalsAddRef/Release.
 LONG g_afxGlobalsRefCount = 0;
@@ -1547,10 +1546,6 @@ extern "C" void MS_ABI impl__AfxGetModuleShortFileName__YAXPEAUHINSTANCE____AEAV
     } else {
         *pStrShortName = shortBuf;
     }
-}
-// Symbol: ?AfxGetNewHandler@@YAP6AH_K@ZXZ
-extern "C" void* MS_ABI impl__AfxGetNewHandler__YAP6AH_K_ZXZ() {
-    return g_pfnNewHandler;
 }
 // Symbol: ?AfxGetPerUserRegistration@@YAHXZ
 extern "C" int MS_ABI impl__AfxGetPerUserRegistration__YAHXZ() {
@@ -2959,12 +2954,6 @@ extern "C" void MS_ABI impl__AfxSafeArrayInit__YAXPEAVCOleSafeArray___Z(void* /*
     // ctor path (core/ole/COleSafeArray.cpp): a COleSafeArray is a
     // tagVARIANT plus two DWORDs, zero-initialized.
     if (p0) std::memset(p0, 0, sizeof(COleSafeArray));
-}
-// Symbol: ?AfxSetNewHandler@@YAP6AH_K@ZP6AH0@Z@Z
-extern "C" void* MS_ABI impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(void* /*fnptr*/ p0) {
-    void* pPrev = g_pfnNewHandler;
-    g_pfnNewHandler = p0;
-    return pPrev;
 }
 // Symbol: ?AfxSetPerUserRegistration@@YAXH@Z
 extern "C" void MS_ABI impl__AfxSetPerUserRegistration__YAXH_Z(int p0) {

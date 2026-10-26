@@ -71,5 +71,4 @@ void RefreshStaticModuleState() {
     g_moduleStateStatic.m_hCurrentResourceHandle = AfxGetResourceHandle();
     g_moduleStateStatic.m_pCurrentWinApp = g_pApp;
 }
-thread_local AFX_MODULE_THREAD_STATE_Regcore g_moduleThreadState;
 } } }  // namespace openmfc::detail::regcore

@@ -4,8 +4,9 @@
 #include "detail/CPlexSupport.h"
 #include <cstring>
 #include <cstdint>
-extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t);
+extern "C" CPlex* MS_ABI impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(CPlex**,unsigned __int64,unsigned __int64);
 IMPLEMENT_DYNAMIC(CMapPtrToPtr,CObject)
 CMapPtrToPtr::CMapPtrToPtr(INT_PTR block) : m_pHashTable(nullptr),m_nHashTableSize(17),
     m_nCount(0),m_pFreeList(nullptr),m_pBlocks(nullptr),m_nBlockSize(block>0 ? block : 10) {}
@@ -29,21 +30,16 @@ BOOL CMapPtrToPtr::Lookup(void* key,void*& value)const {
 }
 void CMapPtrToPtr::InitHashTable(UINT size,BOOL allocate) {
     if(!size)size=17;
-    std::free(m_pHashTable);m_pHashTable=nullptr;
+    if(m_pHashTable){std::free(m_pHashTable);m_pHashTable=nullptr;}
     if(allocate) {
-        auto* table=static_cast<CAssoc**>(std::malloc(size_t(size)*sizeof(CAssoc*)));
-        if(!table)impl__AfxThrowMemoryException__YAXXZ();
+        auto* table=static_cast<CAssoc**>(impl___2_YAPEAX_K_Z(size_t(size)*sizeof(CAssoc*)));
         m_pHashTable=table;std::memset(table,0,size_t(size)*sizeof(CAssoc*));
     }
     m_nHashTableSize=size;
 }
 CMapPtrToPtr::CAssoc* CMapPtrToPtr::NewAssoc() {
     if(!m_pFreeList) {
-        size_t size;
-        if(!ComputeBlockSize(m_nBlockSize,sizeof(CAssoc),size))impl__AfxThrowMemoryException__YAXXZ();
-        auto* block=static_cast<CPlex*>(std::malloc(size));
-        if(!block)impl__AfxThrowMemoryException__YAXXZ();
-        block->pNext=m_pBlocks;m_pBlocks=block;
+        auto* block=impl__Create_CPlex__SAPEAU1_AEAPEAU1__K1_Z(&m_pBlocks,m_nBlockSize,sizeof(CAssoc));
         auto* assocs=static_cast<CAssoc*>(block->data());
         for(INT_PTR i=m_nBlockSize;i>0;--i) {CAssoc* a=assocs+i-1;a->pNext=m_pFreeList;m_pFreeList=a;}
     }
@@ -68,8 +64,10 @@ BOOL CMapPtrToPtr::RemoveKey(void* key) {
     return FALSE;
 }
 void CMapPtrToPtr::RemoveAll() {
-    std::free(m_pHashTable);m_pHashTable=nullptr;m_nCount=0;m_pFreeList=nullptr;
-    while(m_pBlocks) {CPlex* next=m_pBlocks->pNext;std::free(m_pBlocks);m_pBlocks=next;}
+    if(m_pHashTable) {std::free(m_pHashTable);m_pHashTable=nullptr;}
+    CPlex* block=m_pBlocks;m_nCount=0;m_pFreeList=nullptr;
+    while(block) {CPlex* next=block->pNext;std::free(block);block=next;}
+    m_pBlocks=nullptr;
 }
 void CMapPtrToPtr::GetNextAssoc(POSITION& pos,void*& key,void*& value)const {
     if(!pos)return;

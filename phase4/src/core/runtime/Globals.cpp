@@ -518,10 +518,3 @@ extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetStaticModuleState__YAPEAUAFX_MOD
     RefreshStaticModuleState();
     return &g_moduleStateStatic;
 }
-// Symbol: ?AfxGetModuleThreadState@@YAPEAVAFX_MODULE_THREAD_STATE@@XZ
-// Ordinal: 2213
-// Module thread state is per-thread process bookkeeping in real MFC.
-extern "C" AFX_MODULE_THREAD_STATE_Regcore* MS_ABI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
-    g_moduleThreadState.m_nTempMapLock = 0;
-    return &g_moduleThreadState;
-}

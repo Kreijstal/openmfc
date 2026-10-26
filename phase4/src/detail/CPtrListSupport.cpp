@@ -1,4 +1,5 @@
 #include "CPtrListSupport.h"
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 
 static CRuntimeClass* AFXAPI _openmfc_gb_classOpenMFC_CPtrList() { return &CObject::classCObject; }
 CRuntimeClass OpenMFC_CPtrList::classOpenMFC_CPtrList = {
@@ -60,10 +61,9 @@ void OpenMFC_CPtrList::FreeNode(CNode* pNode) {
     pNode->pNext = m_pNodeFree;
     m_pNodeFree = pNode;
     --m_nCount;
-    // If the list became empty, reset the head/tail (matches real MFC).
+    // Native CPtrList releases its plex chain when the last node is removed.
     if (m_nCount == 0) {
-        m_pNodeHead = nullptr;
-        m_pNodeTail = nullptr;
+        RemoveAll();
     }
 }
 __POSITION* OpenMFC_CPtrList::AddHead(void* newElement) {
@@ -110,7 +110,7 @@ void OpenMFC_CPtrList::AddTail(OpenMFC_CPtrList* pNewList) {
     }
 }
 void* OpenMFC_CPtrList::RemoveHead() {
-    if (m_pNodeHead == nullptr) return nullptr;
+    if (m_pNodeHead == nullptr) impl__AfxThrowInvalidArgException__YAXXZ();
     CNode* pOldNode = m_pNodeHead;
     void* returnValue = pOldNode->data;
     m_pNodeHead = pOldNode->pNext;

@@ -3,6 +3,7 @@
 struct S_Cthreadlocalobject {
     int m_nSlot;
 };
+extern "C" void MS_ABI impl___1CThreadLocalObject__QEAA_XZ(S_Cthreadlocalobject*);
 namespace openmfc {
 namespace detail {
 namespace cthreadlocalobject {

@@ -18,6 +18,7 @@ FLAGS=(/nologo /EHs /MT /std:c++17 /Gy /Gw /W0
     -imsvc "$MSVC_DIR/Windows Kits/10/Include/$SDK_VER/shared"
     -I"$ROOT/include" -I"$ROOT/phase4/src")
 SOURCES=(tests/test_rendertarget_drawing.cpp
+    phase4/src/core/runtime/CThreadLocalObject.cpp phase4/src/core/runtime/CThreadSlotData.cpp phase4/src/detail/CThreadLocalObjectSupport.cpp phase4/src/detail/CThreadSlotDataSupport.cpp phase4/src/core/collections/CPlex.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp phase4/src/core/ole/CConnectionPoint.cpp phase4/src/core/ole/CEnumConnections.cpp phase4/src/core/ole/CEnumArrayInterfaces.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
