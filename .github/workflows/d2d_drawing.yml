@@ -14,6 +14,7 @@ on:
       - 'tests/cmdtarget_vtable_tests.h'
       - 'phase4/src/core/window/CWndMessageDispatch.cpp'
       - 'phase4/src/core/runtime/D2DMessages.cpp'
+      - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/core/runtime/CCmdTargetVirtuals.cpp'
       - 'phase4/src/core/runtime/CCmdTargetDispatch.cpp'
       - 'phase4/src/core/runtime/CCmdTargetInvoke.cpp'
@@ -297,6 +298,7 @@ on:
       - 'tests/cmdtarget_vtable_tests.h'
       - 'phase4/src/core/window/CWndMessageDispatch.cpp'
       - 'phase4/src/core/runtime/D2DMessages.cpp'
+      - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/core/runtime/CCmdTargetVirtuals.cpp'
       - 'phase4/src/core/runtime/CCmdTargetDispatch.cpp'
       - 'phase4/src/core/runtime/CCmdTargetInvoke.cpp'
@@ -736,6 +738,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityInterfaces.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityProxy.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/D2DMessages.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetInvoke.cpp"
@@ -962,6 +965,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityInterfaces.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndAccessibilityProxy.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/D2DMessages.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetDispatch.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetInvoke.cpp"

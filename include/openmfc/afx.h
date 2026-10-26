@@ -327,10 +327,18 @@ public: \
 // RUNTIME_CLASS macro - get CRuntimeClass pointer for a class
 #define RUNTIME_CLASS(class_name) (&class_name::class##class_name)
 
+#ifndef AFX_NOVTABLE
+#if defined(_MSC_VER)
+#define AFX_NOVTABLE __declspec(novtable)
+#else
+#define AFX_NOVTABLE
+#endif
+#endif
+
 // CObject - base class for most MFC classes
 // IMPORTANT: Virtual method declaration order matches real MFC for vtable ABI compatibility
 // Real MFC declares GetRuntimeClass() before destructor, so vtable[0] = GetRuntimeClass
-class CObject {
+class AFX_NOVTABLE CObject {
 public:
     // Runtime class information - MUST be first virtual for vtable[0] compatibility
     virtual CRuntimeClass* GetRuntimeClass() const {
@@ -338,7 +346,7 @@ public:
     }
 
     // Virtual destructor - second in vtable
-    virtual ~CObject() = default;
+    virtual ~CObject() = 0;
     
     // Static runtime class access
     static CRuntimeClass* GetThisClass() {
@@ -372,6 +380,8 @@ protected:
 
 // Static assertions to verify ABI compatibility
 static_assert(sizeof(CObject) == 8, "CObject must be 8 bytes (vptr only)");
+
+inline CObject::~CObject() = default;
 
 // CArchive - serialization archive class
 class CArchive {

@@ -461,11 +461,19 @@ static_assert(sizeof(CCmdUI)==64,"native CCmdUI layout");
 // CCmdTarget - base for command message handling
 //=============================================================================
 
-class CCmdTarget : public CObject {
+class AFX_NOVTABLE CCmdTarget : public CObject {
     DECLARE_DYNAMIC(CCmdTarget)
 public:
-    CCmdTarget() : m_dwRef(1), _cmd_alignment(0), m_pOuterUnknown(nullptr), m_xInnerUnknown(0),
-        m_xDispatch(0), m_bResultExpected(TRUE), _result_alignment(0), m_xConnPtContainer(0), m_pModuleState(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ()) {}
+    CCmdTarget() {
+        auto* module = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+        m_pModuleState = module;
+        m_dwRef = 1;
+        m_pOuterUnknown = nullptr;
+        m_xInnerUnknown = 0;
+        m_xDispatch = 0;
+        m_xConnPtContainer = 0;
+        m_bResultExpected = TRUE;
+    }
     virtual ~CCmdTarget();
 
     // Retail x64 prefix: CObject occupies slots 0..4, followed by these

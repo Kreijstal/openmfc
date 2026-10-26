@@ -79,7 +79,7 @@ static void verbs() {
     try { target.DoOleVerb(0,nullptr,nullptr,nullptr); }catch(int error) { propagated=error==37; }
     check(propagated,"OLE verb handler exceptions propagate to their caller");target.raise=false;
 
-    CCmdTarget empty;
+    struct ConcreteEmpty : CCmdTarget {}; ConcreteEmpty empty;
     IEnumOLEVERB* enumeration=reinterpret_cast<IEnumOLEVERB*>(UINT_PTR(1));
     check(!empty.EnumOleVerbs(&enumeration) && !enumeration &&
         !empty.DoOleVerb(0,nullptr,nullptr,nullptr),"the terminal root message map has no OLE verbs");

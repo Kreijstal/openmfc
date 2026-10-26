@@ -92,7 +92,7 @@ static void nativeSlots() {
     check(slot<Aggregates>(&probe,18)(&probe) && slot<Hook>(&probe,19)(&probe,&hookIID)==&probe.hooked &&
         !slot<Extra>(&probe,20)(&probe,nullptr) && !slot<Connection>(&probe,21)(&probe,&mappedIID),
         "retail aggregate, interface hook and connection slots complete the 22-method base prefix");
-    CCmdTarget base;
+    struct ConcreteBase : CCmdTarget {}; ConcreteBase base;
     long references=0; memcpy(&references,reinterpret_cast<char*>(&base)+8,sizeof(references));
     void* outer=reinterpret_cast<void*>(1); memcpy(&outer,reinterpret_cast<char*>(&base)+16,sizeof(outer));
     check(references==1 && !outer && base.IsInvokeAllowed(42) && !base.GetTypeInfoCount() && !base.GetTypeLibCache(),
@@ -111,7 +111,7 @@ static void interfaceLookup() {
         "interface lookup skips inactive embedded interfaces and selects the first live IUnknown");
     check(!probe.GetInterface(&IID_IEnumVARIANT) && !probe.GetInterface(nullptr),
         "missing interface identifiers return null without fake success");
-    CCmdTarget base;
+    struct ConcreteBase : CCmdTarget {}; ConcreteBase base;
     check(!base.GetInterface(&mappedIID) && base.GetDispatchMap()->lpEntries->lDispID==-1 &&
         !base.GetCommandMap()->lpEntries->cmdID && !base.GetConnectionMap()->pEntry->piid &&
         base.GetEventSinkMap()->lpEntries->nCtrlIDFirst==static_cast<UINT>(-1),

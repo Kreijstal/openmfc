@@ -66,12 +66,6 @@ CRuntimeClass* FindRuntimeClassByName(const wchar_t* name) {
     }
     return nullptr;
 }
-// Symbol: ??1CCmdTarget@@UEAA@XZ
-extern "C" void MS_ABI impl___1CCmdTarget__UEAA_XZ(CCmdTarget* pThis) {
-    if (pThis) {
-        pThis->~CCmdTarget();
-    }
-}
 int OpenMfcRunExportedMessageLoop(CWinThread* pThis) {
     MSG msg;
 

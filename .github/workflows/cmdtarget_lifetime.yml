@@ -1,0 +1,39 @@
+name: Command target lifetime ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/afx.h'
+      - 'include/openmfc/afxwin.h'
+      - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
+      - 'tests/test_cmdtarget_lifetime.cpp'
+      - 'tests/run_cmdtarget_lifetime.sh'
+      - '.github/workflows/cmdtarget_lifetime.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/afx.h'
+      - 'include/openmfc/afxwin.h'
+      - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
+      - 'tests/test_cmdtarget_lifetime.cpp'
+      - 'tests/run_cmdtarget_lifetime.sh'
+      - '.github/workflows/cmdtarget_lifetime.yml'
+  workflow_dispatch:
+jobs:
+  lifetime:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flags: ['', '/O2']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and verify native base-object lifetime
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          cl /nologo /EHs /MD /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /FIwinsock2.h /FIobjbase.h /FIcommdlg.h /FIshellapi.h ${{ matrix.flags }} /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetLifetime.cpp" "%GITHUB_WORKSPACE%/tests/test_cmdtarget_lifetime.cpp" /Fe:test_cmdtarget_lifetime.exe /link /SUBSYSTEM:CONSOLE /OPT:REF kernel32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_cmdtarget_lifetime.exe
+          if errorlevel 1 exit /b %errorlevel%

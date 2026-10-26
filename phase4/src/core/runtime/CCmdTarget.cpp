@@ -220,9 +220,6 @@ extern "C" void MS_ABI impl__RestoreWaitCursor_CCmdTarget__QEAAXXZ(CCmdTarget* p
     const int depth = g_waitCursorDepth[pThis];
     ::SetCursor(depth > 0 ? GetWaitCursorHandle() : GetArrowCursorHandle());
 }
-CCmdTarget::~CCmdTarget() {
-    // Base class destructor - nothing specific to clean up
-}
 extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CCmdTarget*,UINT,int,void*,void*);
 int CCmdTarget::OnCmdMsg(unsigned int nID,int nCode,void* pExtra,AFX_CMDHANDLERINFO* pHandlerInfo) {
     return impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(this,nID,nCode,pExtra,pHandlerInfo);
