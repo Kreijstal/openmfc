@@ -31,6 +31,16 @@ on:
       - 'phase4/src/detail/CommandRoutingSupport.h'
       - 'tests/command_routing_tests.h'
       - 'phase4/src/core/window/CWndVirtuals.cpp'
+      - 'phase4/src/core/window/CWndCreation.cpp'
+      - 'phase4/src/core/window/WindowActivation.cpp'
+      - 'phase4/src/core/window/WindowCreationHooks.cpp'
+      - 'phase4/src/core/window/FrameworkWindowProcedure.cpp'
+      - 'phase4/src/detail/WindowActivationSupport.h'
+      - 'phase4/src/detail/WindowCreationSupport.h'
+      - 'phase4/src/detail/RegcoreSupport.h'
+      - 'phase4/src/detail/WincoreSupport.cpp'
+      - 'tests/window_activation_tests.h'
+      - 'tests/window_creation_tests.h'
       - 'phase4/src/core/window/WindowMessageContext.cpp'
       - 'phase4/src/core/dialog/DialogMessageCallbacks.cpp'
       - 'phase4/src/detail/WindowMessageSupport.h'
@@ -304,6 +314,16 @@ on:
       - 'phase4/src/detail/CommandRoutingSupport.h'
       - 'tests/command_routing_tests.h'
       - 'phase4/src/core/window/CWndVirtuals.cpp'
+      - 'phase4/src/core/window/CWndCreation.cpp'
+      - 'phase4/src/core/window/WindowActivation.cpp'
+      - 'phase4/src/core/window/WindowCreationHooks.cpp'
+      - 'phase4/src/core/window/FrameworkWindowProcedure.cpp'
+      - 'phase4/src/detail/WindowActivationSupport.h'
+      - 'phase4/src/detail/WindowCreationSupport.h'
+      - 'phase4/src/detail/RegcoreSupport.h'
+      - 'phase4/src/detail/WincoreSupport.cpp'
+      - 'tests/window_activation_tests.h'
+      - 'tests/window_creation_tests.h'
       - 'phase4/src/core/window/WindowMessageContext.cpp'
       - 'phase4/src/core/dialog/DialogMessageCallbacks.cpp'
       - 'phase4/src/detail/WindowMessageSupport.h'
@@ -705,6 +725,10 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/controls/CMFCDynamicLayoutData.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCDynamicLayoutDataSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndVirtuals.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCreation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowActivation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowCreationHooks.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/FrameworkWindowProcedure.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowMessageContext.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/DialogMessageCallbacks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndD2D.cpp"
@@ -922,6 +946,10 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/controls/CMFCDynamicLayoutData.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CMFCDynamicLayoutDataSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndVirtuals.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCreation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowActivation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowCreationHooks.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/FrameworkWindowProcedure.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowMessageContext.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/DialogMessageCallbacks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndD2D.cpp"
@@ -1116,6 +1144,11 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/RegcoreSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/Globals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWnd.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/WincoreSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCreation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowActivation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowCreationHooks.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/FrameworkWindowProcedure.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/Thunks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CFrameWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWnd.cpp"

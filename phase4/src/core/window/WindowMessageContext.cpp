@@ -4,6 +4,7 @@
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" LRESULT MS_ABI impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(CException*,const MSG*);
 extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd*,CWnd*);
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND);
 namespace openmfc { namespace detail {
 void SetSentMessage(MSG& record,HWND hwnd,UINT message,WPARAM wparam,LPARAM lparam,bool refresh) {
     record.hwnd=hwnd;record.message=message;record.wParam=wparam;record.lParam=lparam;
@@ -36,23 +37,20 @@ struct SentScope {
     explicit SentScope(MSG& message) : current(message),previous(message) {}
     ~SentScope() { current=previous; }
 };
-DWORD Style(CWnd* window) {
-    if(window->m_pCtrlCont) {
-        using Getter=DWORD (MS_ABI*)(void*);
-        return openmfc::detail::WindowSlot<Getter>(window->m_pCtrlCont,32)(window->m_pCtrlCont);
-    }
-    return static_cast<DWORD>(GetWindowLongPtrW(window->m_hWnd,GWL_STYLE));
 }
-void PostInit(CWnd* window,const RECT& before,DWORD originalStyle) {
-    if(originalStyle&WS_VISIBLE || Style(window)&(WS_VISIBLE|WS_CHILD))return;
+namespace openmfc { namespace detail {
+void PostInitializeWindow(CWnd* window,const RECT& before,DWORD originalStyle) {
+    if(originalStyle&WS_VISIBLE || window->GetStyle()&(WS_VISIBLE|WS_CHILD))return;
     RECT after{};GetWindowRect(window->m_hWnd,&after);
     if(before.left!=after.left || before.top!=after.top)return;
-    HWND owner=GetWindow(window->m_hWnd,GW_OWNER);
-    if(owner && GetWindowLongPtrW(owner,GWL_STYLE)&WS_CHILD)return;
+    CWnd* owner=impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(GetWindow(window->m_hWnd,GW_OWNER));
+    // The native 0x28a8a0 helper suppresses centering for an enabled owner,
+    // including an owner represented by an OLE control site.
+    if(owner && owner->IsWindowEnabled())return;
     using Check=BOOL (MS_ABI*)(void*);
     if(openmfc::detail::WindowSlot<Check>(window,85)(window))impl__CenterWindow_CWnd__QEAAXPEAV1__Z(window,nullptr);
 }
-}
+} }
 // Native AfxCallWndProc (0x28aa70) preserves the entire sent-message record.
 // Symbol: ?AfxCallWndProc@@YA_JPEAVCWnd@@PEAUHWND__@@I_K_J@Z
 extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(
@@ -67,10 +65,10 @@ extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_
     }
     RECT before{};DWORD originalStyle=0;
     try {
-        if(message==WM_INITDIALOG) { GetWindowRect(window->m_hWnd,&before);originalStyle=Style(window); }
+        if(message==WM_INITDIALOG) { GetWindowRect(window->m_hWnd,&before);originalStyle=window->GetStyle(); }
         using Procedure=LRESULT (MS_ABI*)(void*,UINT,WPARAM,LPARAM);
         LRESULT result=openmfc::detail::WindowSlot<Procedure>(window,71)(window,message,wparam,lparam);
-        if(message==WM_INITDIALOG)PostInit(window,before,originalStyle);
+        if(message==WM_INITDIALOG)openmfc::detail::PostInitializeWindow(window,before,originalStyle);
         return result;
     } catch(CException* error) {
         openmfc::detail::FrameworkExceptionCleanup cleanup{error};

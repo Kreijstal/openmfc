@@ -45,41 +45,6 @@ static_assert(sizeof(StaticCWndExport) == sizeof(CWnd), "static CWnd export must
 static_assert(offsetof(StaticCWndExport, hWnd) == 64, "static CWnd export must place HWND at CWnd::m_hWnd");
 IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 IMPLEMENT_DYNCREATE(CFrameWnd, CWnd)
-LRESULT CALLBACK AfxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    CWnd* pWnd = nullptr;
-
-    // On WM_NCCREATE, store the CWnd* pointer
-    if (message == WM_NCCREATE) {
-        CREATESTRUCTW* pCreate = reinterpret_cast<CREATESTRUCTW*>(lParam);
-        pWnd = reinterpret_cast<CWnd*>(pCreate->lpCreateParams);
-        if (pWnd) {
-            pWnd->m_hWnd = hWnd;
-            g_hwndMap[hWnd] = pWnd;
-        }
-    } else {
-        // Look up CWnd from HWND
-        auto it = g_hwndMap.find(hWnd);
-        if (it != g_hwndMap.end()) {
-            pWnd = it->second;
-        }
-    }
-
-    // Route to CWnd::WindowProc if we have a CWnd
-    if (pWnd) {
-        LRESULT result = impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(pWnd,hWnd,message,wParam,lParam);
-
-        // WM_NCDESTROY is the final message - clean up the wrapper
-        // This must come after WindowProc since the window is still valid during the call.
-        if (message == WM_NCDESTROY) {
-            OpenMfcDetachCWnd(hWnd);
-        }
-
-        return result;
-    }
-
-    return DefWindowProcW(hWnd, message, wParam, lParam);
-}
 ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex = {};

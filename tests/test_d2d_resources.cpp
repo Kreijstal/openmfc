@@ -320,6 +320,8 @@ static void ownershipAndRecreation() {
 #include "scroll_view_print_tests.h"
 #include "scroll_view_parent_tests.h"
 #include "splitter_scrolling_tests.h"
+#include "window_activation_tests.h"
+#include "window_creation_tests.h"
 #include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
@@ -331,6 +333,20 @@ static void ownershipAndRecreation() {
 #include "framework_boundary_exception_tests.h"
 #include "typelib_cache_tests.h"
 
+static void windowCreationLifecycle() {
+    wchar_t nativePath[1024];HMODULE native=nullptr;
+    if(GetEnvironmentVariableW(L"OPENMFC_NATIVE_WINDOW_CREATE_DLL",nativePath,1024)) {
+        native=LoadLibraryW(nativePath);check(native!=nullptr,"load native MFC for window creation comparisons");
+        if(native) {
+            auto* b=reinterpret_cast<BYTE*>(native);auto* pe=reinterpret_cast<IMAGE_NT_HEADERS*>(b+reinterpret_cast<IMAGE_DOS_HEADER*>(b)->e_lfanew);
+            bool pinned=pe->FileHeader.TimeDateStamp==0x442cba30 && pe->OptionalHeader.SizeOfImage==0x55c000;
+            check(pinned,"window creation oracle uses the verified MFC image build");if(!pinned){FreeLibrary(native);native=nullptr;}
+        }
+    }
+    windowActivation(native);windowCreation(native);
+    if(native)FreeLibrary(native);
+}
+
 int main() {
     wchar_t scrollPrintChild[32];if(GetEnvironmentVariableW(L"OPENMFC_SCROLL_PRINT_CHILD",scrollPrintChild,32)){scrollViewPrinting();return 0;}
     if(borrowedDCTerminationChild())return 0;
@@ -340,6 +356,11 @@ int main() {
     std::setvbuf(stdout,nullptr,_IONBF,0);
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     check(SUCCEEDED(hr), "initialize COM for resource integration tests");
+    wchar_t createOnly[2];
+    if(GetEnvironmentVariableW(L"OPENMFC_WINDOW_CREATE_ONLY",createOnly,2)) {
+        if(SUCCEEDED(hr)){windowCreationLifecycle();CoUninitialize();}
+        printf("%d failures\n",failures);return failures?1:0;
+    }
     wchar_t splitterOnly[2];
     if(GetEnvironmentVariableW(L"OPENMFC_SPLITTER_SCROLL_ONLY",splitterOnly,2)) {
         if(SUCCEEDED(hr)){splitterScrolling();CoUninitialize();}
@@ -400,6 +421,7 @@ int main() {
     if (SUCCEEDED(hr)) scrollViewPrinting();
     if (SUCCEEDED(hr)) scrollViewParentSizing();
     if (SUCCEEDED(hr)) splitterScrolling();
+    if (SUCCEEDED(hr)) windowCreationLifecycle();
     if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();

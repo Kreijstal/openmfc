@@ -53,7 +53,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/cmdui/CCmdUI.cpp phase4/src/core/cmdui/COleCmdUI.cpp phase4/src/core/cmdui/CTestCmdUI.cpp phase4/src/core/cmdui/CToolCmdUI.cpp
     phase4/src/core/window/CWndMessageMap.cpp phase4/src/core/window/WindowMessageMapDispatch.cpp phase4/src/core/runtime/CommandMessageDispatch.cpp phase4/src/core/gdi/CDC.cpp phase4/src/core/gdi/CDCMessageSupport.cpp
     phase4/src/core/window/CWndDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayout.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutLifetime.cpp phase4/src/featurepack/controls/CMFCDynamicLayoutData.cpp phase4/src/detail/CMFCDynamicLayoutDataSupport.cpp
-    phase4/src/core/window/CWndMessageDispatch.cpp phase4/src/core/window/CWndInput.cpp phase4/src/core/window/CWndVirtuals.cpp phase4/src/core/window/WindowMessageContext.cpp phase4/src/core/dialog/DialogMessageCallbacks.cpp phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
+    phase4/src/core/window/CWndMessageDispatch.cpp phase4/src/core/window/CWndInput.cpp phase4/src/core/window/CWndVirtuals.cpp phase4/src/core/window/CWndCreation.cpp phase4/src/core/window/WindowActivation.cpp phase4/src/core/window/WindowCreationHooks.cpp phase4/src/core/window/FrameworkWindowProcedure.cpp phase4/src/core/window/WindowMessageContext.cpp phase4/src/core/dialog/DialogMessageCallbacks.cpp phase4/src/core/window/CWndD2D.cpp phase4/src/core/window/CWndAccessibility.cpp
     phase4/src/core/window/CWndAccessibilityInterfaces.cpp phase4/src/core/window/CWndAccessibilityProxy.cpp
     phase4/src/core/runtime/D2DMessages.cpp
     phase4/src/core/d2d/_AFX_D2D_STATE.cpp phase4/src/core/d2d/CDCRenderTarget.cpp
@@ -207,6 +207,10 @@ for path, obj in (('core/frame/CSplitterWndInfo.cpp', 'CSplitterWndInfo'),
                   ('detail/OleOleexceptionRttiSupport.cpp', 'OleOleexceptionRttiSupport'),
                   ('core/window/CWndD2D.cpp', 'CWndD2D'),
                   ('core/window/WindowMessageContext.cpp', 'WindowMessageContext'),
+                  ('core/window/CWndCreation.cpp', 'CWndCreation'),
+                  ('core/window/WindowActivation.cpp', 'WindowActivation'),
+                  ('core/window/WindowCreationHooks.cpp', 'WindowCreationHooks'),
+                  ('core/window/FrameworkWindowProcedure.cpp', 'FrameworkWindowProcedure'),
                   ('core/window/CWndInput.cpp', 'CWndInput'),
                   ('core/window/CWndDynamicLayout.cpp', 'CWndDynamicLayout'),
                   ('core/window/CWndMessageMap.cpp', 'CWndMessageMap'),

@@ -129,4 +129,3 @@ BOOL CWnd::PreTranslateMessage(MSG* message) { return impl__PreTranslateMessage_
 void CWnd::DoDataExchange(CDataExchange*) {} // Retail folded no-op.
 void CWnd::BeginModalState() { ::EnableWindow(m_hWnd,FALSE); }
 void CWnd::EndModalState() { ::EnableWindow(m_hWnd,TRUE); }
-BOOL CWnd::CreateEx(DWORD ex,const wchar_t* cls,const wchar_t* title,DWORD style,const RECT& rect,CWnd* parent,UINT id,void* param) { return CreateEx(ex,cls,title,style,rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,parent ? parent->m_hWnd : nullptr,reinterpret_cast<HMENU>(UINT_PTR(id)),param); }

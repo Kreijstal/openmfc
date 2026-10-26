@@ -65,7 +65,7 @@ static std::vector<INT64> exercise(Execute execute) {
     };
     for(bool directMode:{false,true})for(bool asynchronous:{false,true})for(RETCODE code:{RETCODE(SQL_SUCCESS),RETCODE(SQL_SUCCESS_WITH_INFO),RETCODE(SQL_NO_DATA),RETCODE(SQL_NEED_DATA),RETCODE(SQL_ERROR)})for(SQLULEN effective:{SQLULEN(0),SQLULEN(1),SQLULEN(4),SQLULEN(0x100000001ULL)}) {
         std::vector<Step> script;
-        Kind first=directMode?Direct:Prepare;if(asynchronous)script.push_back({first,SQL_STILL_EXECUTING});script.push_back({first,directMode?code:SQL_SUCCESS});
+        Kind first=directMode?Direct:Prepare;if(asynchronous)script.push_back({first,SQL_STILL_EXECUTING});script.push_back({first,RETCODE(directMode?code:SQL_SUCCESS)});
         if(!directMode){if(asynchronous)script.push_back({Run,SQL_STILL_EXECUTING});script.push_back({Run,code});}
         if(code==SQL_SUCCESS_WITH_INFO)script.push_back({Attribute,SQL_SUCCESS});
         exerciseCase(script,directMode?0x2000:0,3,2,effective);

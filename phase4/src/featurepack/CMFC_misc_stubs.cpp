@@ -1332,10 +1332,6 @@ extern "C" void* MS_ABI impl__AfxFindMessageEntry__YAPEBUAFX_MSGMAP_ENTRY__PEBU1
     return nullptr;
 }
 // String resource lookup lives in core/runtime/AfxFindResourceHandle.cpp.
-// Symbol: ?AfxGetAfxWndProc@@YAP6A_JPEAUHWND__@@I_K_J@ZXZ
-extern "C" void* MS_ABI impl__AfxGetAfxWndProc__YAP6A_JPEAUHWND____I_K_J_ZXZ() {
-    return reinterpret_cast<void*>(static_cast<LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM)>(&AfxWndProc));
-}
 // Symbol: ?AfxGetClassIDFromString@@YAJPEB_WPEAU_GUID@@@Z
 extern "C" long MS_ABI impl__AfxGetClassIDFromString__YAJPEB_WPEAU_GUID___Z(const wchar_t* p0, void* /*struct*/* p1) {
     if (!p0 || !p1) return E_INVALIDARG;
@@ -1632,35 +1628,6 @@ extern "C" void MS_ABI impl__AfxGlobalsAddRef__YAXXZ() {
 // Symbol: ?AfxGlobalsRelease@@YAXXZ
 extern "C" void MS_ABI impl__AfxGlobalsRelease__YAXXZ() {
     ::InterlockedDecrement(&g_afxGlobalsRefCount);
-}
-namespace {
-// WH_CBT filter installed by AfxHookWindowCreate below. On HCBT_CREATEWND
-// (fired just before the new HWND is shown to the app) it attaches the
-// CWnd stashed in _AFX_THREAD_STATE::m_pWndInit by AfxHookWindowCreate to the
-// freshly created HWND via CWnd::Attach, matching real MFC's
-// AfxHookWindowCreate/PreCreateWindow contract.
-LRESULT CALLBACK AfxCbtFilterHook(int nCode, WPARAM wParam, LPARAM lParam) {
-    _AFX_THREAD_STATE* pState = AfxGetThreadState();
-    if (nCode == HCBT_CREATEWND && pState && pState->m_pWndInit) {
-        CWnd* pWnd = static_cast<CWnd*>(pState->m_pWndInit);
-        pWnd->Attach(reinterpret_cast<HWND>(wParam));
-        pState->m_pWndInit = nullptr;
-    }
-    HHOOK hHook = pState ? reinterpret_cast<HHOOK>(pState->m_hHookOldCbtFilter) : nullptr;
-    return ::CallNextHookEx(hHook, nCode, wParam, lParam);
-}
-}
-// Symbol: ?AfxHookWindowCreate@@YAXPEAVCWnd@@@Z
-extern "C" void MS_ABI impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(void* /*class*/* p0) {
-    CWnd* pWnd = reinterpret_cast<CWnd*>(p0);
-    _AFX_THREAD_STATE* pState = AfxGetThreadState();
-    if (!pState || !pWnd) return;
-    if (pState->m_pWndInit == pWnd) return;
-    if (!pState->m_hHookOldCbtFilter) {
-        HHOOK hHook = ::SetWindowsHookExW(WH_CBT, AfxCbtFilterHook, nullptr, ::GetCurrentThreadId());
-        pState->m_hHookOldCbtFilter = hHook;
-    }
-    pState->m_pWndInit = pWnd;
 }
 // Symbol: ?AfxHtmlHelp@@YAPEAUHWND__@@PEAU1@PEB_WI_K@Z
 extern "C" void* MS_ABI impl__AfxHtmlHelp__YAPEAUHWND____PEAU1_PEB_WI_K_Z(void* /*struct*/* p0, const wchar_t* p1, unsigned int p2, unsigned __int64 p3) {
@@ -3199,20 +3166,6 @@ extern "C" int MS_ABI impl__AfxUnRegisterPreviewHandler__YAHPEB_W_Z(const wchar_
     ::RegCloseKey(hKey);
     return (lr == ERROR_SUCCESS) ? 1 : 0;
 }
-// Symbol: ?AfxUnhookWindowCreate@@YAHXZ
-// Counterpart of AfxHookWindowCreate above: clears the pending-CWnd thread
-// state and removes the WH_CBT hook installed there, if one is installed.
-extern "C" int MS_ABI impl__AfxUnhookWindowCreate__YAHXZ() {
-    _AFX_THREAD_STATE* pState = AfxGetThreadState();
-    if (!pState) return FALSE;
-    pState->m_pWndInit = nullptr;
-    if (pState->m_hHookOldCbtFilter) {
-        HHOOK hHook = reinterpret_cast<HHOOK>(pState->m_hHookOldCbtFilter);
-        pState->m_hHookOldCbtFilter = nullptr;
-        return ::UnhookWindowsHookEx(hHook) ? TRUE : FALSE;
-    }
-    return FALSE;
-}
 // Symbol: ?AfxUnlockGlobals@@YAXH@Z
 // Leaves the same per-nLockType critical section AfxLockGlobals (above)
 // enters; see that function's comment for the shared array this pair uses.
@@ -3367,10 +3320,6 @@ extern "C" void MS_ABI impl__AfxWinTerm__YAXXZ() {
     // handles to AfxTermLocalData (exported separately, implemented above),
     // and nulling them from here would break AfxGetResourceHandle for any
     // module that terminates one thread and keeps running.
-}
-// Symbol: ?AfxWndProc@@YA_JPEAUHWND__@@I_K_J@Z
-extern "C" __int64 MS_ABI impl__AfxWndProc__YA_JPEAUHWND____I_K_J_Z(void* /*struct*/* p0, unsigned int p1, unsigned __int64 p2, __int64 p3) {
-    return static_cast<__int64>(AfxWndProc(reinterpret_cast<HWND>(p0), p1, static_cast<WPARAM>(p2), static_cast<LPARAM>(p3)));
 }
 // Symbol: ?AfxWndProcDllOle@@YA_JPEAUHWND__@@I_K_J@Z
 extern "C" __int64 MS_ABI impl__AfxWndProcDllOle__YA_JPEAUHWND____I_K_J_Z(void* /*struct*/* p0, unsigned int p1, unsigned __int64 p2, __int64 p3) {

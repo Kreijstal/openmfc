@@ -15,6 +15,7 @@ extern "C" long MS_ABI impl__HandleMessage_CPrintDialogEx__UEAAJPEAUHWND____I_K_
 namespace openmfc { namespace detail {
 BOOL DispatchWindowMessageMap(CWnd*,UINT,WPARAM,LPARAM,LRESULT*);
 void SetSentMessage(MSG&,HWND,UINT,WPARAM,LPARAM,bool refresh);
+void PostInitializeWindow(CWnd*,const RECT&,DWORD);
 template<class Fn> Fn WindowSlot(void* object,size_t index) {
     return reinterpret_cast<Fn>((*static_cast<void***>(object))[index]);
 }

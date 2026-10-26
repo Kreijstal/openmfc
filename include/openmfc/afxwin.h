@@ -2454,47 +2454,6 @@ inline CWnd::~CWnd() {
     if(m_pMFCCtrlContainer)OpenMfcDeleteControlContainer(m_pMFCCtrlContainer);m_pMFCCtrlContainer=nullptr;
 }
 
-inline int CWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
-                         const struct tagRECT& rect, CWnd* pParentWnd, unsigned int nID, CCreateContext* pContext) {
-    (void)pContext;
-    HWND hWndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
-    HWND hWnd = ::CreateWindowExW(
-        0,
-        lpszClassName,
-        lpszWindowName,
-        dwStyle,
-        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-        hWndParent,
-        reinterpret_cast<HMENU>(static_cast<uintptr_t>(nID)),
-        AfxGetInstanceHandle(),
-        nullptr
-    );
-    if (!hWnd) return FALSE;
-    m_hWnd = hWnd;
-    m_dwStyle = dwStyle;
-    return TRUE;
-}
-
-inline int CWnd::CreateEx(DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
-                           DWORD dwStyle, int x, int y, int nWidth, int nHeight,
-                           HWND hWndParent, HMENU nIDorHMenu, void* lpParam) {
-    HWND hWnd = ::CreateWindowExW(
-        dwExStyle,
-        lpszClassName,
-        lpszWindowName,
-        dwStyle,
-        x, y, nWidth, nHeight,
-        hWndParent,
-        nIDorHMenu,
-        AfxGetInstanceHandle(),
-        lpParam
-    );
-    if (!hWnd) return FALSE;
-    m_hWnd = hWnd;
-    m_dwStyle = dwStyle;
-    return TRUE;
-}
-
 inline int CWnd::DestroyWindow() {
     if (m_hWnd == nullptr) return 0;
     int result = ::DestroyWindow(m_hWnd) ? 1 : 0;

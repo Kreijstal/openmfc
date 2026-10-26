@@ -225,8 +225,8 @@ static std::vector<Event> construction(const UpdateAPI& functions) {
         checks=0;acceptance=accepted;failure=failAt;returningThrow=returns;autoDrive=false;changeHandles=false;writePosition=0;
         cursorName=(nameCase==1 || nameCase==5)?std::wstring(55,L'C'):nameCase==4?L"":L"cursor";reportedCursor=nameCase==2?-7:SQLSMALLINT(cursorName.size());writeSteps.clear();
         if(mode<=1 && !cached) {
-            writeSteps.push_back({Cursor,(nameCase==1 || nameCase==5)?SQL_SUCCESS_WITH_INFO:nameCase==3?SQL_ERROR:nameCase==6?SQL_STILL_EXECUTING:SQL_SUCCESS});
-            if(nameCase==1 || nameCase==5)writeSteps.push_back({Cursor,nameCase==5?SQL_ERROR:SQL_SUCCESS});
+            writeSteps.push_back({Cursor,RETCODE((nameCase==1 || nameCase==5)?SQL_SUCCESS_WITH_INFO:nameCase==3?SQL_ERROR:nameCase==6?SQL_STILL_EXECUTING:SQL_SUCCESS)});
+            if(nameCase==1 || nameCase==5)writeSteps.push_back({Cursor,RETCODE(nameCase==5?SQL_ERROR:SQL_SUCCESS)});
         }
         if(flags&CRecordset::firstBulkAdd){writeSteps.push_back({Prepare,SQL_STILL_EXECUTING});writeSteps.push_back({Prepare,SQL_SUCCESS});}
         int caught=recordset_cursor_test::invoke([&]{functions.build(&f.rs);});

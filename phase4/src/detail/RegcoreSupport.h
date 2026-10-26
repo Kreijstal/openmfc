@@ -122,6 +122,7 @@ extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ();
 // The implementation here keeps a thread-local current state pointer and exposes
 // AfxGetStaticModuleState as a stable process-wide state object.
 
+LRESULT CALLBACK AfxWndProc(HWND,UINT,WPARAM,LPARAM);
 class AFX_MODULE_STATE : public CNoTrackObject {
 public:
     CWinApp* m_pCurrentWinApp{};
@@ -129,12 +130,17 @@ public:
     HINSTANCE m_hCurrentResourceHandle{};
     // Preserve the native x64 prefix through the callbacks used by windows.
     // The intervening module services are not modeled by this shadow yet.
-    BYTE m_reservedToToolTip[0x80-0x20]{};
+    BYTE m_reservedModuleFlags[8]{};
+    BYTE m_bDLL=FALSE;
+    BYTE m_reservedToWindowProcedure[0x70-0x29]{};
+    WNDPROC m_pfnAfxWndProc=&AfxWndProc;
+    BYTE m_reservedToToolTip[8]{};
     void (AFXAPI* m_pfnFilterToolTipMessage)(MSG*,CWnd*)=nullptr;
     BYTE m_reservedToOccManager[0xa0-0x88]{};
     void* m_pOccManager{};
 };
 static_assert(offsetof(AFX_MODULE_STATE,m_pCurrentWinApp)==8,"native module application prefix");
+static_assert(offsetof(AFX_MODULE_STATE,m_pfnAfxWndProc)==0x70,"native framework window procedure");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnFilterToolTipMessage)==0x80,"native tooltip filter");
 static_assert(offsetof(AFX_MODULE_STATE,m_pOccManager)==0xa0,"native OLE manager");
 
