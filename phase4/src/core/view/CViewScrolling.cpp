@@ -14,3 +14,11 @@ CScrollBar* CView::GetScrollBarCtrl(int axis) const {
 }
 // Symbol: ?GetScrollBarCtrl@CView@@UEBAPEAVCScrollBar@@H@Z
 extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(const CView* self, int axis) { return self->CView::GetScrollBarCtrl(axis); }
+
+// The base view owns no scrolling state. Retail folds both handlers to FALSE.
+BOOL CView::OnScroll(UINT,UINT,BOOL) {return FALSE;}
+BOOL CView::OnScrollBy(CSize,BOOL) {return FALSE;}
+// Symbol: ?OnScroll@CView@@UEAAHIIH@Z
+extern "C" BOOL MS_ABI impl__OnScroll_CView__UEAAHIIH_Z(CView*,UINT,UINT,BOOL) {return FALSE;}
+// Symbol: ?OnScrollBy@CView@@UEAAHVCSize@@H@Z
+extern "C" BOOL MS_ABI impl__OnScrollBy_CView__UEAAHVCSize__H_Z(CView*,CSize,BOOL) {return FALSE;}

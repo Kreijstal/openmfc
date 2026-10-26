@@ -187,34 +187,6 @@ extern "C" void MS_ABI impl__OnFilePrint_CView__IEAAXXZ(CView* pThis) { if (pThi
 extern "C" void MS_ABI impl__OnFilePrintPreview_CView__IEAAXXZ(CView* pThis) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_SHOW); }
 // Symbol: ?OnMouseActivate@CView@@IEAAHPEAVCWnd@@II@Z
 extern "C" int MS_ABI impl__OnMouseActivate_CView__IEAAHPEAVCWnd__II_Z(CView*, CWnd*, unsigned int, unsigned int) { return MA_ACTIVATE; }
-// Symbol: ?OnScroll@CView@@UEAAHIIH@Z
-extern "C" int MS_ABI impl__OnScroll_CView__UEAAHIIH_Z(CView* pThis, unsigned int scrollCode, unsigned int pos, int doScroll) {
-    if (!pThis || !pThis->m_hWnd) return FALSE;
-    int delta = 0;
-    switch (scrollCode) {
-    case SB_LINEUP: delta = -16; break;
-    case SB_LINEDOWN: delta = 16; break;
-    case SB_PAGEUP: delta = -64; break;
-    case SB_PAGEDOWN: delta = 64; break;
-    case SB_THUMBPOSITION:
-    case SB_THUMBTRACK: delta = static_cast<int>(pos); break;
-    default: return FALSE;
-    }
-    if (doScroll) {
-        ::ScrollWindowEx(pThis->m_hWnd, 0, -delta, nullptr, nullptr, nullptr, nullptr, SW_INVALIDATE | SW_ERASE);
-        ::UpdateWindow(pThis->m_hWnd);
-    }
-    return TRUE;
-}
-// Symbol: ?OnScrollBy@CView@@UEAAHVCSize@@H@Z
-extern "C" int MS_ABI impl__OnScrollBy_CView__UEAAHVCSize__H_Z(CView* pThis, CSize size, int doScroll) {
-    if (!pThis || !pThis->m_hWnd) return FALSE;
-    if (doScroll) {
-        ::ScrollWindowEx(pThis->m_hWnd, -size.cx, -size.cy, nullptr, nullptr, nullptr, nullptr, SW_INVALIDATE | SW_ERASE);
-        ::UpdateWindow(pThis->m_hWnd);
-    }
-    return TRUE;
-}
 // Symbol: ?PostNcDestroy@CView@@MEAAXXZ
 extern "C" void MS_ABI impl__PostNcDestroy_CView__MEAAXXZ(CView* pThis) {
     if (pThis && pThis->m_pDocument) pThis->m_pDocument->RemoveView(pThis);
@@ -266,8 +238,6 @@ extern "C" void MS_ABI impl__OnUpdate_CView__MEAAXPEAV1__JPEAVCObject___Z(CView*
 }
 
 BOOL CView::IsSelected(const CObject* item) const { return impl__IsSelected_CView__UEBAHPEBVCObject___Z(this,item); }
-BOOL CView::OnScroll(UINT code,UINT pos,BOOL scroll) { return impl__OnScroll_CView__UEAAHIIH_Z(this,code,pos,scroll); }
-BOOL CView::OnScrollBy(CSize size,BOOL scroll) { return impl__OnScrollBy_CView__UEAAHVCSize__H_Z(this,size,scroll); }
 void CView::OnDragLeave() { impl__OnDragLeave_CView__UEAAXXZ(this); }
 DWORD CView::OnDragScroll(DWORD keys,CPoint point) { return impl__OnDragScroll_CView__UEAAKKVCPoint___Z(this,keys,point); }
 void CView::OnActivateFrame(UINT state,CFrameWnd* frame) { impl__OnActivateFrame_CView__MEAAXIPEAVCFrameWnd___Z(this,state,frame); }

@@ -334,6 +334,8 @@ public:
     virtual BOOL CanActivateNext(BOOL = FALSE);
     virtual void ActivateNext(BOOL = FALSE);
     virtual BOOL DoKeyboardSplit();
+    BOOL IsChildPane(CWnd*,int* = nullptr,int* = nullptr);
+    int IdFromRowCol(int,int) const;
     virtual BOOL DoScroll(CView*,UINT,BOOL = TRUE);
     virtual BOOL DoScrollBy(CView*,CSize,BOOL = TRUE);
     virtual int HitTest(CPoint) const;

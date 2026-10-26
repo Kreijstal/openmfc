@@ -877,102 +877,6 @@ extern "C" void MS_ABI impl__DeleteView_CSplitterWnd__UEAAXHH_Z(CSplitterWnd* pT
     if (pPane) impl__DestroyWindow_CWnd__UEAAHXZ(pPane);
 }
 
-// ?DoScroll@CSplitterWnd@@UEAAHPEAVCView@@IH@Z, RVA 0x2adb00 (mfc140u):
-//     int rowFrom, colFrom;
-//     if (!IsChildPane(pViewFrom, &rowFrom, &colFrom)) return FALSE;
-//     int nOldVPos = 0, nOldHPos = 0;
-//     CScrollBar* pBarV = pViewFrom->GetScrollBarCtrl(SB_VERT);   // slot 32
-//     if (pBarV) nOldVPos = ::GetScrollPos(pBarV->m_hWnd, SB_CTL);
-//     CScrollBar* pBarH = pViewFrom->GetScrollBarCtrl(SB_HORZ);
-//     if (pBarH) nOldHPos = ::GetScrollPos(pBarH->m_hWnd, SB_CTL);
-//     BOOL bResult = pViewFrom->OnScroll(nScrollCode, 0, bDoScroll) != 0;   // CView slot 92
-//     if (pBarV != NULL && m_nCols > 0) {                          // other panes of the same row: vertical part
-//         for (col = 0; col < m_nCols; col++) {
-//             if (col == colFrom) continue;
-//             ::SetScrollPos(pBarV->m_hWnd, SB_CTL, nOldVPos, FALSE);
-//             CView* pView = (CView*)GetDlgItem(IdFromRowCol(rowFrom, col));
-//             if (pView->OnScroll(MAKEWORD(-1, HIBYTE(nScrollCode)), 0, bDoScroll)) bResult = TRUE;
-//         }
-//     }
-//     if (pBarH != NULL) {                                         // other panes of the same column: horizontal part
-//         for (row = 0; row < m_nRows; row++) {
-//             if (row == rowFrom) continue;
-//             ::SetScrollPos(pBarH->m_hWnd, SB_CTL, nOldHPos, FALSE);
-//             CView* pView = (CView*)GetDlgItem(IdFromRowCol(row, colFrom));
-//             if (pView->OnScroll(MAKEWORD(LOBYTE(nScrollCode), -1), 0, bDoScroll)) bResult = TRUE;
-//         }
-//     }
-//     return bResult;
-// NOTE: OpenMFC's CView::GetScrollBarCtrl (core/view/CView.cpp) looks for a child
-// 0xE811/0xE812 of the view, not for the splitter's shared bar as retail does, so
-// the shared-bar branches are reached only once that export matches retail.
-// Symbol: ?DoScroll@CSplitterWnd@@UEAAHPEAVCView@@IH@Z
-extern "C" int MS_ABI impl__DoScroll_CSplitterWnd__UEAAHPEAVCView__IH_Z(CSplitterWnd* pThis, CView* pViewFrom, unsigned int nScrollCode, int bDoScroll) {
-    if (!pThis || !pViewFrom) return FALSE;
-    int rowFrom = 0, colFrom = 0;
-    if (!impl__IsChildPane_CSplitterWnd__QEAAHPEAVCWnd__PEAH1_Z(pThis, pViewFrom, &rowFrom, &colFrom)) return FALSE;
-    int nOldVPos = 0, nOldHPos = 0;
-    CScrollBar* pBarV = impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(pViewFrom, SB_VERT);
-    if (pBarV) nOldVPos = ::GetScrollPos(pBarV->m_hWnd, SB_CTL);
-    CScrollBar* pBarH = impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(pViewFrom, SB_HORZ);
-    if (pBarH) nOldHPos = ::GetScrollPos(pBarH->m_hWnd, SB_CTL);
-    BOOL bResult = impl__OnScroll_CView__UEAAHIIH_Z(pViewFrom, nScrollCode, 0, bDoScroll) != 0;
-    if (pBarV != nullptr && pThis->m_nCols > 0) {
-        for (int col = 0; col < pThis->m_nCols; col++) {
-            if (col == colFrom) continue;
-            ::SetScrollPos(pBarV->m_hWnd, SB_CTL, nOldVPos, FALSE);
-            CView* pView = static_cast<CView*>(PaneAt(pThis, rowFrom, col));
-            if (pView && impl__OnScroll_CView__UEAAHIIH_Z(pView, ((nScrollCode >> 8) & 0xff) << 8 | 0xff, 0, bDoScroll))
-                bResult = TRUE;
-        }
-    }
-    if (pBarH != nullptr) {
-        for (int row = 0; row < pThis->m_nRows; row++) {
-            if (row == rowFrom) continue;
-            ::SetScrollPos(pBarH->m_hWnd, SB_CTL, nOldHPos, FALSE);
-            CView* pView = static_cast<CView*>(PaneAt(pThis, row, colFrom));
-            if (pView && impl__OnScroll_CView__UEAAHIIH_Z(pView, (nScrollCode & 0xff) | 0xff00, 0, bDoScroll))
-                bResult = TRUE;
-        }
-    }
-    return bResult;
-}
-
-// ?DoScrollBy@CSplitterWnd@@UEAAHPEAVCView@@VCSize@@H@Z, RVA 0x2add10 (mfc140u): same
-// shape as DoScroll with OnScrollBy (CView slot 93): the focus pane gets the whole
-// sizeScroll, the same-row panes CSize(0, sizeScroll.cy), the same-column panes
-// CSize(sizeScroll.cx, 0), each after restoring the shared bar position.
-// Symbol: ?DoScrollBy@CSplitterWnd@@UEAAHPEAVCView@@VCSize@@H@Z
-extern "C" int MS_ABI impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z(CSplitterWnd* pThis, CView* pViewFrom, long long sizeScrollPacked, int bDoScroll) {
-    if (!pThis || !pViewFrom) return FALSE;
-    const POINT sz = UnpackPoint(sizeScrollPacked);   // cx, cy
-    int rowFrom = 0, colFrom = 0;
-    if (!impl__IsChildPane_CSplitterWnd__QEAAHPEAVCWnd__PEAH1_Z(pThis, pViewFrom, &rowFrom, &colFrom)) return FALSE;
-    int nOldVPos = 0, nOldHPos = 0;
-    CScrollBar* pBarV = impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(pViewFrom, SB_VERT);
-    if (pBarV) nOldVPos = ::GetScrollPos(pBarV->m_hWnd, SB_CTL);
-    CScrollBar* pBarH = impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(pViewFrom, SB_HORZ);
-    if (pBarH) nOldHPos = ::GetScrollPos(pBarH->m_hWnd, SB_CTL);
-    BOOL bResult = impl__OnScrollBy_CView__UEAAHVCSize__H_Z(pViewFrom, CSize(sz.x, sz.y), bDoScroll) != 0;
-    if (pBarV != nullptr && pThis->m_nCols > 0) {
-        for (int col = 0; col < pThis->m_nCols; col++) {
-            if (col == colFrom) continue;
-            ::SetScrollPos(pBarV->m_hWnd, SB_CTL, nOldVPos, FALSE);
-            CView* pView = static_cast<CView*>(PaneAt(pThis, rowFrom, col));
-            if (pView && impl__OnScrollBy_CView__UEAAHVCSize__H_Z(pView, CSize(0, sz.y), bDoScroll)) bResult = TRUE;
-        }
-    }
-    if (pBarH != nullptr) {
-        for (int row = 0; row < pThis->m_nRows; row++) {
-            if (row == rowFrom) continue;
-            ::SetScrollPos(pBarH->m_hWnd, SB_CTL, nOldHPos, FALSE);
-            CView* pView = static_cast<CView*>(PaneAt(pThis, row, colFrom));
-            if (pView && impl__OnScrollBy_CView__UEAAHVCSize__H_Z(pView, CSize(sz.x, 0), bDoScroll)) bResult = TRUE;
-        }
-    }
-    return bResult;
-}
-
 // ?DrawAllSplitBars@CSplitterWnd@@MEAAXPEAVCDC@@HH@Z, RVA 0x2acaa0 (mfc140u):
 //     CRect rect; GetClientRect(rect);
 //     rect.left += m_cxBorder;                                     // column split bars
@@ -1246,39 +1150,6 @@ extern "C" int MS_ABI impl__HitTest_CSplitterWnd__MEBAHVCPoint___Z(const CSplitt
     }
     if (row == pThis->m_nRows - 1) return kHSplitterBar1 + col;
     return kSplitterIntersection1 + row * 15 + col;
-}
-
-// ?IdFromRowCol@CSplitterWnd@@QEBAHHH@Z, RVA 0x2aab30 (mfc140u):
-//     return AFX_IDW_PANE_FIRST + row * 16 + col;
-// Symbol: ?IdFromRowCol@CSplitterWnd@@QEBAHHH@Z
-extern "C" int MS_ABI impl__IdFromRowCol_CSplitterWnd__QEBAHHH_Z(const CSplitterWnd* pThis, int row, int col) {
-    (void)pThis;
-    return IdFromRowColImpl(row, col);
-}
-
-// ?IsChildPane@CSplitterWnd@@QEAAHPEAVCWnd@@PEAH1@Z, RVA 0x2aab60 (mfc140u):
-//     UINT nID = ::GetDlgCtrlID(pWnd->m_hWnd);
-//     if (::IsChild(m_hWnd, pWnd->m_hWnd) && nID >= AFX_IDW_PANE_FIRST && nID <= AFX_IDW_PANE_LAST) {
-//         if (pRow != NULL) *pRow = (nID - AFX_IDW_PANE_FIRST) / 16;
-//         if (pCol != NULL) *pCol = (nID - AFX_IDW_PANE_FIRST) % 16;
-//         return TRUE;
-//     }
-//     if (pRow != NULL) *pRow = -1;
-//     if (pCol != NULL) *pCol = -1;
-//     return FALSE;
-// Symbol: ?IsChildPane@CSplitterWnd@@QEAAHPEAVCWnd@@PEAH1@Z
-extern "C" int MS_ABI impl__IsChildPane_CSplitterWnd__QEAAHPEAVCWnd__PEAH1_Z(CSplitterWnd* pThis, CWnd* pWnd, int* pRow, int* pCol) {
-    if (pThis && pWnd && pThis->m_hWnd && pWnd->m_hWnd) {   // retail dereferences both unguarded
-        const unsigned nID = static_cast<unsigned>(::GetDlgCtrlID(pWnd->m_hWnd));
-        if (::IsChild(pThis->m_hWnd, pWnd->m_hWnd) && nID >= kIdwPaneFirst && nID <= kIdwPaneLast) {
-            if (pRow != nullptr) *pRow = static_cast<int>((nID - kIdwPaneFirst) / 16);
-            if (pCol != nullptr) *pCol = static_cast<int>((nID - kIdwPaneFirst) % 16);
-            return TRUE;
-        }
-    }
-    if (pRow != nullptr) *pRow = -1;
-    if (pCol != nullptr) *pCol = -1;
-    return FALSE;
 }
 
 // ?OnCancelMode@CSplitterWnd@@IEAAXXZ, RVA 0x2ad4d0 (mfc140u):
@@ -2065,8 +1936,6 @@ BOOL CSplitterWnd::SplitRow(int before) {return impl__SplitRow_CSplitterWnd__UEA
 BOOL CSplitterWnd::SplitColumn(int before) {return impl__SplitColumn_CSplitterWnd__UEAAHH_Z(this,before);}
 void CSplitterWnd::DeleteRow(int row) {impl__DeleteRow_CSplitterWnd__UEAAXH_Z(this,row);}
 void CSplitterWnd::DeleteColumn(int col) {impl__DeleteColumn_CSplitterWnd__UEAAXH_Z(this,col);}
-BOOL CSplitterWnd::DoScroll(CView* view,UINT code,BOOL scroll) {return impl__DoScroll_CSplitterWnd__UEAAHPEAVCView__IH_Z(this,view,code,scroll);}
-BOOL CSplitterWnd::DoScrollBy(CView* view,CSize size,BOOL scroll) {LONGLONG packed;std::memcpy(&packed,&size,sizeof(size));return impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z(this,view,packed,scroll);}
 int CSplitterWnd::HitTest(CPoint point) const {LONGLONG packed;static_assert(sizeof(packed)==sizeof(point),"point ABI");std::memcpy(&packed,&point,sizeof(point));return impl__HitTest_CSplitterWnd__MEBAHVCPoint___Z(this,packed);}
 void CSplitterWnd::GetInsideRect(CRect& rect) const {impl__GetInsideRect_CSplitterWnd__MEBAXAEAVCRect___Z(this,reinterpret_cast<RECT*>(&rect));}
 void CSplitterWnd::GetHitRect(int hit,CRect& rect) {impl__GetHitRect_CSplitterWnd__MEAAXHAEAVCRect___Z(this,hit,reinterpret_cast<RECT*>(&rect));}

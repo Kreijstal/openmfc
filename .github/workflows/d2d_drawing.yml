@@ -99,6 +99,8 @@ on:
       - 'tests/splitter_command_tests.h'
       - 'phase4/src/core/view/CViewSplitterCommands.cpp'
       - 'phase4/src/core/frame/CSplitterWndNavigation.cpp'
+      - 'phase4/src/core/frame/CSplitterWndScrolling.cpp'
+      - 'tests/splitter_scrolling_tests.h'
       - 'phase4/src/core/window/CWndCoordinates.cpp'
       - 'phase4/src/core/window/CWndScrolling.cpp'
       - 'phase4/src/core/view/CScrollViewInput.cpp'
@@ -370,6 +372,8 @@ on:
       - 'tests/splitter_command_tests.h'
       - 'phase4/src/core/view/CViewSplitterCommands.cpp'
       - 'phase4/src/core/frame/CSplitterWndNavigation.cpp'
+      - 'phase4/src/core/frame/CSplitterWndScrolling.cpp'
+      - 'tests/splitter_scrolling_tests.h'
       - 'phase4/src/core/window/CWndCoordinates.cpp'
       - 'phase4/src/core/window/CWndScrolling.cpp'
       - 'phase4/src/core/view/CScrollViewInput.cpp'
@@ -643,6 +647,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CObjectTypeChecks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewSplitterCommands.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndNavigation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
@@ -863,6 +868,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CObjectTypeChecks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewSplitterCommands.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndNavigation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
@@ -1051,6 +1057,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CObjectTypeChecks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewSplitterCommands.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndNavigation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
