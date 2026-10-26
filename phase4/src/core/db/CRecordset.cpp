@@ -103,58 +103,10 @@ extern "C" void MS_ABI impl__BindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset*
 extern "C" void MS_ABI impl__UnbindFieldsForUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared = false; }
 // Symbol: ?Cancel@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__Cancel_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_hstmt != SQL_NULL_HSTMT) SQLCancel(pThis->m_hstmt); }
-// Symbol: ?CheckRowsetCurrencyStatus@CRecordset@@QEAAXGJ@Z
-extern "C" void MS_ABI impl__CheckRowsetCurrencyStatus_CRecordset__QEAAXGJ_Z(CRecordset* pThis, unsigned short fetchType, long row) {
-    if (!pThis) return;
-    RecordsetState& state = EnsureRecordsetState(pThis);
-    state.rowsetAllocated = true;
-    state.bookmark = static_cast<unsigned long>(row);
-
-    if (pThis->m_hstmt != SQL_NULL_HSTMT) {
-        RETCODE rc = SQLFetchScroll(pThis->m_hstmt, fetchType, row);
-        state.lastRetCode = rc;
-        if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
-            pThis->m_bBOF = (row <= 0 ? TRUE : FALSE);
-            pThis->m_bEOF = FALSE;
-            pThis->m_nAbsolutePosition = (row == 0 ? 0 : row);
-        } else if (rc == SQL_NO_DATA) {
-            pThis->m_bEOF = TRUE;
-        }
-    } else if (row < 0) {
-        pThis->m_bBOF = TRUE;
-        pThis->m_bEOF = TRUE;
-    }
-}
-// Symbol: ?CheckRowsetError@CRecordset@@UEAAXF@Z
-extern "C" void MS_ABI impl__CheckRowsetError_CRecordset__UEAAXF_Z(CRecordset* pThis, short retCode) { if (pThis) EnsureRecordsetState(pThis).lastRetCode = retCode; }
 // Symbol: ?ExecuteSetPosUpdate@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__ExecuteSetPosUpdate_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) pThis->Update(); }
 // Symbol: ?ExecuteUpdateSQL@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__ExecuteUpdateSQL_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_pDatabase) { CString sql = GetStoredSql(pThis); if (!sql.IsEmpty()) pThis->m_pDatabase->ExecuteSQL(static_cast<const wchar_t*>(sql)); } }
-// Symbol: ?FetchData@CRecordset@@QEAAFGJPEA_K@Z
-extern "C" short MS_ABI impl__FetchData_CRecordset__QEAAFGJPEA_K_Z(CRecordset* pThis, unsigned short fetchType, long row, unsigned long long* rowsFetched) {
-    if (rowsFetched) *rowsFetched = 0;
-    if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return SQL_ERROR;
-    RETCODE rc = SQLFetchScroll(pThis->m_hstmt, fetchType, row);
-    if (SqlSucceeded(rc) && rowsFetched) *rowsFetched = 1;
-    return rc;
-}
-// Symbol: ?Fixups@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__Fixups_CRecordset__QEAAXXZ(CRecordset* pThis) {
-    if (!pThis) return;
-    LoadRecordsetFields(pThis);
-    RecordsetState& state = EnsureRecordsetState(pThis);
-    if (state.fieldLengths.size() < static_cast<size_t>(pThis->m_nFields)) {
-        state.fieldLengths.resize(static_cast<size_t>(pThis->m_nFields), 0);
-    } else {
-        for (auto& len : state.fieldLengths) len = 0;
-    }
-    if (pThis->m_bDeleted) state.dirtyFields.clear();
-    state.dataCache.clear();
-    if (pThis->m_nFields > 0) {
-        state.dataCache.resize(static_cast<size_t>(pThis->m_nFields) * 32, 0);
-    }
-}
 // Symbol: ?FlushResultSet@CRecordset@@QEAAHXZ
 extern "C" int MS_ABI impl__FlushResultSet_CRecordset__QEAAHXZ(CRecordset* pThis) { if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return FALSE; while (SQLMoreResults(pThis->m_hstmt) == SQL_SUCCESS) {} return TRUE; }
 // Symbol: ?GetBookmark@CRecordset@@QEAAXAEAVCDBVariant@@@Z
@@ -231,25 +183,8 @@ extern "C" void MS_ABI impl__SendLongBinaryData_CRecordset__IEAAXPEAX_Z(CRecords
 }
 // Symbol: ?SetLockingMode@CRecordset@@QEAAXI@Z
 extern "C" void MS_ABI impl__SetLockingMode_CRecordset__QEAAXI_Z(CRecordset* pThis, unsigned int mode) { if (pThis) EnsureRecordsetState(pThis).lockingMode=mode; }
-// Symbol: ?SetRowsetCurrencyStatus@CRecordset@@UEAAXFGJ_K@Z
-extern "C" void MS_ABI impl__SetRowsetCurrencyStatus_CRecordset__UEAAXFGJ_K_Z(CRecordset* pThis, short direction, unsigned short step, long row, unsigned long long flag) {
-    if (!pThis) return;
-    RecordsetState& state = EnsureRecordsetState(pThis);
-    state.bookmark = static_cast<unsigned long>(row);
-    state.lastRetCode = (flag ? SQL_SUCCESS : SQL_SUCCESS);
-    if (step == 0 || row < 0 || direction < 0) {
-        pThis->m_bEOF = TRUE;
-        pThis->m_bBOF = TRUE;
-    } else {
-        pThis->m_bEOF = FALSE;
-        pThis->m_bBOF = FALSE;
-        pThis->m_nAbsolutePosition = row;
-    }
-}
 // Symbol: ?SetRowsetCursorPosition@CRecordset@@QEAAXGG@Z
 extern "C" void MS_ABI impl__SetRowsetCursorPosition_CRecordset__QEAAXGG_Z(CRecordset* pThis, unsigned short fetchType, unsigned short row) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLFetchScroll(pThis->m_hstmt, fetchType, row); }
-// Symbol: ?SkipDeletedRecords@CRecordset@@QEAAXGJPEA_KPEAF@Z
-extern "C" void MS_ABI impl__SkipDeletedRecords_CRecordset__QEAAXGJPEA_KPEAF_Z(CRecordset* pThis, unsigned short, long, unsigned long long* rowsFetched, short* status) { if (rowsFetched) *rowsFetched=pThis&&!pThis->m_bDeleted?1:0; if (status) *status=SQL_SUCCESS; }
 // Symbol: ?StoreFields@CRecordset@@QEAAXXZ
 extern "C" void MS_ABI impl__StoreFields_CRecordset__QEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
 // Symbol: ?UpdateInsertDelete@CRecordset@@IEAAHXZ
@@ -312,75 +247,18 @@ BOOL CRecordset::IsFieldNullable(unsigned long dwField) {
     return field.m_nNullability != SQL_NO_NULLS;
 }
 void CRecordset::MoveFirst() {
-    Move(0, SQL_FETCH_FIRST);
+    Move(1, SQL_FETCH_FIRST);
 }
 void CRecordset::MoveLast() {
-    if (m_nRecordCount > 0) {
-        SetAbsolutePosition(m_nRecordCount);
-        return;
-    }
-    Move(0, SQL_FETCH_LAST);
+    Move(-1, SQL_FETCH_LAST);
 }
 void CRecordset::MoveNext() {
-    if (m_bEOF) {
-        return;
-    }
-    Move(0, SQL_FETCH_NEXT);
+    Move(1, SQL_FETCH_NEXT);
 }
 void CRecordset::MovePrev() {
-    if (m_bBOF) {
-        return;
-    }
-    Move(0, SQL_FETCH_PRIOR);
-}
-void CRecordset::Move(long nRows, WORD wFetchType) {
-    if (m_lOpen!=1) return;
-    RETCODE rc = SQLFetchScroll(m_hstmt, wFetchType, nRows);
-    if (SqlSucceeded(rc)) {
-        m_bBOF = FALSE;
-        m_bEOF = FALSE;
-
-        if (wFetchType == SQL_FETCH_FIRST) {
-            m_nAbsolutePosition = 1;
-        } else if (wFetchType == SQL_FETCH_LAST) {
-            m_nAbsolutePosition = m_nRecordCount > 0 ? m_nRecordCount : m_nAbsolutePosition;
-            if (m_nAbsolutePosition == 0) m_nAbsolutePosition = 1;
-        } else if (wFetchType == SQL_FETCH_ABSOLUTE) {
-            m_nAbsolutePosition = nRows > 0 ? nRows : (m_nRecordCount + nRows + 1);
-        } else if (wFetchType == SQL_FETCH_PRIOR) {
-            if (m_nAbsolutePosition > 0) --m_nAbsolutePosition;
-        } else if (wFetchType == SQL_FETCH_NEXT) {
-            ++m_nAbsolutePosition;
-        } else {
-            if (nRows != 0) m_nAbsolutePosition += nRows;
-        }
-        if (m_nRecordCount > 0) {
-            m_nAbsolutePosition = std::min(m_nAbsolutePosition, m_nRecordCount);
-            if (m_nAbsolutePosition < 1) m_nAbsolutePosition = 1;
-        }
-    } else if (rc == SQL_NO_DATA) {
-        if (wFetchType == SQL_FETCH_ABSOLUTE && nRows < 0) {
-            m_nAbsolutePosition = m_nRecordCount > 0
-                                     ? std::max<long>(1, m_nRecordCount + nRows + 1)
-                                     : 0;
-        }
-        if (nRows < 0 || wFetchType == SQL_FETCH_PRIOR || wFetchType == SQL_FETCH_FIRST) {
-            m_bBOF = TRUE;
-            m_nAbsolutePosition = 0;
-        } else {
-            m_bEOF = TRUE;
-        }
-    }
-}
-// Symbol: ?Move@CRecordset@@UEAAXJG@Z
-extern "C" void MS_ABI impl__Move_CRecordset__UEAAXJG_Z(CRecordset* rs,long rows,WORD direction) {
-    rs->CRecordset::Move(rows,direction);
+    Move(-1, SQL_FETCH_PRIOR);
 }
 void CRecordset::SetAbsolutePosition(long nRows) {
-    if (m_lOpen!=1) {
-        m_nAbsolutePosition = nRows;
-        return;
-    }
     Move(nRows, SQL_FETCH_ABSOLUTE);
 }
 void CRecordset::AddNew() {
@@ -474,11 +352,7 @@ extern "C" int MS_ABI impl__IsFieldNullable_CRecordset__QEBAHK_Z(void* pThis, vo
 
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(short,void*,void*);
 BOOL CRecordset::Requery() {return impl__Requery_CRecordset__UEAAHXZ(this);}
-void CRecordset::CheckRowsetError(RETCODE code) {impl__CheckRowsetError_CRecordset__UEAAXF_Z(this,code);}
 void CRecordset::OnSetUpdateOptions(HSTMT statement) {impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(this,statement);}
-void CRecordset::SetRowsetCurrencyStatus(RETCODE code,WORD fetch,long rows,SQLULEN fetched) {
-    impl__SetRowsetCurrencyStatus_CRecordset__UEAAXFGJ_K_Z(this,code,fetch,rows,fetched);
-}
 void CRecordset::PreBindFields() {impl__PreBindFields_CRecordset__UEAAXXZ(this);}
 void CRecordset::ThrowDBException(RETCODE code,HSTMT statement) {
     impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(code,m_pDatabase,statement?statement:m_hstmt);
