@@ -124,11 +124,19 @@ extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ();
 
 class AFX_MODULE_STATE : public CNoTrackObject {
 public:
-    CWinApp* m_pCurrentWinApp;
-    HINSTANCE m_hCurrentInstanceHandle;
-    HINSTANCE m_hCurrentResourceHandle;
+    CWinApp* m_pCurrentWinApp{};
+    HINSTANCE m_hCurrentInstanceHandle{};
+    HINSTANCE m_hCurrentResourceHandle{};
+    // Preserve the native x64 prefix through the callbacks used by windows.
+    // The intervening module services are not modeled by this shadow yet.
+    BYTE m_reservedToToolTip[0x80-0x20]{};
+    void (AFXAPI* m_pfnFilterToolTipMessage)(MSG*,CWnd*)=nullptr;
+    BYTE m_reservedToOccManager[0xa0-0x88]{};
+    void* m_pOccManager{};
 };
 static_assert(offsetof(AFX_MODULE_STATE,m_pCurrentWinApp)==8,"native module application prefix");
+static_assert(offsetof(AFX_MODULE_STATE,m_pfnFilterToolTipMessage)==0x80,"native tooltip filter");
+static_assert(offsetof(AFX_MODULE_STATE,m_pOccManager)==0xa0,"native OLE manager");
 
 namespace openmfc { namespace detail { namespace regcore {
 extern AFX_MODULE_STATE g_moduleStateStatic;

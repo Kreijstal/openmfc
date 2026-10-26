@@ -1,5 +1,6 @@
 #pragma once
 #include <intrin.h>
+#include "detail/RegcoreSupport.h"
 // SDK-sized wrappers around a real HWND graph. Native MFC owns its own permanent
 // handle-map entries; only peripheral Win32 focus/dialog results are controlled.
 extern "C" {
@@ -207,6 +208,15 @@ static std::vector<Event> focus(const API& api) {
 }
 static void expectations(const API& api) {
     Fixture f(api);
+    {
+        AFX_MODULE_STATE defaultModule;windows[3]->m_pModuleState=&defaultModule;
+        check(api.base(windows[3],nullptr)==FALSE && !defaultModule.m_pOccManager,
+            "default framework module storage provides null tooltip and OLE manager fields at native offsets");
+        defaultModule.m_pfnFilterToolTipMessage=&filter;MSG message{};message.message=WM_KEYDOWN;f.reset();
+        check(api.base(windows[3],&message)==FALSE && events.size()==1 && events.front()[0]==3,
+            "the framework module shadow exposes the native cached tooltip callback");
+        windows[3]->m_pModuleState=reinterpret_cast<AFX_MODULE_STATE*>(f.cached);
+    }
     check(id(api.parentFrame(windows[3]))==2 && id(api.topFrame(windows[3]))==0 && id(api.parentFrame(windows[2]))==0,
         "frame traversal honors virtual IsFrameWnd values on SDK-shaped wrappers");
     windows[3]->m_hWndOwner=handles[1];

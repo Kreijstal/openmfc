@@ -88,6 +88,9 @@ on:
       - 'tests/recordset_result_tests.h'
       - 'tests/recordset_value_tests.h'
       - 'tests/recordview_command_tests.h'
+      - 'phase4/src/detail/RegcoreSupport.h'
+      - 'phase4/src/detail/RegcoreSupport.cpp'
+      - 'phase4/src/core/runtime/Globals.cpp'
       - 'tests/window_form_routing_tests.h'
       - 'phase4/src/core/window/CWndParents.cpp'
       - 'phase4/src/core/window/CWndFocus.cpp'
@@ -313,6 +316,9 @@ on:
       - 'tests/recordset_result_tests.h'
       - 'tests/recordset_value_tests.h'
       - 'tests/recordview_command_tests.h'
+      - 'phase4/src/detail/RegcoreSupport.h'
+      - 'phase4/src/detail/RegcoreSupport.cpp'
+      - 'phase4/src/core/runtime/Globals.cpp'
       - 'tests/window_form_routing_tests.h'
       - 'phase4/src/core/window/CWndParents.cpp'
       - 'phase4/src/core/window/CWndFocus.cpp'
@@ -950,6 +956,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CWinAppSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/SynccoreSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/InetcoreSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/RegcoreSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/Globals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/Thunks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CFrameWnd.cpp"
