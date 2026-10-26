@@ -5,6 +5,7 @@
 
 #include "detail/FrameFontExportsSupport.h"
 #include "detail/WincoreSupport.h"
+#include <dde.h>
 
 // Symbol: ?CreateObject@CFrameWnd@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CFrameWnd__SAPEAVCObject__XZ() {
