@@ -1,6 +1,20 @@
 // Native rectangle conversion, including right-to-left layout and OLE styles.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/WindowMessageSupport.h"
+DWORD CWnd::GetStyle() const {
+    if(m_pCtrlSite) {
+        using Style=DWORD (MS_ABI*)(void*);
+        return openmfc::detail::WindowSlot<Style>(m_pCtrlSite,32)(m_pCtrlSite);
+    }
+    return static_cast<DWORD>(::GetWindowLongW(m_hWnd,GWL_STYLE));
+}
+int CWnd::IsWindowEnabled() const {
+    if(m_pCtrlSite) {
+        using Enabled=BOOL (MS_ABI*)(void*);
+        return openmfc::detail::WindowSlot<Enabled>(m_pCtrlSite,43)(m_pCtrlSite);
+    }
+    return ::IsWindowEnabled(m_hWnd);
+}
 DWORD CWnd::GetExStyle() const {
     if(m_pCtrlSite) {
         using Style=DWORD (MS_ABI*)(void*);
@@ -15,7 +29,19 @@ void CWnd::ClientToScreen(RECT* rectangle) const {
     ::ClientToScreen(m_hWnd,second);
     if(GetExStyle()&WS_EX_LAYOUTRTL) {LONG old=rectangle->left;rectangle->left=rectangle->right;rectangle->right=old;}
 }
+void CWnd::ScreenToClient(RECT* rectangle) const {
+    auto* first=reinterpret_cast<POINT*>(rectangle);
+    ::ScreenToClient(m_hWnd,first);
+    ::ScreenToClient(m_hWnd,first+1);
+    if(GetExStyle()&WS_EX_LAYOUTRTL) {LONG old=rectangle->left;rectangle->left=rectangle->right;rectangle->right=old;}
+}
+// Symbol: ?GetStyle@CWnd@@QEBAKXZ
+extern "C" DWORD MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* self) {return self->GetStyle();}
+// Symbol: ?IsWindowEnabled@CWnd@@QEBAHXZ
+extern "C" BOOL MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* self) {return self->IsWindowEnabled();}
 // Symbol: ?GetExStyle@CWnd@@QEBAKXZ
 extern "C" DWORD MS_ABI impl__GetExStyle_CWnd__QEBAKXZ(const CWnd* self) {return self->GetExStyle();}
 // Symbol: ?ClientToScreen@CWnd@@QEBAXPEAUtagRECT@@@Z
 extern "C" void MS_ABI impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* self,RECT* rectangle) {self->ClientToScreen(rectangle);}
+// Symbol: ?ScreenToClient@CWnd@@QEBAXPEAUtagRECT@@@Z
+extern "C" void MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* self,RECT* rectangle) {self->ScreenToClient(rectangle);}

@@ -417,15 +417,6 @@ extern "C" void MS_ABI impl__RepositionBars_CWnd__QEAAXIIIIPEAUtagRECT__PEBU2_H_
     pThis->RepositionBars(nIDFirst, nIDLast, nIDLeftOver, nFlag,
                           lpRectClient, const_cast<RECT*>(lpRectClient2), bStretch);
 }
-// Symbol: ?ScrollWindow@CWnd@@QEAAXHHPEBUtagRECT@@0@Z
-extern "C" void MS_ABI impl__ScrollWindow_CWnd__QEAAXHHPEBUtagRECT__0_Z(
-    CWnd* pThis, int X, int Y, const RECT* lpRectScroll, const RECT* lpRectClip)
-{
-    if (!pThis) {
-        return;
-    }
-    pThis->ScrollWindow(X, Y, lpRectScroll, lpRectClip);
-}
 // Symbol: ?ScrollWindowEx@CWnd@@QEAAHHHPEBUtagRECT@@0PEAVCRgn@@PEAU2@I@Z
 extern "C" int MS_ABI impl__ScrollWindowEx_CWnd__QEAAHHHPEBUtagRECT__0PEAVCRgn__PEAU2_I_Z(
     CWnd* pThis, int X, int Y, const RECT* lpRectScroll, const RECT* lpRectClip,
@@ -678,14 +669,6 @@ extern "C" int MS_ABI impl__EnableWindow_CWnd__QEAAHH_Z(CWnd* pThis, int bEnable
     }
     return ::EnableWindow(pThis->m_hWnd, bEnable);
 }
-// CWnd::IsWindowEnabled
-// Symbol: ?IsWindowEnabled@CWnd@@QEBAHXZ
-extern "C" int MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* pThis) {
-    if (!pThis || !pThis->m_hWnd) {
-        return FALSE;
-    }
-    return ::IsWindowEnabled(pThis->m_hWnd);
-}
 // Symbol: ?DestroyWindow@CWnd@@UEAAHXZ
 extern "C" int MS_ABI impl__DestroyWindow_CWnd__UEAAHXZ(CWnd* pThis) {
     if (!pThis || !pThis->m_hWnd) {
@@ -918,72 +901,6 @@ extern "C" int MS_ABI impl__GetDlgItemTextW_CWnd__QEBAHHAEAV__CStringT__WV__StrT
     int copied = ::GetWindowTextW(hItem, buffer, length + 1);
     rString->ReleaseBuffer(copied > 0 ? copied : 0);
     return copied > 0 ? copied : 0;
-}
-// Symbol: ?GetScrollPos@CWnd@@QEBAHH@Z
-extern "C" int MS_ABI impl__GetScrollPos_CWnd__QEBAHH_Z(const CWnd* pThis, int nBar) {
-    if (!pThis || !pThis->m_hWnd) {
-        return 0;
-    }
-    return ::GetScrollPos(pThis->m_hWnd, nBar);
-}
-// Symbol: ?GetScrollInfo@CWnd@@QEAAHHPEAUtagSCROLLINFO@@I@Z
-extern "C" int MS_ABI impl__GetScrollInfo_CWnd__QEAAHHPEAUtagSCROLLINFO__I_Z(
-    CWnd* pThis, int nBar, SCROLLINFO* pScrollInfo, UINT nMask) {
-    if (!pThis || !pThis->m_hWnd || !pScrollInfo) {
-        return FALSE;
-    }
-    pScrollInfo->fMask = nMask;
-    return ::GetScrollInfo(pThis->m_hWnd, nBar, pScrollInfo);
-}
-// Symbol: ?GetScrollLimit@CWnd@@QEAAHH@Z
-extern "C" int MS_ABI impl__GetScrollLimit_CWnd__QEAAHH_Z(CWnd* pThis, int nBar) {
-    if (!pThis || !pThis->m_hWnd) {
-        return 0;
-    }
-    SCROLLINFO si = {};
-    si.cbSize = sizeof(si);
-    si.fMask = SIF_RANGE | SIF_PAGE;
-    if (!::GetScrollInfo(pThis->m_hWnd, nBar, &si)) {
-        return 0;
-    }
-    int page = si.nPage > 0 ? static_cast<int>(si.nPage) - 1 : 0;
-    return si.nMax - page;
-}
-// Symbol: ?GetScrollRange@CWnd@@QEBAXHPEAH0@Z
-extern "C" void MS_ABI impl__GetScrollRange_CWnd__QEBAXHPEAH0_Z(
-    const CWnd* pThis, int nBar, int* pMinPos, int* pMaxPos) {
-    if (pMinPos) {
-        *pMinPos = 0;
-    }
-    if (pMaxPos) {
-        *pMaxPos = 0;
-    }
-    if (pThis && pThis->m_hWnd) {
-        ::GetScrollRange(pThis->m_hWnd, nBar, pMinPos, pMaxPos);
-    }
-}
-
-// Symbol: ?SendChildNotifyLastMsg@CWnd@@QEAAHPEA_J@Z
-extern "C" int MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* pThis, LONGLONG* pResult) {
-    return pThis ? pThis->SendChildNotifyLastMsg(pResult) : FALSE;
-}
-// Symbol: ?GetScrollBarCtrl@CWnd@@UEBAPEAVCScrollBar@@H@Z
-extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CWnd__UEBAPEAVCScrollBar__H_Z(const CWnd* pThis, int nBar) {
-    if (!pThis || !pThis->m_hWnd) {
-        return nullptr;
-    }
-    if (nBar != SB_HORZ && nBar != SB_VERT) {
-        return nullptr;
-    }
-
-    constexpr UINT AFX_IDW_HSCROLL = 0xE812;
-    constexpr UINT AFX_IDW_VSCROLL = 0xE811;
-    UINT id = (nBar == SB_HORZ) ? AFX_IDW_HSCROLL : AFX_IDW_VSCROLL;
-    HWND hScrollBar = ::GetDlgItem(pThis->m_hWnd, static_cast<int>(id));
-    if (!hScrollBar) {
-        return nullptr;
-    }
-    return static_cast<CScrollBar*>(CWnd::FromHandle(hScrollBar));
 }
 // Symbol: ?IsFrameWnd@CWnd@@UEBAHXZ
 extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis) {
@@ -2106,13 +2023,6 @@ void CWnd::GetProperty(long p0, WORD p1, void* p2) const
     }
     *reinterpret_cast<void**>(p2) = propIt->second;
 }
-DWORD CWnd::GetStyle() const
-{
-    if (!m_hWnd) {
-        return 0;
-    }
-    return static_cast<DWORD>(::GetWindowLongPtrW(m_hWnd, GWL_STYLE));
-}
 WNDPROC* CWnd::GetSuperWndProcAddr()
 {
     static WNDPROC super=nullptr;return &super;
@@ -2925,32 +2835,6 @@ LONGLONG CWnd::RunModalLoop(DWORD p0)
     }
     return 0;
 }
-void CWnd::ScreenToClient(RECT* p0) const
-{
-    if (!m_hWnd || !p0) {
-        return;
-    }
-
-    POINT points[2] = {
-        {p0->left, p0->top},
-        {p0->right, p0->bottom}
-    };
-
-    if (::MapWindowPoints(HWND_DESKTOP, m_hWnd, points, 2) != 0) {
-        p0->left = points[0].x;
-        p0->top = points[0].y;
-        p0->right = points[1].x;
-        p0->bottom = points[1].y;
-    }
-}
-void CWnd::ScrollWindow(int p0, int p1, const RECT* p2, const RECT* p3)
-{
-    if (!m_hWnd) {
-        return;
-    }
-
-    ::ScrollWindow(m_hWnd, p0, p1, p2, p3);
-}
 int CWnd::ScrollWindowEx(int p0, int p1, const RECT* p2, const RECT* p3, CRgn* p4, RECT* p5, UINT p6)
 {
     if (!m_hWnd) {
@@ -2959,32 +2843,6 @@ int CWnd::ScrollWindowEx(int p0, int p1, const RECT* p2, const RECT* p3, CRgn* p
 
     HRGN hRgn = p4 ? static_cast<HRGN>(p4->m_hObject) : nullptr;
     return ::ScrollWindowEx(m_hWnd, p0, p1, p2, p3, hRgn, p5, p6);
-}
-int CWnd::SendChildNotifyLastMsg(LONGLONG* p0)
-{
-    const MSG* pMsg = GetCurrentMessage();
-    if (!pMsg) {
-        if (p0) {
-            *p0 = 0;
-        }
-        return FALSE;
-    }
-
-    LONGLONG result = 0;
-    if (!OnChildNotify(pMsg->message,
-                       static_cast<ULONGLONG>(pMsg->wParam),
-                       static_cast<LONGLONG>(pMsg->lParam),
-                       &result)) {
-        if (p0) {
-            *p0 = 0;
-        }
-        return FALSE;
-    }
-
-    if (p0) {
-        *p0 = result;
-    }
-    return TRUE;
 }
 LONGLONG CWnd::SendDlgItemMessageW(int p0, UINT p1, ULONGLONG p2, LONGLONG p3)
 {
@@ -3044,13 +2902,6 @@ int CWnd::SetScrollInfo(int p0, SCROLLINFO* p1, int p2)
     }
     p1->cbSize = sizeof(*p1);
     return ::SetScrollInfo(m_hWnd, p0, p1, p2 ? TRUE : FALSE);
-}
-int CWnd::SetScrollPos(int p0, int p1, int p2)
-{
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    return ::SetScrollPos(m_hWnd, p0, p1, p2 ? TRUE : FALSE);
 }
 void CWnd::SetScrollRange(int p0, int p1, int p2, int p3)
 {

@@ -862,6 +862,10 @@ public:
     void GetProperty(long p0, WORD p1, void* p2) const;
     CHwndRenderTarget* GetRenderTarget();
     DWORD GetStyle() const;
+    int GetScrollPos(int nBar) const;
+    void GetScrollRange(int nBar, int* minimum, int* maximum) const;
+    BOOL GetScrollInfo(int nBar, SCROLLINFO* info, UINT mask = SIF_ALL);
+    int GetScrollLimit(int nBar);
     CFrameWnd* GetTopLevelFrame() const;
     CWnd* GetTopLevelOwner() const;
     CWnd* GetTopLevelParent() const;
@@ -2506,10 +2510,6 @@ inline int CWnd::UpdateWindow() {
 
 inline int CWnd::IsWindowVisible() const {
     return m_hWnd ? ::IsWindowVisible(m_hWnd) : 0;
-}
-
-inline int CWnd::IsWindowEnabled() const {
-    return m_hWnd ? ::IsWindowEnabled(m_hWnd) : 0;
 }
 
 inline int CWnd::EnableWindow(int bEnable) {

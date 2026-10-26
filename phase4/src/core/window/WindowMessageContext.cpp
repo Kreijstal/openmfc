@@ -20,6 +20,14 @@ const MSG* CWnd::GetCurrentMessage() {
     openmfc::detail::SetSentMessage(message,message.hwnd,message.message,message.wParam,message.lParam,true);
     return &message;
 }
+int CWnd::SendChildNotifyLastMsg(LONGLONG* result) {
+    auto* state=AfxGetThreadState();
+    if(!state) { impl__AfxThrowInvalidArgException__YAXXZ();return FALSE; }
+    const MSG& message=state->m_lastSentMsg;
+    return OnChildNotify(message.message,message.wParam,message.lParam,result);
+}
+// Symbol: ?SendChildNotifyLastMsg@CWnd@@QEAAHPEA_J@Z
+extern "C" BOOL MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* self,LONGLONG* result) {return self->SendChildNotifyLastMsg(result);}
 // Symbol: ?GetCurrentMessage@CWnd@@KAPEBUtagMSG@@XZ
 extern "C" const MSG* MS_ABI impl__GetCurrentMessage_CWnd__KAPEBUtagMSG__XZ() { return CWnd::GetCurrentMessage(); }
 namespace {

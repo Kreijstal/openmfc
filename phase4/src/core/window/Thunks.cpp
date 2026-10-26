@@ -1321,11 +1321,6 @@ extern "C" COleControlSiteOrWnd* MS_ABI impl__GetPrevDlgGroupItem_CWnd__QEBAPEAU
 extern "C" void MS_ABI impl__GetProperty_CWnd__QEBAXJGPEAX_Z(const CWnd* pThis, long p0, unsigned short p1, void* p2) {
     pThis->GetProperty(p0, p1, p2);
 }
-// Symbol: ?GetStyle@CWnd@@QEBAKXZ
-// CWnd::GetStyle
-extern "C" unsigned long MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis) {
-    return (unsigned long)pThis->GetStyle();
-}
 // Symbol: ?GetThisInterfaceMap@CWnd@@KAPEBUAFX_INTERFACEMAP@@XZ
 // Static: CWnd::GetThisInterfaceMap
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CWnd__KAPEBUAFX_INTERFACEMAP__XZ() {
@@ -1555,11 +1550,6 @@ extern "C" int MS_ABI impl__ReflectLastMsg_CWnd__KAHPEAUHWND____PEA_J_Z(HWND__* 
 extern "C" int MS_ABI impl__RunModalLoop_CWnd__QEAAHK_Z(CWnd* pThis, unsigned long p0) {
     return (int)pThis->RunModalLoop(p0);
 }
-// Symbol: ?ScreenToClient@CWnd@@QEBAXPEAUtagRECT@@@Z
-// CWnd::ScreenToClient
-extern "C" void MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* pThis, RECT* p0) {
-    pThis->ScreenToClient(p0);
-}
 // Symbol: ?SendDlgItemMessageW@CWnd@@QEAA_JHI_K_J@Z
 // CWnd::SendDlgItemMessageW
 extern "C" __int64 MS_ABI impl__SendDlgItemMessageW_CWnd__QEAA_JHI_K_J_Z(CWnd* pThis, int p0, unsigned int p1, unsigned __int64 p2, __int64 p3) {
@@ -1595,11 +1585,6 @@ extern "C" int MS_ABI impl__SetOccDialogInfo_CWnd__MEAAHPEAU_AFX_OCC_DIALOG_INFO
 // CWnd::SetScrollInfo
 extern "C" int MS_ABI impl__SetScrollInfo_CWnd__QEAAHHPEAUtagSCROLLINFO__H_Z(CWnd* pThis, int p0, SCROLLINFO* p1, int p2) {
     return (int)pThis->SetScrollInfo(p0, p1, p2);
-}
-// Symbol: ?SetScrollPos@CWnd@@QEAAHHHH@Z
-// CWnd::SetScrollPos
-extern "C" int MS_ABI impl__SetScrollPos_CWnd__QEAAHHHH_Z(CWnd* pThis, int p0, int p1, int p2) {
-    return (int)pThis->SetScrollPos(p0, p1, p2);
 }
 // Symbol: ?SetScrollRange@CWnd@@QEAAXHHHH@Z
 // CWnd::SetScrollRange
