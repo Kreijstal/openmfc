@@ -111,6 +111,38 @@ void fixups(CRecordset* rs) {
 }
 void CRecordset::CheckRowsetError(RETCODE code) {checkError(this,code);}
 void CRecordset::SetRowsetCurrencyStatus(RETCODE code,WORD direction,long rows,SQLULEN fetched) {setCurrency(this,code,direction,rows,fetched);}
+void CRecordset::ResetCursor() {
+    m_lCurrentRecord=-1;
+    m_bEOFSeen=FALSE;m_lRecordCount=0;m_bBOF=m_bEOF=FALSE;m_bDeleted=FALSE;
+}
+void CRecordset::RefreshRowset(WORD row,WORD lock) {
+    RETCODE code;
+    do {code=::SQLSetPos(m_hstmt,row,SQL_REFRESH,lock);} while(code==SQL_STILL_EXECUTING);
+    // Native refresh deliberately ignores the final driver status. Fixup is
+    // governed by the recordset's current field, currency and bulk flags.
+    if (m_nFields && !m_bEOF && !m_bBOF && !(m_dwOptions&useMultiRowFetch)) fixups(this);
+}
+void CRecordset::SetRowsetCursorPosition(WORD row,WORD lock) {
+    RETCODE code;
+    do {code=::SQLSetPos(m_hstmt,row,SQL_POSITION,lock);} while(code==SQL_STILL_EXECUTING);
+}
+void CRecordset::SetLockingMode(UINT mode) {
+    if (mode==1) {
+        if (!m_pDatabase) {impl__AfxThrowInvalidArgException__YAXXZ();return;}
+        SQLUINTEGER supported;SQLSMALLINT length;
+        RETCODE code=::SQLGetInfoW(m_pDatabase->m_hdbc,SQL_LOCK_TYPES,&supported,sizeof(supported),&length);
+        if (!Check(code) || !(supported&SQL_LCK_EXCLUSIVE)) ThrowDBException(0x3fc,nullptr);
+    }
+    m_nLockMode=mode;
+}
+// Symbol: ?ResetCursor@CRecordset@@QEAAXXZ
+extern "C" void MS_ABI impl__ResetCursor_CRecordset__QEAAXXZ(CRecordset* rs) {rs->ResetCursor();}
+// Symbol: ?RefreshRowset@CRecordset@@QEAAXGG@Z
+extern "C" void MS_ABI impl__RefreshRowset_CRecordset__QEAAXGG_Z(CRecordset* rs,WORD row,WORD lock) {rs->RefreshRowset(row,lock);}
+// Symbol: ?SetRowsetCursorPosition@CRecordset@@QEAAXGG@Z
+extern "C" void MS_ABI impl__SetRowsetCursorPosition_CRecordset__QEAAXGG_Z(CRecordset* rs,WORD row,WORD lock) {rs->SetRowsetCursorPosition(row,lock);}
+// Symbol: ?SetLockingMode@CRecordset@@QEAAXI@Z
+extern "C" void MS_ABI impl__SetLockingMode_CRecordset__QEAAXI_Z(CRecordset* rs,UINT mode) {rs->SetLockingMode(mode);}
 // Symbol: ?FetchData@CRecordset@@QEAAFGJPEA_K@Z
 extern "C" RETCODE MS_ABI impl__FetchData_CRecordset__QEAAFGJPEA_K_Z(CRecordset* rs,WORD direction,long rows,SQLULEN* fetched) {return fetch(rs,direction,rows,fetched);}
 // Symbol: ?SkipDeletedRecords@CRecordset@@QEAAXGJPEA_KPEAF@Z

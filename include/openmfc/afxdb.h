@@ -225,6 +225,10 @@ public:
     void SetAbsolutePosition(long);
     long GetAbsolutePosition() const {return m_lCurrentRecord;}
     void CancelUpdate();
+    void StoreFields();void LoadFields();
+    void ResetCursor();void RefreshRowset(WORD,WORD=SQL_LOCK_NO_CHANGE);
+    void SetRowsetCursorPosition(WORD,WORD=SQL_LOCK_NO_CHANGE);
+    void SetLockingMode(UINT);
     void SetFieldNull(void*,BOOL=TRUE);
     void SetFieldDirty(void*,BOOL=TRUE);
     BOOL CanAppend() const;BOOL CanRestart() const;BOOL CanScroll() const;BOOL CanTransact() const;BOOL CanUpdate() const;

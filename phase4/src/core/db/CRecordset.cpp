@@ -113,8 +113,6 @@ extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldIn
 extern "C" void MS_ABI impl__GetODBCFieldInfo_CRecordset__QEAAXPEB_WAEAUCODBCFieldInfo___Z(CRecordset* pThis, const wchar_t* name, OdbcFieldInfoCompat* info) { impl__GetODBCFieldInfo_CRecordset__QEAAXFAEAUCODBCFieldInfo___Z(pThis, static_cast<short>(FindFieldByName(pThis,name)), info); }
 // Symbol: ?GetTextLen@CRecordset@@SA_JF_K@Z
 extern "C" long long MS_ABI impl__GetTextLen_CRecordset__SA_JF_K_Z(short sqlType, unsigned long precision) { return (sqlType==SQL_WCHAR||sqlType==SQL_WVARCHAR||sqlType==SQL_WLONGVARCHAR)?static_cast<long long>(precision)*sizeof(wchar_t):precision; }
-// Symbol: ?LoadFields@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__LoadFields_CRecordset__QEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
 // Symbol: ?OnSetUpdateOptions@CRecordset@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(CRecordset* pThis, void* pUpdateOptions) {
     if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT) return;
@@ -134,10 +132,6 @@ extern "C" void MS_ABI impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(CRecords
 extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset*) {}
 // Symbol: ?PrepareUpdateHstmt@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__PrepareUpdateHstmt_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared=true; }
-// Symbol: ?RefreshRowset@CRecordset@@QEAAXGG@Z
-extern "C" void MS_ABI impl__RefreshRowset_CRecordset__QEAAXGG_Z(CRecordset* pThis, unsigned short fetchType, unsigned short) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLFetchScroll(pThis->m_hstmt, fetchType, 0); }
-// Symbol: ?ResetCursor@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__ResetCursor_CRecordset__QEAAXXZ(CRecordset* pThis) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLCloseCursor(pThis->m_hstmt); if (pThis) { pThis->m_bBOF=TRUE; pThis->m_bEOF=FALSE; pThis->m_nAbsolutePosition=0; } }
 // Symbol: ?SendLongBinaryData@CRecordset@@IEAAXPEAX@Z
 extern "C" void MS_ABI impl__SendLongBinaryData_CRecordset__IEAAXPEAX_Z(CRecordset* pThis, void* pData) {
     if (!pThis || pThis->m_hstmt == SQL_NULL_HSTMT || !pData) return;
@@ -151,12 +145,6 @@ extern "C" void MS_ABI impl__SendLongBinaryData_CRecordset__IEAAXPEAX_Z(CRecords
         EnsureRecordsetState(pThis).lastRetCode = rc;
     }
 }
-// Symbol: ?SetLockingMode@CRecordset@@QEAAXI@Z
-extern "C" void MS_ABI impl__SetLockingMode_CRecordset__QEAAXI_Z(CRecordset* pThis, unsigned int mode) { if (pThis) EnsureRecordsetState(pThis).lockingMode=mode; }
-// Symbol: ?SetRowsetCursorPosition@CRecordset@@QEAAXGG@Z
-extern "C" void MS_ABI impl__SetRowsetCursorPosition_CRecordset__QEAAXGG_Z(CRecordset* pThis, unsigned short fetchType, unsigned short row) { if (pThis && pThis->m_hstmt!=SQL_NULL_HSTMT) SQLFetchScroll(pThis->m_hstmt, fetchType, row); }
-// Symbol: ?StoreFields@CRecordset@@QEAAXXZ
-extern "C" void MS_ABI impl__StoreFields_CRecordset__QEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
 // Symbol: ?UpdateInsertDelete@CRecordset@@IEAAHXZ
 extern "C" int MS_ABI impl__UpdateInsertDelete_CRecordset__IEAAHXZ(CRecordset* pThis) { return pThis ? pThis->Update() : FALSE; }
 CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
@@ -254,12 +242,6 @@ BOOL CRecordset::Update() {
     state.dirtyFields.clear();
     state.nullFields.clear();
     return TRUE;
-}
-void CRecordset::CancelUpdate() {
-    if (m_lOpen!=1) return;
-    m_nEditMode = 0;
-    EnsureRecordsetState(this).dirtyFields.clear();
-    EnsureRecordsetState(this).nullFields.clear();
 }
 BOOL CRecordset::CanAppend() const {
     if (!m_pDatabase || !m_pDatabase->IsOpen()) return FALSE;

@@ -1141,11 +1141,6 @@ extern "C" void* MS_ABI impl___0CDatabase__QEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl__AddNew_CRecordset__UEAAXXZ(CRecordset* pThis) {
     pThis->AddNew();
 }
-// Symbol: ?CancelUpdate@CRecordset@@QEAAXXZ
-// CRecordset::CancelUpdate
-extern "C" void MS_ABI impl__CancelUpdate_CRecordset__QEAAXXZ(CRecordset* pThis) {
-    pThis->CancelUpdate();
-}
 // Symbol: ?Delete@CRecordset@@UEAAXXZ
 // CRecordset::Delete
 extern "C" void MS_ABI impl__Delete_CRecordset__UEAAXXZ(CRecordset* pThis) {
