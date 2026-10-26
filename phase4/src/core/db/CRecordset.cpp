@@ -209,7 +209,7 @@ extern "C" void MS_ABI impl__OnSetUpdateOptions_CRecordset__UEAAXPEAX_Z(CRecords
     }
 }
 // Symbol: ?PreBindFields@CRecordset@@UEAAXXZ
-extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset* pThis) { LoadRecordsetFields(pThis); }
+extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset*) {}
 // Symbol: ?PrepareUpdateHstmt@CRecordset@@IEAAXXZ
 extern "C" void MS_ABI impl__PrepareUpdateHstmt_CRecordset__IEAAXXZ(CRecordset* pThis) { if (pThis) EnsureRecordsetState(pThis).updatePrepared=true; }
 // Symbol: ?RefreshRowset@CRecordset@@QEAAXGG@Z
@@ -281,74 +281,6 @@ CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {
             exception->Delete();
         }
     }
-}
-BOOL CRecordset::Open(UINT nOpenType, const wchar_t* lpszSQL, DWORD dwOptions) {
-    if (m_lOpen==1) return FALSE;
-    if (!m_pDatabase) return FALSE;
-
-    m_nOpenType = nOpenType;
-    m_dwOptions = dwOptions;
-
-    if (!m_pDatabase->IsOpen()) {
-        return FALSE;
-    }
-
-    // Allocate statement handle
-    if (SQLAllocHandle(SQL_HANDLE_STMT, m_pDatabase->GetHDBC(), &m_hstmt) != SQL_SUCCESS) {
-        return FALSE;
-    }
-
-    // Set options
-    OnSetOptions(m_hstmt);
-
-    // Get SQL string
-    CString strSQL = lpszSQL ? CString(lpszSQL) : GetDefaultSQL();
-    if (strSQL.IsEmpty()) {
-        SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
-        m_hstmt = SQL_NULL_HSTMT;
-        return FALSE;
-    }
-
-    // Execute
-    RETCODE rc = SQLExecDirectW(m_hstmt, (SQLWCHAR*)(const wchar_t*)strSQL, SQL_NTS);
-    if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
-        SQLFreeHandle(SQL_HANDLE_STMT, m_hstmt);
-        m_hstmt = SQL_NULL_HSTMT;
-        return FALSE;
-    }
-
-    // Determine number of result columns
-    SQLSMALLINT nCols = 0;
-    SQLNumResultCols(m_hstmt, &nCols);
-    m_nFields = nCols;
-    m_nRecordCount = 0;
-    SQLLEN rowCount = 0;
-    RETCODE rowRc = SQLRowCount(m_hstmt, &rowCount);
-    if (SqlSucceeded(rowRc) && rowCount > 0) {
-        m_nRecordCount = static_cast<long>(rowCount);
-    }
-
-    m_bOpen = TRUE;
-    m_nEditMode = 0;
-    m_bDeleted = FALSE;
-    m_bBOF = TRUE;
-    m_bEOF = FALSE;
-    m_nAbsolutePosition = 0;
-    {
-        std::lock_guard<std::mutex> lock(g_recordsetStateMutex);
-        RecordsetState& state = EnsureRecordsetState(this);
-        state = RecordsetState{};
-        state.currentSql = strSQL;
-        if (state.baseSql.IsEmpty()) state.baseSql = strSQL;
-        if (state.fieldLengths.size() < static_cast<size_t>(m_nFields)) {
-            state.fieldLengths.resize(static_cast<size_t>(m_nFields), 0);
-        } else {
-            state.fieldLengths.assign(static_cast<size_t>(m_nFields), 0);
-        }
-        StoreSql(this, strSQL);
-    }
-
-    return TRUE;
 }
 BOOL CRecordset::IsDeleted() const {
     return m_bDeleted;
@@ -439,6 +371,10 @@ void CRecordset::Move(long nRows, WORD wFetchType) {
             m_bEOF = TRUE;
         }
     }
+}
+// Symbol: ?Move@CRecordset@@UEAAXJG@Z
+extern "C" void MS_ABI impl__Move_CRecordset__UEAAXJG_Z(CRecordset* rs,long rows,WORD direction) {
+    rs->CRecordset::Move(rows,direction);
 }
 void CRecordset::SetAbsolutePosition(long nRows) {
     if (m_lOpen!=1) {

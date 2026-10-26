@@ -6,6 +6,8 @@ extern "C" void MS_ABI impl__AllocDataCache_CRecordset__QEAAXXZ(CRecordset*);
 extern "C" void MS_ABI impl__InitRecord_CRecordset__QEAAXXZ(CRecordset*);
 extern "C" void MS_ABI impl__AllocAndCacheFieldInfo_CRecordset__IEAAXXZ(CRecordset*);
 namespace recordset_allocation_test {
+using DescribeHook=SQLRETURN (SQL_API*)(SQLHSTMT,SQLUSMALLINT,SQLWCHAR*,SQLSMALLINT,SQLSMALLINT*,SQLSMALLINT*,SQLULEN*,SQLSMALLINT*,SQLSMALLINT*);
+static DescribeHook describeHook=nullptr;
 struct API {
     decltype(&impl__AllocRowset_CRecordset__IEAAXXZ) allocate;
     decltype(&impl__SetRowsetSize_CRecordset__UEAAXK_Z) resize;
@@ -139,6 +141,7 @@ static std::vector<INT64> metadata(const API& api) {
 }
 }
 extern "C" SQLRETURN SQL_API SQLDescribeColW(SQLHSTMT statement,SQLUSMALLINT field,SQLWCHAR* name,SQLSMALLINT capacity,SQLSMALLINT* length,SQLSMALLINT* type,SQLULEN* precision,SQLSMALLINT* scale,SQLSMALLINT* nullable) {
+    if(recordset_allocation_test::describeHook)return recordset_allocation_test::describeHook(statement,field,name,capacity,length,type,precision,scale,nullable);
     return recordset_allocation_test::describe(statement,field,name,capacity,length,type,precision,scale,nullable);
 }
 static void recordsetAllocation() {

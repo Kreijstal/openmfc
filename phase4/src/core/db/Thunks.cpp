@@ -1167,16 +1167,6 @@ extern "C" int MS_ABI impl__IsFieldDirty_CRecordset__QEAAHPEAX_Z(CRecordset* pTh
 extern "C" int MS_ABI impl__IsFieldNull_CRecordset__QEAAHPEAX_Z(CRecordset* pThis, void* p0) {
     return (int)pThis->IsFieldNull(p0);
 }
-// Symbol: ?Move@CRecordset@@UEAAXJG@Z
-// CRecordset::Move
-extern "C" void MS_ABI impl__Move_CRecordset__UEAAXJG_Z(CRecordset* pThis, long p0, unsigned short p1) {
-    pThis->Move(p0, p1);
-}
-// Symbol: ?Open@CRecordset@@UEAAHIPEB_WK@Z
-// CRecordset::Open
-extern "C" int MS_ABI impl__Open_CRecordset__UEAAHIPEB_WK_Z(CRecordset* pThis, unsigned int p0, const wchar_t* p1, unsigned long p2) {
-    return (int)pThis->Open(p0, p1, p2);
-}
 // Symbol: ?Update@CRecordset@@UEAAHXZ
 // CRecordset::Update
 extern "C" int MS_ABI impl__Update_CRecordset__UEAAHXZ(CRecordset* pThis) {
