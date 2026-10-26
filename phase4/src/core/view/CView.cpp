@@ -95,16 +95,6 @@ extern "C" void MS_ABI impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(CView* 
 extern "C" int MS_ABI impl__DoPreparePrinting_CView__QEAAHPEAUCPrintInfo___Z(CView* pThis, void* info) { return pThis ? pThis->OnPreparePrinting(info) : FALSE; }
 // Symbol: ?DoPrintPreview@CView@@QEAAHIPEAV1@PEAUCRuntimeClass@@PEAUCPrintPreviewState@@@Z
 extern "C" int MS_ABI impl__DoPrintPreview_CView__QEAAHIPEAV1_PEAUCRuntimeClass__PEAUCPrintPreviewState___Z(CView* pThis, unsigned int, CView* previewView, CRuntimeClass*, void*) { if (pThis && pThis->m_hWnd) ::ShowWindow(pThis->m_hWnd, SW_HIDE); if (previewView && previewView->m_hWnd) ::ShowWindow(previewView->m_hWnd, SW_SHOW); return previewView != nullptr; }
-// Symbol: ?GetScrollBarCtrl@CView@@UEBAPEAVCScrollBar@@H@Z
-extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(const CView* pThis, int nBar) {
-    if (!pThis || !pThis->m_hWnd) return nullptr;
-    constexpr unsigned int kHScrollId = 0xE812;
-    constexpr unsigned int kVScrollId = 0xE811;
-    unsigned int id = (nBar == SB_HORZ) ? kHScrollId : (nBar == SB_VERT) ? kVScrollId : 0;
-    if (!id) return nullptr;
-    HWND hWnd = ::GetDlgItem(pThis->m_hWnd, id);
-    return hWnd ? static_cast<CScrollBar*>(CWnd::FromHandle(hWnd)) : nullptr;
-}
 // Symbol: ?IsSelected@CView@@UEBAHPEBVCObject@@@Z
 extern "C" int MS_ABI impl__IsSelected_CView__UEBAHPEBVCObject___Z(const CView* pThis, const CObject* pObject) {
     return (pThis && pObject && (pObject == pThis || pObject == pThis->m_pDocument)) ? TRUE : FALSE;

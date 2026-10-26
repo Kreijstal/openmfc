@@ -75,19 +75,6 @@ extern "C" void MS_ABI impl__WinHelpW_CWnd__UEAAX_KI_Z(CWnd* pThis, unsigned lon
 
 
 // CWnd::GetDlgItem
-// Symbol: ?GetDlgItem@CWnd@@QEBAPEAV1@H@Z
-extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* pThis, int nID) {
-    if (!pThis || !pThis->m_hWnd) {
-        return nullptr;
-    }
-
-    HWND hCtrl = ::GetDlgItem(pThis->m_hWnd, nID);
-    if (!hCtrl) {
-        return nullptr;
-    }
-
-    return OpenMfcAttachCWnd(hCtrl);
-}
 // CWnd::GetDlgItem (HWND** overload)
 // Symbol: ?GetDlgItem@CWnd@@QEBAXHPEAPEAUHWND__@@@Z
 extern "C" void MS_ABI impl__GetDlgItem_CWnd__QEBAXHPEAPEAUHWND_____Z(

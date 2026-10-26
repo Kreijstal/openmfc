@@ -314,6 +314,7 @@ static void ownershipAndRecreation() {
 #include "view_rendering_tests.h"
 #include "splitter_command_tests.h"
 #include "window_scrolling_tests.h"
+#include "scroll_view_input_tests.h"
 #include "recordset_requery_tests.h"
 #include "cstring_ownership_tests.h"
 #include "data_exchange_tests.h"
@@ -375,6 +376,7 @@ int main() {
     if (SUCCEEDED(hr)) viewRendering();
     if (SUCCEEDED(hr)) splitterCommands();
     if (SUCCEEDED(hr)) windowScrolling();
+    if (SUCCEEDED(hr)) scrollViewInput();
     if (SUCCEEDED(hr)) recordsetRequery();
     if (SUCCEEDED(hr)) cstringOwnership();
     if (SUCCEEDED(hr)) dataExchange();

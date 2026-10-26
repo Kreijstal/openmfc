@@ -54,30 +54,12 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CScrollView__SAPEAUCRuntimeC
 extern "C" SIZE impl__sizeDefault_CScrollView__2UtagSIZE__B = {0, 0};
 // Symbol: ?CalcWindowRect@CScrollView@@UEAAXPEAUtagRECT@@I@Z
 extern "C" void MS_ABI impl__CalcWindowRect_CScrollView__UEAAXPEAUtagRECT__I_Z(CScrollView* pThis, RECT* rect, unsigned int adjustType) { impl__CalcWindowRect_CView__UEAAXPEAUtagRECT__I_Z(pThis, rect, adjustType); }
-// Symbol: ?GetDeviceScrollPosition@CScrollView@@QEBA?AVCPoint@@XZ
-extern "C" void MS_ABI impl__GetDeviceScrollPosition_CScrollView__QEBA_AVCPoint__XZ(CPoint* ret, const CScrollView* pThis) { new (ret) CPoint(pThis ? pThis->GetScrollPosition() : CPoint(0, 0)); }
 // Symbol: ?GetDeviceScrollSizes@CScrollView@@QEBAXAEAHAEAUtagSIZE@@11@Z
 extern "C" void MS_ABI impl__GetDeviceScrollSizes_CScrollView__QEBAXAEAHAEAUtagSIZE__11_Z(const CScrollView* pThis, int* mapMode, SIZE* total, SIZE* page, SIZE* line) { if (mapMode) *mapMode=pThis?pThis->m_nMapMode:MM_TEXT; if (total) *total=pThis?pThis->m_totalLog:SIZE{0,0}; if (page) *page=pThis?pThis->m_pageDev:SIZE{0,0}; if (line) *line=pThis?pThis->m_lineDev:SIZE{0,0}; }
-// Symbol: ?CheckScrollBars@CScrollView@@QEBAXAEAH0@Z
-extern "C" void MS_ABI impl__CheckScrollBars_CScrollView__QEBAXAEAH0_Z(const CScrollView* pThis, int* needH, int* needV) { if (needH) *needH=pThis&&pThis->m_totalLog.cx>0; if (needV) *needV=pThis&&pThis->m_totalLog.cy>0; }
 // Symbol: ?ScrollToDevicePosition@CScrollView@@IEAAXUtagPOINT@@@Z
 extern "C" void MS_ABI impl__ScrollToDevicePosition_CScrollView__IEAAXUtagPOINT___Z(CScrollView* pThis, POINT pt) { if (pThis) pThis->ScrollToPosition(pt); }
 // Symbol: ?CenterOnPoint@CScrollView@@IEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__CenterOnPoint_CScrollView__IEAAXVCPoint___Z(CScrollView* pThis, CPoint pt) { if (!pThis) return; RECT rc={}; if (pThis->m_hWnd) ::GetClientRect(pThis->m_hWnd,&rc); POINT dest={pt.x-(rc.right-rc.left)/2, pt.y-(rc.bottom-rc.top)/2}; pThis->ScrollToPosition(dest); }
-// Symbol: ?OnScrollBy@CScrollView@@UEAAHVCSize@@H@Z
-extern "C" int MS_ABI impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(CScrollView* pThis, CSize size, int) { if (!pThis) return FALSE; CPoint pt=pThis->GetScrollPosition(); pt.x+=size.cx; pt.y+=size.cy; pThis->ScrollToPosition(pt); return TRUE; }
-// Symbol: ?OnScroll@CScrollView@@UEAAHIIH@Z
-extern "C" int MS_ABI impl__OnScroll_CScrollView__UEAAHIIH_Z(CScrollView* pThis, unsigned int code, unsigned int pos, int doScroll) { if (!pThis) return FALSE; CSize delta(0,0); if (code==SB_LINEUP) delta.cy=-pThis->m_lineDev.cy; else if (code==SB_LINEDOWN) delta.cy=pThis->m_lineDev.cy; else if (code==SB_PAGEUP) delta.cy=-pThis->m_pageDev.cy; else if (code==SB_PAGEDOWN) delta.cy=pThis->m_pageDev.cy; else if (code==SB_THUMBPOSITION||code==SB_THUMBTRACK) { CPoint pt=pThis->GetScrollPosition(); pt.y=pos; pThis->ScrollToPosition(pt); return TRUE; } return doScroll ? impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(pThis, delta, TRUE) : TRUE; }
-// Symbol: ?OnHScroll@CScrollView@@QEAAXIIPEAVCScrollBar@@@Z
-extern "C" void MS_ABI impl__OnHScroll_CScrollView__QEAAXIIPEAVCScrollBar___Z(CScrollView* pThis, unsigned int code, unsigned int pos, CScrollBar*) { if (pThis) { CPoint pt=pThis->GetScrollPosition(); if (code==SB_LINELEFT) pt.x-=pThis->m_lineDev.cx; else if (code==SB_LINERIGHT) pt.x+=pThis->m_lineDev.cx; else if (code==SB_PAGELEFT) pt.x-=pThis->m_pageDev.cx; else if (code==SB_PAGERIGHT) pt.x+=pThis->m_pageDev.cx; else if (code==SB_THUMBPOSITION||code==SB_THUMBTRACK) pt.x=pos; pThis->ScrollToPosition(pt); } }
-// Symbol: ?OnVScroll@CScrollView@@QEAAXIIPEAVCScrollBar@@@Z
-extern "C" void MS_ABI impl__OnVScroll_CScrollView__QEAAXIIPEAVCScrollBar___Z(CScrollView* pThis, unsigned int code, unsigned int pos, CScrollBar*) { impl__OnScroll_CScrollView__UEAAHIIH_Z(pThis, code, pos, TRUE); }
-// Symbol: ?DoMouseWheel@CScrollView@@QEAAHIFVCPoint@@@Z
-extern "C" int MS_ABI impl__DoMouseWheel_CScrollView__QEAAHIFVCPoint___Z(CScrollView* pThis, unsigned int, short zDelta, CPoint) { if (!pThis) return FALSE; CSize delta(0, zDelta < 0 ? pThis->m_lineDev.cy*3 : -pThis->m_lineDev.cy*3); return impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(pThis, delta, TRUE); }
-// Symbol: ?OnMouseWheel@CScrollView@@QEAAHIFVCPoint@@@Z
-extern "C" int MS_ABI impl__OnMouseWheel_CScrollView__QEAAHIFVCPoint___Z(CScrollView* pThis, unsigned int flags, short zDelta, CPoint pt) { return impl__DoMouseWheel_CScrollView__QEAAHIFVCPoint___Z(pThis, flags, zDelta, pt); }
-// Symbol: ?GetWheelScrollDistance@CScrollView@@UEAA?AVCSize@@V2@HH@Z
-extern "C" void MS_ABI impl__GetWheelScrollDistance_CScrollView__UEAA_AVCSize__V2_HH_Z(CSize* ret, CScrollView*, CSize size, int, int) { new (ret) CSize(size.cx, size.cy * 3); }
 // Symbol: ?OnSize@CScrollView@@QEAAXIHH@Z
 extern "C" void MS_ABI impl__OnSize_CScrollView__QEAAXIHH_Z(CScrollView* pThis, unsigned int, int, int) { if (pThis && pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd,nullptr,TRUE); }
 // Symbol: ?UpdateBars@CScrollView@@IEAAXXZ
@@ -205,6 +187,3 @@ void CScrollView::ResizeParentToFit(int bShrinkOnly) {
 }
 
 void CScrollView::OnPrepareDC(CDC* dc,void* info) { impl__OnPrepareDC_CScrollView__UEAAXPEAVCDC__PEAUCPrintInfo___Z(this,dc,info); }
-CSize CScrollView::GetWheelScrollDistance(CSize size,BOOL horizontal,BOOL vertical) { CSize result;impl__GetWheelScrollDistance_CScrollView__UEAA_AVCSize__V2_HH_Z(&result,this,size,horizontal,vertical);return result; }
-BOOL CScrollView::OnScroll(UINT code,UINT position,BOOL scroll) { return impl__OnScroll_CScrollView__UEAAHIIH_Z(this,code,position,scroll); }
-BOOL CScrollView::OnScrollBy(CSize size,BOOL scroll) { return impl__OnScrollBy_CScrollView__UEAAHVCSize__H_Z(this,size,scroll); }

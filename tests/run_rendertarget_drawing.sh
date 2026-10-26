@@ -41,7 +41,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/db/RFXBinary.cpp phase4/src/core/db/RFXValueCache.cpp phase4/src/core/db/CFieldExchangeDefault.cpp
     phase4/src/core/db/CRecordsetFieldStorage.cpp
     phase4/src/core/window/CWndParents.cpp phase4/src/core/window/CWndFocus.cpp phase4/src/core/view/CFormViewRouting.cpp
-    phase4/src/core/frame/CSplitterWndInfo.cpp phase4/src/core/runtime/CObjectTypeChecks.cpp phase4/src/core/view/CViewSplitterCommands.cpp phase4/src/core/frame/CSplitterWndNavigation.cpp phase4/src/core/window/CWndCoordinates.cpp phase4/src/core/window/CWndScrolling.cpp
+    phase4/src/core/frame/CSplitterWndInfo.cpp phase4/src/core/runtime/CObjectTypeChecks.cpp phase4/src/core/view/CViewSplitterCommands.cpp phase4/src/core/frame/CSplitterWndNavigation.cpp phase4/src/core/window/CWndCoordinates.cpp phase4/src/core/window/CWndScrolling.cpp phase4/src/core/view/CScrollViewInput.cpp phase4/src/core/view/CViewScrolling.cpp
     phase4/src/core/view/CViewRendering.cpp phase4/src/core/gdi/CPaintDC.cpp phase4/src/core/gdi/CDCHandleMap.cpp
     phase4/src/core/view/CFormViewDialog.cpp
     phase4/src/core/view/CRecordViewCommands.cpp phase4/src/core/view/CFormViewInitialization.cpp phase4/src/core/view/ViewMessageMaps.cpp
@@ -108,6 +108,8 @@ for path, obj in (('core/frame/CSplitterWndInfo.cpp', 'CSplitterWndInfo'),
                   ('core/frame/CSplitterWndNavigation.cpp', 'CSplitterWndNavigation'),
                   ('core/window/CWndCoordinates.cpp', 'CWndCoordinates'),
                   ('core/window/CWndScrolling.cpp', 'CWndScrolling'),
+                  ('core/view/CScrollViewInput.cpp', 'CScrollViewInput'),
+                  ('core/view/CViewScrolling.cpp', 'CViewScrolling'),
                   ('core/view/CViewRendering.cpp', 'CViewRendering'),
                   ('core/gdi/CPaintDC.cpp', 'CPaintDC'),
                   ('core/gdi/CDCHandleMap.cpp', 'CDCHandleMap'),

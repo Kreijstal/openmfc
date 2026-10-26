@@ -101,6 +101,9 @@ on:
       - 'phase4/src/core/frame/CSplitterWndNavigation.cpp'
       - 'phase4/src/core/window/CWndCoordinates.cpp'
       - 'phase4/src/core/window/CWndScrolling.cpp'
+      - 'phase4/src/core/view/CScrollViewInput.cpp'
+      - 'phase4/src/core/view/CViewScrolling.cpp'
+      - 'tests/scroll_view_input_tests.h'
       - 'tests/window_scrolling_tests.h'
       - 'phase4/src/core/frame/CSplitterWnd.cpp'
       - 'phase4/src/core/frame/Thunks.cpp'
@@ -353,6 +356,9 @@ on:
       - 'phase4/src/core/frame/CSplitterWndNavigation.cpp'
       - 'phase4/src/core/window/CWndCoordinates.cpp'
       - 'phase4/src/core/window/CWndScrolling.cpp'
+      - 'phase4/src/core/view/CScrollViewInput.cpp'
+      - 'phase4/src/core/view/CViewScrolling.cpp'
+      - 'tests/scroll_view_input_tests.h'
       - 'tests/window_scrolling_tests.h'
       - 'phase4/src/core/frame/CSplitterWnd.cpp'
       - 'phase4/src/core/frame/Thunks.cpp'
@@ -607,6 +613,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndNavigation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCHandleMap.cpp"
@@ -815,6 +823,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndNavigation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCHandleMap.cpp"
@@ -991,6 +1001,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWndNavigation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCoordinates.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndScrolling.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CScrollViewInput.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewScrolling.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/view/CViewRendering.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CPaintDC.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CDCHandleMap.cpp"

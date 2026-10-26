@@ -2591,10 +2591,6 @@ inline CWnd* CWnd::SetParent(CWnd* pWndNewParent) {
     return CWnd::FromHandle(old);
 }
 
-inline CWnd* CWnd::GetDlgItem(int nID) const {
-    return m_hWnd ? CWnd::FromHandle(::GetDlgItem(m_hWnd, nID)) : nullptr;
-}
-
 inline void CWnd::Invalidate(int bErase) {
     if (m_hWnd) {
         ::InvalidateRect(m_hWnd, nullptr, bErase ? TRUE : FALSE);
@@ -3489,6 +3485,7 @@ public:
     int OnCmdMsg(UINT,int,void*,AFX_CMDHANDLERINFO*) override;
     CDocument* GetDocument() const;
     static CSplitterWnd* GetParentSplitter(const CWnd*,BOOL = FALSE);
+    CScrollBar* GetScrollBarCtrl(int) const override;
     virtual BOOL IsSelected(const CObject*) const;
     virtual BOOL OnScroll(UINT,UINT,BOOL = TRUE);
     virtual BOOL OnScrollBy(CSize,BOOL = TRUE);
@@ -3527,6 +3524,12 @@ public:
     void GetTrueClientSize(SIZE&,SIZE&) const;
     void ScrollToPosition(POINT);
     CPoint GetScrollPosition() const;
+    CPoint GetDeviceScrollPosition() const;
+    void CheckScrollBars(BOOL&,BOOL&) const;
+    void OnHScroll(UINT,UINT,CScrollBar*);
+    void OnVScroll(UINT,UINT,CScrollBar*);
+    BOOL DoMouseWheel(UINT,short,CPoint);
+    BOOL OnMouseWheel(UINT,short,CPoint);
     void FillOutsideRect(void*,void*);
     void ResizeParentToFit(BOOL = TRUE);
     void OnDraw(void*) override;

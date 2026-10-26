@@ -1,6 +1,7 @@
 // Native scrollbar-control routing and scrolling of window/OLE children.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/WindowMessageSupport.h"
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND);
 
 namespace {
 HWND ScrollHandle(const CWnd* window, int& bar) {
@@ -15,6 +16,14 @@ HWND ScrollHandle(const CWnd* window, int& bar) {
 int Add(int value, int delta) {
     return static_cast<int>(static_cast<unsigned>(value) + static_cast<unsigned>(delta));
 }
+}
+
+CWnd* CWnd::GetDlgItem(int id) const {
+    if (m_pCtrlCont) {
+        using Item = CWnd* (MS_ABI*)(void*, int);
+        return openmfc::detail::WindowSlot<Item>(m_pCtrlCont, 31)(m_pCtrlCont, id);
+    }
+    return impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetDlgItem(m_hWnd, id));
 }
 
 int CWnd::GetScrollPos(int bar) const {
@@ -73,6 +82,8 @@ void CWnd::ScrollWindow(int dx, int dy, const RECT* scroll, const RECT* clip) {
 
 // Symbol: ?GetScrollBarCtrl@CWnd@@UEBAPEAVCScrollBar@@H@Z
 extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CWnd__UEBAPEAVCScrollBar__H_Z(const CWnd*, int) { return nullptr; }
+// Symbol: ?GetDlgItem@CWnd@@QEBAPEAV1@H@Z
+extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* self, int id) { return self->GetDlgItem(id); }
 // Symbol: ?GetScrollPos@CWnd@@QEBAHH@Z
 extern "C" int MS_ABI impl__GetScrollPos_CWnd__QEBAHH_Z(const CWnd* self, int bar) { return self->GetScrollPos(bar); }
 // Symbol: ?SetScrollPos@CWnd@@QEAAHHHH@Z
