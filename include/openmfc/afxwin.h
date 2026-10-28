@@ -527,8 +527,8 @@ class CWinThread : public CCmdTarget {
     DECLARE_DYNAMIC(CWinThread)
 public:
     CWinThread();
-    CWinThread(unsigned int (*)(void*), void*, int = 0, unsigned int = 0) : CWinThread() {}
-    CWinThread(unsigned int (*pfn1)(void*), unsigned int (*pfn2)(void*)) : CWinThread() { (void)pfn1; (void)pfn2; }
+    CWinThread(unsigned int (AFXAPI*)(void*), void*);
+    void CommonConstruct();
     virtual ~CWinThread();
     
     // Native thread virtual slots 22..32.
@@ -576,19 +576,14 @@ public:
     BOOL m_bAutoDelete;
     HANDLE m_hThread;
     DWORD m_nThreadID;
-    MSG m_msgCur;
+    void* m_pThreadParams;                         // +0x68
+    unsigned int (AFXAPI* m_pfnThreadProc)(void*); // +0x70
+    void (AFXAPI* m_lpfnOleTermOrFreeLib)(BOOL,BOOL); // +0x78
+    void* m_pMessageFilter;                       // +0x80
 
 protected:
-    // Thread procedure (static wrapper)
     static UINT AFXAPI _ThreadEntry(LPVOID pParam);
 
-    // Thread state
-    int m_nThreadPriority;
-    UINT m_nThreadStackSize;
-    DWORD m_dwThreadCreateFlags;
-    BOOL m_bRunning;
-    BOOL m_bSuspended;
-    
 private:
     // Disable copy constructor and assignment
     CWinThread(const CWinThread&);
@@ -1638,25 +1633,29 @@ class CWinApp : public CWinThread {
     DECLARE_DYNAMIC(CWinApp)
 public:
     CWinApp(const wchar_t* lpszAppName = nullptr);
-    virtual ~CWinApp() = default;
+    virtual ~CWinApp();
     
     virtual int InitApplication();
     virtual BOOL InitInstance() override;
     virtual int ExitInstance() override;
     virtual int Run() override;
     
-    // Application info
-    const wchar_t* m_pszAppName;
-    const wchar_t* m_pszExeName;
-    const wchar_t* m_pszHelpFilePath;
-    const wchar_t* m_pszProfileName;
-    const wchar_t* m_pszRegistryKey;
-    HINSTANCE m_hInstance;
-    wchar_t* m_lpCmdLine;
-    int m_nCmdShow;
-
+    // Native release x64 application data follows the 136-byte thread.
+    HINSTANCE m_hInstance;                 // +0x88
+    wchar_t* m_lpCmdLine;                  // +0x90
+    int m_nCmdShow;                        // +0x98
+    const wchar_t* m_pszAppName;           // +0xa0
+    const wchar_t* m_pszAppID;             // +0xa8
+    const wchar_t* m_pszRegistryKey;       // +0xb0
+    void* m_pDocManager;                  // +0xb8
+    BOOL m_bHelpMode;                      // +0xc0
+    const wchar_t* m_pszExeName;           // +0xc8
+    const wchar_t* m_pszHelpFilePath;      // +0xd0
+    const wchar_t* m_pszProfileName;       // +0xd8
+    int m_eHelpType;                       // +0xe0
 protected:
-    char _winapp_padding[176];
+    unsigned char _winapp_padding[0x178-0xe4];
+
 };
 
 // IMPLEMENT_DYNAMIC(CWinApp, CWinThread) moved to appcore.cpp
@@ -4136,71 +4135,6 @@ protected:
 inline CCmdTarget::~CCmdTarget() {}
 inline int CCmdTarget::OnCmdMsg(unsigned int, int, void*, AFX_CMDHANDLERINFO*) { return 0; }
 inline const AFX_MSGMAP* CCmdTarget::GetMessageMap() const { return nullptr; }
-
-// CWinThread implementations
-inline CWinThread::CWinThread()
-    : m_pMainWnd(nullptr), m_pActiveWnd(nullptr), m_nThreadID(0), m_hThread(nullptr),
-      m_bAutoDelete(FALSE), m_nThreadPriority(0), m_nThreadStackSize(0),
-      m_dwThreadCreateFlags(0), m_bRunning(FALSE), m_bSuspended(FALSE) {
-    memset(&m_msgCur, 0, sizeof(m_msgCur));
-}
-inline CWinThread::~CWinThread() {}
-inline int CWinThread::Run() {
-    MSG msg;
-    LONG idleCount = 0;
-
-    for (;;) {
-        if (::PeekMessageW(&msg, nullptr, WM_QUIT, WM_QUIT, PM_REMOVE)) {
-            m_msgCur = msg;
-            return static_cast<int>(m_msgCur.wParam);
-        }
-
-        while (!::PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
-            if (!OnIdle(idleCount++)) {
-                idleCount = 0;
-                ::WaitMessage();
-                break;
-            }
-        }
-
-        while (::PeekMessageW(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
-            if (!PumpMessage()) {
-                return static_cast<int>(m_msgCur.wParam);
-            }
-            if (IsIdleMessage(&m_msgCur)) {
-                idleCount = 0;
-            }
-        }
-    }
-}
-inline BOOL CWinThread::PreTranslateMessage(MSG*) { return FALSE; }
-inline BOOL CWinThread::OnIdle(LONG) { return FALSE; }
-inline BOOL CWinThread::IsIdleMessage(MSG*) { return FALSE; }
-inline BOOL CWinThread::PumpMessage() {
-    MSG msg;
-    if (!PrePumpMessage()) {
-        return FALSE;
-    }
-
-    int result = ::GetMessageW(&msg, nullptr, 0, 0);
-    if (result <= 0) {
-        if (result == 0) {
-            m_msgCur = msg;
-        }
-        return FALSE;
-    }
-
-    m_msgCur = msg;
-    if (!PreTranslateMessage(&msg)) {
-        ::TranslateMessage(&msg);
-        ::DispatchMessageW(&msg);
-    }
-    return PostPumpMessage();
-}
-inline BOOL CWinThread::PrePumpMessage() { return TRUE; }
-inline BOOL CWinThread::PostPumpMessage() { return TRUE; }
-inline BOOL CWinThread::InitInstance() { return FALSE; }
-inline int CWinThread::ExitInstance() { return static_cast<int>(m_msgCur.wParam); }
 
 #endif // OPENMFC_APPCORE_IMPL
 

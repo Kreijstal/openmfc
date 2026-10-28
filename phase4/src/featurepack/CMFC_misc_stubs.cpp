@@ -1339,10 +1339,7 @@ extern "C" long MS_ABI impl__AfxGetClassIDFromString__YAJPEB_WPEAU_GUID___Z(cons
     }
     return hr;
 }
-// Symbol: ?AfxGetCurrentMessage@@YAPEAUtagMSG@@XZ
-extern "C" void* MS_ABI impl__AfxGetCurrentMessage__YAPEAUtagMSG__XZ() {
-    return const_cast<MSG*>(AfxGetThread() ? CWnd::GetCurrentMessage() : nullptr);
-}
+
 // Symbol: ?AfxGetDitheredBitmap@@YAXAEBVCBitmap@@PEAV1@KK@Z
 extern "C" void MS_ABI impl__AfxGetDitheredBitmap__YAXAEBVCBitmap__PEAV1_KK_Z(const void* /*class*/* p0, void* /*class*/* p1, unsigned long p2, unsigned long p3) {
     // NOTE: this reproduces the *effect* (a same-size ordered-dither copy of
@@ -1722,11 +1719,7 @@ extern "C" void MS_ABI impl__AfxInitThread__YAXXZ() {
         g_threadBookkeeping.nWndCreateLock = 0;
     }
 }
-// Symbol: ?AfxInternalIsIdleMessage@@YAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__AfxInternalIsIdleMessage__YAHPEAUtagMSG___Z(void* /*struct*/* p0) {
-    auto* pThread = AfxGetThread();
-    return pThread ? pThread->IsIdleMessage(reinterpret_cast<MSG*>(p0)) : FALSE;
-}
+
 // Symbol: ?AfxInternalPreTranslateMessage@@YAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__AfxInternalPreTranslateMessage__YAHPEAUtagMSG___Z(void* /*struct*/* p0) {
     auto* pThread = AfxGetThread();
@@ -1743,11 +1736,7 @@ extern "C" __int64 MS_ABI impl__AfxInternalProcessWndProcException__YA_JPEAVCExc
     }
     return impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(pThread, pException, pMsg);
 }
-// Symbol: ?AfxInternalPumpMessage@@YAHXZ
-extern "C" int MS_ABI impl__AfxInternalPumpMessage__YAHXZ() {
-    auto* pThread = AfxGetThread();
-    return pThread ? pThread->PumpMessage() : FALSE;
-}
+
 // Symbol: ?AfxInternetStatusCallback@@YAXPEAX_KK0K@Z
 // Mangled param order (PEAX, _K, K, 0=PEAX, K) matches the real WinInet
 // INTERNET_STATUS_CALLBACK signature exactly: (HINTERNET hInternet,
@@ -1762,11 +1751,7 @@ extern "C" void MS_ABI impl__AfxInternetStatusCallback__YAXPEAX_KK0K_Z(void* p0,
         p3,
         static_cast<DWORD>(p4));
 }
-// Symbol: ?AfxIsIdleMessage@@YAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__AfxIsIdleMessage__YAHPEAUtagMSG___Z(void* /*struct*/* p0) {
-    auto* pThread = AfxGetThread();
-    return pThread ? pThread->IsIdleMessage(reinterpret_cast<MSG*>(p0)) : FALSE;
-}
+
 // Symbol: ?AfxIsMFCToolBar@@YAHPEAVCWnd@@@Z
 extern "C" int MS_ABI impl__AfxIsMFCToolBar__YAHPEAVCWnd___Z(void* /*class*/* p0) {
     // pWnd != nullptr && pWnd->IsKindOf(RUNTIME_CLASS(CMFCToolBar)).

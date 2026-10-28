@@ -56,10 +56,7 @@ extern "C" void MS_ABI impl___1AFX_MODULE_THREAD_STATE__UEAA_XZ(AFX_MODULE_THREA
     // This export names a destructor body, independent of the incoming vtable.
     self->AFX_MODULE_THREAD_STATE::~AFX_MODULE_THREAD_STATE();
 }
-// Symbol: ?AfxGetModuleThreadState@@YAPEAVAFX_MODULE_THREAD_STATE@@XZ
-extern "C" AFX_MODULE_THREAD_STATE* MS_ABI
-impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
-    auto* module = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+AFX_MODULE_THREAD_STATE* openmfc::detail::modulethreadstate::ForModule(AFX_MODULE_STATE* module) {
     auto* slot = reinterpret_cast<S_Cthreadlocalobject*>(reinterpret_cast<BYTE*>(module) + 0xf8);
     auto* state = static_cast<AFX_MODULE_THREAD_STATE*>(
         impl__GetData_CThreadLocalObject__QEAAPEAVCNoTrackObject__P6APEAV2_XZ_Z(
@@ -67,6 +64,12 @@ impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
     if (!state)
         impl__AfxThrowInvalidArgException__YAXXZ();
     return state;
+}
+// Symbol: ?AfxGetModuleThreadState@@YAPEAVAFX_MODULE_THREAD_STATE@@XZ
+extern "C" AFX_MODULE_THREAD_STATE* MS_ABI
+impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
+    return openmfc::detail::modulethreadstate::ForModule(
+        impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ());
 }
 // Symbol: ?AfxGetNewHandler@@YAP6AH_K@ZXZ
 extern "C" AFX_MODULE_THREAD_STATE::NewHandler MS_ABI impl__AfxGetNewHandler__YAP6AH_K_ZXZ() {

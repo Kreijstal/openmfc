@@ -1118,11 +1118,7 @@
 extern "C" int MS_ABI impl__InitApplication_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return (int)pThis->InitApplication();
 }
-// Symbol: ?IsIdleMessage@CWinThread@@UEAAHPEAUtagMSG@@@Z
-// CWinThread::IsIdleMessage
-extern "C" int MS_ABI impl__IsIdleMessage_CWinThread__UEAAHPEAUtagMSG___Z(CWinThread* pThis, MSG* p0) {
-    return (int)pThis->IsIdleMessage(p0);
-}
+
 // Symbol: ?OnIdle@CWinThread@@UEAAHJ@Z
 // CWinThread::OnIdle
 extern "C" int MS_ABI impl__OnIdle_CWinThread__UEAAHJ_Z(CWinThread* pThis, long p0) {
@@ -1132,9 +1128,4 @@ extern "C" int MS_ABI impl__OnIdle_CWinThread__UEAAHJ_Z(CWinThread* pThis, long 
 // CWinThread::PreTranslateMessage
 extern "C" int MS_ABI impl__PreTranslateMessage_CWinThread__UEAAHPEAUtagMSG___Z(CWinThread* pThis, MSG* p0) {
     return (int)pThis->PreTranslateMessage(p0);
-}
-// Symbol: ?PumpMessage@CWinThread@@UEAAHXZ
-// CWinThread::PumpMessage
-extern "C" int MS_ABI impl__PumpMessage_CWinThread__UEAAHXZ(CWinThread* pThis) {
-    return (int)pThis->PumpMessage();
 }

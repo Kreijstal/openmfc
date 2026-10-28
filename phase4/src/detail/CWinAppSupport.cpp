@@ -1,4 +1,5 @@
 #include "CWinAppSupport.h"
+#include "openmfc/afxstat_.h"
 
 IMPLEMENT_DYNAMIC(CCmdTarget, CObject)
 IMPLEMENT_DYNAMIC(CMemoryException, CException)
@@ -71,7 +72,7 @@ int OpenMfcRunExportedMessageLoop(CWinThread* pThis) {
 
     for (;;) {
         while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
-            pThis->m_msgCur = msg;
+            AfxGetThreadState()->m_msgCur = msg;
             if (msg.message == WM_QUIT) {
                 return static_cast<int>(msg.wParam);
             }
@@ -80,7 +81,7 @@ int OpenMfcRunExportedMessageLoop(CWinThread* pThis) {
         }
 
         const BOOL result = GetMessageW(&msg, nullptr, 0, 0);
-        pThis->m_msgCur = msg;
+        AfxGetThreadState()->m_msgCur = msg;
 
         if (result == 0) {
             return static_cast<int>(msg.wParam);

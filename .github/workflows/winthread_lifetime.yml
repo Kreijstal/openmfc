@@ -1,0 +1,45 @@
+name: Thread lifetime and message loop ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/app/CWinThread*.cpp'
+      - 'phase4/src/core/app/CurrentMessage.cpp'
+      - 'phase4/src/core/app/CWinAppLifetime.cpp'
+      - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'tests/test_winthread_lifetime.cpp'
+      - 'tests/build_winthread_lifetime.py'
+      - '.github/workflows/winthread_lifetime.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/app/CWinThread*.cpp'
+      - 'phase4/src/core/app/CurrentMessage.cpp'
+      - 'phase4/src/core/app/CWinAppLifetime.cpp'
+      - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'tests/test_winthread_lifetime.cpp'
+      - 'tests/build_winthread_lifetime.py'
+      - '.github/workflows/winthread_lifetime.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Thread lifetime (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Build and verify thread lifetime and message loop
+        shell: cmd
+        run: python tests/build_winthread_lifetime.py --build "%RUNNER_TEMP%/thread-lifetime" ${{ matrix.flags }}

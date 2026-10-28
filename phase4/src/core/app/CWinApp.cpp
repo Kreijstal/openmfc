@@ -4,7 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CWinAppSupport.h"
-
+#include "openmfc/afxstat_.h"
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__ParseLast_CCommandLineInfo__IEAAXH_Z(CCommandLineInfo* pThis, int bLast);
@@ -33,40 +33,7 @@ extern "C" int MS_ABI impl__InitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
 extern "C" int MS_ABI impl__ExitInstance_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return pThis->ExitInstance();
 }
-// CWinApp constructor
-// Symbol: ??0CWinApp@@QEAA@PEB_W@Z
-// Ordinal: 983
-extern "C" CWinApp* MS_ABI impl___0CWinApp__QEAA_PEB_W_Z(CWinApp* pThis, const wchar_t* lpszAppName) {
-    // Initialize base class (CWinThread)
-    pThis->m_pMainWnd = nullptr;
-    pThis->m_pActiveWnd = nullptr;
-    pThis->m_nThreadID = GetCurrentThreadId();
-    pThis->m_hThread = GetCurrentThread();
-    pThis->m_bAutoDelete = FALSE;  // App object should not auto-delete
 
-    // Initialize CWinApp members
-    pThis->m_hInstance = nullptr;
-    pThis->m_lpCmdLine = nullptr;
-    pThis->m_nCmdShow = SW_SHOW;
-    pThis->m_pszAppName = lpszAppName;
-    pThis->m_pszExeName = nullptr;
-    pThis->m_pszHelpFilePath = nullptr;
-    pThis->m_pszProfileName = nullptr;
-    pThis->m_pszRegistryKey = nullptr;
-    memset(&pThis->m_msgCur, 0, sizeof(pThis->m_msgCur));
-
-    // Register as the global app instance
-    g_pApp = pThis;
-    return pThis;
-}
-// CWinApp destructor
-// Symbol: ??1CWinApp@@UEAA@XZ
-// Ordinal: 1450
-extern "C" void MS_ABI impl___1CWinApp__UEAA_XZ(CWinApp* pThis) {
-    if (g_pApp == pThis) {
-        g_pApp = nullptr;
-    }
-}
 // Symbol: ?ParseCommandLine@CWinApp@@QEAAXAEAVCCommandLineInfo@@@Z
 extern "C" void MS_ABI impl__ParseCommandLine_CWinApp__QEAAXAEAVCCommandLineInfo___Z(
     CWinApp* pThis, CCommandLineInfo* pInfo) {
@@ -703,23 +670,7 @@ extern "C" unsigned long MS_ABI impl__ApplicationRecoveryCallback_CWinApp__UEAAK
     impl__SaveAllModified_CWinApp__UEAAHXZ(pThis);
     return 0;
 }
-CWinApp::CWinApp(const wchar_t* lpszAppName) {
-    m_pMainWnd = nullptr;
-    m_pActiveWnd = nullptr;
-    m_nThreadID = ::GetCurrentThreadId();
-    m_hThread = ::GetCurrentThread();
-    m_bAutoDelete = FALSE;
-    m_hInstance = nullptr;
-    m_lpCmdLine = nullptr;
-    m_nCmdShow = SW_SHOW;
-    m_pszAppName = lpszAppName;
-    m_pszExeName = nullptr;
-    m_pszHelpFilePath = nullptr;
-    m_pszProfileName = nullptr;
-    m_pszRegistryKey = nullptr;
-    memset(&m_msgCur, 0, sizeof(m_msgCur));
-    g_pApp = this;
-}
+
 int CWinApp::InitApplication() {
     return TRUE;
 }

@@ -39,6 +39,9 @@ extern "C" AFX_MODULE_THREAD_STATE::NewHandler
 namespace openmfc {
 namespace detail {
 namespace modulethreadstate {
+// Constructors and idle processing use the module captured by their object;
+// callbacks may have changed the ambient module since it was captured.
+AFX_MODULE_THREAD_STATE* ForModule(AFX_MODULE_STATE*);
 int MS_ABI DefaultAllocationFailure(size_t);
 int MS_ABI HandleAllocationFailure(size_t);
 } // namespace modulethreadstate
