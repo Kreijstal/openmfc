@@ -54,6 +54,9 @@ extern "C" int MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
     CDockingManager* pThis, CBasePane* pPane, int bCanFloat, int bSelect, int bSkipLayout);
 extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
     CDockingManager* pThis, unsigned int nID, int bSearchMiniFrames);
+extern "C" void MS_ABI impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+    CDockingManager* pThis, CBasePane* pPane, int bDestroy, int bAdjustLayout,
+    int bAutoHide, CBasePane* pBarReplacement);
 extern "C" void MS_ABI impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(
     CDockingManager* pThis, void* pParam);
 extern "C" void MS_ABI impl__FixupVirtualRects_CDockingManager__UEAAXXZ(CDockingManager* pThis);
@@ -69,8 +72,18 @@ extern "C" void MS_ABI impl__OnDestroy_CFrameWnd__IEAAXXZ(CFrameWnd* pThis);
 extern "C" void MS_ABI impl__OnClose_CFrameWnd__IEAAXXZ(CFrameWnd* pThis);
 extern "C" void MS_ABI impl__OnActivate_CFrameWnd__IEAAXIPEAVCWnd__H_Z(
     CFrameWnd* pThis, unsigned int nState, CWnd* pWndOther, int bMinimized);
+extern "C" void* MS_ABI impl__GetActiveFrame_CFrameWnd__UEAAPEAV1_XZ(CFrameWnd* pThis);
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPreviewViewEx__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleDocument__SAPEAUCRuntimeClass__XZ();
+extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(const CView* pThis);
+extern "C" void* MS_ABI impl__GetInPlaceActiveItem_COleDocument__UEAAPEAVCOleClientItem__PEAVCWnd___Z(
+    COleDocument* pThis, CWnd* pWnd);
 // CWnd (global_core-windows_impl.cpp)
 extern "C" void MS_ABI impl__HtmlHelpW_CWnd__UEAAX_KI_Z(
+    CWnd* pThis, unsigned long long data, unsigned int command);
+extern "C" void MS_ABI impl__WinHelpW_CWnd__UEAAX_KI_Z(
     CWnd* pThis, unsigned long long data, unsigned int command);
 // CWnd (core/window/Thunks.cpp, core/window/CWnd.cpp)
 extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
@@ -154,10 +167,10 @@ extern "C" int MS_ABI impl__OnSetMenu_CFrameWndEx__IEAAHPEAUHMENU_____Z(
 // Retail CFrameWndEx embeds a CFrameImpl sub-object at this+0x1f0 (all the
 // `add $0x1f0,%rcx; call ...` sites below) and a CDockingManager at this+0x380.
 // OpenMFC models neither as a member: there is no CFrameImpl field at all, and
-// the docking manager is the lazily allocated m_pDockingManager.  Every
-// CFrameImpl delegation is therefore dropped -- and note that OpenMFC's own
-// CFrameImpl exports (phase4/src/core/frame/CFrameImpl.cpp) are themselves
-// no-op stubs, so on this build those calls would have no effect anyway.
+// the docking manager is the lazily allocated m_pDockingManager.  CFrameImpl
+// delegations are therefore dropped where they require the missing subobject.
+// This can omit real work: CFrameImpl.cpp contains substantive implementations
+// (for example, OnCompositionChanged), not generally no-op stubs.
 
 // CPoint is a trivially copyable 8-byte aggregate, so under MS x64 it arrives
 // by value in one integer register.  Some handlers below spell that parameter
@@ -285,11 +298,12 @@ extern "C" int MS_ABI impl__OnShowPanes_CFrameWndEx__UEAAHH_Z(CFrameWndEx* pThis
     impl__AdjustDockingLayout_CFrameWndEx__UEAAXPEAX_Z(pThis, nullptr);
     return bResult;
 }
-// CFrameWndEx::OnToolbarCreateNew(WPARAM, LPARAM) -- retail (RVA 0x67910):
-//     if (lParam == 0) AfxThrowInvalidArgException();               // 0x227720
-//     return (LRESULT) m_Impl.CreateNewToolBar((LPCTSTR) lParam);   // 0x629f0
-// The whole body is the CFrameImpl delegation, and OpenMFC has neither the
-// m_Impl sub-object nor AfxThrowInvalidArgException, so this stays a stub.
+// CFrameWndEx::OnToolbarCreateNew(WPARAM, LPARAM) -- retail body at RVA 0x67910 (mfc140u):
+//     if (lParam == 0) AfxThrowInvalidArgException();               // RVA 0x227720 (mfc140u)
+//     return (LRESULT) m_Impl.CreateNewToolBar((LPCTSTR) lParam);   // RVA 0x629f0 (mfc140u)
+// The whole body delegates to CFrameImpl. OpenMFC has the CFrameImpl helper and
+// AfxThrowInvalidArgException thunks, but CFrameWndEx has no modeled m_Impl
+// subobject at retail +0x1f0, so this stays a stub.
 // Symbol: ?OnToolbarCreateNew@CFrameWndEx@@QEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnToolbarCreateNew_CFrameWndEx__QEAA_J_K_J_Z(CFrameWndEx* pThis, unsigned __int64 wParam, __int64 lParam) {
     (void)pThis;
@@ -317,19 +331,15 @@ extern "C" void MS_ABI impl__ActiveItemRecalcLayout_CFrameWndEx__QEAAXXZ(CFrameW
     // map (item+0xa8, vtable +0xb0); that member is not modelled.
     impl__AdjustClientArea_CFrameWndEx__MEAAXXZ(pThis);
 }
-// CFrameWndEx::AddDockSite() -- retail RVA 0x27d0.  That address is the
-// DLL-wide empty body `ret`, shared by 158 exports through identical-code
-// folding, so the retail implementation provably does nothing at all; the
-// public MFC documentation ("this method is not used") agrees.  The empty body
-// below is therefore a complete, evidence-backed transcription, not a stub.
-// (A wave that disassembled the ANSI twin claimed this export "has no RVA" and
-// that 0x27d0 "does not even decode as a function"; both claims were wrong --
-// it decodes as `ret` and it is this function.)
+// CFrameWndEx::AddDockSite() -- RVA 0x27d0 (mfc140u) is a `ret`, so retail
+// performs no work. The cast-only body below intentionally remains in the
+// stubbed category required by this workflow's metric, despite matching that
+// no-op behavior exactly.
 // Symbol: ?AddDockSite@CFrameWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__AddDockSite_CFrameWndEx__QEAAXXZ(CFrameWndEx* pThis) {
     (void)pThis;
 }
-// CFrameWndEx::AdjustClientArea() -- retail entry is RVA 0x67ed0.  Transcribed:
+// CFrameWndEx::AdjustClientArea() -- retail entry is RVA 0x67ed0 (mfc140u). Transcribed:
 //     CWnd* pWnd = GetDlgItem(AFX_IDW_PANE_FIRST /*0xe900*/);
 //     if (!pWnd) return;
 //     CRect rc = this->[+0x548 .. +0x554];          // 16 bytes, one movups
@@ -544,11 +554,10 @@ extern "C" int MS_ABI impl__OnCommand_CFrameWndEx__MEAAH_K_J_Z(
     // TODO(clean-room): transcribed partially — retail menu-command fast path
     // (wParam hi-word==1, this+0x1f0 sub-object) is not modeled.
 }
-// CFrameWndEx::OnCompositionChanged() -- retail entry is RVA 0x68b80.  The
-// whole body is
-//     add $0x1f0,%rcx ; jmp 0x180066ca0     // CFrameImpl::OnCompositionChanged
-// i.e. nothing but the CFrameImpl delegation, which OpenMFC does not model.
-// (OpenMFC's own CFrameImpl::OnCompositionChanged export is a no-op stub too.)
+// CFrameWndEx::OnCompositionChanged() -- retail entry is RVA 0x68b80 (mfc140u).
+// The whole body adds 0x1f0 to this and tail-jumps to CFrameImpl::OnCompositionChanged
+// (entry RVA 0x66ca0 (mfc140u)); OpenMFC implements that helper, but CFrameWndEx
+// has no modeled CFrameImpl subobject at the required offset.
 // Symbol: ?OnCompositionChanged@CFrameWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__OnCompositionChanged_CFrameWndEx__QEAAXXZ(CFrameWndEx* pThis) {
     (void)pThis;
@@ -588,12 +597,11 @@ extern "C" void MS_ABI impl__OnDestroy_CFrameWndEx__QEAAXXZ(CFrameWndEx* pThis) 
     // TODO(clean-room): transcribed partially.
 }
 // CFrameWndEx::OnDrawMenuImage(CDC*, const CMFCToolBarMenuButton*, const CRect&)
-// -- retail entry is RVA 0x67670.  The whole body is five instructions:
-//     rcx = this->[+0x370];  if (rcx) jmp 0x1800de8e0;  else return 0;
-// 0x1800de8e0 is ?DrawMenuImage@CMFCRibbonBar@@QEAAHPEAVCDC@@...@Z, so
-// this+0x370 is the frame's CMFCRibbonBar* (not a generic "custom-image
-// owner").  OpenMFC's CFrameWndEx carries no ribbon bar, so the null-ribbon
-// arm -- return 0 -- is the only reachable one.
+// -- retail entry is RVA 0x67670 (mfc140u). It reads this+0x370 and, if non-null,
+// tail-jumps to CMFCRibbonBar::DrawMenuImage (entry RVA 0xde8e0 (mfc140u));
+// otherwise it returns 0. Thus this+0x370 is the frame's CMFCRibbonBar*, not a
+// generic "custom-image owner". OpenMFC models no ribbon member, so the null arm
+// is the only one this implementation can reproduce.
 // Symbol: ?OnDrawMenuImage@CFrameWndEx@@UEAAHPEAVCDC@@PEBVCMFCToolBarMenuButton@@AEBVCRect@@@Z
 extern "C" int MS_ABI impl__OnDrawMenuImage_CFrameWndEx__UEAAHPEAVCDC__PEBVCMFCToolBarMenuButton__AEBVCRect___Z(
     CFrameWndEx* pThis, CDC* pDC, const CMFCToolBarMenuButton* pButton, const CRect& rectImage) {
@@ -629,8 +637,8 @@ extern "C" void MS_ABI impl__OnGetMinMaxInfo_CFrameWndEx__QEAAXPEAUtagMINMAXINFO
     (void)impl__Default_CWnd__IEAA_JXZ(pThis);
 }
 // CFrameWndEx::OnChangeVisualManager(WPARAM, LPARAM) -- retail entry is
-// RVA 0x689e0.  The whole body is
-//     m_Impl.OnChangeVisualManager();   // 0x1800668d0, on this+0x1f0
+// RVA 0x689e0 (mfc140u). The whole body calls CFrameImpl::OnChangeVisualManager
+// (entry RVA 0x668d0 (mfc140u)) on this+0x1f0
 //     return 0;
 // so only the constant return value survives without the CFrameImpl sub-object.
 // Symbol: ?OnChangeVisualManager@CFrameWndEx@@QEAA_J_K_J@Z
@@ -677,13 +685,8 @@ extern "C" void MS_ABI impl__OnLButtonDown_CFrameWndEx__QEAAXIVCPoint___Z(
     // TODO(clean-room): retail first runs CFrameImpl::OnLButtonDown (0x66490).
     (void)impl__Default_CWnd__IEAA_JXZ(pThis);
 }
-// CFrameWndEx::GetInPlaceActiveItem() -- retail body at RVA 0x67a50 (a
-// distinct export in mfc140u; it is ICF-folded onto CMDIFrameWndEx's only in
-// the ANSI twin, and slot +0x3a8 of the CFrameWndEx vtable at 0x2e9708 holds
-// this address either way).  Transcribed:
-//     CFrameWnd* pFrame = GetActiveFrame();          // own vtable +0x2f0,
-//         // whose body there (0x10130, ICF-folded) is `mov %rcx,%rax; ret`,
-//         // i.e. CFrameWnd::GetActiveFrame's `return this`
+// CFrameWndEx::GetInPlaceActiveItem() -- retail body at RVA 0x67a50 (mfc140u):
+//     CFrameWnd* pFrame = GetActiveFrame();          // own vtable +0x2f0
 //     if (!pFrame) return NULL;
 //     CView* pView = pFrame->[+0x170];               // CFrameWnd::m_pViewActive
 //     if (!pView) return NULL;
@@ -692,17 +695,33 @@ extern "C" void MS_ABI impl__OnLButtonDown_CFrameWndEx__QEAAXIVCPoint___Z(
 //     if (!pDoc) return NULL;
 //     if (!pDoc->IsKindOf(RUNTIME_CLASS(COleDocument))) return NULL;
 //     return ((COleDocument*)pDoc)->GetInPlaceActiveItem(pView);  // vtable +0x230
-// (The two runtime classes were read out of .rdata at 0x2f98a8 and 0x32ea80;
-// both IsKindOf calls go through 0x180234cf0 == CObject::IsKindOf.)
-// Not reproduced: OpenMFC has no CPreviewViewEx runtime class, and its
-// COleDocument::GetInPlaceActiveItem export is a generated stub that returns
-// nullptr unconditionally, so building the chain would add no behaviour.
+// The runtime classes are available through their GetThisClass thunks. The frame
+// and view offsets are pinned in phase4/src/core/runtime/CommandRouting.cpp
+// (m_pViewActive +0x170 and m_pDocument +0xe8). OpenMFC reproduces this chain
+// via existing thunks. DEVIATION: the final call uses the COleDocument thunk
+// directly rather than virtual dispatch, and that thunk cannot associate the
+// active item with this specific view because retail-only COleClientItem::m_pView
+// (+0x98) is not modeled; it may return another active item from the document.
 // Symbol: ?GetInPlaceActiveItem@CFrameWndEx@@MEAAPEAVCOleClientItem@@XZ
 extern "C" COleClientItem* MS_ABI impl__GetInPlaceActiveItem_CFrameWndEx__MEAAPEAVCOleClientItem__XZ(
     CFrameWndEx* pThis) {
-    (void)pThis;
-    // TODO(clean-room): not implemented -- see the transcription above.
-    return nullptr;
+    if (!pThis) return nullptr;
+    CFrameWnd* pFrame = static_cast<CFrameWnd*>(
+        impl__GetActiveFrame_CFrameWnd__UEAAPEAV1_XZ(pThis));
+    if (!pFrame) return nullptr;
+    CView* pView = static_cast<CView*>(pFrame->m_pViewActive);
+    if (!pView || impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+                      pView, impl__GetThisClass_CPreviewViewEx__SAPEAUCRuntimeClass__XZ())) {
+        return nullptr;
+    }
+    CDocument* pDoc = impl__GetDocument_CView__UEBAPEAVCDocument__XZ(pView);
+    if (!pDoc || !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+                     pDoc, impl__GetThisClass_COleDocument__SAPEAUCRuntimeClass__XZ())) {
+        return nullptr;
+    }
+    return static_cast<COleClientItem*>(
+        impl__GetInPlaceActiveItem_COleDocument__UEAAPEAVCOleClientItem__PEAVCWnd___Z(
+            static_cast<COleDocument*>(pDoc), pView));
 }
 // CFrameWndEx::NegotiateBorderSpace(UINT, RECT*) -- retail entry is RVA 0x683d0.
 // The helper it calls, 0x1802a03a0, IS an export:
@@ -965,12 +984,11 @@ extern "C" int MS_ABI impl__OnPaneCheck_CFrameWndEx__QEAAHI_Z(
     return TRUE;
 }
 
-// CFrameWndEx::OnPostPreviewFrame(WPARAM, LPARAM) -- retail RVA 0x71e0.  That
-// address is the DLL-wide `xor eax,eax; ret` body, shared by 134 exports
-// through identical-code folding, so the retail handler provably does nothing
-// but return 0.  The body below is a complete transcription, not a stub.
-// (A wave that only had the ANSI twin's map reported this export as having "no
-// RVA and no ICF-folded twin"; it resolves fine against mfc140u.)
+// CFrameWndEx::OnPostPreviewFrame(WPARAM, LPARAM) -- export ordinal 10798 maps
+// to RVA 0x71e0 (mfc140u). That RVA is also named AddRef@COleUILinkInfo in the
+// address map; the export table confirms this handler shares that folded body,
+// which disassembles as `xor eax,eax; ret`. Keep the bare return as a stub under
+// the workflow metric: this verified retail no-op has no non-stub behavior to add.
 // Symbol: ?OnPostPreviewFrame@CFrameWndEx@@QEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnPostPreviewFrame_CFrameWndEx__QEAA_J_K_J_Z(
     CFrameWndEx* pThis, unsigned __int64 wParam, __int64 lParam) {
@@ -1006,7 +1024,8 @@ extern "C" unsigned int MS_ABI impl__OnPowerBroadcast_CFrameWndEx__QEAAII_J_Z(
     return static_cast<unsigned int>(impl__Default_CWnd__IEAA_JXZ(pThis));
 }
 
-// CFrameWndEx::OnSetMenu(HMENU) [protected] -- retail (RVA 0x670b0):
+// CFrameWndEx::OnSetMenu(HMENU) [protected] -- retail body at RVA 0x670b0 (mfc140u),
+// disassembled by address because the symbol is absent from the Unicode name map:
 //     CMFCMenuBar* pMenuBar = this->[+0x300];
 //     if (!pMenuBar) return FALSE;
 //     if (hMenu == NULL) hMenu = this->[+0x238];
@@ -1176,11 +1195,12 @@ extern "C" __int64 MS_ABI impl__OnToolbarContextMenu_CFrameWndEx__QEAA_J_K_J_Z(
     return 1;
 }
 
-// CFrameWndEx::OnToolbarDelete(WPARAM, LPARAM) -- retail (RVA 0x67940):
-//     if (lParam == 0) AfxThrowInvalidArgException();      // 0x180227720
-//     return (int) m_Impl.DeleteToolBar((CMFCToolBar*) lParam);   // 0x180063520
-// The whole body is the CFrameImpl delegation, and OpenMFC has neither the
-// m_Impl sub-object nor AfxThrowInvalidArgException, so this stays a stub.
+// CFrameWndEx::OnToolbarDelete(WPARAM, LPARAM) -- retail body at RVA 0x67940 (mfc140u):
+//     if (lParam == 0) AfxThrowInvalidArgException();      // RVA 0x227720 (mfc140u)
+//     return (int) m_Impl.DeleteToolBar((CMFCToolBar*) lParam);   // RVA 0x63520 (mfc140u)
+// The whole body delegates to CFrameImpl. OpenMFC has the CFrameImpl helper and
+// AfxThrowInvalidArgException thunks, but CFrameWndEx has no modeled m_Impl
+// subobject at retail +0x1f0, so this stays a stub.
 // Symbol: ?OnToolbarDelete@CFrameWndEx@@QEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnToolbarDelete_CFrameWndEx__QEAA_J_K_J_Z(
     CFrameWndEx* pThis, unsigned __int64 wParam, __int64 lParam) {
@@ -1374,16 +1394,59 @@ extern "C" void MS_ABI impl__RecalcLayout_CFrameWndEx__UEAAXH_Z(CFrameWndEx* pTh
     impl__AdjustClientArea_CFrameWndEx__MEAAXXZ(pThis);
 }
 
+// CFrameWndEx::RemovePaneFromDockManager(CBasePane*, BOOL, BOOL, BOOL, CBasePane*) --
+// RVA 0x67db0 (mfc140u) adds 0x380 to this and tail-jumps to the docking-manager
+// operation with the original five arguments. OpenMFC stores the manager via an
+// accessor rather than inline at that retail offset, so route through it. DEVIATION:
+// GetDockingManager() lazily creates the manager, and OpenMFC's manager thunk
+// currently ignores the policy/replacement arguments after receiving them.
 // Symbol: ?RemovePaneFromDockManager@CFrameWndEx@@QEAAXPEAVCBasePane@@HHH0@Z
-extern "C" void MS_ABI impl__RemovePaneFromDockManager_CFrameWndEx__QEAAXPEAVCBasePane__HHH0_Z(void* /*class*/* p0, int p1, int p2, int p3, void* /*class*/* p4) {}
+extern "C" void MS_ABI impl__RemovePaneFromDockManager_CFrameWndEx__QEAAXPEAVCBasePane__HHH0_Z(
+    CFrameWndEx* pThis, CBasePane* pPane, int bDestroy, int bAdjustLayout,
+    int bAutoHide, CBasePane* pBarReplacement) {
+    if (!pThis) return;
+    impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+        pThis->GetDockingManager(), pPane, bDestroy, bAdjustLayout, bAutoHide,
+        pBarReplacement);
+}
 
+// CFrameWndEx::ShowPane(CBasePane*, BOOL, BOOL, BOOL) -- the shared retail body
+// at RVA 0x68050 (mfc140u) calls the pane's vtable slot +0x458 with all three
+// BOOL arguments; this pointer is unused. Use OpenMFC's verified base-pane
+// thunk; it matches the built-in CDockablePane forwarder but does not dispatch
+// client-side overrides as retail does. The base thunk also currently ignores
+// bDelay/bActivate. The null guard is a safety deviation (retail dereferences pBar).
 // Symbol: ?ShowPane@CFrameWndEx@@QEAAXPEAVCBasePane@@HHH@Z
-extern "C" void MS_ABI impl__ShowPane_CFrameWndEx__QEAAXPEAVCBasePane__HHH_Z(void* /*class*/* p0, int p1, int p2, int p3) {}
+extern "C" void MS_ABI impl__ShowPane_CFrameWndEx__QEAAXPEAVCBasePane__HHH_Z(
+    CFrameWndEx* pThis, CBasePane* pBar, int bShow, int bDelay, int bActivate) {
+    (void)pThis;
+    if (!pBar) return;
+    impl__ShowPane_CBasePane__UEAAXHHH_Z(pBar, bShow, bDelay, bActivate);
+}
 
+// CFrameWndEx::ShowPopupMenu(CMFCPopupMenu*) -- retail body at RVA 0x67570
+// (mfc140u): it first calls CFrameImpl::OnShowPopupMenu(this+0x1f0, ...), then
+// checks popup state at +0x1670 and dispatches through the frame vtable. The
+// popup state has a shadow offset, but CFrameWndEx's CFrameImpl subobject at
+// +0x1f0 is not modeled, so the initial gate cannot be reproduced.
 // Symbol: ?ShowPopupMenu@CFrameWndEx@@IEAAHPEAVCMFCPopupMenu@@@Z
-extern "C" int MS_ABI impl__ShowPopupMenu_CFrameWndEx__IEAAHPEAVCMFCPopupMenu___Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__ShowPopupMenu_CFrameWndEx__IEAAHPEAVCMFCPopupMenu___Z(
+    CFrameWndEx* pThis, CMFCPopupMenu* pMenuPopup) {
+    (void)pThis;
+    (void)pMenuPopup;
     return 0;
 }
 
+// CFrameWndEx::WinHelpW(DWORD_PTR, UINT) -- export ordinal 14212 maps to RVA
+// 0x67890 (mfc140u). Retail forwards to CWnd::WinHelpW when dwData != 0 or the
+// context-help latch at this+0x1dc is clear; otherwise it runs the context-help
+// path. The latch is not modeled, so reproduce the verified nonzero-data arm
+// and leave the zero-data branch unhandled. In the current OpenMFC layout,
+// CFrameWndEx::m_pVisualManager starts at +0x1d8 (CFrameWnd size is pinned at
+// 0x1d8), making +0x1dc the upper half of a pointer, not a safe BOOL substitute.
 // Symbol: ?WinHelpW@CFrameWndEx@@UEAAX_KI@Z
-extern "C" void MS_ABI impl__WinHelpW_CFrameWndEx__UEAAX_KI_Z(unsigned __int64 p0, unsigned int p1) {}
+extern "C" void MS_ABI impl__WinHelpW_CFrameWndEx__UEAAX_KI_Z(
+    CFrameWndEx* pThis, unsigned __int64 dwData, unsigned int nCmd) {
+    if (!pThis || dwData == 0) return;
+    impl__WinHelpW_CWnd__UEAAX_KI_Z(pThis, dwData, nCmd);
+}

@@ -162,17 +162,19 @@ void CBasePane::RecalcLayout() {
 // ---------------------------------------------------------------------------
 // Retail decode notes for the bodies added below (2026-09).
 //
-// Every RVA quoted here is a FUNCTION ENTRY in retail mfc140.dll (image base
-// 0x180000000); where an individual instruction inside a body is meant, that is
-// said explicitly.  mfc140.dll is the ANSI twin of the mfc140u.dll OpenMFC
-// reimplements: the function BODIES are byte-identical, so control flow, member
-// offsets and constants read off it are correct, but its RVAs are NOT mfc140u
-// RVAs and none of the addresses below may be quoted as such.
+// The vftable and slot-address table below uses retail mfc140.dll (the ANSI
+// twin, image base 0x180000000); its RVAs are not mfc140u RVAs. The function
+// bodies are byte-identical between the two images, so the control flow, member
+// offsets and constants read from the ANSI twin apply to mfc140u as well, but
+// an address is valid only for the image explicitly named beside it. Later
+// comments that cite mfc140u addresses identify that image explicitly; never
+// infer a Unicode RVA from an ANSI RVA (or vice versa).
 //
-// An indirect `call *0x1802c5bd0` in the retail listings is the Control Flow
-// Guard dispatch (__guard_dispatch_icall_fptr), i.e. an ordinary indirect call
-// through RAX -- not an import.  Every USER32/OLEAUT32 call named below was
-// resolved through the import table, not guessed.
+// In the ANSI listings, `call *0x1802c5bd0` is the Control Flow Guard dispatch
+// (__guard_dispatch_icall_fptr), i.e. an ordinary indirect call through RAX --
+// not an import. The Unicode image uses a different dispatch-slot address.
+// Every USER32/OLEAUT32 call named below was resolved through the import table,
+// not guessed.
 //
 // The retail CBasePane vftable is at mfc140 RVA 0x2d9fa8; it was located from
 // the CBasePane constructor (`lea 0x2cf258(%rip),%rax ; mov %rax,(%rdi)` at
@@ -262,11 +264,33 @@ extern "C" void MS_ABI impl___1CPaintDC__UEAA_XZ(CPaintDC* pThis);
 extern "C" unsigned char impl__afxGlobalUtils__3VCGlobalUtils__A[16];
 // ?AFX_WM_TOOLBARMENU@@3IA, defined at phase4/src/core/runtime/Globals.cpp:191.
 extern "C" unsigned int impl__AFX_WM_TOOLBARMENU__3IA;
+extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
+extern "C" void MS_ABI impl__OnSettingChange_CWnd__IEAAXIPEB_W_Z(
+    CWnd* pThis, unsigned int nFlags, const wchar_t* lpszSection);
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+extern "C" void MS_ABI impl__OnSettingChange_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+extern "C" int MS_ABI impl__SetTabIcon_CMFCBaseTabCtrl__UEAAHHI_Z(
+    CMFCBaseTabCtrl* pThis, int iTab, unsigned int uiIcon);
+extern "C" void MS_ABI impl__OnResizePane_CDockingPanesRow__UEAAXPEAVCBasePane___Z(
+    void* pThis, CBasePane* pPane);
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
 // ?m_bRestoringDockState@CDockingManager@@2HA and
 // ?m_dockModeGlobal@CDockingManager@@1W4AFX_DOCK_TYPE@@A, both defined at
 // phase4/src/featurepack/docking/StaticData.cpp:50 and :56.
 extern "C" int impl__m_bRestoringDockState_CDockingManager__2HA;
 extern "C" unsigned int impl__m_dockModeGlobal_CDockingManager__1W4AFX_DOCK_TYPE__A;
+extern "C" CString* MS_ABI impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(
+    CString* pRet, const wchar_t* lpszPostfix, const wchar_t* lpszProfileName);
+extern "C" void* MS_ABI impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__HH_Z(
+    void* pThis, int bAdmin, int bReadOnly);
+extern "C" int MS_ABI impl__Open_CSettingsStore__UEAAHPEB_W_Z(void* pThis, const wchar_t* path);
+extern "C" int MS_ABI impl__CreateKey_CSettingsStore__UEAAHPEB_W_Z(void* pThis, const wchar_t* key);
+extern "C" int MS_ABI impl__Read_CSettingsStore__UEAAHPEB_WAEAH_Z(
+    void* pThis, const wchar_t* name, int* value);
+extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_WH_Z(
+    void* pThis, const wchar_t* name, int value);
+extern "C" void MS_ABI impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(
+    CString* pThis, const wchar_t* format, ...);
 
 // Sibling thunks defined further down in THIS file.
 extern "C" int MS_ABI impl__OnSetAccData_CBasePane__UEAAHJ_Z(CBasePane* pThis, long lVal);
@@ -291,6 +315,37 @@ inline bool AccStrEmpty(const CString& s) { return s.GetLength() == 0; }
 inline BSTR AccStrToBSTR(const CString& s) {
     return impl__AllocSysString___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEA_WXZ(
         const_cast<CString*>(&s));
+}
+
+void BasePaneStateSection(const CBasePane* pThis, const wchar_t* lpszProfileName,
+                          int nIndex, unsigned int uiID, CString* pSection) {
+    CString strProfile;
+    impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(
+        &strProfile, L"BasePanes", lpszProfileName);
+    if (nIndex == -1) {
+        nIndex = impl__GetDlgCtrlID_CWnd__QEBAHXZ(static_cast<const CWnd*>(pThis));
+    }
+
+    if (uiID == 0xFFFFFFFFu) {
+        impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(
+            pSection, L"%sBasePane-%d", strProfile.GetString(), nIndex);
+    } else {
+        impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(
+            pSection, L"%sBasePane-%d%x", strProfile.GetString(), nIndex, uiID);
+    }
+}
+
+void* BasePaneStateStore(bool bReadOnly) {
+    // Match retail's separate store modes: LoadState creates a read-only store,
+    // while SaveState creates a writable one. Retain one two-pointer SP for each
+    // mode; callers reset the persistent store's path before CreateKey.
+    // Reuse still does not preserve independent concurrent invocations.
+    static void* readStorage[2] = {nullptr, nullptr};
+    static void* writeStorage[2] = {nullptr, nullptr};
+    void* storage = bReadOnly ? static_cast<void*>(readStorage)
+                              : static_cast<void*>(writeStorage);
+    return impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__HH_Z(
+        storage, FALSE, bReadOnly ? TRUE : FALSE);
 }
 }  // namespace
 
@@ -382,39 +437,26 @@ extern "C" long MS_ABI impl__accSelect_CBasePane__UEAAJJUtagVARIANT___Z(
     return E_INVALIDARG;
 }
 
-// STUB.  Retail entry RVA 0xb790.  The body asks GetDockSiteFrameWnd() (vtable
-// slot 105) for the owning frame and then, gated on the module flag at RVA
-// 0x3aad00 being zero, dispatches on the frame's runtime class:
-//   CFrameWndEx    -> CFrameWndEx::AddPane(pFrame, pBar, TRUE)      (0x67b30)
-//   CMDIFrameWndEx -> CMDIFrameWndEx::AddPane(pFrame, pBar, TRUE)   (0x89690)
-//   COleIPFrameWndEx / COleDocIPFrameWndEx -> CDockingManager::AddPane
-//                     (0x476b0) on the manager embedded at frame+0x428
-//   CMDIChildWndEx     -> same, manager at frame+0x3a8
-//   COleCntrFrameWndEx -> same, manager at frame+0x1e0
-// (Offsets and callees read straight off the listing; the flag test is
-// `cmpl $0x0,0x39f540(%rip) ; jne` at 0xb7b9.)  The last four branches need the
-// offset of the CDockingManager sub-object inside frame classes whose layouts
-// OpenMFC does not model, and the flag itself is not modelled either, so the
-// dispatch cannot be reproduced.  Implementing only the two CFrameWndEx/
-// CMDIFrameWndEx branches would leave the other four frame types silently
-// dropping the pane while looking implemented, so the whole body is left empty.
+// STUB.  Retail entry RVA 0xb710 (mfc140u).  It obtains the owning frame via
+// vtable slot 105 and returns without dispatch if the frame is null or the
+// global docking-suppression flag is set.  Its RTTI branches call the
+// CFrameWndEx/CMDIFrameWndEx AddPane methods directly; the remaining supported
+// frame branches call CDockingManager::AddPane on managers embedded at frame
+// offsets +0x428, +0x3a8, and +0x1e0.  OpenMFC does not model those embedded
+// manager layouts or the suppression flag.  Implementing only the two direct
+// frame branches would silently drop panes for other supported frame types.
 // Symbol: ?AddPane@CBasePane@@QEAAXPEAV1@@Z
 extern "C" void MS_ABI impl__AddPane_CBasePane__QEAAXPEAV1__Z(CBasePane* pThis, CBasePane* pBar) {
     (void)pThis;
     (void)pBar;
 }
 
-// STUB.  Retail entry RVA 0xbdb0.  The body is
-//     CPaneFrameWnd* p = GetParentMiniFrame(FALSE);   // vtable slot 140
-//     if (p != NULL) { p->{slot 0x3a8}(hdwp); return; }
-//     CWnd* pFrame = GetDockSiteFrameWnd();           // vtable slot 105
-//     if (module flag at 0x3aad00 || pFrame == NULL) return;
-//     then a six-way IsKindOf dispatch (CFrameWndEx, CMDIFrameWndEx,
-//     COleIPFrameWndEx, COleDocIPFrameWndEx, CMDIChildWndEx,
-//     COleCntrFrameWndEx) calling a different virtual slot on each frame class
-//     (+0x390, +0x3a0, +0x3d8, +0x3d8, +0x3a8, +0x398) with hdwp.
-// Every one of those slots is a virtual on a frame class whose vtable OpenMFC
-// does not reproduce, so none of the calls can be made faithfully.
+// STUB.  Retail entry RVA 0xbd30 (mfc140u).  It first calls the parent
+// mini-frame's vtable slot +0x3a8 with hdwp when a mini-frame exists. Otherwise
+// it obtains the dock-site frame through slot 105, checks the docking-suppression
+// flag, and performs RTTI dispatch to frame virtual slots +0x390, +0x3a0,
+// +0x3d8, +0x3d8, +0x3a8, or +0x398. Those frame vtables/layouts and the
+// suppression flag are not modeled, so these calls cannot be reproduced here.
 // Symbol: ?AdjustDockingLayout@CBasePane@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__AdjustDockingLayout_CBasePane__UEAAXPEAX_Z(CBasePane* pThis, void* hdwp) {
     (void)pThis;
@@ -450,42 +492,27 @@ extern "C" void MS_ABI impl__CopyState_CBasePane__UEAAXPEAV1__Z(CBasePane* pThis
     pThis->m_dwControlBarStyle = pOrgBar->m_dwControlBarStyle;
 }
 
-// STUB.  Retail entry RVA 0xbef0.  The body picks a frame --
-//     CWnd* pFrame = bUseDockSite ? m_pDockSite       // +0x110
-//                                 : AFXGetParentFrame(this);   // 0x6bb10
-// -- and then, gated on the module flag at RVA 0x3aad00 being zero, runs the
-// same six-way IsKindOf dispatch as AddPane above, calling
-// CDockingManager::DockPane (0x483c0) on a manager embedded at frame+0x380,
-// +0x228, +0x428 or +0x1e0, or CMDIChildWndEx::DockPane (0x85460).  The
-// COleCntrFrameWndEx path additionally calls that frame's vtable slot +0x398.
-// Same obstacle as AddPane: OpenMFC models none of those frame layouts.
+// STUB.  Retail entry RVA 0xbe70 (mfc140u). It selects m_pDockSite (+0x110)
+// when bUseDockSite is true, otherwise obtains the parent frame; it returns
+// when that frame is null or docking is suppressed, then RTTI-dispatches to
+// DockPane calls using embedded manager offsets +0x380, +0x228, +0x428, or
+// +0x1e0 (and a frame virtual at +0x398 on one path). OpenMFC does not model
+// these frame layouts or the suppression flag, so the six-way dispatch is not
+// available to implement faithfully.
 // Symbol: ?DockPaneUsingRTTI@CBasePane@@QEAAXH@Z
 extern "C" void MS_ABI impl__DockPaneUsingRTTI_CBasePane__QEAAXH_Z(CBasePane* pThis, int bUseDockSite) {
     (void)pThis;
     (void)bUseDockSite;
 }
 
-// STUB.  Retail entry RVA 0xb230:
-//     CRect rectClip;   pDC->GetClipBox(rectClip);         // CDC vtable +0xb0
-//     CRect rectClient; ::GetClientRect(m_hWnd, &rectClient);   // 0x1802c5358
-//     CMFCVisualManager::GetInstance()->OnFillBarBackground(
-//         pDC, this, rectClient, rectClip, FALSE);         // visual mgr vtable +0x78
-// The two CRects go out in the shipping afxvisualmanager.h declaration order,
-// rectClient BEFORE rectClip: in the outgoing frame at 0xb293-0xb2d3 the copy
-// at [rsp+0x50] -- the ::GetClientRect result -- is what %r9 (argument 4) points
-// at, and the copy at [rsp+0x40] -- the GetClipBox result -- is what the
-// argument-5 stack slot [rsp+0x20] points at.  [rsp+0x28] is bNCArea = FALSE.
-// Not implemented here for a link reason, not an information one: the base
-// CMFCVisualManager::OnFillBarBackground does exist
-// (phase4/src/featurepack/visualmanager/Thunks.cpp:1498 exports it, and
-// CMFCVisualManager.cpp:618 is a real body), and so does the instance getter --
-// but only as a real C++ static, CMFCVisualManager::GetInstance() at
-// phase4/src/featurepack/visualmanager/CMFCVisualManager.cpp:593, called that
-// way from e.g. phase4/src/featurepack/ribbon/CMFCRibbonButton.cpp:49.  There is
-// no ?GetInstance@CMFCVisualManager@@SAPEAV1@XZ impl__ thunk, and BRIEFING S1
-// forbids reaching a C++ method from this translation unit, so the forward
-// cannot be written from here.  See headerRequests -- with that thunk this body
-// is three lines.
+// STUB. Retail entry RVA 0xb1b0 (mfc140u): CDC vtable slot +0xb0 obtains the
+// clip rectangle, ::GetClientRect obtains the pane client rectangle, and the
+// visual manager's vtable slot +0x78 receives (pDC, this, clientRect, clipRect,
+// FALSE). The GetClientRect import slot was resolved as USER32!GetClientRect.
+// OpenMFC has the OnFillBarBackground thunk, but its GetInstance getter exists
+// only as a C++ static method and has no impl__ thunk. Calling that method
+// directly would violate the thunk rule; see headerRequests for the missing
+// getter thunk.
 // Symbol: ?DoPaint@CBasePane@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__DoPaint_CBasePane__MEAAXPEAVCDC___Z(CBasePane* pThis, CDC* pDC) {
     (void)pThis;
@@ -1002,18 +1029,12 @@ extern "C" __int64 MS_ABI impl__HandleInitDialog_CBasePane__IEAA_J_K_J_Z(
     return impl__UpdateData_CWnd__QEAAHH_Z(static_cast<CWnd*>(pThis), FALSE) != 0 ? 1 : 0;
 }
 
-// STUB.  Retail entry RVA 0xbc50.  The body first tries the mini frame --
-//     CPaneFrameWnd* p = GetParentMiniFrame(FALSE);          // vtable slot 140
-//     if (p != NULL && p->IsKindOf(RUNTIME_CLASS(CMultiPaneFrameWnd)))  // 0x3aa2f8
-//         return p->{slot 0x4c0}(pControlBar, pTarget, bAfter);
-// -- and otherwise runs the same frame dispatch as AddPane over
-// GetDockSiteFrameWnd() (vtable slot 105), calling CDockingManager::InsertPane
-// (0x477a0) on the manager embedded at frame+0x380 (CFrameWndEx), +0x228
-// (CMDIFrameWndEx), +0x428 (COleIPFrameWndEx and COleDocIPFrameWndEx), +0x3a8
-// (CMDIChildWndEx) or +0x1e0 (COleCntrFrameWndEx).  It returns TRUE when there
-// is no dock-site frame or the module flag at 0x3aad00 is set, and FALSE when
-// the frame matched none of the six runtime classes.  As with AddPane those
-// frame-internal docking-manager offsets are not modelled here.
+// STUB. Retail entry RVA 0xbbd0 (mfc140u). It first checks for a parent
+// multi-pane mini-frame and, when found, calls that object's vtable slot +0x4c0.
+// Otherwise it gets the dock-site frame (slot 105), returns TRUE if there is no
+// frame or docking is suppressed, and RTTI-dispatches to InsertPane using
+// embedded CDockingManager offsets +0x380, +0x228, +0x428, +0x3a8, or +0x1e0;
+// an unmatched frame returns FALSE. Those frame layouts are not modeled.
 // Symbol: ?InsertPane@CBasePane@@QEAAHPEAV1@0H@Z
 extern "C" int MS_ABI impl__InsertPane_CBasePane__QEAAHPEAV1_0H_Z(
     CBasePane* pThis, CBasePane* pControlBar, CBasePane* pTarget, int bAfter) {
@@ -1044,14 +1065,11 @@ extern "C" int MS_ABI impl__IsDocked_CBasePane__UEBAHXZ(const CBasePane* pThis) 
     return FALSE;
 }
 
-// STUB.  Retail entry RVA 0xb9d0 is the same frame dispatch as AddPane and
-// InsertPane:  it takes GetDockSiteFrameWnd() (vtable slot 105), returns TRUE
-// when that is NULL or the module flag at 0x3aad00 is set, and otherwise
-// forwards to CDockingManager::IsPointNearDockSite (0x48160) on the manager
-// embedded at frame+0x380, +0x228, +0x428, +0x3a8 or +0x1e0 depending on the
-// frame's runtime class, returning FALSE if none of the six matched.  Those
-// frame-internal offsets are not modelled here, so the forwarding cannot be
-// reproduced.
+// STUB. Retail entry RVA 0xb950 (mfc140u). It gets the dock-site frame via
+// vtable slot 105 and returns TRUE if the frame is null or docking is suppressed.
+// Otherwise it RTTI-dispatches to CDockingManager::IsPointNearDockSite using an
+// embedded manager at +0x380, +0x228, +0x428, +0x3a8, or +0x1e0; an unmatched
+// frame returns FALSE. OpenMFC does not model those frame layouts.
 // Symbol: ?IsPointNearDockSite@CBasePane@@QEBAHVCPoint@@AEAKAEAH@Z
 extern "C" int MS_ABI impl__IsPointNearDockSite_CBasePane__QEBAHVCPoint__AEAKAEAH_Z(
     const CBasePane* pThis, long long point, unsigned long* dwBarAlignment, int* bOuterEdge) {
@@ -1126,22 +1144,29 @@ extern "C" int MS_ABI impl__IsVisible_CBasePane__UEBAHXZ(const CBasePane* pThis)
     return (impl__GetStyle_CWnd__QEBAKXZ(static_cast<const CWnd*>(pThis)) & WS_VISIBLE) != 0;
 }
 
-// STUB.  Retail entry RVA 0xc490 (the Unicode export has the same body).  It
-// builds a registry path with AFXGetRegPath("BasePanes", lpszProfileName)
-// (0xd2540), substitutes nIndex with GetDlgCtrlID() when it is -1, formats
-// "%TsBasePane-%d" (literals at RVA 0x33ae78 and 0x33ae88) and then reads the
-// pane's persisted state from that key.  OpenMFC exports no AFXGetRegPath and
-// models none of the profile plumbing the rest of the body drives; guessing a
-// registry layout here would read state that SaveState -- still a stub in this
-// file -- never writes.
+// CBasePane::LoadState -- retail entry RVA 0xc410 (mfc140u). It builds the
+// BasePanes profile section, substitutes GetDlgCtrlID() for nIndex == -1, opens
+// the settings store, reads "IsVisible" into m_bRecentVisibleState (+0xec),
+// then sets m_bIsRestoredFromRegistry (+0xf0) and returns TRUE. A failed Open
+// returns FALSE; the retail body ignores the Read result.
+// Deviation: like CPane::SaveState in CPane.cpp, this retains a static
+// CSettingsStoreSP instead of constructing/destroying one per call; Open resets
+// the reused store's section. A null store returns FALSE instead of faulting.
 // Symbol: ?LoadState@CBasePane@@UEAAHPEB_WHI@Z
 extern "C" int MS_ABI impl__LoadState_CBasePane__UEAAHPEB_WHI_Z(
     CBasePane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
-    (void)pThis;
-    (void)lpszProfileName;
-    (void)nIndex;
-    (void)uiID;
-    return FALSE;
+    if (pThis == nullptr) return FALSE;
+    CString strSection;
+    BasePaneStateSection(pThis, lpszProfileName, nIndex, uiID, &strSection);
+    void* pStore = BasePaneStateStore(TRUE);
+    if (pStore == nullptr ||
+        !impl__Open_CSettingsStore__UEAAHPEB_W_Z(pStore, strSection.GetString())) {
+        return FALSE;
+    }
+    (void)impl__Read_CSettingsStore__UEAAHPEB_WAEAH_Z(
+        pStore, L"IsVisible", &pThis->m_bRecentVisibleState);
+    pThis->m_bIsRestoredFromRegistry = TRUE;
+    return TRUE;
 }
 
 // CBasePane::MoveWindow -- transcribed from retail entry RVA 0xb580:
@@ -1196,23 +1221,10 @@ extern "C" void* MS_ABI impl__MoveWindow_CBasePane__UEAAPEAXAEBVCRect__HPEAX_Z(
     return nullptr;
 }
 
-// CBasePane::OnEraseBkgnd -- the export has no RVA of its own in the map and is
-// not a virtual, so it is not in the vftable; it IS reachable through the class
-// message map.  CBasePane::GetThisMessageMap (RVA 0xaf60) returns the AFX_MSGMAP
-// at RVA 0x2d9e28, whose entry array at 0x2d9e40 contains
-//     { nMessage = 0x0014 (WM_ERASEBKGND), nCode = 0, nID = 0, nLastID = 0,
-//       nSig = 0x1, pfn = RVA 0x3ae0 }
-// and 0x3ae0 is the shared `mov $0x1,%eax ; ret` body.  The handler is therefore
-// `return TRUE;` -- the pane paints its own background in DoPaint, so the
-// default class-brush erase is suppressed.  (The neighbouring entries in that
-// same array resolve to the named CBasePane handlers -- 0xb4d0 OnPaint,
-// 0xc320 OnSize, 0xc270 OnIdleUpdateCmdUI, 0xca30 OnHelpHitTest,
-// 0xcca0 HandleInitDialog, 0xcdb0 OnGetObject, 0xd6f0 OnPrintClient -- which is
-// what identifies the array.)
-// Note the consequence while DoPaint above is still a documented stub: TRUE
-// suppresses the default class-brush erase and nothing repaints the background,
-// so a plain CBasePane leaves its client area undrawn.  That is what retail
-// does; the fix belongs in DoPaint, not here.
+// STUB. The CBasePane message-map entry for WM_ERASEBKGND points to the shared
+// retail body at RVA 0x3a60 (mfc140u), which disassembles to `mov $1,%eax; ret`.
+// The result is exact, but the campaign classifies a lone constant return as a
+// stub; this handler suppresses background erasure while DoPaint remains stubbed.
 // Symbol: ?OnEraseBkgnd@CBasePane@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CBasePane__IEAAHPEAVCDC___Z(CBasePane* pThis, CDC* pDC) {
     (void)pThis;
@@ -1391,11 +1403,9 @@ extern "C" __int64 MS_ABI impl__OnPrintClient_CBasePane__IEAA_JPEAVCDC__I_Z(
     return 0;
 }
 
-// CBasePane::OnSetAccData -- the export folded onto the shared
-// `mov $0x1,%eax ; ret` body at RVA 0x3ae0, which CBasePane vftable slot 151
-// points at, so the base implementation is `return TRUE;` and reads nothing.
-// (Derived panes override it to fill m_AccData; the base class leaves the block
-// as the caller found it.)
+// STUB. CBasePane vftable slot 151 points to the shared body at RVA 0x3a60
+// (mfc140u), which disassembles to `mov $1,%eax; ret`; it reads no arguments.
+// The result matches retail, but a lone constant return is classified as a stub.
 // Symbol: ?OnSetAccData@CBasePane@@UEAAHJ@Z
 extern "C" int MS_ABI impl__OnSetAccData_CBasePane__UEAAHJ_Z(CBasePane* pThis, long lVal) {
     (void)pThis;
@@ -1403,39 +1413,180 @@ extern "C" int MS_ABI impl__OnSetAccData_CBasePane__UEAAHJ_Z(CBasePane* pThis, l
     return TRUE;
 }
 
+// CBasePane::OnSetIcon -- transcribed from the ANSI twin's entry RVA 0xcce0
+// (mfc140; the Unicode map does not resolve this symbol). It saves
+// CWnd::Default(), then, if this pane is tabbed and its tab index is in range,
+// sends WM_GETICON to the pane HWND and forwards the returned icon value to
+// CMFCBaseTabCtrl::SetTabIcon. nType and hIcon are not read by retail. The
+// SendMessageA IAT slot 0x1802c5378 was resolved in mfc140; ::SendMessage here
+// selects its Unicode counterpart.
+// Deviation: OpenMFC's SetTabIcon thunk range-checks but does not model the
+// per-tab icon storage, so this preserves the dispatch but not the icon update.
 // Symbol: ?OnSetIcon@CBasePane@@IEAAPEAUHICON__@@HPEAU2@@Z
-extern "C" void* MS_ABI impl__OnSetIcon_CBasePane__IEAAPEAUHICON____HPEAU2__Z(int p0, void* /*struct*/* p1) {
-    return nullptr;
+extern "C" HICON MS_ABI impl__OnSetIcon_CBasePane__IEAAPEAUHICON____HPEAU2__Z(
+    CBasePane* pThis, int nType, HICON hIcon) {
+    (void)nType;
+    (void)hIcon;
+    if (pThis == nullptr) return nullptr;
+
+    HICON hPrevious = reinterpret_cast<HICON>(
+        impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis)));
+    if (!impl__IsTabbed_CBasePane__UEBAHXZ(pThis)) return hPrevious;
+
+    HWND hWndTab = nullptr;
+    CMFCBaseTabCtrl* pTab = static_cast<CMFCBaseTabCtrl*>(
+        impl__GetParentTabWnd_CBasePane__QEBAPEAVCMFCBaseTabCtrl__AEAPEAUHWND_____Z(
+            pThis, &hWndTab));
+    if (pTab == nullptr) return hPrevious;
+    const int iTab = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(
+        pTab, hWndTab);
+    if (iTab < 0) return hPrevious;
+
+    const HICON hTabIcon = reinterpret_cast<HICON>(
+        ::SendMessage(pThis->m_hWnd, WM_GETICON, 0, 0));
+    (void)impl__SetTabIcon_CMFCBaseTabCtrl__UEAAHHI_Z(
+        pTab, iTab, static_cast<unsigned int>(reinterpret_cast<UINT_PTR>(hTabIcon)));
+    return hPrevious;
 }
 
+// CBasePane::OnSettingChange -- transcribed from the ANSI twin's entry RVA
+// 0xcf10 (mfc140; the Unicode map does not resolve this symbol): call the CWnd
+// handler, initialize AFX_GLOBAL_DATA if its first DWORD is zero, set that
+// initialized flag, then call AFX_GLOBAL_DATA::OnSettingChange. The existing
+// OpenMFC thunks provide the two global-data operations.
 // Symbol: ?OnSettingChange@CBasePane@@IEAAXIPEB_W@Z
-extern "C" void MS_ABI impl__OnSettingChange_CBasePane__IEAAXIPEB_W_Z(unsigned int p0, const wchar_t* p1) {}
+extern "C" void MS_ABI impl__OnSettingChange_CBasePane__IEAAXIPEB_W_Z(
+    CBasePane* pThis, unsigned int nFlags, const wchar_t* lpszSection) {
+    if (pThis == nullptr) return;
+    impl__OnSettingChange_CWnd__IEAAXIPEB_W_Z(
+        static_cast<CWnd*>(pThis), nFlags, lpszSection);
 
+    int bInitialized = 0;
+    std::memcpy(&bInitialized, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A,
+                sizeof(bInitialized));
+    if (bInitialized == 0) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(
+            impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+        bInitialized = TRUE;
+        std::memcpy(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A,
+                    &bInitialized, sizeof(bInitialized));
+    }
+    impl__OnSettingChange_AFX_GLOBAL_DATA__QEAAXXZ(
+        impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+}
+
+// CBasePane::OnSize -- transcribed from the ANSI twin's entry RVA 0xc320
+// (mfc140; the Unicode map does not resolve this symbol): call CWnd::Default(),
+// then invoke m_pDockBarRow (+0x130) vtable slot +0xb8 with this pane. That slot
+// is CDockingPanesRow::OnResizePane, whose verified retail body is an empty ret
+// (CDockingPanesRow.cpp); OpenMFC has the corresponding thunk.
 // Symbol: ?OnSize@CBasePane@@IEAAXIHH@Z
-extern "C" void MS_ABI impl__OnSize_CBasePane__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+extern "C" void MS_ABI impl__OnSize_CBasePane__IEAAXIHH_Z(
+    CBasePane* pThis, unsigned int nType, int cx, int cy) {
+    (void)nType;
+    (void)cx;
+    (void)cy;
+    if (pThis == nullptr) return;
+    (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+    if (pThis->m_pDockBarRow != nullptr) {
+        impl__OnResizePane_CDockingPanesRow__UEAAXPEAVCBasePane___Z(
+            pThis->m_pDockBarRow, pThis);
+    }
+}
 
+// STUB. The ANSI twin's entry RVA 0xbad0 (mfc140) dispatches PaneFromPoint
+// through the dock-site frame's RTTI-selected frame/docking-manager paths.
+// Those embedded frame manager layouts are not modeled here. CPoint is passed
+// by value in the MS ABI.
 // Symbol: ?PaneFromPoint@CBasePane@@QEBAPEAV1@VCPoint@@H_NPEAUCRuntimeClass@@@Z
-extern "C" void* MS_ABI impl__PaneFromPoint_CBasePane__QEBAPEAV1_VCPoint__H_NPEAUCRuntimeClass___Z(int p0, bool p1, void* /*struct*/* p2) {
+extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CBasePane__QEBAPEAV1_VCPoint__H_NPEAUCRuntimeClass___Z(
+    const CBasePane* pThis, long long point, int nSensitivity, bool bExactBar,
+    CRuntimeClass* pRTCBarType) {
+    (void)pThis;
+    (void)point;
+    (void)nSensitivity;
+    (void)bExactBar;
+    (void)pRTCBarType;
     return nullptr;
 }
 
+// STUB. The ANSI twin's entry RVA 0xcbb0 (mfc140) first calls
+// CWnd::PreTranslateMessage, then performs pane/frame/dialog-message handling
+// using parent-frame dispatch and message state not reproduced in OpenMFC.
+// The Unicode symbol has no resolved map entry; this body was verified in the
+// byte-identical ANSI twin but is left stubbed rather than partially emulated.
 // Symbol: ?PreTranslateMessage@CBasePane@@UEAAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__PreTranslateMessage_CBasePane__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
+extern "C" int MS_ABI impl__PreTranslateMessage_CBasePane__UEAAHPEAUtagMSG___Z(
+    CBasePane* pThis, MSG* pMsg) {
+    (void)pThis;
+    (void)pMsg;
     return 0;
 }
 
+// STUB. The ANSI twin's entry RVA 0xb8a0 (mfc140) dispatches removal through
+// RTTI-selected frame/docking-manager subobjects and reads the docking-
+// suppression flag. Those embedded frame manager layouts and the flag are not
+// modeled here; the Unicode symbol has no resolved map entry.
 // Symbol: ?RemovePaneFromDockManager@CBasePane@@QEAAXPEAV1@HHH0@Z
-extern "C" void MS_ABI impl__RemovePaneFromDockManager_CBasePane__QEAAXPEAV1_HHH0_Z(void* /*class*/* p0, int p1, int p2, int p3, void* /*class*/* p4) {}
-
-// Symbol: ?SaveState@CBasePane@@UEAAHPEB_WHI@Z
-extern "C" int MS_ABI impl__SaveState_CBasePane__UEAAHPEB_WHI_Z(const wchar_t* p0, int p1, unsigned int p2) {
-    return 0;
+extern "C" void MS_ABI impl__RemovePaneFromDockManager_CBasePane__QEAAXPEAV1_HHH0_Z(
+    CBasePane* pThis, CBasePane* pBar, int bDestroy, int bAdjustLayout,
+    int bAutoHide, CBasePane* pBarReplacement) {
+    (void)pThis;
+    (void)pBar;
+    (void)bDestroy;
+    (void)bAdjustLayout;
+    (void)bAutoHide;
+    (void)pBarReplacement;
 }
 
-// Symbol: ?Serialize@CBasePane@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+// CBasePane::SaveState -- the symbol has no mapped RVA, but CBasePane vtable
+// slot 142 points at retail entry RVA 0xc580 (mfc140u). It builds the same
+// BasePanes section as LoadState; when CreateKey succeeds it stores the result
+// of vtable slot 97 (IsVisible) under "IsVisible". The body returns TRUE even
+// when the store operation fails. OpenMFC calls the base IsVisible thunk, so a
+// derived override is not dispatched.
+// Deviation: use the same persistent-store strategy as CPane::SaveState; Open("")
+// resets the path before CreateKey appends the pane section. A null store is
+// treated as a failed optional write, while preserving retail's TRUE result.
+// Symbol: ?SaveState@CBasePane@@UEAAHPEB_WHI@Z
+extern "C" int MS_ABI impl__SaveState_CBasePane__UEAAHPEB_WHI_Z(
+    CBasePane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
+    if (pThis == nullptr) return FALSE;
+    CString strSection;
+    BasePaneStateSection(pThis, lpszProfileName, nIndex, uiID, &strSection);
+    void* pStore = BasePaneStateStore(FALSE);
+    if (pStore != nullptr &&
+        impl__Open_CSettingsStore__UEAAHPEB_W_Z(pStore, L"") &&
+        impl__CreateKey_CSettingsStore__UEAAHPEB_W_Z(pStore, strSection.GetString())) {
+        (void)impl__Write_CSettingsStore__UEAAHPEB_WH_Z(
+            pStore, L"IsVisible", impl__IsVisible_CBasePane__UEBAHXZ(pThis));
+    }
+    return TRUE;
+}
 
+// STUB. CBasePane vtable slot 2 targets retail entry RVA 0xc2e0 (mfc140u),
+// which checks the archive mode at +0x20 and accesses buffer pointers at +0x38
+// and +0x40. OpenMFC declares CArchive in include/openmfc/afx.h with m_nMode at
+// +0x10 (also recorded by detail/CMDITabInfoSupport.h), so using its mode and
+// Read/Write methods here would not faithfully consume a retail CArchive.
+// Leave this stub until the shared CArchive ABI layout is corrected.
+// Symbol: ?Serialize@CBasePane@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(
+    CBasePane* pThis, CArchive* pArchive) {
+    (void)pThis;
+    (void)pArchive;
+}
+
+// STUB. The ANSI twin's entry RVA 0xcaa0 (mfc140) has message-specific
+// handling followed by CWnd/default-window processing. The Unicode symbol has
+// no resolved map entry, and the complete message-state dispatch is not
+// reproduced here.
 // Symbol: ?WindowProc@CBasePane@@MEAA_JI_K_J@Z
-extern "C" __int64 MS_ABI impl__WindowProc_CBasePane__MEAA_JI_K_J_Z(unsigned int p0, unsigned __int64 p1, __int64 p2) {
+extern "C" __int64 MS_ABI impl__WindowProc_CBasePane__MEAA_JI_K_J_Z(
+    CBasePane* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam) {
+    (void)pThis;
+    (void)message;
+    (void)wParam;
+    (void)lParam;
     return 0;
 }

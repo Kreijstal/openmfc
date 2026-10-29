@@ -4,6 +4,11 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+#include "detail/CSmartDockingInfoSupport.h"
+
+extern "C" void* MS_ABI impl___0CSmartDockingInfo__QEAA_XZ(void* pThis);
+extern "C" std::int32_t impl__m_bSDParamsModified_CDockingManager__1HA;
+extern "C" std::uint32_t impl__m_dockModeGlobal_CDockingManager__1W4AFX_DOCK_TYPE__A;
 
 // Symbol: ?AddMiniFrame@CDockingManager@@UEAAHPEAVCPaneFrameWnd@@@Z
 extern "C" int MS_ABI impl__AddMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(CDockingManager* pThis, void* pFrame) {
@@ -836,69 +841,227 @@ void CDockingManager::SetDockState() {
     }
 }
 // Symbol: ?m_SDParams@CDockingManager@@1VCSmartDockingInfo@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_SDParams_CDockingManager__1VCSmartDockingInfo__A = {};
+// Retail's exported static is a CSmartDockingInfo at RVA 0x3c15b0 (mfc140u), not a pointer.
+extern "C" S_Csmartdockinginfo impl__m_SDParams_CDockingManager__1VCSmartDockingInfo__A = {};
+
+namespace {
+struct DockingSmartParamsInitializer {
+    DockingSmartParamsInitializer() {
+        // Use the already-defined constructor thunk: retail's CSmartDockingInfo ctor
+        // initializes a 93x93 marker size, offset 5, magenta transparency, and zero IDs.
+        impl___0CSmartDockingInfo__QEAA_XZ(&impl__m_SDParams_CDockingManager__1VCSmartDockingInfo__A);
+    }
+};
+DockingSmartParamsInitializer g_dockingSmartParamsInitializer;
+int g_dockingManagerSmartDockingTheme = 0;
+}
 
 // Symbol: ?AddDockSite@CDockingManager@@QEAAHAEBUAFX_DOCKSITE_INFO@@PEAPEAVCDockSite@@@Z
-extern "C" int MS_ABI impl__AddDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__PEAPEAVCDockSite___Z(const void* /*struct*/* p0, void* /*class*/** p1) {
-    return 0;
+// STUB: Retail RVA 0x47660 (mfc140u) creates a runtime-class dock site and inserts it
+// into m_lstControlBars; the local CDockingManager layout does not model that list.
+extern "C" int MS_ABI impl__AddDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__PEAPEAVCDockSite___Z(
+    CDockingManager*, const void*, void**) {
+    return FALSE;
 }
 
 // Symbol: ?AddHiddenMDITabbedBar@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
-extern "C" void MS_ABI impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(void* /*class*/* p0) {}
+// STUB: Retail RVA 0x4ebc0 (mfc140u) reads the pane pointer at +0x40 and passes it
+// to the manager list at +0x2d0; the corresponding member is absent from the local layout.
+extern "C" void MS_ABI impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(
+    CDockingManager*, CDockablePane*) {}
 
 // Symbol: ?AlignByRect@CDockingManager@@IEAAXAEBVCRect@@AEAV2@KHH@Z
-extern "C" void MS_ABI impl__AlignByRect_CDockingManager__IEAAXAEBVCRect__AEAV2_KHH_Z(const void* /*class*/* p0, void* /*class*/* p1, unsigned long p2, int p3, int p4) {}
+// Retail RVA 0x4a340 (mfc140u): apply the 0xF000 alignment case and the two
+// size-adjustment flags to the target rectangle relative to the anchor rectangle.
+extern "C" void MS_ABI impl__AlignByRect_CDockingManager__IEAAXAEBVCRect__AEAV2_KHH_Z(
+    CDockingManager*, const CRect* pAnchor, CRect* pTarget, unsigned long dwAlignment,
+    int bAdjustFirst, int bAdjustSecond) {
+    const int anchorLeft = pAnchor->left;
+    const int anchorTop = pAnchor->top;
+    const int anchorRight = pAnchor->right;
+    const int anchorBottom = pAnchor->bottom;
+    const int targetWidth = pTarget->right - pTarget->left;
+    const int targetHeight = pTarget->bottom - pTarget->top;
+    const unsigned long alignment = dwAlignment & 0xf000;
+
+    switch (alignment) {
+    case 0x1000:
+        pTarget->left = anchorLeft;
+        pTarget->top = anchorTop;
+        pTarget->right = anchorLeft + targetWidth;
+        pTarget->bottom = anchorBottom;
+        break;
+    case 0x2000:
+        pTarget->left = anchorLeft;
+        pTarget->top = anchorTop;
+        pTarget->right = anchorRight;
+        pTarget->bottom = anchorTop + targetHeight;
+        break;
+    case 0x4000:
+        pTarget->right = anchorRight;
+        pTarget->bottom = anchorBottom;
+        pTarget->left = anchorRight - targetWidth;
+        pTarget->top = anchorTop;
+        break;
+    case 0x8000:
+        pTarget->right = anchorRight;
+        pTarget->bottom = anchorBottom;
+        pTarget->left = anchorLeft;
+        pTarget->top = anchorBottom - targetHeight;
+        break;
+    default:
+        break;
+    }
+
+    if (bAdjustFirst) {
+        const int widthDelta = (pAnchor->left - pAnchor->right) - pTarget->left + pTarget->right;
+        if (widthDelta != 0) pTarget->right += widthDelta;
+
+        const int heightDelta = (pAnchor->top - pAnchor->bottom) - pTarget->top + pTarget->bottom;
+        if (heightDelta > 0 && bAdjustSecond) {
+            if ((alignment & 0x2000) != 0) {
+                pTarget->bottom -= heightDelta;
+            } else if ((alignment & 0x8000) != 0) {
+                pTarget->top += heightDelta;
+            }
+        }
+    } else {
+        const int heightDelta = (pAnchor->top - pAnchor->bottom) - pTarget->top + pTarget->bottom;
+        if (heightDelta != 0) pTarget->bottom += heightDelta;
+
+        const int widthDelta = (pTarget->right - pTarget->left) - (pAnchor->right - pAnchor->left);
+        if (widthDelta > 0 && bAdjustSecond) {
+            if ((alignment & 0x1000) != 0) {
+                pTarget->right -= widthDelta;
+            } else if ((alignment & 0x4000) != 0) {
+                pTarget->left += widthDelta;
+            }
+        }
+    }
+}
 
 // Symbol: ?CalcPaneOffset@CDockingManager@@IEAAXPEAVCAutoHideDockSite@@@Z
-extern "C" void MS_ABI impl__CalcPaneOffset_CDockingManager__IEAAXPEAVCAutoHideDockSite___Z(void* /*class*/* p0) {}
+// STUB: Retail RVA 0x4a100 (mfc140u) walks adjacent auto-hide dock sites and updates
+// their +0x220/+0x224 offsets; those dock-site lists/layouts are not modeled here.
+extern "C" void MS_ABI impl__CalcPaneOffset_CDockingManager__IEAAXPEAVCAutoHideDockSite___Z(
+    CDockingManager*, void*) {}
 
 // Symbol: ?Create@CDockingManager@@QEAAHPEAVCFrameWnd@@@Z
-extern "C" int MS_ABI impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(void* /*class*/* p0) {
-    return 0;
+// Retail RVA 0x473e0 (mfc140u) stores the frame at this+0x1b0 and returns TRUE.
+// OpenMFC's m_pParentWnd is at this+sizeof(CObject), so store through that local
+// member location rather than writing the incompatible retail offset.
+extern "C" int MS_ABI impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(
+    CDockingManager* pThis, CFrameWnd* pFrame) {
+    *reinterpret_cast<CFrameWnd**>(reinterpret_cast<unsigned char*>(pThis) + sizeof(CObject)) = pFrame;
+    return TRUE;
 }
 
 // Symbol: ?FindDockSite@CDockingManager@@UEAAPEAVCDockSite@@KH@Z
-extern "C" void* MS_ABI impl__FindDockSite_CDockingManager__UEAAPEAVCDockSite__KH_Z(unsigned long p0, int p1) {
+// STUB: Retail RVA 0x481e0 (mfc140u) searches m_lstControlBars (+0x30) for a dock
+// site with matching alignment/outer-edge state; the local layout has no such list.
+extern "C" void* MS_ABI impl__FindDockSite_CDockingManager__UEAAPEAVCDockSite__KH_Z(
+    CDockingManager*, unsigned long, int) {
     return nullptr;
 }
 
 // Symbol: ?FindDockSiteByPane@CDockingManager@@UEAAPEAVCDockSite@@PEAVCPane@@@Z
-extern "C" void* MS_ABI impl__FindDockSiteByPane_CDockingManager__UEAAPEAVCDockSite__PEAVCPane___Z(void* /*class*/* p0) {
+// STUB: Retail RVA 0x48500 (mfc140u) searches the manager's dock-site list and asks
+// each site whether it contains the requested pane; dock-site state is unavailable.
+extern "C" void* MS_ABI impl__FindDockSiteByPane_CDockingManager__UEAAPEAVCDockSite__PEAVCPane___Z(
+    CDockingManager*, CPane*) {
     return nullptr;
 }
 
 // Symbol: ?HideForPrintPreview@CDockingManager@@IEAAXAEBVCObList@@@Z
-extern "C" void MS_ABI impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObList___Z(const void* /*class*/* p0) {}
+// STUB: Retail RVA 0x4cfb0 (mfc140u) iterates panes and records hidden bars in the
+// manager's print-preview list at +0x210; that list is not modeled locally.
+extern "C" void MS_ABI impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObList___Z(
+    CDockingManager*, const CObList*) {}
 
 // Symbol: ?InsertDockSite@CDockingManager@@QEAAHAEBUAFX_DOCKSITE_INFO@@KPEAPEAVCDockSite@@@Z
-extern "C" int MS_ABI impl__InsertDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__KPEAPEAVCDockSite___Z(const void* /*struct*/* p0, unsigned long p1, void* /*class*/** p2) {
-    return 0;
+// STUB: Retail RVA 0x47730 (mfc140u) creates a dock site and inserts it relative
+// to matching-alignment sites in m_lstControlBars; the list/type infrastructure is absent.
+extern "C" int MS_ABI impl__InsertDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__KPEAPEAVCDockSite___Z(
+    CDockingManager*, const void*, unsigned long, void**) {
+    return FALSE;
 }
 
 // Symbol: ?IsPointNearDockSite@CDockingManager@@QEBAHVCPoint@@AEAKAEAH@Z
-extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(void* /*class*/ p0, unsigned long* p1, int* p2) {
-    return 0;
+// STUB: Retail RVA 0x48310 (mfc140u) delegates edge-distance tests using its client,
+// outer-edge and parent-frame state; those retail fields are not modeled locally.
+extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
+    const CDockingManager*, long long, unsigned long*, int*) {
+    return FALSE;
 }
 
 // Symbol: ?Serialize@CDockingManager@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+// STUB: The ANSI twin's retail entry is RVA 0x4aa90 (mfc140); its long archive
+// traversal serializes manager-owned dock-site, pane, and mini-frame lists unavailable here.
+extern "C" void MS_ABI impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(
+    CDockingManager*, CArchive*) {}
 
 // Symbol: ?SetAutohideZOrder@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
-extern "C" void MS_ABI impl__SetAutohideZOrder_CDockingManager__QEAAXPEAVCDockablePane___Z(void* /*class*/* p0) {}
+// STUB: The ANSI twin's retail entry is RVA 0x49640 (mfc140); it reorders auto-hide
+// bars in the manager list and adjusts pane z-order, requiring unmodeled list state.
+extern "C" void MS_ABI impl__SetAutohideZOrder_CDockingManager__QEAAXPEAVCDockablePane___Z(
+    CDockingManager*, CDockablePane*) {}
 
 // Symbol: ?SetDockingMode@CDockingManager@@SAXW4AFX_DOCK_TYPE@@W4AFX_SMARTDOCK_THEME@@@Z
-extern "C" void MS_ABI impl__SetDockingMode_CDockingManager__SAXW4AFX_DOCK_TYPE__W4AFX_SMARTDOCK_THEME___Z(int /*enum*/ p0, short* p1, int p2, char p3, void* p4, void* p5, unsigned long p6, int p7, void* p8, void* p9, unsigned char* p10, int /*enum*/ p11, short* p12, int p13, void* p14, float p15, void** p16, void* p17, char p18, void* p19, void* p20, unsigned long p21, int p22, void* p23, int p24, unsigned char p25, float p26, unsigned char p27) {}
+// Retail ANSI-twin entry RVA 0x4da50 (mfc140; --u does not resolve this name): store
+// the mode; only mode 0x80 becomes 0x81 and stores the theme. DEVIATION: m_SDTheme is
+// unmodeled, so this file-local shadow is not read by other current implementations.
+extern "C" void MS_ABI impl__SetDockingMode_CDockingManager__SAXW4AFX_DOCK_TYPE__W4AFX_SMARTDOCK_THEME___Z(
+    int dockingMode, int theme) {
+    impl__m_dockModeGlobal_CDockingManager__1W4AFX_DOCK_TYPE__A =
+        static_cast<std::uint32_t>(dockingMode);
+    if (dockingMode == 0x80) {
+        impl__m_dockModeGlobal_CDockingManager__1W4AFX_DOCK_TYPE__A = 0x81;
+        g_dockingManagerSmartDockingTheme = theme;
+    }
+}
 
 // Symbol: ?SetPrintPreviewMode@CDockingManager@@QEAAXHPEAUCPrintPreviewState@@@Z
-extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(int p0, void* /*struct*/* p1) {}
+// STUB: The ANSI twin's retail entry RVA 0x4ced0 (mfc140) saves/restores preview
+// visibility through manager lists and parent-frame state absent from this layout.
+extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(
+    CDockingManager*, int, void*) {}
 
 // Symbol: ?SetSmartDockingParams@CDockingManager@@SAXAEAVCSmartDockingInfo@@@Z
-extern "C" void MS_ABI impl__SetSmartDockingParams_CDockingManager__SAXAEAVCSmartDockingInfo___Z(void* /*class*/* p0) {}
+// Retail ANSI-twin entry RVA 0x4da70 (mfc140; --u does not resolve this name): copy
+// the object fields only when all five marker IDs are zero or all are nonzero, then
+// set m_bSDParamsModified. CopyTo at ANSI-twin entry RVA 0x4ebd0 copies fields through
+// offset 0x58 (84 bytes after the vfptr), leaving the trailing padding untouched.
+extern "C" void MS_ABI impl__SetSmartDockingParams_CDockingManager__SAXAEAVCSmartDockingInfo___Z(
+    void* pParams) {
+    const auto* source = static_cast<const S_Csmartdockinginfo*>(pParams);
+    unsigned int marked = 0;
+    for (UINT id : source->m_uiMarkerBmpResID) {
+        if (id != 0) ++marked;
+    }
+    if (marked != 0 && marked != AFX_SD_MARKERS_NUM) return;
+
+    auto* destination = &impl__m_SDParams_CDockingManager__1VCSmartDockingInfo__A;
+    constexpr std::size_t copiedBytes =
+        offsetof(S_Csmartdockinginfo, m_bIsAlphaMarkers) + sizeof(BOOL) - sizeof(void*);
+    if (source != destination) {
+        std::memcpy(reinterpret_cast<unsigned char*>(destination) + sizeof(void*),
+                    reinterpret_cast<const unsigned char*>(source) + sizeof(void*),
+                    copiedBytes);
+    }
+    impl__m_bSDParamsModified_CDockingManager__1HA = TRUE;
+}
 
 // Symbol: ?ShowDelayShowMiniFrames@CDockingManager@@UEAAXH@Z
-extern "C" void MS_ABI impl__ShowDelayShowMiniFrames_CDockingManager__UEAAXH_Z(int p0) {}
+// STUB: The ANSI twin's retail entry RVA 0x4d6c0 (mfc140) walks m_lstMiniFrames
+// (+0x180), checks each frame's delayed-show flag, and toggles visibility; those
+// manager/frame fields are not represented by the local side-table state.
+extern "C" void MS_ABI impl__ShowDelayShowMiniFrames_CDockingManager__UEAAXH_Z(
+    CDockingManager*, int) {}
 
 // Symbol: ?ShowPanes@CDockingManager@@UEAAHH@Z
-extern "C" int MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(int p0) {
-    return 0;
+// STUB: The ANSI twin's retail entry RVA 0x4d490 (mfc140) has separate show/hide
+// paths over docked bars, mini-frames, and saved flags; these lists/fields are absent.
+extern "C" int MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(
+    CDockingManager*, int) {
+    return FALSE;
 }
