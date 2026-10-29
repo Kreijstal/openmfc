@@ -4,6 +4,23 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CollectionsStringsSupport.h"
+#include <cstddef>
+
+namespace {
+// Byte shadow: CView occupies 0xf8 bytes; retail CTabView places m_wndTabs
+// there, then m_bIsReady and m_nFirstActiveTab at the offsets below.
+struct CTabViewRetailLayout {
+    unsigned char cView[0xf8];
+    unsigned char wndTabs[0x3d68];
+    BOOL isReady;
+    int firstActiveTab;
+};
+static_assert(sizeof(CView) == 0xf8, "retail CView base size");
+static_assert(offsetof(CTabViewRetailLayout, wndTabs) == 0xf8, "CTabView m_wndTabs offset");
+static_assert(offsetof(CTabViewRetailLayout, isReady) == 0x3e60, "CTabView m_bIsReady offset");
+static_assert(offsetof(CTabViewRetailLayout, firstActiveTab) == 0x3e64, "CTabView m_nFirstActiveTab offset");
+static_assert(sizeof(CTabViewRetailLayout) == 0x3e68, "CTabView retail allocation size");
+}
 
 // Symbol: ??0CTabView@@IEAA@XZ
 extern "C" void* MS_ABI impl___0CTabView__IEAA_XZ(void* self) {
@@ -67,37 +84,67 @@ extern "C" int MS_ABI impl__RemoveView_CTabView__QEAAHH_Z(void* self, int index)
     else if (state.active >= static_cast<int>(state.tabs.size())) state.active = static_cast<int>(state.tabs.size()) - 1;
     return TRUE;
 }
+// Retail RVA 0x13d0b0 (mfc140u) allocates 0x3e68 bytes and invokes the CTabView constructor; this file's constructor only seeds g_tabViewStates, so returning that allocation would not produce a usable native CTabView.
 // Symbol: ?CreateObject@CTabView@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CTabView__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
+// Retail RVA 0x13d4d0 (mfc140u) checks m_bIsReady at +0x3e60; before readiness it stores the low 32 bits of wParam at m_nFirstActiveTab (+0x3e64), and afterward it uses the embedded tab control to switch views. This side-state model does not initialize that control.
 // Symbol: ?OnChangeActiveTab@CTabView@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnChangeActiveTab_CTabView__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+extern "C" __int64 MS_ABI impl__OnChangeActiveTab_CTabView__IEAA_J_K_J_Z(void* pThis, unsigned __int64 wp, __int64 lp) {
+    (void)pThis;
+    (void)wp;
+    (void)lp;
     return 0;
 }
 
+// Retail RVA 0x13d1e0 (mfc140u) performs window setup using the embedded CMFCTabCtrl; the current CTabView constructor does not initialize that control.
 // Symbol: ?OnCreate@CTabView@@IEAAHPEAUtagCREATESTRUCTW@@@Z
-extern "C" int MS_ABI impl__OnCreate_CTabView__IEAAHPEAUtagCREATESTRUCTW___Z(void* /*struct*/* p0) {
+extern "C" int MS_ABI impl__OnCreate_CTabView__IEAAHPEAUtagCREATESTRUCTW___Z(void* pThis, CREATESTRUCTW* createStruct) {
+    (void)pThis;
+    (void)createStruct;
     return 0;
 }
 
+// This exact symbol has no resolved RVA in the mfc140u map; do not infer drawing behavior without a transcribable retail body.
 // Symbol: ?OnDraw@CTabView@@MEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CTabView__MEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__OnDraw_CTabView__MEAAXPEAVCDC___Z(void* pThis, CDC* pDC) {
+    (void)pThis;
+    (void)pDC;
+}
 
+// This exact symbol has no resolved RVA in the mfc140u map; do not infer initialization behavior without a transcribable retail body.
 // Symbol: ?OnInitialUpdate@CTabView@@UEAAXXZ
-extern "C" void MS_ABI impl__OnInitialUpdate_CTabView__UEAAXXZ() {}
+extern "C" void MS_ABI impl__OnInitialUpdate_CTabView__UEAAXXZ(void* pThis) {
+    (void)pThis;
+}
 
+// This exact symbol has no resolved RVA in the mfc140u map; do not infer activation behavior without a transcribable retail body.
 // Symbol: ?OnMouseActivate@CTabView@@IEAAHPEAVCWnd@@II@Z
-extern "C" int MS_ABI impl__OnMouseActivate_CTabView__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
+extern "C" int MS_ABI impl__OnMouseActivate_CTabView__IEAAHPEAVCWnd__II_Z(void* pThis, CWnd* desktopWnd, unsigned int hitTest, unsigned int message) {
+    (void)pThis;
+    (void)desktopWnd;
+    (void)hitTest;
+    (void)message;
     return 0;
 }
 
+// This exact symbol has no resolved RVA in the mfc140u map; do not infer print-client behavior without a transcribable retail body.
 // Symbol: ?OnPrintClient@CTabView@@IEAA_JPEAVCDC@@I@Z
-extern "C" __int64 MS_ABI impl__OnPrintClient_CTabView__IEAA_JPEAVCDC__I_Z(void* /*class*/* p0, unsigned int p1) {
+extern "C" __int64 MS_ABI impl__OnPrintClient_CTabView__IEAA_JPEAVCDC__I_Z(void* pThis, CDC* pDC, unsigned int flags) {
+    (void)pThis;
+    (void)pDC;
+    (void)flags;
     return 0;
 }
 
+// This exact symbol has no resolved RVA in the mfc140u map; do not infer resize behavior without a transcribable retail body.
 // Symbol: ?OnSize@CTabView@@IEAAXIHH@Z
-extern "C" void MS_ABI impl__OnSize_CTabView__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+extern "C" void MS_ABI impl__OnSize_CTabView__IEAAXIHH_Z(void* pThis, unsigned int type, int cx, int cy) {
+    (void)pThis;
+    (void)type;
+    (void)cx;
+    (void)cy;
+}
 
