@@ -169,7 +169,9 @@ void CSocket::AuxQueueAdd(UINT message, SOCKET hSocket, long lParam) {
     std::lock_guard<std::mutex> lock(g_auxQueueMutex);
     g_auxQueue.push_back({message, hSocket, lParam});
 }
-int CSocket::PumpMessages(UINT uStopFlag) {
+namespace {
+// This is the existing OpenMFC approximation, not retail's socket-window wait loop.
+int PumpSocketMessagesApprox(UINT uStopFlag) {
     (void)uStopFlag;
     MSG msg;
     for (int i = 0; i < 100; i++) {
@@ -180,21 +182,32 @@ int CSocket::PumpMessages(UINT uStopFlag) {
     }
     return TRUE;
 }
+} // namespace
+
+int CSocket::PumpMessages(UINT uStopFlag) {
+    return PumpSocketMessagesApprox(uStopFlag);
+}
 
 // === Moved from ManualThunks.cpp ===
 // Symbol: ?ConnectHelper@CSocket@@MEAAHPEBUsockaddr@@H@Z
-extern "C" int MS_ABI impl__ConnectHelper_CSocket__MEAAHPEBUsockaddr__H_Z(void* pThis, void* p0, void* p1) {
+extern "C" int MS_ABI impl__ConnectHelper_CSocket__MEAAHPEBUsockaddr__H_Z(
+        CSocket* pThis, const sockaddr* lpSockAddr, int nSockAddrLen) {
+    // Deliberate stub: retail mfc140u RVA 0x2728a0 uses +0x18/+0x20 as the
+    // blocking-call pointer/error state and waits through PumpMessages(FD_CONNECT).
+    // The local CSocket/CAsyncSocket declarations do not model those retail fields.
     (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0;
+    (void)lpSockAddr;
+    (void)nSockAddrLen;
+    return FALSE;
 }
 
-
 // Symbol: ?PumpMessages@CSocket@@MEAAHI@Z
-extern "C" int MS_ABI impl__PumpMessages_CSocket__MEAAHI_Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-    return 0;
+extern "C" int MS_ABI impl__PumpMessages_CSocket__MEAAHI_Z(
+        CSocket* pThis, UINT uStopFlag) {
+    // Retail's ANSI twin (mfc140.dll RVA 0x2718b0) uses a timer, thread state,
+    // and WM_SOCKET-filtered messages with blocking state; mfc140u did not resolve.
+    // Preserve the existing OpenMFC bounded-poll behavior rather than exporting a stub.
+    if (!pThis) return FALSE;
+    return PumpSocketMessagesApprox(uStopFlag);
 }
 

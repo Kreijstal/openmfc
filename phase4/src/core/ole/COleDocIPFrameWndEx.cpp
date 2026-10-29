@@ -1,11 +1,14 @@
 // COleDocIPFrameWndEx — OpenMFC implementation.
 // Sources: manual_small_stub_implementations.cpp, olecore.cpp
 //
-// Behaviour below was decoded from the retail mfc140 image (mangled name -> RVA
-// -> objdump).  Two symbols could not be reached that way and say so at their
-// own call sites: ?AddDockSite@ has no body anywhere in the image, and
-// ?OnToolbarContextMenu@ has no name in the map and was located through this
-// class's message map instead (it still cites the RVA it landed on).
+// Behaviour below was decoded from retail disassembly. Unless a comment
+// explicitly says mfc140u, unqualified RVAs and image addresses are from
+// mfc140.dll (the ANSI twin); do not treat them as mfc140u addresses. The two
+// images have byte-identical bodies but different export RVAs. ?AddDockSite@
+// has no name-map entry, but its export ordinal resolves to the same bare-ret
+// body as CFrameWndEx::AddDockSite. The other exceptional symbol,
+// ?OnToolbarContextMenu@, has no name in the map and was located through this
+// class's message map instead.
 //
 // The `if (!pThis)` / `if (!pPane)` guards in the bodies below are OpenMFC's
 // own defensiveness: retail dereferences those pointers unconditionally.
@@ -55,11 +58,12 @@
 //
 // ---------------------------------------------------------------------------
 // Retail layout facts, established from ??0COleDocIPFrameWndEx@@IEAA@XZ
-// (RVA 0x956c0), ??1 (0x95770) and ?CreateObject@ (0x95670)
+// (RVA 0x956c0, mfc140.dll), ??1 (0x95770, mfc140.dll) and ?CreateObject@
+// (0x95670, mfc140.dll)
 // ---------------------------------------------------------------------------
 //   * operator new is called with 0x790 == 1936 bytes, exactly the
 //     m_nObjectSize recorded for classCOleDocIPFrameWndEx in
-//     phase4/src/core/ole/RuntimeClasses.cpp:242.
+//     phase4/src/core/ole/RuntimeClasses.cpp:244.
 //   * the base COleDocIPFrameWnd constructor (0x255950) is called with %rcx
 //     unchanged, so COleDocIPFrameWnd and COleDocIPFrameWndEx share offset 0.
 //   * the constructor then initialises members OpenMFC does not model:
@@ -101,6 +105,54 @@
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/OlecoreSupport.h"
 
+#include <cstddef>
+
+namespace {
+// Minimal local view for the inherited COleIPFrameWnd::m_pMainFrame pointer.
+// GetContainerFrameWindow reads this slot at +0x210 (mfc140u RVA 0x95e70).
+struct S_COleDocIPFrameWndExContainerFrameView {
+    unsigned char _prefix[0x210];
+    void* m_pMainFrame;
+};
+static_assert(offsetof(S_COleDocIPFrameWndExContainerFrameView, m_pMainFrame) == 0x210,
+              "retail COleIPFrameWnd::m_pMainFrame @ 0x210");
+static_assert(sizeof(S_COleDocIPFrameWndExContainerFrameView) == 0x218,
+              "container-frame view reaches through +0x217");
+
+struct S_COleDocIPFrameWndExDockingView {
+    unsigned char _prefix[0x428];
+    unsigned char m_dockManager[0x368];
+};
+static_assert(offsetof(S_COleDocIPFrameWndExDockingView, m_dockManager) == 0x428,
+              "retail COleDocIPFrameWndEx CDockingManager @ 0x428");
+static_assert(sizeof(S_COleDocIPFrameWndExDockingView) == 0x790,
+              "retail COleDocIPFrameWndEx size 0x790");
+
+struct S_CCmdUIRoutingLayout {
+    void* vfptr;
+    UINT m_nID;
+    UINT m_nIndex;
+    void* m_pMenu;
+    void* m_pSubMenu;
+    void* m_pOther;
+    BOOL m_bEnableChanged;
+    BOOL m_bContinueRouting;
+    UINT m_nIndexMax;
+    DWORD _cmdUIAlignment;
+    void* m_pParentMenu;
+};
+static_assert(offsetof(S_CCmdUIRoutingLayout, m_bContinueRouting) == 0x2c,
+              "CCmdUI::m_bContinueRouting @ 0x2c");
+static_assert(sizeof(S_CCmdUIRoutingLayout) == sizeof(CCmdUI),
+              "local CCmdUI layout matches the public declaration");
+}  // namespace
+
+extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleCntrFrameWndEx__SAPEAUCRuntimeClass__XZ();
+extern "C" void* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+    void* pDockManager, unsigned int nID, int bSearchMiniFrames);
+extern "C" DWORD MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis);
 
 // ---- sibling impl_ exports we delegate to (all verified to exist in the tree)
 // COleDocIPFrameWnd / COleIPFrameWnd (core/ole/COleDocIPFrameWnd.cpp,
@@ -190,33 +242,38 @@ extern "C" void* MS_ABI impl___0COleDocIPFrameWndEx__IEAA_XZ(void* pThis) {
     return pThis;
 }
 
-// COleDocIPFrameWndEx::OnUpdatePaneMenu(CCmdUI*) — retail (RVA 0x960d0, named
-// ?OnUpdatePaneMenu@COleIPFrameWndEx@@ in the map, reached from THIS class's
-// message-map entries 5/7/9), transcribed in full:
-//     pane = CDockingManager::FindPaneByID(this+0x428, pCmdUI->m_nID /*+0x8*/,
-//                                          TRUE);          // vtable +0x58
-//     if (!pane) { pCmdUI->[0x2c] = 1; return; }            // continue routing
+// COleDocIPFrameWndEx::OnUpdatePaneMenu(CCmdUI*) — retail mfc140.dll (ANSI
+// twin) RVA 0x960d0, named ?OnUpdatePaneMenu@COleIPFrameWndEx@@ in that image's
+// map; this class's message-map entries 5/7/9 reach the same body. Transcribed:
+//     pane = CDockingManager::FindPaneByID(this+0x428, pCmdUI->m_nID, TRUE);
+//     if (!pane) { pCmdUI->[0x2c] = 1; return; }  // continue routing
 //     pCmdUI->vtable[+0x08](pCmdUI, (CWnd::GetStyle(pane) >> 28) & 1);
-//                                    // GetStyle 0x2a75a0; bit 28 == WS_VISIBLE.
-// Slot +0x08 was resolved in the image: ??0CCmdUI@@ (0x1dc830) stores vftable
-// 0x3210e8, whose entries are Enable / SetCheck / SetRadio / SetText, so the
-// call is SetCheck(bVisible).
-// Retail NEVER calls CCmdUI::Enable here.  This file used to do exactly that
-// (`if (ui) Enable(TRUE)`), which is a behaviour retail does not have on any
-// path, so it has been reverted to a documented no-op.  The pane lookup needs
-// the embedded CDockingManager at this+0x428, and the pCmdUI+0x2c write has no
-// counterpart in OpenMFC's CCmdUI: that class (include/openmfc/afxole.h:68) is
-// vptr / m_nID@8 / m_pOther@16 / m_nIndex@24 / m_pMenu@32 / m_pSubMenu@40,
-// sizeof 56 (offsets confirmed by compiling offsetof against the real header),
-// so 0x2c==44 lands in the middle of its m_pSubMenu pointer — writing there
-// would corrupt the caller's object, not set a flag.  With no docking manager
-// the pane is never found, so retail's reachable path here is exactly that one
-// write, and it is the part this tree cannot express.
+// The CCmdUI virtual order has no virtual destructor: Enable is slot 0 and
+// SetCheck is slot 1 (+0x08). Its current OpenMFC declaration in afxwin.h also
+// places m_bContinueRouting at +0x2c (vptr, m_nID, m_nIndex, m_pMenu,
+// m_pSubMenu, m_pOther, m_bEnableChanged, then m_bContinueRouting), so the
+// no-pane routing write is representable without corrupting another member.
+// The embedded manager is passed to the existing state-backed FindPaneByID
+// thunk; when no OpenMFC docking state is registered it returns null, matching
+// the retail no-pane branch. The pane branch dispatches the CCmdUI slot
+// virtually, as retail does.
 // Symbol: ?OnUpdatePaneMenu@COleDocIPFrameWndEx@@IEAAXPEAVCCmdUI@@@Z
 extern "C" void MS_ABI impl__OnUpdatePaneMenu_COleDocIPFrameWndEx__IEAAXPEAVCCmdUI___Z(void* pThis, CCmdUI* ui) {
-    (void)pThis; (void)ui;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428 and a
-    // CCmdUI::m_bContinueRouting member (pCmdUI+0x2c).
+    if (!pThis || !ui) return;
+    void* pDockManager =
+        reinterpret_cast<S_COleDocIPFrameWndExDockingView*>(pThis)->m_dockManager;
+    void* pPane = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+        pDockManager, ui->m_nID, TRUE);
+    if (!pPane) {
+        ui->m_bContinueRouting = TRUE;
+        return;
+    }
+
+    const DWORD dwStyle = impl__GetStyle_CWnd__QEBAKXZ(reinterpret_cast<const CWnd*>(pPane));
+    using FnCmdUISetCheck = void (MS_ABI *)(CCmdUI*, int);
+    void** vtable = *reinterpret_cast<void***>(ui);
+    FnCmdUISetCheck setCheck = reinterpret_cast<FnCmdUISetCheck>(vtable[1]);
+    setCheck(ui, static_cast<int>((dwStyle >> 28) & 1));
 }
 
 // COleDocIPFrameWndEx::~COleDocIPFrameWndEx() — retail (RVA 0x95770):
@@ -239,11 +296,11 @@ extern "C" void* MS_ABI impl___1COleDocIPFrameWndEx__MEAA_XZ(void* pThis) {
     return pThis;
 }
 
-// COleDocIPFrameWndEx::AddDockSite() — this export has no resolved RVA in
-// mfc140_rva_symbols.json (disas.py reports no match for the name, and no match
-// for ?AddDockSite@COleIPFrameWndEx@@ either), which is what an empty body looks
-// like after folding: there is nothing left to name.  Documented MFC says the
-// same ("this method is not used").  Left the no-op the generated stub was.
+// COleDocIPFrameWndEx::AddDockSite() — the name is absent from both symbol
+// maps, but export ordinal 1841 resolves to RVA 0x27d0 (mfc140u), shared with
+// CFrameWndEx::AddDockSite. disas.py --u --at 0x27d0 shows a bare `ret`, so the
+// empty behavior is established rather than unknown (the source body still
+// counts as a stub under the campaign's empty-body metric).
 // Symbol: ?AddDockSite@COleDocIPFrameWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__AddDockSite_COleDocIPFrameWndEx__QEAAXXZ(void* pThis) {
     (void)pThis;
@@ -290,27 +347,20 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_COleDocIPFrameWndEx__UEAAXPEAX_
     // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
 }
 
-// COleDocIPFrameWndEx::CreateObject() — retail (RVA 0x95670), transcribed in
-// full:
-//     rax = ??2@YAPEAX_K@Z(0x790);              // MFC operator new, 0x2840
-//     if (rax) { rcx = rax; ??0COleDocIPFrameWndEx@@IEAA@XZ(rcx); }  // 0x956c0
-//     return rax;                                // the ctor leaves `this` in rax
+// COleDocIPFrameWndEx::CreateObject() — retail mfc140u RVA 0x950b0:
+//     rax = MFC operator new(0x790);
+//     if (rax) call ??0COleDocIPFrameWndEx@@IEAA@XZ (entry RVA 0x95100);
+//     return rax.
 // 0x790 == 1936 == classCOleDocIPFrameWndEx's m_nObjectSize in
-// core/ole/RuntimeClasses.cpp:242, so the size is pinned from both sides.
+// core/ole/RuntimeClasses.cpp:244.
 //
-// Left an explicit null stub rather than transcribed.  The whole job of this
-// export is to hand back an object whose *dynamic type* is COleDocIPFrameWndEx,
-// and this tree has no such class (grep over include/openmfc/ finds no
-// declaration), so new+ctor could only produce the untyped 1936-byte block that
-// impl___0COleDocIPFrameWndEx__IEAA_XZ above leaves untouched: no vptr, and
-// bytes 0..1936 uninitialized.  Handing that to a caller as a CObject is a
-// silent identity error; returning null fails at the caller's first
-// dereference instead.  It also matches the base class —
-// ?CreateObject@COleDocIPFrameWnd@@SAPEAVCObject@@XZ
-// (core/ole/COleDocIPFrameWnd.cpp:21) is a null stub too — and
-// classCOleDocIPFrameWndEx.m_pfnCreateObject is already nullptr
-// (RuntimeClasses.cpp:228 OF_DESC), so no DYNCREATE path in this tree reaches
-// here regardless.
+// This remains a stub: include/openmfc declares no COleDocIPFrameWndEx class,
+// and the constructor thunk above only returns pThis without installing the
+// derived vptr or constructing its CFrameImpl/CDockingManager members. Returning
+// an allocation from this body would therefore hand callers an uninitialized
+// object, not a COleDocIPFrameWndEx. The runtime descriptor's
+// m_pfnCreateObject is nullptr (RuntimeClasses.cpp:229-244), so this path is
+// also not used by this tree's normal DYNCREATE lookup.
 // Symbol: ?CreateObject@COleDocIPFrameWndEx@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_COleDocIPFrameWndEx__SAPEAVCObject__XZ() {
     return nullptr;
@@ -363,20 +413,23 @@ extern "C" int MS_ABI impl__EnableDocking_COleDocIPFrameWndEx__QEAAHK_Z(
     return 0;
 }
 
-// COleDocIPFrameWndEx::GetContainerFrameWindow() — retail (RVA 0x96430, named
-// ?GetContainerFrameWindow@COleIPFrameWndEx@@ in the map):
-//     p = this->[0x210];                       // the COleIPFrameWnd base's frame
-//     return (p && p->IsKindOf(&classCOleCntrFrameWndEx)) ? p : nullptr;
-// The descriptor at 0x2eec00 was read out of the image: name
-// "COleCntrFrameWndEx", m_nObjectSize 1352, m_wSchema 0xFFFF.
-// this+0x210 is a member of the COleIPFrameWnd base that OpenMFC does not model
-// (there is no COleIPFrameWnd/COleDocIPFrameWnd definition in include/openmfc/),
-// so the slot cannot be read.
+// COleDocIPFrameWndEx::GetContainerFrameWindow() — retail mfc140u RVA 0x95e70:
+//     p = this->[0x210];
+//     return (p && p->IsKindOf(RUNTIME_CLASS(COleCntrFrameWndEx))) ? p : nullptr;
+// The +0x210 load, null test, and IsKindOf call are visible in this entry's
+// disassembly. The local view above pins the pointer slot without pretending
+// that include/openmfc declares COleDocIPFrameWndEx or models the inherited
+// COleIPFrameWnd::m_pMainFrame member.
 // Symbol: ?GetContainerFrameWindow@COleDocIPFrameWndEx@@QEAAPEAVCOleCntrFrameWndEx@@XZ
 extern "C" void* MS_ABI impl__GetContainerFrameWindow_COleDocIPFrameWndEx__QEAAPEAVCOleCntrFrameWndEx__XZ(void* pThis) {
-    (void)pThis;
-    // TODO(clean-room): needs the container-frame member at this+0x210.
-    return nullptr;
+    if (!pThis) return nullptr;
+    void* pFrame = reinterpret_cast<S_COleDocIPFrameWndExContainerFrameView*>(pThis)->m_pMainFrame;
+    if (!pFrame) return nullptr;
+    return impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+               static_cast<const CObject*>(pFrame),
+               impl__GetThisClass_COleCntrFrameWndEx__SAPEAUCRuntimeClass__XZ())
+        ? pFrame
+        : nullptr;
 }
 
 // COleDocIPFrameWndEx::GetPane(UINT) — retail (RVA 0x960b0, named

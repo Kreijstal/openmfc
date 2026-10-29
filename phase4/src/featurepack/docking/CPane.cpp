@@ -155,6 +155,8 @@ extern "C" void MS_ABI impl__MoveDragFrame_CMFCDragFrameImpl__QEAAXH_Z(void* pTh
 extern "C" void* impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA;
 extern "C" std::int32_t impl__m_bCustomizeMode_CMFCToolBar__1HA;
 extern "C" void* impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA;
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
 
 // Sibling thunks defined further down in THIS file.
 extern "C" void MS_ABI impl__UpdateVirtualRect_CPane__QEAAXXZ(CPane* pThis);
@@ -220,6 +222,10 @@ const unsigned long kCbrsOrientHorz   = 0x0000A000UL;
 const unsigned long kCbrsBorderAny    = 0x00000F00UL;
 const unsigned long kCbrsAlignAny     = 0x0000F000UL;
 const unsigned long kCbrsGripper      = 0x00400000UL;
+// AFX_GLOBAL_DATA::m_bIsRTL, as laid out by the shadow in
+// core/runtime/AFX_GLOBAL_DATA.cpp.
+const std::size_t kAfxGlobalDataIsRTL = 0x274;
+static_assert(kAfxGlobalDataIsRTL + sizeof(int) <= 720, "m_bIsRTL is inside the exported AFX_GLOBAL_DATA blob");
 // WS_EX_LAYOUTRTL, the bit CalcInsideRect/OnStyleChanged test.
 const unsigned long kExLayoutRtl      = 0x00400000UL;
 // AFX_DOCK_METHOD (atlmfc/include/afxbasepane.h:42): DM_UNKNOWN, DM_MOUSE,
@@ -720,15 +726,14 @@ extern "C" void MS_ABI impl__EnterDragMode_CPane__MEAAXH_Z(CPane* pThis, int bCh
 }
 
 // Symbol: ?FloatPane@CPane@@UEAAHVCRect@@W4AFX_DOCK_METHOD@@_N@Z
-// NOT IMPLEMENTED.  Retail mfc140 RVA 0xa09f0 is a ~340 instruction body.  It
-// reaches CreateDefaultMiniframe (CPane vtable slot 135) and GetParentMiniFrame
-// (slot 140), calls CGlobalUtils::GetDockingManager (0x6ccc0) and then makes
-// roughly twenty-five further virtual calls, most of them on the resulting mini
-// frame and docking manager.  OpenMFC reproduces neither object's layout nor
-// its vtable (its CPaneFrameWnd is a CMiniFrameWnd subclass with a padding blob
-// -- see the note at the top of CPaneFrameWnd.cpp), and CreateDefaultMiniframe
-// itself is stubbed above for the same reason, so there is nothing faithful to
-// transcribe.
+// STUB: disas.py --u resolves the retail mfc140u entry at RVA 0xa0430.  This
+// ~340-instruction body first tests docking/tabbing and CanFloat, then creates a
+// mini-frame through CPane vtable slot 135 and performs extensive state transfer
+// and virtual dispatch through that frame and its docking manager.  OpenMFC's
+// CPaneFrameWnd and CDockingManager declarations use padding in place of the
+// retail layouts/vtables (include/openmfc/afxmfc.h), and
+// CreateDefaultMiniframe is itself unavailable for that reason; implementing
+// this against those layouts would be speculative.
 extern "C" int MS_ABI impl__FloatPane_CPane__UEAAHVCRect__W4AFX_DOCK_METHOD___N_Z(
     CPane* pThis, const RECT* pRectFloat, int dockMethod, bool bShow) {
     (void)pThis;
@@ -1151,27 +1156,28 @@ extern "C" void MS_ABI impl__OnContinueMoving_CPane__MEAAXXZ(CPane* pThis) {
 }
 
 // Symbol: ?OnDestroy@CPane@@IEAAXXZ
-// Retail mfc140 RVA 0xa1d40, transcribed:
+// Retail mfc140u RVA 0xa1780, transcribed:
 //   if (IsTabbed()) {                                       // vtable slot 93
 //       CWnd* p = CWnd::FromHandle(::GetParent(m_hWnd));
-//       if (p->IsKindOf(RUNTIME_CLASS(CMFCBaseTabCtrl)))    // rtc 0x1802dba98
+//       if (p->IsKindOf(RUNTIME_CLASS(CMFCBaseTabCtrl)))    // rtc VA 0x1802dba98 (mfc140)
 //           p = CWnd::FromHandle(::GetParent(p->m_hWnd));
-//       if (p->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) {  // rtc 0x1802db168
+//       if (p->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) {  // rtc VA 0x1802db168 (mfc140)
 //           HWND hWndSave = m_hWnd;
 //           ((CBaseTabbedPane*)p)->RemovePane(this);        // its vtable +0x790
 //           if (!::IsWindow(hWndSave)) return;   // skips the base call entirely
 //       }
 //   }
-//   CWnd::OnDestroy();                                      // 0x289cc0
+//   CWnd::OnDestroy();                                      // entry RVA 0x28b840 (mfc140u)
 // The +0x790 dispatch is now named: anchoring the CBaseTabbedPane vftable on
-// ?GetThisClass@CBaseTabbedPane@@ (0x12f40) puts its base at mfc140 RVA
-// 0x2db2a8, and slot 242 (+0x790) there holds 0x13710 ==
+// ?GetThisClass@CBaseTabbedPane@@ (mfc140 RVA 0x12f40) puts its base at
+// mfc140 RVA 0x2db2a8, and slot 242 (+0x790) there holds mfc140 RVA 0x13710 ==
 // ?RemovePane@CBaseTabbedPane@@UEAAHPEAVCWnd@@@Z, an ordinary export.  Only RDX
 // is set at the call site (R8/R9 are untouched), which matches that
-// one-argument signature.
+// one-argument signature.  The GetParent and IsWindow calls use IAT slots
+// resolved by iatu.py to USER32!GetParent and USER32!IsWindow.
 // Retail follows the second IsKindOf with the usual MFC checked-downcast pair
 // (a NULL test and a repeat of the same IsKindOf, both branching to the throw
-// helper at 0x225b80); with the first test already passed both are dead, so
+// helper); with the first test already passed both are dead, so
 // they are not reproduced.
 // The two RUNTIME_CLASS descriptors are reached through GetThisClass thunks
 // here, the same way CPane::IsTabbed above does it.
@@ -1485,21 +1491,35 @@ extern "C" void MS_ABI impl__OnProcessDblClk_CPane__UEAAXXZ(CPane* pThis) {
 }
 
 // Symbol: ?OnRTLChanged@CPane@@MEAAXH@Z
-// Retail mfc140 RVA 0xa2c30, transcribed:
-//   <lazily run AFX_GLOBAL_DATA::Initialize (0x6a5c0) once, then store bIsRTL
-//    into a field of that process-global object>
-//   if (m_pParentDockBar != NULL) {                     // slot 106 -> +0x128
-//       if (IsHorizontal()) {                           // slot 91
-//           SetWindowPos(NULL, m_rectVirtual.left, m_rectVirtual.top,
-//                        m_rectVirtual.Width(), m_rectVirtual.Height(),
-//                        SWP_NOZORDER, NULL);           // slot 144
-//       }
+// Retail mfc140 ANSI-twin RVA 0xa2c30 (the --u symbol lookup did not resolve
+// this entry), transcribed:
+//   if (!afxGlobalData.m_bInitialized) {
+//       afxGlobalData.Initialize(); afxGlobalData.m_bInitialized = TRUE;
 //   }
-// The AFX_GLOBAL_DATA store is NOT reproduced: OpenMFC has no AFX_GLOBAL_DATA
-// object, so there is nowhere to put the flag.  The layout half is transcribed.
+//   afxGlobalData.m_bIsRTL = bIsRTL;                    // +0x274
+//   if (GetParentDockBar() != NULL && IsHorizontal())   // slots 106, 91
+//       SetWindowPos(NULL, m_rectVirtual.left, m_rectVirtual.top,
+//                    m_rectVirtual.Width(), m_rectVirtual.Height(),
+//                    SWP_NOZORDER, NULL);               // slot 144
+// The exported 720-byte AFX_GLOBAL_DATA blob and Initialize thunk are used
+// here.  The mfc140 RVA is cited only as the ANSI-twin evidence; it is not an
+// mfc140u address.  Retail slot 106 is an inline getter for m_pParentDockBar
+// (+0x128); this body reads that member directly.  Retail slot 91 calls slot
+// 103 (GetCurrentAlignment) and masks 0xA000; this body uses the base
+// GetCurrentAlignment thunk instead.  Likewise, SetWindowPos uses its base
+// thunk rather than slot 144.  Derived overrides of these virtual paths are
+// therefore not dispatched.
 extern "C" void MS_ABI impl__OnRTLChanged_CPane__MEAAXH_Z(CPane* pThis, int bIsRTL) {
-    (void)bIsRTL;
     if (pThis == nullptr) return;
+    int bInitialized = 0;
+    std::memcpy(&bInitialized, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, sizeof(bInitialized));
+    if (bInitialized == 0) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+        bInitialized = 1;
+        std::memcpy(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, &bInitialized, sizeof(bInitialized));
+    }
+    std::memcpy(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A + kAfxGlobalDataIsRTL,
+                &bIsRTL, sizeof(bIsRTL));
     if (pThis->m_pParentDockBar == nullptr) return;
     if (!PaneIsHorizontal(pThis)) return;
     impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(

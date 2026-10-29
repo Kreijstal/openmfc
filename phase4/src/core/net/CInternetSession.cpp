@@ -243,21 +243,31 @@ CGopherConnection* CInternetSession::GetGopherConnection(const wchar_t* pstrServ
 
 // === Moved from ManualThunks.cpp ===
 // Symbol: ?QueryOption@CInternetSession@@QEBAHKAEAK@Z
-extern "C" int MS_ABI impl__QueryOption_CInternetSession__QEBAHKAEAK_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0;
+// The mfc140.dll (ANSI twin) entry at RVA 0x22c8e0 initializes a four-byte
+// length and queries through the session handle at retail this+0x10. --u did
+// not resolve this symbol. Use OpenMFC's named member because its handle is at
+// a different offset.
+extern "C" int MS_ABI impl__QueryOption_CInternetSession__QEBAHKAEAK_Z(
+    const CInternetSession* pThis, unsigned long dwOption, unsigned long& dwValue) {
+    unsigned long dwLength = sizeof(dwValue);
+    return InternetQueryOptionW(pThis->m_hSession, dwOption, &dwValue, &dwLength);
 }
 
-
 // Symbol: ?SetOption@CInternetSession@@QEAAHKPEAXKK@Z
-extern "C" int MS_ABI impl__SetOption_CInternetSession__QEAAHKPEAXKK_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return 0;
+// The mfc140.dll (ANSI twin) entry at RVA 0x22c8a0 rejects nonzero flags,
+// passes 87 to an indirect helper, and returns FALSE; with zero flags it calls
+// through another function pointer using the handle at retail this+0x10. --u
+// did not resolve this symbol. The nonzero-flags helper was not identified, so
+// use the corresponding Win32 invalid-parameter error while preserving the
+// observed FALSE result; use OpenMFC's named member for its differently placed
+// handle.
+extern "C" int MS_ABI impl__SetOption_CInternetSession__QEAAHKPEAXKK_Z(
+    CInternetSession* pThis, unsigned long dwOption, void* lpBuffer,
+    unsigned long dwBufferLength, unsigned long dwFlags) {
+    if (dwFlags != 0) {
+        ::SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+    return InternetSetOptionW(pThis->m_hSession, dwOption, lpBuffer, dwBufferLength);
 }
 

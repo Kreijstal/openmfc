@@ -15,8 +15,11 @@ CScrollBar* CView::GetScrollBarCtrl(int axis) const {
 // Symbol: ?GetScrollBarCtrl@CView@@UEBAPEAVCScrollBar@@H@Z
 extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CView__UEBAPEAVCScrollBar__H_Z(const CView* self, int axis) { return self->CView::GetScrollBarCtrl(axis); }
 
-// The base view owns no scrolling state. Retail folds both handlers to FALSE.
+// Stub: disas.py found no RVA for CView::OnScroll in either mfc140.dll or
+// mfc140u.dll, so its retail body could not be verified.
 BOOL CView::OnScroll(UINT,UINT,BOOL) {return FALSE;}
+// Stub: disas.py found no RVA for CView::OnScrollBy in either mfc140.dll or
+// mfc140u.dll, so its retail body could not be verified.
 BOOL CView::OnScrollBy(CSize,BOOL) {return FALSE;}
 // Symbol: ?OnScroll@CView@@UEAAHIIH@Z
 extern "C" BOOL MS_ABI impl__OnScroll_CView__UEAAHIIH_Z(CView*,UINT,UINT,BOOL) {return FALSE;}

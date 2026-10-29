@@ -58,6 +58,8 @@ const AFX_OLECMDMAP g_commandMap_CCmdTarget = { nullptr, g_cmdEntries_CCmdTarget
 
 }
 
+// Matches retail: mfc140u ordinal 7461 enters the shared zero-return body at RVA 0x71e0.
+// Retail itself returns this constant, so this body is complete.
 // Symbol: ?GetTypeLibCache@CCmdTarget@@UEAAPEAVCTypeLibCache@@XZ
 extern "C" void* MS_ABI impl__GetTypeLibCache_CCmdTarget__UEAAPEAVCTypeLibCache__XZ(CCmdTarget* pThis) {
     (void)pThis;
@@ -152,6 +154,8 @@ extern "C" const void* MS_ABI impl__GetThisEventSinkMap_CCmdTarget__KAPEBUAFX_EV
     return &g_eventSinkMap_CCmdTarget;
 }
 
+// Matches retail: mfc140u ordinal 7450 enters the shared zero-return body at RVA 0x71e0.
+// Retail itself returns this constant, so this body is complete.
 // Symbol: ?GetTypeInfoCount@CCmdTarget@@UEAAIXZ
 extern "C" unsigned int MS_ABI impl__GetTypeInfoCount_CCmdTarget__UEAAIXZ(CCmdTarget* pThis) {
     (void)pThis;
@@ -170,6 +174,8 @@ extern "C" int MS_ABI impl__IsInvokeAllowed_CCmdTarget__UEAAHJ_Z(CCmdTarget* pTh
     return 1;
 }
 
+// Matches retail: mfc140u ordinal 9041 enters the shared constant-TRUE body at RVA 0x3a60.
+// Retail itself returns this constant, so this body is complete.
 // Symbol: ?OnCreateAggregates@CCmdTarget@@UEAAHXZ
 extern "C" int MS_ABI impl__OnCreateAggregates_CCmdTarget__UEAAHXZ(CCmdTarget* pThis) {
     (void)pThis;
