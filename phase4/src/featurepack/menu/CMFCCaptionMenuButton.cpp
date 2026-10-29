@@ -4,6 +4,9 @@
 #include "detail/CMFCCaptionMenuButtonSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
+static_assert(sizeof(S_Cmfccaptionmenubutton) == 72, "CMFCCaptionMenuButton layout");
+static_assert(offsetof(S_Cmfccaptionmenubutton, vfptr) == 0, "CMFCCaptionMenuButton vfptr offset");
+
 // Symbol: ??0CMFCCaptionMenuButton@@QEAA@IH@Z
 extern "C" void* MS_ABI
 impl___0CMFCCaptionMenuButton__QEAA_IH_Z(void* pThis, unsigned nHit, int bLeftAlign) {
@@ -22,12 +25,13 @@ impl___0CMFCCaptionMenuButton__QEAA_XZ(void* pThis) {
 // Symbol: ??1CMFCCaptionMenuButton@@UEAA@XZ
 extern "C" void MS_ABI
 impl___1CMFCCaptionMenuButton__UEAA_XZ(void* /*pThis*/) {
-    // No owned resources (the tracked menu is owned by the caller).
+    // Retail's entry (RVA 0x22e10, mfc140.dll ANSI twin) only stores the base
+    // vfptr also installed by CMFCCaptionButton's ctor (entry RVA 0x22d50 in
+    // that image). OpenMFC has no separate CMFCCaptionButton vtable here: its
+    // base-dtor thunk virtually dispatches through this object's slot 1, which
+    // re-enters this destructor. Leave this as a safe stub rather than recurse
+    // or install an unmodeled vfptr.
 }
-// Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
-// Symbol: ?OnDraw@CMFCCaptionMenuButton@@UEAAXPEAVCDC@@HHHH@Z
-// Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
-// Symbol: ?ShowMenu@CMFCCaptionMenuButton@@QEAAXPEAUHMENU__@@PEAVCWnd@@@Z
 // Symbol: ?OnDraw@CMFCCaptionMenuButton@@UEAAXPEAVCDC@@HHHH@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCCaptionMenuButton__UEAAXPEAVCDC__HHHH_Z(
     void* pThis, void* pDC, int bActive, int /*bHorz*/, int /*bMaximized*/, int bDisabled) {

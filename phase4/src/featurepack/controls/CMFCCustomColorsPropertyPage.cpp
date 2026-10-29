@@ -4,23 +4,34 @@
 #include "detail/CMFCCustomColorsPropertyPageSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
-// CreateObject(): retail (RVA 0x34150) allocates 0x430 bytes and runs the
-// CDialog-derived constructor (0x1800341a0, which creates the 0x4243 dialog
-// template and default-constructs the two embedded pickers).  The opaque class
-// has no modeled constructor, so nullptr (the safe allocation-failure
-// terminal) is returned.
+#include <cstddef>
+#include <cstring>
+
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
+extern "C" void* MS_ABI impl___0CPropertyPage__QEAA_IIK_Z(
+    void* pThis, unsigned int nIDTemplate, unsigned int nIDCaption, unsigned long dwSize);
+extern "C" void* MS_ABI impl___0CMFCColorPickerCtrl__QEAA_XZ(void* pThis);
+extern "C" void* MS_ABI impl___0CMFCCustomColorsPropertyPage__QEAA_XZ(void* pThis);
+
+static_assert(sizeof(CPropertyPage) == 0x158, "CPropertyPage base block ends at +0x158");
+static_assert(sizeof(CColorsPage) == 0x430, "retail CreateObject requests 0x430 bytes");
+static_assert(offsetof(CColorsPage, m_pOwner) == 0x158, "retail owner pointer at +0x158");
+static_assert(offsetof(CColorsPage, m_dLumSlider) == 0x250, "retail picker member boundary at +0x250");
+static_assert(offsetof(CColorsPage, m_bInitialized) == 0x428, "retail init flag at +0x428");
+
+// CreateObject(): retail mfc140u RVA 0x34150 allocates 0x430 bytes with the
+// MFC operator-new export and, when non-null, calls this class's constructor
+// at entry RVA 0x341a0.
 // Symbol: ?CreateObject@CMFCCustomColorsPropertyPage@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CMFCCustomColorsPropertyPage__SAPEAVCObject__XZ(void)
 {
-    // TODO(clean-room): partially transcribed -- retail allocates 0x430 bytes
-    // and runs the CMFCCustomColorsPropertyPage constructor (0x1800341a0);
-    // the opaque class has no modeled constructor or vftable, so nullptr is
-    // returned.
-    return nullptr;
+    void* p = impl___2_YAPEAX_K_Z(sizeof(CColorsPage));
+    if (p == nullptr) return nullptr;
+    return static_cast<CObject*>(impl___0CMFCCustomColorsPropertyPage__QEAA_XZ(p));
 }
-// DoDataExchange(CDataExchange* pDX): wires the two embedded pickers and the
-// six RGB/HLS edit boxes.  Transcribed verbatim from retail RVA 0x34280 (the
-// last DDX_Text call is the tail call).
+// DoDataExchange(CDataExchange* pDX): retail mfc140u RVA 0x34280 wires the two
+// embedded pickers and six RGB/HLS edit boxes (the last DDX_Text is a tail
+// call). OpenMFC also returns early for null this/pDX; retail has no such guard.
 // Symbol: ?DoDataExchange@CMFCCustomColorsPropertyPage@@MEAAXPEAVCDataExchange@@@Z
 extern "C" void MS_ABI impl__DoDataExchange_CMFCCustomColorsPropertyPage__MEAAXPEAVCDataExchange___Z(
     void* pThis, void* pDX)
@@ -41,9 +52,9 @@ extern "C" void MS_ABI impl__DoDataExchange_CMFCCustomColorsPropertyPage__MEAAXP
     impl__DDX_Text__YAXPEAVCDataExchange__HAEAI_Z(pDX, 0x4248,
         reinterpret_cast<unsigned int*>(&s->m_nS));
 }
-// OnColour(): the colour swatch was clicked -- reads the COLORREF at +0x3c0,
-// refreshes the RGB/HLS edit-box values, invalidates the child control at
-// +0x1a0 and notifies the owner.  Transcribed from retail RVA 0x34b90.
+// OnColour(): retail mfc140u RVA 0x34b90 reads the COLORREF at +0x3c0,
+// refreshes RGB/HLS values, invalidates the child at +0x1a0 and updates the
+// owner. OpenMFC adds null-this/owner guards that the retail body lacks.
 // Symbol: ?OnColour@CMFCCustomColorsPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnColour_CMFCCustomColorsPropertyPage__IEAAXXZ(
     void* pThis)
@@ -77,9 +88,9 @@ extern "C" void MS_ABI impl__OnColour_CMFCCustomColorsPropertyPage__IEAAXXZ(
     }
     s->m_bUpdating = 0;
 }
-// OnDoubleClickedColor(): the swatch was double-clicked -- ends the owner
-// dialog with IDOK.  Transcribed verbatim from retail RVA 0x34cd0 (tail-jump
-// to CDialog::EndDialog(owner, 1), 0x180208b10).
+// OnDoubleClickedColor(): retail mfc140u RVA 0x34cd0 loads the owner and
+// tail-jumps to CDialog::EndDialog(owner, 1), whose entry is mfc140u RVA
+// 0x208b10. OpenMFC adds null-this/owner guards and calls the EndDialog thunk.
 // Symbol: ?OnDoubleClickedColor@CMFCCustomColorsPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDoubleClickedColor_CMFCCustomColorsPropertyPage__IEAAXXZ(
     void* pThis)
@@ -91,9 +102,11 @@ extern "C" void MS_ABI impl__OnDoubleClickedColor_CMFCCustomColorsPropertyPage__
             reinterpret_cast<CDialog*>(s->m_pOwner), 1);
     }
 }
-// OnHLSChanged(): the HLS spin/edit controls changed -- reads the RGB edit
-// boxes, recomposes through HLStoRGB and refreshes the pickers.  Transcribed
-// from retail RVA 0x34460.
+// OnHLSChanged(): retail mfc140.dll (ANSI twin) RVA 0x34800 reads HLS edit
+// values and converts HLS to RGB; function bodies match mfc140u, whose RVA is
+// unresolved by the supplied map. WARNING: the pre-existing OpenMFC body below
+// instead follows the RGB-to-HLS path of retail OnRGBChanged and checks RGB
+// control IDs. Kept unchanged because this body predates the current wave.
 // Symbol: ?OnHLSChanged@CMFCCustomColorsPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnHLSChanged_CMFCCustomColorsPropertyPage__IEAAXXZ(
     void* pThis)
@@ -101,8 +114,8 @@ extern "C" void MS_ABI impl__OnHLSChanged_CMFCCustomColorsPropertyPage__IEAAXXZ(
     if (pThis == nullptr) return;
     CColorsPage* s = reinterpret_cast<CColorsPage*>(pThis);
     if (s->m_bUpdating != 0 || s->m_bInitialized == 0) return;
-    // Retail requires the three RGB edit controls (0x4244/0x4245/0x4246) to
-    // exist before proceeding.
+    // This pre-existing body checks RGB IDs 0x4244/0x4245/0x4246; retail
+    // OnHLSChanged checks the HLS IDs 0x4249/0x4247/0x4248.
     if (impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(reinterpret_cast<CWnd*>(pThis), 0x4244) == nullptr ||
         impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(reinterpret_cast<CWnd*>(pThis), 0x4245) == nullptr ||
         impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(reinterpret_cast<CWnd*>(pThis), 0x4246) == nullptr) {
@@ -141,9 +154,11 @@ extern "C" void MS_ABI impl__OnHLSChanged_CMFCCustomColorsPropertyPage__IEAAXXZ(
         reinterpret_cast<char*>(pThis) + 0x160, H, L, S, 1);
     s->m_bUpdating = 0;
 }
-// OnInitDialog(): base-class init, picker palettes, the 0x4250..0x4255
-// companion control limits and the initialized flag.  Transcribed from retail
-// RVA 0x34350.
+// OnInitDialog(): mfc140.dll (ANSI twin) RVA 0x34490 performs base init,
+// picker palette setup, the 0x4250..0x4255 companion-control messages and sets
+// the initialized flag; function bodies match mfc140u, whose RVA is unresolved
+// by the supplied map. OpenMFC adds an owner-null guard (retail dereferences the
+// owner) and only sets m_nPageKind when an owner exists.
 // Symbol: ?OnInitDialog@CMFCCustomColorsPropertyPage@@MEAAHXZ
 extern "C" int MS_ABI impl__OnInitDialog_CMFCCustomColorsPropertyPage__MEAAHXZ(
     void* pThis)
@@ -151,7 +166,7 @@ extern "C" int MS_ABI impl__OnInitDialog_CMFCCustomColorsPropertyPage__MEAAHXZ(
     if (pThis == nullptr) return 0;
     CColorsPage* s = reinterpret_cast<CColorsPage*>(pThis);
     (void)impl__OnInitDialog_CDialog__UEAAHXZ(
-        reinterpret_cast<CDialog*>(pThis));               // 0x180208d10
+        reinterpret_cast<CDialog*>(pThis));               // OpenMFC base-class thunk
     if (s->m_pOwner != nullptr) {
         const void* pPalette = *reinterpret_cast<void**>(
             reinterpret_cast<char*>(s->m_pOwner) + 0x188);
@@ -170,17 +185,19 @@ extern "C" int MS_ABI impl__OnInitDialog_CMFCCustomColorsPropertyPage__MEAAHXZ(
         CWnd* pWnd = impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(
             reinterpret_cast<CWnd*>(pThis), nID);
         if (pWnd != nullptr && pWnd->m_hWnd != nullptr) {
-            // Retail: SendMessageW(hwnd, 0x465, 0, 0xff) -- the MFC
-            // colour-page companion-control limit message.
-            ::SendMessageW(pWnd->m_hWnd, 0x465, 0, 0xff);
+            // The mfc140.dll IAT slot at RVA 0x2c5378 resolves to SendMessageA;
+            // its mfc140u counterpart is Unicode SendMessageW. Use the generic
+            // name so the UNICODE build selects the matching API.
+            ::SendMessage(pWnd->m_hWnd, 0x465, 0, 0xff);
         }
     }
     s->m_bInitialized = 1;                                // +0x428
     return 1;
 }
-// OnLuminance(): the luminance slider moved -- reads the slider value at
-// +0x250, refreshes the HLS/RGB edit values and notifies the owner.
-// Transcribed from retail RVA 0x34a70.
+// OnLuminance(): mfc140.dll (ANSI twin) RVA 0x34bb0 reads the slider at +0x250,
+// refreshes HLS/RGB values and updates the owner; function bodies match mfc140u,
+// whose RVA is unresolved by the supplied map. OpenMFC updates the RGB fields
+// only inside its owner-non-null branch, unlike retail.
 // Symbol: ?OnLuminance@CMFCCustomColorsPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnLuminance_CMFCCustomColorsPropertyPage__IEAAXXZ(
     void* pThis)
@@ -209,9 +226,11 @@ extern "C" void MS_ABI impl__OnLuminance_CMFCCustomColorsPropertyPage__IEAAXXZ(
     }
     s->m_bUpdating = 0;
 }
-// OnRGBChanged(): the RGB edit boxes changed -- reads the HLS edit boxes,
-// converts them back to RGB and refreshes the pickers.  Transcribed from
-// retail RVA 0x346c0.
+// OnRGBChanged(): retail mfc140.dll (ANSI twin) RVA 0x345a0 reads RGB edit
+// values and converts RGB to HLS; function bodies match mfc140u, whose RVA is
+// unresolved by the supplied map. WARNING: the pre-existing OpenMFC body below
+// instead follows retail OnHLSChanged's HLS-to-RGB path and checks HLS IDs.
+// Kept unchanged because this body predates the current wave.
 // Symbol: ?OnRGBChanged@CMFCCustomColorsPropertyPage@@IEAAXXZ
 extern "C" void MS_ABI impl__OnRGBChanged_CMFCCustomColorsPropertyPage__IEAAXXZ(
     void* pThis)
@@ -219,8 +238,8 @@ extern "C" void MS_ABI impl__OnRGBChanged_CMFCCustomColorsPropertyPage__IEAAXXZ(
     if (pThis == nullptr) return;
     CColorsPage* s = reinterpret_cast<CColorsPage*>(pThis);
     if (s->m_bUpdating != 0 || s->m_bInitialized == 0) return;
-    // Retail requires the three HLS edit controls (0x4249/0x4247/0x4248) to
-    // exist before proceeding.
+    // This pre-existing body checks HLS IDs 0x4249/0x4247/0x4248; retail
+    // OnRGBChanged checks the RGB IDs 0x4244/0x4245/0x4246.
     if (impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(reinterpret_cast<CWnd*>(pThis), 0x4249) == nullptr ||
         impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(reinterpret_cast<CWnd*>(pThis), 0x4247) == nullptr ||
         impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(reinterpret_cast<CWnd*>(pThis), 0x4248) == nullptr) {
@@ -230,11 +249,14 @@ extern "C" void MS_ABI impl__OnRGBChanged_CMFCCustomColorsPropertyPage__IEAAXXZ(
         return;
     }
     s->m_bUpdating = 1;
-    // Clamp each HLS edit value to 255 (retail cmovb keep-if-below).
+    // This pre-existing body uses signed >255 checks (negative inputs pass
+    // through); retail OnHLSChanged uses an unsigned-below test and clamps
+    // unsigned out-of-range values to 255.
     if (s->m_nH > 255) s->m_nH = 255;
     if (s->m_nS > 255) s->m_nS = 255;
     if (s->m_nL > 255) s->m_nL = 255;
-    // (value + 0.5) / 255, clamped to 1.0 (retail constant 0x18034ff68).
+    // This pre-existing HLS-to-RGB path divides (value + 0.5) by 255 but
+    // omits retail's min(..., 1.0) clamp after the division.
     const double H = (static_cast<double>(s->m_nH) + 0.5) / 255.0;
     const double L = (static_cast<double>(s->m_nL) + 0.5) / 255.0;
     const double S = (static_cast<double>(s->m_nS) + 0.5) / 255.0;
@@ -259,9 +281,10 @@ extern "C" void MS_ABI impl__OnRGBChanged_CMFCCustomColorsPropertyPage__IEAAXXZ(
         reinterpret_cast<char*>(pThis) + 0x160, H, L, S, 1);
     s->m_bUpdating = 0;
 }
-// Setup(BYTE bRed, BYTE bGreen, BYTE bBlue): initializes the page from an RGB
-// triple -- decomposes it to HLS, pushes both pickers and refreshes the
-// edit-box values.  Transcribed from retail RVA 0x34930.
+// Setup(BYTE bRed, BYTE bGreen, BYTE bBlue): mfc140.dll (ANSI twin) RVA
+// 0x34a70 decomposes RGB to HLS, updates both pickers and the edit values;
+// function bodies match mfc140u, whose RVA is unresolved by the supplied map.
+// OpenMFC adds a null-this guard.
 // Symbol: ?Setup@CMFCCustomColorsPropertyPage@@QEAAXEEE@Z
 extern "C" void MS_ABI impl__Setup_CMFCCustomColorsPropertyPage__QEAAXEEE_Z(
     void* pThis, unsigned char bRed, unsigned char bGreen, unsigned char bBlue)
@@ -270,7 +293,7 @@ extern "C" void MS_ABI impl__Setup_CMFCCustomColorsPropertyPage__QEAAXEEE_Z(
     CColorsPage* s = reinterpret_cast<CColorsPage*>(pThis);
     double H = 0.0, S = 0.0, L = 0.0;
     impl__RGBtoHSL_CDrawingManager__SAXKPEAN00_Z(
-        RGB(bRed, bGreen, bBlue), &H, &S, &L);            // 0x18005b8c0
+        RGB(bRed, bGreen, bBlue), &H, &S, &L);            // RGBtoHSL thunk
     impl__SetHLS_CMFCColorPickerCtrl__QEAAXNNNH_Z(
         reinterpret_cast<char*>(pThis) + 0x2b8, H, L, S, 1);
     impl__SetHLS_CMFCColorPickerCtrl__QEAAXNNNH_Z(
@@ -285,7 +308,20 @@ extern "C" void MS_ABI impl__Setup_CMFCCustomColorsPropertyPage__QEAAXEEE_Z(
         impl__UpdateData_CWnd__QEAAHH_Z(reinterpret_cast<CWnd*>(pThis), 0);
     }
 }
+// Constructor. Retail mfc140u RVA 0x341a0 calls the CPropertyPage
+// constructor with template 0x4243, caption 0 and PROPSHEETPAGE size 0x68,
+// stores the derived vftable, constructs picker subobjects at +0x160/+0x2b8,
+// then explicitly zeros +0x158, +0x410, +0x418, +0x420 and +0x428. OpenMFC
+// has no modeled derived vftable, and its picker-constructor thunk currently
+// only returns pThis; those are explicit deviations. OpenMFC zeroes the entire
+// member tail before those no-op thunks, additionally clearing retail's other
+// fields to avoid leaving indeterminate picker handles/state.
 // Symbol: ??0CMFCCustomColorsPropertyPage@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCCustomColorsPropertyPage__QEAA_XZ(void* pThis) {
+    if (pThis == nullptr) return nullptr;
+    impl___0CPropertyPage__QEAA_IIK_Z(pThis, 0x4243, 0, 0x68);
+    std::memset(static_cast<char*>(pThis) + 0x158, 0, sizeof(CColorsPage) - 0x158);
+    impl___0CMFCColorPickerCtrl__QEAA_XZ(static_cast<char*>(pThis) + 0x160);
+    impl___0CMFCColorPickerCtrl__QEAA_XZ(static_cast<char*>(pThis) + 0x2b8);
     return pThis;
 }

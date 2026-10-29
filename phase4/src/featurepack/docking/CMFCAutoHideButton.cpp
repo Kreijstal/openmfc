@@ -6,6 +6,13 @@
 #include "detail/CbarcoreSupport.h"
 #include "detail/CMFCAutoHideButtonSupport.h"
 
+extern "C" void MS_ABI impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
+    CDockablePane* pThis, void* pAutoHideBar, void* pAutoHideButton);
+
+// CreateObject's retail allocation size (factory entry RVA 0x97f0, mfc140u).
+static_assert(sizeof(CAutoHideButton) == 0x40,
+              "CMFCAutoHideButton retail allocation size");
+
 // Symbol: ??0CMFCAutoHideButton@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCAutoHideButton__QEAA_XZ(void* pThis) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
@@ -20,14 +27,22 @@ extern "C" void* MS_ABI impl___1CMFCAutoHideButton__UEAA_XZ(void* pThis) {
 }
 // Symbol: ?HighlightButton@CMFCAutoHideButton@@UEAAXH@Z
 extern "C" void MS_ABI impl__HighlightButton_CMFCAutoHideButton__UEAAXH_Z(void* pThis, int bHighlight) {
+    if (!pThis) return;
+    // Retail RVA 0xa470 (mfc140u) stores the raw argument at +0x10.
+    *reinterpret_cast<int*>(static_cast<unsigned char*>(pThis) + 0x10) = bHighlight;
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     g_autoHideButtons[pThis].highlighted = bHighlight ? TRUE : FALSE;
 }
+// Retail RVA 0xa3e0 (mfc140u) tests the style bits at +0x14.
 // Symbol: ?IsHorizontal@CMFCAutoHideButton@@QEBAHXZ
 extern "C" int MS_ABI impl__IsHorizontal_CMFCAutoHideButton__QEBAHXZ(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    return g_autoHideButtons[pThis].horizontal;
+    if (!pThis) return FALSE;
+    const CAutoHideButton* s = reinterpret_cast<const CAutoHideButton*>(pThis);
+    return (s->m_dwStyle & 0xa000UL) != 0;
 }
+// Approximation only: retail GetSize at RVA 0x9940 (mfc140u) derives the
+// result from visual-manager, style, pane and bar state; these constants are
+// not a transcription of that calculation.
 // Symbol: ?GetSize@CMFCAutoHideButton@@QEBA?AVCSize@@XZ
 extern "C" void MS_ABI impl__GetSize_CMFCAutoHideButton__QEBA_AVCSize__XZ(CSize* pRet, void* pThis) {
     if (!pRet) return;
@@ -36,6 +51,8 @@ extern "C" void MS_ABI impl__GetSize_CMFCAutoHideButton__QEBA_AVCSize__XZ(CSize*
     pRet->cx = s.highlighted ? 96 : 80;
     pRet->cy = 22;
 }
+// Approximation only: retail GetTextSize at RVA 0xa230 (mfc140u) uses the
+// attached pane/bar and text metrics; these constants are not a transcription.
 // Symbol: ?GetTextSize@CMFCAutoHideButton@@UEBA?AVCSize@@XZ
 extern "C" void MS_ABI impl__GetTextSize_CMFCAutoHideButton__UEBA_AVCSize__XZ(CSize* pRet, void* pThis) {
     if (!pRet) return;
@@ -44,65 +61,73 @@ extern "C" void MS_ABI impl__GetTextSize_CMFCAutoHideButton__UEBA_AVCSize__XZ(CS
     pRet->cx = s.highlighted ? 88 : 72;
     pRet->cy = 16;
 }
-// Retail (0x1800098c0): stores the bar/pane/style into +0x30/+0x38/+0x14,
-// records the back-pointers (pPane->+0x480 = bar, pPane->+0x478 = this), then
-// sizes the button (GetSize 0x180009940) and creates the window via
-// CreateWindowExW (IAT 0x1802c7140) and finally stores 1 into +0xc.  The
-// pane back-pointers (+0x478/+0x480) and the window creation are driven by
-// the unmodeled GetSize helper, so the retail success terminal 1 is returned
-// without creating anything.
+// Retail RVA 0x98c0 (mfc140u) stores the bar/pane/style at +0x30/+0x38/+0x14,
+// writes pane back-pointers at +0x480/+0x478, calls GetSize (RVA 0x9940),
+// calls SetRect on this object's +0x1c RECT, then stores 1 at +0x0c. The IAT
+// call here is SetRect, not window creation. OpenMFC redirects the pane links
+// through SetAutoHideParents because those retail offsets exceed its pane
+// storage; the size remains approximate because GetSize is approximate.
 // Symbol: ?Create@CMFCAutoHideButton@@UEAAHPEAVCMFCAutoHideBar@@PEAVCDockablePane@@K@Z
 extern "C" int MS_ABI impl__Create_CMFCAutoHideButton__UEAAHPEAVCMFCAutoHideBar__PEAVCDockablePane__K_Z(
-    void* pThis, CMFCAutoHideBar* /*pAutoHideBar*/, CDockablePane* /*pPane*/,
-    unsigned long /*dwControlBarStyle*/)
+    void* pThis, CMFCAutoHideBar* pAutoHideBar, CDockablePane* pPane,
+    unsigned long dwControlBarStyle)
 {
-    if (!pThis) return FALSE;
-    // TODO(clean-room): partially transcribed -- the +0x30/+0x38/+0x14 stores,
-    // the pane back-pointers (+0x478/+0x480) and the CreateWindowExW call
-    // (driven by the unmodeled GetSize helper) are not modeled; the retail
-    // success terminal 1 is returned.
+    if (!pThis || !pPane) return FALSE;
+    CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
+    s->m_pAutoHideBar = pAutoHideBar;
+    s->m_pPane = pPane;
+    s->m_dwStyle = dwControlBarStyle;
+    impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
+        pPane, pAutoHideBar, pThis);
+
+    CSize size;
+    impl__GetSize_CMFCAutoHideButton__QEBA_AVCSize__XZ(&size, pThis);
+    ::SetRect(&s->m_rect, 0, 0, size.cx, size.cy);
+    s->m_nShow = TRUE;
     return TRUE;
 }
-// Retail (0x1800097f0) allocates a 0x40-byte object and runs the constructor
-// (0x180009830) which installs the retail vftable (0x1802db808).  The class
-// is opaque in OpenMFC -- no constructor or vftable is modeled -- so no valid
-// object can be produced.
+// The retail factory at RVA 0x97f0 (mfc140u) allocates 0x40 bytes, returns
+// NULL only when allocation fails, and otherwise tail-jumps to the constructor
+// at RVA 0x9830 (mfc140u). That constructor installs a derived-class vftable.
+// OpenMFC has no CMFCAutoHideButton C++ instance type or compatible instance
+// vftable (its runtime-class descriptor is metadata only), and the local
+// constructor thunk does not install one; raw storage cannot safely be returned.
 // Symbol: ?CreateObject@CMFCAutoHideButton@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CMFCAutoHideButton__SAPEAVCObject__XZ(void)
 {
-    // TODO(clean-room): partially transcribed -- retail allocates 0x40 bytes
-    // and runs the CMFCAutoHideButton constructor (RVA 0x180009830, retail
-    // vftable at 0x1802db808); the opaque class has no modeled constructor or
-    // vftable, so nullptr (the safe allocation-failure terminal) is returned.
+    // TODO(clean-room): leave stubbed until a usable CMFCAutoHideButton
+    // vftable/constructor is modeled; returning raw storage would not create
+    // a valid polymorphic object.
     return nullptr;
 }
-// Retail (0x180009920): when the +0x14 style carries the 0xa000 bits, the
-// button is pinned and the window is moved to x=0 (r8d=0); otherwise the
-// caller's offset is passed through.  The move is a SetWindowPos-family IAT
-// call (0x1802c72f0) with the rect at +0x1c.  The rect member and the call
-// are unmodeled.
+// Retail RVA 0x9920 (mfc140u) offsets the +0x1c RECT with ::OffsetRect:
+// style bits 0xa000 select (nOffset, 0), otherwise it uses (0, nOffset).
 // Symbol: ?Move@CMFCAutoHideButton@@QEAAXH@Z
 extern "C" void MS_ABI impl__Move_CMFCAutoHideButton__QEAAXH_Z(
-    void* pThis, int /*nOffset*/)
+    void* pThis, int nOffset)
 {
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the +0x14 style check and the
-    // SetWindowPos-family move on the +0x1c rect are not modeled.
+    if (!pThis) return; // defensive; retail dereferences this unconditionally
+    CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
+    if (s->m_dwStyle & 0xa000UL)
+        ::OffsetRect(&s->m_rect, nOffset, 0);
+    else
+        ::OffsetRect(&s->m_rect, 0, nOffset);
 }
-// Retail (0x180009b90): resolves the visual manager (0x180009774), checks the
-// +0x14 style, paints the auto-hide button (text/bitmap/image list via the
-// visual-manager vslots 0x368/0x370/0x378) and updates the +0x10 mouse-over
-// flag.  The visual manager and the button style/members are unmodeled.
+// Retail RVA 0x9b90 (mfc140u) obtains the visual manager (RVA 0x9774), calls
+// its vslots 0x368 and 0x380, reads style/rect/bar/pane state, and dispatches
+// through this object's vslots 0x58 and 0x60. It does not write the +0x10
+// highlight field. This body remains a stub because those dispatches and the
+// instance vtable are not modeled.
 // Symbol: ?OnDraw@CMFCAutoHideButton@@UEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCAutoHideButton__UEAAXPEAVCDC___Z(
     void* pThis, CDC* /*pDC*/)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the visual-manager vslots
-    // (0x368/0x370/0x378) and the +0x14/+0x10 button state; not modeled.
+    // TODO(clean-room): not transcribed -- needs the visual-manager and
+    // button-instance virtual dispatches described above.
 }
-// Retail (0x18000a1d0): delegates to the visual manager's vslot-0x378 border
-// routine (rects forwarded).  The visual manager is unmodeled.
+// Retail RVA 0xa1d0 (mfc140u) delegates to the visual manager's vslot 0x378,
+// forwarding both RECT arguments. The visual-manager dispatch is not modeled.
 // Symbol: ?OnDrawBorder@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@1@Z
 extern "C" void MS_ABI impl__OnDrawBorder_CMFCAutoHideButton__UEAAXPEAVCDC__VCRect__1_Z(
     void* pThis, CDC* /*pDC*/, CRect /*rectBorder*/, CRect /*rectBorder2*/)
@@ -111,9 +136,9 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCAutoHideButton__UEAAXPEAVCDC__VCRe
     // TODO(clean-room): not transcribed -- needs the visual-manager vslot-0x378
     // border routine; not modeled.
 }
-// Retail (0x18000a170): delegates to the visual manager's vslot-0x370 fill
-// routine (rect and the button pointer forwarded).  The visual manager is
-// unmodeled.
+// Retail body at RVA 0xa170 (mfc140u) delegates to the visual manager's
+// vslot 0x370, forwarding the RECT, CDC pointer and button pointer. This body
+// remains a stub because the visual-manager dispatch is not modeled.
 // Symbol: ?OnFillBackground@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@@Z
 extern "C" void MS_ABI impl__OnFillBackground_CMFCAutoHideButton__UEAAXPEAVCDC__VCRect___Z(
     void* pThis, CDC* /*pDC*/, CRect /*rect*/)
@@ -122,32 +147,36 @@ extern "C" void MS_ABI impl__OnFillBackground_CMFCAutoHideButton__UEAAXPEAVCDC__
     // TODO(clean-room): not transcribed -- needs the visual-manager vslot-0x370
     // fill routine; not modeled.
 }
-// Retail (0x18000a4b0): pure member surgery: +0x38 = pNewPane, and the pane
-// back-pointers pNewPane->+0x480 = +0x30 and pNewPane->+0x478 = this.  The
-// offsets are harvested, but the pane layout is not modeled in OpenMFC, so
-// the stores are not performed.
+// Retail body at RVA 0xa4b0 (mfc140u) sets this->+0x38 = pNewPane, then
+// writes the bar/button back-pointers at pNewPane+0x480/+0x478. OpenMFC stores
+// those links through CDockablePane's side-table helper instead of raw offsets.
 // Symbol: ?ReplacePane@CMFCAutoHideButton@@QEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__ReplacePane_CMFCAutoHideButton__QEAAXPEAVCDockablePane___Z(
-    void* pThis, CDockablePane* /*pNewPane*/)
+    void* pThis, CDockablePane* pNewPane)
 {
     if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the +0x38 store and the pane
-    // back-pointers (+0x480 = bar, +0x478 = this) are not modeled.
+    CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
+    s->m_pPane = pNewPane;
+    if (pNewPane != nullptr) {
+        impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
+            pNewPane, s->m_pAutoHideBar, pThis);
+    }
 }
-// Retail (0x18000a3f0): shows/hides the attached pane window (+0x38 -> its
-// hwnd at +0x40, IsWindowVisible-checked) and drives the pane's vslot-0x698
-// and the bar's vslot-0x530 virtuals with bShow.  The pane/bar pointers and
-// their virtuals are unmodeled.
+// Retail body at RVA 0xa3f0 (mfc140u) reads the attached pane at +0x38 and
+// its HWND at +0x40, checks ::IsWindowVisible, conditionally calls the pane's
+// vslot 0x698 with (bShow, TRUE), then tail-calls the bar's vslot 0x530 with
+// bShow. The pane/bar pointers are in the layout mirror, but these virtual
+// dispatches need a usable instance vtable and remain unmodeled.
 // Symbol: ?ShowAttachedWindow@CMFCAutoHideButton@@QEAAXH@Z
 extern "C" void MS_ABI impl__ShowAttachedWindow_CMFCAutoHideButton__QEAAXH_Z(
     void* pThis, int /*bShow*/)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the +0x38 pane, the +0x30 bar
-    // and their vslot-0x698/0x530 virtuals; not modeled.
+    // TODO(clean-room): requires pane/bar instances with usable vtables for
+    // the conditional pane call and final bar call.
 }
-// Retail (0x18000a460): `mov %edx,0xc(%rcx); ret` -- stores bShow into +0xc.
-// Pure member store; transcribed faithfully through the layout mirror.
+// Retail RVA 0xa460 (mfc140u) stores bShow at +0x0c. The extra null check
+// below is a defensive deviation from retail's unconditional store.
 // Symbol: ?ShowButton@CMFCAutoHideButton@@UEAAXH@Z
 extern "C" void MS_ABI impl__ShowButton_CMFCAutoHideButton__UEAAXH_Z(
     void* pThis, int bShow)
@@ -156,16 +185,14 @@ extern "C" void MS_ABI impl__ShowButton_CMFCAutoHideButton__UEAAXH_Z(
     CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
     s->m_nShow = bShow;
 }
-// Retail (0x18000a480): loads the auto-hide bar stored at +0x38 and, when it
-// is non-NULL, invokes its vslot-0x6d0 virtual, forwarding the CDockablePane*
-// argument (left in %rdx). The +0x38 member and the bar virtual are not
-// modeled, so no call is made.
+// Retail body at RVA 0xa480 (mfc140u) loads the attached pane from +0x38 and,
+// when non-NULL, calls its vslot 0x6d0. The pane field is in the layout mirror,
+// but the instance vtable dispatch cannot be reproduced safely here.
 // Symbol: ?UnSetAutoHideMode@CMFCAutoHideButton@@UEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__UnSetAutoHideMode_CMFCAutoHideButton__UEAAXPEAVCDockablePane___Z(
     void* pThis, CDockablePane* /*pPane*/)
 {
     if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- retail loads the auto-hide bar
-    // at +0x38 and calls its vslot-0x6d0 virtual (UnSetAutoHideMode); neither
-    // the member nor the bar virtual is modeled.
+    // TODO(clean-room): retail calls the attached pane's vslot 0x6d0; the
+    // instance vtable dispatch is not modeled.
 }

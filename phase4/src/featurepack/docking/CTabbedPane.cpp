@@ -16,6 +16,8 @@ extern "C" __attribute__((used)) int impl__m_bTabsAlwaysTop_CTabbedPane__2HA = F
 extern "C" __attribute__((used)) void* impl__m_lstTabbedControlBars_CTabbedPane__1V__CList_PEAUHWND____PEAU1___A = nullptr;
 // Symbol: ?m_StyleTabWnd@CTabbedPane@@2W4Style@CMFCTabCtrl@@A
 extern "C" __attribute__((used)) int impl__m_StyleTabWnd_CTabbedPane__2W4Style_CMFCTabCtrl__A = 0;
+// Neither the mfc140.dll nor mfc140u.dll lookup resolves this export to an RVA;
+// keep the behavior as a placeholder rather than infer it without the function body.
 // Symbol: ?CheckTabbedBarAlignment@CTabbedPane@@MEAAHXZ
 extern "C" int MS_ABI impl__CheckTabbedBarAlignment_CTabbedPane__MEAAHXZ(void*) {
     return TRUE;

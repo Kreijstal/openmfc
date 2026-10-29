@@ -13,8 +13,10 @@
 // vtable slots: 0 DrawTrackerRect 1 AdjustRect 2 OnChangedRect 3 GetHandleMask
 //               4 ~dtor(vector-deleting) 5 GetHandleSize
 //
-// The geometry algorithm faithfully reproduces MFC's viewtrak.cpp semantics and
-// is differentially verified against real mfc140u.dll (tests/test_recttracker_wine).
+// These geometry and tracking helpers are an OpenMFC approximation, not a faithful
+// transcription of retail: disassembly shows style-dependent handle geometry and
+// additional AdjustRect/TrackHandle behavior that this implementation does not model.
+// No tests/test_recttracker_wine source is present in this repository.
 #include <windows.h>
 #include <cstddef>   // offsetof
 #include <cstdlib>
@@ -97,8 +99,8 @@ static void ModifyPointers(int nHandle, RECT& rect, int** ppx, int** ppy) {
     }
 }
 
-// The "true rect": m_rect inflated outward by the handle overhead. Handles and
-// the whole hit region are anchored to this rect (matches real MFC).
+// Approximate outer hit-test bound: m_rect inflated outward by the handle overhead.
+// Retail also varies this inflation with line style and virtual GetHandleSize.
 static void ComputeTrueRect(const RT* p, RECT* out) {
     RECT rect = p->m_rect; Normalize(rect);
     int inflate = 0;
@@ -107,8 +109,8 @@ static void ComputeTrueRect(const RT* p, RECT* out) {
     *out = rect;
 }
 
-// Handles are size x size squares anchored at the true-rect edges, always going
-// INWARD (left handles [left,left+size], right [right-size,right], centers at mid).
+// Approximate handles as size x size squares anchored at the calculated edges and
+// going inward. Retail GetHandleRect uses style-dependent adjustments and a position table.
 static void HandleRect(const RT* p, int nHandle, RECT* pHandleRect) {
     RECT rect; ComputeTrueRect(p, &rect);
     int size = HandleSize(p, nullptr);
@@ -163,8 +165,14 @@ static int HitTestHandles(const RT* p, unsigned long long point) {
     return hitNothing;
 }
 
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+
 static int NormalizeHitVal(const RT* p, int nHandle) {
     if (nHandle == hitNothing || nHandle == hitMiddle) return nHandle;
+    if (nHandle < hitTopLeft || nHandle > hitLeft) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return hitNothing;
+    }
     RECT rect = p->m_rect;
     // when rect is mirrored, remap the handle to its visual corner
     if (rect.right - rect.left < 0) {
@@ -183,7 +191,8 @@ static int NormalizeHitVal(const RT* p, int nHandle) {
 static void DoConstruct(RT* p) {
     p->m_nStyle = 0;
     SetRectEmpty(&p->m_rect);
-    // MFC default handle size derives from the system border; 4 is the common value.
+    // OpenMFC approximation: use three system borders (minimum 4). Retail loads
+    // this setting from a profile value with a default of 4.
     int nHandleSize = GetSystemMetrics(SM_CXBORDER) * 3;
     if (nHandleSize < 4) nHandleSize = 4;
     p->m_nHandleSize = nHandleSize;
@@ -295,7 +304,7 @@ int MS_ABI impl__NormalizeHit_CRectTracker__QEBAHH_Z(const void* pThis, int nHan
 
 // Symbol: ?OnChangedRect@CRectTracker@@UEAAXAEBVCRect@@@Z
 void MS_ABI impl__OnChangedRect_CRectTracker__UEAAXAEBVCRect___Z(void* /*pThis*/, const RECT* /*rectOld*/) {
-    // default: no-op (overridable notification)
+    // Stub: disas.py could not resolve this export in mfc140 or mfc140u; retail behavior is unverified.
 }
 
 // Symbol: ?AdjustRect@CRectTracker@@UEAAXHPEAUtagRECT@@@Z
@@ -304,7 +313,8 @@ void MS_ABI impl__AdjustRect_CRectTracker__UEAAXHPEAUtagRECT___Z(void* pThis, in
     RT* p = (RT*)pThis;
     int* pxCoord; int* pyCoord;
     ModifyPointers(nHandle, *lpRect, &pxCoord, &pyCoord);
-    // enforce minimum size along changed edges
+    // Approximate minimum-size correction. Retail also uses m_bAllowInvert and
+    // performs additional dimension-ratio adjustments.
     RECT r = *lpRect; Normalize(r);
     if (RWidth(r) < p->m_sizeMin.cx) {
         if (pxCoord == (int*)&lpRect->left)  lpRect->left  = lpRect->right - p->m_sizeMin.cx;
@@ -349,8 +359,8 @@ void MS_ABI impl__Draw_CRectTracker__QEBAXPEAVCDC___Z(const void* pThis, void* p
 
 // Symbol: ?SetCursor@CRectTracker@@QEBAHPEAVCWnd@@I@Z
 int MS_ABI impl__SetCursor_CRectTracker__QEBAHPEAVCWnd__I_Z(const void* /*pThis*/, void* /*pWnd*/, unsigned int nHitTest) {
-    // Map the WM_SETCURSOR hit-test area to a resize cursor. Real MFC decodes the
-    // handle from the low word; here we set a sensible sizing cursor for hits.
+    // Approximation: interpret nHitTest directly as a tracker handle. Retail only
+    // handles HTCLIENT, hit-tests the current cursor position, then selects a cached cursor.
     LPCWSTR id = IDC_ARROW;
     switch (nHitTest & 0xFFFF) {
     case hitTopLeft: case hitBottomRight:   id = IDC_SIZENWSE; break;
@@ -364,7 +374,8 @@ int MS_ABI impl__SetCursor_CRectTracker__QEBAHPEAVCWnd__I_Z(const void* /*pThis*
     return TRUE;
 }
 
-// Track / TrackRubberBand / TrackHandle: real modal mouse-capture resize loops.
+// Track / TrackRubberBand / TrackHandle share this simplified modal interaction loop;
+// it does not reproduce retail's full message, drawing, and rectangle-state handling.
 static int DoTrack(RT* p, HWND hWnd, unsigned long long point, BOOL bRubber, BOOL bAllowInvert);
 
 // Symbol: ?Track@CRectTracker@@QEAAHPEAVCWnd@@VCPoint@@H0@Z
@@ -394,8 +405,10 @@ int MS_ABI impl__TrackHandle_CRectTracker__IEAAHHPEAVCWnd__VCPoint__0_Z(
 
 } // extern "C"
 
-// Modal resize/move loop, faithful to MFC's Track semantics (mouse capture, move
-// the hit handle/body until button-up or Escape). Returns TRUE if the rect changed.
+// Simplified modal resize/move loop. It processes a restricted message set while
+// capture remains, exits on button-up/Escape/capture loss/message retrieval failure,
+// and returns TRUE when a mouse move was accepted, not necessarily only when the
+// rectangle's coordinates changed.
 static int DoTrack(RT* p, HWND hWnd, unsigned long long point, BOOL bRubber, BOOL bAllowInvert) {
     p->m_bAllowInvert = bAllowInvert;
     POINT ptStart = { px(point), py(point) };
@@ -428,15 +441,13 @@ static int DoTrack(RT* p, HWND hWnd, unsigned long long point, BOOL bRubber, BOO
                 OffsetRect(&rectCur, pt.x - ptStart.x, pt.y - ptStart.y);
                 ptStart = pt;
             } else {
-                // Apply the new mouse coordinate to the tracked edge(s) FIRST, so
-                // the following AdjustRect enforces the min-size / inversion
-                // constraints on the NEW position (previously AdjustRect ran on the
-                // old rect and its result was overwritten by the raw coordinate).
+                // Apply the new mouse coordinate before this approximation's
+                // AdjustRect correction so it sees the candidate rectangle.
                 int* xp; int* yp; ModifyPointers(nHandle, rectCur, &xp, &yp);
                 if (xp) *xp = pt.x;
                 if (yp) *yp = pt.y;
                 // Dispatch AdjustRect virtually (vtable slot 1) so a CRectTracker
-                // subclass override participates, matching real MFC TrackHandle.
+                // subclass override participates in this simplified tracking loop.
                 void* const* vt = *(void* const* const*)p;
                 ((void (MS_ABI*)(void*, int, RECT*))vt[1])(p, nHandle, &rectCur);
             }

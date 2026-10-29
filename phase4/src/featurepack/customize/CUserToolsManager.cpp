@@ -65,8 +65,13 @@ extern "C" int MS_ABI impl__RemoveTool_CUserToolsManager__QEAAHPEAVCUserTool___Z
     return TRUE;
 }
 // Symbol: ?SaveState@CUserToolsManager@@QEAAHPEB_W@Z
+// STUB: this Unicode export is absent from both RVA maps, though the ANSI twin's
+// SaveState body is present at RVA 0x1821c0 (mfc140.dll). That body accesses
+// manager state beginning at this+0x8 and uses indirect calls on helper objects.
+// OpenMFC models this class only as _usertoolsmanager_padding[32], so the state
+// layout needed to reproduce those operations is not verified here.
 extern "C" int MS_ABI impl__SaveState_CUserToolsManager__QEAAHPEB_W_Z(void*, const wchar_t*) {
-    return TRUE;
+    return TRUE; // Placeholder only; this return value is not derived from retail.
 }
 // Symbol: ??0CUserToolsManager@@QEAA@IIIPEAUCRuntimeClass@@II@Z
 extern "C" void* MS_ABI impl___0CUserToolsManager__QEAA_IIIPEAUCRuntimeClass__II_Z(

@@ -63,6 +63,17 @@ extern "C" void MS_ABI impl__OnSizeList_CVSListBox__MEAAXXZ(CVSListBox* pThis) {
         ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, TRUE);
     }
 }
+// STUB. Retail mfc140.dll (ANSI twin) disassembly at entry RVA 0x1c5560 handles
+// WM_LBUTTONDOWN/WM_LBUTTONUP using the embedded list-control pointer at +0x1d8,
+// click-point state at +0x1e0/+0x1e4, list hit-testing, capture, drag metrics,
+// and a virtual EditItem call at vtable byte offset +0x330; unhandled paths call
+// CWnd::PreTranslateMessage. The --u lookup for this decorated name did not
+// resolve. More importantly, include/openmfc/afxmfc.h declares CVSListBox as
+// deriving from CListBox and has no corresponding list-control/click-point
+// members, whereas the retail SDK's afxvslistbox.h declares it over
+// CVSListBoxBase with those members. There is no CVSListBox shadow layout with
+// offset assertions in phase4/src/detail, so leave this unimplemented rather
+// than accessing fields at unverified local offsets.
 // Symbol: ?PreTranslateMessage@CVSListBox@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CVSListBox__UEAAHPEAUtagMSG___Z(CVSListBox* pThis, MSG* pMsg) {
     (void)pThis;

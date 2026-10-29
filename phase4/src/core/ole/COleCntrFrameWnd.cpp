@@ -5,10 +5,10 @@
 
 // Symbol: ??0COleCntrFrameWnd@@QEAA@PEAVCOleIPFrameWnd@@@Z
 // COleCntrFrameWnd::COleCntrFrameWnd(COleIPFrameWnd* pInPlaceFrame)
-//   Constructs the container frame around the given in-place frame. The base
-//   CFrameWnd sub-object is default-initialised (all handles/pointers null,
-//   ref count zero), the vfptr is installed, and the in-place frame back
-//   pointer is recorded for the forwarding methods below.
+//   OpenMFC approximation: zeroes the shadow object, installs this unit's
+//   partial dispatch table, and records the in-place frame pointer. Retail
+//   construction calls the CFrameWnd constructor and an additional helper;
+//   this memset is not equivalent to those base-class initializers.
 extern "C" void* MS_ABI impl___0COleCntrFrameWnd__QEAA_PEAVCOleIPFrameWnd___Z(
     void* pThis, void* pInPlaceFrame) {
     S_Colecntrframewnd* self = (S_Colecntrframewnd*)pThis;
@@ -19,18 +19,19 @@ extern "C" void* MS_ABI impl___0COleCntrFrameWnd__QEAA_PEAVCOleIPFrameWnd___Z(
 }
 // Symbol: ??1COleCntrFrameWnd@@UEAA@XZ
 // COleCntrFrameWnd::~COleCntrFrameWnd()
-//   The container frame owns no heap or GDI resources of its own (the in-place
-//   frame it references is owned elsewhere), so destruction merely keeps the
-//   vfptr valid for the base-class destructor chain.
+//   OpenMFC approximation: this body only restores the derived dispatch-table
+//   pointer. Retail performs additional frame/handle cleanup and calls the
+//   CFrameWnd destructor; that cleanup is not reproduced here.
 extern "C" void MS_ABI impl___1COleCntrFrameWnd__UEAA_XZ(void* pThis) {
     S_Colecntrframewnd* self = (S_Colecntrframewnd*)pThis;
     self->vfptr = (void*)&g_COleCntrFrameWnd_vtbl[0];
 }
 // Symbol: ?OnCmdMsg@COleCntrFrameWnd@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
 // BOOL COleCntrFrameWnd::OnCmdMsg(UINT nID,int nCode,void*,AFX_CMDHANDLERINFO*)
-//   Command routing gives the in-place frame first crack (via its own virtual
-//   OnCmdMsg, so a derived in-place frame's handlers participate); if it does
-//   not handle the command, fall through to the standard CFrameWnd routing.
+//   OpenMFC approximation: dispatches to the in-place frame's slot 5, then
+//   falls back to CFrameWnd if unhandled. Retail temporarily updates and
+//   restores AFX thread command-routing state and dispatches to the in-place
+//   frame; it does not take this fallback path.
 extern "C" int MS_ABI impl__OnCmdMsg_COleCntrFrameWnd__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
     void* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo) {
     S_Colecntrframewnd* self = (S_Colecntrframewnd*)pThis;
@@ -45,8 +46,10 @@ extern "C" int MS_ABI impl__OnCmdMsg_COleCntrFrameWnd__UEAAHIHPEAXPEAUAFX_CMDHAN
 }
 // Symbol: ?OnIdleUpdateCmdUI@COleCntrFrameWnd@@QEAAXXZ
 // void COleCntrFrameWnd::OnIdleUpdateCmdUI()
-//   Idle-time command-UI refresh is delegated to the in-place frame so its
-//   toolbars/status bar update; the container frame has no UI of its own.
+//   OpenMFC approximation: forwards to the in-place frame's idle-update thunk.
+//   Retail checks frame flags, conditionally invokes a virtual on this frame,
+//   then walks the parent chain and sends WM_IDLEUPDATECMDUI (0x363); this
+//   forwarding body does not reproduce those steps.
 extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_COleCntrFrameWnd__QEAAXXZ(void* pThis) {
     S_Colecntrframewnd* self = (S_Colecntrframewnd*)pThis;
     if (self->m_pInPlaceFrame != nullptr)
@@ -54,27 +57,30 @@ extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_COleCntrFrameWnd__QEAAXXZ(void* p
 }
 // Symbol: ?PostNcDestroy@COleCntrFrameWnd@@MEAAXXZ
 // void COleCntrFrameWnd::PostNcDestroy()
-//   Deliberately overrides CFrameWnd::PostNcDestroy to do NOTHING: the
-//   container frame is an embedded sub-object of the server item, not a
-//   heap allocation, so it must not "delete this".
+// Stub: this export did not resolve in either retail image, so its body and
+// whether it must suppress CFrameWnd cleanup remain unverified.
 extern "C" void MS_ABI impl__PostNcDestroy_COleCntrFrameWnd__MEAAXXZ(void* /*pThis*/) {
-    // intentionally empty — the frame is not heap-owned
+    // Retail implementation unavailable; do not infer its behavior.
 }
 // Symbol: ?RecalcLayout@COleCntrFrameWnd@@UEAAXH@Z
 // void COleCntrFrameWnd::RecalcLayout(BOOL bNotify)
-//   Layout is owned by the in-place frame; forward the recalc (and its notify
-//   flag) there. With no in-place frame there is nothing to lay out.
+//   OpenMFC approximation: forwards to CFrameWnd::RecalcLayout on the
+//   in-place frame. Retail has a reentrancy guard and flag handling, and makes
+//   conditional virtual callbacks based on the in-place/active-document state;
+//   this direct forward is not equivalent.
 extern "C" void MS_ABI impl__RecalcLayout_COleCntrFrameWnd__UEAAXH_Z(void* pThis, int bNotify) {
     S_Colecntrframewnd* self = (S_Colecntrframewnd*)pThis;
     if (self->m_pInPlaceFrame != nullptr) {
-        // COleIPFrameWnd does not override RecalcLayout, so it resolves to the
-        // frame-window implementation; run it against the in-place frame.
+        // COleIPFrameWnd has its own RecalcLayout override; this direct base
+        // thunk intentionally bypasses it and is only an OpenMFC approximation.
         impl__RecalcLayout_CFrameWnd__UEAAXH_Z(self->m_pInPlaceFrame, bNotify);
     }
 }
 
-// COleCntrFrameWnd's MSVC-layout vtable: defined here, next to the
-// implementations it points at.
+// Partial dispatch table for COleCntrFrameWnd's OpenMFC implementation,
+// defined beside its targets. It contains only slots 0-9, not the complete
+// CFrameWnd MSVC vtable (which has virtuals at slots such as 96); calls through
+// omitted slots are unsupported and would read beyond this array.
 namespace openmfc { namespace detail { namespace colecntrframewnd {
 extern void* const g_COleCntrFrameWnd_vtbl[10] = {
     (void*)&vt_GetRuntimeClass_Colecntrframewnd,  // 0  CFrameWnd::GetRuntimeClass

@@ -6,37 +6,26 @@
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/MfccoreSupport.h"
 
-// OpenMFC: CMFCBaseVisualManager exports.
+// OpenMFC: CMFCBaseVisualManager exports. The class itself is opaque in this
+// translation unit and has no corresponding shadow-layout header here. Several
+// bodies below are intentionally conservative placeholders; their constant
+// returns/no-ops are not evidence that retail's theme handles are null or that
+// the retail theme-dependent behavior has been reproduced.
 //
-// All 9 exports are implemented here, transcribed from the retail mfc140u.dll
-// (14.51.36231, x64) by decoding the export table (ordinal -> RVA -> objdump
-// of the retail body).
-//
-// The class is not declared in the OpenMFC headers (opaque), so `this` is taken
-// as void*.  The retail bodies draw through the theme handles stored at
-// +0x08/+0x18/+0x20/+0x30 (m_hTheme...), clean up the theme brushes at
-// +0x08..+0x78 and probe the active visual style; none of that state is
-// modeled, so every body terminates on the retail NULL-theme default (draw
-// methods return 0, mutators become no-ops).
-//
-// Conventions (see IMPLEMENTATION_GUIDE.md):
-//   * every export is `extern "C"` + `__attribute__((ms_abi))`;
-//   * the implicit `this` is the first explicit parameter;
-//   * NULL-check pThis everywhere;
-//   * struct-returning exports take the hidden return slot in the register the
-//     retail body uses, as documented at each definition.
-//
-// Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass (the scan of
-// `// Symbol:` comments) drops the generated weak stubs for these ordinals.
+// Export definitions use explicit `this` parameters and the MSVC x64 ABI. The
+// `// Symbol:` markers exclude generated weak stubs for these ordinals.
 
 #include "openmfc/afx.h"
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
 
 #include <windows.h>
+#include <uxtheme.h>
 #include <oleacc.h>
 
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -44,13 +33,30 @@
   #define MS_ABI
 #endif
 
+namespace {
+// Retail CMFCBaseVisualManager's 19 HTHEME slots are contiguous after its
+// vfptr. Their order below matches the individual accesses in CleanUpThemes
+// at RVA 0x18f900 (mfc140u); OpenMFC stores the same byte range in
+// CMFCVisualManager::_visualmanager_padding.
+constexpr std::size_t kThemeHandleOffsets[] = {
+    0x08, 0x10, 0x18, 0x28, 0x20, 0x30, 0x38, 0x40, 0x48, 0x50,
+    0x58, 0x60, 0x68, 0x70, 0x78, 0x88, 0x80, 0x90, 0x98,
+};
+constexpr std::size_t kThemeHandleBankSize =
+    sizeof(kThemeHandleOffsets) / sizeof(kThemeHandleOffsets[0]) * sizeof(HTHEME);
+static_assert(sizeof(HTHEME) == 8, "theme handles are 64-bit in this x64 ABI");
+static_assert(sizeof(CObject) == 8, "CMFCBaseVisualManager vfptr prefix is 8 bytes");
+static_assert(kThemeHandleOffsets[0] == sizeof(void*) &&
+                  kThemeHandleOffsets[sizeof(kThemeHandleOffsets) / sizeof(kThemeHandleOffsets[0]) - 1]
+                          + sizeof(HTHEME) == sizeof(void*) + kThemeHandleBankSize,
+              "retail HTHEME slots span the expected contiguous byte range");
+static_assert(sizeof(CMFCVisualManager) >= 0xa0,
+              "OpenMFC visual-manager storage covers the retail theme-handle bank");
+}
+
 //=============================================================================
-// CMFCBaseVisualManager - not declared in the OpenMFC headers (opaque), so
-// pThis is taken as void*. The retail bodies read the theme handles stored at
-// +0x08/+0x18/+0x20/+0x30 (m_hTheme...) and the theme brushes at +0x08..+0x78
-// (see the constructor, manual_small_stub_implementations.cpp); none of that
-// state is modeled, so every body terminates on the retail NULL-theme default
-// and the mutators become no-ops.
+// CMFCBaseVisualManager - opaque in OpenMFC; retail has theme-dependent state
+// and behavior that the placeholder bodies below do not reproduce.
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -88,154 +94,152 @@
 //-----------------------------------------------------------------------------
 // CMFCBaseVisualManager::FillReBarPane
 //-----------------------------------------------------------------------------
-// Retail (0x18018f900): deletes the per-theme brush handles at +0x08..+0x78
-// (DestroyObject-style call at 0x1802c7390) when non-NULL. No CMFCBaseVisualManager
-// members are modeled, so there is nothing to clean up.
+// Retail RVA 0x18f900 (mfc140u) checks 19 theme-handle fields in the order
+// below and closes each non-null HTHEME. OpenMFC's CMFCVisualManager reserves
+// this retail byte range in its zeroed padding; the storage bounds are pinned
+// above so cleanup can release handles without inventing a vftable address.
 // Symbol: ?CleanUpThemes@CMFCBaseVisualManager@@IEAAXXZ
 extern "C" void MS_ABI impl__CleanUpThemes_CMFCBaseVisualManager__IEAAXXZ(
     void* pThis)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- retail deletes the theme brushes at
-    // +0x08..+0x78 (CloseThemeData/DeleteObject at 0x1802c7390); the members
-    // are not modeled.
+    auto* bytes = static_cast<unsigned char*>(pThis);
+    for (std::size_t offset : kThemeHandleOffsets) {
+        HTHEME theme = nullptr;
+        std::memcpy(&theme, bytes + offset, sizeof(theme));
+        if (theme != nullptr) {
+            ::CloseThemeData(theme);
+        }
+    }
 }
-// Retail (0x18018f470): resolves the active visual manager (0x180133a20), the
-// current frame windows and the theme brush colors, storing the created
-// brushes at +0x08..+0x78 (brush-creation call at 0x1802c7388). No
-// CMFCBaseVisualManager members are modeled, so the stores are skipped.
+// The retail body at RVA 0x18f470 (mfc140u) opens theme resources and stores
+// their handles in this object's theme-state fields. The OpenMFC layout and
+// setup path are not modeled here, so this placeholder performs no updates.
 // Symbol: ?UpdateSystemColors@CMFCBaseVisualManager@@IEAAXXZ
 extern "C" void MS_ABI impl__UpdateSystemColors_CMFCBaseVisualManager__IEAAXXZ(
     void* pThis)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- retail stores the resolved theme
-    // brushes at +0x08..+0x78 (GetThemeColor / brush creation at 0x1802c7388);
-    // the members are not modeled.
+    // Deliberate placeholder: no theme handles are opened or stored here.
 }
-// Retail (0x180190180): probes the active visual style (OpenThemeData /
-// GetThemeString at 0x1802c7398 / 0x1802c7788) and maps the recognized
-// "Aero"/"Luna" class names to the WinXpTheme enum, returning -1/0 when no
-// standard theme matches. The theme state is unmodeled, so WinXpThemeNone (0)
-// -- the retail "no standard theme" terminal -- is returned.
+// Retail RVA 0x190180 (mfc140u) queries visual-style/theme properties and can
+// return -1 or a mapped WinXpTheme value. This placeholder returns 0
+// unconditionally; that is not a transcription of the retail query path.
 // Symbol: ?GetStandardWindowsTheme@CMFCBaseVisualManager@@UEAA?AW4WinXpTheme@1@XZ
 extern "C" int MS_ABI impl__GetStandardWindowsTheme_CMFCBaseVisualManager__UEAA_AW4WinXpTheme_1_XZ(
     void* pThis)
 {
     if (!pThis) return 0;
-    // TODO(clean-room): not transcribed -- retail probes the active visual
-    // style with OpenThemeData/GetThemeString and maps the "Aero"/"Luna" class
-    // names onto the WinXpTheme enum; the theme state is not modeled.
+    // Placeholder: the retail visual-style query and theme-name mapping are
+    // not implemented.
     return 0;
 }
-// Retail (0x180190010): returns 0 when the checkbox theme handle at +0x20 is
-// NULL, otherwise computes the BP_CHECKBOX state from the bDisabled/bChecked/
-// bHot/bPressed flags and draws it with DrawThemeBackground (0x1802c7378),
-// returning 1. The theme handle is unmodeled (NULL), so the retail
-// NULL-theme terminal 0 is returned.
+// Retail RVA 0x190010 (mfc140u) returns 0 for a null checkbox theme handle at
+// +0x20; otherwise it selects a state and draws. This placeholder always
+// returns FALSE and does not establish that the handle is null.
 // Symbol: ?DrawCheckBox@CMFCBaseVisualManager@@UEAAHPEAVCDC@@VCRect@@HHHH@Z
 extern "C" int MS_ABI impl__DrawCheckBox_CMFCBaseVisualManager__UEAAHPEAVCDC__VCRect__HHHH_Z(
     void* pThis, CDC* /*pDC*/, CRect /*rect*/, int /*bDisabled*/, int /*bChecked*/,
     int /*bHot*/, int /*bPressed*/)
 {
     if (!pThis) return FALSE;
-    // TODO(clean-room): not transcribed -- retail draws through the
-    // m_hThemeCheckBox handle at +0x20 (DrawThemeBackground at 0x1802c7378);
-    // the theme-handle member is not modeled.
+    // The theme-dependent retail path is not implemented.
     return FALSE;
 }
-// Retail (0x18018fd90): returns 0 when the combo theme handle at +0x08 is
-// NULL; otherwise, when bIsDropped or bIsHighlighted is set, it draws the
-// combo border with the theme and returns 1. The theme handle is unmodeled
-// (NULL), so the retail NULL-theme terminal 0 is returned.
+// Retail RVA 0x18fd90 (mfc140u) returns 0 when the combo theme handle at +0x08
+// is null. With a non-null handle it returns 1; it draws for dropped or
+// highlighted states, but also has a handled-without-drawing branch when both
+// flags are clear. This placeholder always returns FALSE.
 // Symbol: ?DrawComboBorder@CMFCBaseVisualManager@@UEAAHPEAVCDC@@VCRect@@HHH@Z
 extern "C" int MS_ABI impl__DrawComboBorder_CMFCBaseVisualManager__UEAAHPEAVCDC__VCRect__HHH_Z(
     void* pThis, CDC* /*pDC*/, CRect /*rect*/, int /*bDisabled*/,
     int /*bIsDropped*/, int /*bIsHighlighted*/)
 {
     if (!pThis) return FALSE;
-    // TODO(clean-room): not transcribed -- retail draws through the combo theme
-    // handle at +0x08 (DrawThemeBackground / fill at 0x1802a5bc0); the
-    // theme-handle member is not modeled.
+    // The themed and handled-without-drawing retail paths are not implemented.
     return FALSE;
 }
-// Retail (0x18018fd20): returns 0 when the combo theme handle at +0x30 is
-// NULL, otherwise computes the CBXS state from the bDisabled/bIsDropped/
-// bIsHighlighted flags and draws it with DrawThemeBackground (0x1802c7378),
-// returning 1. The theme handle is unmodeled (NULL), so the retail
-// NULL-theme terminal 0 is returned.
+// Retail RVA 0x18fd20 (mfc140u) returns 0 for a null combo-drop theme handle at
+// +0x30; otherwise it selects a state, draws, and returns 1. This placeholder
+// always returns FALSE and does not establish that the handle is null.
 // Symbol: ?DrawComboDropButton@CMFCBaseVisualManager@@UEAAHPEAVCDC@@VCRect@@HHH@Z
 extern "C" int MS_ABI impl__DrawComboDropButton_CMFCBaseVisualManager__UEAAHPEAVCDC__VCRect__HHH_Z(
     void* pThis, CDC* /*pDC*/, CRect /*rect*/, int /*bDisabled*/,
     int /*bIsDropped*/, int /*bIsHighlighted*/)
 {
     if (!pThis) return FALSE;
-    // TODO(clean-room): not transcribed -- retail draws through the combo
-    // theme handle at +0x30 (DrawThemeBackground at 0x1802c7378); the
-    // theme-handle member is not modeled.
+    // The theme-dependent retail path is not implemented.
     return FALSE;
 }
-// Retail (0x18018fa40): returns 0 when the button theme handle at +0x20 is
-// NULL; otherwise it computes the BP_PUSHBUTTON state from the CMFCButton
-// flags / focus and draws it with DrawThemeBackground (0x1802c7378),
-// returning 1. The theme handle is unmodeled (NULL), so the retail
-// NULL-theme terminal 0 is returned.
+// Retail RVA 0x18fa40 (mfc140u) returns 0 for a null button theme handle at
+// +0x20; otherwise it inspects button state and draws, returning 1. This
+// placeholder always returns FALSE and does not establish that the handle is
+// null.
 // Symbol: ?DrawPushButton@CMFCBaseVisualManager@@UEAAHPEAVCDC@@VCRect@@PEAVCMFCButton@@I@Z
 extern "C" int MS_ABI impl__DrawPushButton_CMFCBaseVisualManager__UEAAHPEAVCDC__VCRect__PEAVCMFCButton__I_Z(
     void* pThis, CDC* /*pDC*/, CRect /*rect*/, CMFCButton* /*pButton*/,
     unsigned int /*uiState*/)
 {
     if (!pThis) return FALSE;
-    // TODO(clean-room): not transcribed -- retail draws through the push-button
-    // theme handle at +0x20 (DrawThemeBackground at 0x1802c7378) using the
-    // button state; the theme-handle member is not modeled.
+    // The theme-dependent retail path is not implemented.
     return FALSE;
 }
-// Retail (0x1801900e0): returns 0 when the radio theme handle at +0x20 is
-// NULL, otherwise computes the BP_RADIOBUTTON state from the bDisabled/
-// bChecked/bHot/bPressed flags and draws it with DrawThemeBackground
-// (0x1802c7378), returning 1. The theme handle is unmodeled (NULL), so the
-// retail NULL-theme terminal 0 is returned.
+// Retail RVA 0x1900e0 (mfc140u) returns 0 for a null radio theme handle at
+// +0x20; otherwise it selects a state, draws, and returns 1. This placeholder
+// always returns FALSE and does not establish that the handle is null.
 // Symbol: ?DrawRadioButton@CMFCBaseVisualManager@@UEAAHPEAVCDC@@VCRect@@HHHH@Z
 extern "C" int MS_ABI impl__DrawRadioButton_CMFCBaseVisualManager__UEAAHPEAVCDC__VCRect__HHHH_Z(
     void* pThis, CDC* /*pDC*/, CRect /*rect*/, int /*bDisabled*/, int /*bChecked*/,
     int /*bHot*/, int /*bPressed*/)
 {
     if (!pThis) return FALSE;
-    // TODO(clean-room): not transcribed -- retail draws through the radio
-    // theme handle at +0x20 (DrawThemeBackground at 0x1802c7378); the
-    // theme-handle member is not modeled.
+    // The theme-dependent retail path is not implemented.
     return FALSE;
 }
-// Retail (0x18018fe40): fills rectClient on pDC with the rebar theme at +0x18
-// when present, otherwise with the global clrBarFace color (0x1803c1740), and
-// then expands the rect from the pane's window rect. The theme handle, the
-// global color and the pane geometry path are unmodeled.
+// Retail RVA 0x18fe40 (mfc140u) branches on the rebar theme handle at +0x18:
+// the null-handle path fills with a global color, while the themed path derives
+// and clips geometry using pane/theme data before drawing. Those inputs and
+// layout are not modeled by this placeholder.
 // Symbol: ?FillReBarPane@CMFCBaseVisualManager@@UEAAXPEAVCDC@@PEAVCBasePane@@VCRect@@@Z
 extern "C" void MS_ABI impl__FillReBarPane_CMFCBaseVisualManager__UEAAXPEAVCDC__PEAVCBasePane__VCRect___Z(
     void* pThis, CDC* /*pDC*/, CBasePane* /*pBar*/, CRect /*rectClient*/)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- retail fills through the rebar theme
-    // handle at +0x18 or the global clrBarFace color (0x1803c1740) and expands
-    // the rect from the pane's window rect; none are modeled.
+    // The themed drawing and global-color fallback are not implemented.
 }
+// Retail RVA 0x18f390 (mfc140u) installs its base vftable, clears these 19
+// handles, and calls UpdateSystemColors. OpenMFC has no matching base vftable;
+// this thunk safely initializes the known handle storage but cannot reproduce
+// the vftable store or the unavailable theme-opening path.
 // Symbol: ??0CMFCBaseVisualManager@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCBaseVisualManager__QEAA_XZ(void* pThis) {
+    if (pThis != nullptr) {
+        std::memset(static_cast<unsigned char*>(pThis) + sizeof(void*), 0,
+                    kThemeHandleBankSize);
+    }
     return pThis;
 }
+// Retail RVA 0x18f460 (mfc140u) stores the base vftable at [this] and
+// tail-jumps to CleanUpThemes at RVA 0x18f900 (mfc140u). The OpenMFC base
+// vftable is unavailable, so this preserves the cleanup behavior without
+// fabricating or embedding a retail-image address; only the vfptr reset is
+// omitted.
 // Symbol: ??1CMFCBaseVisualManager@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCBaseVisualManager__UEAA_XZ(void* pThis) {
-    (void)pThis;
+    impl__CleanUpThemes_CMFCBaseVisualManager__IEAAXXZ(pThis);
 }
+// Retail RVA 0x18fb40 (mfc140u) returns handled without drawing when the
+// progress theme handle at +0x38 is null. Otherwise it draws the themed track;
+// it draws the progress portion only when the total is nonzero and the text
+// only when requested. This pre-existing OpenMFC body delegates to
+// CMFCVisualManager instead, a known deviation from that retail path.
 // Symbol: ?DrawStatusBarProgress@CMFCBaseVisualManager@@UEAAHPEAVCDC@@PEAVCMFCStatusBar@@VCRect@@HHKKKH@Z
 extern "C" int MS_ABI impl__DrawStatusBarProgress_CMFCBaseVisualManager__UEAAHPEAVCDC__PEAVCMFCStatusBar__VCRect__HHKKKH_Z(
     void* /*CMFCBaseVisualManager**/ pThis, CDC* pDC, CMFCStatusBar* pBar,
     CRect rectProgress, int nProgressTotal, int nProgressCurr,
     unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText, int bProgressText) {
     (void)pThis;
-    // Delegate to the same drawing logic as CMFCVisualManager::OnDrawStatusBarProgress.
-    // CMFCBaseVisualManager is the abstract root; the real impl is in CMFCVisualManager.
+    // This delegation is an OpenMFC approximation, not the retail base theme path.
     if (CMFCVisualManager* mgr = CMFCVisualManager::GetInstance()) {
         mgr->OnDrawStatusBarProgress(pDC, pBar, rectProgress, nProgressTotal, nProgressCurr,
                                      clrBar, clrProgressBarDest, clrProgressText, (BOOL)bProgressText);

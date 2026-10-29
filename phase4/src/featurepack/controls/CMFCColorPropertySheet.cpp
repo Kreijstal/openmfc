@@ -2,6 +2,28 @@
 // Sources: global_cmfccolorpropertysheet.cpp
 
 #include "detail/CMFCColorPropertySheetSupport.h"
+#include <cstddef>
+#include "openmfc/afx.h"
+#include "openmfc/afxwin.h"
+
+namespace {
+struct S_CMFCColorPropertySheetLoadAcceleratorLayout {
+    BYTE m_reserved[0x190];
+    HACCEL m_hAccelTable;
+};
+static_assert(offsetof(S_CMFCColorPropertySheetLoadAcceleratorLayout, m_hAccelTable) == 0x190,
+              "CMFCColorPropertySheet accelerator handle @0x190 (retail RVA 0x2eb30, mfc140u)");
+static_assert(sizeof(S_CMFCColorPropertySheetLoadAcceleratorLayout) == 408,
+              "CMFCColorPropertySheet size 408 bytes");
+
+struct S_AfxModuleStateInstanceHandleLayout {
+    void* m_vftable;
+    void* m_pCurrentWinApp;
+    HINSTANCE m_hCurrentInstanceHandle;
+};
+static_assert(offsetof(S_AfxModuleStateInstanceHandleLayout, m_hCurrentInstanceHandle) == 0x10,
+              "AFX_MODULE_STATE current instance handle @0x10");
+} // namespace
 
 // Symbol: ??0CMFCColorPropertySheet@@QEAA@IPEAVCWnd@@I@Z
 extern "C" void* MS_ABI impl___0CMFCColorPropertySheet__QEAA_IPEAVCWnd__I_Z(
@@ -33,10 +55,21 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCColorPropertySheet__MEAAHPEA
     return impl__PreTranslateMessage_CPropertySheet__UEAAHPEAUtagMSG___Z(static_cast<CPropertySheet*>(pThis), pMsg);
 }
 // Symbol: ?LoadAcceleratorTable@CMFCColorPropertySheet@@QEAAXI@Z
+// Retail mfc140u RVA 0x2eb30 returns immediately for ID 0. Otherwise it passes
+// the low WORD as an integer-resource name to USER32!LoadAcceleratorsW, using
+// AfxGetModuleState()->+0x10 as HINSTANCE, then stores the HACCEL at this+0x190.
 extern "C" void MS_ABI impl__LoadAcceleratorTable_CMFCColorPropertySheet__QEAAXI_Z(
     void* pThis, unsigned int nID) {
-    (void)pThis;
-    (void)nID;
+    if (nID == 0) {
+        return;
+    }
+
+    const WORD resourceId = static_cast<WORD>(nID);
+    auto* moduleState = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+    const auto* stateLayout = reinterpret_cast<const S_AfxModuleStateInstanceHandleLayout*>(moduleState);
+    auto* sheet = static_cast<S_CMFCColorPropertySheetLoadAcceleratorLayout*>(pThis);
+    sheet->m_hAccelTable = ::LoadAcceleratorsW(
+        stateLayout->m_hCurrentInstanceHandle, MAKEINTRESOURCEW(resourceId));
 }
 // Symbol: ?OnNotify@CMFCColorPropertySheet@@MEAAH_K_JPEA_J@Z
 extern "C" int MS_ABI impl__OnNotify_CMFCColorPropertySheet__MEAAH_K_JPEA_J_Z(
