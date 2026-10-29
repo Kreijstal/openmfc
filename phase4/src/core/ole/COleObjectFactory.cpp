@@ -293,6 +293,7 @@ STDMETHODIMP COleObjectFactory::XClassFactory::CreateInstanceLic(
 }
 
 // === Moved from ManualThunks.cpp ===
+// The ANSI twin is RVA 0x25b0a0 (mfc140.dll): it falls back to this+0x70 and calls AfxOleRegisterServerClass with this+0x4c. The Unicode export has no resolved RVA, and this class stores CString rather than the retail LPCTSTR field, so keep this stub pending layout support.
 // Symbol: ?UpdateRegistry@COleObjectFactory@@QEAAXPEB_W@Z
 extern "C" void MS_ABI impl__UpdateRegistry_COleObjectFactory__QEAAXPEB_W_Z(void* pThis, void* p0) {
     (void)pThis;

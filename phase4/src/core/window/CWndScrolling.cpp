@@ -49,7 +49,8 @@ int CWnd::SetScrollInfo(int bar, SCROLLINFO* info, int redraw) {
     }
     info->cbSize = sizeof(*info);
     ::SetScrollInfo(handle, bar, info, redraw);
-    // The Win32 result is the previous position, not a success predicate.
+    // Retail ignores the previous-position result from ::SetScrollInfo and returns TRUE
+    // (function entry RVA 0x28e890, mfc140u).
     return TRUE;
 }
 void CWnd::EnableScrollBarCtrl(int bar, int enable) {
@@ -108,6 +109,8 @@ void CWnd::ScrollWindow(int dx, int dy, const RECT* scroll, const RECT* clip) {
 }
 
 // Symbol: ?GetScrollBarCtrl@CWnd@@UEBAPEAVCScrollBar@@H@Z
+// Ordinal 6631 resolves to the shared null-return entry at RVA 0x71e0 (mfc140u).
+// The base CWnd implementation returns nullptr; keep this minimal body as a verified stub.
 extern "C" CScrollBar* MS_ABI impl__GetScrollBarCtrl_CWnd__UEBAPEAVCScrollBar__H_Z(const CWnd*, int) { return nullptr; }
 // Symbol: ?GetDlgItem@CWnd@@QEBAPEAV1@H@Z
 extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* self, int id) { return self->GetDlgItem(id); }

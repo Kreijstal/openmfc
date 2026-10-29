@@ -5,6 +5,9 @@
 
 #include "detail/InetcoreSupport.h"
 
+extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
+    DWORD dwContext, DWORD dwError);
+
 // Symbol: ?GetAttribute@CGopherConnection@@QEAAHAEAVCGopherLocator@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAV34@@Z
 extern "C" int MS_ABI impl__GetAttribute_CGopherConnection__QEAAHAEAVCGopherLocator__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAV34__Z(
     CGopherConnection* pThis, CGopherLocator* pLocator, CString* pAttributeName, CString* pValue) {
@@ -188,13 +191,32 @@ CFtpFileFind* CGopherConnection::CreateFileFind(CGopherLocator* pLocator) {
 }
 
 // === Moved from ManualThunks.cpp ===
+// Retail control flow at RVA 0x2301c0 (mfc140u; ordinal-resolved, not in the
+// symbol map) substitutes this->context when the supplied context is 1, calls an
+// indirect five-argument function with (connection handle, locator buffer, view,
+// flags, context), constructs a CGopherFile on success, and calls
+// AfxThrowInternetException(context, 0) on failure. The call slot is not an IAT
+// import, so its target is not named here. OpenMFC uses GopherOpenFileW, as the
+// existing overload in this file does, and its declared CGopherFile constructor
+// rather than assuming retail's 0x98-byte object with a locator subobject at +0x80.
+// The current m_dwContext member is used instead of retail's different +0x10 offset.
 // Symbol: ?OpenFile@CGopherConnection@@QEAAPEAVCGopherFile@@AEAVCGopherLocator@@KPEB_W_K@Z
-extern "C" void* MS_ABI impl__OpenFile_CGopherConnection__QEAAPEAVCGopherFile__AEAVCGopherLocator__KPEB_W_K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    return nullptr;
+extern "C" CGopherFile* MS_ABI impl__OpenFile_CGopherConnection__QEAAPEAVCGopherFile__AEAVCGopherLocator__KPEB_W_K_Z(
+    CGopherConnection* pThis, CGopherLocator* pLocator, DWORD dwFlags,
+    const wchar_t* pstrView, DWORD_PTR dwContext) {
+    if (dwContext == 1) dwContext = pThis->m_dwContext;
+
+    HINTERNET hFile = GopherOpenFileW(
+        pThis->m_hConnection,
+        static_cast<const wchar_t*>(pLocator->m_lpBuffer),
+        pstrView,
+        dwFlags,
+        dwContext);
+    if (!hFile) {
+        impl__AfxThrowInternetException__YAX_KK_Z(dwContext, 0);
+        return nullptr;
+    }
+
+    return new CGopherFile(hFile, *pLocator, pThis);
 }
 

@@ -1519,31 +1519,33 @@ extern "C" void MS_ABI impl__MovePaneRect_CDockingPanesRow__IEAAXPEAVCPane__H_N_
 }
 
 // Symbol: ?MoveTrailingPanes@CDockingPanesRow@@AEAAXPEAU__POSITION@@VCPoint@@_NPEAVCPane@@AEAPEAX@Z
-// Retail 0x50be0 (the 0x50700 an earlier revision of this file quoted is not
-// this function's entry), transcribed in full.  Note the walk direction: when
-// bForward is set retail steps through node->pPrev (`lea 0x8(%rdx),%rax`), and
-// through node->pNext otherwise.
+// RVA 0x50d90 (mfc140u), behavior transcribed with deviations noted below.
+// Note the walk direction:
+// when bForward is set retail steps through node->pPrev (`lea 0x8(%rdx),%rax`),
+// and through node->pNext otherwise.
 //   for (node = pos; node != NULL; node = bForward ? node->pPrev : node->pNext) {
 //       pBar = node->data;
 //       if (pBar == pBarToExclude) continue;
 //       if (!pBar->IsVisible() && !m_bIgnoreBarVisibility) continue;
 //       ::GetWindowRect(pBar->m_hWnd, &rectWnd);
-//       pBar->GetVirtualRect(rectVirtual);                       // 0xa1ca0
+//       pBar->GetVirtualRect(rectVirtual);                       // RVA 0xa16e0 (mfc140u)
 //       if (::EqualRect(&rectWnd, &rectVirtual)) continue;
-//       BOOL bLeftOf = pBar->IsLeftOf(rectVirtual, TRUE);        // 0xa1660
+//       BOOL bLeftOf = pBar->IsLeftOf(rectVirtual, TRUE);        // RVA 0xa10a0 (mfc140u)
 //       int nAxis = IsHorizontal() ? ptOffset.x : ptOffset.y;
 //       int nBack = IsHorizontal() ? rectVirtual.left - rectWnd.left
 //                                  : rectVirtual.top  - rectWnd.top;
 //       int nOffset = (bLeftOf == bForward)
 //                   ? labs(nAxis)
 //                   : labs(labs(nAxis) < labs(nBack) ? nAxis : nBack);
-//       MovePane(pBar, nOffset, bForward, hdwp);                 // 0x505b0
-//       ResolveIntersection(pBar, !bForward, hdwp);              // 0x50dd0
+//       MovePane(pBar, nOffset, bForward, hdwp);                 // RVA 0x50760 (mfc140u)
+//       ResolveIntersection(pBar, !bForward, hdwp);              // direct helper target RVA 0x50f80 (mfc140u; no export at this RVA)
 //   }
-// Retail evaluates IsLeftOf up to three times on the same arguments (the
-// compiler duplicated the test across the branch); it is called once here.
-// One arm of that duplication (nOffset forced to 0) is unreachable in retail
-// and is not reproduced.
+// Retail has three conditional IsLeftOf call sites inside each per-pane loop
+// iteration (not all execute on every path); this implementation consolidates
+// them into one evaluation.  Results can differ if geometry or the parent's
+// virtual orientation query changes between retail's repeated evaluations.
+// The defensive null-this and null-list-payload checks below are also not in
+// retail, which assumes valid objects and dereferences them.
 extern "C" void MS_ABI impl__MoveTrailingPanes_CDockingPanesRow__AEAAXPEAU__POSITION__VCPoint___NPEAVCPane__AEAPEAX_Z(void* pThis, void* pos, long long ptOffset, bool bForward, CPane* pBarToExclude, void** phdwp) {
     if (pos == nullptr) return;
     S_CDockingPanesRow* s = Row(pThis);

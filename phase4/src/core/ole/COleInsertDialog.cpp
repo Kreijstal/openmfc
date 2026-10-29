@@ -5,11 +5,8 @@
 
 #include "detail/OlecoreSupport.h"
 
-// Real parameterized-constructor export thunks for header-defined, publicly
-// constructible MFC classes. Each viewed-as MS_ABI thunk placement-constructs
-// the object with the real ctor body (defined in filecore/olecore/dlgcommon/
-// inetcore or inline in headers) -- NOT a stub. Completes classes that were one
-// export short of full coverage.
+// Parameterized-constructor export thunk for COleInsertDialog. The MS_ABI
+// thunk placement-constructs the object using the constructor defined below.
 #include "openmfc/afx.h"
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
@@ -23,6 +20,9 @@
 #else
   #define MS_ABI
 #endif
+
+
+
 
 
 
@@ -99,6 +99,9 @@ UINT COleInsertDialog::GetSelectionType() const {
     return 0;
 }
 void COleInsertDialog::AddClassIDToList(CLSID*& rgclsid, int& nCount, int& nAlloc, CLSID* pClassID) {
+    // Retain OpenMFC's pre-existing null-ID guard and realloc growth policy.
+    // Retail mfc140u RVA 0x24cff0 instead initializes a null list at capacity 16
+    // and grows a full list fourfold; its allocation-failure handling also differs.
     if (!pClassID) {
         return;
     }
@@ -116,11 +119,8 @@ void COleInsertDialog::AddClassIDToList(CLSID*& rgclsid, int& nCount, int& nAllo
 
 // === Moved from ManualThunks.cpp ===
 // Symbol: ?AddClassIDToList@COleInsertDialog@@IEAAXAEAPEAU_GUID@@AEAH1PEAU2@@Z
-extern "C" void MS_ABI impl__AddClassIDToList_COleInsertDialog__IEAAXAEAPEAU_GUID__AEAH1PEAU2__Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
+extern "C" void MS_ABI impl__AddClassIDToList_COleInsertDialog__IEAAXAEAPEAU_GUID__AEAH1PEAU2__Z(
+        COleInsertDialog* pThis, CLSID** rgclsid, int* nCount, int* nAlloc, CLSID* pClassID) {
+    pThis->AddClassIDToList(*rgclsid, *nCount, *nAlloc, pClassID);
 }
 

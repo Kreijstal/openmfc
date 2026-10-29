@@ -5,12 +5,11 @@
 
 #include "detail/InetcoreSupport.h"
 
-// Hand-written real implementations for header-defined classes that were one
-// export short of complete. Constructors placement-new into the caller-provided
-// storage so the openmfc C++ constructor establishes the validated member
-// layout. Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass (scan of
-// `// Symbol:` comments) removes the weak/typed stubs for these ordinals
-// automatically.
+// Hand-written ABI thunks for header-defined classes whose exports need
+// implementations. Implemented constructor thunks placement-new into
+// caller-provided storage to establish the OpenMFC-declared layout; constructors
+// whose retail layout is not modeled remain documented stubs. The exact
+// `// Symbol:` markers let the build exclude matching weak/typed stubs.
 
 #include "openmfc/afxwin.h"
 #include "openmfc/afxinet.h"
@@ -58,7 +57,7 @@ extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransacti
 
 
 // CGopherFile::CGopherFile(HINTERNET, CGopherLocator&, CGopherConnection*) —
-// protected ctor; the openmfc C++ ctor is defined in inetcore.cpp.
+// protected retail ctor; the OpenMFC C++ ctor is defined below.
 // Symbol: ??0CGopherFile@@IEAA@PEAXAEAVCGopherLocator@@PEAVCGopherConnection@@@Z
 extern "C" void* MS_ABI impl___0CGopherFile__IEAA_PEAXAEAVCGopherLocator__PEAVCGopherConnection___Z(
     void* pThis, void* hFile, CGopherLocator* pLocator, CGopherConnection* pConnection)
@@ -86,15 +85,23 @@ CGopherFile::CGopherFile(HINTERNET hFile, CGopherLocator& refLocator,
 }
 CGopherFile::~CGopherFile() {}
 
-// === Moved from ManualThunks.cpp ===
+// STUB: retail initializes the CInternetFile base, installs CGopherFile's
+// vtable, then constructs CGopherLocator at this+0x80. OpenMFC's declared class has
+// neither this overload nor a locator subobject at the required offset; it cannot
+// safely initialize this retail object without the missing layout declaration.
+// Retail evidence: ctor entry RVA 0x230ef0 (mfc140u); call at 0x230f22 to
+// CInternetFile ctor entry RVA 0x22e480 and call at 0x230f41 to CGopherLocator
+// ctor entry RVA 0x231850.
 // Symbol: ??0CGopherFile@@IEAA@PEAX0PEB_WK_K@Z
-extern "C" void* MS_ABI impl___0CGopherFile__IEAA_PEAX0PEB_WK_K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
+extern "C" void* MS_ABI impl___0CGopherFile__IEAA_PEAX0PEB_WK_K_Z(
+    void* pThis, void* hFile, void* hSession, const wchar_t* pstrLocator,
+    unsigned long dwLocLen, unsigned __int64 dwContext) {
     (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
+    (void)hFile;
+    (void)hSession;
+    (void)pstrLocator;
+    (void)dwLocLen;
+    (void)dwContext;
     return nullptr;
 }
 

@@ -57,10 +57,11 @@ extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransacti
 
 
 
-// CEnumFormatEtc::OnNext(void*) — MFC's CEnumArray hook that fetches the single
-// next element into the caller's buffer and advances the cursor, returning TRUE
-// while elements remain. Implemented over the class's own public IEnumFORMATETC
-// ::Next, so it stays consistent with m_position/m_count bookkeeping.
+// CEnumFormatEtc::OnNext(void*) — fetch one element through the OpenMFC
+// IEnumFORMATETC::Next implementation. That local Next advances m_position
+// and clears ptd rather than copying a DVTARGETDEVICE. The retail OnNext
+// symbol has no resolved RVA in the supplied map, so no retail-body claim is
+// made here.
 // Symbol: ?OnNext@CEnumFormatEtc@@MEAAHPEAX@Z
 extern "C" int MS_ABI impl__OnNext_CEnumFormatEtc__MEAAHPEAX_Z(CEnumFormatEtc* pThis, void* pv)
 {
@@ -111,9 +112,12 @@ void CEnumFormatEtc::AddFormat(const FORMATETC& formatEtc) {
 }
 
 // === Moved from ManualThunks.cpp ===
+// Retail AddFormat (RVA 0x253880, mfc140u) uses the format array, count, and
+// capacity at +0x50, +0x5c, and +0x70. OpenMFC's class has a different layout,
+// so route through its local method rather than applying retail offsets; that
+// method uses the declared fields and a different capacity-growth policy.
 // Symbol: ?AddFormat@CEnumFormatEtc@@QEAAXPEBUtagFORMATETC@@@Z
-extern "C" void MS_ABI impl__AddFormat_CEnumFormatEtc__QEAAXPEBUtagFORMATETC___Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
+extern "C" void MS_ABI impl__AddFormat_CEnumFormatEtc__QEAAXPEBUtagFORMATETC___Z(CEnumFormatEtc* pThis, const FORMATETC* pFormatEtc) {
+    pThis->AddFormat(*pFormatEtc);
 }
 

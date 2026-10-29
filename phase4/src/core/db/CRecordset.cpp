@@ -24,6 +24,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CRecordset__SAPEAUCRuntimeCl
     return CRecordset::GetThisClass();
 }
 extern "C" BOOL MS_ABI impl__AllocHstmt_CRecordset__IEAAHXZ(CRecordset*);
+// Stub: disas.py could not resolve this export; the SDK only documents when this hook is called.
 // Symbol: ?PreBindFields@CRecordset@@UEAAXXZ
 extern "C" void MS_ABI impl__PreBindFields_CRecordset__UEAAXXZ(CRecordset*) {}
 CRecordset::CRecordset(CDatabase* database) : m_pDatabase(database) {

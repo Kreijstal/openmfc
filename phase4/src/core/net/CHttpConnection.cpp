@@ -147,6 +147,11 @@ CHttpFile* CHttpConnection::OpenRequest(const wchar_t* pstrVerb,
 
     return new CHttpFile(hRequest, m_hConnection, pstrVerb, pstrObjectName, this);
 }
+// Retained pre-existing C++ approximation: retail's integer export treats its first
+// argument as a verb selector (POST, GET, HEAD, PUT, LINK, DELETE, UNLINK), and
+// substitutes the connection context when dwContext is 1. This helper instead ORs
+// the integer into WinInet flags and passes the context through; the export thunk below
+// follows the retail behavior without changing this pre-existing implementation.
 CHttpFile* CHttpConnection::OpenRequest(DWORD dwRequestFlags,
                                          const wchar_t* pstrVerb,
                                          const wchar_t* pstrObjectName,
@@ -175,15 +180,28 @@ CHttpFile* CHttpConnection::OpenRequest(DWORD dwRequestFlags,
 
 // === Moved from ManualThunks.cpp ===
 // Symbol: ?OpenRequest@CHttpConnection@@QEAAPEAVCHttpFile@@HPEB_W0_KPEAPEB_W0K@Z
-extern "C" void* MS_ABI impl__OpenRequest_CHttpConnection__QEAAPEAVCHttpFile__HPEB_W0_KPEAPEB_W0K_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    (void)p5;
-    (void)p6;
-    return nullptr;
+// Retail mfc140u entry RVA 0x230700 maps verb indices 0..6 to POST, GET, HEAD,
+// PUT, LINK, DELETE, UNLINK and delegates to the string overload at entry RVA
+// 0x230650. That body substitutes the connection context for dwContext == 1,
+// defaults the HTTP version to HTTP/1.0, calls HttpOpenRequestW, then constructs
+// CHttpFile. Retail reads its context at this+0x10; use OpenMFC's typed member here
+// because CInternetConnection has a different member order in this implementation.
+extern "C" CHttpFile* MS_ABI impl__OpenRequest_CHttpConnection__QEAAPEAVCHttpFile__HPEB_W0_KPEAPEB_W0K_Z(
+    CHttpConnection* pThis, int nVerb, const wchar_t* pstrObjectName,
+    const wchar_t* pstrReferer, unsigned __int64 dwContext,
+    const wchar_t** pstrAcceptTypes, const wchar_t* pstrVersion, unsigned long dwFlags) {
+    static const wchar_t* const verbs[] = {
+        L"POST", L"GET", L"HEAD", L"PUT", L"LINK", L"DELETE", L"UNLINK"
+    };
+    const wchar_t* pstrVerb = (nVerb >= 0 && nVerb < 7) ? verbs[nVerb] : L"";
+    const DWORD_PTR context = dwContext == 1 ? pThis->m_dwContext : dwContext;
+    const wchar_t* version = pstrVersion ? pstrVersion : L"HTTP/1.0";
+
+    HINTERNET hRequest = HttpOpenRequestW(
+        pThis->m_hConnection, pstrVerb, pstrObjectName, version, pstrReferer,
+        pstrAcceptTypes, dwFlags, context);
+    if (!hRequest) return nullptr;
+
+    return new CHttpFile(hRequest, pThis->m_hConnection, pstrVerb, pstrObjectName, pThis);
 }
 

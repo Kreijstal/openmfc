@@ -85,6 +85,16 @@ extern "C" int MS_ABI impl__OnCmdMsg_CMDIFrameWnd__UEAAHIHPEAXPEAUAFX_CMDHANDLER
 extern "C" int MS_ABI impl__OnCommand_CMDIFrameWnd__MEAAH_K_J_Z(CMDIFrameWnd* pThis, WPARAM wParam, LPARAM lParam) {
     return impl__OnCommand_CFrameWnd__MEAAH_K_J_Z(pThis, wParam, lParam);
 }
+// STUB: Retail entry RVA 0x2a65c0 (mfc140u) uses the following branches: when
+// lParam is null it calls CFrameWnd::IsTracking (entry RVA 0x291d40), and only
+// if that returns true reads vtable byte offset +0x310 (slot 98) and adds
+// 0x10000 to the result. It then gets the active MDI child (entry RVA 0x2a6ad0)
+// and, if present, dispatches message 0x365 through AfxCallWndProc (entry RVA
+// 0x28aa70); a nonzero child result returns 1. Otherwise it calls
+// CFrameWnd::OnCommandHelp (entry RVA 0x29d240) with the chosen context, then
+// may call a module-state object's virtual slot +0x1a0. OpenMFC has no verified
+// slot-98 accessor, so this body remains stubbed rather than making an unverified
+// virtual call or substituting ::SendMessage for AfxCallWndProc.
 // Symbol: ?OnCommandHelp@CMDIFrameWnd@@IEAA_J_K_J@Z
 extern "C" LRESULT MS_ABI impl__OnCommandHelp_CMDIFrameWnd__IEAA_J_K_J_Z(
     CMDIFrameWnd* pThis, WPARAM wParam, LPARAM lParam) {
@@ -201,18 +211,36 @@ int CMDIFrameWnd::CreateClient(void* lpCreateStruct, CMenu* pWindowMenu) {
 
     return m_hWndMDIClient != nullptr;
 }
+// Retail CMDIFrameWnd::GetWindowMenuPopup entry RVA 0x2a7780 (mfc140u):
+// search top-level menu positions from last to first, returning the first submenu
+// containing an item ID in [0xE130, 0xE13F].
+static HMENU FindMdiWindowMenuPopup(HMENU hMenuBar) {
+    if (!hMenuBar) return nullptr;
+
+    int nTopLevel = ::GetMenuItemCount(hMenuBar);
+    while (nTopLevel > 0) {
+        HMENU hSubMenu = ::GetSubMenu(hMenuBar, --nTopLevel);
+        if (!hSubMenu) continue;
+
+        int nItems = ::GetMenuItemCount(hSubMenu);
+        for (int i = 0; i < nItems; ++i) {
+            UINT nID = ::GetMenuItemID(hSubMenu, i);
+            if (nID >= 0xE130 && nID <= 0xE13F) return hSubMenu;
+        }
+    }
+    return nullptr;
+}
+// Preserve this pre-existing source-helper behavior: it recognizes a submenu
+// containing the first MDI-child command (0xFF00). The retail-transcribed helper
+// used by the exported thunk scans backward for an ID in [0xE130, 0xE13F].
 HWND CMDIFrameWnd::GetWindowMenuPopup(HMENU hMenuBar) {
     if (!hMenuBar) return nullptr;
 
-    // Find the Window menu by looking for one with MDI child items
     int nCount = ::GetMenuItemCount(hMenuBar);
     for (int i = 0; i < nCount; i++) {
         HMENU hSubMenu = ::GetSubMenu(hMenuBar, i);
-        if (hSubMenu) {
-            // Check if this submenu has the tile/cascade commands
-            if (::GetMenuState(hSubMenu, 0xFF00, MF_BYCOMMAND) != (UINT)-1) {
-                return (HWND)(UINT_PTR)hSubMenu;
-            }
+        if (hSubMenu && ::GetMenuState(hSubMenu, 0xFF00, MF_BYCOMMAND) != (UINT)-1) {
+            return (HWND)(UINT_PTR)hSubMenu;
         }
     }
     return nullptr;
@@ -273,11 +301,10 @@ void CMDIFrameWnd::MDICascade(int nType) {
     }
 }
 
-// === Moved from ManualThunks.cpp ===
 // Symbol: ?GetWindowMenuPopup@CMDIFrameWnd@@UEAAPEAUHMENU__@@PEAU2@@Z
-extern "C" void* MS_ABI impl__GetWindowMenuPopup_CMDIFrameWnd__UEAAPEAUHMENU____PEAU2__Z(void* pThis, void* p0) {
+extern "C" HMENU MS_ABI impl__GetWindowMenuPopup_CMDIFrameWnd__UEAAPEAUHMENU____PEAU2__Z(
+    CMDIFrameWnd* pThis, HMENU hMenuBar) {
     (void)pThis;
-    (void)p0;
-    return nullptr;
+    return FindMdiWindowMenuPopup(hMenuBar);
 }
 

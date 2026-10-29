@@ -8,12 +8,27 @@
 #endif
 #endif
 
-// Retain the harvested export's storage bound, including its trailing padding.
+// ?afxData is data at RVA 0x3c32c0 (mfc140u). Preserve its existing 176-byte
+// storage extent: the shadow has a 120-byte known prefix and an opaque tail.
+// Retail's initializer entry RVA 0x2270 (mfc140u) stores 2 at AUX_DATA+0x10
+// and +0x14 (instruction RVAs 0x22c8 and 0x22ce).
+namespace openmfc { namespace detail {
+struct AuxDataExportStorage {
+    AuxData data;
+    unsigned char trailing[176 - sizeof(AuxData)];
+};
+static_assert(offsetof(AuxDataExportStorage, data) == 0, "afxData shadow prefix offset");
+static_assert(offsetof(AuxDataExportStorage, trailing) == sizeof(AuxData), "afxData opaque tail offset");
+static_assert(sizeof(AuxDataExportStorage) == 176, "afxData export storage extent");
+static_assert(offsetof(AuxData, cxBorder2) == 0x10, "retail AUX_DATA::cxBorder2 offset");
+static_assert(offsetof(AuxData, cyBorder2) == 0x14, "retail AUX_DATA::cyBorder2 offset");
+} }
+
 // Symbol: ?afxData@@3UAUX_DATA@@A
-extern "C" alignas(16) unsigned char MS_ABI impl__afxData__3UAUX_DATA__A[176] = {};
+extern "C" alignas(16) openmfc::detail::AuxDataExportStorage MS_ABI impl__afxData__3UAUX_DATA__A = {};
 
 namespace openmfc { namespace detail {
-AuxData& GetAuxData() { return *reinterpret_cast<AuxData*>(impl__afxData__3UAUX_DATA__A); }
+AuxData& GetAuxData() { return impl__afxData__3UAUX_DATA__A.data; }
 void UpdateAuxDataMetrics() {
     auto& data=GetAuxData();
     data.cxIcon=::GetSystemMetrics(SM_CXICON);

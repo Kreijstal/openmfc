@@ -46,12 +46,12 @@ BOOL COleTemplateServer::OnCmdMsg(UINT nID, int nCode, void* pExtra,
 }
 
 // === Moved from ManualThunks.cpp ===
+// Retail mfc140u RVA 0x26bb00 writes through retail-specific object offsets and conditionally creates rich-preview metadata. Use the OpenMFC member implementation for its declared layout; rich-preview metadata is not modeled here.
 // Symbol: ?ConnectTemplate@COleTemplateServer@@QEAAXAEBU_GUID@@PEAVCDocTemplate@@HH@Z
-extern "C" void MS_ABI impl__ConnectTemplate_COleTemplateServer__QEAAXAEBU_GUID__PEAVCDocTemplate__HH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
+extern "C" void MS_ABI impl__ConnectTemplate_COleTemplateServer__QEAAXAEBU_GUID__PEAVCDocTemplate__HH_Z(
+    COleTemplateServer* pThis, REFCLSID clsid, CDocTemplate* pDocTemplate,
+    BOOL bMultiInstance, BOOL bRegisterRichPreviewHandler) {
+    (void)bRegisterRichPreviewHandler;
+    pThis->ConnectTemplate(clsid, pDocTemplate, bMultiInstance);
 }
 

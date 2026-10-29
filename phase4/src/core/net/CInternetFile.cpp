@@ -227,14 +227,23 @@ int CInternetFile::SetWriteBufferSize(UINT nWriteSize) {
 
 // === Moved from ManualThunks.cpp ===
 // Symbol: ??0CInternetFile@@IEAA@PEAX0PEB_W1_KH@Z
-extern "C" void* MS_ABI impl___0CInternetFile__IEAA_PEAX0PEB_W1_KH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4, void* p5) {
-    (void)pThis;
-    (void)p0;
+// Retail body at RVA 0x22e480 (mfc140u) calls the CStdioFile base constructor and
+// installs its vftable, stores dwContext at +0x40, initializes the server CString at
+// +0x50, assigns pstrFileName to the inherited CString at +0x18 and pstrServer to the
+// CString at +0x50, then stores hFile at +0x30 and bReadMode at +0x38 and zeros buffer
+// state at +0x58, +0x60, +0x68, +0x70, and +0x78. OpenMFC's CInternetFile declaration
+// lacks bReadMode, m_hConnection, the server-name CString, and those buffer members; its
+// context follows hFile directly. Leave this unconstructed until the class layout is
+// corrected.
+extern "C" void* MS_ABI impl___0CInternetFile__IEAA_PEAX0PEB_W1_KH_Z(
+    void* pThis, HINTERNET hFile, void* p1, const wchar_t* pstrFileName,
+    const wchar_t* pstrServer, DWORD_PTR dwContext, BOOL bReadMode) {
+    (void)hFile;
     (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    (void)p5;
-    return nullptr;
+    (void)pstrFileName;
+    (void)pstrServer;
+    (void)dwContext;
+    (void)bReadMode;
+    return pThis;
 }
 

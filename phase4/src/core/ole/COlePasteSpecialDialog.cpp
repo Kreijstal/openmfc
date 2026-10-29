@@ -7,9 +7,9 @@
 
 // Real parameterized-constructor export thunks for header-defined, publicly
 // constructible MFC classes. Each viewed-as MS_ABI thunk placement-constructs
-// the object with the real ctor body (defined in filecore/olecore/dlgcommon/
-// inetcore or inline in headers) -- NOT a stub. Completes classes that were one
-// export short of full coverage.
+// the object with its real constructor body (defined in this file, in companion
+// implementation files, or inline in headers) -- NOT a stub. Completes classes
+// that were one export short of full coverage.
 #include "openmfc/afx.h"
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
@@ -18,11 +18,102 @@
 #include "openmfc/afxdb.h"
 #include "openmfc/afxinet.h"
 #include <new>
+#include <cstdlib>
+#include <atomic>
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+namespace {
+struct PasteSpecialLinkTypesStorage {
+    COlePasteSpecialDialog* owner;
+    UINT* values;
+    PasteSpecialLinkTypesStorage* next;
+};
+
+std::atomic_flag g_pasteSpecialLinkTypesLock = ATOMIC_FLAG_INIT;
+PasteSpecialLinkTypesStorage* g_pasteSpecialLinkTypes = nullptr;
+
+struct PasteSpecialLinkTypesLock {
+    PasteSpecialLinkTypesLock() {
+        while (g_pasteSpecialLinkTypesLock.test_and_set(std::memory_order_acquire)) {
+        }
+    }
+    ~PasteSpecialLinkTypesLock() {
+        g_pasteSpecialLinkTypesLock.clear(std::memory_order_release);
+    }
+};
+
+// The retail dialog uses eight inline UINTs at this+0x1c0. That range is
+// occupied by OpenMFC's public tail fields, so keep the equivalent list in a
+// side allocation rather than aliasing m_dwFlags/m_pDataObject.
+bool AddPasteSpecialLinkType(COlePasteSpecialDialog* dialog, UINT formatId, UINT& flag) {
+    PasteSpecialLinkTypesLock lock;
+    PasteSpecialLinkTypesStorage* storage = g_pasteSpecialLinkTypes;
+    while (storage && storage->owner != dialog) {
+        storage = storage->next;
+    }
+    if (!storage) {
+        void* allocation = std::malloc(sizeof(PasteSpecialLinkTypesStorage) + 8 * sizeof(UINT));
+        if (!allocation) {
+            return false;
+        }
+        storage = static_cast<PasteSpecialLinkTypesStorage*>(allocation);
+        storage->owner = dialog;
+        storage->values = reinterpret_cast<UINT*>(storage + 1);
+        memset(storage->values, 0, 8 * sizeof(UINT));
+        storage->next = g_pasteSpecialLinkTypes;
+        g_pasteSpecialLinkTypes = storage;
+    }
+
+    // If a caller replaced the public structure's pointer, preserve its current
+    // entries before restoring the storage owned by this implementation.
+    if (dialog->m_ps.arrLinkTypes != storage->values) {
+        int count = dialog->m_ps.cLinkTypes;
+        if (count < 0) count = 0;
+        if (count > 8) count = 8;
+        if (dialog->m_ps.arrLinkTypes && count != 0) {
+            memcpy(storage->values, dialog->m_ps.arrLinkTypes,
+                   static_cast<size_t>(count) * sizeof(UINT));
+        }
+        dialog->m_ps.cLinkTypes = count;
+        dialog->m_ps.arrLinkTypes = storage->values;
+    }
+
+    int count = dialog->m_ps.cLinkTypes;
+    if (count < 0) count = 0;
+    if (count > 8) count = 8;
+    int index = 0;
+    while (index < count && storage->values[index] != formatId) {
+        ++index;
+    }
+    if (index == 8) {
+        flag = 0;
+        return true;
+    }
+    storage->values[index] = formatId;
+    if (index == count) {
+        dialog->m_ps.cLinkTypes = count + 1;
+    }
+    flag = 1u << index;
+    return true;
+}
+
+void ReleasePasteSpecialLinkTypes(COlePasteSpecialDialog* dialog) {
+    PasteSpecialLinkTypesLock lock;
+    PasteSpecialLinkTypesStorage** link = &g_pasteSpecialLinkTypes;
+    while (*link && (*link)->owner != dialog) {
+        link = &(*link)->next;
+    }
+    if (*link) {
+        PasteSpecialLinkTypesStorage* storage = *link;
+        *link = storage->next;
+        std::free(storage);
+    }
+}
+} // namespace
 
 
 
@@ -55,6 +146,7 @@ COlePasteSpecialDialog::COlePasteSpecialDialog(DWORD dwFlags, COleDataObject* pD
     memset(_olepastepecialdialog_padding, 0, sizeof(_olepastepecialdialog_padding));
 }
 COlePasteSpecialDialog::~COlePasteSpecialDialog() {
+    ReleasePasteSpecialLinkTypes(this);
 }
 intptr_t COlePasteSpecialDialog::DoModal() {
     UINT result = OleUIPasteSpecialW(&m_ps);
@@ -138,13 +230,36 @@ void COlePasteSpecialDialog::AddStandardFormats(BOOL bEnableLink) {
 }
 
 // === Moved from ManualThunks.cpp ===
+// Retail AddFormat entry RVA 0x24e3c0 (mfc140u) calls AddLinkEntry entry RVA
+// 0x24e350 (mfc140u) for link formats. Retail's eight inline link IDs overlap
+// OpenMFC's public tail, so this thunk keeps the same bounded/deduplicated list
+// in owned side storage. Display labels use the existing generic helper above;
+// retail instead loads localized labels from the resource identified by nFormatID.
 // Symbol: ?AddFormat@COlePasteSpecialDialog@@QEAAXIKIHH@Z
-extern "C" void MS_ABI impl__AddFormat_COlePasteSpecialDialog__QEAAXIKIHH_Z(void* pThis, void* p0, void* p1, void* p2, void* p3, void* p4) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
+extern "C" void MS_ABI impl__AddFormat_COlePasteSpecialDialog__QEAAXIKIHH_Z(
+        COlePasteSpecialDialog* pThis, UINT cfFormat, DWORD tymed, UINT nFormatID,
+        BOOL bEnableIcon, BOOL bLink) {
+    static wchar_t szFormat[] = L"Format";
+    static wchar_t szPasteResult[] = L"Paste";
+    static wchar_t szLinkResult[] = L"Link";
+
+    UINT linkFlag = 0;
+    if (bLink && !AddPasteSpecialLinkType(pThis, nFormatID, linkFlag)) {
+        return;
+    }
+
+    FORMATETC formatEtc = {};
+    formatEtc.cfFormat = static_cast<CLIPFORMAT>(cfFormat);
+    formatEtc.dwAspect = DVASPECT_CONTENT;
+    formatEtc.lindex = -1;
+    formatEtc.tymed = static_cast<DWORD>(tymed);
+
+    DWORD flags = bEnableIcon ? OLEUIPASTE_PASTE | OLEUIPASTE_ENABLEICON
+                              : OLEUIPASTE_PASTE;
+    flags |= linkFlag;
+    if (flags == OLEUIPASTE_PASTE) {
+        flags = OLEUIPASTE_PASTEONLY;
+    }
+    pThis->AddFormat(formatEtc, szFormat, bLink ? szLinkResult : szPasteResult, flags);
 }
 
