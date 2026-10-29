@@ -80,7 +80,7 @@ extern "C" unsigned long MS_ABI impl__OnFillBackground_CMFCRibbonButton__UEAAKPE
 // not modeled.
 // Symbol: ?OnLButtonDown@CMFCRibbonButton@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonButton__MEAAXVCPoint___Z(
-    CMFCRibbonButton* pThis, CPoint /*pt*/)
+    CMFCRibbonButton* pThis, long long /*point*/)
 {
     if (!pThis) return;
 }
@@ -91,7 +91,7 @@ extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonButton__MEAAXVCPoint___Z(
 // modeled.
 // Symbol: ?OnLButtonUp@CMFCRibbonButton@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonButton__MEAAXVCPoint___Z(
-    CMFCRibbonButton* pThis, CPoint /*pt*/)
+    CMFCRibbonButton* pThis, long long /*point*/)
 {
     if (!pThis) return;
 }
@@ -103,7 +103,7 @@ extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonButton__MEAAXVCPoint___Z(
 // modeled.
 // Symbol: ?OnMouseMove@CMFCRibbonButton@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonButton__MEAAXVCPoint___Z(
-    CMFCRibbonButton* pThis, CPoint /*pt*/)
+    CMFCRibbonButton* pThis, long long /*point*/)
 {
     if (!pThis) return;
 }
@@ -132,9 +132,9 @@ extern "C" void MS_ABI impl__RemoveAllSubItems_CMFCRibbonButton__QEAAXXZ(
     if (!pThis) return;
 }
 // CMFCRibbonButton::RemoveSubItem(int) -- retail validates nIndex against the
-// sub-item count (+0x258), deletes and erases a valid item, and returns TRUE;
-// it returns FALSE for an out-of-range index. The old OpenMFC fallback always
-// returns FALSE because the sub-item array is not modeled (a deviation for valid indices).
+// sub-item count (+0x258), deletes a non-null item, erases a valid entry, and
+// returns TRUE; it returns FALSE for an out-of-range index. The old OpenMFC
+// fallback always returns FALSE because the sub-item array is not modeled.
 // TODO(clean-room): sub-items are not modeled; retain the safe failure fallback.
 // Symbol: ?RemoveSubItem@CMFCRibbonButton@@QEAAHH@Z
 extern "C" int MS_ABI impl__RemoveSubItem_CMFCRibbonButton__QEAAHH_Z(
@@ -182,10 +182,11 @@ extern "C" void MS_ABI impl__SetMenu_CMFCRibbonButton__QEAAXIHH_Z(
     if (!pThis) return;
 }
 // CMFCRibbonButton::SetMenu(HMENU, int, int) -- retail (RVA 0xe52c0 (mfc140u),
-// about 0x2c0 bytes) resets +0x21c/+0x1c4, releases a previously owned menu
-// (+0x1d0 when +0x1f0 is set), stores the new HMENU at +0x1d0, enumerates menu
-// items into the sub-item CArray (+0x248/+0x250/+0x258), and rebuilds ghost-menu
-// state. None of this state is modeled.
+// about 0x2c0 bytes) resets +0x21c/+0x1c4, releases a non-null owned menu
+// (+0x1d0 when +0x1f0 is set), and clears +0x1f0. A global branch gate then
+// either stores the supplied HMENU at +0x1d0 and returns, or parses its items
+// into the sub-item CArray (+0x248/+0x250/+0x258) and updates ghost-menu state
+// as applicable. None of this state is modeled.
 // TODO(clean-room): transcribed partially -- menu/sub-item state is not
 // modeled.
 // Symbol: ?SetMenu@CMFCRibbonButton@@QEAAXPEAUHMENU__@@HH@Z
@@ -195,9 +196,9 @@ extern "C" void MS_ABI impl__SetMenu_CMFCRibbonButton__QEAAXPEAUHMENU____HH_Z(
     if (!pThis) return;
 }
 // CMFCRibbonButton::SetOriginal(CMFCRibbonBaseElement*) -- retail walks the
-// pOriginal chain (+0xe8) to the last non-null link, stores it at +0xe8, and
-// when the source is a CMFCRibbonButton clones its sub-items into this
-// button.  The pOriginal member and sub-item array are not modeled.
+// pOriginal chain (+0xe8) to the last non-null link and stores it at +0xe8.
+// If the source is a CMFCRibbonButton with the same sub-item count, it clones
+// those sub-items into this button. The link and sub-item array are not modeled.
 // TODO(clean-room): transcribed partially -- the original-link chain and
 // sub-items are not modeled.
 // Symbol: ?SetOriginal@CMFCRibbonButton@@MEAAXPEAVCMFCRibbonBaseElement@@@Z
@@ -263,15 +264,18 @@ extern "C" int MS_ABI impl__AddToListBox_CMFCRibbonButton__MEAAHPEAVCMFCRibbonCo
     return 0;
 }
 
-// Stub: mfc140u RVA 0xe8850 closes each sub-item popup then calls the base
-// close routine; the sub-item array (+0x250/+0x258) is not modeled.
+// Stub: mfc140u RVA 0xe8850 walks the sub-item array (+0x250/+0x258), calls
+// each child's vtable byte offset +0x340, then tail-jumps to
+// CMFCRibbonBaseElement::ClosePopupMenu (RVA 0x110a0, mfc140u). The declared
+// button has neither the retail array layout nor matching virtual slots.
 // Symbol: ?ClosePopupMenu@CMFCRibbonButton@@UEAAXXZ
 extern "C" void MS_ABI impl__ClosePopupMenu_CMFCRibbonButton__UEAAXXZ(CMFCRibbonButton* pThis) {
     (void)pThis;
 }
 
-// Stub: mfc140u RVA 0xe5080 initializes button members through +0x218 and
-// calls helpers on rectangle members at +0x198 and +0x1a8; those fields are not modeled.
+// Stub: mfc140u RVA 0xe5080 writes button state fields in +0x180..+0x218
+// and calls the same indirect helper with addresses at +0x198 and +0x1a8.
+// These retail fields are absent from the declared button layout.
 // Symbol: ?CommonInit@CMFCRibbonButton@@IEAAXXZ
 extern "C" void MS_ABI impl__CommonInit_CMFCRibbonButton__IEAAXXZ(CMFCRibbonButton* pThis) {
     (void)pThis;
@@ -312,8 +316,9 @@ extern "C" int MS_ABI impl__DrawRibbonText_CMFCRibbonButton__UEAAHPEAVCDC__AEBV_
     return 0;
 }
 
-// Stub: mfc140u RVA 0xe9430 manipulates the sub-item array and enumerates
-// application windows into this button; neither state nor menu plumbing is modeled.
+// Stub: mfc140u RVA 0xe9430 clears/rebuilds window-list sub-items, traversing
+// the array at +0x248/+0x250/+0x258 and using button/window state. That array
+// and the required retail button fields are absent from the declared layout.
 // Symbol: ?FillWindowList@CMFCRibbonButton@@IEAAXXZ
 extern "C" void MS_ABI impl__FillWindowList_CMFCRibbonButton__IEAAXXZ(CMFCRibbonButton* pThis) {
     (void)pThis;
@@ -366,8 +371,9 @@ extern "C" void MS_ABI impl__GetElementsByID_CMFCRibbonButton__MEAAXIAEAV__CArra
     }
 }
 
-// Stub: mfc140u RVA 0xe9790 reads a pointer at +0xf0, then fields at +0x190
-// relative to that object and +0x100 relative to this; the layout is unmodeled.
+// Stub: mfc140u RVA 0xe9790 reads this+0xf0, the referenced object's +0x190,
+// and conditionally this+0x100 to compute 0, 1, or 2. Those base/button/group
+// fields are not represented at the retail offsets in the declared layout.
 // Symbol: ?GetGroupButtonExtraWidth@CMFCRibbonButton@@IEAAHXZ
 extern "C" int MS_ABI impl__GetGroupButtonExtraWidth_CMFCRibbonButton__IEAAHXZ(CMFCRibbonButton* pThis) {
     (void)pThis;
@@ -403,8 +409,10 @@ extern "C" CString* MS_ABI impl__GetToolTipText_CMFCRibbonButton__UEBA_AV__CStri
     return pResult;
 }
 
-// Stub: mfc140u RVA 0xe7500 calls a fixed helper then virtual slots +0x280
-// and +0x288 depending on its result; this button's interaction state is unmodeled.
+// Stub: mfc140u RVA 0xe7500 calls NotifyCommand(this, 1) and returns if it is
+// nonzero; otherwise it calls virtual byte slot +0x280, then calls +0x288 only
+// if the first slot returns nonzero. The NotifyCommand thunk is itself a stub,
+// and this declaration does not model the retail vtable slots.
 // Symbol: ?OnAccDefaultAction@CMFCRibbonButton@@UEAAXXZ
 extern "C" void MS_ABI impl__OnAccDefaultAction_CMFCRibbonButton__UEAAXXZ(CMFCRibbonButton* pThis) {
     (void)pThis;
@@ -437,8 +445,9 @@ extern "C" void MS_ABI impl__OnDrawOnList_CMFCRibbonButton__MEAAXPEAVCDC__V__CSt
     (void)rect; (void)bIsSelected; (void)bHighlighted;
 }
 
-// Stub: no retail RVA resolves for this export in the supplied disassembler;
-// no behavior was established and the button's key/menu state is not modeled.
+// Stub: the ANSI twin's body at RVA 0xe9b40 (mfc140) dispatches through
+// several virtual slots and reads button/menu state; the mfc140u symbol is
+// unresolved by the supplied map, and that state/slot layout is not modeled.
 // Symbol: ?OnKey@CMFCRibbonButton@@MEAAHH@Z
 extern "C" int MS_ABI impl__OnKey_CMFCRibbonButton__MEAAHH_Z(
     CMFCRibbonButton* pThis, int bIsMenuKey) {

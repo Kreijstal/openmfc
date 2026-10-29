@@ -11,6 +11,9 @@
 class CMFCRibbonQuickAccessToolBar;
 class CMFCRibbonCmdUI;
 
+extern "C" void MS_ABI impl__Add_CMFCRibbonQuickAccessToolBar__IEAAXPEAVCMFCRibbonBaseElement___Z(
+    CMFCRibbonQuickAccessToolBar* pThis, CMFCRibbonBaseElement* pElement);
+
 // Symbol: ?SetToolTipText@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetToolTipText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* lpszText) {
     if (!pThis) return;
@@ -56,10 +59,12 @@ extern "C" void MS_ABI impl__GetDescription_CMFCRibbonBaseElement__UEBA_AV__CStr
     BuildCStringResult(pRet, (const wchar_t*)text);
 }
 // CMFCRibbonBaseElement::AddToKeyList(CArray<CMFCRibbonKeyTip*,
-// CMFCRibbonKeyTip*>&) -- retail creates one or two CMFCRibbonKeyTip objects
-// (0x18010e010, size 0x108, depending on a global "key tips enabled" flag at
-// 0x1802c7b30) and appends them to the array.  CMFCRibbonKeyTip is not
-// declared and key-tip state is not modeled.
+// CMFCRibbonKeyTip*>&) -- retail RVA 0x119b0 (mfc140u) attempts to allocate
+// 0x108 bytes, constructs a CMFCRibbonKeyTip (constructor RVA 0x10e010,
+// mfc140u) on success, and appends the resulting pointer. If the key-tip string
+// at +0xb0 is nonempty and the virtual at vtable+0x280 returns true, it also
+// attempts to allocate, construct, and append a second key tip. The type/state
+// are not modeled.
 // TODO(clean-room): transcribed partially -- key-tip objects are not modeled.
 // Symbol: ?AddToKeyList@CMFCRibbonBaseElement@@UEAAXAEAV?$CArray@PEAVCMFCRibbonKeyTip@@PEAV1@@@@Z
 extern "C" void MS_ABI impl__AddToKeyList_CMFCRibbonBaseElement__UEAAXAEAV__CArray_PEAVCMFCRibbonKeyTip__PEAV1____Z(
@@ -81,15 +86,15 @@ extern "C" int MS_ABI impl__AddToListBox_CMFCRibbonBaseElement__UEAAHPEAVCMFCRib
     return FALSE;
 }
 // CMFCRibbonBaseElement::CanBeAddedToQuickAccessToolBar() const -- retail
-// (RVA 0x11120) returns FALSE for the AFX internal command-ID ranges
-// ([0xe120..0xf000], [1..0xe10f], [0xe210..0xe21f], >= 0xff00 signed) and for
-// the IDs 0 / [0xe110..0xe11f] / [0xf001..0xf1ef], and additionally when the
-// ID equals the command ID of a global object at 0x1803be3b0 (offset +0x40,
-// an unmapped app-context global).  The ID-range logic is transcribed exactly
-// from the retail compare/branch sequence; only the final global-object
-// comparison is omitted because that global is not modeled.
-// TODO(clean-room): transcribed partially -- the +0x1803be3b0 global
-// app-context ID comparison is not modeled.
+// RVA 0x11120 (mfc140u) admits IDs in [1..0xe10f], [0xe120..0xefff], and
+// [0xf1f0..0xffffffff] through its first range gate, then rejects signed IDs
+// >= 0xff00 and [0xe210..0xe21f]. Thus 0, [0xe110..0xe11f], and
+// [0xf000..0xf1ef] fail the range gate. Retail also rejects an ID matching
+// the +0x40 field of the global pointer at RVA 0x3be3b0 (mfc140u). The range
+// logic below matches the compare/branch sequence; that global comparison is
+// omitted because its object is not modeled.
+// TODO(clean-room): transcribed partially -- the global-object ID comparison
+// at RVA 0x3be3b0 (mfc140u) is not modeled.
 // Symbol: ?CanBeAddedToQuickAccessToolBar@CMFCRibbonBaseElement@@UEBAHXZ
 extern "C" int MS_ABI impl__CanBeAddedToQuickAccessToolBar_CMFCRibbonBaseElement__UEBAHXZ(
     const CMFCRibbonBaseElement* pThis)
@@ -98,9 +103,8 @@ extern "C" int MS_ABI impl__CanBeAddedToQuickAccessToolBar_CMFCRibbonBaseElement
 
     const UINT id = pThis->GetID();
 
-    // First stage: [0xe120..0xf000] and [1..0xe10f] jump straight to the
-    // second stage; the remaining IDs below 0xf1f0 (including 0 and the
-    // [0xe110..0xe11f] gap) return FALSE.
+    // First stage admits [0xe120..0xefff], [1..0xe10f], and
+    // [0xf1f0..0xffffffff]. Other IDs (including 0 and [0xe110..0xe11f]) fail.
     const UINT a0 = id - 0xe120u;
     if (a0 > 0xedfu) {
         const UINT a1 = id - 1u;
@@ -135,13 +139,13 @@ extern "C" void MS_ABI impl__ClosePopupMenu_CMFCRibbonBaseElement__UEAAXXZ(
     if (!pThis) return;
 }
 // CMFCRibbonBaseElement::CopyFrom(const CMFCRibbonBaseElement&) -- retail
-// copies m_nID (+0x118), m_dwData (+0x110), the scalar members at
+// copies m_nID (+0x118), m_dwData (+0x110), scalar members at
 // +0x124/+0x138/+0x15c/+0x160/+0x150/+0x164/+0x16c/+0x174/+0x178, three
-// CStrings (+0xa0/+0xa8/+0xb0), two more CStrings (+0xb8/+0xc0) and the
-// parent pointers (+0xe0/+0xf0).  Only m_nID is modeled, so only it can be
-// copied.
-// TODO(clean-room): transcribed partially -- the non-ID members are not
-// modeled.
+// CStrings (+0xa0/+0xa8/+0xb0), two more CStrings (+0xb8/+0xc0), and parent
+// pointers (+0xe0/+0xf0). This placeholder copies only the modeled command ID;
+// OpenMFC also has m_strText, but its correspondence to these retail strings
+// is not established here.
+// TODO(clean-room): remaining retail state and string mapping are not modeled.
 // Symbol: ?CopyFrom@CMFCRibbonBaseElement@@UEAAXAEBV1@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonBaseElement__UEAAXAEBV1__Z(
     CMFCRibbonBaseElement* pThis, const CMFCRibbonBaseElement& src)
@@ -212,12 +216,11 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__FindByOriginal_CMFCRibbonBaseElem
     if (!pThis) return nullptr;
     return nullptr;
 }
-// CMFCRibbonBaseElement::GetDropDownImageWidth() const -- retail lazily
-// initializes a global "drop-down image width" integer (0x18008f600) and
-// returns its value.  The global is not modeled, so the default width is not
-// reachable; 0 is the safe empty value.
-// TODO(clean-room): transcribed partially -- the global drop-down image width
-// cache is not modeled.
+// CMFCRibbonBaseElement::GetDropDownImageWidth() const -- retail RVA 0x11a90
+// (mfc140u) calls the internal helper at RVA 0x8f600 (mfc140u) with a CSize
+// output buffer and returns its cx field. The helper uses internal global and
+// settings state that this implementation does not model.
+// TODO(clean-room): the helper's global/settings state is not modeled.
 // Symbol: ?GetDropDownImageWidth@CMFCRibbonBaseElement@@MEBAHXZ
 extern "C" int MS_ABI impl__GetDropDownImageWidth_CMFCRibbonBaseElement__MEBAHXZ(
     const CMFCRibbonBaseElement* pThis)
@@ -225,9 +228,9 @@ extern "C" int MS_ABI impl__GetDropDownImageWidth_CMFCRibbonBaseElement__MEBAHXZ
     if (!pThis) return 0;
     return 0;
 }
-// CMFCRibbonBaseElement::GetDroppedDown() -- retail calls the virtual
-// IsDroppedDown (vtable+0x1c0) and returns this when it is non-zero.  The
-// vtable slot is not modeled.
+// CMFCRibbonBaseElement::GetDroppedDown() -- retail calls IsDroppedDown at
+// vtable byte offset +0x1d8 and returns this when it is non-zero. The slot is
+// not modeled.
 // TODO(clean-room): transcribed partially -- drop-down state is not modeled.
 // Symbol: ?GetDroppedDown@CMFCRibbonBaseElement@@UEAAPEAV1@XZ
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetDroppedDown_CMFCRibbonBaseElement__UEAAPEAV1_XZ(
@@ -402,12 +405,14 @@ extern "C" long MS_ABI impl__accHitTest_CMFCRibbonBaseElement__UEAAJJJPEAUtagVAR
     return S_OK;
 }
 // CMFCRibbonBaseElement::accLocation(long*, long*, long*, long*, VARIANT) --
-// retail rejects a NULL output pointer with E_INVALIDARG and returns S_FALSE
-// for any child that is not CHILDID_SELF.  For CHILDID_SELF it computes the
-// element rect (+0xc8) through the parent accessibility object; the rect and
-// the parent are not modeled, so the outputs are zeroed and S_OK returned.
-// TODO(clean-room): transcribed partially -- the element rect and the parent
-// accessibility object are not modeled.
+// retail rejects NULL output pointers with E_INVALIDARG and returns S_FALSE
+// for non-VT_I4 children and negative child IDs. CHILDID_SELF uses the rect
+// at +0xc8 and may transform it through the parent accessibility object;
+// positive child IDs use a virtual child-rect path (vtable+0x160). This
+// placeholder returns S_FALSE for every non-self child and zeroes the self
+// outputs because neither geometry nor accessibility state is modeled.
+// TODO(clean-room): child IDs and the element/parent accessibility geometry
+// paths are not modeled; the child-ID behavior above is intentionally absent.
 // Symbol: ?accLocation@CMFCRibbonBaseElement@@UEAAJPEAJ000UtagVARIANT@@@Z
 extern "C" long MS_ABI impl__accLocation_CMFCRibbonBaseElement__UEAAJPEAJ000UtagVARIANT___Z(
     CMFCRibbonBaseElement* pThis, long* pxLeft, long* pyTop, long* pcxWidth,
@@ -424,12 +429,11 @@ extern "C" long MS_ABI impl__accLocation_CMFCRibbonBaseElement__UEAAJPEAJ000Utag
     return S_OK;
 }
 // CMFCRibbonBaseElement::accNavigate(long, VARIANT, VARIANT*) -- retail
-// returns 1 (S_FALSE) when the accessibility-mode flag at +0x17c is clear,
-// which is the only state OpenMFC can produce; otherwise it walks the parent
-// panel-menu-bar navigation (+0xf0).  The flag and the navigation state are
-// not modeled.
-// TODO(clean-room): transcribed partially -- accessibility navigation state
-// is not modeled.
+// returns S_FALSE when the accessibility-mode flag at +0x17c is clear;
+// otherwise it validates the start VARIANT and walks parent panel-menu-bar
+// navigation (+0xf0). The local placeholder always returns S_FALSE after its
+// own pointer checks; the unmodeled flag is not known to be clear.
+// TODO(clean-room): the enabled accessibility-navigation path is not modeled.
 // Symbol: ?accNavigate@CMFCRibbonBaseElement@@UEAAJJUtagVARIANT@@PEAU2@@Z
 extern "C" long MS_ABI impl__accNavigate_CMFCRibbonBaseElement__UEAAJJUtagVARIANT__PEAU2__Z(
     CMFCRibbonBaseElement* pThis, long /*navDir*/, VARIANT /*varStart*/, VARIANT* pvarEnd)
@@ -439,12 +443,11 @@ extern "C" long MS_ABI impl__accNavigate_CMFCRibbonBaseElement__UEAAJJUtagVARIAN
     return S_FALSE;
 }
 // CMFCRibbonBaseElement::get_accParent(IDispatch**) -- retail rejects a NULL
-// output with E_INVALIDARG, clears the output, and returns 1 (S_FALSE) when
-// the accessibility-mode flag at +0x17c is clear (the only state OpenMFC can
-// produce).  When set it resolves the parent bar's (+0xd8) accessibility
-// object; the flag and the parent are not modeled.
-// TODO(clean-room): transcribed partially -- the parent-bar accessibility
-// object is not modeled.
+// output with E_INVALIDARG, clears the output, and returns S_FALSE when the
+// accessibility-mode flag at +0x17c is clear. When set it resolves the parent
+// bar's (+0xd8) accessibility object. The placeholder always takes the
+// disabled-mode fallback; the unmodeled flag is not known to be clear.
+// TODO(clean-room): the enabled parent-bar accessibility path is not modeled.
 // Symbol: ?get_accParent@CMFCRibbonBaseElement@@UEAAJPEAPEAUIDispatch@@@Z
 extern "C" long MS_ABI impl__get_accParent_CMFCRibbonBaseElement__UEAAJPEAPEAUIDispatch___Z(
     CMFCRibbonBaseElement* pThis, IDispatch** ppdispParent)
@@ -578,13 +581,15 @@ extern "C" void MS_ABI impl__OnAccDefaultAction_CMFCRibbonBaseElement__UEAAXXZ(
 }
 
 // Retail RVA 0x11180 (mfc140u) calls CMFCRibbonQuickAccessToolBar::Add at
-// RVA 0x122fe0 (mfc140u), then returns TRUE. The corresponding Add thunk in
-// CMFCRibbonQuickAccessToolBar.cpp is itself a stub, so it cannot be forwarded.
+// RVA 0x122fe0 (mfc140u), then returns TRUE. OpenMFC's Add thunk accepts both
+// pointer arguments but is itself a no-op placeholder, so the call is retained
+// while the actual QAT insertion remains unavailable.
 // Symbol: ?OnAddToQAToolbar@CMFCRibbonBaseElement@@UEAAHAEAVCMFCRibbonQuickAccessToolBar@@@Z
 extern "C" int MS_ABI impl__OnAddToQAToolbar_CMFCRibbonBaseElement__UEAAHAEAVCMFCRibbonQuickAccessToolBar___Z(
-    CMFCRibbonBaseElement* /*pThis*/, CMFCRibbonQuickAccessToolBar& /*qat*/)
+    CMFCRibbonBaseElement* pThis, CMFCRibbonQuickAccessToolBar& qat)
 {
-    return 0;
+    impl__Add_CMFCRibbonQuickAccessToolBar__IEAAXPEAVCMFCRibbonBaseElement___Z(&qat, pThis);
+    return TRUE;
 }
 
 // Retail RVA 0x10a80 (mfc140u) calls the +0x368 virtual only when the

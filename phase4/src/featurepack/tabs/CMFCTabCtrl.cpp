@@ -7,9 +7,11 @@
 
 // CMFCTabCtrl exports, wave "mfc-feature-8".
 //
-// Each function was decoded from the retail mfc140u export (ordinal -> RVA ->
-// objdump, see /tmp/openmfc_remaining/wave2_mfc-feature-8.txt). The class in
-// include/openmfc/afxmfc.h is modeled as a thin CMFCBaseTabCtrl subclass with
+// Legacy notes below retain absolute VAs from the original mfc140u.dll
+// (Unicode) disassembly; they are not RVAs. New citations name their image
+// explicitly because mfc140.dll (ANSI twin) and mfc140u.dll have different
+// export RVAs. Unavailable layouts and unmapped entries remain partial/stubbed.
+// The class in include/openmfc/afxmfc.h is modeled as a thin CMFCBaseTabCtrl subclass with
 // only 64 bytes of opaque padding, so none of the retail member offsets the
 // disassembly touches (tab header rect 0x44c, style flags 0x3c0..0x3cc,
 // close-button/scroll flags 0x3f4/0x3f8/0x3fc/0x400, scroll offsets 0x414/
@@ -53,6 +55,21 @@ extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(
 extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd* pThis);
 extern "C" void MS_ABI impl__OnHScroll_CWnd__IEAAXIIPEAVCScrollBar___Z(
     CWnd* pThis, unsigned int p0, unsigned int p1, CScrollBar* p2);
+extern "C" void MS_ABI impl__OnSetFocus_CWnd__IEAAXPEAV1__Z(CWnd* pThis, void* pOldWnd);
+extern "C" CWnd* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis);
+extern "C" CWnd* MS_ABI impl__GetActiveWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__XZ(
+    const CMFCBaseTabCtrl* pThis);
+extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
+extern "C" void MS_ABI impl__OnSettingChange_CWnd__IEAAXIPEB_W_Z(
+    CWnd* pThis, unsigned int uFlags, const wchar_t* lpszSection);
+extern "C" void MS_ABI impl__OnSysColorChange_CMFCBaseTabCtrl__IEAAXXZ(
+    CMFCBaseTabCtrl* pThis);
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCBaseTabCtrl__UEAAHPEAUtagMSG___Z(
+    CMFCBaseTabCtrl* pThis, MSG* pMsg);
+extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHIHK_Z(
+    CMFCBaseTabCtrl* pThis, unsigned int nBitmapID, int cx, unsigned long clrTransparent);
+extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHPEAU_IMAGELIST___Z(
+    CMFCBaseTabCtrl* pThis, HIMAGELIST hImageList);
 
 //=============================================================================
 // CMFCTabCtrl::DrawResizeDragRect
@@ -260,15 +277,14 @@ extern "C" CWnd* MS_ABI impl__FindTargetWnd_CMFCTabCtrl__MEAAPEAVCWnd__AEBVCPoin
     // +0x48 flag is set; the header bound and tab rects are not modeled.
     return pThis;
 }
-// Retail (0x18013cc80) looks the icon index up in a global document-icon map
-// (0x1803b1f50) via the internal helper 0x180027e30 and returns the HICON
-// stored at +0x8 of the found entry (or NULL). The global map is not modeled.
+// Retail RVA 0x13cc80 (mfc140u) looks up the command ID in the static
+// document-icon map and returns the HICON at +0x8 of a matching entry, or NULL.
+// The map's CMap storage is not represented in OpenMFC.
 // Symbol: ?GetDocumentIcon@CMFCTabCtrl@@SAPEAUHICON__@@I@Z
 extern "C" HICON MS_ABI impl__GetDocumentIcon_CMFCTabCtrl__SAPEAUHICON____I_Z(
-    unsigned int /*nImage*/)
+    unsigned int /*nCmdID*/)
 {
-    // TODO(clean-room): not transcribed -- retail queries the global document
-    // icon map at 0x1803b1f50; no such registry exists in OpenMFC.
+    // STUB: the retail map backing this lookup is not implemented.
     return nullptr;
 }
 // Retail (0x18013c510): returns -1 when the point is outside the tab-area
@@ -616,114 +632,336 @@ void CMFCTabCtrl::SetTabsHeight(int nTabHeight) {
     TabCtrlState& state = EnsureTabCtrlState(this);
     state.tabsHeight = nTabHeight;
 }
+// Stub placeholder for the static CMap<UINT, UINT, HICON, HICON> export. No
+// retail-compatible map storage is available in this implementation.
 // Symbol: ?m_mapDocIcons@CMFCTabCtrl@@1V?$CMap@IIPEAUHICON__@@PEAU1@@@A
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_mapDocIcons_CMFCTabCtrl__1V__CMap_IIPEAUHICON____PEAU1___A = {};
+extern "C" void* MS_ABI impl__m_mapDocIcons_CMFCTabCtrl__1V__CMap_IIPEAUHICON____PEAU1___A = nullptr;
 
+// STUB: Retail RVA 0x13db10 (mfc140 ANSI twin) resolves the selected tab's
+// MDI/window state and dispatches activation; the required state is unmodeled.
 // Symbol: ?ActivateMDITab@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__ActivateMDITab_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__ActivateMDITab_CMFCTabCtrl__QEAAXH_Z(
+    CMFCTabCtrl* pThis, int iTab)
+{
+    (void)pThis; (void)iTab;
+}
 
+// STUB: Retail RVA 0x1394a0 (mfc140 ANSI twin) lays out per-tab rectangles,
+// buttons, and the strip using state not represented by the opaque class padding.
 // Symbol: ?AdjustTabs@CMFCTabCtrl@@MEAAXXZ
-extern "C" void MS_ABI impl__AdjustTabs_CMFCTabCtrl__MEAAXXZ() {}
+extern "C" void MS_ABI impl__AdjustTabs_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* pThis)
+{
+    (void)pThis;
+}
 
+// STUB: Retail RVA 0x13af90 (mfc140 ANSI twin) updates the strip scroll
+// offsets and scrollbar state using unmodeled geometry and flags.
 // Symbol: ?AdjustTabsScroll@CMFCTabCtrl@@MEAAXXZ
-extern "C" void MS_ABI impl__AdjustTabsScroll_CMFCTabCtrl__MEAAXXZ() {}
+extern "C" void MS_ABI impl__AdjustTabsScroll_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* pThis)
+{
+    (void)pThis;
+}
 
+// STUB: Retail RVA 0x13b750 (mfc140 ANSI twin) adjusts the active child
+// window's scroll/placement from unmodeled tab-control geometry.
 // Symbol: ?AdjustWndScroll@CMFCTabCtrl@@MEAAXXZ
-extern "C" void MS_ABI impl__AdjustWndScroll_CMFCTabCtrl__MEAAXXZ() {}
+extern "C" void MS_ABI impl__AdjustWndScroll_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* pThis)
+{
+    (void)pThis;
+}
 
+// STUB: Retail RVA 0x137d40 (mfc140 ANSI twin) writes style/location state
+// and creates the internal scroll bar; those fields and child objects are absent.
 // Symbol: ?Create@CMFCTabCtrl@@QEAAHW4Style@1@AEBUtagRECT@@PEAVCWnd@@IW4Location@CMFCBaseTabCtrl@@H@Z
-extern "C" int MS_ABI impl__Create_CMFCTabCtrl__QEAAHW4Style_1_AEBUtagRECT__PEAVCWnd__IW4Location_CMFCBaseTabCtrl__H_Z(int /*enum*/ p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, const void* /*struct*/* p7, void* /*class*/* p8, unsigned int p9, int /*enum*/ p10, void* p11, void* p12, void* p13, void* p14, void* p15, void* p16, void* p17, void* p18, void* p19, float p20, short p21, void* p22, void* p23, void* p24, void* p25, void* p26, void* p27, void* p28, void* p29, void* p30, void* p31, void* p32, void* p33, int p34) {
-    return 0;
+extern "C" int MS_ABI impl__Create_CMFCTabCtrl__QEAAHW4Style_1_AEBUtagRECT__PEAVCWnd__IW4Location_CMFCBaseTabCtrl__H_Z(
+    CMFCTabCtrl* pThis, int style, const RECT* pRect, CWnd* pParentWnd,
+    unsigned int nID, int location, int bCloseBtn)
+{
+    (void)pThis; (void)style; (void)pRect; (void)pParentWnd;
+    (void)nID; (void)location; (void)bCloseBtn;
+    return FALSE;
 }
 
+// STUB: Retail RVA 0x139f70 (mfc140 ANSI twin) checks style/rectangle
+// conditions and invokes global drawing services; the geometry and renderer are unmodeled.
 // Symbol: ?Draw3DTab@CMFCTabCtrl@@MEAAXPEAVCDC@@PEAVCMFCTabInfo@@H@Z
-extern "C" void MS_ABI impl__Draw3DTab_CMFCTabCtrl__MEAAXPEAVCDC__PEAVCMFCTabInfo__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+extern "C" void MS_ABI impl__Draw3DTab_CMFCTabCtrl__MEAAXPEAVCDC__PEAVCMFCTabInfo__H_Z(
+    CMFCTabCtrl* pThis, CDC* pDC, void* pTabInfo, int nTab)
+{
+    (void)pThis; (void)pDC; (void)pTabInfo; (void)nTab;
+}
 
+// STUB: Retail RVA 0x13a050 (mfc140 ANSI twin) draws through global visual
+// data and tab geometry that are not represented in OpenMFC.
 // Symbol: ?DrawFlatTab@CMFCTabCtrl@@MEAAXPEAVCDC@@PEAVCMFCTabInfo@@H@Z
-extern "C" void MS_ABI impl__DrawFlatTab_CMFCTabCtrl__MEAAXPEAVCDC__PEAVCMFCTabInfo__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+extern "C" void MS_ABI impl__DrawFlatTab_CMFCTabCtrl__MEAAXPEAVCDC__PEAVCMFCTabInfo__H_Z(
+    CMFCTabCtrl* pThis, CDC* pDC, void* pTabInfo, int nTab)
+{
+    (void)pThis; (void)pDC; (void)pTabInfo; (void)nTab;
+}
 
+// Retail RVA 0x13b890 (mfc140 ANSI twin) hit-tests the strip and resize
+// rectangles and selects cursors from global cursor data. Those rectangles
+// are unmodeled, so use the CWnd default path as a conservative fallback.
 // Symbol: ?OnSetCursor@CMFCTabCtrl@@IEAAHPEAVCWnd@@II@Z
-extern "C" int MS_ABI impl__OnSetCursor_CMFCTabCtrl__IEAAHPEAVCWnd__II_Z(void* /*class*/* p0, unsigned int p1, unsigned int p2) {
-    return 0;
+extern "C" int MS_ABI impl__OnSetCursor_CMFCTabCtrl__IEAAHPEAVCWnd__II_Z(
+    CMFCTabCtrl* pThis, CWnd* pWnd, unsigned int nHitTest, unsigned int message)
+{
+    (void)pWnd; (void)nHitTest; (void)message;
+    if (!pThis) return FALSE;
+    return static_cast<int>(impl__Default_CWnd__IEAA_JXZ(
+        static_cast<CWnd*>(pThis)));
 }
 
+// Retail RVA 0x13cbe0 (mfc140 ANSI twin) calls CWnd::OnSetFocus (entry RVA
+// 0x28d720), obtains the active tab window through vtable byte offset 0x430
+// (slot 0x86), then calls CWnd::SetFocus (entry RVA 0x2a7a70). The active
+// window is obtained with the existing base thunk rather than a virtual-slot
+// dispatch; NULL this is defensively ignored.
 // Symbol: ?OnSetFocus@CMFCTabCtrl@@IEAAXPEAVCWnd@@@Z
-extern "C" void MS_ABI impl__OnSetFocus_CMFCTabCtrl__IEAAXPEAVCWnd___Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__OnSetFocus_CMFCTabCtrl__IEAAXPEAVCWnd___Z(
+    CMFCTabCtrl* pThis, CWnd* pOldWnd)
+{
+    if (!pThis) return;
+    impl__OnSetFocus_CWnd__IEAAXPEAV1__Z(static_cast<CWnd*>(pThis), pOldWnd);
+    CWnd* pActive = impl__GetActiveWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__XZ(
+        static_cast<const CMFCBaseTabCtrl*>(pThis));
+    if (pActive) {
+        (void)impl__SetFocus_CWnd__QEAAPEAV1_XZ(pActive);
+    }
+}
 
+// Retail mfc140 ANSI-twin entry RVA 0x13c360 unconditionally calls
+// CWnd::OnSettingChange before testing the tab style flag at +0x3c0 and doing
+// tab-layout/scroll work. The exact wide export has no mapped RVA; the base
+// handler call is established from the ANSI twin, but +0x3c0 is unmodeled.
 // Symbol: ?OnSettingChange@CMFCTabCtrl@@IEAAXIPEB_W@Z
-extern "C" void MS_ABI impl__OnSettingChange_CMFCTabCtrl__IEAAXIPEB_W_Z(unsigned int p0, const wchar_t* p1) {}
+extern "C" void MS_ABI impl__OnSettingChange_CMFCTabCtrl__IEAAXIPEB_W_Z(
+    CMFCTabCtrl* pThis, unsigned int uFlags, const wchar_t* lpszSection)
+{
+    if (!pThis) return;
+    impl__OnSettingChange_CWnd__IEAAXIPEB_W_Z(
+        static_cast<CWnd*>(pThis), uFlags, lpszSection);
+    // TODO(clean-room): the ANSI-twin body then gates layout and scrollbar
+    // updates on +0x3c0; that member and the related geometry are unmodeled.
+}
 
+// STUB: Retail RVA 0x13d5b0 (mfc140 ANSI twin) builds and displays a document
+// menu from global menu-manager and per-tab/list state that is not modeled.
 // Symbol: ?OnShowTabDocumentsMenu@CMFCTabCtrl@@UEAAXVCPoint@@@Z
-extern "C" void MS_ABI impl__OnShowTabDocumentsMenu_CMFCTabCtrl__UEAAXVCPoint___Z(void* /*class*/ p0) {}
+extern "C" void MS_ABI impl__OnShowTabDocumentsMenu_CMFCTabCtrl__UEAAXVCPoint___Z(
+    CMFCTabCtrl* pThis, long long point)
+{
+    (void)pThis; (void)point;
+}
 
+// Retail RVA 0x138d60 (mfc140 ANSI twin) first calls CWnd::Default, then
+// computes button/tab sizing, conditionally clears scroll offsets, and
+// synchronizes scrollbars using unmodeled fields. Keep the known default call.
 // Symbol: ?OnSize@CMFCTabCtrl@@IEAAXIHH@Z
-extern "C" void MS_ABI impl__OnSize_CMFCTabCtrl__IEAAXIHH_Z(unsigned int p0, int p1, int p2) {}
+extern "C" void MS_ABI impl__OnSize_CMFCTabCtrl__IEAAXIHH_Z(
+    CMFCTabCtrl* pThis, unsigned int nType, int cx, int cy)
+{
+    (void)nType; (void)cx; (void)cy;
+    if (!pThis) return;
+    (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+    // TODO(clean-room): the subsequent sizing, field updates and scrollbar
+    // synchronization require the retail geometry members, which are absent.
+}
 
+// Retail RVA 0x13c0c0 (mfc140 ANSI twin) calls the base tab handler and then
+// conditionally rebuilds tab color/image state. Keep the known base behavior.
 // Symbol: ?OnSysColorChange@CMFCTabCtrl@@IEAAXXZ
-extern "C" void MS_ABI impl__OnSysColorChange_CMFCTabCtrl__IEAAXXZ() {}
+extern "C" void MS_ABI impl__OnSysColorChange_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
+{
+    if (!pThis) return;
+    impl__OnSysColorChange_CMFCBaseTabCtrl__IEAAXXZ(
+        static_cast<CMFCBaseTabCtrl*>(pThis));
+    // TODO(clean-room): the remaining branch uses tab-style and image-list
+    // state, which are not declared.
+}
 
+// STUB: Retail RVA 0x13dba0 (mfc140 ANSI twin) rebuilds tooltip entries only
+// when wParam has bit 0x4 set, using tooltip helpers and per-tab labels/IDs;
+// those structures are not modeled. It returns zero on both paths.
 // Symbol: ?OnUpdateToolTips@CMFCTabCtrl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CMFCTabCtrl__IEAA_J_K_J_Z(unsigned __int64 p0, __int64 p1) {
+extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CMFCTabCtrl__IEAA_J_K_J_Z(
+    CMFCTabCtrl* pThis, unsigned __int64 wParam, __int64 lParam)
+{
+    (void)pThis; (void)wParam; (void)lParam;
     return 0;
 }
 
+// Retail RVA 0x13d980 (mfc140 ANSI twin) calls CWnd::Default, sets a layout
+// flag, then may set WINDOWPOS flags after a drag-query virtual. Keep the
+// unconditional default call; the layout/virtual state is unmodeled.
 // Symbol: ?OnWindowPosChanged@CMFCTabCtrl@@IEAAXPEAUtagWINDOWPOS@@@Z
-extern "C" void MS_ABI impl__OnWindowPosChanged_CMFCTabCtrl__IEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+extern "C" void MS_ABI impl__OnWindowPosChanged_CMFCTabCtrl__IEAAXPEAUtagWINDOWPOS___Z(
+    CMFCTabCtrl* pThis, WINDOWPOS* pWndPos)
+{
+    (void)pWndPos;
+    if (!pThis) return;
+    (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+    // TODO(clean-room): the dirty flag and drag-query virtual branch cannot
+    // be represented by the current class layout.
+}
 
+// Retail RVA 0x13d9d0 (mfc140 ANSI twin) calls CWnd::Default and may set
+// WINDOWPOS flags based on a drag-query virtual. Keep the known default call.
 // Symbol: ?OnWindowPosChanging@CMFCTabCtrl@@IEAAXPEAUtagWINDOWPOS@@@Z
-extern "C" void MS_ABI impl__OnWindowPosChanging_CMFCTabCtrl__IEAAXPEAUtagWINDOWPOS___Z(void* /*struct*/* p0) {}
+extern "C" void MS_ABI impl__OnWindowPosChanging_CMFCTabCtrl__IEAAXPEAUtagWINDOWPOS___Z(
+    CMFCTabCtrl* pThis, WINDOWPOS* pWndPos)
+{
+    (void)pWndPos;
+    if (!pThis) return;
+    (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
+    // TODO(clean-room): the drag-query virtual and WINDOWPOS update are not modeled.
+}
 
+// Retail RVA 0x13ab20 (mfc140 ANSI twin) handles keyboard tab scrolling and
+// tooltip messages before falling back to the base-tab handler. The custom
+// state is unavailable, so preserve the known base message processing.
 // Symbol: ?PreTranslateMessage@CMFCTabCtrl@@UEAAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__PreTranslateMessage_CMFCTabCtrl__UEAAHPEAUtagMSG___Z(void* /*struct*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCTabCtrl__UEAAHPEAUtagMSG___Z(
+    CMFCTabCtrl* pThis, MSG* pMsg)
+{
+    if (!pThis) return FALSE;
+    return impl__PreTranslateMessage_CMFCBaseTabCtrl__UEAAHPEAUtagMSG___Z(
+        static_cast<CMFCBaseTabCtrl*>(pThis), pMsg);
 }
 
+// STUB: Retail RVA 0x13b080 (mfc140 ANSI twin) performs a substantial tab,
+// button, and scroll layout using state not represented by the class declaration.
 // Symbol: ?RecalcLayout@CMFCTabCtrl@@UEAAXXZ
-extern "C" void MS_ABI impl__RecalcLayout_CMFCTabCtrl__UEAAXXZ() {}
+extern "C" void MS_ABI impl__RecalcLayout_CMFCTabCtrl__UEAAXXZ(CMFCTabCtrl* pThis)
+{
+    (void)pThis;
+}
 
+// STUB: Retail RVA 0x13cc20 (mfc140 ANSI twin) repositions internal buttons
+// from two by-value geometry aggregates and internal control members.
 // Symbol: ?ReposButtons@CMFCTabCtrl@@IEAAXVCPoint@@VCSize@@HH@Z
-extern "C" void MS_ABI impl__ReposButtons_CMFCTabCtrl__IEAAXVCPoint__VCSize__HH_Z(void* /*class*/ p0, void* /*class*/ p1, int p2, int p3) {}
+extern "C" void MS_ABI impl__ReposButtons_CMFCTabCtrl__IEAAXVCPoint__VCSize__HH_Z(
+    CMFCTabCtrl* pThis, long long point, long long size, int bHide, int nButtonMargin)
+{
+    (void)pThis; (void)point; (void)size; (void)bHide; (void)nButtonMargin;
+}
 
+// STUB: Retail RVA 0x138eb0 (mfc140 ANSI twin) validates and activates tabs,
+// sends notifications, and updates child-window/scroll state. The tab state is
+// kept in a side table, but no callable impl__ setter is available in this file.
 // Symbol: ?SetActiveTab@CMFCTabCtrl@@UEAAHH@Z
-extern "C" int MS_ABI impl__SetActiveTab_CMFCTabCtrl__UEAAHH_Z(int p0) {
-    return 0;
+extern "C" int MS_ABI impl__SetActiveTab_CMFCTabCtrl__UEAAHH_Z(
+    CMFCTabCtrl* pThis, int iTab)
+{
+    (void)pThis; (void)iTab;
+    return FALSE;
 }
 
+// STUB: Retail RVA 0x13cdd0 (mfc140 ANSI twin) stores the bold-font flag at
+// +0x3f8 and, when the HWND exists, invokes relayout (vslot 0x318) followed by
+// scroll synchronization. Those effects are not modeled.
 // Symbol: ?SetActiveTabBoldFont@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(
+    CMFCTabCtrl* pThis, int bEnable)
+{
+    (void)pThis; (void)bEnable;
+}
 
+// STUB: Retail RVA 0x13d180 (mfc140 ANSI twin) only stores its argument at
+// +0x3f0, a field absent from the declared CMFCTabCtrl layout.
 // Symbol: ?SetDrawFrame@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetDrawFrame_CMFCTabCtrl__QEAAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__SetDrawFrame_CMFCTabCtrl__QEAAXH_Z(
+    CMFCTabCtrl* pThis, int bDrawFrame)
+{
+    (void)pThis; (void)bDrawFrame;
+}
 
+// Retail RVA 0x13aa50 (mfc140 ANSI twin) tail-jumps to the base resource
+// overload at RVA 0x19b10 (mfc140 ANSI twin). Forward through its existing
+// thunk; that base implementation still lacks embedded CImageList state. The
+// NULL-this guard is defensive and differs from retail's unconditional tail jump.
 // Symbol: ?SetImageList@CMFCTabCtrl@@UEAAHIHK@Z
-extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHIHK_Z(unsigned int p0, int p1, unsigned long p2) {
-    return 0;
+extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHIHK_Z(
+    CMFCTabCtrl* pThis, unsigned int nBitmapID, int cx, unsigned long clrTransparent)
+{
+    if (!pThis) return FALSE;
+    return impl__SetImageList_CMFCBaseTabCtrl__UEAAHIHK_Z(
+        static_cast<CMFCBaseTabCtrl*>(pThis), nBitmapID, cx, clrTransparent);
 }
 
+// Retail RVA 0x13aa60 (mfc140 ANSI twin) tail-jumps to the base handle
+// overload at RVA 0x19c80 (mfc140 ANSI twin). Forward through its existing
+// thunk; the base implementation does not retain the handle in its current model.
+// The NULL-this guard is defensive and differs from retail's unconditional tail jump.
 // Symbol: ?SetImageList@CMFCTabCtrl@@UEAAHPEAU_IMAGELIST@@@Z
-extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHPEAU_IMAGELIST___Z(void* /*struct*/* p0) {
-    return 0;
+extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHPEAU_IMAGELIST___Z(
+    CMFCTabCtrl* pThis, HIMAGELIST hImageList)
+{
+    if (!pThis) return FALSE;
+    return impl__SetImageList_CMFCBaseTabCtrl__UEAAHPEAU_IMAGELIST___Z(
+        static_cast<CMFCBaseTabCtrl*>(pThis), hImageList);
 }
 
+// STUB: Retail RVA 0x13d960 (mfc140 ANSI twin) stores resize mode at +0x3d28
+// and relayouts through vtable byte offset 0x318 (slot 99); neither is modeled.
 // Symbol: ?SetResizeMode@CMFCTabCtrl@@QEAAXW4ResizeMode@1@@Z
-extern "C" void MS_ABI impl__SetResizeMode_CMFCTabCtrl__QEAAXW4ResizeMode_1__Z(int /*enum*/ p0, void* p1, void* p2, void* p3, void* p4, void* p5, void* p6, float p7, void* p8, void* p9, void* p10, void* p11) {}
-
-// Symbol: ?SetScrollButtons@CMFCTabCtrl@@IEAAXXZ
-extern "C" void MS_ABI impl__SetScrollButtons_CMFCTabCtrl__IEAAXXZ() {}
-
-// Symbol: ?SetTabMaxWidth@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetTabMaxWidth_CMFCTabCtrl__QEAAXH_Z(int p0) {}
-
-// Symbol: ?StopResize@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__StopResize_CMFCTabCtrl__QEAAXH_Z(int p0) {}
-
-// Symbol: ?SwapTabs@CMFCTabCtrl@@UEAAXHH@Z
-extern "C" void MS_ABI impl__SwapTabs_CMFCTabCtrl__UEAAXHH_Z(int p0, int p1) {}
-
-// Symbol: ?SynchronizeScrollBar@CMFCTabCtrl@@QEAAHPEAUtagSCROLLINFO@@@Z
-extern "C" int MS_ABI impl__SynchronizeScrollBar_CMFCTabCtrl__QEAAHPEAUtagSCROLLINFO___Z(void* /*struct*/* p0) {
-    return 0;
+extern "C" void MS_ABI impl__SetResizeMode_CMFCTabCtrl__QEAAXW4ResizeMode_1__Z(
+    CMFCTabCtrl* pThis, int resizeMode)
+{
+    (void)pThis; (void)resizeMode;
 }
 
+// STUB: Retail RVA 0x13d080 (mfc140 ANSI twin) configures the internal scroll
+// and documents buttons from style flags and child-control objects not modeled.
+// Symbol: ?SetScrollButtons@CMFCTabCtrl@@IEAAXXZ
+extern "C" void MS_ABI impl__SetScrollButtons_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
+{
+    (void)pThis;
+}
+
+// STUB: Retail RVA 0x13d940 (mfc140 ANSI twin) stores the maximum width at
+// +0x428 and invokes relayout; neither the field nor layout is modeled.
+// Symbol: ?SetTabMaxWidth@CMFCTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__SetTabMaxWidth_CMFCTabCtrl__QEAAXH_Z(
+    CMFCTabCtrl* pThis, int nMaxWidth)
+{
+    (void)pThis; (void)nMaxWidth;
+}
+
+// STUB: Retail RVA 0x13bb20 (mfc140 ANSI twin) exits resize-drag state,
+// redraws rectangles, and may send a message using unmodeled drag/window state.
+// Symbol: ?StopResize@CMFCTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__StopResize_CMFCTabCtrl__QEAAXH_Z(
+    CMFCTabCtrl* pThis, int bCancel)
+{
+    (void)pThis; (void)bCancel;
+}
+
+// STUB: Retail RVA 0x13d390 (mfc140 ANSI twin) calls the base tab swap and
+// conditionally resets scroll offsets at +0x414/+0x420, which are unmodeled.
+// Symbol: ?SwapTabs@CMFCTabCtrl@@UEAAXHH@Z
+extern "C" void MS_ABI impl__SwapTabs_CMFCTabCtrl__UEAAXHH_Z(
+    CMFCTabCtrl* pThis, int iTab1, int iTab2)
+{
+    (void)pThis; (void)iTab1; (void)iTab2;
+}
+
+// STUB: Retail RVA 0x13c150 (mfc140 ANSI twin) uses MDI scroll state, the
+// active window, and a scrollbar handle to synchronize position; those fields are absent.
+// Symbol: ?SynchronizeScrollBar@CMFCTabCtrl@@QEAAHPEAUtagSCROLLINFO@@@Z
+extern "C" int MS_ABI impl__SynchronizeScrollBar_CMFCTabCtrl__QEAAHPEAUtagSCROLLINFO___Z(
+    CMFCTabCtrl* pThis, SCROLLINFO* pScrollInfo)
+{
+    (void)pThis; (void)pScrollInfo;
+    return FALSE;
+}
+
+// STUB: Retail RVA 0x13ce50 (mfc140 ANSI twin) updates the internal scroll
+// and documents buttons from tab/style state and child controls not modeled.
 // Symbol: ?UpdateScrollButtonsState@CMFCTabCtrl@@IEAAXXZ
-extern "C" void MS_ABI impl__UpdateScrollButtonsState_CMFCTabCtrl__IEAAXXZ() {}
+extern "C" void MS_ABI impl__UpdateScrollButtonsState_CMFCTabCtrl__IEAAXXZ(
+    CMFCTabCtrl* pThis)
+{
+    (void)pThis;
+}
