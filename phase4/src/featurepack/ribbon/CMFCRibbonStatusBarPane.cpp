@@ -122,19 +122,27 @@ extern "C" void MS_ABI impl__StopAnimation_CMFCRibbonStatusBarPane__QEAAXXZ(CMFC
 CMFCRibbonStatusBarPane::CMFCRibbonStatusBarPane() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonStatusBarPane::~CMFCRibbonStatusBarPane() {}
 // Symbol: ?AnimTimerProc@CMFCRibbonStatusBarPane@@KAXPEAUHWND__@@I_KK@Z
-extern "C" void MS_ABI impl__AnimTimerProc_CMFCRibbonStatusBarPane__KAXPEAUHWND____I_KK_Z(void* /*struct*/* p0, unsigned int p1, unsigned __int64 p2, unsigned long p3) {}
+// Stub: RVA 0x128480 (mfc140u) uses the pane's static animation map and timer callback state, which the side table does not model.
+extern "C" void MS_ABI impl__AnimTimerProc_CMFCRibbonStatusBarPane__KAXPEAUHWND____I_KK_Z(
+    HWND /*hwnd*/, UINT /*uMsg*/, UINT_PTR /*idEvent*/, DWORD /*dwTime*/) {}
 
 // Symbol: ?CommonInit@CMFCRibbonStatusBarPane@@IEAAXXZ
-extern "C" void MS_ABI impl__CommonInit_CMFCRibbonStatusBarPane__IEAAXXZ() {}
+// Stub: RVA 0x127ab0 (mfc140u) initializes offsets +0x124, +0x190, +0x270/+0x274, +0x278, +0x280, +0x284, and +0x288, outside the declared pane layout.
+extern "C" void MS_ABI impl__CommonInit_CMFCRibbonStatusBarPane__IEAAXXZ(CMFCRibbonStatusBarPane* /*pThis*/) {}
 
 // Symbol: ?CopyFrom@CMFCRibbonStatusBarPane@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
-extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonStatusBarPane__MEAAXAEBVCMFCRibbonBaseElement___Z(const void* /*class*/* p0) {}
+// Stub: RVA 0x127d70 (mfc140u) copies pane fields and subobjects at +0x290/+0x298, absent from the declared pane layout.
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonStatusBarPane__MEAAXAEBVCMFCRibbonBaseElement___Z(
+    CMFCRibbonStatusBarPane* /*pThis*/, const CMFCRibbonBaseElement& /*src*/) {}
 
 // Symbol: ?DrawRibbonText@CMFCRibbonStatusBarPane@@MEAAHPEAVCDC@@AEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@VCRect@@IK@Z
-extern "C" int MS_ABI impl__DrawRibbonText_CMFCRibbonStatusBarPane__MEAAHPEAVCDC__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCRect__IK_Z(void* /*class*/* p0, const void* /*class*/* p1, void** p2, void* p3, void* /*class*/ p4, unsigned int p5, unsigned long p6) {
-    return 0;
-}
+// Stub: RVA 0x127c70 (mfc140u) reads +0x27c/+0x190 and adjusts the text rectangle, but neither member is modeled here.
+extern "C" int MS_ABI impl__DrawRibbonText_CMFCRibbonStatusBarPane__MEAAHPEAVCDC__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__VCRect__IK_Z(
+    CMFCRibbonStatusBarPane* /*pThis*/, CDC* /*pDC*/, const CString& /*strText*/, CRect /*rectText*/,
+    UINT /*uiDTFlags*/, COLORREF /*clrText*/) { return 0; }
 
 // Symbol: ?OnRTLChanged@CMFCRibbonStatusBarPane@@MEAAXH@Z
-extern "C" void MS_ABI impl__OnRTLChanged_CMFCRibbonStatusBarPane__MEAAXH_Z(int p0) {}
+// Stub: RVA 0x129290 (mfc140.dll) forwards this+0x298 to an image helper; mfc140u has no resolved RVA and this subobject is unmodeled.
+extern "C" void MS_ABI impl__OnRTLChanged_CMFCRibbonStatusBarPane__MEAAXH_Z(
+    CMFCRibbonStatusBarPane* /*pThis*/, BOOL /*bIsRTL*/) {}
 

@@ -28,6 +28,8 @@
 // For memcpy
 #include <cstring>
 
+extern "C" void MS_ABI impl___1XElement_CMFCRibbonInfo__UEAA_XZ(void* pThis);
+
 
 
 
@@ -1227,20 +1229,24 @@ extern "C" int MS_ABI impl__WriteUInt_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEB
 // Symbol: ??0XElementProgressBar@CMFCRibbonInfo@@QEAA@XZ
 extern "C" void* MS_ABI impl___0XElementProgressBar_CMFCRibbonInfo__QEAA_XZ(void* pThis) {
     (void)pThis;
-    // XElementProgressBar has no declared class body; zero-initialize the memory.
-    // sizeof is unknown; caller provides adequate storage via the export ordinal.
+    // STUB: unlike retail's constructor (RVA 0xfec50, mfc140u), which invokes
+    // XElement(type 14) and initializes the progress values, this leaves the
+    // supplied storage untouched. CreateFromType currently excludes type 14.
     return pThis;
 }
 // Symbol: ??1XElementProgressBar@CMFCRibbonInfo@@UEAA@XZ
 extern "C" void MS_ABI impl___1XElementProgressBar_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
-    (void)pThis;
-    // No declared dtor body; nothing to clean up.
+    // Retail RVA 0xfecd0 (mfc140u) stores the XElementProgressBar vftable, then
+    // tail-jumps to ~XElement at RVA 0xfdb80 (mfc140u), which stores the XElement
+    // vftable and releases its CString/XID members. Reuse the base cleanup;
+    // both vftable stores are omitted, as in the other manual XElement dtors.
+    impl___1XElement_CMFCRibbonInfo__UEAA_XZ(pThis);
 }
 // Symbol: ?Read@XElementProgressBar@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
 extern "C" int MS_ABI impl__Read_XElementProgressBar_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
     void* pThis, void* /*XRibbonInfoParser&*/ parser) {
     (void)pThis; (void)parser;
-    return 1;  // success
+    return 1;  // STUB: reports success without reading parser input.
 }
 // Symbol: ??0CMFCRibbonBaseElement@@QEAA@XZ
 // Constructor: CMFCRibbonBaseElement::CMFCRibbonBaseElement

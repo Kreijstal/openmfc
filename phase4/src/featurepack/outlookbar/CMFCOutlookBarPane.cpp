@@ -5,14 +5,14 @@
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
 // Symbol: ?m_Images@CMFCOutlookBarPane@@1VCMFCToolBarImages@@A
-// Static image well shared by all CMFCOutlookBarPane instances (retail
+// Static image well shared by all CMFCOutlookBarPane instances (mfc140u VA
 // 0x1803c22c0).  Same definition pattern as CMFCToolBar::m_Images.
 extern "C" {
 CMFCToolBarImages impl__m_Images_CMFCOutlookBarPane__1VCMFCToolBarImages__A =
     CMFCToolBarImages();
 
 // Symbol: ?m_csImage@CMFCOutlookBarPane@@1VCSize@@A
-// Static cache of the last loaded image size (retail 0x1803c2458).
+// Static cache of the last loaded image size (mfc140u VA 0x1803c2458).
 CSize impl__m_csImage_CMFCOutlookBarPane__1VCSize__A = CSize(0, 0);
 } // extern "C"
 // Retail (0x1800989f0): ignores `this`; caches the bitmap's size into the
@@ -101,16 +101,20 @@ extern "C" int MS_ABI impl__AddButton_CMFCOutlookBarPane__QEAAHPEAUHICON____PEB_
     // TODO(clean-room): not transcribed -- see AddBitmapImage / InternalAddButton.
     return 0;
 }
-// Retail (0x180099120, ~0x340 bytes): lays out the buttons, menu size
-// bookkeeping, scroll buttons and the button rectangles using the AFX_GLOBAL_DATA
-// object (0x1803c1620), the static image well and vtable indirections.  Not
-// transcribed.
+// Retail mfc140u RVA 0x99120: returns for null this or null m_hWnd; otherwise
+// computes the layout, configures both scroll-button objects, walks m_Buttons
+// to update button dimensions/rectangles, updates the scroll gate, and repaints.
+// The pass uses unmodeled global/image machinery and virtual slots at byte
+// offsets 0x6c8 (slot 0xd9), 0x290 (0x52), 0x40 (8), 0x48 (9), 0x60 (0xc),
+// 0x70 (0xe), 0x80 (0x10), 0xb0 (0x16), and 0x790 (0xf2). Retail also reads
+// base-toolbar dwords at +0x10b8, +0x10c8, +0x1134, +0x1138, +0x113c,
+// and +0x1148, which have no named fields in the shadow.
 // Symbol: ?AdjustLocations@CMFCOutlookBarPane@@MEAAXXZ
 extern "C" void MS_ABI impl__AdjustLocations_CMFCOutlookBarPane__MEAAXXZ(void* pThis)
 {
     (void)pThis;
-    // TODO(clean-room): not transcribed -- complex layout pass on unmodeled
-    // globals and virtual slots.
+    // TODO(clean-room): keep stubbed until the missing base-toolbar layout and
+    // global/image/virtual layout machinery are modeled.
 }
 // Retail (0x180098e20):
 //     CSize size;
@@ -138,14 +142,14 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CMFCOutlookBarPane__MEAA_AVCSize__
     pOut[1] = rc.bottom - rc.top;   // cy
     return pSizeOut;
 }
-// Retail (0x180099d40): tail jump to the static image well's
-// CMFCOutlookBarImages::Clear (0x18016f690).  The global well is not modeled.
+// Retail mfc140u RVA 0x99d40 tail-jumps to CMFCToolBarImages::Clear at
+// mfc140u RVA 0x16f690 on the class-wide m_Images object.
 // Symbol: ?ClearAll@CMFCOutlookBarPane@@QEAAXXZ
 extern "C" void MS_ABI impl__ClearAll_CMFCOutlookBarPane__QEAAXXZ(void* pThis)
 {
     (void)pThis;
-    // TODO(clean-room): not transcribed -- clears the unmodeled global static
-    // image well (0x1803c22c0).
+    impl__Clear_CMFCToolBarImages__QEAAXXZ(
+        &impl__m_Images_CMFCOutlookBarPane__1VCMFCToolBarImages__A);
 }
 // Retail (0x18009a320): RemoveHead-all from dst, then for each src button
 // clone via CRuntimeClass::CreateObject + virtual slot 0x38 (CopyFrom) + slot

@@ -8,6 +8,9 @@
 #include "detail/MfcFeature23ImplSupport.h"
 #include "detail/MfccoreSupport.h"
 
+class CMFCRibbonQuickAccessToolBar;
+class CMFCRibbonCmdUI;
+
 // Symbol: ?SetToolTipText@CMFCRibbonBaseElement@@UEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetToolTipText_CMFCRibbonBaseElement__UEAAXPEB_W_Z(CMFCRibbonBaseElement* pThis, const wchar_t* lpszText) {
     if (!pThis) return;
@@ -459,103 +462,240 @@ UINT CMFCRibbonBaseElement::GetID() const { return m_nID; }
 void CMFCRibbonBaseElement::SetID(UINT nID) { m_nID = nID; }
 CString CMFCRibbonBaseElement::GetText() const { return m_strText; }
 void CMFCRibbonBaseElement::SetText(const wchar_t* lpszText) { if(lpszText) m_strText = lpszText; }
+// Retail RVA 0x11690 (mfc140u) reads the key-tip strings at +0xa0/+0xa8,
+// checks state at +0x138/+0xf8, then measures text through the supplied CDC.
+// The class declaration does not model those fields. For this aggregate return,
+// MSVC x64 passes the hidden CSize* after this in RDX; initialize a safe result.
 // Symbol: ?GetKeyTipSize@CMFCRibbonBaseElement@@UEAA?AVCSize@@PEAVCDC@@@Z
-extern "C" void* MS_ABI impl__GetKeyTipSize_CMFCRibbonBaseElement__UEAA_AVCSize__PEAVCDC___Z(void* /*class*/* p0, void* /*class*/* p1) {
-    return nullptr;
+extern "C" CSize* MS_ABI impl__GetKeyTipSize_CMFCRibbonBaseElement__UEAA_AVCSize__PEAVCDC___Z(
+    CMFCRibbonBaseElement* /*pThis*/, CSize* pRet, CDC* /*pDC*/)
+{
+    if (pRet) {
+        pRet->cx = 0;
+        pRet->cy = 0;
+    }
+    return pRet;
 }
 
+// Retail RVA 0x104d0 (mfc140u) follows +0xf8 / +0xe0 parent links and reads
+// nested panel fields at +0x1560/+0x1580; those fields are not modeled here.
 // Symbol: ?GetParentPanel@CMFCRibbonBaseElement@@UEBAPEAVCMFCRibbonPanel@@XZ
-extern "C" void* MS_ABI impl__GetParentPanel_CMFCRibbonBaseElement__UEBAPEAVCMFCRibbonPanel__XZ() {
+extern "C" CMFCRibbonPanel* MS_ABI impl__GetParentPanel_CMFCRibbonBaseElement__UEBAPEAVCMFCRibbonPanel__XZ(
+    const CMFCRibbonBaseElement* /*pThis*/)
+{
     return nullptr;
 }
 
+// Retail RVA 0x104a0 (mfc140u) reads parent pointers at +0xd8/+0xf8/+0xe0,
+// including the parent object's +0x760 field; this layout is not modeled.
 // Symbol: ?GetParentWnd@CMFCRibbonBaseElement@@UEBAPEAVCWnd@@XZ
-extern "C" void* MS_ABI impl__GetParentWnd_CMFCRibbonBaseElement__UEBAPEAVCWnd__XZ() {
+extern "C" CWnd* MS_ABI impl__GetParentWnd_CMFCRibbonBaseElement__UEBAPEAVCWnd__XZ(
+    const CMFCRibbonBaseElement* /*pThis*/)
+{
     return nullptr;
 }
 
+// Retail RVA 0x10280 (mfc140u) calls the virtual at vtable byte offset 0x1c0
+// and returns this only when it reports true; that slot is absent from the model.
 // Symbol: ?GetPressed@CMFCRibbonBaseElement@@UEAAPEAV1@XZ
-extern "C" void* MS_ABI impl__GetPressed_CMFCRibbonBaseElement__UEAAPEAV1_XZ() {
+extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetPressed_CMFCRibbonBaseElement__UEAAPEAV1_XZ(
+    CMFCRibbonBaseElement* /*pThis*/)
+{
     return nullptr;
 }
 
+// Retail RVA 0x10140 (mfc140u) traverses the +0xd8/+0xe0/+0xf8 parent state;
+// those pointers and the panel-menu traversal state are not modeled.
 // Symbol: ?GetTopLevelRibbonBar@CMFCRibbonBaseElement@@QEBAPEAVCMFCRibbonBar@@XZ
-extern "C" void* MS_ABI impl__GetTopLevelRibbonBar_CMFCRibbonBaseElement__QEBAPEAVCMFCRibbonBar__XZ() {
+extern "C" CMFCRibbonBar* MS_ABI impl__GetTopLevelRibbonBar_CMFCRibbonBaseElement__QEBAPEAVCMFCRibbonBar__XZ(
+    const CMFCRibbonBaseElement* /*pThis*/)
+{
     return nullptr;
 }
 
+// Retail RVA 0x11b70 (mfc140u) appends this to the array only if the CRect at
+// +0xc8 is nonempty; the rectangle is not present in the declared class.
 // Symbol: ?GetVisibleElements@CMFCRibbonBaseElement@@UEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z
-extern "C" void MS_ABI impl__GetVisibleElements_CMFCRibbonBaseElement__UEAAXAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(void* /*class*/* p0, void* /*class*/* p1) {}
+extern "C" void MS_ABI impl__GetVisibleElements_CMFCRibbonBaseElement__UEAAXAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(
+    CMFCRibbonBaseElement* /*pThis*/,
+    CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*>& /*arElements*/)
+{
+}
 
+// The ANSI twin's body at RVA 0x10190 (mfc140) is `mov rcx, rax; ret`;
+// the retail implementation simply returns this, independent of the CPoint.
 // Symbol: ?HitTest@CMFCRibbonBaseElement@@UEAAPEAV1@VCPoint@@@Z
-extern "C" void* MS_ABI impl__HitTest_CMFCRibbonBaseElement__UEAAPEAV1_VCPoint___Z() {
-    return nullptr;
+extern "C" CMFCRibbonBaseElement* MS_ABI impl__HitTest_CMFCRibbonBaseElement__UEAAPEAV1_VCPoint___Z(
+    CMFCRibbonBaseElement* pThis, long long /*point*/)
+{
+    return pThis;
 }
 
+// Retail RVA 0x10520 (mfc140u) follows +0xf8 to +0x1560 and returns that
+// object's +0xb8 mode value; this parent-menu state is not modeled.
 // Symbol: ?IsMenuMode@CMFCRibbonBaseElement@@QEBAHXZ
-extern "C" int MS_ABI impl__IsMenuMode_CMFCRibbonBaseElement__QEBAHXZ() {
+extern "C" int MS_ABI impl__IsMenuMode_CMFCRibbonBaseElement__QEBAHXZ(
+    const CMFCRibbonBaseElement* /*pThis*/)
+{
     return 0;
 }
 
+// Retail RVA 0x10ab0 (mfc140u) walks +0xe8 original links, tests several
+// flags, and notifies a parent window; those fields and the callback path are
+// not modeled, so callers cannot be forwarded faithfully.
 // Symbol: ?NotifyCommand@CMFCRibbonBaseElement@@QEAAHH@Z
-extern "C" int MS_ABI impl__NotifyCommand_CMFCRibbonBaseElement__QEAAHH_Z(int p0) {
+extern "C" int MS_ABI impl__NotifyCommand_CMFCRibbonBaseElement__QEAAHH_Z(
+    CMFCRibbonBaseElement* /*pThis*/, int /*bWithDelay*/)
+{
     return 0;
 }
 
+// The exact decorated symbol was not resolved in either the mfc140u or ANSI
+// symbol map, so its body could not be verified and this remains a stub.
 // Symbol: ?NotifyControlCommand@CMFCRibbonBaseElement@@MEAAHHH_K_J@Z
-extern "C" int MS_ABI impl__NotifyControlCommand_CMFCRibbonBaseElement__MEAAHHH_K_J_Z(int p0, int p1, unsigned __int64 p2, __int64 p3) {
+extern "C" int MS_ABI impl__NotifyControlCommand_CMFCRibbonBaseElement__MEAAHHH_K_J_Z(
+    CMFCRibbonBaseElement* /*pThis*/, int /*bAccelerator*/, int /*nNotifyCode*/,
+    WPARAM /*wParam*/, LPARAM /*lParam*/)
+{
     return 0;
 }
 
+// Retail RVA 0x11ab0 (mfc140u) obtains the top-level ribbon bar and sends a
+// highlight notification through it; parent/bar notification state is absent.
 // Symbol: ?NotifyHighlightListItem@CMFCRibbonBaseElement@@UEAAXH@Z
-extern "C" void MS_ABI impl__NotifyHighlightListItem_CMFCRibbonBaseElement__UEAAXH_Z(int p0) {}
+extern "C" void MS_ABI impl__NotifyHighlightListItem_CMFCRibbonBaseElement__UEAAXH_Z(
+    CMFCRibbonBaseElement* /*pThis*/, int /*nIndex*/)
+{
+}
 
+// Retail RVA 0x115e0 (mfc140u) tail-jumps to NotifyCommand(this, 1). The
+// NotifyCommand path above depends on unmodeled ribbon state, so this remains
+// a stub rather than forwarding into another stub.
 // Symbol: ?OnAccDefaultAction@CMFCRibbonBaseElement@@UEAAXXZ
-extern "C" void MS_ABI impl__OnAccDefaultAction_CMFCRibbonBaseElement__UEAAXXZ() {}
+extern "C" void MS_ABI impl__OnAccDefaultAction_CMFCRibbonBaseElement__UEAAXXZ(
+    CMFCRibbonBaseElement* /*pThis*/)
+{
+}
 
+// Retail RVA 0x11180 (mfc140u) calls CMFCRibbonQuickAccessToolBar::Add at
+// RVA 0x122fe0 (mfc140u), then returns TRUE. The corresponding Add thunk in
+// CMFCRibbonQuickAccessToolBar.cpp is itself a stub, so it cannot be forwarded.
 // Symbol: ?OnAddToQAToolbar@CMFCRibbonBaseElement@@UEAAHAEAVCMFCRibbonQuickAccessToolBar@@@Z
-extern "C" int MS_ABI impl__OnAddToQAToolbar_CMFCRibbonBaseElement__UEAAHAEAVCMFCRibbonQuickAccessToolBar___Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__OnAddToQAToolbar_CMFCRibbonBaseElement__UEAAHAEAVCMFCRibbonQuickAccessToolBar___Z(
+    CMFCRibbonBaseElement* /*pThis*/, CMFCRibbonQuickAccessToolBar& /*qat*/)
+{
     return 0;
 }
 
+// Retail RVA 0x10a80 (mfc140u) calls the +0x368 virtual only when the
+// CString at +0xb8 is empty; neither that field nor the virtual slot is modeled.
 // Symbol: ?OnAfterChangeRect@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonBaseElement__UEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonBaseElement__UEAAXPEAVCDC___Z(
+    CMFCRibbonBaseElement* /*pThis*/, CDC* /*pDC*/)
+{
+}
 
+// Retail RVA 0x115f0 (mfc140u) reads the key-tip CString at +0xa8 and builds
+// drawing state from it; the key-tip state and its virtual drawing path are absent.
 // Symbol: ?OnDrawKeyTip@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@AEBVCRect@@H@Z
-extern "C" void MS_ABI impl__OnDrawKeyTip_CMFCRibbonBaseElement__UEAAXPEAVCDC__AEBVCRect__H_Z(void* /*class*/* p0, const void* /*class*/* p1, int p2) {}
+extern "C" void MS_ABI impl__OnDrawKeyTip_CMFCRibbonBaseElement__UEAAXPEAVCDC__AEBVCRect__H_Z(
+    CMFCRibbonBaseElement* /*pThis*/, CDC* /*pDC*/, const CRect& /*rect*/,
+    int /*bIsMenu*/)
+{
+}
 
+// Retail RVA 0x10f60 (mfc140u) uses element flags at +0x148/+0x168, the
+// supplied rectangle, text and CDC drawing calls; those members are not modeled.
 // Symbol: ?OnDrawOnList@CMFCRibbonBaseElement@@UEAAXPEAVCDC@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@HVCRect@@HH@Z
-extern "C" void MS_ABI impl__OnDrawOnList_CMFCRibbonBaseElement__UEAAXPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HVCRect__HH_Z(void* /*class*/* p0, void* /*class*/ p1, void** p2, void* p3, int p4, void* /*class*/ p5, int p6, int p7) {}
+extern "C" void MS_ABI impl__OnDrawOnList_CMFCRibbonBaseElement__UEAAXPEAVCDC__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__HVCRect__HH_Z(
+    CMFCRibbonBaseElement* /*pThis*/, CDC* /*pDC*/, CString /*strText*/,
+    int /*nTextOffset*/, CRect /*rect*/, int /*bIsSelected*/,
+    int /*bHighlighted*/)
+{
+}
 
+// The ANSI twin's body at RVA 0x11870 (mfc140) tests the rect at +0xc8,
+// state at +0x148, and then follows ribbon/menu virtual callback paths. That
+// state is not modeled, so this remains a stub.
 // Symbol: ?OnKey@CMFCRibbonBaseElement@@UEAAHH@Z
-extern "C" int MS_ABI impl__OnKey_CMFCRibbonBaseElement__UEAAHH_Z(int p0) {
+extern "C" int MS_ABI impl__OnKey_CMFCRibbonBaseElement__UEAAHH_Z(
+    CMFCRibbonBaseElement* /*pThis*/, int /*bIsMenuKey*/)
+{
     return 0;
 }
 
+// The ANSI twin's body at RVA 0x10060 (mfc140) follows the +0xf8/+0xd8/+0xe0
+// parent links and invokes virtual callbacks. Those links and slots are not
+// modeled. CPoint is represented by its 8-byte MS_ABI register value.
 // Symbol: ?OnLButtonDown@CMFCRibbonBaseElement@@MEAAXVCPoint@@@Z
-extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonBaseElement__MEAAXVCPoint___Z(void* /*class*/ p0) {}
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonBaseElement__MEAAXVCPoint___Z(
+    CMFCRibbonBaseElement* /*pThis*/, long long /*point*/)
+{
+}
 
+// The ANSI twin's body at RVA 0x11b30 (mfc140) obtains the top-level bar,
+// checks +0x170, sets it, then posts a parent notification. The required ribbon
+// and popup state is not modeled, so this remains a stub.
 // Symbol: ?OnShowPopupMenu@CMFCRibbonBaseElement@@UEAAXXZ
-extern "C" void MS_ABI impl__OnShowPopupMenu_CMFCRibbonBaseElement__UEAAXXZ() {}
+extern "C" void MS_ABI impl__OnShowPopupMenu_CMFCRibbonBaseElement__UEAAXXZ(
+    CMFCRibbonBaseElement* /*pThis*/)
+{
+}
 
+// The ANSI twin's body at RVA 0x10120 (mfc140) reads the retail ID at +0x118,
+// populates CMFCRibbonCmdUI, and invokes CCmdUI::DoUpdate. OpenMFC models the
+// CCmdUI prefix, but the placeholder element vtable/state cannot safely service
+// the virtual callbacks that DoUpdate may trigger, so this remains a stub.
 // Symbol: ?OnUpdateCmdUI@CMFCRibbonBaseElement@@MEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z
-extern "C" void MS_ABI impl__OnUpdateCmdUI_CMFCRibbonBaseElement__MEAAXPEAVCMFCRibbonCmdUI__PEAVCFrameWnd__H_Z(void* /*class*/* p0, void* /*class*/* p1, int p2) {}
+extern "C" void MS_ABI impl__OnUpdateCmdUI_CMFCRibbonBaseElement__MEAAXPEAVCMFCRibbonCmdUI__PEAVCFrameWnd__H_Z(
+    CMFCRibbonBaseElement* /*pThis*/, CMFCRibbonCmdUI* /*pCmdUI*/,
+    CFrameWnd* /*pTarget*/, int /*bDisableIfNoHandler*/)
+{
+}
 
+// The ANSI twin's body at RVA 0x10cd0 (mfc140) updates +0x154, calls a
+// virtual, then follows +0xf8 to post a menu command. That state is not modeled.
 // Symbol: ?PostMenuCommand@CMFCRibbonBaseElement@@QEAAXI@Z
-extern "C" void MS_ABI impl__PostMenuCommand_CMFCRibbonBaseElement__QEAAXI_Z(unsigned int p0) {}
+extern "C" void MS_ABI impl__PostMenuCommand_CMFCRibbonBaseElement__QEAAXI_Z(
+    CMFCRibbonBaseElement* /*pThis*/, unsigned int /*uiCmdId*/)
+{
+}
 
+// The ANSI twin's body at RVA 0x105b0 (mfc140) tests the rect at +0xc8 and
+// routes redraw through parent/menu state. That geometry and state are absent.
 // Symbol: ?Redraw@CMFCRibbonBaseElement@@UEAAXXZ
-extern "C" void MS_ABI impl__Redraw_CMFCRibbonBaseElement__UEAAXXZ() {}
+extern "C" void MS_ABI impl__Redraw_CMFCRibbonBaseElement__UEAAXXZ(
+    CMFCRibbonBaseElement* /*pThis*/)
+{
+}
 
+// The exact decorated symbol was not resolved in either the mfc140u or ANSI
+// symbol map, so its body could not be verified and this remains a stub.
 // Symbol: ?ReplaceByID@CMFCRibbonBaseElement@@MEAAHIPEAV1@@Z
-extern "C" int MS_ABI impl__ReplaceByID_CMFCRibbonBaseElement__MEAAHIPEAV1__Z(unsigned int p0, void* /*class*/* p1) {
+extern "C" int MS_ABI impl__ReplaceByID_CMFCRibbonBaseElement__MEAAHIPEAV1__Z(
+    CMFCRibbonBaseElement* /*pThis*/, unsigned int /*uiCmdID*/,
+    CMFCRibbonBaseElement* /*pElem*/)
+{
     return 0;
 }
 
+// The ANSI twin's body at RVA 0x11240 (mfc140) initializes accessibility
+// strings/flags, copies the rect at +0xc8, and queries multiple virtual states.
+// CAccessibilityData is modeled, but the ribbon element strings, rect, and
+// virtual state used to populate it are not.
 // Symbol: ?SetACCData@CMFCRibbonBaseElement@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
-extern "C" int MS_ABI impl__SetACCData_CMFCRibbonBaseElement__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(void* /*class*/* p0, void* /*class*/* p1) {
+extern "C" int MS_ABI impl__SetACCData_CMFCRibbonBaseElement__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
+    CMFCRibbonBaseElement* /*pThis*/, CWnd* /*pParent*/,
+    CAccessibilityData& /*data*/)
+{
     return 0;
 }
 
+// The ANSI twin's body at RVA 0x101e0 (mfc140) writes popup state at +0x108,
+// +0x154, +0x144 and +0x13c, then invokes virtual callbacks. Those fields and
+// slots are not modeled.
 // Symbol: ?SetDroppedDown@CMFCRibbonBaseElement@@IEAAXPEAVCMFCPopupMenu@@@Z
-extern "C" void MS_ABI impl__SetDroppedDown_CMFCRibbonBaseElement__IEAAXPEAVCMFCPopupMenu___Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__SetDroppedDown_CMFCRibbonBaseElement__IEAAXPEAVCMFCPopupMenu___Z(
+    CMFCRibbonBaseElement* /*pThis*/, CMFCPopupMenu* /*pPopupMenu*/)
+{
+}
