@@ -5,6 +5,9 @@
 
 #include "detail/CCheckListBoxSupport.h"
 
+extern "C" LONGLONG MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
+extern "C" DWORD MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis);
+
 // Symbol: ?Create@CCheckListBox@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__Create_CCheckListBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
     CCheckListBox* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID) {
@@ -177,11 +180,18 @@ extern "C" int MS_ABI impl__OnChildNotify_CCheckListBox__MEAAHI_K_JPEA_J_Z(
     }
     return FALSE;
 }
+// Retail RVA 0x298d30 (mfc140u): call CWnd::Default and return -1 if it does;
+// when GetStyle() has both 0x10 and 0x40 set, set listbox item 0's height to
+// the low word of CalcMinimumItemHeight(). The CREATESTRUCT argument is unused.
 // Symbol: ?OnCreate@CCheckListBox@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CCheckListBox__IEAAHPEAUtagCREATESTRUCTW___Z(
     CCheckListBox* pThis, CREATESTRUCTW* pCreateStruct) {
-    (void)pThis;
     (void)pCreateStruct;
+    if (impl__Default_CWnd__IEAA_JXZ(pThis) == -1) return -1;
+    if ((impl__GetStyle_CWnd__QEBAKXZ(pThis) & 0x50) == 0x50) {
+        ::SendMessageW(pThis->m_hWnd, LB_SETITEMHEIGHT, 0,
+                       static_cast<WORD>(impl__CalcMinimumItemHeight_CCheckListBox__IEAAHXZ(pThis)));
+    }
     return 0;
 }
 // Symbol: ?OnGetCheckPosition@CCheckListBox@@UEAA?AVCRect@@V2@0@Z
@@ -275,6 +285,11 @@ extern "C" void MS_ABI impl__OnSetFont_CCheckListBox__IEAAXPEAVCFont__H_Z(
     if (!pThis || !pThis->m_hWnd) return;
     ::SendMessageW(pThis->m_hWnd, WM_SETFONT, (WPARAM)(pFont ? pFont->GetSafeHandle() : nullptr), MAKELPARAM(bRedraw, 0));
 }
+// Stub: ANSI twin RVA 0x296470 (mfc140.dll) copies COMPAREITEMSTRUCT, unwraps
+// nonzero/non-LB_ERR itemData pointers through their +8 user-data field, then
+// calls vtable slot 0x2f0 (CompareItem). OpenMFC has no matching AFX_CHECK_DATA
+// item-data wrapper; its checklist state is kept in side maps, so dereferencing
+// the retail wrapper here would be unsafe.
 // Symbol: ?PreCompareItem@CCheckListBox@@IEAAHPEAUtagCOMPAREITEMSTRUCT@@@Z
 extern "C" int MS_ABI impl__PreCompareItem_CCheckListBox__IEAAHPEAUtagCOMPAREITEMSTRUCT___Z(
     CCheckListBox* pThis, COMPAREITEMSTRUCT* pCompare) {
@@ -307,6 +322,11 @@ extern "C" void MS_ABI impl__PreDrawItemNonThemed_CCheckListBox__IEAAXPEAVCDC__A
     (void)bEnabled;
     impl__DrawItem_CCheckListBox__UEAAXPEAUtagDRAWITEMSTRUCT___Z(pThis, pDraw);
 }
+// Stub: ANSI twin RVA 0x295d20 (mfc140.dll) gates on IsAppThemed/OpenThemeData,
+// then uses GetThemePartSize, CopyRect, DrawThemeBackground, and CloseThemeData.
+// This multi-step themed geometry/drawing path is not transcribed here; the
+// existing plain DrawFrameControl path is not a verified substitute. No mfc140u
+// RVA is resolved for this export.
 // Symbol: ?PreDrawItemThemed@CCheckListBox@@IEAA_NPEAVCDC@@AEAUtagDRAWITEMSTRUCT@@HH@Z
 extern "C" BOOL MS_ABI impl__PreDrawItemThemed_CCheckListBox__IEAA_NPEAVCDC__AEAUtagDRAWITEMSTRUCT__HH_Z(
     CCheckListBox* pThis, CDC* pDC, DRAWITEMSTRUCT* pDraw, int nCheck, int bEnabled) {

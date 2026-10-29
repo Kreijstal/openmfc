@@ -5,6 +5,17 @@
 
 #include "detail/MfccoreSupport.h"
 
+extern "C" unsigned int MS_ABI impl__GetViewDblClickCommand_CMouseManager__QEBAIH_Z(
+    const void* pThis, int viewId);
+extern "C" int MS_ABI impl__InvokeTool_CUserToolsManager__QEAAHI_Z(
+    void* pThis, unsigned int commandId);
+extern "C" CWinThread* MS_ABI impl__AfxGetThread__YAPEAVCWinThread__XZ();
+extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(
+    const CWnd* pThis);
+extern "C" void* impl__afxUserToolsManager__3PEAVCUserToolsManager__EA;
+extern "C" void* impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA;
+extern void* g_pAfxMouseManager;
+
 // Symbol: ??0CWinAppEx@@QEAA@H@Z
 extern "C" void* MS_ABI impl___0CWinAppEx__QEAA_H_Z(void* pThis, int smart) { return new (pThis) CWinAppEx(smart); }
 // Symbol: ??1CWinAppEx@@UEAA@XZ
@@ -259,14 +270,59 @@ extern "C" int MS_ABI impl__ReloadWindowPlacement_CWinAppEx__MEAAHPEAVCFrameWnd_
     return TRUE;
 }
 // Symbol: ?OnAppContextHelp@CWinAppEx@@UEAAXPEAVCWnd@@QEBK@Z
-extern "C" void MS_ABI impl__OnAppContextHelp_CWinAppEx__UEAAXPEAVCWnd__QEBK_Z(CWinAppEx*, CWnd*, const unsigned long*) {
+// Retail mfc140u RVA 0x1c9620 returns for a null control; otherwise it
+// dispatches CWnd vtable slot 0x118 / 8 (WinHelpInternal) with command 10.
+extern "C" void MS_ABI impl__OnAppContextHelp_CWinAppEx__UEAAXPEAVCWnd__QEBK_Z(
+    CWinAppEx*, CWnd* pWndControl, const unsigned long* pHelpIDArray) {
+    if (pWndControl) {
+        pWndControl->WinHelpInternal(reinterpret_cast<ULONG_PTR>(pHelpIDArray), 10);
+    }
 }
 // Symbol: ?OnClosingMainFrame@CWinAppEx@@MEAAXPEAVCFrameImpl@@@Z
+// Retail mfc140u RVA 0x1c8580 tail-dispatches through vtable byte offset 0x240
+// with (nullptr, pFrameImpl); the local CWinAppEx declaration omits retail
+// virtuals, so the required slot mapping is unavailable here.
 extern "C" void MS_ABI impl__OnClosingMainFrame_CWinAppEx__MEAAXPEAVCFrameImpl___Z(CWinAppEx*, void*) {
 }
 // Symbol: ?OnViewDoubleClick@CWinAppEx@@UEAAHPEAVCWnd@@H@Z
-extern "C" int MS_ABI impl__OnViewDoubleClick_CWinAppEx__UEAAHPEAVCWnd__H_Z(CWinAppEx*, CWnd*, int) {
-    return FALSE;
+// The mfc140u symbol map has no entry, but the ANSI twin resolves this export at
+// RVA 0x1c6b80 (mfc140); its body is byte-identical to mfc140u. Retail returns
+// FALSE if afxMouseManager is null; it gets the view's command and beeps with
+// UINT(-1) before returning FALSE for command 0 or UINT(-1). It returns TRUE if
+// the user-tools manager handles the command; otherwise it sends WM_COMMAND to
+// g_pTopLevelFrame / the control's top-level frame, or CWinThread::GetMainWnd()
+// when pWndControl is null, then returns TRUE. A null selected frame is guarded
+// here; retail dereferences it on the pWndControl path.
+extern "C" int MS_ABI impl__OnViewDoubleClick_CWinAppEx__UEAAHPEAVCWnd__H_Z(
+    CWinAppEx*, CWnd* pWndControl, int viewId) {
+    if (!g_pAfxMouseManager) return FALSE;
+
+    const unsigned int commandId =
+        impl__GetViewDblClickCommand_CMouseManager__QEBAIH_Z(g_pAfxMouseManager, viewId);
+    if (commandId == 0 || commandId == static_cast<unsigned int>(-1)) {
+        ::MessageBeep(static_cast<UINT>(-1));
+        return FALSE;
+    }
+
+    if (impl__afxUserToolsManager__3PEAVCUserToolsManager__EA &&
+        impl__InvokeTool_CUserToolsManager__QEAAHI_Z(
+            impl__afxUserToolsManager__3PEAVCUserToolsManager__EA, commandId)) {
+        return TRUE;
+    }
+
+    CWnd* pFrame = nullptr;
+    if (pWndControl) {
+        pFrame = static_cast<CWnd*>(impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA);
+        if (!pFrame) {
+            pFrame = impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pWndControl);
+        }
+    } else if (CWinThread* pThread = impl__AfxGetThread__YAPEAVCWinThread__XZ()) {
+        pFrame = pThread->GetMainWnd();
+    }
+    if (!pFrame) return FALSE;
+
+    ::SendMessage(pFrame->GetSafeHwnd(), WM_COMMAND, commandId, 0);
+    return TRUE;
 }
 // Symbol: ?ShowPopupMenu@CWinAppEx@@UEAAHIAEBVCPoint@@PEAVCWnd@@@Z
 extern "C" int MS_ABI impl__ShowPopupMenu_CWinAppEx__UEAAHIAEBVCPoint__PEAVCWnd___Z(CWinAppEx*, unsigned int menuId, const CPoint* point, CWnd* owner) {

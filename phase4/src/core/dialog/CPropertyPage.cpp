@@ -9,6 +9,9 @@
 // Implementations this unit calls that are defined with their own class.
 extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
     CDialog* pThis, MSG* pMsg);
+extern "C" BOOL MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(
+    CWnd* pThis, LONGLONG* pResult);
+extern "C" LONGLONG MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
 
 // Symbol: ?CommonConstruct@CPropertyPage@@IEAAXPEB_WI@Z
 extern "C" void MS_ABI impl__CommonConstruct_CPropertyPage__IEAAXPEB_WI_Z(
@@ -79,6 +82,11 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CPropertyPage__KAPEB
     return EmptyMessageMap_Dlgcore();
 }
 // Symbol: ?AllocPSP@CPropertyPage@@IEAAXK@Z
+// Retail RVA 0x2158b0 (mfc140u) allocates dwSize when nonzero, otherwise 0x68,
+// zeroes it, stores the pointer at +0x130, and writes that size to the
+// allocated struct's dwSize. OpenMFC currently puts m_nIDCaption at +0x130
+// (CDialog is 0x130 bytes), not retail's m_pPSP, so
+// implementing this against the current declaration would overwrite the caption.
 extern "C" void MS_ABI impl__AllocPSP_CPropertyPage__IEAAXK_Z(CPropertyPage* pThis, DWORD dwSize) {
     (void)pThis;
     (void)dwSize;
@@ -110,13 +118,20 @@ extern "C" LRESULT MS_ABI impl__MapWizardResult_CPropertyPage__IEAA_J_J_Z(CPrope
     return result;
 }
 // Symbol: ?OnCtlColor@CPropertyPage@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
+// Retail RVA 0x216920 (mfc140u): try the control's child-notification helper
+// twice, returning its brush result when handled; otherwise return Default().
 extern "C" HBRUSH MS_ABI impl__OnCtlColor_CPropertyPage__IEAAPEAUHBRUSH____PEAVCDC__PEAVCWnd__I_Z(
     CPropertyPage* pThis, CDC* pDC, CWnd* pWnd, UINT nCtlColor) {
-    (void)pThis;
     (void)pDC;
-    (void)pWnd;
     (void)nCtlColor;
-    return nullptr;
+    LONGLONG result;
+    if (impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(pWnd, &result)) {
+        return reinterpret_cast<HBRUSH>(result);
+    }
+    if (impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(pWnd, &result)) {
+        return reinterpret_cast<HBRUSH>(result);
+    }
+    return reinterpret_cast<HBRUSH>(impl__Default_CWnd__IEAA_JXZ(pThis));
 }
 // Symbol: ?OnNotify@CPropertyPage@@MEAAH_K_JPEA_J@Z
 extern "C" int MS_ABI impl__OnNotify_CPropertyPage__MEAAH_K_JPEA_J_Z(
@@ -141,9 +156,11 @@ extern "C" int MS_ABI impl__OnNotify_CPropertyPage__MEAAH_K_JPEA_J_Z(
     return TRUE;
 }
 // Symbol: ?OnWizardFinishEx@CPropertyPage@@UEAAPEAUHWND__@@XZ
+// The mfc140u symbol lookup has no entry, but the ANSI twin body at RVA 0x2149d0
+// (mfc140) is byte-identical: it dispatches the vtable slot for OnWizardFinish
+// and returns the inverse BOOL value as an HWND.
 extern "C" HWND MS_ABI impl__OnWizardFinishEx_CPropertyPage__UEAAPEAUHWND____XZ(CPropertyPage* pThis) {
-    (void)pThis;
-    return nullptr;
+    return reinterpret_cast<HWND>(static_cast<INT_PTR>(pThis->OnWizardFinish() ? 0 : 1));
 }
 // Symbol: ?GetPSP@CPropertyPage@@QEAAAEAU_PROPSHEETPAGEW@@XZ
 extern "C" PROPSHEETPAGEW& MS_ABI impl__GetPSP_CPropertyPage__QEAAAEAU_PROPSHEETPAGEW__XZ(CPropertyPage* pThis) {
