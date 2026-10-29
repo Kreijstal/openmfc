@@ -1,17 +1,20 @@
 // COleIPFrameWndEx — OpenMFC implementation.
 // Sources: olecore.cpp
 //
-// Behaviour below was decoded from the retail mfc140 export table
-// (mangled name -> RVA -> objdump), not inferred; every implemented body
-// cites the RVA it was transcribed from.
+// Behaviour below was decoded from the retail MFC exports (mangled name ->
+// RVA -> objdump), not inferred; every implemented body cites its source.
+// Legacy unqualified address references in the transcriptions below refer to
+// mfc140.dll (ANSI twin), whose function bodies match mfc140u.dll; they are not
+// mfc140u RVAs/addresses unless explicitly tagged as such.
 //
-// Retail layout facts established from ??0COleIPFrameWndEx@@IEAA@XZ (RVA
-// 0x96510) and ?CreateObject@COleIPFrameWndEx@@SAPEAVCObject@@XZ (0x964c0):
+// Retail layout facts established from ??0COleIPFrameWndEx@@IEAA@XZ (mfc140u
+// RVA 0x95f50) and ?CreateObject@COleIPFrameWndEx@@SAPEAVCObject@@XZ (mfc140u
+// RVA 0x95f00):
 //   * operator new is called with 0x790 == 1936 bytes, which is exactly the
 //     m_nObjectSize recorded for classCOleIPFrameWndEx in
 //     phase4/src/core/ole/RuntimeClasses.cpp.
 //   * the base COleIPFrameWnd constructor is called with %rcx unchanged, and
-//     COleIPFrameWnd's own constructor (0x25bf10) in turn calls CFrameWnd's
+//     COleIPFrameWnd's own constructor (mfc140u RVA 0x25d010) in turn calls CFrameWnd's
 //     with %rcx unchanged — so CFrameWnd, COleIPFrameWnd and COleIPFrameWndEx
 //     all share offset 0.  That is what makes the base-class delegations below
 //     legal: `this` may be handed straight to a CFrameWnd/CWnd impl_ thunk.
@@ -22,17 +25,18 @@
 //         this+0x428  CDockingManager
 //         this+0x5d8  = this
 //
-// OpenMFC has no COleIPFrameWndEx class in include/openmfc/ (grep finds zero
-// hits) and no shadow struct for it in phase4/src/detail/ — the only thing
-// there is its message map in detail/Ole09MsgmapSupport.h, which pins no
-// offsets — so none of those members are reachable here.
-// Every retail body that only touches the embedded CFrameImpl / CDockingManager
-// is therefore left as a documented stub rather than guessed at; the bodies
-// that delegate to an exported base-class method are implemented.
+// OpenMFC has no COleIPFrameWndEx class in include/openmfc/ and no shadow
+// struct for it in phase4/src/detail/.  This file uses a local, statically
+// pinned overlay for the retail base-frame pointer at +0x210 in
+// GetContainerFrameWindow; the embedded CFrameImpl / CDockingManager are still
+// not modeled, so bodies requiring those sub-objects are left as documented
+// stubs or partial implementations rather than guessed at.
 
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+
+#include <cstddef>
 
 // The retail allocation for this class (0x790 bytes, see the header comment)
 // must be able to hold the OpenMFC COleIPFrameWnd that the constructor below
@@ -103,8 +107,26 @@ extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 // it with a CBasePane* first parameter because they include afxmfc.h.
 extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(
     void* pPane, int bShow, int bDelay, int bActivate);
+// core/runtime/CObjectTypeChecks.cpp and core/ole/RuntimeClasses.cpp.
+extern "C" BOOL MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleCntrFrameWndEx__SAPEAUCRuntimeClass__XZ();
 
-// COleIPFrameWndEx::OnUpdatePaneMenu(CCmdUI*) — retail (RVA 0x960d0):
+namespace {
+// GetContainerFrameWindow reads this slot directly (mfc140u shared-code entry
+// RVA 0x95e70, disassembled as the COleDocIPFrameWndEx twin).  The matching
+// m_pMainFrame offset is also pinned in COleIPFrameWnd.cpp's RetailIPFrameTail.
+struct RetailCOleIPFrameWndExPrefix {
+    unsigned char prefix[0x210];
+    void* m_pMainFrame;
+};
+static_assert(offsetof(RetailCOleIPFrameWndExPrefix, m_pMainFrame) == 0x210,
+              "retail COleIPFrameWnd::m_pMainFrame @+0x210");
+static_assert(sizeof(RetailCOleIPFrameWndExPrefix) == 0x218,
+              "retail COleIPFrameWnd prefix through m_pMainFrame");
+}
+
+// COleIPFrameWndEx::OnUpdatePaneMenu(CCmdUI*) — retail mfc140.dll (ANSI) RVA 0x960d0:
 //     pane = CDockingManager vtable slot 0x58 (FindPaneByID)(this+0x428,
 //                                                pCmdUI->[+0x08], TRUE);
 //     if (pane) pCmdUI->vtable[+0x08](pCmdUI, (CWnd::GetStyle(pane) >> 28) & 1);
@@ -119,9 +141,9 @@ extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(
 // on the no-pane branch, which is consistent with a m_bContinueRouting flag
 // living at +0x2c, but this file did not verify that naming — the write itself
 // is what was disassembled.
-// Neither branch is reachable here: the embedded CDockingManager at this+0x428
-// is not modeled (so no pane can be found), and OpenMFC's CCmdUI
-// (include/openmfc/afxole.h:68) is not the retail layout — it has a virtual
+// This thunk reproduces neither branch: the embedded CDockingManager at
+// this+0x428 and a retail-layout CCmdUI are not available to this implementation.
+// OpenMFC's CCmdUI (include/openmfc/afxole.h:68) is not the retail layout — it has a virtual
 // destructor in vtable slot 0 and its offset 0x2c falls inside m_pSubMenu, so
 // both the SetCheck dispatch and the +0x2c write would hit the wrong thing.
 // Symbol: ?OnUpdatePaneMenu@COleIPFrameWndEx@@IEAAXPEAVCCmdUI@@@Z
@@ -130,7 +152,7 @@ extern "C" void MS_ABI impl__OnUpdatePaneMenu_COleIPFrameWndEx__IEAAXPEAVCCmdUI_
     // TODO(clean-room): needs the embedded CDockingManager at this+0x428 and a
     // retail-layout CCmdUI.
 }
-// COleIPFrameWndEx::COleIPFrameWndEx() — retail (RVA 0x96510):
+// COleIPFrameWndEx::COleIPFrameWndEx() — retail mfc140u RVA 0x95f50:
 //     COleIPFrameWnd::COleIPFrameWnd(this);   // %rcx unchanged
 //     *(void**)this = &COleIPFrameWndEx_vftable;
 //     this->[0x284] = 0; this->[0x290] = nullptr;
@@ -151,7 +173,7 @@ extern "C" void* MS_ABI impl___0COleIPFrameWndEx__IEAA_XZ(void* pThis) {
     return pThis;
 }
 
-// COleIPFrameWndEx::~COleIPFrameWndEx() — retail (RVA 0x965c0):
+// COleIPFrameWndEx::~COleIPFrameWndEx() — retail mfc140u RVA 0x96000:
 //     *(void**)this = &COleIPFrameWndEx_vftable;
 //     CDockingManager::~CDockingManager(this+0x428);
 //     CFrameImpl::~CFrameImpl(this+0x298);
@@ -165,16 +187,17 @@ extern "C" void* MS_ABI impl___1COleIPFrameWndEx__MEAA_XZ(void* pThis) {
     return pThis;
 }
 
-// COleIPFrameWndEx::AddDockSite() — this export has no resolved RVA in
-// mfc140_rva_symbols.json (disas.py reports NOT FOUND), so there is no retail
-// body to transcribe and nothing in this tree pins its behaviour.  Left as the
-// no-op the generated stub already was.
+// COleIPFrameWndEx::AddDockSite() — ordinal 1842 resolves to mfc140u RVA
+// 0x27d0 even though the name is absent from the RVA symbol map.  The ordinal
+// entry disassembles to `ret $0` (the map labels the shared address as the
+// similarly named CFrameWndEx entry), so retail's behavior is a no-op; keep
+// this explicitly stub-shaped body rather than claiming a nontrivial method.
 // Symbol: ?AddDockSite@COleIPFrameWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__AddDockSite_COleIPFrameWndEx__QEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
-// COleIPFrameWndEx::AddPane(CBasePane*, BOOL) — retail (RVA 0x95f10):
+// COleIPFrameWndEx::AddPane(CBasePane*, BOOL) — retail mfc140.dll (ANSI) RVA 0x95f10:
 //     %rcx += 0x428; [rsp+0x20] = 0; %r9d = 0
 //     CDockingManager::AddPane(&m_dockManager, pPane, bSelect, FALSE, FALSE)
 // The embedded CDockingManager at this+0x428 is not modeled — see the header
@@ -186,7 +209,7 @@ extern "C" int MS_ABI impl__AddPane_COleIPFrameWndEx__QEAAHPEAVCBasePane__H_Z(vo
     return 0;
 }
 
-// COleIPFrameWndEx::AdjustDockingLayout(void*) — retail (RVA 0x95fe0):
+// COleIPFrameWndEx::AdjustDockingLayout(void*) — retail mfc140.dll (ANSI) RVA 0x95fe0:
 //     w = ::GetWindow(this->m_hWnd, GW_CHILD);             // IAT slot 0x2c4c88
 //     while ((p = CWnd::FromHandle(w)) != nullptr &&       // 0x289180
 //            p->IsKindOf(&classCBasePane))                 // 0x233310
@@ -207,35 +230,19 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_COleIPFrameWndEx__UEAAXPEAX_Z(v
     // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
 }
 
-// COleIPFrameWndEx::CreateObject() — retail (RVA 0x964c0), transcribed in full:
-//     ecx = 0x790;
-//     rax = ??2@YAPEAX_K@Z(0x790);            // MFC operator new, at 0x2840
-//     if (rax) { rcx = rax; ??0COleIPFrameWndEx@@IEAA@XZ(rcx); }  // 0x96510
-//     return rax;                              // the ctor leaves `this` in rax
-// 0x790 == 1936, which is exactly classCOleIPFrameWndEx's m_nObjectSize in
-// core/ole/RuntimeClasses.cpp:240 — the two agree, so the size is pinned.
-//
-// Left an explicit stub rather than transcribed.  The whole job of this export
-// is to hand back an object whose *dynamic type* is COleIPFrameWndEx, and this
-// tree has no such class: nothing in include/openmfc/ declares it (grep finds
-// zero hits), so the only thing new+ctor could produce here is the
-// COleIPFrameWnd that impl___0COleIPFrameWndEx__IEAA_XZ above constructs.  That
-// object answers GetRuntimeClass() with classCOleIPFrameWnd, so
-// IsKindOf(RUNTIME_CLASS(COleIPFrameWndEx)) would return FALSE on an object the
-// caller was just handed as a COleIPFrameWndEx — a silent identity error — and
-// bytes sizeof(COleIPFrameWnd)..1936 (the CFrameImpl and CDockingManager
-// sub-objects retail constructs) would stay uninitialized.
-// Returning null instead fails at the caller's first dereference.  It also
-// matches the base class: ?CreateObject@COleIPFrameWnd@@SAPEAVCObject@@XZ
-// (core/ole/COleIPFrameWnd.cpp:58) is a null stub too, and
-// classCOleIPFrameWndEx.m_pfnCreateObject is already nullptr, so no DYNCREATE
-// path in this tree reaches here regardless.
+// COleIPFrameWndEx::CreateObject() — retail mfc140u RVA 0x95f00 allocates
+// 0x790 bytes and, when non-null, calls the constructor at RVA 0x95f50.  The
+// constructor implemented here only constructs the COleIPFrameWnd base; it does
+// not install the derived vptr or initialize the CFrameImpl / CDockingManager
+// subobjects that retail initializes.  Returning that allocation would expose
+// an invalid derived instance, so this remains an explicit null stub and does
+// not reproduce retail's successful-allocation path.
 // Symbol: ?CreateObject@COleIPFrameWndEx@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_COleIPFrameWndEx__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// COleIPFrameWndEx::DockPane(CBasePane*, UINT, LPCRECT) — retail (RVA 0x95f50):
+// COleIPFrameWndEx::DockPane(CBasePane*, UINT, LPCRECT) — retail mfc140.dll (ANSI) RVA 0x95f50:
 //     add $0x428,%rcx; jmp CDockingManager::DockPane
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?DockPane@COleIPFrameWndEx@@QEAAXPEAVCBasePane@@IPEBUtagRECT@@@Z
@@ -245,7 +252,7 @@ extern "C" void MS_ABI impl__DockPane_COleIPFrameWndEx__QEAAXPEAVCBasePane__IPEB
     // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
 }
 
-// COleIPFrameWndEx::DockPaneLeftOf(CPane*, CPane*) — retail (RVA 0x961a0):
+// COleIPFrameWndEx::DockPaneLeftOf(CPane*, CPane*) — retail mfc140.dll (ANSI) RVA 0x961a0:
 //     add $0x428,%rcx; jmp CDockingManager::DockPaneLeftOf
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?DockPaneLeftOf@COleIPFrameWndEx@@QEAAHPEAVCPane@@0@Z
@@ -256,7 +263,7 @@ extern "C" int MS_ABI impl__DockPaneLeftOf_COleIPFrameWndEx__QEAAHPEAVCPane__0_Z
     return 0;
 }
 
-// COleIPFrameWndEx::EnableAutoHidePanes(DWORD) — retail (RVA 0x96080):
+// COleIPFrameWndEx::EnableAutoHidePanes(DWORD) — retail mfc140.dll (ANSI) RVA 0x96080:
 //     add $0x428,%rcx; jmp CDockingManager::EnableAutoHidePanes
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?EnableAutoHidePanes@COleIPFrameWndEx@@QEAAHK@Z
@@ -266,7 +273,7 @@ extern "C" int MS_ABI impl__EnableAutoHidePanes_COleIPFrameWndEx__QEAAHK_Z(void*
     return 0;
 }
 
-// COleIPFrameWndEx::EnableDocking(DWORD) — retail (RVA 0x96070):
+// COleIPFrameWndEx::EnableDocking(DWORD) — retail mfc140.dll (ANSI) RVA 0x96070:
 //     add $0x428,%rcx; jmp CDockingManager::EnableDocking
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?EnableDocking@COleIPFrameWndEx@@QEAAHK@Z
@@ -276,20 +283,26 @@ extern "C" int MS_ABI impl__EnableDocking_COleIPFrameWndEx__QEAAHK_Z(void* pThis
     return 0;
 }
 
-// COleIPFrameWndEx::GetContainerFrameWindow() — retail (RVA 0x96430):
-//     p = this->[0x210];                       // COleIPFrameWnd's main frame
-//     return (p && p->IsKindOf(&classCOleCntrFrameWndEx)) ? p : nullptr;
-// this+0x210 is a member of the COleIPFrameWnd base that OpenMFC's
-// COleIPFrameWnd (include/openmfc/afxole.h) does not expose, so the slot cannot
-// be read.  See the headerRequest for this file.
+// COleIPFrameWndEx::GetContainerFrameWindow() — the exact export is at mfc140u
+// RVA 0x95e70 (ordinal 5094; its code-folded map label is the
+// COleDocIPFrameWndEx twin).  The ANSI exact-symbol entry is RVA 0x96430.
+// Disassembly: p = this->[0x210]; return (p &&
+// p->IsKindOf(&classCOleCntrFrameWndEx)) ? p : nullptr.
+// The local overlay above pins +0x210, and both the IsKindOf call and runtime
+// class getter are invoked through their verified impl__ thunks.
 // Symbol: ?GetContainerFrameWindow@COleIPFrameWndEx@@QEAAPEAVCOleCntrFrameWndEx@@XZ
 extern "C" void* MS_ABI impl__GetContainerFrameWindow_COleIPFrameWndEx__QEAAPEAVCOleCntrFrameWndEx__XZ(void* pThis) {
-    (void)pThis;
-    // TODO(clean-room): needs COleIPFrameWnd's container-frame member (this+0x210).
-    return nullptr;
+    void* pContainer = reinterpret_cast<RetailCOleIPFrameWndExPrefix*>(pThis)->m_pMainFrame;
+    if (pContainer == nullptr ||
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            static_cast<const CObject*>(pContainer),
+            impl__GetThisClass_COleCntrFrameWndEx__SAPEAUCRuntimeClass__XZ())) {
+        return nullptr;
+    }
+    return pContainer;
 }
 
-// COleIPFrameWndEx::GetPane(UINT) — retail (RVA 0x960b0):
+// COleIPFrameWndEx::GetPane(UINT) — retail mfc140.dll (ANSI) RVA 0x960b0:
 //     add $0x428,%rcx; %r8d = 1; tail-call CDockingManager vtable slot 0x58
 //     (FindPaneByID(nID, TRUE))
 // The docking manager at this+0x428 is not modeled.
@@ -300,7 +313,7 @@ extern "C" void* MS_ABI impl__GetPane_COleIPFrameWndEx__QEAAPEAVCBasePane__I_Z(v
     return nullptr;
 }
 
-// COleIPFrameWndEx::HtmlHelp(DWORD_PTR, UINT) — retail (RVA 0x96610; the RVA
+// COleIPFrameWndEx::HtmlHelp(DWORD_PTR, UINT) — retail mfc140.dll (ANSI) RVA 0x96610 (the RVA
 // map names that entry ?HtmlHelpA@COleIPFrameWndEx@@MEAAX_KI@Z, the Unicode
 // DLL's exported name being the W one aliased here):
 //     if (dwData != 0 || this->[0x284] == 0) jmp CWnd::HtmlHelp(dwData, nCmd);
@@ -320,7 +333,7 @@ extern "C" void MS_ABI impl__HtmlHelpW_COleIPFrameWndEx__MEAAX_KI_Z(
 }
 
 // COleIPFrameWndEx::InsertPane(CBasePane*, CBasePane*, BOOL) — retail
-// (RVA 0x95f30): add $0x428,%rcx; jmp CDockingManager::InsertPane
+// (mfc140.dll ANSI RVA 0x95f30): add $0x428,%rcx; jmp CDockingManager::InsertPane
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?InsertPane@COleIPFrameWndEx@@QEAAHPEAVCBasePane@@0H@Z
 extern "C" int MS_ABI impl__InsertPane_COleIPFrameWndEx__QEAAHPEAVCBasePane__0H_Z(
@@ -331,7 +344,7 @@ extern "C" int MS_ABI impl__InsertPane_COleIPFrameWndEx__QEAAHPEAVCBasePane__0H_
 }
 
 // COleIPFrameWndEx::IsPointNearDockSite(CPoint, DWORD&, BOOL&) — retail
-// (RVA 0x95fd0): add $0x428,%rcx; jmp CDockingManager::IsPointNearDockSite
+// (mfc140.dll ANSI RVA 0x95fd0): add $0x428,%rcx; jmp CDockingManager::IsPointNearDockSite
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?IsPointNearDockSite@COleIPFrameWndEx@@QEBAHVCPoint@@AEAKAEAH@Z
 extern "C" int MS_ABI impl__IsPointNearDockSite_COleIPFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
@@ -342,7 +355,7 @@ extern "C" int MS_ABI impl__IsPointNearDockSite_COleIPFrameWndEx__QEBAHVCPoint__
 }
 
 // COleIPFrameWndEx::LoadFrame(UINT, DWORD, CWnd*, CCreateContext*) — retail
-// (RVA 0x95b80):
+// (mfc140.dll ANSI RVA 0x95b80):
 //     this->m_Impl.[+0x10] = nIDResource;      // CFrameImpl at this+0x298
 //     CFrameImpl::LoadLargeIconsState(&this->m_Impl);
 //     jmp CFrameWnd::LoadFrame(this, nIDResource, dwDefaultStyle,
@@ -359,7 +372,7 @@ extern "C" int MS_ABI impl__LoadFrame_COleIPFrameWndEx__UEAAHIKPEAVCWnd__PEAUCCr
         pThis, nIDResource, dwDefaultStyle, pParentWnd, pContext);
 }
 
-// COleIPFrameWndEx::OnActivate(UINT, CWnd*, BOOL) — retail (RVA 0x966b0):
+// COleIPFrameWndEx::OnActivate(UINT, CWnd*, BOOL) — retail mfc140u RVA 0x960f0:
 //     CFrameWnd::OnActivate(this, nState, pWndOther, bMinimized);   // 0x29c460
 //     if (nState != 0) {
 //         if (nState == 2) ::UpdateWindow(this->m_hWnd);
@@ -376,10 +389,10 @@ extern "C" int MS_ABI impl__LoadFrame_COleIPFrameWndEx__UEAAHIKPEAVCWnd__PEAUCCr
 //             g_pActiveFrame = (p && p->IsKindOf(&classCFrameWnd)) ? p : nullptr;
 //         }
 //     }
-// (The descriptor at 0x338990 was read out of the image: name "CFrameWnd",
-// m_nObjectSize 472.  The SendMessage above is IAT slot 0x2c5378, which the
-// import directory of the ANSI image names USER32!SendMessageA; the Unicode
-// build necessarily binds the W entry.)
+// (The descriptor at 0x338990 was read out of the mfc140.dll image: name
+// "CFrameWnd", m_nObjectSize 472.  UpdateWindow uses ANSI-image IAT slot
+// 0x2c5328, resolved to USER32!UpdateWindow; SendMessage uses slot 0x2c5378,
+// resolved to USER32!SendMessageA in mfc140.dll and SendMessageW in mfc140u.)
 // Only the base activation is reproduced; all three module
 // globals and this+0x290 / the CFrameImpl at this+0x298 are unmodeled state.
 // Symbol: ?OnActivate@COleIPFrameWndEx@@IEAAXIPEAVCWnd@@H@Z
@@ -388,10 +401,10 @@ extern "C" void MS_ABI impl__OnActivate_COleIPFrameWndEx__IEAAXIPEAVCWnd__H_Z(
     if (!pThis) return;
     impl__OnActivate_CFrameWnd__IEAAXIPEAVCWnd__H_Z(pThis, nState, pWndOther, bMinimized);
     // TODO(clean-room): transcribed partially — this+0x290, the CFrameImpl at
-    // this+0x298 and the two module globals are not modeled.
+    // this+0x298 and the three module globals are not modeled.
 }
 
-// COleIPFrameWndEx::OnClose() — retail (RVA 0x95d60):
+// COleIPFrameWndEx::OnClose() — retail mfc140.dll (ANSI) RVA 0x95d60:
 //     CFrameImpl::OnCloseFrame(this+0x298);
 //     jmp CFrameWnd::OnClose(this);
 // The CFrameImpl sub-object is not modeled; the base close is performed.
@@ -403,7 +416,7 @@ extern "C" void MS_ABI impl__OnClose_COleIPFrameWndEx__IEAAXXZ(CFrameWnd* pThis)
     impl__OnClose_CFrameWnd__IEAAXXZ(pThis);
 }
 
-// COleIPFrameWndEx::OnClosePopupMenu(CMFCPopupMenu*) — retail (RVA 0x95ac0):
+// COleIPFrameWndEx::OnClosePopupMenu(CMFCPopupMenu*) — retail mfc140.dll (ANSI) RVA 0x95ac0:
 //     if (g_pActivePopupMenu == pMenuPopup) g_pActivePopupMenu = nullptr;
 //     this->[0x770] = 0;
 // Both the module-global active-popup pointer (0x3b6fe8) and the DWORD at
@@ -416,7 +429,7 @@ extern "C" void MS_ABI impl__OnClosePopupMenu_COleIPFrameWndEx__UEAAXPEAVCMFCPop
 }
 
 // COleIPFrameWndEx::OnCmdMsg(UINT, int, void*, AFX_CMDHANDLERINFO*) — retail
-// (RVA 0x96460):
+// (mfc140.dll ANSI RVA 0x96460):
 //     if (CFrameWnd::OnCmdMsg(...)) return TRUE;
 //     return CDockingManager::ProcessPaneContextMenuCommand(this+0x428, ...);
 // The docking manager at this+0x428 is not modeled; the base dispatch is done.
@@ -432,7 +445,7 @@ extern "C" int MS_ABI impl__OnCmdMsg_COleIPFrameWndEx__UEAAHIHPEAXPEAUAFX_CMDHAN
     return FALSE;
 }
 
-// COleIPFrameWndEx::OnCommand(WPARAM, LPARAM) — retail (RVA 0x95ae0):
+// COleIPFrameWndEx::OnCommand(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x95ae0:
 //     if (HIWORD(wParam) == 1) {               // accelerator
 //         CMFCCmdUsageCount::AddCmd(&g_usage, LOWORD(wParam));
 //         if (CFrameImpl::ProcessKeyboard(this+0x298, 27, nullptr)) return TRUE;
@@ -453,7 +466,7 @@ extern "C" int MS_ABI impl__OnCommand_COleIPFrameWndEx__MEAAH_K_J_Z(
     return impl__OnCommand_CFrameWnd__MEAAH_K_J_Z(pThis, (WPARAM)wParam, (LPARAM)lParam);
 }
 
-// COleIPFrameWndEx::OnContextHelp() — retail (RVA 0x96650):
+// COleIPFrameWndEx::OnContextHelp() — retail mfc140u RVA 0x96090:
 //     this->[0x284] = 1;
 //     if (this->[0x104] == 0 && CFrameWnd::CanEnterHelpMode(this))
 //         CMFCToolBar::SetHelpMode(TRUE);
@@ -471,22 +484,25 @@ extern "C" void MS_ABI impl__OnContextHelp_COleIPFrameWndEx__IEAAXXZ(CFrameWnd* 
 }
 
 // COleIPFrameWndEx::OnCreateControlBars(CFrameWnd*, CFrameWnd*) — retail
-// (RVA 0x96330): if pWndFrame is not already a COleCntrFrameWndEx it allocates
-// one (operator new(0x548), COleCntrFrameWndEx::COleCntrFrameWndEx(this)),
+// (mfc140.dll ANSI RVA 0x96330): if pWndFrame is not already a COleCntrFrameWndEx it allocates
+// one (operator new(0x548), COleCntrFrameWndEx::COleCntrFrameWndEx(pWndFrame)),
 // moves the HWND from the old this+0x210 frame to it via CWnd::Detach/Attach,
 // releases the old one through its vtable slot 1, stores the new frame at
-// this+0x210 and sets newFrame->[0x390] = newFrame; always returns TRUE.
-// COleCntrFrameWndEx is itself an unimplemented stub class in this tree
-// (core/ole/COleCntrFrameWndEx.cpp) and this+0x210 is not modeled.
+// this+0x210 and sets newFrame->[0x390] = newFrame. Normal completion returns
+// 1; the allocation result is not checked before later uses, so allocation
+// failure is not a successful TRUE-return path.
+// A partial COleCntrFrameWndEx constructor thunk exists in
+// core/ole/COleCntrFrameWndEx.cpp (it omits the retail derived-vftable store),
+// and this file pins the +0x210 slot locally. This body remains return-only.
 // Symbol: ?OnCreateControlBars@COleIPFrameWndEx@@MEAAHPEAVCFrameWnd@@0@Z
 extern "C" int MS_ABI impl__OnCreateControlBars_COleIPFrameWndEx__MEAAHPEAVCFrameWnd__0_Z(
     void* pThis, void* pWndFrame, void* pWndDoc) {
     (void)pThis; (void)pWndFrame; (void)pWndDoc;
     // TODO(clean-room): needs COleCntrFrameWndEx and this+0x210.
-    return TRUE;   // retail returns 1 on every path
+    return TRUE;   // retail's normal return value
 }
 
-// COleIPFrameWndEx::OnDestroy() — retail (RVA 0x95d90):
+// COleIPFrameWndEx::OnDestroy() — retail mfc140.dll (ANSI) RVA 0x95d90:
 //     if (g_pActivePopupMenu)                       // global at 0x3b6fe8
 //         ::SendMessage(g_pActivePopupMenu->m_hWnd, WM_CLOSE, 0, 0);
 //     if (g_pActiveFrame == this) {                 // global at 0x3b6f18
@@ -517,7 +533,7 @@ extern "C" void MS_ABI impl__OnDestroy_COleIPFrameWndEx__IEAAXXZ(void* pThis) {
     impl__OnDestroy_COleIPFrameWnd__IEAAXXZ(pThis);
 }
 
-// COleIPFrameWndEx::OnIdleUpdateCmdUI(WPARAM, LPARAM) — retail (RVA 0x962d0):
+// COleIPFrameWndEx::OnIdleUpdateCmdUI(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x962d0:
 //     COleIPFrameWnd::OnIdleUpdateCmdUI(this);
 //     CDockingManager::SendMessageToMiniFrames(this+0x428, 0x363, 0, 0);
 //     p = this->[0x210];
@@ -537,11 +553,11 @@ extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_COleIPFrameWndEx__IEAA_J_K_J_Z
     return 0;
 }
 
-// COleIPFrameWndEx::OnMenuChar(UINT, UINT, CMenu*) — retail (RVA 0x957d0):
+// COleIPFrameWndEx::OnMenuChar(UINT, UINT, CMenu*) — retail mfc140.dll (ANSI) RVA 0x957d0:
 //     if (CFrameImpl::OnMenuChar(this+0x298, nChar)) return 0xffff0002;
 //     return CFrameWnd::OnMenuChar(this, nChar, nFlags, pMenu);
-// The CFrameImpl sub-object is not modeled, so its branch never fires and the
-// base handler runs.
+// This implementation omits the CFrameImpl call, so it always falls through
+// to the base handler; retail can return 0xffff0002 from the omitted branch.
 // Symbol: ?OnMenuChar@COleIPFrameWndEx@@IEAA_JIIPEAVCMenu@@@Z
 extern "C" __int64 MS_ABI impl__OnMenuChar_COleIPFrameWndEx__IEAA_JIIPEAVCMenu___Z(
     CFrameWnd* pThis, unsigned int nChar, unsigned int nFlags, CMenu* pMenu) {
@@ -551,7 +567,7 @@ extern "C" __int64 MS_ABI impl__OnMenuChar_COleIPFrameWndEx__IEAA_JIIPEAVCMenu__
     return impl__OnMenuChar_CFrameWnd__IEAA_JIIPEAVCMenu___Z(pThis, nChar, nFlags, pMenu);
 }
 
-// COleIPFrameWndEx::OnMoveMiniFrame(CWnd*) — retail (RVA 0x96050):
+// COleIPFrameWndEx::OnMoveMiniFrame(CWnd*) — retail mfc140.dll (ANSI) RVA 0x96050:
 //     add $0x428,%rcx; tail-call CDockingManager vtable slot 0x88
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?OnMoveMiniFrame@COleIPFrameWndEx@@UEAAHPEAVCWnd@@@Z
@@ -561,13 +577,13 @@ extern "C" int MS_ABI impl__OnMoveMiniFrame_COleIPFrameWndEx__UEAAHPEAVCWnd___Z(
     return 0;
 }
 
-// COleIPFrameWndEx::OnPaneCheck(UINT) — retail (RVA 0x96140):
+// COleIPFrameWndEx::OnPaneCheck(UINT) — retail mfc140.dll (ANSI) RVA 0x96140:
 //     pane = CDockingManager vtable slot 0x58 (FindPaneByID)(this+0x428, nID, TRUE);
 //     if (!pane) return 0;
 //     pane->ShowPane(!(pane->GetStyle() & WS_VISIBLE), FALSE, FALSE);   // slot 0x458
 //     return 1;
-// The lookup needs the embedded CDockingManager at this+0x428, which is not
-// modeled, so the pane can never be found.
+// This stub omits the lookup; its unconditional 0 matches retail only when
+// FindPaneByID returns null.
 // Symbol: ?OnPaneCheck@COleIPFrameWndEx@@IEAAHI@Z
 extern "C" int MS_ABI impl__OnPaneCheck_COleIPFrameWndEx__IEAAHI_Z(void* pThis, unsigned int nID) {
     (void)pThis; (void)nID;
@@ -575,7 +591,7 @@ extern "C" int MS_ABI impl__OnPaneCheck_COleIPFrameWndEx__IEAAHI_Z(void* pThis, 
     return 0;
 }
 
-// COleIPFrameWndEx::OnSetMenu(WPARAM, LPARAM) — retail (RVA 0x95820):
+// COleIPFrameWndEx::OnSetMenu(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x95820:
 //     COleIPFrameWndEx::OnSetMenu(this, (HMENU)wParam);   // the overload below
 //     return this->vtable[0x248](this, 0x230, 0, lParam);
 // Both halves are out of reach: the HMENU overload depends on the menu bar at
@@ -589,12 +605,13 @@ extern "C" __int64 MS_ABI impl__OnSetMenu_COleIPFrameWndEx__IEAA_J_K_J_Z(
     return 0;
 }
 
-// COleIPFrameWndEx::OnSetMenu(HMENU) — retail (RVA 0x95860):
+// COleIPFrameWndEx::OnSetMenu(HMENU) — retail mfc140.dll (ANSI) RVA 0x95860:
 //     bar = this->[0x3a8];                       // the frame's menu bar pane
 //     if (!bar) return 0;
 //     bar->vtable[0x878](bar, hMenu ? hMenu : this->[0x2e0], 0, 0);
 //     return 1;
-// Neither this+0x3a8 nor this+0x2e0 is modeled.
+// Neither this+0x3a8 nor this+0x2e0 is modeled; the stub's zero result only
+// matches retail when the menu-bar pointer is null.
 // Symbol: ?OnSetMenu@COleIPFrameWndEx@@IEAAHPEAUHMENU__@@@Z
 extern "C" int MS_ABI impl__OnSetMenu_COleIPFrameWndEx__IEAAHPEAUHMENU_____Z(void* pThis, HMENU hMenu) {
     (void)pThis; (void)hMenu;
@@ -603,7 +620,7 @@ extern "C" int MS_ABI impl__OnSetMenu_COleIPFrameWndEx__IEAAHPEAUHMENU_____Z(voi
 }
 
 // COleIPFrameWndEx::OnSetPreviewMode(BOOL, CPrintPreviewState*) — retail
-// (RVA 0x961b0):
+// (mfc140.dll ANSI RVA 0x961b0):
 //     CDockingManager::SetPrintPreviewMode(this+0x428, bPreview, pState);
 //     saved = pState->[0x10];
 //     CFrameWnd::OnSetPreviewMode(this, bPreview, pState);
@@ -625,7 +642,7 @@ extern "C" void MS_ABI impl__OnSetPreviewMode_COleIPFrameWndEx__UEAAXHPEAUCPrint
     impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(pThis, bPreview, pState);
 }
 
-// COleIPFrameWndEx::OnShowPanes(BOOL) — retail (RVA 0x963e0):
+// COleIPFrameWndEx::OnShowPanes(BOOL) — retail mfc140.dll (ANSI) RVA 0x963e0:
 //     r = CDockingManager vtable slot 0xb0 (ShowPanes)(this+0x428, bShow);
 //     this->vtable[0x3d8](this, 0);              // AdjustDockingLayout(nullptr)
 //     return r;
@@ -637,17 +654,17 @@ extern "C" int MS_ABI impl__OnShowPanes_COleIPFrameWndEx__UEAAHH_Z(void* pThis, 
     return 0;
 }
 
-// COleIPFrameWndEx::OnToolbarContextMenu(WPARAM, LPARAM) — this export has no
-// resolved RVA in the mfc140 map, so there is no retail body to transcribe and
-// nothing in this tree pins its behaviour.  Left as a stub.
+// COleIPFrameWndEx::OnToolbarContextMenu(WPARAM, LPARAM) — export ordinal
+// 11373 maps to mfc140u RVA 0x3a60; the code-folded entry is `mov $1,%eax; ret`
+// (disas.py --u --at 0x3a60).  The two arguments are ignored and retail returns 1.
 // Symbol: ?OnToolbarContextMenu@COleIPFrameWndEx@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnToolbarContextMenu_COleIPFrameWndEx__IEAA_J_K_J_Z(
     void* pThis, unsigned __int64 wParam, __int64 lParam) {
     (void)pThis; (void)wParam; (void)lParam;
-    return 0;
+    return 1;
 }
 
-// COleIPFrameWndEx::OnToolbarCreateNew(WPARAM, LPARAM) — retail (RVA 0x95c60):
+// COleIPFrameWndEx::OnToolbarCreateNew(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x95c60:
 //     if (lParam == 0) AfxThrowInvalidArgException();
 //     return CFrameImpl::CreateNewToolBar(this+0x298, (LPCTSTR)lParam);
 // The CFrameImpl sub-object is not modeled, so the toolbar cannot be created;
@@ -664,7 +681,7 @@ extern "C" __int64 MS_ABI impl__OnToolbarCreateNew_COleIPFrameWndEx__IEAA_J_K_J_
     return 0;
 }
 
-// COleIPFrameWndEx::OnToolbarDelete(WPARAM, LPARAM) — retail (RVA 0x95c90):
+// COleIPFrameWndEx::OnToolbarDelete(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x95c90:
 //     return (int)CFrameImpl::DeleteToolBar(this+0x298, (CMFCToolBar*)lParam);
 // The CFrameImpl sub-object is not modeled.
 // Symbol: ?OnToolbarDelete@COleIPFrameWndEx@@IEAA_J_K_J@Z
@@ -676,7 +693,7 @@ extern "C" __int64 MS_ABI impl__OnToolbarDelete_COleIPFrameWndEx__IEAA_J_K_J_Z(
 }
 
 // COleIPFrameWndEx::PaneFromPoint(CPoint, int, bool, CRuntimeClass*) — retail
-// (RVA 0x95f60): add $0x428,%rcx; tail-call CDockingManager vtable slot 0x30
+// (mfc140.dll ANSI RVA 0x95f60): add $0x428,%rcx; tail-call CDockingManager vtable slot 0x30
 // with the extra arguments (..., 0, nullptr) appended.
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?PaneFromPoint@COleIPFrameWndEx@@QEBAPEAVCBasePane@@VCPoint@@H_NPEAUCRuntimeClass@@@Z
@@ -688,7 +705,7 @@ extern "C" void* MS_ABI impl__PaneFromPoint_COleIPFrameWndEx__QEBAPEAVCBasePane_
 }
 
 // COleIPFrameWndEx::PaneFromPoint(CPoint, int, DWORD&, CRuntimeClass*) — retail
-// (RVA 0x95fa0): add $0x428,%rcx; tail-call CDockingManager vtable slot 0x28
+// (mfc140.dll ANSI RVA 0x95fa0): add $0x428,%rcx; tail-call CDockingManager vtable slot 0x28
 // with a trailing nullptr argument.
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?PaneFromPoint@COleIPFrameWndEx@@QEBAPEAVCBasePane@@VCPoint@@HAEAKPEAUCRuntimeClass@@@Z
@@ -699,7 +716,7 @@ extern "C" void* MS_ABI impl__PaneFromPoint_COleIPFrameWndEx__QEBAPEAVCBasePane_
     return nullptr;
 }
 
-// COleIPFrameWndEx::PreCreateWindow(CREATESTRUCT&) — retail (RVA 0x96090):
+// COleIPFrameWndEx::PreCreateWindow(CREATESTRUCT&) — retail mfc140.dll (ANSI) RVA 0x96090:
 //     this->[0x3b8] = this + 0x428;             // cache the docking manager
 //     jmp CFrameWnd::PreCreateWindow(this, cs);
 // The docking-manager back-pointer at this+0x3b8 is not modeled; the base
@@ -715,7 +732,7 @@ extern "C" int MS_ABI impl__PreCreateWindow_COleIPFrameWndEx__MEAAHAEAUtagCREATE
     return impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(pThis, *pcs);
 }
 
-// COleIPFrameWndEx::PreTranslateMessage(MSG*) — retail (RVA 0x958b0) switches on
+// COleIPFrameWndEx::PreTranslateMessage(MSG*) — retail mfc140.dll (ANSI) RVA 0x958b0 switches on
 // pMsg->message.  The exact sets, read off the compare chain (they are NOT
 // contiguous ranges):
 //   0x200 WM_MOUSEMOVE only  -> point = LOWORD/HIWORD(lParam); if
@@ -733,6 +750,8 @@ extern "C" int MS_ABI impl__PreCreateWindow_COleIPFrameWndEx__MEAAHAEAUtagCREATE
 // A non-zero result from any of those returns TRUE; on the click path a zero
 // result ALSO returns TRUE when ::IsWindow(pMsg->hwnd) has become false.
 // Everything else falls through to CFrameWnd::PreTranslateMessage (0x29ad40).
+// The ANSI-image IAT slots used here were resolved: 0x2c5270 is
+// USER32!ClientToScreen and 0x2c5390 is USER32!IsWindow.
 // CFrameImpl is not modeled, so only that fall-through path is performed.
 // Symbol: ?PreTranslateMessage@COleIPFrameWndEx@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_COleIPFrameWndEx__UEAAHPEAUtagMSG___Z(
@@ -743,7 +762,7 @@ extern "C" int MS_ABI impl__PreTranslateMessage_COleIPFrameWndEx__UEAAHPEAUtagMS
     return impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(pThis, pMsg);
 }
 
-// COleIPFrameWndEx::RecalcLayout(BOOL) — retail (RVA 0x96770):
+// COleIPFrameWndEx::RecalcLayout(BOOL) — retail mfc140.dll (ANSI) RVA 0x96770:
 //     COleIPFrameWnd::RecalcLayout(this, bNotify);
 //     if (this->[0x1a0]) return;                       // re-entrancy guard
 //     this->[0x1a0] = 1;
@@ -759,8 +778,8 @@ extern "C" int MS_ABI impl__PreTranslateMessage_COleIPFrameWndEx__UEAAHPEAUtagMS
 // (this+0x5f0..0x5fc is a RECT; the descriptor at 0x2f77f8 was read out of the
 // image: name "CPreviewViewEx", m_nObjectSize 5536 — this is the print-preview
 // view, not a resize bar.)
-// Only the base call is reproduced.  (COleIPFrameWnd::RecalcLayout is itself
-// still an empty stub in core/ole/COleIPFrameWnd.cpp.)
+// Only the base thunk is invoked; COleIPFrameWnd::RecalcLayout is itself an
+// empty stub in core/ole/COleIPFrameWnd.cpp, so no base relayout currently runs.
 // Symbol: ?RecalcLayout@COleIPFrameWndEx@@UEAAXH@Z
 extern "C" void MS_ABI impl__RecalcLayout_COleIPFrameWndEx__UEAAXH_Z(void* pThis, int bNotify) {
     if (!pThis) return;
@@ -771,7 +790,7 @@ extern "C" void MS_ABI impl__RecalcLayout_COleIPFrameWndEx__UEAAXH_Z(void* pThis
 }
 
 // COleIPFrameWndEx::RemovePaneFromDockManager(CBasePane*, BOOL, BOOL, BOOL,
-// CBasePane*) — retail (RVA 0x95f40):
+// CBasePane*) — retail mfc140.dll (ANSI) RVA 0x95f40:
 //     add $0x428,%rcx; jmp CDockingManager::RemovePaneFromDockManager
 // The docking manager at this+0x428 is not modeled.
 // Symbol: ?RemovePaneFromDockManager@COleIPFrameWndEx@@QEAAXPEAVCBasePane@@HHH0@Z
@@ -783,7 +802,7 @@ extern "C" void MS_ABI impl__RemovePaneFromDockManager_COleIPFrameWndEx__QEAAXPE
 }
 
 // COleIPFrameWndEx::ShowPane(CBasePane*, BOOL, BOOL, BOOL) — retail
-// (RVA 0x67e80):
+// (mfc140.dll ANSI RVA 0x67e80):
 //     pBar->vtable[0x458](pBar, bShow, bDelay, bActivate);
 // `this` (RCX on entry) is never read: the whole body is a forward to the
 // pane's own virtual ShowPane(BOOL, BOOL, BOOL) at vtable byte offset 0x458.
@@ -799,7 +818,7 @@ extern "C" void MS_ABI impl__ShowPane_COleIPFrameWndEx__QEAAXPEAVCBasePane__HHH_
     impl__ShowPane_CBasePane__UEAAXHHH_Z(pPane, bShow, bDelay, bActivate);
 }
 
-// COleIPFrameWndEx::ShowPopupMenu(CMFCPopupMenu*) — retail (RVA 0x95a60):
+// COleIPFrameWndEx::ShowPopupMenu(CMFCPopupMenu*) — retail mfc140.dll (ANSI) RVA 0x95a60:
 //     if (!CFrameImpl::OnShowPopupMenu(this+0x298, pMenuPopup, this)) return 0;
 //     if (pMenuPopup && pMenuPopup->[0x1670]) return 1;
 //     return this->vtable[0x3e8](this, pMenuPopup);     // OnShowPopupMenu
@@ -812,7 +831,7 @@ extern "C" int MS_ABI impl__ShowPopupMenu_COleIPFrameWndEx__IEAAHPEAVCMFCPopupMe
     return 0;
 }
 
-// COleIPFrameWndEx::WinHelp(DWORD_PTR, UINT) — retail (RVA 0x96630; the RVA
+// COleIPFrameWndEx::WinHelp(DWORD_PTR, UINT) — retail mfc140.dll (ANSI) RVA 0x96630 (the RVA
 // map names that entry ?WinHelpA@COleIPFrameWndEx@@UEAAX_KI@Z):
 //     if (dwData != 0 || this->[0x284] == 0) jmp CWnd::WinHelp(dwData, nCmd);
 //     else run COleIPFrameWndEx::OnContextHelp's body (0x96650).

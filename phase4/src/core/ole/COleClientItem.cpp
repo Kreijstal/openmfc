@@ -2666,16 +2666,38 @@ extern "C" long MS_ABI impl__RequestNewObjectLayout_XOleClientSite_COleClientIte
 }
 
 // Symbol: ?SaveObject@XOleClientSite@COleClientItem@@UEAAJXZ
-extern "C" long MS_ABI impl__SaveObject_XOleClientSite_COleClientItem__UEAAJXZ() {
+// Stub: mfc140.dll (ANSI twin) RVA 0x245a90 performs persistence work, including
+// OleSave (the ANSI IAT slot resolves to ole32!OleSave). It needs the owning
+// item and retail m_lpStorage at item+0x68; OpenMFC has no XOleClientSite
+// subobject/interface-map backing or m_lpStorage field. The --u lookup did not
+// resolve this symbol, so the cited entry is for the ANSI twin only.
+extern "C" long MS_ABI impl__SaveObject_XOleClientSite_COleClientItem__UEAAJXZ(
+        void* pThisItf) {
+    (void)pThisItf;
     return 0;
 }
 
 // Symbol: ?Scroll@XOleIPSite@COleClientItem@@UEAAJUtagSIZE@@@Z
-extern "C" long MS_ABI impl__Scroll_XOleIPSite_COleClientItem__UEAAJUtagSIZE___Z(void* /*struct*/ p0) {
+// Stub: mfc140.dll (ANSI twin) RVA 0x2484a0 recovers the item from the
+// XOleIPSite at item+0xe8, calls vtable byte offset 0xf8 (slot 31,
+// OnScrollBy(CSize)), and returns TRUE iff that callback returns FALSE.
+// OpenMFC has no XOleIPSite subobject/interface-map backing; its OnScrollBy
+// implementation also lacks retail m_pView at item+0x98. The --u lookup did
+// not resolve this symbol, so the cited entry is for the ANSI twin only.
+extern "C" long MS_ABI impl__Scroll_XOleIPSite_COleClientItem__UEAAJUtagSIZE___Z(
+        void* pThisItf, long long sizeExtent) {
+    (void)pThisItf; (void)sizeExtent;
     return 0;
 }
 
 // Symbol: ?ShowObject@XOleClientSite@COleClientItem@@UEAAJXZ
-extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ() {
+// Stub: mfc140.dll (ANSI twin) RVA 0x245e20 recovers the item from the
+// XOleClientSite at item+0xd8, calls vtable byte offset 0x118 (slot 35,
+// OnShowItem), and returns S_OK. OpenMFC has no XOleClientSite subobject or
+// interface-map backing, so the callback cannot be dispatched. The --u lookup
+// did not resolve this symbol, so the cited entry is for the ANSI twin only.
+extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ(
+        void* pThisItf) {
+    (void)pThisItf;
     return 0;
 }

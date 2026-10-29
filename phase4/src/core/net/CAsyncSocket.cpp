@@ -412,18 +412,21 @@ void CAsyncSocket::OnSend(int nErrorCode) { (void)nErrorCode; }
 
 // === Moved from ManualThunks.cpp ===
 // Symbol: ?Accept@CAsyncSocket@@UEAAHAEAV1@PEAUsockaddr@@PEAH@Z
-extern "C" int MS_ABI impl__Accept_CAsyncSocket__UEAAHAEAV1_PEAUsockaddr__PEAH_Z(void* pThis, void* p0, void* p1) {
-    (void)pThis;
-    (void)p0;
-    (void)p1;
-    return 0;
+// Retail RVA 0x271790 (mfc140u) also uses per-module thread-state socket maps and a
+// notification window. Delegate to the local Accept implementation, which accepts and
+// attaches through OpenMFC's global socket map but does not reproduce that retail setup.
+extern "C" int MS_ABI impl__Accept_CAsyncSocket__UEAAHAEAV1_PEAUsockaddr__PEAH_Z(
+        CAsyncSocket* pThis, CAsyncSocket& rConnectedSocket,
+        sockaddr* lpSockAddr, int* lpSockAddrLen) {
+    return pThis ? pThis->CAsyncSocket::Accept(rConnectedSocket, lpSockAddr, lpSockAddrLen) : FALSE;
 }
 
-
 // Symbol: ?AttachHandle@CAsyncSocket@@SAX_KPEAV1@H@Z
-extern "C" void MS_ABI impl__AttachHandle_CAsyncSocket__SAX_KPEAV1_H_Z(void* p0, void* p1, void* p2) {
-    (void)p0;
-    (void)p1;
-    (void)p2;
+// Retail RVA 0x272030 (mfc140u) additionally updates per-module thread-state maps and
+// initializes the notification window. Keep this OpenMFC map in sync with its CSocketWnd
+// callbacks; it does not reproduce retail's per-module notification association.
+extern "C" void MS_ABI impl__AttachHandle_CAsyncSocket__SAX_KPEAV1_H_Z(
+        SOCKET hSocket, CAsyncSocket* pSocket, int bDeadSocket) {
+    CAsyncSocket::AttachHandle(hSocket, pSocket, bDeadSocket);
 }
 

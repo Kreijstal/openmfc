@@ -88,6 +88,11 @@ extern "C" int   MS_ABI impl__ShowWindow_COleControlSite__UEAAHH_Z(COleControlSi
 extern "C" void  MS_ABI impl__MoveWindow_COleControlSite__UEAAXHHHH_Z(COleControlSite*, int, int, int, int);
 extern "C" int   MS_ABI impl__SetExtent_COleControlSite__IEAAHXZ(COleControlSite*);
 extern "C" CWnd* MS_ABI impl__SetFocus_COleControlSite__UEAAPEAVCWnd__XZ(COleControlSite*);
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t);
+extern "C" void* MS_ABI impl___0CDataSourceControl__QEAA_PEAVCOleControlSite___Z(void*, void*);
+extern "C" long MS_ABI impl__Initialize_CDataSourceControl__QEAAJXZ(void*);
+extern "C" void* MS_ABI impl___1CDataSourceControl__UEAA_XZ(void*);
+extern "C" void MS_ABI impl___3_YAXPEAX_Z(void*);
 
 namespace {
 
@@ -110,6 +115,7 @@ struct SiteExtra {
     CONTROLINFO ctlInfo;
     UINT controlId;
     bool rectValid;
+    void* dataSourceControl;
 };
 
 // Retail writes sizeof(CONTROLINFO) == 0x18 into ctlInfo.cb (0x2397da).
@@ -130,6 +136,7 @@ SiteExtra& SiteExtraOf(COleControlSite* pSite) {
     memset(&p->ctlInfo, 0, sizeof(p->ctlInfo));
     p->controlId = 0;
     p->rectValid = false;
+    p->dataSourceControl = nullptr;
     g_pSiteExtraHead = p;
     return *p;
 }
@@ -140,6 +147,10 @@ void RemoveSiteExtra(const COleControlSite* pSite) {
         if ((*pp)->site == pSite) {
             SiteExtra* dead = *pp;
             *pp = dead->next;
+            if (dead->dataSourceControl) {
+                impl___1CDataSourceControl__UEAA_XZ(dead->dataSourceControl);
+                impl___3_YAXPEAX_Z(dead->dataSourceControl);
+            }
             delete dead;
             return;
         }
@@ -693,8 +704,8 @@ extern "C" void MS_ABI impl__BindDefaultProperty_COleControlSite__UEAAXJGPEB_WPE
 // points it at the data-source control reached through pWndDSC->m_pCtrlSite
 // (CWnd+0xd0) and calls EnableDSC() on that site (vtable slot 0x178); a null
 // pWndDSC or dispid == -1 takes the other branch, which walks the list and
-// unlinks the matching node instead.  OpenMFC has no CDataBoundProperty and no
-// bound-property list.
+// unlinks the matching node instead.  OpenMFC implements CDataBoundProperty,
+// but COleControlSite has no corresponding list/member to own these nodes.
 extern "C" void MS_ABI impl__BindProperty_COleControlSite__UEAAXJPEAVCWnd___Z(
     void* pThis, long dispid, void* pDSCWnd) {
     (void)pThis; (void)dispid; (void)pDSCWnd;
@@ -829,13 +840,26 @@ extern "C" long MS_ABI impl__DoVerb_COleControlSite__UEAAJJPEAUtagMSG___Z(
 }
 
 // Symbol: ?EnableDSC@COleControlSite@@UEAAXXZ
-// Not implemented.  Retail 0x23a600 (mfc140u.dll 0x23c000) lazily allocates a
-// 0xb8-byte CDataSourceControl (ctor ??0CDataSourceControl@@QEAA@PEAVCOleControlSite@@@Z
-// at 0x23b890), stores it at +0xd8 and calls
-// ?Initialize@CDataSourceControl@@QEAAJXZ (0x23bc90).  OpenMFC has neither the
-// class nor a member to hold it, so there is nothing to enable.
+// Retail mfc140u.dll RVA 0x23c000 returns if the site's +0xd8 pointer is
+// already set; otherwise it allocates 0xb8 bytes, constructs
+// CDataSourceControl with the site when allocation succeeds, stores the
+// pointer, then calls Initialize even if allocation returned null. OpenMFC has
+// the CDataSourceControl constructor/destructor thunks, but no +0xd8 site
+// member, so SiteExtra holds the association. Its existing Initialize thunk is
+// still a stub; this reproduces EnableDSC's allocation/construction/dispatch
+// path without claiming the data-source initialization itself is implemented.
+// This wrapper also returns for a null pThis, whereas retail dereferences it.
 extern "C" void MS_ABI impl__EnableDSC_COleControlSite__UEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    SiteExtra& extra = SiteExtraOf(static_cast<COleControlSite*>(pThis));
+    if (extra.dataSourceControl) return;
+
+    void* pDataSourceControl = impl___2_YAPEAX_K_Z(0xb8);
+    if (pDataSourceControl) {
+        impl___0CDataSourceControl__QEAA_PEAVCOleControlSite___Z(pDataSourceControl, pThis);
+        extra.dataSourceControl = pDataSourceControl;
+    }
+    impl__Initialize_CDataSourceControl__QEAAJXZ(pDataSourceControl);
 }
 
 // Symbol: ?FreezeEvents@COleControlSite@@QEAAXH@Z
@@ -1198,21 +1222,17 @@ extern "C" int MS_ABI impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(void
 }
 
 // Symbol: ?QuickActivate@COleControlSite@@UEAAHXZ
-// Not implemented.  Retail 0x238a70 zeroes a 0x70-byte QACONTAINER, writes
-// cbSize = 0x70, and fills three of its fields with pointers to nested
-// interface subobjects embedded in the retail COleControlSite: pClientSite =
-// this+0x138, pPropertyNotifySink = this+0x158, pUnkEventSink = this+0x160
-// (pAdviseSink is left NULL).  It then reads eight (dispid, flag-bit) pairs
-// out of the table at 0x346c50 — reference confirmed at 0x238b5c — asks the
-// container window for each one through CWnd::OnAmbientProperty (its vtable
-// slot 0x230) and ORs the flag bit into QACONTAINER::dwAmbientFlags (+0x28)
-// when the ambient came back non-zero, fills colorFore (+0x2c) and colorBack
-// (+0x30) from DISPID_AMBIENT_FORECOLOR/BACKCOLOR, and calls
-// IQuickActivate::QuickActivate (the IID blob at 0x2d7d88 decodes to
-// CF51ED10-62FE-11CF-BF86-00A0C9034836).  OpenMFC's client site is a separate
-// heap-allocated adapter with a different layout and has no property-notify or
-// event subobject to point at, so the QACONTAINER cannot be filled faithfully
-// and this is left stubbed rather than approximated.
+// Stub: the --u lookup does not resolve this export; its ANSI twin is at
+// mfc140.dll RVA 0x238a70. Retail throws for a null m_pObject, and returns
+// FALSE when QueryInterface(IQuickActivate) fails. Otherwise it builds a
+// QACONTAINER using site interface subobjects at +0x138, +0x158 and +0x160,
+// queries ambient properties, and invokes QuickActivate; missing required
+// interfaces/container/window throw, while the result determines the BOOL
+// return and successful activation caches misc status and sink cookies. The
+// OpenMFC ControlSiteAdapter lacks IPropertyNotifySink and its IDispatch only
+// handles ambient-property gets, so it cannot supply the retail interface set
+// or preserve QuickActivate's sink state (OlecoreSupport.h:1692). This fallback
+// always returns FALSE.
 extern "C" int MS_ABI impl__QuickActivate_COleControlSite__UEAAHXZ(void* pThis) {
     (void)pThis;
     return FALSE;
@@ -1637,9 +1657,10 @@ extern "C" long MS_ABI impl__DeactivateAndUndo_XOleIPSite_COleControlSite__UEAAJ
 // 7 (0x80) of dwEventWhat is set (`test %bpl,%bpl; jns`), it sets that
 // object's +0x88 flag to 1, calls CDataSourceControl::GetBoundClientRow
 // (0x23cb00), restores +0x88, calls its vftable byte 0x28 (slot 5), and
-// returns S_OK.
-// Left as generated: OpenMFC models neither CDataSourceControl nor the
-// sub-object layout.
+// returns S_OK.  Left as generated: CDataSourceControl is implemented in
+// core/db, but this site has no retail +0xd8 member (EnableDSC keeps its
+// association in SiteExtra), and OpenMFC has no XNotifyDBEvents sub-object to
+// recover the site from pThisItf.
 extern "C" long MS_ABI impl__DidEvent_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
     void* pThisItf, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
     (void)pThisItf; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
@@ -2090,7 +2111,9 @@ extern "C" long MS_ABI impl__OnDefWindowMessage_XOleIPSite_COleControlSite__UEAA
 // when that object is absent and skipping the refresh when its +0x88 flag was
 // already set.  It then raises an AFX_EVENT of kind 3 with dispid -1 and that
 // event code through COleControlSite::OnEvent (0x239b50) and returns the
-// event's result field.  Left as generated: OpenMFC has no CDataSourceControl.
+// event's result field.  Left as generated: although CDataSourceControl is
+// implemented in core/db, this XRowsetNotify sub-object and its site-binding
+// plumbing are not modeled here.
 extern "C" long MS_ABI impl__OnFieldChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset___K1QEA_KKKH_Z(
     void* pThisItf, void* pRowset, unsigned __int64 hRow, unsigned __int64 cColumns,
     unsigned __int64* rgColumns, unsigned long eReason, unsigned long eNotifyPhase,
@@ -2217,9 +2240,10 @@ extern "C" long MS_ABI impl__OnRequestEdit_XPropertyNotifySink_COleControlSite__
 // the phase argument through the same 0->1, 1->4, 2->6, 3->5, 4->7 ladder as
 // OnFieldChange, and separately maps the reason argument (4, 6, 8, 0xd) onto a
 // second code, then drives the CDataSourceControl at site+0xd8 accordingly
-// before raising the event through COleControlSite::OnEvent (0x239b50).  With
-// no CDataSourceControl it returns S_OK without doing anything (0x23f231).  Left as
-// generated for the same reason as the rest of XRowsetNotify.
+// before raising the event through COleControlSite::OnEvent (0x239b50).  The
+// retail no-DSC branch returns S_OK without doing anything (0x23f231).  Left as
+// generated because OpenMFC does not model this XRowsetNotify sub-object or
+// wire site binding state to its partial CDataSourceControl implementation.
 extern "C" long MS_ABI impl__OnRowChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset___KQEB_KKKH_Z(
     void* pThisItf, void* pRowset, unsigned __int64 cRows, const unsigned __int64* rghRows,
     unsigned long eReason, unsigned long eNotifyPhase, int fIsRecoverable) {
@@ -2311,12 +2335,13 @@ extern "C" long MS_ABI impl__RequestNewObjectLayout_XOleClientSite_COleControlSi
 }
 
 // Symbol: ?RequestUIActivate@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::RequestUIActivate() — retail 0x23ace0 is
-// METHOD_PROLOGUE (the module state at this-0x108, handed to
-// AFX_MAINTAIN_STATE2 at 0x133df0) around `xor %eax,%eax`, i.e. an
-// unconditional S_OK.  No site state is read, so the body is reproduced
-// exactly.  This is the body that mfc140u folds with CanWindowlessActivate,
-// which is why that function above cites the same shape.
+// Stub: the --u lookup does not resolve this export; the ANSI twin is at
+// mfc140.dll RVA 0x23ace0. Retail recovers the site's module state from the
+// XOleIPSite subobject, constructs AFX_MAINTAIN_STATE2 (mfc140.dll helper
+// entry at RVA 0x133df0), restores the prior state when the helper returns a
+// state cookie, and returns S_OK. OpenMFC has no XOleIPSite subobject/interface-
+// map entry, so this body returns S_OK without that state switch; it does not
+// reproduce the retail call path.
 extern "C" long MS_ABI impl__RequestUIActivate_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return S_OK;
@@ -2363,25 +2388,20 @@ extern "C" long MS_ABI impl__ScrollRect_XOleIPSite_COleControlSite__UEAAJHHPEBUt
 }
 
 // Symbol: ?SetCapture@XOleIPSite@COleControlSite@@UEAAJH@Z
-// COleControlSite::XOleIPSite::SetCapture() — retail 0x23b130.  After the
-// module-state prologue:
-//     if (fCapture) {
-//         CWnd::FromHandle(::SetCapture(m_pCtrlCont->m_pWnd->m_hWnd));
-//                                  ; USER32 import 0x2c5278, CWnd::FromHandle
-//                                  ; at 0x289180 (result discarded)
-//         m_pCtrlCont->+0xd0 = site;          ; the container's capture site
-//     } else {
-//         m_pCtrlCont->+0xd0 = NULL;
-//         ::ReleaseCapture();                 ; import 0x2c5280
-//     }
-//     return S_OK;                            ; unconditional
-// Left as generated: the site cannot be recovered from the sub-object pointer
-// and COleControlContainer has no +0xd0 member in OpenMFC.  The generated
-// S_OK is retail's unconditional return; the capture itself is not taken.
+// Stub: the --u lookup does not resolve this export; the ANSI twin is at
+// mfc140.dll RVA 0x23b130. Retail recovers the site from the XOleIPSite
+// subobject, sets up AFX_MAINTAIN_STATE2, and, when fCapture is true, calls
+// USER32!SetCapture on the container window, passes the returned HWND to
+// CWnd::FromHandle, then stores the site at COleControlContainer+0xd0. When
+// false, it clears +0xd0 and calls USER32!ReleaseCapture; either path returns
+// S_OK. The mfc140.dll IAT slots 0x1802c5278 and 0x1802c5280 resolve to
+// SetCapture and ReleaseCapture respectively. OpenMFC has no XOleIPSite
+// subobject or container capture-site state, so this fallback returns S_OK
+// without the retail side effects.
 extern "C" long MS_ABI impl__SetCapture_XOleIPSite_COleControlSite__UEAAJH_Z(
     void* pThisItf, int fCapture) {
     (void)pThisItf; (void)fCapture;
-    return 0;   // retail: unconditional S_OK
+    return 0;   // retail's unconditional S_OK; capture side effects are unavailable
 }
 
 // Symbol: ?SetFocus@XOleIPSite@COleControlSite@@UEAAJH@Z
