@@ -6,6 +6,9 @@
 extern CRuntimeClass classCPagerCtrl;
 extern "C" int MS_ABI impl__AfxEndDeferRegisterClass__YAHJ_Z(long);
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" int MS_ABI impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
+    CWnd* pThis, DWORD dwExStyle, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
+    DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID, void* lpParam);
 
 // Symbol: ?Create@CPagerCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__Create_CPagerCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
@@ -25,19 +28,19 @@ extern "C" int MS_ABI impl__Create_CPagerCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
     return create(pThis, L"SysPager", nullptr, dwStyle, rect,
                   pParentWnd, nID, nullptr);
 }
-// CPagerCtrl::CreateEx has no resolved RVA in the mfc140u symbol map, so its
-// control-specific behavior cannot be established; keep this entry point stubbed.
+// CPagerCtrl::CreateEx has no resolved RVA in the mfc140u symbol map. It follows
+// the afxcmn CreateEx pattern shared by the other common controls: register
+// the pager class like Create above, then CWnd::CreateEx with "SysPager".
 // Symbol: ?CreateEx@CPagerCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__CreateEx_CPagerCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
     void* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT& rect,
     CWnd* pParentWnd, UINT nID) {
-    (void)pThis;
-    (void)dwExStyle;
-    (void)dwStyle;
-    (void)rect;
-    (void)pParentWnd;
-    (void)nID;
-    return FALSE;
+    if (!impl__AfxEndDeferRegisterClass__YAHJ_Z(0x80000)) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+    }
+    return impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
+        static_cast<CWnd*>(pThis), dwExStyle, L"SysPager", nullptr, dwStyle,
+        rect, pParentWnd, nID, nullptr);
 }
 // Retail returns the static CPagerCtrl descriptor directly (RVA 0x29c700, mfc140u).
 // The corresponding descriptor is defined in RuntimeClasses.cpp.

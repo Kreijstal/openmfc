@@ -4,8 +4,8 @@
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
 // CFolderPickerDialog runtime-class getters and constructor export. The
-// constructor remains a documented stub because retail initializes derived
-// fields for which this tree has no assigned shadow layout.
+// constructor builds the CFileDialog base; retail's extra derived fields at
+// +0x13c/+0x140 are not modelled yet.
 #include "openmfc/afx.h"
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
@@ -45,11 +45,12 @@ extern CRuntimeClass classCFolderPickerDialog;
 extern "C" void* MS_ABI impl___0CFolderPickerDialog__QEAA_PEB_WKPEAVCWnd__KH_Z(
         void* p, const wchar_t* lpszFolder, unsigned long dwFlags,
         CWnd* pParentWnd, unsigned long nID, int bNeedOpen) {
-    (void)lpszFolder; (void)dwFlags; (void)pParentWnd; (void)nID; (void)bNeedOpen;
-    // Stub: retail mfc140u RVA 0x20e4b0 calls CFileDialog, then initializes
-    // derived fields at +0x13c and +0x140. No CFolderPickerDialog shadow layout
-    // is available here, so do not partially construct the object or guess fields.
-    return p;
+    (void)nID; (void)bNeedOpen;
+    // Retail (mfc140u RVA 0x20e4b0) runs CFileDialog(TRUE, NULL, lpszFolder,
+    // OFN_HIDEREADONLY|dwFlags, NULL, pParentWnd, 0, TRUE) and then also sets
+    // derived fields at +0x13c/+0x140, which this tree does not model yet.
+    // OFN_HIDEREADONLY == 0x4 (not defined in repo headers)
+    return new (p) CFileDialog(TRUE, nullptr, lpszFolder, 0x4u | dwFlags, nullptr, pParentWnd, 0, TRUE);
 }
 // Symbol: ?GetRuntimeClass@CFolderPickerDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFolderPickerDialog__UEBAPEAUCRuntimeClass__XZ(
