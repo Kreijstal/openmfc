@@ -22,6 +22,11 @@ static_assert(offsetof(CTabViewRetailLayout, firstActiveTab) == 0x3e64, "CTabVie
 static_assert(sizeof(CTabViewRetailLayout) == 0x3e68, "CTabView retail allocation size");
 }
 
+// Retained state-only approximation: unlike the retail constructor/destructor (RVA
+// 0x13d100/0x13d1a0, mfc140u), these wrappers do not construct/destroy the CView and
+// embedded CMFCTabCtrl subobjects. The methods below likewise do not create native view
+// windows or synchronize tab-control items. Keep this object-layout-independent
+// approximation; it is not a faithful native CTabView lifecycle.
 // Symbol: ??0CTabView@@IEAA@XZ
 extern "C" void* MS_ABI impl___0CTabView__IEAA_XZ(void* self) {
     g_tabViewStates[self] = TabViewState();
@@ -104,23 +109,30 @@ extern "C" __int64 MS_ABI impl__OnChangeActiveTab_CTabView__IEAA_J_K_J_Z(void* p
 extern "C" int MS_ABI impl__OnCreate_CTabView__IEAAHPEAUtagCREATESTRUCTW___Z(void* pThis, CREATESTRUCTW* createStruct) {
     (void)pThis;
     (void)createStruct;
-    return 0;
+    // Fail creation rather than claim success without the embedded tab control setup.
+    return -1;
 }
 
-// This exact symbol has no resolved RVA in the mfc140u map; do not infer drawing behavior without a transcribable retail body.
+// No OnDraw@CTabView entry is present in either available RVA symbol map; drawing behavior
+// is not established by a transcribable retail body.
 // Symbol: ?OnDraw@CTabView@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CTabView__MEAAXPEAVCDC___Z(void* pThis, CDC* pDC) {
     (void)pThis;
     (void)pDC;
 }
 
-// This exact symbol has no resolved RVA in the mfc140u map; do not infer initialization behavior without a transcribable retail body.
+// The Unicode RVA map omits this export, but the ANSI twin's identical body calls
+// CView::OnInitialUpdate, sets m_bIsReady (+0x3e60), and tail-calls OnChangeActiveTab with
+// m_nFirstActiveTab (+0x3e64). This implementation does not initialize the native CView /
+// CMFCTabCtrl state that the ready path needs, so it remains stubbed.
 // Symbol: ?OnInitialUpdate@CTabView@@UEAAXXZ
 extern "C" void MS_ABI impl__OnInitialUpdate_CTabView__UEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
-// This exact symbol has no resolved RVA in the mfc140u map; do not infer activation behavior without a transcribable retail body.
+// The Unicode RVA map omits this export, but the ANSI twin's identical body delegates to
+// CView::OnMouseActivate when there is no active tab view and otherwise performs tab-view
+// activation/focus work using native view and frame state not represented by this side state.
 // Symbol: ?OnMouseActivate@CTabView@@IEAAHPEAVCWnd@@II@Z
 extern "C" int MS_ABI impl__OnMouseActivate_CTabView__IEAAHPEAVCWnd__II_Z(void* pThis, CWnd* desktopWnd, unsigned int hitTest, unsigned int message) {
     (void)pThis;
@@ -130,7 +142,9 @@ extern "C" int MS_ABI impl__OnMouseActivate_CTabView__IEAAHPEAVCWnd__II_Z(void* 
     return 0;
 }
 
-// This exact symbol has no resolved RVA in the mfc140u map; do not infer print-client behavior without a transcribable retail body.
+// The Unicode RVA map omits this export, but the ANSI twin's identical body checks flag 0x4
+// and, when set, uses the embedded tab control's vtable byte offset 0x5c0 with a rectangle
+// obtained from the CWnd handle at +0x40. That native control is not initialized here.
 // Symbol: ?OnPrintClient@CTabView@@IEAA_JPEAVCDC@@I@Z
 extern "C" __int64 MS_ABI impl__OnPrintClient_CTabView__IEAA_JPEAVCDC__I_Z(void* pThis, CDC* pDC, unsigned int flags) {
     (void)pThis;
@@ -139,7 +153,9 @@ extern "C" __int64 MS_ABI impl__OnPrintClient_CTabView__IEAA_JPEAVCDC__I_Z(void*
     return 0;
 }
 
-// This exact symbol has no resolved RVA in the mfc140u map; do not infer resize behavior without a transcribable retail body.
+// The Unicode RVA map omits this export, but the ANSI twin's identical body computes
+// tab-control bounds from cx+1 and cy+3 and dispatches to the embedded control's positioning
+// method. The native CMFCTabCtrl is not initialized by this implementation.
 // Symbol: ?OnSize@CTabView@@IEAAXIHH@Z
 extern "C" void MS_ABI impl__OnSize_CTabView__IEAAXIHH_Z(void* pThis, unsigned int type, int cx, int cy) {
     (void)pThis;

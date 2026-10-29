@@ -43,8 +43,10 @@
 CMFCRibbonContextCaption::CMFCRibbonContextCaption() { memset(_pad, 0, sizeof(_pad)); }
 CMFCRibbonContextCaption::~CMFCRibbonContextCaption() {}
 // Symbol: ??0CMFCRibbonContextCaption@@IEAA@PEB_WIW4AFX_RibbonCategoryColor@@@Z
-// Retail mfc140u RVA 0xd7e30 takes (this, name, context ID, color) and
-// initializes CMFCRibbonButton-derived state absent from this placeholder layout.
+// Retail constructor entry RVA 0xd7e30 (mfc140u) takes (this, name, context ID,
+// color) and initializes CMFCRibbonButton-derived state absent from this placeholder
+// layout. This thunk only placement-constructs the small OpenMFC shell; it ignores
+// those arguments and is not a retail-equivalent caption initializer.
 extern "C" void* MS_ABI impl___0CMFCRibbonContextCaption__IEAA_PEB_WIW4AFX_RibbonCategoryColor___Z(
     void* pThis, const wchar_t* pName, unsigned int nContextID, int color) {
     (void)pName;
@@ -54,7 +56,9 @@ extern "C" void* MS_ABI impl___0CMFCRibbonContextCaption__IEAA_PEB_WIW4AFX_Ribbo
     return ::new (pThis) CMFCRibbonContextCaption();
 }
 // TODO(clean-room): mfc140u RVA 0xd7df0 allocates 0x280 bytes and calls the
-// default constructor at RVA 0xd7ef0; this declaration does not model that object layout.
+// default constructor at RVA 0xd7ef0. OpenMFC declares this as CObject rather than
+// CMFCRibbonButton and has a different vtable/layout, so a small fake factory
+// object would not be a safe ABI substitute.
 // Symbol: ?CreateObject@CMFCRibbonContextCaption@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonContextCaption__SAPEAVCObject__XZ() {
     return nullptr;
@@ -101,8 +105,10 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonContextCaption__MEAAXPEAVCDC___Z(
     (void)pDC;
 }
 
-// TODO(clean-room): --u did not resolve this export, so its retail behavior
-// could not be established; CPoint by value is modeled as an 8-byte MS_ABI value.
+// The Unicode RVA map has no entry for this export. The ANSI twin's body at RVA
+// 0xd8cf0 (mfc140.dll) reads the parent bar at this+0xd8, scans its categories,
+// and may make an indirect call. OpenMFC lacks those ribbon layouts; CPoint
+// by value is modeled as an 8-byte MS_ABI value.
 // Symbol: ?OnLButtonUp@CMFCRibbonContextCaption@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonContextCaption__MEAAXVCPoint___Z(
     void* pThis, long long point)
@@ -111,8 +117,9 @@ extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonContextCaption__MEAAXVCPoint_
     (void)point;
 }
 
-// TODO(clean-room): --u did not resolve this export, so its retail behavior
-// could not be established from the available disassembly.
+// The Unicode RVA map has no entry for this export. The ANSI twin at RVA 0xd8e20
+// (mfc140.dll) reads the parent at this+0xd8 and finds a context category before
+// dispatching through it. Those parent/category layouts are absent here.
 // Symbol: ?OnSetAccData@CMFCRibbonContextCaption@@MEAAHJ@Z
 extern "C" int MS_ABI impl__OnSetAccData_CMFCRibbonContextCaption__MEAAHJ_Z(
     void* pThis, long lVal)
@@ -122,8 +129,10 @@ extern "C" int MS_ABI impl__OnSetAccData_CMFCRibbonContextCaption__MEAAHJ_Z(
     return 0;
 }
 
-// TODO(clean-room): --u did not resolve this export, so its retail behavior
-// could not be established from the available disassembly.
+// The Unicode RVA map has no entry for this export. The ANSI twin at RVA 0xd9060
+// (mfc140.dll) calls a ribbon accessibility helper, sets the accessibility role
+// at pData+0x30 to 0x2b, and returns 1. Its required ribbon base state is not
+// present in this CObject placeholder, so do not call that helper on this object.
 // Symbol: ?SetACCData@CMFCRibbonContextCaption@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonContextCaption__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
     void* pThis, void* pParentWnd, void* pData)
@@ -158,14 +167,16 @@ extern "C" long MS_ABI impl__accNavigate_CMFCRibbonContextCaption__MEAAJJUtagVAR
     return 0;
 }
 
-// TODO(clean-room): mfc140u RVA 0xd84c0 delegates to GetContextCategoryCount;
-// that count depends on the unmodeled parent-bar/category layout.
+// Retail RVA 0xd84c0 (mfc140u) rejects a null output with E_INVALIDARG and
+// otherwise writes GetContextCategoryCount's result and returns S_OK. The
+// count thunk remains a zero-result stub because the parent/category layout
+// is not modeled; preserve the independently verifiable output-pointer behavior.
 // Symbol: ?get_accChildCount@CMFCRibbonContextCaption@@MEAAJPEAJ@Z
 extern "C" long MS_ABI impl__get_accChildCount_CMFCRibbonContextCaption__MEAAJPEAJ_Z(
     void* pThis, long* pCountChildren)
 {
-    (void)pThis;
-    (void)pCountChildren;
+    if (pCountChildren == nullptr) return static_cast<long>(0x80070057u);
+    *pCountChildren = impl__GetContextCategoryCount_CMFCRibbonContextCaption__QEAAHXZ(pThis);
     return 0;
 }
 

@@ -582,10 +582,10 @@ extern "C" void MS_ABI impl__RegisterTaskbarTab_CMDIChildWndEx__UEAAXPEAV1__Z(CM
 // (An earlier version of this comment named the last call SetTabActive; the
 // slot read at 0x856cc is +0xa0, SetThumbnailClip, with R8 zeroed and RDX =
 // the frame's m_hWnd.)
-// The very first test is on the proxy window's HWND at this+0x720+0x40, which
-// OpenMFC does not model (the proxy is never constructed, see
-// RegisterTaskbarTab), so the faithful reachable behaviour is the immediate
-// return.  STUB -- left a no-op deliberately.
+// The first meaningful test reads the proxy HWND at this+0x720+0x40, outside
+// OpenMFC's 0x228-byte object.  Its value is therefore not available here; the
+// no-op below is a safe OpenMFC fallback, not a claim that retail always takes
+// its early return.  STUB -- left a no-op deliberately.
 // Symbol: ?UnregisterTaskbarTab@CMDIChildWndEx@@QEAAXH@Z
 extern "C" void MS_ABI impl__UnregisterTaskbarTab_CMDIChildWndEx__QEAAXH_Z(CMDIChildWndEx* pThis, int bCheckRegisteredTab) {
     (void)pThis;
@@ -1322,8 +1322,8 @@ extern "C" void MS_ABI impl__ActivateTopLevelFrame_CMDIChildWndEx__MEAAXXZ(
 
 // CMDIChildWndEx::AddDockSite() — transcribed from retail mfc140u.dll
 // RVA 0x27d0, whose entire body is a single `ret $0x0`.  It reads no member,
-// calls nothing and returns nothing, so an empty body is the faithful
-// implementation here -- not a placeholder.
+// calls nothing and returns nothing.  The empty body matches retail, but it
+// remains a stub under this campaign's metric, which excludes empty bodies.
 // Two caveats for whoever re-checks this: (1) the export has no entry in
 // EITHER rva-symbol map (mfc140_rva_symbols.json nor mfc140u_rva_symbols.json),
 // so `disas.py --u '<name>'` reports NOT FOUND; resolve it through the export
@@ -2089,8 +2089,9 @@ extern "C" void MS_ABI impl__OnDestroy_CMDIChildWndEx__IEAAXXZ(CMDIChildWndEx* p
 // CMDIChildWndEx::OnEraseBkgnd(CDC*) — transcribed from retail mfc140u.dll
 // RVA 0x3a60, whose entire body is `mov $1,%eax; ret`: it claims the erase
 // unconditionally and never touches the DC.  The previous body returned 0,
-// which told Windows to erase the background with the class brush.  The body is
-// intentionally a single constant, because retail's is.
+// which told Windows to erase the background with the class brush.  The exact
+// constant body is retained, but is still a stub under the campaign metric,
+// which excludes a bare `return TRUE`.
 // Two caveats for whoever re-checks this: (1) the export has no entry in
 // EITHER rva-symbol map, so `disas.py --u '<name>'` reports NOT FOUND; resolve
 // it through the export directory (ordinal 9752 -> 0x3a60 in mfc140u,
@@ -2493,19 +2494,16 @@ extern "C" void MS_ABI impl__OnPressTaskbarThmbnailCloseButton_CMDIChildWndEx__U
 //         ::GetCurrentObject(dc.m_hAttribDC /*NULL*/, OBJ_BITMAP /*7*/));   // IAT 0x2c6150
 //     <DwmSetIconicLivePreviewBitmap loader at 0x1caed8>(m_hWnd, pBmp->m_hObject /*+0x8*/, &pt, 1);
 //     if (dc.m_hDC) ::DeleteDC(dc.Detach());                      // 0x2a24d0, IAT 0x2c6148
-// The DC is never created, so ::GetCurrentObject(NULL, OBJ_BITMAP) yields NULL,
-// CGdiObject::FromHandle(NULL) yields NULL, and the `mov 0x8(%rax)` at 0x86218
-// dereferences it: this handler can only be safe because DWM never sends
-// WM_DWMSENDICONICLIVEPREVIEWBITMAP to the child frame itself (the
-// DWMWA_HAS_ICONIC_BITMAP attribute is set on the tab proxy window in
-// RegisterTaskbarTab, never on this window).  Re-checked 2026-09-29: the retail
-// CMDIChildWndEx message map (returned by ?GetThisMessageMap@CMDIChildWndEx@@,
-// entry RVA 0x83980 mfc140u) has NO entry for WM_DWMSENDICONICTHUMBNAIL (0x323)
-// or WM_DWMSENDICONICLIVEPREVIEWBITMAP (0x326), and mfc140u.dll's .text holds
-// no rel32 call/jmp to 0x86180 or 0x860e0 and no section holds an absolute
-// pointer to either, so inside retail these two handlers are reachable only
-// by a client calling the export directly.  Not reproduced: a faithful body
-// would fault, and a WM_PRINTCLIENT with a NULL HDC has no useful effect.
+// The local CDC fields are zero-initialized and no DC is created; the body then
+// calls GetCurrentObject with that null m_hAttribDC, converts the result via
+// CGdiObject::FromHandle, and dereferences the returned pointer at 0x86218
+// without a null check.  The retail message map returned by
+// ?GetMessageMap@CMDIChildWndEx@@MEBAPEBUAFX_MSGMAP@@XZ (entry RVA 0x83980,
+// mfc140u) has no entry for WM_DWMSENDICONICTHUMBNAIL (0x323) or
+// WM_DWMSENDICONICLIVEPREVIEWBITMAP (0x326); this does not establish that the
+// exports cannot be invoked through some other path.  Not reproduced: the
+// retail body dereferences the converted object without checking for null, so
+// this safe no-op avoids reproducing that hazard.
 // STUB -- left a no-op deliberately.
 // Symbol: ?OnSendIconicLivePreviewBitmap@CMDIChildWndEx@@IEAAX_K_J@Z
 extern "C" void MS_ABI impl__OnSendIconicLivePreviewBitmap_CMDIChildWndEx__IEAAX_K_J_Z(
@@ -2523,9 +2521,10 @@ extern "C" void MS_ABI impl__OnSendIconicLivePreviewBitmap_CMDIChildWndEx__IEAAX
 //         ::GetCurrentObject(dc.m_hAttribDC /*NULL*/, OBJ_BITMAP /*7*/));   // IAT 0x2c6150
 //     <DwmSetIconicThumbnail loader at 0x1cae54>(m_hWnd, pBmp->m_hObject /*+0x8*/, 1);
 //     if (dc.m_hDC) ::DeleteDC(dc.Detach());                      // 0x2a24d0, IAT 0x2c6148
-// Same shape and same NULL dereference (at 0x8613f) as
-// OnSendIconicLivePreviewBitmap above, and unreachable inside retail for the
-// same reason (not in the message map, no internal caller -- see there).
+// Same shape and unchecked null dereference (at 0x8613f) as
+// OnSendIconicLivePreviewBitmap above.  The message-map/direct-reference scan
+// does not prove that indirect invocations are impossible; retain the safe
+// no-op rather than reproducing the faulting retail path.
 // STUB -- left a no-op deliberately.
 // Symbol: ?OnSendIconicThumbnail@CMDIChildWndEx@@IEAAX_K_J@Z
 extern "C" void MS_ABI impl__OnSendIconicThumbnail_CMDIChildWndEx__IEAAX_K_J_Z(

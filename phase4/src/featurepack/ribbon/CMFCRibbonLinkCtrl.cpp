@@ -5,9 +5,29 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <shellapi.h>
 
+extern "C" void* MS_ABI impl___0CMFCRibbonButton__QEAA_XZ(void* pThis);
+extern "C" void MS_ABI impl___1CMFCRibbonButton__UEAA_XZ(void* pThis);
+extern "C" void MS_ABI impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(
+    void* pThis);
+extern "C" void MS_ABI impl___1__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(
+    void* pThis);
+extern "C" void* MS_ABI impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBV01__Z(
+    void* pThis, const void* pSource);
+extern "C" void MS_ABI impl__SetID_CMFCRibbonBaseElement__UEAAXI_Z(
+    CMFCRibbonBaseElement* pThis, unsigned int id);
+extern "C" void MS_ABI impl__SetText_CMFCRibbonButton__UEAAXPEB_W_Z(
+    CMFCRibbonButton* pThis, const wchar_t* text);
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonButton__MEAAXAEBVCMFCRibbonBaseElement___Z(
+    CMFCRibbonButton* pThis, const CMFCRibbonBaseElement* pSource);
+extern "C" int MS_ABI impl__OpenLink_CMFCRibbonLinkCtrl__QEAAHXZ(void* pThis);
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonButton__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
     CMFCRibbonButton* pThis, CWnd* pWnd, CAccessibilityData& data);
+extern "C" void MS_ABI impl__GetCompactSize_CMFCRibbonButton__UEAA_AVCSize__PEAVCDC___Z(
+    void* pResult, const CMFCRibbonButton* pThis, CDC* pDC);
+extern "C" void MS_ABI impl__GetRegularSize_CMFCRibbonButton__UEAA_AVCSize__PEAVCDC___Z(
+    void* pResult, const CMFCRibbonButton* pThis, CDC* pDC);
 extern "C" void MS_ABI impl__SetString___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z(
     void* pThis, const wchar_t* text);
 
@@ -20,85 +40,117 @@ struct S_CMFCRibbonLinkCtrlLayout {
     alignas(8) std::uint8_t m_strLink[sizeof(CString)];
 };
 static_assert(sizeof(CString) == 8, "CString storage size used by retail CMFCRibbonLinkCtrl");
+static_assert(sizeof(SHELLEXECUTEINFOW) == 0x70,
+              "retail CMFCRibbonLinkCtrl ShellExecuteExW structure size");
 static_assert(offsetof(S_CMFCRibbonLinkCtrlLayout, m_strLink) == 0x270,
               "retail CMFCRibbonLinkCtrl::m_strLink offset");
 static_assert(sizeof(S_CMFCRibbonLinkCtrlLayout) == 0x278,
               "retail CMFCRibbonLinkCtrl size");
+
+CString* link_string(void* pThis) {
+    return reinterpret_cast<CString*>(static_cast<std::uint8_t*>(pThis) + 0x270);
+}
+const CString* link_string(const void* pThis) {
+    return reinterpret_cast<const CString*>(static_cast<const std::uint8_t*>(pThis) + 0x270);
+}
+
+void construct_link_ctrl(void* pThis) {
+    impl___0CMFCRibbonButton__QEAA_XZ(pThis);
+    impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(
+        link_string(pThis));
+}
 } // namespace
 
-// Stub: OpenMFC has no CMFCRibbonLinkCtrl class/vtable to construct. Retail's
-// constructors initialize the CMFCRibbonButton base and CString at +0x270
-// (RVA 0x10ec30 and 0x10ecd0, mfc140u); keep the ABI return without touching
-// storage whose lifetime/layout is not modeled here.
+// Retail constructors set a LinkCtrl vptr that OpenMFC does not provide. Build
+// the modeled button subobject and initialize the offset-asserted CString so
+// the non-virtual link operations have a valid lifetime; virtual dispatch still
+// uses the clean-room button vtable rather than retail's derived vtable.
 // Symbol: ??0CMFCRibbonLinkCtrl@@QEAA@IPEB_W0@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonLinkCtrl__QEAA_IPEB_W0_Z(
-    void* pThis, int id, const wchar_t* text, const wchar_t* link) {
-    (void)id;
-    (void)text;
-    (void)link;
+    void* pThis, unsigned int id, const wchar_t* text, const wchar_t* link) {
+    construct_link_ctrl(pThis);
+    if (text != nullptr && link != nullptr) {
+        impl__SetID_CMFCRibbonBaseElement__UEAAXI_Z(
+            static_cast<CMFCRibbonBaseElement*>(pThis), id);
+        impl__SetText_CMFCRibbonButton__UEAAXPEB_W_Z(
+            static_cast<CMFCRibbonButton*>(pThis), text);
+        impl__SetString___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z(
+            link_string(pThis), link);
+    }
     return pThis;
 }
 // Symbol: ??0CMFCRibbonLinkCtrl@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCRibbonLinkCtrl__QEAA_XZ(void* pThis) {
+    construct_link_ctrl(pThis);
     return pThis;
 }
 
-// Retail mfc140u RVA 0x10ed60 releases the CString storage at +0x270 and then
-// tail-calls the inherited destructor path. The current constructor thunks in
-// this file do not initialize the CString or the base, so cleanup is unsafe.
+// Retail mfc140u entry RVA 0x10ed60 releases m_strLink (+0x270), then enters
+// the inherited destructor path. Both subobjects are initialized by these
+// OpenMFC constructors; invoke their matching destructors in member/base order.
 // Symbol: ??1CMFCRibbonLinkCtrl@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCRibbonLinkCtrl__UEAA_XZ(void* pThis) {
-    (void)pThis;
+    impl___1__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(
+        link_string(pThis));
+    impl___1CMFCRibbonButton__UEAA_XZ(pThis);
 }
 
-// Retail mfc140u RVA 0x10f050 calls CMFCRibbonButton::CopyFrom (RVA 0xe7aa0 (mfc140u))
-// and assigns the source CString at +0x270; both CString lifetimes are absent.
+// Retail mfc140u RVA 0x10f050 calls CMFCRibbonButton::CopyFrom (entry RVA
+// 0xe7aa0, mfc140u), then assigns the source CString at +0x270 (operator= entry
+// RVA 0xde30, mfc140u). The existing button CopyFrom thunk is a no-op, so
+// this only copies the modeled link member and leaves button state unchanged.
 // Symbol: ?CopyFrom@CMFCRibbonLinkCtrl@@UEAAXAEBVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonLinkCtrl__UEAAXAEBVCMFCRibbonBaseElement___Z(
     void* pThis, const CMFCRibbonBaseElement* pSource) {
-    (void)pThis;
-    (void)pSource;
+    if (pThis == nullptr || pSource == nullptr) return;
+    impl__CopyFrom_CMFCRibbonButton__MEAAXAEBVCMFCRibbonBaseElement___Z(
+        static_cast<CMFCRibbonButton*>(pThis), pSource);
+    impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBV01__Z(
+        link_string(pThis), link_string(pSource));
 }
 
-// Retail mfc140u RVA 0x10ebf0 allocates 0x278 bytes and calls the default
-// constructor at RVA 0x10ec30. That constructor is currently a no-op here.
+// Retail mfc140u entry RVA 0x10ebf0 allocates 0x278 bytes and calls the
+// constructor at RVA 0x10ec30. The descriptor's factory callback is null in
+// RuntimeClasses.cpp, and OpenMFC still lacks the LinkCtrl-derived vtable; a
+// button-vtable approximation is not a retail-compatible factory result.
 // Symbol: ?CreateObject@CMFCRibbonLinkCtrl@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonLinkCtrl__SAPEAVCObject__XZ() {
     return nullptr;
 }
 
-// The mfc140u map has no resolved entry; the ANSI twin at RVA 0xe160 (mfc140.dll) dispatches
-// through vtable byte offset +0x200 (slot 64), which OpenMFC does not model.
+// Retail's ANSI twin (entry RVA 0xe160, mfc140.dll) forwards through vtable
+// byte offset +0x200 (slot 64). OpenMFC does not model that LinkCtrl vtable
+// slot, so use its available CMFCRibbonButton sizing approximation instead.
 // Symbol: ?GetCompactSize@CMFCRibbonLinkCtrl@@UEAA?AVCSize@@PEAVCDC@@@Z
 extern "C" void* MS_ABI impl__GetCompactSize_CMFCRibbonLinkCtrl__UEAA_AVCSize__PEAVCDC___Z(
     void* pThis, void* pResult, CDC* pDC) {
-    (void)pThis;
-    (void)pDC;
-    // Keep the MSVC hidden-result-pointer return ABI; the size is unavailable.
+    impl__GetCompactSize_CMFCRibbonButton__UEAA_AVCSize__PEAVCDC___Z(
+        pResult, static_cast<const CMFCRibbonButton*>(pThis), pDC);
     return pResult;
 }
 
-// Retail mfc140u RVA 0x10edb0 dispatches to vtable +0x510, then uses flags at
-// +0x138/+0x134 and sizing state at +0xa0/+0x190/+0x194; those fields are absent.
+// Retail mfc140u entry RVA 0x10edb0 forwards through vtable byte offset
+// +0x510 and then applies inherited size/flag logic. Use the existing button
+// sizing approximation because the LinkCtrl vtable and retail state aren't modeled.
 // Symbol: ?GetRegularSize@CMFCRibbonLinkCtrl@@UEAA?AVCSize@@PEAVCDC@@@Z
 extern "C" void* MS_ABI impl__GetRegularSize_CMFCRibbonLinkCtrl__UEAA_AVCSize__PEAVCDC___Z(
     void* pThis, void* pResult, CDC* pDC) {
-    (void)pThis;
-    (void)pDC;
-    // Keep the MSVC hidden-result-pointer return ABI; the size is unavailable.
+    impl__GetRegularSize_CMFCRibbonButton__UEAA_AVCSize__PEAVCDC___Z(
+        pResult, static_cast<const CMFCRibbonButton*>(pThis), pDC);
     return pResult;
 }
 
-// Retail mfc140u RVA 0x10f2d0 tail-jumps to the OpenLink helper at RVA 0x10f090 (mfc140u);
-// it requires the uninitialized CString at +0x270 and calls SHELL32!ShellExecuteExW
-// through delay-load slot 0x1803e91b0 (mfc140u; resolved with dlyu.py).
+// Retail mfc140u entry RVA 0x10f2d0 tail-jumps to the OpenLink helper at
+// RVA 0x10f090 (mfc140u).
 // Symbol: ?OnAccDefaultAction@CMFCRibbonLinkCtrl@@MEAAXXZ
 extern "C" void MS_ABI impl__OnAccDefaultAction_CMFCRibbonLinkCtrl__MEAAXXZ(void* pThis) {
-    (void)pThis;
+    (void)impl__OpenLink_CMFCRibbonLinkCtrl__QEAAHXZ(pThis);
 }
 
-// Retail mfc140u RVA 0x10ee60 checks the button rect at +0xc8 with
-// USER32!IsRectEmpty, then paints through visual-manager and CDC state not modeled here.
+// Retail mfc140u RVA 0x10ee60 first checks the rect at +0xc8 with
+// USER32!IsRectEmpty (IAT slot 0x1802c72a0, mfc140u, resolved with iatu.py),
+// then gates drawing on flags at +0x134/+0x138 and uses additional button,
+// visual-manager, and CDC state. Those retail members and drawing paths are not modeled.
 // Symbol: ?OnDraw@CMFCRibbonLinkCtrl@@UEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCRibbonLinkCtrl__UEAAXPEAVCDC___Z(
     void* pThis, CDC* pDC) {
@@ -106,8 +158,10 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonLinkCtrl__UEAAXPEAVCDC___Z(
     (void)pDC;
 }
 
-// The mfc140u map has no resolved entry; ANSI twin RVA 0x10fec0 (mfc140.dll)
-// calls an internal routine and follows a module-global path; that state is unavailable.
+// No mfc140u export RVA resolves. The ANSI twin entry RVA 0x10fec0
+// (mfc140.dll) first calls CMFCRibbonButton::OnMouseMove (entry RVA
+// 0xe7fc0, mfc140.dll), then follows module-global state and an indirect
+// dispatch path not modeled here.
 // Symbol: ?OnMouseMove@CMFCRibbonLinkCtrl@@UEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonLinkCtrl__UEAAXVCPoint___Z(
     void* pThis, long long point) {
@@ -115,25 +169,34 @@ extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonLinkCtrl__UEAAXVCPoint___Z(
     (void)point;
 }
 
-// The mfc140u map has no resolved entry; ANSI twin RVA 0x10ff10 (mfc140.dll)
-// tests icon state at +0x1d8 and may load/store shared icon data absent here.
+// No mfc140u export RVA resolves. The ANSI twin entry RVA 0x10ff10
+// (mfc140.dll) tests icon state at +0x1d8 and initializes a shared icon through
+// module-global state; that cache and its initialization path are not modeled.
 // Symbol: ?OnSetIcon@CMFCRibbonLinkCtrl@@UEAAXXZ
 extern "C" void MS_ABI impl__OnSetIcon_CMFCRibbonLinkCtrl__UEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
-// The mfc140u map has no resolved entry; the ANSI twin entry is RVA 0x10fe40
-// (mfc140.dll). The U helper at RVA 0x10f090 (mfc140u) calls ShellExecuteExW but needs CString state at +0x270.
+// The mfc140u export has no resolved entry; helper entry RVA 0x10f090
+// (mfc140u) returns FALSE for an empty CString at +0x270, otherwise fills the
+// 0x70-byte SHELLEXECUTEINFOW and calls SHELL32!ShellExecuteExW (delay-load
+// slot 0x1803e91b0, mfc140u). The fields below match that structure setup.
 // Symbol: ?OpenLink@CMFCRibbonLinkCtrl@@QEAAHXZ
 extern "C" int MS_ABI impl__OpenLink_CMFCRibbonLinkCtrl__QEAAHXZ(void* pThis) {
-    (void)pThis;
-    return 0;
+    if (pThis == nullptr || link_string(pThis)->IsEmpty()) return FALSE;
+    SHELLEXECUTEINFOW info{};
+    info.cbSize = sizeof(info);
+    info.fMask = 0x40;
+    info.lpFile = link_string(pThis)->GetString();
+    info.nShow = SW_SHOWNORMAL;
+    return ::ShellExecuteExW(&info) ? TRUE : FALSE;
 }
 
 // The mfc140u map has no resolved entry. ANSI twin entry RVA 0x110030
 // (mfc140.dll) delegates to CMFCRibbonButton::SetACCData; on success it sets
-// role 0x1e, action text "Jump", and state 0x400000. The existing base thunk
-// supplies OpenMFC's base approximation; the link-specific output is transcribed.
+// role 0x1e, action text "Jump", and state 0x400000. The OpenMFC base thunk
+// currently only returns TRUE and does not initialize the other data fields;
+// this body writes the link-specific fields but remains an incomplete approximation.
 // Symbol: ?SetACCData@CMFCRibbonLinkCtrl@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonLinkCtrl__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
     void* pThis, CWnd* pWnd, CAccessibilityData* pData) {
@@ -148,12 +211,14 @@ extern "C" int MS_ABI impl__SetACCData_CMFCRibbonLinkCtrl__MEAAHPEAVCWnd__AEAVCA
     return TRUE;
 }
 
-// The mfc140u map has no resolved entry; ANSI twin RVA 0x10fff0 (mfc140.dll)
-// checks for a null input to choose length zero, then assigns it to the CString at
-// +0x270, which is not initialized.
+// No mfc140u export RVA resolves. ANSI entry RVA 0x10fff0 (mfc140.dll)
+// chooses length zero for null input, otherwise calls strlen through slot
+// 0x1802c5890 and assigns the CString at +0x270 with SetString. OpenMFC's
+// SetString thunk likewise empties the Unicode member for null input.
 // Symbol: ?SetLink@CMFCRibbonLinkCtrl@@QEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetLink_CMFCRibbonLinkCtrl__QEAAXPEB_W_Z(
     void* pThis, const wchar_t* link) {
-    (void)pThis;
-    (void)link;
+    if (pThis == nullptr) return;
+    impl__SetString___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z(
+        link_string(pThis), link);
 }

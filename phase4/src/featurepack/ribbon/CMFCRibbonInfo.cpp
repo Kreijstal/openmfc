@@ -125,6 +125,8 @@ extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
 extern "C" void  MS_ABI impl___3_YAXPEAX_Z(void* ptr);
 extern "C" CString* MS_ABI impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis);
 extern "C" CString* MS_ABI impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis);
+extern "C" int MS_ABI impl__ParseColor_CTagManager__SAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAK_Z(const CString* value, unsigned long* color);
+extern "C" int MS_ABI impl__ParseSize_CTagManager__SAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAVCSize___Z(const CString* value, CSize* size);
 extern "C" void* MS_ABI impl___0XElementButton_CMFCRibbonInfo__QEAA_XZ(void* pThis);
 extern "C" void* MS_ABI impl___0XElementButtonApplication_CMFCRibbonInfo__QEAA_XZ(void* pThis);
 extern "C" void* MS_ABI impl___0XElementButtonCheck_CMFCRibbonInfo__QEAA_XZ(void* pThis);
@@ -1327,27 +1329,27 @@ extern "C" int MS_ABI impl__Read_CMFCRibbonInfo__MEAAHAEAVXRibbonInfoParser_1__Z
             &p->m_Error, 4, &empty, -1, -1);
         return 0;
     }
-    const RI_Size small = p->m_sizeImage[0];
-    const RI_Size large = p->m_sizeImage[1];
-    ri_image_size(p->m_RibbonBar.m_Images) = small;
+    const RI_Size sizeSmall = p->m_sizeImage[0];
+    const RI_Size sizeLarge = p->m_sizeImage[1];
+    ri_image_size(p->m_RibbonBar.m_Images) = sizeSmall;
     if (p->m_RibbonBar.m_MainCategory != nullptr) {
         RI_XCategoryMain* main = static_cast<RI_XCategoryMain*>(p->m_RibbonBar.m_MainCategory);
-        ri_image_size(main->m_SmallImages) = small;
-        ri_image_size(main->m_LargeImages) = large;
+        ri_image_size(main->m_SmallImages) = sizeSmall;
+        ri_image_size(main->m_LargeImages) = sizeLarge;
     }
     auto forEachCategory = [&](const RI_Array& arr) {
         void** cats = static_cast<void**>(arr.m_pData);
         for (long long c = 0; c < arr.m_nSize; ++c) {
             RI_XCategory* cat = static_cast<RI_XCategory*>(cats[c]);
-            ri_image_size(cat->m_SmallImages) = small;
-            ri_image_size(cat->m_LargeImages) = large;
+            ri_image_size(cat->m_SmallImages) = sizeSmall;
+            ri_image_size(cat->m_LargeImages) = sizeLarge;
             void** panels = static_cast<void**>(cat->m_arPanels.m_pData);
             for (long long k = 0; k < cat->m_arPanels.m_nSize; ++k) {
                 RI_XPanel* panel = static_cast<RI_XPanel*>(panels[k]);
                 void** elems = static_cast<void**>(panel->m_arElements.m_pData);
                 for (long long e = 0; e < panel->m_arElements.m_nSize; ++e) {
                     if (static_cast<RI_XBase*>(elems[e])->m_ElementType == 16) {
-                        ri_image_size(static_cast<RI_XElementGroup*>(elems[e])->m_Images) = small;
+                        ri_image_size(static_cast<RI_XElementGroup*>(elems[e])->m_Images) = sizeSmall;
                     }
                 }
             }
@@ -1365,7 +1367,7 @@ extern "C" int MS_ABI impl__Read_CMFCRibbonInfo__MEAAHAEAVXRibbonInfoParser_1__Z
 
 // Symbol: ?Read@CMFCRibbonInfo@@UEAAHPEAEI@Z
 extern "C" int MS_ABI impl__Read_CMFCRibbonInfo__UEAAHPEAEI_Z(
-    void* pThis, void* pData, unsigned int cb) {
+    void* pThis, unsigned char* pData, unsigned int cb) {
     // STUB.  Retail RVA 0x10bce0 (mfc140u): m_Error.Empty(); if (!lpBuffer ||
     // !nSize) return FALSE; then it builds a DLL-internal CXMLParserRoot on the
     // stack (constructor at 0x10a2c4, an MSXML IXMLDOMDocument wrapper that is
@@ -1384,7 +1386,7 @@ extern "C" int MS_ABI impl__Read_CMFCRibbonInfo__UEAAHPEAEI_Z(
 }
 
 // Symbol: ?Read@CMFCRibbonInfo@@UEAAHPEAUIStream@@@Z
-extern "C" int MS_ABI impl__Read_CMFCRibbonInfo__UEAAHPEAUIStream___Z(void* pThis, void* pStream) {
+extern "C" int MS_ABI impl__Read_CMFCRibbonInfo__UEAAHPEAUIStream___Z(void* pThis, IStream* pStream) {
     // STUB.  Retail RVA 0x10bb40 (mfc140u): the same shape as the LPBYTE
     // overload above (m_Error.Empty(); NULL stream -> FALSE; CXMLParserRoot
     // loaded from the IStream via 0x1084b0; GetRoot("AFX_RIBBON"); Read(*p)),
@@ -1468,7 +1470,7 @@ extern "C" int MS_ABI impl__Write_CMFCRibbonInfo__UEAAHPEAPEAEAEAI_Z(
 }
 
 // Symbol: ?Write@CMFCRibbonInfo@@UEAAHPEAUIStream@@@Z
-extern "C" int MS_ABI impl__Write_CMFCRibbonInfo__UEAAHPEAUIStream___Z(void* pThis, void* pStream) {
+extern "C" int MS_ABI impl__Write_CMFCRibbonInfo__UEAAHPEAUIStream___Z(void* pThis, IStream* pStream) {
     // STUB.  Retail RVA 0x10be90 (mfc140u): the IStream twin of the LPBYTE*
     // overload above (NULL stream -> FALSE; CXMLParserRoot; GetRoot; Write;
     // save to the stream), blocked by the same missing MSXML parser.
@@ -1479,18 +1481,17 @@ extern "C" int MS_ABI impl__Write_CMFCRibbonInfo__UEAAHPEAUIStream___Z(void* pTh
 
 // Symbol: ??1XRibbonInfoParserCollection@CMFCRibbonInfo@@UEAA@XZ
 extern "C" void MS_ABI impl___1XRibbonInfoParserCollection_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
-    // Retail RVA 0x108b70 (mfc140u): the entire body is the store of the
-    // XRibbonInfoParserCollection vtable at +0x00.  The class is abstract with
-    // no data members and OpenMFC does not model the vtable (deviation 1), so
-    // there is nothing left to do.
+    // STUB: Retail RVA 0x108b70 (mfc140u) stores the parser-collection vtable
+    // at +0x00. This file has no compatible vtable to store, so this thunk
+    // cannot reproduce that operation.
     (void)pThis;
 }
 
 // Symbol: ??1XRibbonInfoParserRoot@CMFCRibbonInfo@@UEAA@XZ
 extern "C" void MS_ABI impl___1XRibbonInfoParserRoot_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
-    // Retail RVA 0x108b20 (mfc140u): the entire body is the store of the
-    // XRibbonInfoParserRoot vtable at +0x00; abstract, no data members,
-    // vtable not modelled (deviation 1) -- nothing left to do.
+    // STUB: Retail RVA 0x108b20 (mfc140u) stores the parser-root vtable at
+    // +0x00. This file has no compatible vtable to store, so this thunk cannot
+    // reproduce that operation.
     (void)pThis;
 }
 
@@ -1677,9 +1678,9 @@ extern "C" void* MS_ABI impl___0XGalleryGroup_XElementButtonGallery_CMFCRibbonIn
 
 // Symbol: ??1XBase@CMFCRibbonInfo@@UEAA@XZ
 extern "C" void MS_ABI impl___1XBase_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
-    // Retail RVA 0xfe610: the whole body is the store of the XBase vtable
-    // (0x180303e20) at +0x00; m_ElementType is a plain int.  OpenMFC does not
-    // model that vtable (deviation 1), so there is nothing left to do.
+    // STUB: Retail RVA 0xfda60 (mfc140u) stores the XBase vtable at +0x00.
+    // This file has no compatible vtable to store, so this thunk cannot
+    // reproduce that operation.
     (void)pThis;
 }
 
@@ -2015,10 +2016,9 @@ extern "C" void MS_ABI impl___1XRibbonBar_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
 
 // Symbol: ??1XRibbonInfoParser@CMFCRibbonInfo@@UEAA@XZ
 extern "C" void MS_ABI impl___1XRibbonInfoParser_CMFCRibbonInfo__UEAA_XZ(void* pThis) {
-    // Retail RVA 0x109770: the entire body is the store of the
-    // XRibbonInfoParser vtable (0x180303fa8) at +0x00.  The class is abstract
-    // and holds no data members, and OpenMFC does not model the vtable
-    // (deviation 1), so nothing is left to do.
+    // STUB: Retail RVA 0x108bc0 (mfc140u) stores the parser vtable at +0x00.
+    // This file has no compatible vtable to store, so this thunk cannot
+    // reproduce that operation.
     (void)pThis;
 }
 
@@ -2752,22 +2752,69 @@ extern "C" int MS_ABI impl__ReadBool_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV
 }
 
 // Symbol: ?ReadColor@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAK@Z
-extern "C" int MS_ABI impl__ReadColor_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAK_Z(const void* /*class*/* p0, void** p1, void* p2, unsigned long* p3) {
-    return 0;
+extern "C" int MS_ABI impl__ReadColor_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAK_Z(
+    void* pThis, const CString* pName, unsigned long* pValue) {
+    // The corresponding ANSI-twin body (mfc140.dll, RVA 0x109780) calls
+    // ReadString, returns FALSE for failure/empty text, then returns
+    // CTagManager::ParseColor's result. This follows that observed sequence;
+    // the Unicode symbol has no mapped RVA, and conversion edge cases therefore
+    // use OpenMFC's existing ParseColor implementation rather than a byte-verified U body.
+    CString value;
+    if (!reinterpret_cast<RIP_StrFn>(ri_slot(pThis, RIP_ReadString))(pThis, pName, &value) ||
+        value.GetLength() == 0) {
+        return 0;
+    }
+    return impl__ParseColor_CTagManager__SAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAK_Z(
+        &value, pValue);
 }
 
 // Symbol: ?ReadInt@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAH@Z
-extern "C" int MS_ABI impl__ReadInt_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAH_Z(const void* /*class*/* p0, void** p1, void* p2, int* p3) {
-    return 0;
+extern "C" int MS_ABI impl__ReadInt_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAH_Z(
+    void* pThis, const CString* pName, int* pValue) {
+    // The corresponding ANSI-twin body (mfc140.dll, RVA 0x1099b0) calls
+    // ReadString, requires nonempty text, trims both ends, then applies atol
+    // and returns TRUE. wcstol is the wide-character counterpart of that call.
+    // The local trim thunks cover space/tab/CR/LF, narrower than retail's
+    // CStringT whitespace trim (the same caveat noted in ReadBool).
+    CString value;
+    if (!reinterpret_cast<RIP_StrFn>(ri_slot(pThis, RIP_ReadString))(pThis, pName, &value) ||
+        value.GetLength() == 0) {
+        return 0;
+    }
+    impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(&value);
+    impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(&value);
+    *pValue = static_cast<int>(std::wcstol(value.GetString(), nullptr, 10));
+    return 1;
 }
 
 // Symbol: ?ReadSize@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAVCSize@@@Z
-extern "C" int MS_ABI impl__ReadSize_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAVCSize___Z(const void* /*class*/* p0, void** p1, void* p2, void* /*class*/* p3) {
-    return 0;
+extern "C" int MS_ABI impl__ReadSize_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAVCSize___Z(
+    void* pThis, const CString* pName, CSize* pValue) {
+    // The corresponding ANSI-twin body (mfc140.dll, RVA 0x109900) calls
+    // ReadString, returns FALSE for failure/empty text, then returns
+    // CTagManager::ParseSize's result. This follows that observed sequence;
+    // the Unicode symbol has no mapped RVA, so conversion edge cases use
+    // OpenMFC's existing ParseSize implementation rather than a byte-verified U body.
+    CString value;
+    if (!reinterpret_cast<RIP_StrFn>(ri_slot(pThis, RIP_ReadString))(pThis, pName, &value) ||
+        value.GetLength() == 0) {
+        return 0;
+    }
+    return impl__ParseSize_CTagManager__SAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAVCSize___Z(
+        &value, pValue);
 }
 
 // Symbol: ?ReadUInt@XRibbonInfoParser@CMFCRibbonInfo@@UEAAHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAI@Z
-extern "C" int MS_ABI impl__ReadUInt_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAI_Z(const void* /*class*/* p0, void** p1, void* p2, unsigned int* p3) {
+extern "C" int MS_ABI impl__ReadUInt_XRibbonInfoParser_CMFCRibbonInfo__UEAAHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAI_Z(
+    void* pThis, const CString* pName, unsigned int* pValue) {
+    // The corresponding ANSI-twin body (mfc140.dll, RVA 0x109a70) initializes
+    // a signed temporary to zero, dispatches ReadInt through vtable slot 8,
+    // and only copies the result to the unsigned output on success.
+    int value = 0;
+    if (reinterpret_cast<RIP_IntFn>(ri_slot(pThis, RIP_ReadInt))(pThis, pName, &value)) {
+        *pValue = static_cast<unsigned int>(value);
+        return 1;
+    }
     return 0;
 }
 
@@ -2791,76 +2838,120 @@ extern "C" void MS_ABI impl__SetError_XInfoError_CMFCRibbonInfo__QEAAXW4XError_1
 }
 
 // Symbol: ?Write@XBase@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XBase_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XBase_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XCategory@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XCategory_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XCategory_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XCategoryMain@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XCategoryMain_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XCategoryMain_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XContext@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XContext_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XContext_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElement@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElement_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElement_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButton@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButton_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButton_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonApplication@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonApplication_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonApplication_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonCheck@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonCheck_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonCheck_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonColor@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonColor_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonColor_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonGallery@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonGallery_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonGallery_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonLaunch@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonLaunch_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonLaunch_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonLinkCtrl@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonLinkCtrl_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonLinkCtrl_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonMainPanel@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonMainPanel_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonMainPanel_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementButtonUndo@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementButtonUndo_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementButtonUndo_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }
 
 // Symbol: ?Write@XElementComboBox@CMFCRibbonInfo@@UEAAHAEAVXRibbonInfoParser@2@@Z
-extern "C" int MS_ABI impl__Write_XElementComboBox_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(void* /*class*/* p0) {
+extern "C" int MS_ABI impl__Write_XElementComboBox_CMFCRibbonInfo__UEAAHAEAVXRibbonInfoParser_2__Z(
+    void* pThis, void* pParser) {
+    // STUB: --u has no RVA for this symbol; no Unicode body was established.
+    (void)pThis; (void)pParser;
     return 0;
 }

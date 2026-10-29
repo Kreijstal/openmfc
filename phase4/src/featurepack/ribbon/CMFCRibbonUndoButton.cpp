@@ -13,7 +13,7 @@ namespace {
 // string/array storage follows the retail headers and is pinned here as bytes.
 struct CMFCRibbonUndoButtonShadow {
     std::uint8_t _toIconCount[0x4c8];
-    std::int32_t m_nIconsInRow;             // inherited gallery field +0x4c8
+    std::int32_t m_nIcons;                  // inherited gallery icon count +0x4c8
     std::uint8_t _toActionNumber[0x4f8 - 0x4cc];
     std::int32_t m_nActionNumber;           // +0x4f8
     std::uint32_t m_sizeMaxText[2];         // CSize at +0x4fc
@@ -23,7 +23,7 @@ struct CMFCRibbonUndoButtonShadow {
     void* m_strUndoFmt;                     // CString at +0x518
     std::uintptr_t m_arLabels[5];           // CStringArray at +0x520
 };
-static_assert(offsetof(CMFCRibbonUndoButtonShadow, m_nIconsInRow) == 0x4c8);
+static_assert(offsetof(CMFCRibbonUndoButtonShadow, m_nIcons) == 0x4c8);
 static_assert(offsetof(CMFCRibbonUndoButtonShadow, m_nActionNumber) == 0x4f8);
 static_assert(offsetof(CMFCRibbonUndoButtonShadow, m_sizeMaxText) == 0x4fc);
 static_assert(offsetof(CMFCRibbonUndoButtonShadow, m_strCancel) == 0x508);
@@ -35,6 +35,16 @@ static_assert(sizeof(CSize) == 8);
 static_assert(sizeof(CString) == sizeof(void*));
 // The clean-room CStringArray is an 8-byte side-table wrapper; the five
 // pointer-sized words above pin the 0x28-byte retail member at +0x520.
+void InitKnownUndoState(void* pThis) {
+    if (pThis == nullptr) {
+        return;
+    }
+    auto* shadow = static_cast<CMFCRibbonUndoButtonShadow*>(pThis);
+    shadow->m_nActionNumber = -1;
+    shadow->m_sizeMaxText[0] = 0;
+    shadow->m_sizeMaxText[1] = 0;
+    shadow->m_arLabels[2] = 0;
+}
 } // namespace
 
 extern "C" void MS_ABI impl__OnClick_CMFCRibbonButton__UEAAXVCPoint___Z(
@@ -42,7 +52,19 @@ extern "C" void MS_ABI impl__OnClick_CMFCRibbonButton__UEAAXVCPoint___Z(
 extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis, const CRuntimeClass* pClass);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonButton__SAPEAUCRuntimeClass__XZ();
+extern "C" void MS_ABI impl__Copy_CMFCRibbonGallery__MEAAXAEBVCMFCRibbonBaseElement___Z(
+    void* pThis, const CMFCRibbonBaseElement* pSource);
+extern "C" void MS_ABI impl__Copy_CStringArray__QEAAXAEBV1__Z(
+    CStringArray* pThis, const CStringArray* pSource);
+extern "C" void MS_ABI impl__SetAtGrow_CStringArray__QEAAX_JPEB_W_Z(
+    CStringArray* pThis, long long nIndex, const wchar_t* value);
+extern "C" void MS_ABI impl__SetSize_CStringArray__QEAAX_J0_Z(
+    CStringArray* pThis, long long nNewSize, long long nGrowBy);
 
+// Partial constructor: retail RVA 0x128810 (mfc140u) constructs the gallery
+// base, installs the UndoButton vtable, initializes strings/labels, and calls
+// CommonInit. This file can initialize only the known action/cache/count fields;
+// it has no local UndoButton type or derived vtable to construct.
 // Symbol: ??0CMFCRibbonUndoButton@@QEAA@IPEB_WHH@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonUndoButton__QEAA_IPEB_WHH_Z(
     void* pThis, int id, const wchar_t* text, int width, int height) {
@@ -50,74 +72,134 @@ extern "C" void* MS_ABI impl___0CMFCRibbonUndoButton__QEAA_IPEB_WHH_Z(
     (void)text;
     (void)width;
     (void)height;
+    InitKnownUndoState(pThis);
     return pThis;
 }
+// Partial constructor: retail RVA 0x128920 (mfc140u) constructs the gallery
+// base, installs the UndoButton vtable, initializes strings/labels, calls
+// CommonInit, and stores the icon at +0x1d8. No local derived type/vtable is
+// available here.
 // Symbol: ??0CMFCRibbonUndoButton@@QEAA@IPEB_WPEAUHICON__@@@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonUndoButton__QEAA_IPEB_WPEAUHICON_____Z(
     void* pThis, int id, const wchar_t* text, void* icon) {
     (void)id;
     (void)text;
     (void)icon;
+    InitKnownUndoState(pThis);
     return pThis;
 }
+// Partial constructor: retail RVA 0x1286e0 (mfc140u) constructs the gallery
+// base, installs the UndoButton vtable, initializes strings/labels, and calls
+// CommonInit. No local derived type/vtable is available to establish that state.
 // Symbol: ??0CMFCRibbonUndoButton@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCRibbonUndoButton__QEAA_XZ(void* pThis) {
+    InitKnownUndoState(pThis);
     return pThis;
 }
-// Stub: retail at RVA 0x128b90 (mfc140u) releases the label array and three
-// CString members, then tail-calls the CMFCRibbonGallery destructor. A base
-// destructor thunk exists, but this file's constructors only return pThis and
-// CommonInit is still stubbed, so releasing the uninitialized CString fields
-// here would be unsafe.
+// Stub: retail entry RVA 0x128b90 (mfc140u) destroys the label array at +0x520,
+// releases the three CString members at +0x508/+0x510/+0x518, then tail-calls
+// CMFCRibbonGallery::~CMFCRibbonGallery at RVA 0x112770 (mfc140u). The local
+// constructors initialize only scalar bookkeeping, not the CString/array
+// objects, so releasing those members here would be unsafe.
 // Symbol: ??1CMFCRibbonUndoButton@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCRibbonUndoButton__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
 
-// Stub: retail at RVA 0x128c40 (mfc140u) calls vtable slot 0x510 (slot 162),
-// appends to m_arLabels (+0x520), copies its count to +0x4c8, and clears the
-// cached CSize at +0x4fc. The required ribbon vtable dispatch is not modeled.
+// Partial: retail entry RVA 0x128c40 (mfc140u) calls vtable slot 0x510 (slot 162),
+// appends to m_arLabels (+0x520), copies its count from +0x530 to the inherited
+// icon-count field at +0x4c8, and clears the cached CSize at +0x4fc. The local
+// side-table wrapper handles the append/count/cache effects; the virtual call
+// is omitted because these thunks cannot establish the UndoButton vtable.
 // Symbol: ?AddUndoAction@CMFCRibbonUndoButton@@QEAAXPEB_W@Z
 extern "C" void MS_ABI impl__AddUndoAction_CMFCRibbonUndoButton__QEAAXPEB_W_Z(
     void* pThis, const wchar_t* lpszLabel) {
-    (void)pThis;
-    (void)lpszLabel;
+    if (pThis == nullptr) {
+        return;
+    }
+    auto* shadow = static_cast<CMFCRibbonUndoButtonShadow*>(pThis);
+    auto* labels = reinterpret_cast<CStringArray*>(
+        static_cast<std::uint8_t*>(pThis) + 0x520);
+    const long long index = static_cast<long long>(shadow->m_arLabels[2]);
+    impl__SetAtGrow_CStringArray__QEAAX_JPEB_W_Z(labels, index, lpszLabel);
+    shadow->m_arLabels[2] = static_cast<std::uintptr_t>(index + 1);
+    shadow->m_nIcons = static_cast<std::int32_t>(index + 1);
+    shadow->m_sizeMaxText[0] = 0;
+    shadow->m_sizeMaxText[1] = 0;
 }
 
-// Stub: retail at RVA 0x128ca0 (mfc140u) calls vtable slot 0x510 (slot 162),
-// clears m_arLabels via SetSize(0, -1), and zeroes the CSize at +0x4fc. The
-// ribbon vtable dispatch required by the first call is not modeled.
+// Partial: retail entry RVA 0x128ca0 (mfc140u) calls vtable slot 0x510 (slot 162),
+// clears m_arLabels via SetSize(0, -1), and zeroes the CSize at +0x4fc. This
+// clears the OpenMFC side-table labels/count and cache, but omits the unavailable
+// virtual call.
 // Symbol: ?CleanUpUndoList@CMFCRibbonUndoButton@@QEAAXXZ
 extern "C" void MS_ABI impl__CleanUpUndoList_CMFCRibbonUndoButton__QEAAXXZ(
     void* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) {
+        return;
+    }
+    auto* shadow = static_cast<CMFCRibbonUndoButtonShadow*>(pThis);
+    auto* labels = reinterpret_cast<CStringArray*>(
+        static_cast<std::uint8_t*>(pThis) + 0x520);
+    impl__SetSize_CStringArray__QEAAX_J0_Z(labels, 0, -1);
+    shadow->m_arLabels[2] = 0;
+    shadow->m_sizeMaxText[0] = 0;
+    shadow->m_sizeMaxText[1] = 0;
 }
 
-// Stub: retail at RVA 0x128a40 (mfc140u) initializes fields at +0x4f8/+0x4fc,
-// loads three resource strings, and creates/configures an internal ribbon
-// button using additional helper calls. Those resource and object operations
-// are not available through a modeled CMFCRibbonUndoButton vtable here.
+// Partial: retail entry RVA 0x128a40 (mfc140u) sets +0x4f8 to -1, writes 1
+// at +0x4c4/+0x4cc/+0x1ec, and clears the cached CSize at +0x4fc. It then loads
+// string resources 0x42cd/0x42cf/0x42ce and creates/configures an internal
+// ribbon button; that resource/object setup and its dispatch remain unavailable.
 // Symbol: ?CommonInit@CMFCRibbonUndoButton@@IEAAXXZ
 extern "C" void MS_ABI impl__CommonInit_CMFCRibbonUndoButton__IEAAXXZ(
     void* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) {
+        return;
+    }
+    auto* bytes = static_cast<std::uint8_t*>(pThis);
+    *reinterpret_cast<std::int32_t*>(bytes + 0x4f8) = -1;
+    *reinterpret_cast<std::int32_t*>(bytes + 0x4c4) = 1;
+    *reinterpret_cast<std::int32_t*>(bytes + 0x4cc) = 1;
+    *reinterpret_cast<std::int32_t*>(bytes + 0x1ec) = 1;
+    std::memset(bytes + 0x4fc, 0, sizeof(std::uint64_t));
 }
 
-// Stub: retail at RVA 0x128e00 (mfc140u) first calls Gallery::CopyFrom, then
-// copies the action index, labels, gallery icon count and cached CSize. The
-// existing Gallery::CopyFrom impl__ definition has a placeholder, ABI-wrong
-// parameter list, so it cannot safely be called from this thunk.
+// Partial: retail entry RVA 0x128e00 (mfc140u) calls CMFCRibbonGallery::CopyFrom
+// at RVA 0x113f60 (mfc140u), then clears/copies the label array and copies the
+// action index, icon count, and cached CSize. The gallery thunk is a no-op, so
+// base-element state remains unavailable; the label copy uses OpenMFC's
+// CStringArray side-table wrapper at the retail member address +0x520.
 // Symbol: ?CopyFrom@CMFCRibbonUndoButton@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonUndoButton__MEAAXAEBVCMFCRibbonBaseElement___Z(
     void* pThis, const void* pSource) {
-    (void)pThis;
-    (void)pSource;
+    if (pThis == nullptr || pSource == nullptr) {
+        return;
+    }
+
+    impl__Copy_CMFCRibbonGallery__MEAAXAEBVCMFCRibbonBaseElement___Z(
+        pThis, static_cast<const CMFCRibbonBaseElement*>(pSource));
+
+    auto* destinationLabels = reinterpret_cast<CStringArray*>(
+        static_cast<std::uint8_t*>(pThis) + 0x520);
+    const auto* sourceLabels = reinterpret_cast<const CStringArray*>(
+        static_cast<const std::uint8_t*>(pSource) + 0x520);
+    impl__SetSize_CStringArray__QEAAX_J0_Z(destinationLabels, 0, -1);
+    impl__Copy_CStringArray__QEAAXAEBV1__Z(destinationLabels, sourceLabels);
+
+    auto* destination = static_cast<CMFCRibbonUndoButtonShadow*>(pThis);
+    const auto* source = static_cast<const CMFCRibbonUndoButtonShadow*>(pSource);
+    destination->m_nActionNumber = source->m_nActionNumber;
+    destination->m_arLabels[2] = source->m_arLabels[2];
+    destination->m_nIcons = source->m_nIcons;
+    std::memcpy(destination->m_sizeMaxText, source->m_sizeMaxText,
+                sizeof(destination->m_sizeMaxText));
 }
 
 // Stub: retail at RVA 0x1286a0 (mfc140u) allocates 0x548 bytes and calls the
-// default constructor at RVA 0x1286e0 (mfc140u). The local default-constructor
-// thunk only returns pThis and does not establish a ribbon vtable, so returning
-// a partially constructed object would be unsafe.
+// default constructor at RVA 0x1286e0 (mfc140u). The local default constructor
+// sets scalar bookkeeping but does not establish a ribbon vtable or initialize
+// its CString/array objects, so returning a partially constructed object is unsafe.
 // Symbol: ?CreateObject@CMFCRibbonUndoButton@@SAPEAVCObject@@XZ
 extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonUndoButton__SAPEAVCObject__XZ() {
     return nullptr;
@@ -187,9 +269,14 @@ extern "C" void MS_ABI impl__OnDrawPaletteIcon_CMFCRibbonUndoButton__MEAAXPEAVCD
     (void)clrText;
 }
 
-// Stub: the Unicode export did not resolve in the supplied map. Its ANSI twin
-// disassembly shows menu sizing from m_arLabels and cached text sizes followed
-// by the button popup path; that UI/layout pipeline is not modeled here.
+// Stub: the Unicode lookup did not resolve. ANSI-twin entry RVA 0x129db0
+// (mfc140) first calls a helper, then zeroes +0x4d4. If either cached CSize
+// dimension at +0x4fc/+0x500 is nonzero, it skips the measurement path; if both
+// are zero, it measures every m_arLabels entry (+0x520), then also measures the
+// three CString members at +0x508/+0x510/+0x518. It caches the maximum dimensions
+// and adds 10 to the width. Both paths set +0x4f8 to -1 and tail-jump to
+// CMFCRibbonGallery::OnShowPopupMenu at RVA 0x114f70 (mfc140). This popup/layout
+// pipeline is not modeled here.
 // Symbol: ?OnShowPopupMenu@CMFCRibbonUndoButton@@MEAAXXZ
 extern "C" void MS_ABI impl__OnShowPopupMenu_CMFCRibbonUndoButton__MEAAXXZ(
     void* pThis) {

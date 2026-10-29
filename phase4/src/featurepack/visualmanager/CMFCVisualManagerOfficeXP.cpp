@@ -1105,7 +1105,7 @@ CMFCVisualManagerOfficeXP::CMFCVisualManagerOfficeXP() {
 }
 CMFCVisualManagerOfficeXP::~CMFCVisualManagerOfficeXP() {}
 CObject* CMFCVisualManagerOfficeXP::CreateObject() { return new CMFCVisualManagerOfficeXP(); }
-// Retail (RVA 0x1af590) builds two 8x8 monochrome ::CreateBitmap patterns and
+// Retail entry RVA 0x1b0f90 (mfc140u) builds two 8x8 monochrome ::CreateBitmap patterns and
 // attaches ::CreatePatternBrush results to the CBrush members at +0x140 and
 // +0x150.  OpenMFC's CMFCVisualManagerOfficeXP has no storage at those offsets
 // (see the file header), so there is nowhere to keep the brushes.
@@ -1115,7 +1115,7 @@ CObject* CMFCVisualManagerOfficeXP::CreateObject() { return new CMFCVisualManage
 extern "C" void MS_ABI impl__CreateGripperBrush_CMFCVisualManagerOfficeXP__MEAAXXZ(CMFCVisualManagerOfficeXP* /*pThis*/) {}
 
 // CMFCVisualManagerOfficeXP::ExtendMenuButton(CMFCToolBarMenuButton*, CRect& rect)
-// -- retail RVA 0x1af6d0 (mfc140.dll):
+// -- retail entry RVA 0x1b10d0 (mfc140u; inner instruction addresses below are mfc140.dll):
 //     CMFCPopupMenu* pPopup = pMenuButton->m_pPopupMenu;             // +0xc0, 0x1af6f3
 //     if (!pPopup || !pPopup->m_hWnd) return;                          // +0x40, 0x1af700/0x1af709
 //     CRect rectPopup; ::GetWindowRect(pPopup->m_hWnd, &rectPopup);    // 0x1af724
@@ -1742,8 +1742,8 @@ extern "C" void MS_ABI impl__OnDrawCaptionBarInfoArea_CMFCVisualManagerOfficeXP_
 }
 
 // CMFCVisualManagerOfficeXP::OnDrawCaptionButton(CDC*, CMFCCaptionButton*, BOOL bActive,
-//         BOOL bHorz, BOOL bMaximized, BOOL bDisabled, int nImageID) -- retail RVA
-// 0x1aea90 (mfc140.dll).  It starts with pButton->GetRect() (vtable +0x28, call at
+//         BOOL bHorz, BOOL bMaximized, BOOL bDisabled, int nImageID) -- retail entry RVA
+// 0x1b0490 (mfc140u; inner instruction addresses below are mfc140.dll).  It starts with pButton->GetRect() (vtable +0x28, call at
 // 0x1aead6), reads the button's m_bPushed (+0x8) / m_bFocused (+0xc) /
 // m_bDroppedDown (+0x18), fills the rect through the visual-manager virtual at
 // +0x638 with m_brHighlightDn or m_brHighlight, asks
@@ -1754,11 +1754,12 @@ extern "C" void MS_ABI impl__OnDrawCaptionBarInfoArea_CMFCVisualManagerOfficeXP_
 // repo (S_Cmfccaptionmenubutton in phase4/src/detail/CMFCCaptionMenuButtonSupport.h:
 // m_bPushed 8, m_bFocused 12, m_bDroppedDown 24) even though
 // include/openmfc/afxmfc.h declares CMFCCaptionButton as a 24-byte placeholder.
-// Left a stub because the geometry is not obtainable: GetRect and GetIconID are
-// CMFCCaptionButton virtuals (the base class has no m_rect member -- the same
-// shadow header records that the rectangle is computed from m_ptOrg -- and the
-// derived caption buttons override both), and OpenMFC's objects carry a
-// mingw vtable with nothing at those slots.
+// Left a stub because the geometry is not generally obtainable: GetRect and
+// GetIconID are CMFCCaptionButton virtuals, and the base class has no m_rect
+// member (the shadow header records that its rectangle is computed from
+// m_ptOrg). Some specialized caption-button models install custom slot tables,
+// but this thunk cannot assume every CMFCCaptionButton* uses one of those
+// tables; the generic placeholder has no retail-compatible MSVC vtable.
 // Symbol: ?OnDrawCaptionButton@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@PEAVCMFCCaptionButton@@HHHHH@Z
 extern "C" void MS_ABI impl__OnDrawCaptionButton_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCCaptionButton__HHHHH_Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CMFCCaptionButton* /*pButton*/,
@@ -2587,10 +2588,11 @@ extern "C" unsigned long MS_ABI impl__OnDrawPopupWindowCaption_CMFCVisualManager
     return GD_clrBtnText();
 }
 
-// Retail (RVA 0x1b21d0, mfc140.dll) drives everything off CMFCRibbonButton
-// virtuals -- vtable +0x1d0 (three calls) and +0x1c8 (two) -- and the element's
-// +0x100 member, before framing with m_clrMenuItemBorder (+0x138, read three
-// times) through CDC::Draw3dRect / MoveTo / LineTo.  OpenMFC's CMFCRibbonButton
+// Retail entry RVA 0x1b3bd0 (mfc140u; inner instruction addresses below are mfc140.dll) queries several CMFCRibbonButton
+// virtuals, including +0x1d0 (three calls), +0x1c8 (two calls), +0x1b0,
+// +0x1d8, +0x1b8 and +0x1c0, and reads the element's +0x100 member before
+// framing with m_clrMenuItemBorder (+0x138, read three times) through
+// CDC::Draw3dRect / MoveTo / LineTo.  OpenMFC's CMFCRibbonButton
 // is a 64-byte placeholder over a CMFCRibbonBaseElement that models only m_nID
 // and m_strText (include/openmfc/afxmfc.h), with an unrelated vtable, so
 // neither the state virtuals nor the member can be reached; left a stub.
@@ -2599,7 +2601,7 @@ extern "C" void MS_ABI impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOfficeXP_
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CMFCRibbonButton* /*pButton*/) {}
 
 // CMFCVisualManagerOfficeXP::OnDrawRibbonCategoryScroll(CDC*, CRibbonCategoryScroll*)
-// -- retail RVA 0x1b24d0 (mfc140.dll):
+// -- retail entry RVA 0x1b3ed0 (mfc140u; inner instruction addresses below are mfc140.dll):
 //     CRect rect = pScroll->m_rect; rect.bottom--;                       // +0xc8, 0x1b24e6..0x1b24ff
 //     this->OnFillHighlightedArea(pDC, rect,                            // vtable +0x638, 0x1b2575
 //         pScroll->IsHighlighted() /*vtable +0x1b0*/ ? &m_brHighlight : &afxGlobalData.brBarFace, NULL);
@@ -2798,12 +2800,15 @@ extern "C" void MS_ABI impl__OnDrawRibbonRecentFilesFrame_CMFCVisualManagerOffic
 
 // Retail (RVA 0x1b2790, mfc140.dll) dispatches two CMFCRibbonStatusBarPane
 // virtuals (vtable +0x1b0 and +0x1c0), fills with m_brHighlight (+0x1a0) or
-// leaves the background, frames with m_clrMenuItemBorder (+0x138) or
-// afxGlobalData colours through two Draw3dRect calls, and returns a text
+// m_brHighlightDn (+0x1b0) or leaves the background, and makes up to three
+// Draw3dRect calls: the highlighted frame uses m_clrMenuItemBorder (+0x138),
+// the adjusted-bottom frame uses clrBarShadow, and a final frame uses
+// clrBarText or CLR_INVALID as its second colour depending on high contrast.
+// It returns a text
 // colour.  OpenMFC's CMFCRibbonStatusBarPane is a placeholder (CMFCRibbonBaseElement
 // plus 32 bytes of padding) with an unrelated vtable, so the two state
-// virtuals cannot be dispatched; left a stub.  The `return 0` is the
-// generated stub's value, not a retail one.
+// virtuals cannot be dispatched; left a stub. The return value below is a
+// placeholder, not a value established from retail.
 // Symbol: ?OnDrawRibbonStatusBarPane@CMFCVisualManagerOfficeXP@@MEAAKPEAVCDC@@PEAVCMFCRibbonStatusBar@@PEAVCMFCRibbonStatusBarPane@@@Z
 extern "C" unsigned long MS_ABI impl__OnDrawRibbonStatusBarPane_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCRibbonStatusBar__PEAVCMFCRibbonStatusBarPane___Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CMFCRibbonStatusBar* /*pBar*/, CMFCRibbonStatusBarPane* /*pPane*/) {
@@ -3336,19 +3341,21 @@ extern "C" void MS_ABI impl__OnDrawTask_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC_
 //
 // This one export has no entry of its own in mfc140_rva_symbols.json, so it was
 // resolved through the vtables instead.  CMFCVisualManager's version is at
-// 0x187c00 and sits in vtable slot 95 (byte offset 0x2f8) of the base vtable at
-// image address 0x180319f78 (installed by ??0CMFCVisualManager@@QEAA@H@Z at
-// 0x182640, store at 0x182666).  Slot 95 of CMFCVisualManagerOffice2003's
-// vtable (0x18031a5c0) holds 0x1944a0 and slot 95 of CMFCVisualManagerWindows'
-// (0x18031c758) holds 0x1b9780 -- i.e. exactly the two derived overrides the
-// symbol map does resolve -- which pins the slot.  Slot 95 of
-// CMFCVisualManagerOfficeXP's vtable (0x18031b3d8, installed by
-// ??0CMFCVisualManagerOfficeXP@@IEAA@H@Z at 0x1abe10, store at 0x1abe2f) holds
-// 0x180002820, which disassembles to a single `ret` (it is the ICF-folded empty
+// RVA 0x187c00 (mfc140.dll) and sits in vtable slot 95 (byte offset 0x2f8) of
+// the base vtable at image address 0x180319f78 (mfc140.dll; installed by
+// constructor entry RVA 0x182640, with the store at instruction RVA 0x182666,
+// both mfc140.dll).  Slot 95 of CMFCVisualManagerOffice2003's vtable
+// (0x18031a5c0, mfc140.dll) holds RVA 0x1944a0 and slot 95 of
+// CMFCVisualManagerWindows' vtable (0x18031c758, mfc140.dll) holds RVA
+// 0x1b9780 -- i.e. exactly the two derived overrides the symbol map does
+// resolve -- which pins the slot.  Slot 95 of CMFCVisualManagerOfficeXP's
+// vtable (0x18031b3d8, mfc140.dll; installed by constructor entry RVA 0x1abe10,
+// with the store at instruction RVA 0x1abe2f, both mfc140.dll) holds RVA
+// 0x2820 (mfc140.dll), which disassembles to a single `ret` (it is the ICF-folded empty
 // body the linker also shares with ?UpdateModifiedFlag@CRichEditDoc@@UEAAXXZ).
-// The address differs from the base's, so the class does override the virtual
-// -- with a do-nothing body.  The empty body below is therefore exact, not a
-// stub.
+// The address differs from the base's, so the class overrides the virtual
+// with a do-nothing body. The empty export remains a stub for this assignment,
+// since an empty body is classified as a stub rather than an implementation.
 // Symbol: ?OnDrawTasksGroupAreaBorder@CMFCVisualManagerOfficeXP@@MEAAXPEAVCDC@@VCRect@@HH@Z
 extern "C" void MS_ABI impl__OnDrawTasksGroupAreaBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__VCRect__HH_Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CRect /*rect*/, int /*bSpecial*/, int /*bNoTitle*/)
@@ -4048,10 +4055,10 @@ extern "C" void MS_ABI impl__OnFillPopupWindowBackground_CMFCVisualManagerOffice
 // HighlightRect (0x5abf0 / 0x56750) or the +0x638 virtual with the OfficeXP
 // brushes, returning a text colour.  OpenMFC's CMFCRibbonButton placeholder
 // carries none of those virtuals or members, so none of the branches can be
-// chosen; left a stub.  (The two CDrawingManager exports have since been
+// chosen; left a stub. (The two CDrawingManager exports have since been
 // implemented in phase4/src/core/gdi/CDrawingManager.cpp; they were a second
-// blocker when this comment was first written and no longer are.)  The
-// `return 0` is the generated stub's value.
+// blocker when this comment was first written and no longer are.) The return
+// value below is a placeholder, not a value established from retail.
 // Symbol: ?OnFillRibbonButton@CMFCVisualManagerOfficeXP@@MEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
 extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerOfficeXP__MEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
     CMFCVisualManagerOfficeXP* /*pThis*/, CDC* /*pDC*/, CMFCRibbonButton* /*pButton*/) {

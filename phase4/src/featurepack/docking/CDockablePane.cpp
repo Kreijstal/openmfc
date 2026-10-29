@@ -278,6 +278,10 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPaneDivider__SAPEAUCRuntime
 extern "C" void MS_ABI impl__RemovePane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane);
 extern "C" void MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CRect* pRet, void* pThis);
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CMultiPaneFrameWnd__UEAAXPEAVCPane___Z(void* pThis, void* pBar);
+extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__0_Z(
+    void* pThis, CDockablePane* pDockingBar, CDockablePane* pTabbedBar);
+extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneDivider__QEAAXPEAVCDockablePane__0_Z(
+    void* pThis, CDockablePane* pDockingBar, CDockablePane* pTabbedBar);
 //   ReplacePane_CMultiPaneFrameWnd     docking/CMultiPaneFrameWnd.cpp:158 (stub, no `this`)
 //   GetParentFrame_CWnd                core/window/Thunks.cpp:1353 (real body)
 //   GetThisClass_CMFCPropertyGridToolTipCtrl  propertygrid/RuntimeClasses.cpp:75
@@ -1016,7 +1020,7 @@ extern "C" int MS_ABI impl__CheckStopSlideCondition_CDockablePane__MEAAHH_Z(CDoc
     return 0;
 }
 
-// STUB. Retail entry RVA 0x46590:
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x46590 (mfc140u RVA 0x46740):
 //     if (IsAutoHideMode()) return;                       // vtable slot 0x3c8
 //     CWnd* pSite = GetDockSiteFrameWnd();                // vtable slot 0x348
 //     if (pSite == NULL ||
@@ -1270,7 +1274,7 @@ extern "C" void MS_ABI impl__DrawCaption_CDockablePane__MEAAXPEAVCDC__VCRect___Z
     (void)pRectCaption;
 }
 
-// STUB. Retail entry RVA 0x45260, fully decoded:
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45260 (mfc140u RVA 0x45410), fully decoded:
 //     CMFCCaptionButton* p = FindButtonByHit(nHit);   // RVA 0x45210
 //     if (p != NULL) p->{+0x14} = bEnable;            // CMFCCaptionButton field
 // Blocked: FindButtonByHit walks m_arrButtons at this+0x488, which OpenMFC's
@@ -1283,7 +1287,7 @@ extern "C" void MS_ABI impl__EnableButton_CDockablePane__IEAAXIH_Z(CDockablePane
     (void)bEnable;
 }
 
-// STUB. Retail entry RVA 0x40160, fully decoded:
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x40160 (mfc140u RVA 0x40310), fully decoded:
 //     m_cyGripper = (bEnable && m_bHasGripper)                 // +0x40c, +0x418
 //         ? afxGlobalData<+0x2a8 at RVA 0x3ba628> + 5 : 0;     // after a lazy
 //           AFX_GLOBAL_DATA::Initialize (RVA 0x6a5c0) guarded by the flag at
@@ -1324,7 +1328,7 @@ extern "C" void MS_ABI impl__EnterDragMode_CDockablePane__MEAAXH_Z(
     impl__EnterDragMode_CPane__MEAAXH_Z(static_cast<CPane*>(pThis), bChangeHotPoint);
 }
 
-// STUB. Retail entry RVA 0x45110. It scans m_arrButtons (m_pData at
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45110 (mfc140u RVA 0x452c0). It scans m_arrButtons (m_pData at
 // this+0x490, m_nSize at this+0x498) to find the button under `point`.
 // Blocked: OpenMFC's CDockablePane has no m_arrButtons.
 // Signature corrected to carry `this`; the by-value CPoint occupies one register.
@@ -1336,7 +1340,7 @@ extern "C" void* MS_ABI impl__FindButton_CDockablePane__IEBAPEAVCMFCCaptionButto
     return nullptr;
 }
 
-// STUB. Retail entry RVA 0x45210, fully decoded:
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45210 (mfc140u RVA 0x453c0), fully decoded:
 //     for (i = 0; i < m_arrButtons.m_nSize; i++)          // +0x498
 //         if (m_arrButtons.m_pData[i]->{+0x20} == nHit)   // +0x490
 //             return m_arrButtons.m_pData[i];
@@ -1552,7 +1556,7 @@ extern "C" int MS_ABI impl__HitTest_CDockablePane__UEAAHVCPoint__H_Z(
     return HTERROR;
 }
 
-// STUB. Retail entry RVA 0x45280, fully decoded:
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45280 (mfc140u RVA 0x45430), fully decoded:
 //     CMFCCaptionButton* p = FindButtonByHit(nHit);   // RVA 0x45210
 //     return (p != NULL) ? p->{+0x14} : 0;
 // Blocked for the same reason as FindButtonByHit: no m_arrButtons.
@@ -1872,7 +1876,7 @@ extern "C" void MS_ABI impl__OnContextMenu_CDockablePane__IEAAXPEAVCWnd__VCPoint
 
 // STUB. The RVA map has no entry for the UNICODE mangling, but the ANSI twin
 // the disassembler reads has ?OnCreate@CDockablePane@@IEAAHPEAUtagCREATESTRUCTA@@@Z
-// at RVA 0x401f0:
+// at RVA 0x401f0 (mfc140.dll, ANSI); the Unicode entry is RVA 0x403a0 (mfc140u):
 //     if (Default() == -1) return -1;                      // 0x180289090
 //     SetCaptionButtons();                                 // vtable slot 0x730
 //     if (CTooltipManager::CreateToolTip(m_pToolTip, this, 16))   // +0x4b8,
@@ -2095,7 +2099,7 @@ extern "C" void MS_ABI impl__OnLButtonUp_CDockablePane__IEAAXIVCPoint___Z(
     (void)point;
 }
 
-// STUB. Retail entry RVA 0x41480 (~950 bytes), not transcribed. It branches on
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x41480 (~950 bytes), not transcribed. It branches on
 // GetDockingMode() (vtable slot 0x380): the DT_IMMEDIATE arm drags the pane
 // itself (CPane::UpdateVirtualRect RVA 0xa1ba0, then either
 // CBaseTabbedPane::{slot 0x350} or FloatPane via slot 0x408 followed by
@@ -2114,7 +2118,7 @@ extern "C" void MS_ABI impl__OnMouseMove_CDockablePane__IEAAXIVCPoint___Z(
     (void)point;
 }
 
-// STUB. Retail entry RVA 0x40570:
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x40570:
 //     Default();                                       // 0x180289090
 //     if ({slot 0x2f0}())          // body at RVA 0x8780 is `!IsDocked()`
 //         for (i = 0; i < m_arrButtons.m_nSize; i++)   // +0x498 / +0x490
@@ -2193,7 +2197,7 @@ extern "C" void MS_ABI impl__OnNcMouseMove_CDockablePane__IEAAXIVCPoint___Z(
     (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
 }
 
-// STUB. Retail entry RVA 0x408f0, not transcribed. Its opening is
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x408f0, not transcribed. Its opening is
 //     if (CBasePane::m_bMultiThreaded)                  // RVA 0x3b6f00
 //         ::EnterCriticalSection(<the section at RVA 0x3aabd0>);
 //     CWindowDC dc(this);                               // RVA 0x2a1b60
@@ -2211,7 +2215,7 @@ extern "C" void MS_ABI impl__OnNcPaint_CDockablePane__IEAAXXZ(CDockablePane* pTh
     (void)pThis;
 }
 
-// STUB. Retail entry RVA 0x46120, fully decoded:
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x46120, fully decoded:
 //     if (pNMHDR == NULL || m_pToolTip == NULL ||       // m_pToolTip at +0x4b8
 //         m_pToolTip->m_hWnd == NULL || pNMHDR->hwndFrom != m_pToolTip->m_hWnd)
 //         return FALSE;
@@ -2640,7 +2644,7 @@ extern "C" void MS_ABI impl__OnTimer_CDockablePane__IEAAX_K_Z(CDockablePane* pTh
     (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
 }
 
-// STUB. Retail entry RVA 0x44f00; not transcribed -- it tracks the caption
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x44f00; not transcribed -- it tracks the caption
 // buttons held in m_arrButtons (+0x488), which is past the usable window.
 // Signature corrected to carry `this` (OnNcMouseMove above calls it).
 // Symbol: ?OnTrackCaptionButtons@CDockablePane@@MEAAXVCPoint@@@Z
@@ -3135,7 +3139,7 @@ extern "C" void MS_ABI impl__Slide_CDockablePane__UEAAXHH_Z(CDockablePane* pThis
     (void)bUseTimer;
 }
 
-// STUB. Retail entry RVA 0x45030. It walks m_arrButtons (this+0x488, m_pData
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45030. It walks m_arrButtons (this+0x488, m_pData
 // at +0x490 / m_nSize at +0x498) clearing each caption button's pressed/hot
 // state and repainting. OpenMFC's CDockablePane has no m_arrButtons -- offsets
 // from +0x478 up are past the end of the 1144-byte object -- so there is
@@ -3217,13 +3221,74 @@ extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(CDoc
     (void)pSlider;   // divider arm dropped -- see the note above
 }
 
+// CDockablePane::StoreRecentTabRelatedInfo -- transcribed from the retail
+// mfc140.dll ANSI-twin entry RVA 0x41350. If this pane is tabbed, retail gets
+// its tab control and parent CDockablePane, then obtains this pane's mini-frame
+// and the parent pane's default divider. With a mini-frame, it calls vtable
+// slot +0x3d8 (CMultiPaneFrameWnd entry RVA 0x94950 (mfc140.dll); the ordinary
+// CPaneFrameWnd slot is an ICF-folded `ret`). Without a mini-frame but with a
+// divider, it directly calls CPaneDivider::StoreRecentTabRelatedInfo at RVA
+// 0xad130 (mfc140.dll) -- this is not a vtable-slot call. This implementation
+// routes the stock classes to their existing thunks; those calls are static,
+// so client subclass overrides are not honored. The helpers use OpenMFC's
+// docking/container state, including its limited recent-container linkage.
+// The tab/parent tests match the retail early returns. Win32 GetParent calls
+// implement the mfc140.dll IAT slot 0x1802c5300 (USER32!GetParent, resolved
+// with iat.py); FromHandle and RTTI use the existing thunks.
+// Deviation: NULL check on this; retail dereferences it immediately.
 // Symbol: ?StoreRecentTabRelatedInfo@CDockablePane@@MEAAXXZ
-extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CDockablePane__MEAAXXZ() {}
+extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CDockablePane__MEAAXXZ(CDockablePane* pThis) {
+    if (pThis == nullptr) return;
+    if (!impl__IsTabbed_CPane__UEBAHXZ(static_cast<const CPane*>(pThis))) return;
 
+    CWnd* pTabWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_hWnd));
+    if (pTabWnd == nullptr ||
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            static_cast<const CObject*>(pTabWnd),
+            impl__GetThisClass_CMFCBaseTabCtrl__SAPEAUCRuntimeClass__XZ())) {
+        return;
+    }
+
+    CWnd* pBarWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pTabWnd->m_hWnd));
+    if (pBarWnd == nullptr ||
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            static_cast<const CObject*>(pBarWnd),
+            impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ())) {
+        return;
+    }
+    CDockablePane* pTabbedBar = reinterpret_cast<CDockablePane*>(pBarWnd);
+    void* pMiniFrame = impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(
+        static_cast<const CBasePane*>(pThis), FALSE);
+    void* pDivider = impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pTabbedBar);
+
+    if (pMiniFrame != nullptr) {
+        if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+                static_cast<const CObject*>(static_cast<CWnd*>(pMiniFrame)),
+                impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ())) {
+            impl__StoreRecentTabRelatedInfo_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__0_Z(
+                pMiniFrame, pThis, pTabbedBar);
+        }
+        // The ordinary CPaneFrameWnd vtable's +0x3d8 slot is a no-op.
+        return;
+    }
+    if (pDivider != nullptr) {
+        impl__StoreRecentTabRelatedInfo_CPaneDivider__QEAAXPEAVCDockablePane__0_Z(
+            pDivider, pThis, pTabbedBar);
+    }
+}
+
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x462c0 obtains the default
+// pane divider, checks CanAutoHide(), and, when both conditions pass, calls
+// SetAutoHideMode(!m_bPinState, pDivider->GetCurrentAlignment(), NULL, TRUE).
+// OpenMFC declares CPaneDivider as CObject rather than its retail CBasePane
+// base class, so there is no safe GetCurrentAlignment dispatch/layout for the
+// divider; substituting this pane's alignment would not transcribe retail.
 // Symbol: ?ToggleAutoHide@CDockablePane@@UEAAXXZ
-extern "C" void MS_ABI impl__ToggleAutoHide_CDockablePane__UEAAXXZ() {}
+extern "C" void MS_ABI impl__ToggleAutoHide_CDockablePane__UEAAXXZ(CDockablePane* pThis) {
+    (void)pThis;
+}
 
-// STUB. Retail entry RVA 0x44d20; not transcribed. Signature corrected to
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x44d20; not transcribed. Signature corrected to
 // carry `this` (it is called from OnBeforeChangeParent above).
 // Symbol: ?UndockPane@CDockablePane@@UEAAXH@Z
 extern "C" void MS_ABI impl__UndockPane_CDockablePane__UEAAXH_Z(CDockablePane* pThis, int bDelay) {
@@ -3231,8 +3296,27 @@ extern "C" void MS_ABI impl__UndockPane_CDockablePane__UEAAXH_Z(CDockablePane* p
     (void)bDelay;
 }
 
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x42150 clears m_bPinState,
+// kills the auto-hide/slide timers, removes the pane from its CMFCAutoHideBar,
+// clears its default divider, and then performs docking/frame updates through
+// several virtual slots. Those final operations depend on retail-shaped
+// CPaneDivider/CPaneFrameWnd dispatch and the bar's embedded layout, which this
+// build does not provide; keep the thunk honest rather than applying a partial
+// sequence with different docking side effects.
+// Signature corrected from the placeholder list using the mangled export: this
+// plus the CDockablePane* pFirstBarInGroup argument.
 // Symbol: ?UnSetAutoHideMode@CDockablePane@@UEAAXPEAV1@@Z
-extern "C" void MS_ABI impl__UnSetAutoHideMode_CDockablePane__UEAAXPEAV1__Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__UnSetAutoHideMode_CDockablePane__UEAAXPEAV1__Z(
+    CDockablePane* pThis, CDockablePane* pFirstBarInGroup) {
+    (void)pThis;
+    (void)pFirstBarInGroup;
+}
 
+// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x40440 reads m_pToolTip at
+// +0x4b8 and, when it has a window, repositions per-caption-button tools by
+// iterating m_arrButtons at +0x488. Neither member has storage in this
+// CDockablePane object, so the retail body cannot be reproduced here.
 // Symbol: ?UpdateTooltips@CDockablePane@@IEAAXXZ
-extern "C" void MS_ABI impl__UpdateTooltips_CDockablePane__IEAAXXZ() {}
+extern "C" void MS_ABI impl__UpdateTooltips_CDockablePane__IEAAXXZ(CDockablePane* pThis) {
+    (void)pThis;
+}

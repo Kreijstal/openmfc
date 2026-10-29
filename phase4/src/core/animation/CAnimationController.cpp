@@ -1211,17 +1211,17 @@ extern "C" void MS_ABI impl__OnAnimationTimerPostUpdate_CAnimationController__UE
 
 // Symbol: ?OnAnimationTimerPreUpdate@CAnimationController@@UEAAXXZ
 extern "C" void MS_ABI impl__OnAnimationTimerPreUpdate_CAnimationController__UEAAXXZ(void* /*pThis*/) {
-    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
-    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
-    // no-op is the faithful transcription, not a placeholder.
+    // The mfc140u CAnimationController vftable slot 21 points to the shared
+    // entry RVA 0x27d0; `disas.py --u --at 0x27d0` shows only `ret $0`.
+    // This callback is therefore intentionally left as a no-op stub.
 }
 
 // Symbol: ?OnAnimationTimerRenderingTooSlow@CAnimationController@@UEAAXI@Z
 extern "C" void MS_ABI impl__OnAnimationTimerRenderingTooSlow_CAnimationController__UEAAXI_Z(
     void* /*pThis*/, unsigned int /*fps*/) {
-    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
-    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
-    // no-op is the faithful transcription, not a placeholder.
+    // The mfc140u CAnimationController vftable slot 23 points to the shared
+    // entry RVA 0x27d0; `disas.py --u --at 0x27d0` shows only `ret $0`.
+    // This callback is therefore intentionally left as a no-op stub.
 }
 
 // Symbol: ?OnAnimationValueChanged@CAnimationController@@UEAAXPEAVCAnimationGroup@@PEAVCAnimationBaseObject@@PEAUIUIAnimationVariable@@NN@Z
@@ -1235,19 +1235,17 @@ extern "C" void MS_ABI impl__OnAnimationValueChanged_CAnimationController__UEAAX
 // Symbol: ?OnBeforeAnimationStart@CAnimationController@@UEAAXPEAVCAnimationGroup@@@Z
 extern "C" void MS_ABI impl__OnBeforeAnimationStart_CAnimationController__UEAAXPEAVCAnimationGroup___Z(
     void* /*pThis*/, void* /*pGroup*/) {
-    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
-    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
-    // no-op is the faithful transcription, not a placeholder.
+    // The mfc140u CAnimationController vftable slot 11 points to the shared
+    // entry RVA 0x27d0; `disas.py --u --at 0x27d0` shows only `ret $0`.
+    // This callback is therefore intentionally left as a no-op stub.
 }
 
-// The four OnHasPriority* virtuals share one retail body at 0x71e0 (mfc140u;
-// each export's own export-address-table entry resolves there, and vftable
-// slots 17-20 point there): `xor %eax,%eax; ret` -- they return FALSE, which
-// afxanimationcontroller.h documents as "the storyboard owned by
-// pGroupScheduled has priority" (TRUE would mean pGroupNew has priority).
-// The bare `return FALSE` below is therefore the full transcription, not a
-// placeholder.  The previous stubs here returned TRUE, which inverted what
-// UIAnimation is told through the priority-comparison handlers.
+// The four OnHasPriority* virtuals share the mfc140u vftable target RVA
+// 0x71e0 (slots 17-20); `disas.py --u --at 0x71e0` shows `xor %eax,%eax; ret`.
+// They return FALSE, which afxanimationcontroller.h documents as "the
+// storyboard owned by pGroupScheduled has priority" (TRUE means pGroupNew
+// has priority).  These remain intentional no-op/default-result stubs because
+// the retail bodies do nothing beyond returning FALSE.
 // Symbol: ?OnHasPriorityCancel@CAnimationController@@UEAAHPEAVCAnimationGroup@@0W4__MIDL___MIDL_itf_UIAnimation_0000_0008_0001@@@Z
 extern "C" int MS_ABI impl__OnHasPriorityCancel_CAnimationController__UEAAHPEAVCAnimationGroup__0W4__MIDL___MIDL_itf_UIAnimation_0000_0008_0001___Z(
     void* /*pThis*/, void* /*pGroupScheduled*/, void* /*pGroupNew*/, int /*priorityEffect*/) {
@@ -1275,17 +1273,17 @@ extern "C" int MS_ABI impl__OnHasPriorityTrim_CAnimationController__UEAAHPEAVCAn
 // Symbol: ?OnStoryboardStatusChanged@CAnimationController@@UEAAXPEAVCAnimationGroup@@W4__MIDL___MIDL_itf_UIAnimation_0000_0002_0001@@1@Z
 extern "C" void MS_ABI impl__OnStoryboardStatusChanged_CAnimationController__UEAAXPEAVCAnimationGroup__W4__MIDL___MIDL_itf_UIAnimation_0000_0002_0001__1_Z(
     void* /*pThis*/, void* /*pGroup*/, int /*newStatus*/, int /*previousStatus*/) {
-    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
-    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
-    // no-op is the faithful transcription, not a placeholder.
+    // The mfc140u CAnimationController vftable slot 15 points to the shared
+    // entry RVA 0x27d0; `disas.py --u --at 0x27d0` shows only `ret $0`.
+    // This callback is therefore intentionally left as a no-op stub.
 }
 
 // Symbol: ?OnStoryboardUpdated@CAnimationController@@UEAAXPEAVCAnimationGroup@@@Z
 extern "C" void MS_ABI impl__OnStoryboardUpdated_CAnimationController__UEAAXPEAVCAnimationGroup___Z(
     void* /*pThis*/, void* /*pGroup*/) {
-    // Retail: the export-address-table entry for this symbol is RVA 0x27d0
-    // (mfc140u), a shared `ret $0` (C2 00 00) -- the body is empty, so this
-    // no-op is the faithful transcription, not a placeholder.
+    // The mfc140u CAnimationController vftable slot 16 points to the shared
+    // entry RVA 0x27d0; `disas.py --u --at 0x27d0` shows only `ret $0`.
+    // This callback is therefore intentionally left as a no-op stub.
 }
 
 // Symbol: ?RemoveAllAnimationGroups@CAnimationController@@QEAAXXZ

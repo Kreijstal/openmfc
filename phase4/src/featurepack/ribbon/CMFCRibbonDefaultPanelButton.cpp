@@ -5,6 +5,8 @@
 
 extern "C" void MS_ABI impl__OnDraw_CMFCRibbonButton__UEAAXPEAVCDC___Z(
     CMFCRibbonButton* pThis, CDC* pDC);
+extern "C" void* MS_ABI impl__ShowPopup_CMFCRibbonPanel__QEAAPEAVCMFCRibbonPanelMenu__PEAVCMFCRibbonDefaultPanelButton___Z(
+    void* pPanel, void* pButton);
 
 // The retail constructor at RVA 0x115650 (mfc140u) stores the panel at +0x278
 // and clears the icon handle at +0x270; CreateObject allocates 0x280 bytes
@@ -28,8 +30,8 @@ extern "C" void* MS_ABI impl___0CMFCRibbonDefaultPanelButton__QEAA_PEAVCMFCRibbo
     (void)pPanel;
     return pThis;
 }
-// Retail RVA 0x1156d0 (mfc140u) calls CMFCRibbonButton::CopyFrom (RVA
-// 0xe7aa0), copies fields at +0x278 and +0xe0, then when +0x278 is non-null
+// Retail entry RVA 0x1156d0 (mfc140u) calls CMFCRibbonButton::CopyFrom (entry
+// RVA 0xe7aa0, mfc140u), copies fields at +0x278 and +0xe0, then when +0x278 is non-null
 // follows its +0x140 field and calls a helper with this+0xb8. Those layouts
 // and the helper's behavior are not modeled here.
 // TODO(clean-room): keep stubbed until the required ribbon-button shadow layout is available.
@@ -93,11 +95,12 @@ extern "C" void MS_ABI impl__OnDrawOnList_CMFCRibbonDefaultPanelButton__UEAAXPEA
     (void)bHighlighted;
 }
 
-// The mfc140.dll ANSI twin resolves this export even though the Unicode RVA
-// map does not. Its byte-identical body dispatches through virtual slots
-// +0x1c8 and +0x288, checks panel state at +0x278/+0x10c, and may send WM_KEYDOWN/VK_DOWN
-// to the window at +0x108/+0x40. Those inherited fields and dispatch targets
-// are not modeled here, so keep this as a stub. The argument is a key code.
+// The ANSI-twin entry RVA 0x116a40 (mfc140) dispatches through virtual slots
+// +0x1c8 and +0x288, checks panel state at +0x278/+0x10c, and may call
+// SendMessageA through IAT slot 0x1802c5378 (resolved USER32.dll!SendMessageA)
+// on the HWND at +0x108/+0x40 with WM_KEYDOWN/VK_DOWN. Those inherited fields
+// and dispatch targets are not modeled here, so keep this as a stub. The
+// Unicode RVA map does not resolve this export; its argument is a key code.
 // Symbol: ?OnKey@CMFCRibbonDefaultPanelButton@@UEAAHH@Z
 extern "C" int MS_ABI impl__OnKey_CMFCRibbonDefaultPanelButton__UEAAHH_Z(
     void* pThis, int nChar) {
@@ -106,10 +109,10 @@ extern "C" int MS_ABI impl__OnKey_CMFCRibbonDefaultPanelButton__UEAAHH_Z(
     return 0;
 }
 
-// The mfc140.dll ANSI twin resolves this export even though the Unicode RVA
-// map does not. Its byte-identical body calls the base-element mouse-down
-// handler, then dispatches vtable slot +0x288. The base handler uses additional
-// unmodeled ribbon state. CPoint is an 8-byte MS ABI aggregate and is represented
+// The ANSI-twin entry RVA 0x1164d0 (mfc140) calls the base-element mouse-down
+// handler at RVA 0x10060 (mfc140), then dispatches vtable slot +0x288. The base
+// handler uses additional unmodeled ribbon state. The Unicode RVA map does not
+// resolve this export. CPoint is an 8-byte MS ABI aggregate and is represented
 // by long long here, so this remains a stub rather than a partial interaction.
 // Symbol: ?OnLButtonDown@CMFCRibbonDefaultPanelButton@@UEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonDefaultPanelButton__UEAAXVCPoint___Z(
@@ -118,23 +121,26 @@ extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonDefaultPanelButton__UEAAXVC
     (void)point;
 }
 
-// The mfc140.dll ANSI twin resolves this export even though the Unicode RVA
-// map does not. Its byte-identical body forwards (panel at +0x278, this) to
-// CMFCRibbonPanel::ShowPopup. That implementation depends on panel/menu state;
-// the existing OpenMFC ShowPopup thunk is only a null-returning stub, so keep
-// this method stubbed instead of pretending the forwarding creates a popup.
+// The ANSI-twin entry RVA 0x116500 (mfc140) tail-jumps to
+// CMFCRibbonPanel::ShowPopup (entry RVA 0x11da30, mfc140), passing the panel
+// at +0x278 as RCX and this as RDX. The Unicode RVA map does not resolve this
+// export. Forward that exact call; OpenMFC's ShowPopup thunk currently returns
+// null, so the popup itself remains unavailable in this build.
 // Symbol: ?OnShowPopupMenu@CMFCRibbonDefaultPanelButton@@UEAAXXZ
 extern "C" void MS_ABI impl__OnShowPopupMenu_CMFCRibbonDefaultPanelButton__UEAAXXZ(
     void* pThis) {
-    (void)pThis;
+    auto* tail = static_cast<CMFCRibbonDefaultPanelButtonRetailTail*>(pThis);
+    (void)impl__ShowPopup_CMFCRibbonPanel__QEAAPEAVCMFCRibbonPanelMenu__PEAVCMFCRibbonDefaultPanelButton___Z(
+        tail->m_pPanel, pThis);
 }
 
-// The mfc140.dll ANSI twin resolves this export even though the Unicode RVA
-// map does not. Its byte-identical body delegates to the inherited button
-// SetACCData first, then writes role/state/location data from button/panel
-// geometry and virtual state. CAccessibilityData itself is modeled; the
-// inherited state and available base/button thunks do not reproduce retail's
-// initialization, so retain the stub rather than claim success with bad data.
+// The ANSI-twin entry RVA 0x116510 (mfc140) calls inherited
+// CMFCRibbonButton::SetACCData (entry RVA 0xe8fb0, mfc140). If that call
+// returns FALSE, the derived method skips its remaining writes but still
+// returns TRUE; otherwise it fills accessibility role/state/location data
+// using button/panel geometry and virtual state, then returns TRUE. The Unicode
+// RVA map does not resolve this export. CAccessibilityData is modeled, but the
+// required inherited state is not, so retain the stub rather than write bad data.
 // Symbol: ?SetACCData@CMFCRibbonDefaultPanelButton@@UEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonDefaultPanelButton__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
     void* pThis, CWnd* pParentWnd, CAccessibilityData& data) {

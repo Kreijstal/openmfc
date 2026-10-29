@@ -113,9 +113,11 @@
 //                        at 0x8387b of the same ctor); its m_hWnd is +0x760
 // Groups this file allocates are 0x3d68 bytes and zero-filled before the
 // OpenMFC CMFCTabCtrl ctor runs, so the CMFCTabCtrl fields are defined (zero)
-// memory.  CMDIChildWndEx objects are app-allocated and OpenMFC's ctor does not
-// initialise +0x1e8/+0x720, so those are only WRITTEN here (never read; see
-// SetActiveTab(HWND) and the taskbar bodies for how the reads are avoided).
+// memory. OpenMFC's CMDIChildWndEx ctor zero-fills its padding, which covers
+// +0x1e8 and initializes m_pRelatedTabGroup to NULL; MoveWindowToTabGroup
+// writes that link. The retail tab proxy at +0x720 is not constructed, so its
+// HWND at +0x760 remains unavailable; taskbar paths gate reads of it through
+// OpenMFC's IsTaskbarTabsSupportEnabled stub.
 
 #define OPENMFC_APPCORE_IMPL
 
@@ -898,14 +900,15 @@ extern "C" __int64 MS_ABI impl__OnUpdateTabs_CMDIClientAreaWnd__IEAA_J_K_J_Z(voi
 // tab, and a final ::RedrawWindow(m_hWnd, NULL, NULL, 0x507) when the tab
 // count crossed zero.
 // STUB: not transcribed -- it needs m_mapIcons/m_TabIcons bookkeeping plus
-// seven CMFCTabCtrl virtuals (SetImageList, ClearImageList, GetTabLabel,
-// SetTabLabel, GetTabIcon, SetTabIcon, EnsureVisible) and three CMDIChildWndEx
-// virtuals (+0x3c8 GetFrameText / +0x3d0 GetFrameIcon / +0x3d8
-// CanShowOnMDITabs).  Those exist in featurepack/tabs and core/frame only as
-// non-virtual thunks, and the tab-side ones are placeholders or partial
-// (SetImageList returns 0; GetTabLabel/GetTabIcon/SetTabIcon do not model the
-// per-tab record), so a port would add and remove tabs without labels or
-// icons and never honour an app override.
+// CMFCTabCtrl operations for image lists, per-tab labels/icons, and visibility,
+// and CMDIChildWndEx operations at +0x3c8 (GetFrameText), +0x3d0
+// (GetFrameIcon), and +0x3d8 (CanShowOnMDITabs). OpenMFC has thunks for these
+// operations, but several are partial: the HIMAGELIST SetImageList overload
+// returns TRUE for a non-null handle without retaining it (the resource-ID
+// overload returns FALSE), and GetTabLabel/GetTabIcon/SetTabIcon do not model
+// the per-tab record. AddTab can preserve an initial label in the side table,
+// but synchronization of existing tab metadata/icons and app overrides would
+// still be incomplete.
 // Symbol: ?UpdateTabs@CMDIClientAreaWnd@@QEAAXH@Z
 extern "C" void MS_ABI impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(void* pThis, int bSetActiveTabVisible) {
     (void)pThis;
@@ -2174,15 +2177,16 @@ extern "C" __int64 MS_ABI impl__OnGetDragBounds_CMDIClientAreaWnd__IEAA_J_K_J_Z(
 //     if (!pFrame->[+0x214]) { if (::IsWindow(hActivate)) SetActiveTab(hActivate);
 //         if (!pFrame->[+0x214] && !CMDIFrameWndEx::m_bDisableSetRedraw) { ::SendMessage(m_hWnd, WM_SETREDRAW, TRUE, 0);
 //             ::RedrawWindow(CWnd::FromHandle(::GetParent(m_hWnd))->m_hWnd, NULL, NULL, 0x185); } }
-// STUB: the body is gated on CMDIFrameWndEx +0x214 (a frame BOOL OpenMFC's
-// padded CMDIFrameWndEx does not carry), CMFCTabCtrl vslot +0x308 (an
-// unexported virtual, no thunk) and a CWinApp virtual chain (+0x208
-// GetDataRecoveryHandler -> its +0x70); it also READS
-// CMDIChildWndEx::m_pRelatedTabGroup (+0x1e8), which OpenMFC's child ctor
-// never initialises.  (m_bDisableSetRedraw itself IS available:
-// impl__m_bDisableSetRedraw_CMDIFrameWndEx__2HA in core/frame/StaticData.cpp.)
-// Assuming the remaining gates would either skip the redraw or dereference
-// uninitialised memory; not transcribed.
+// STUB: the body depends on CMDIFrameWndEx +0x214 (a frame BOOL not modelled
+// by OpenMFC) and CMFCTabCtrl vslot +0x308 (no thunk). The CWinApp chain at
+// +0x208 is available through impl__GetDataRecoveryHandler_CWinApp; the
+// returned CDataRecoveryHandler's vslot +0x70 is GetShutdownByRestartManager.
+// The related-tab pointer at CMDIChildWndEx +0x1e8 is initialized to NULL by
+// OpenMFC's constructor's padding zero-fill, so it is not an uninitialized-
+// memory blocker. The missing frame state and tab dispatch still prevent a
+// faithful transcription. (The m_bDisableSetRedraw static itself is
+// available as impl__m_bDisableSetRedraw_CMDIFrameWndEx__2HA in
+// core/frame/StaticData.cpp.)
 // Symbol: ?OnMDIDestroy@CMDIClientAreaWnd@@IEAAXPEAVCWnd@@@Z
 extern "C" void MS_ABI impl__OnMDIDestroy_CMDIClientAreaWnd__IEAAXPEAVCWnd___Z(void* pThis, void* pWnd) {
     (void)pThis;
@@ -2338,9 +2342,14 @@ extern "C" HMENU MS_ABI impl__OnMDISetMenu_CMDIClientAreaWnd__IEAAPEAUHMENU____P
 //     else if (!::IsRectEmpty(&rcNew) && ::EqualRect(&rcNew, &rcWnd)?) ...
 //     MoveWindowToTabGroup(pFrom, <target>, -1);
 //     return 0;
-// STUB: needs pTo->m_rectWndArea (never computed by OpenMFC's CMFCTabCtrl)
-// and the CMDIFrameWndEx virtual +0x3b0 (OnShowMDITabContextMenu, no thunk);
-// the tail was not fully decoded because of that.  Not transcribed.
+// STUB: the retail disassembly (entry RVA 0x80300, mfc140) continues through
+// its return: after the context-menu decision it copies the target group's
+// +0x45c child-area rectangle, conditionally creates a split group, and calls
+// MoveWindowToTabGroup. The frame callback at +0x3b0 has the
+// impl__OnShowMDITabContextMenu_CMDIFrameWndEx__UEAAHVCPoint__KH_Z thunk;
+// the target rectangle is not computed by OpenMFC's CMFCTabCtrl::RecalcLayout,
+// so the geometry-dependent operation is not safe to reproduce. The stub is
+// not due to an unavailable callback or an undecoded tail.
 // Symbol: ?OnMoveTabComplete@CMDIClientAreaWnd@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnMoveTabComplete_CMDIClientAreaWnd__IEAA_J_K_J_Z(void* pThis, unsigned __int64 wParam, __int64 lParam) {
     (void)pThis;
@@ -2572,11 +2581,11 @@ extern "C" void MS_ABI impl__SerializeTabGroup_CMDIClientAreaWnd__AEAAXAEAVCArch
 //     } else if (m_bTabIsVisible) {
 //         int iTab = m_wndTab.GetTabFromHwnd(hwnd);  if (iTab >= 0) m_wndTab.SetActiveTab(iTab);
 //     }
-// Deviation: retail reads pChild->m_pRelatedTabGroup, which OpenMFC's
-// CMDIChildWndEx ctor never initialises.  The group is derived instead with
-// FindTabWndByChild(hwnd) -- the invariant retail maintains for that pointer
-// (MoveWindowToTabGroup writes it as it adds the tab) -- which also yields the
-// tab index, so GetTabFromHwnd is not repeated.
+// Deviation: retail reads pChild->m_pRelatedTabGroup. OpenMFC's
+// CMDIChildWndEx ctor zero-fills the padding containing +0x1e8, and
+// MoveWindowToTabGroup writes the link; this implementation instead derives
+// the group with FindTabWndByChild(hwnd), which also yields the tab index, so
+// GetTabFromHwnd is not repeated.
 // Symbol: ?SetActiveTab@CMDIClientAreaWnd@@QEAAXPEAUHWND__@@@Z
 extern "C" void MS_ABI impl__SetActiveTab_CMDIClientAreaWnd__QEAAXPEAUHWND_____Z(void* pThis, HWND hWnd) {
     S_CMDIClientAreaWnd* self = Self(pThis);

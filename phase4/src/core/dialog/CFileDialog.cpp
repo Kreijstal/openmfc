@@ -57,6 +57,11 @@
 // and core/window/Thunks.cpp:1148).
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);
 extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd* pThis, void* pAlternateOwner);
+// core/runtime/AFX_MAINTAIN_STATE2.cpp: the module-state scope used by the
+// retail XFileDialogEvents callbacks at RVA 0x20ba70 (mfc140u).
+extern "C" void* MS_ABI impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(
+    void* pThis, AFX_MODULE_STATE* pState);
+extern "C" void MS_ABI impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(void* pThis);
 
 // Opaque COM interface types for the nested-class event sinks.  Only pointers
 // are passed through, so forward declarations suffice (shobjidl.h is not
@@ -572,8 +577,9 @@ extern "C" HRESULT MS_ABI impl__MakeProminent_CFileDialog__QEAAJK_Z(CFileDialog*
 // map because the body is COMDAT-folded; the map names 0x27d0 as
 // CFrameWndEx::AddDockSite).  The body is the single instruction `ret 0`
 // (bytes c2 00 00): the base class does nothing, only application overrides
-// add behaviour.  The empty bodies below are therefore exact transcriptions,
-// not placeholders.  (OnFileNameOK, OnInitDone, OnNotify and OnShareViolation
+// add behavior. These cast-only bodies are intentionally reported as stubs,
+// not substantive implementations, because retail has no behavior to transcribe.
+// (OnFileNameOK, OnInitDone, OnNotify and OnShareViolation
 // are interleaved among them alphabetically; they are NOT part of this fold
 // and carry their own comments.)
 // Symbol: ?OnButtonClicked@CFileDialog@@MEAAXK@Z
@@ -879,11 +885,11 @@ extern "C" void* MS_ABI impl___0CFileDialog__QEAA_HPEB_W0K0PEAVCWnd__KH_Z(
 //     0x368/8 = 109 OnItemSelected             0x370/8 = 110 OnButtonClicked
 //     0x378/8 = 111 OnCheckButtonToggled       0x380/8 = 112 OnControlActivating
 // The clean-room CFileDialog has neither the two sub-objects nor those vtable
-// slots (afxwin.h declares none of the overridables as virtual), so there is no
-// pointer a caller could legitimately pass as `this` here and no outer object to
-// recover from it.  The methods that dispatch to the outer object therefore stay
-// stubs (signatures corrected from the mangled names); the three whose retail
-// body is only the module-state guard plus `return S_OK` are complete as written.
+// slots (afxwin.h declares none of the overridables as virtual), so its shell
+// dialog path does not create these callback interface pointers. Methods that
+// dispatch to an outer virtual therefore stay stubs. The three callbacks whose
+// retail body only switches/restores module state and returns S_OK reproduce
+// that guard using the existing AFX_MAINTAIN_STATE2 thunks.
 // ---------------------------------------------------------------------------
 
 // Symbol: ?OnButtonClicked@XFileDialogControlEvents@CFileDialog@@UEAAJPEAUIFileDialogCustomize@@K@Z
@@ -953,21 +959,21 @@ extern "C" HRESULT MS_ABI impl__OnFolderChange_XFileDialogEvents_CFileDialog__UE
 // is non-null, restore thread-state +0x8 from the saved module state) and
 // returns 0 (S_OK).  Only rcx (the interface-part `this`) is read; the
 // interface arguments in rdx/r8/r9 are never read (rdx is overwritten with
-// the module state before the ctor call).  The guard's module-state swap does
-// not outlive the call, so `return S_OK` is the complete observable behaviour
-// apart from the ctor's internals, which are not modelled: the ctor gets the
-// thread state through CThreadLocalObject::GetData (RVA 0x14cf40, mfc140u),
-// which may lazily create it, and if that returns NULL it calls
-// AfxThrowInvalidArgException (RVA 0x227720, mfc140u; the call instruction is
-// at 0x1331b8 inside the ctor) -- an ENSURE-style check, not an out-of-memory
-// throw.  The clean-room CFileDialog has no interface part at +0x580 to
-// recover the outer object from anyway, see the block comment above.
+// the module state before the ctor call). The callbacks below use the existing
+// AFX_MAINTAIN_STATE2 ctor/dtor thunks, preserving the lazy thread-state lookup
+// and invalid-argument throw path. This TU's CFileDialog does not create these
+// interface parts, but the exported callbacks reproduce retail behavior for an
+// interface-part pointer supplied by an ABI-compatible caller.
 
 // Symbol: ?OnFolderChanging@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@@Z
 extern "C" HRESULT MS_ABI impl__OnFolderChanging_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem___Z(
     void* pInner, IFileDialog* pfd, IShellItem* psiFolder) {
     // Retail RVA 0x20ba70 (mfc140u): module-state guard only; S_OK.
-    (void)pInner;
+    void* moduleState = *reinterpret_cast<void**>(reinterpret_cast<char*>(pInner) - 0x548);
+    alignas(void*) void* state[2];
+    impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(
+        state, reinterpret_cast<AFX_MODULE_STATE*>(moduleState));
+    impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(state);
     (void)pfd;
     (void)psiFolder;
     return S_OK;
@@ -977,7 +983,11 @@ extern "C" HRESULT MS_ABI impl__OnFolderChanging_XFileDialogEvents_CFileDialog__
 extern "C" HRESULT MS_ABI impl__OnHelp_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog___Z(
     void* pInner, IFileDialog* pfd) {
     // Retail RVA 0x20ba70 (mfc140u): module-state guard only; S_OK.
-    (void)pInner;
+    void* moduleState = *reinterpret_cast<void**>(reinterpret_cast<char*>(pInner) - 0x548);
+    alignas(void*) void* state[2];
+    impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(
+        state, reinterpret_cast<AFX_MODULE_STATE*>(moduleState));
+    impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(state);
     (void)pfd;
     return S_OK;
 }
@@ -998,9 +1008,13 @@ extern "C" HRESULT MS_ABI impl__OnItemSelected_XFileDialogControlEvents_CFileDia
 // Symbol: ?OnOverwrite@XFileDialogEvents@CFileDialog@@UEAAJPEAUIFileDialog@@PEAUIShellItem@@PEAW4FDE_OVERWRITE_RESPONSE@@@Z
 extern "C" HRESULT MS_ABI impl__OnOverwrite_XFileDialogEvents_CFileDialog__UEAAJPEAUIFileDialog__PEAUIShellItem__PEAW4FDE_OVERWRITE_RESPONSE___Z(
     void* pInner, IFileDialog* pfd, IShellItem* psi, int* pResponse) {
-    // Retail RVA 0x20ba70 (mfc140u): module-state guard only; *pResponse is
-    // never written (no store through r9 anywhere in the body); S_OK.
-    (void)pInner;
+    // Retail RVA 0x20ba70 (mfc140u): module-state guard only; response is
+    // untouched; S_OK.
+    void* moduleState = *reinterpret_cast<void**>(reinterpret_cast<char*>(pInner) - 0x548);
+    alignas(void*) void* state[2];
+    impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(
+        state, reinterpret_cast<AFX_MODULE_STATE*>(moduleState));
+    impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(state);
     (void)pfd;
     (void)psi;
     (void)pResponse;

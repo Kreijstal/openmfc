@@ -27,7 +27,7 @@ struct S_RibbonKeyboardCustomizeDialog {
     std::byte m_lpAccel[8];
     void* m_pSelEntry;
     int m_nAccelSize;
-    std::byte m_reservedA0C[4];
+    int m_flagA0C;
     void* m_pParentFrame;
     void* m_pRibbonBar;
     void* m_pSelTemplate;
@@ -64,6 +64,8 @@ static_assert(offsetof(S_RibbonKeyboardCustomizeDialog, m_pSelEntry) == 0xa00,
               "constructor: selected entry at +0xa00");
 static_assert(offsetof(S_RibbonKeyboardCustomizeDialog, m_nAccelSize) == 0xa08,
               "OnAssign: accelerator count at +0xa08");
+static_assert(offsetof(S_RibbonKeyboardCustomizeDialog, m_flagA0C) == 0xa0c,
+              "OnInitDialog: 32-bit flag read at +0xa0c");
 static_assert(offsetof(S_RibbonKeyboardCustomizeDialog, m_pParentFrame) == 0xa10,
               "constructor: parent frame at +0xa10");
 static_assert(offsetof(S_RibbonKeyboardCustomizeDialog, m_pRibbonBar) == 0xa18,
@@ -99,6 +101,12 @@ extern "C" void* MS_ABI impl___0CMFCAcceleratorKey__QEAA_PEAUtagACCEL___Z(
 extern "C" void MS_ABI impl__Format_CMFCAcceleratorKey__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     const void* pThis, CString* str);
 
+// Retail mfc140u constructor (RVA 0x10cc20) calls an internal base-construction
+// target with dialog ID 0x42b4, sets the vtable, initializes both CString members
+// and all embedded controls, stores the ribbon/parent pointers, and clears the
+// accelerator-selection fields. This remains a stub: returning pThis does not
+// reproduce that initialization, and the required base/member construction
+// paths are not represented by this body.
 // Symbol: ??0CMFCRibbonKeyboardCustomizeDialog@@QEAA@PEAVCMFCRibbonBar@@PEAVCWnd@@@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonKeyboardCustomizeDialog__QEAA_PEAVCMFCRibbonBar__PEAVCWnd___Z(
     void* pThis, void* ribbonBar, void* parent) {
@@ -169,39 +177,67 @@ extern "C" void MS_ABI impl__DoDataExchange_CMFCRibbonKeyboardCustomizeDialog__M
         pDX, kIdcAssignedTo, self->m_strAssignedTo);
 }
 
-// The retail body is disassembled at RVA 0x10d430 (mfc140u). Its final update
-// path directly calls the OnUpdateNewShortcutKey body at RVA 0x10ddc0 (mfc140u);
-// that target performs a separate command/ribbon lookup and UI update. Keep
-// this handler stubbed rather than partially mutating the accelerator array
-// and omitting that retail path.
+// Retail mfc140u disassembly (OnAssign entry RVA 0x10d430) replaces the
+// accelerator array, retargets list-item data for retained entries, updates the
+// keyboard manager's accelerator table, adds the new key entry, resets the new-key
+// control, calls the body at RVA 0x10ddc0 (mfc140u), then returns focus to the commands list.
+// That update body is disassembled separately but is not exported under a name in
+// the Unicode map. Keep this handler stubbed rather than partially reproducing its
+// coupled allocation, ribbon, keyboard-manager, and UI paths.
 // Symbol: ?OnAssign@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnAssign_CMFCRibbonKeyboardCustomizeDialog__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
-// These eight handlers have no named mfc140u RVA in the Unicode symbol map;
-// their ANSI-twin names resolve, but no Unicode entry was verified here.
+// The ANSI-twin symbol-resolved body was disassembled; the Unicode map has no
+// named RVA for this handler. It calls base initialization, populates category
+// and command UI from ribbon/template state, and performs resource-dependent
+// shortcut setup. Kept stubbed rather than partially implementing those coupled
+// initialization and UI paths.
 // Symbol: ?OnInitDialog@CMFCRibbonKeyboardCustomizeDialog@@MEAAHXZ
 extern "C" int MS_ABI impl__OnInitDialog_CMFCRibbonKeyboardCustomizeDialog__MEAAHXZ(void* pThis) {
     (void)pThis;
     return 0;
 }
 
+// The ANSI-twin body at entry RVA 0x10e660 (mfc140) was disassembled; the Unicode
+// map has no named RVA for this handler. It allocates a replacement accelerator
+// array without the selected entry, retargets list-item data for retained entries,
+// frees the old array, decrements the count, updates the keyboard manager, refreshes
+// command selection, and returns focus to the commands list. This body sends no
+// LB_DELETESTRING message, so do not claim that it removes the selected list row.
+// Kept stubbed because the allocation-failure/assertion and UI paths are not
+// reproduced.
 // Symbol: ?OnRemove@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnRemove_CMFCRibbonKeyboardCustomizeDialog__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
+// The ANSI-twin symbol-resolved body was disassembled; the Unicode map has no
+// named RVA for this handler. It performs resource-backed reset confirmation and,
+// only on the affirmative branch, resets selection/accelerator state through
+// framework and view helpers. Kept stubbed rather than partially applying a reset
+// without those coupled resource/module-state and view-update paths.
 // Symbol: ?OnResetAll@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnResetAll_CMFCRibbonKeyboardCustomizeDialog__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
+// The ANSI-twin symbol-resolved body was disassembled; the Unicode map has no
+// named RVA for this handler. It calls UpdateData(TRUE), refreshes the command
+// list from the selected category, resets the shortcut control, and updates the
+// command selection when rows exist. Kept stubbed because those internal ribbon
+// item/list helper paths are not faithfully represented here.
 // Symbol: ?OnSelchangeCategory@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnSelchangeCategory_CMFCRibbonKeyboardCustomizeDialog__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
+// The ANSI-twin symbol-resolved body was disassembled; the Unicode map has no
+// named RVA for this handler. It reads the selected command, updates description
+// and selected-button state, scans accelerator entries, and changes assign-button
+// state before UpdateData(FALSE). Kept stubbed because command-item and ribbon
+// element lookup/update paths cannot be faithfully represented by this stub.
 // Symbol: ?OnSelchangeCommandsList@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnSelchangeCommandsList_CMFCRibbonKeyboardCustomizeDialog__IEAAXXZ(void* pThis) {
     (void)pThis;
@@ -234,15 +270,21 @@ extern "C" void MS_ABI impl__OnSelchangeCurrentKeysList_CMFCRibbonKeyboardCustom
         reinterpret_cast<CWnd*>(self->m_wndRemoveButton), TRUE);
 }
 
+// The ANSI-twin symbol-resolved body was disassembled; the Unicode map has no
+// named RVA for this handler. It clears the current accelerator/template state,
+// frees the accelerator array, reads the view selection, resolves a template or
+// frame accelerator table, and rebuilds state before refreshing command selection.
+// Kept stubbed because the resource/template lookup and helper paths are coupled.
 // Symbol: ?OnSelchangeViewType@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnSelchangeViewType_CMFCRibbonKeyboardCustomizeDialog__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
-// The named export has no mfc140u map entry, but OnAssign calls its body at
-// RVA 0x10ddc0 (mfc140u). That body performs the new-key state check, scans
-// accelerators, resolves ribbon commands and updates CString/control state;
-// it remains stubbed rather than approximating those coupled operations.
+// The named export has no mfc140u map entry, but OnAssign calls the body at
+// RVA 0x10ddc0 (mfc140u). That body checks the new-key ACCEL against existing
+// entries, resolves the matching ribbon command, and updates command description
+// and control state. It remains stubbed rather than approximating those coupled
+// command/ribbon lookup and UI operations.
 // Symbol: ?OnUpdateNewShortcutKey@CMFCRibbonKeyboardCustomizeDialog@@IEAAXXZ
 extern "C" void MS_ABI impl__OnUpdateNewShortcutKey_CMFCRibbonKeyboardCustomizeDialog__IEAAXXZ(void* pThis) {
     (void)pThis;
