@@ -3,11 +3,9 @@
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
-// Real parameterized-constructor export thunks for header-defined, publicly
-// constructible MFC classes. Each viewed-as MS_ABI thunk placement-constructs
-// the object with the real ctor body (defined in filecore/olecore/dlgcommon/
-// inetcore or inline in headers) -- NOT a stub. Completes classes that were one
-// export short of full coverage.
+// CFolderPickerDialog runtime-class getters and constructor export. The
+// constructor remains a documented stub because retail initializes derived
+// fields for which this tree has no assigned shadow layout.
 #include "openmfc/afx.h"
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
@@ -16,6 +14,10 @@
 #include "openmfc/afxdb.h"
 #include "openmfc/afxinet.h"
 #include <new>
+
+// Defined alongside the other dialog runtime-class descriptors.
+extern CRuntimeClass classCFolderPickerDialog;
+
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
@@ -43,18 +45,22 @@
 extern "C" void* MS_ABI impl___0CFolderPickerDialog__QEAA_PEB_WKPEAVCWnd__KH_Z(
         void* p, const wchar_t* lpszFolder, unsigned long dwFlags,
         CWnd* pParentWnd, unsigned long nID, int bNeedOpen) {
-    (void)nID; (void)bNeedOpen;
-    // Real MFC: CFileDialog(TRUE, NULL, lpszFolder, OFN_HIDEREADONLY|dwFlags, NULL, pParentWnd, 0, TRUE)
-    // OFN_HIDEREADONLY == 0x4 (not defined in repo headers)
-    return new (p) CFileDialog(TRUE, nullptr, lpszFolder, 0x4u | dwFlags, nullptr, pParentWnd, 0, TRUE);
+    (void)lpszFolder; (void)dwFlags; (void)pParentWnd; (void)nID; (void)bNeedOpen;
+    // Stub: retail mfc140u RVA 0x20e4b0 calls CFileDialog, then initializes
+    // derived fields at +0x13c and +0x140. No CFolderPickerDialog shadow layout
+    // is available here, so do not partially construct the object or guess fields.
+    return p;
 }
 // Symbol: ?GetRuntimeClass@CFolderPickerDialog@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_CFolderPickerDialog__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFolderPickerDialog__UEBAPEAUCRuntimeClass__XZ(
+    const void* pThis) {
     (void)pThis;
-    return nullptr;
+    // Retail is a leaf LEA/RET returning its static descriptor (RVA 0x20e580, mfc140u).
+    return &classCFolderPickerDialog;
 }
 // Symbol: ?GetThisClass@CFolderPickerDialog@@SAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetThisClass_CFolderPickerDialog__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFolderPickerDialog__SAPEAUCRuntimeClass__XZ() {
+    // Retail's ANSI-twin entry is a leaf LEA/RET returning its static descriptor
+    // (RVA 0x20c8b0, mfc140; --u did not resolve this symbol).
+    return &classCFolderPickerDialog;
 }

@@ -5,13 +5,19 @@
 
 #include "detail/WindowMessageSupport.h"
 
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc);
+
 IMPLEMENT_DYNAMIC(CComboBox,CWnd)
 // Symbol: ?CompareItem@CComboBox@@UEAAHPEAUtagCOMPAREITEMSTRUCT@@@Z
+// Stub retained: the exact export is unresolved by disas.py in both mfc140 and mfc140u,
+// so its retail body could not be verified and must not be inferred from a sibling class.
 extern "C" int MS_ABI impl__CompareItem_CComboBox__UEAAHPEAUtagCOMPAREITEMSTRUCT___Z(
     CComboBox* pThis, COMPAREITEMSTRUCT* pCompare) {
     (void)pThis;(void)pCompare;return 0;
 }
 // Symbol: ?DeleteItem@CComboBox@@UEAAXPEAUtagDELETEITEMSTRUCT@@@Z
+// Stub retained: the exact export is unresolved by disas.py in both mfc140 and mfc140u,
+// so its retail body could not be verified and must not be inferred from a sibling class.
 extern "C" void MS_ABI impl__DeleteItem_CComboBox__UEAAXPEAUtagDELETEITEMSTRUCT___Z(
     CComboBox* pThis, DELETEITEMSTRUCT* pDelete) {
     (void)pThis;
@@ -49,28 +55,37 @@ extern "C" void MS_ABI impl__GetLBText_CComboBox__QEBAXHAEAV__CStringT__WV__StrT
     }
     pThis->GetLBText(nIndex, *pText);
 }
+// Retail sizes from CB_GETLBTEXTLEN, terminates at that bound, then scans the result;
+// a negative length throws E_INVALIDARG (GetLBText entry RVA 0x294250 (mfc140u)).
 void CComboBox::GetLBText(int nIndex, CString& rString) const {
-    rString.Empty();
-    if (!m_hWnd) return;
     int nLen = (int)::SendMessageW(m_hWnd, CB_GETLBTEXTLEN, nIndex, 0);
-    if (nLen < 0) return;
-    wchar_t* pBuf = rString.GetBuffer(nLen + 1);
-    int nCopied = (int)::SendMessageW(m_hWnd, CB_GETLBTEXT, nIndex, (LPARAM)pBuf);
-    rString.ReleaseBuffer(nCopied >= 0 ? nCopied : 0);
+    if (nLen < 0) {
+        impl__AfxThrowOleException__YAXJ_Z(E_INVALIDARG);
+        return;
+    }
+
+    wchar_t* pBuf = rString.GetBuffer(nLen);
+    pBuf[nLen] = L'\0';
+    (void)::SendMessageW(m_hWnd, CB_GETLBTEXT, nIndex, (LPARAM)pBuf);
+
+    int nCopied = 0;
+    while (nCopied < nLen && pBuf[nCopied] != L'\0') ++nCopied;
+    rString.ReleaseBuffer(nCopied);
 }
 
 void CComboBox::DrawItem(DRAWITEMSTRUCT*){}
 void CComboBox::MeasureItem(MEASUREITEMSTRUCT*){}
 int CComboBox::CompareItem(COMPAREITEMSTRUCT*){return 0;}
 void CComboBox::DeleteItem(DELETEITEMSTRUCT*){}
-extern "C" BOOL MS_ABI impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(CWnd*,UINT,WPARAM,LPARAM,LRESULT*);
 BOOL CComboBox::OnChildNotify(UINT message,WPARAM wparam,LPARAM lparam,LRESULT* result) {
     switch(message) {
     case WM_DRAWITEM:DrawItem(reinterpret_cast<DRAWITEMSTRUCT*>(lparam));break;
     case WM_MEASUREITEM:MeasureItem(reinterpret_cast<MEASUREITEMSTRUCT*>(lparam));break;
     case WM_COMPAREITEM:*result=CompareItem(reinterpret_cast<COMPAREITEMSTRUCT*>(lparam));break;
     case WM_DELETEITEM:DeleteItem(reinterpret_cast<DELETEITEMSTRUCT*>(lparam));break;
-    default:return impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(this,message,wparam,lparam,result);
+    // Retail's fallback tail-jumps to CWnd::OnChildNotify (CComboBox entry RVA 0x2941d0,
+    // CWnd entry RVA 0x28f0d0; both mfc140u). Use a qualified base call to avoid redispatch.
+    default:return CWnd::OnChildNotify(message,wparam,lparam,result);
     }
     return TRUE;
 }

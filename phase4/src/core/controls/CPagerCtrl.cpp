@@ -3,76 +3,53 @@
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
+extern CRuntimeClass classCPagerCtrl;
+extern "C" int MS_ABI impl__AfxEndDeferRegisterClass__YAHJ_Z(long);
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+
 // Symbol: ?Create@CPagerCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__Create_CPagerCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
-    void* pThis, const void* pRect, void* pParentWnd, unsigned int nID) {
-    auto* pWnd = static_cast<CWnd*>(pThis);
-    if (pWnd == nullptr || pRect == nullptr || pParentWnd == nullptr) {
+    void* pThis, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID) {
+    // Retail CPagerCtrl::Create (RVA 0x29c430, mfc140u) calls
+    // AfxEndDeferRegisterClass(0x80000), then dispatches vtable byte offset 0xb8
+    // with this class and the remaining creation arguments on success.
+    if (!impl__AfxEndDeferRegisterClass__YAHJ_Z(0x80000)) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
         return FALSE;
     }
 
-    auto* rect = static_cast<const RECT*>(pRect);
-    if (rect == nullptr) {
-        return FALSE;
-    }
-
-    HWND hParent = static_cast<CWnd*>(pParentWnd)->m_hWnd;
-    if (!hParent) {
-        return FALSE;
-    }
-
-    HWND hWnd = ::CreateWindowExW(
-        0, L"SysPager", nullptr,
-        WS_CHILD | WS_VISIBLE,
-        rect->left, rect->top, rect->right - rect->left, rect->bottom - rect->top,
-        hParent, (HMENU)(UINT_PTR)nID,
-        AfxGetInstanceHandle(), nullptr);
-    if (!hWnd) {
-        return FALSE;
-    }
-
-    pWnd->Attach(hWnd);
-    return TRUE;
+    using CreateFn = BOOL (MS_ABI*)(void*, const wchar_t*, const wchar_t*, DWORD,
+                                    const RECT&, CWnd*, UINT, CCreateContext*);
+    auto** vtable = *reinterpret_cast<void***>(pThis);
+    auto create = reinterpret_cast<CreateFn>(vtable[0xb8 / sizeof(void*)]);
+    return create(pThis, L"SysPager", nullptr, dwStyle, rect,
+                  pParentWnd, nID, nullptr);
 }
+// CPagerCtrl::CreateEx has no resolved RVA in the mfc140u symbol map, so its
+// control-specific behavior cannot be established; keep this entry point stubbed.
 // Symbol: ?CreateEx@CPagerCtrl@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@I@Z
 extern "C" int MS_ABI impl__CreateEx_CPagerCtrl__UEAAHKKAEBUtagRECT__PEAVCWnd__I_Z(
-    void* pThis, unsigned long dwExStyle, const void* pRect, void* pParentWnd, unsigned int nID) {
-    auto* pWnd = static_cast<CWnd*>(pThis);
-    if (pWnd == nullptr || pRect == nullptr || pParentWnd == nullptr) {
-        return FALSE;
-    }
-
-    auto* rect = static_cast<const RECT*>(pRect);
-    if (rect == nullptr) {
-        return FALSE;
-    }
-
-    HWND hParent = static_cast<CWnd*>(pParentWnd)->m_hWnd;
-    if (!hParent) {
-        return FALSE;
-    }
-
-    HWND hWnd = ::CreateWindowExW(
-        static_cast<DWORD>(dwExStyle),
-        L"SysPager", nullptr,
-        WS_CHILD | WS_VISIBLE,
-        rect->left, rect->top, rect->right - rect->left, rect->bottom - rect->top,
-        hParent, (HMENU)(UINT_PTR)nID,
-        AfxGetInstanceHandle(), nullptr);
-    if (!hWnd) {
-        return FALSE;
-    }
-
-    pWnd->Attach(hWnd);
-    return TRUE;
+    void* pThis, DWORD dwExStyle, DWORD dwStyle, const RECT& rect,
+    CWnd* pParentWnd, UINT nID) {
+    (void)pThis;
+    (void)dwExStyle;
+    (void)dwStyle;
+    (void)rect;
+    (void)pParentWnd;
+    (void)nID;
+    return FALSE;
 }
+// Retail returns the static CPagerCtrl descriptor directly (RVA 0x29c700, mfc140u).
+// The corresponding descriptor is defined in RuntimeClasses.cpp.
 // Symbol: ?GetRuntimeClass@CPagerCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetRuntimeClass_CPagerCtrl__UEBAPEAUCRuntimeClass__XZ(
     void* pThis) {
     (void)pThis;
-    return nullptr;
+    return &classCPagerCtrl;
 }
+// No resolved retail RVA for this static getter; use the same descriptor, following the
+// common-control RTTI getter pattern in RuntimeClasses.cpp.
 // Symbol: ?GetThisClass@CPagerCtrl@@SAPEAUCRuntimeClass@@XZ
 extern "C" void* MS_ABI impl__GetThisClass_CPagerCtrl__SAPEAUCRuntimeClass__XZ() {
-    return nullptr;
+    return &classCPagerCtrl;
 }
