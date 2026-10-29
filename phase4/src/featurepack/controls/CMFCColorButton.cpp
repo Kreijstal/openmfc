@@ -4,11 +4,29 @@
 #include "detail/CMFCColorButtonSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
+// CMFCButton::m_bWinXPTheme and CMFCVisualManager::m_pVisManager are the
+// globals read by retail IsDrawXPTheme. Their OpenMFC definitions are in
+// featurepack/controls/StaticData.cpp and core/runtime/StaticData.cpp.
+extern "C" std::int32_t impl__m_bWinXPTheme_CMFCButton__1HA;
+extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
+
+// Internal helper thunks used by OnInitControl; their definitions are in the
+// referenced featurepack translation units.
+extern "C" int MS_ABI impl__UTF8ToString_CMFCControlContainer__SAHPEBDAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    const char* pszUTF8, CString* pStrResult, int cbUTF8);
+extern "C" void MS_ABI impl___0CTagManager__QEAA_PEB_W_Z(void* self, const wchar_t* buffer);
+extern "C" void MS_ABI impl___1CTagManager__UEAA_XZ(void* self);
+extern "C" int MS_ABI impl__ReadBoolProp__YAHAEAVCTagManager__PEB_WAEAH_Z(
+    void* tagManager, const wchar_t* property, int* value);
+extern "C" int MS_ABI impl__ExcludeTag_CTagManager__QEAAHPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    void* self, const wchar_t* tag, CString* value, int trim);
+extern "C" CWnd* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis);
+
 // EnableAutomaticButton(LPCTSTR lpszLabel, COLORREF clr, BOOL bShowBorder):
 // stores the automatic-button label (CString at 0xbb0, a null label defaults
 // to the empty string in retail) and clr (0xb2c).  Transcribed from retail RVA
-// 0x28d00; the retail bShowBorder gate only chooses between the null-label
-// fallback (L"") and the label itself, so the effective result is
+// 0x28d00 (mfc140u); the retail bShowBorder gate only chooses between the
+// null-label fallback (L"") and the label itself, so the effective result is
 // unconditional.
 // Symbol: ?EnableAutomaticButton@CMFCColorButton@@QEAAXPEB_WKH@Z
 extern "C" void MS_ABI impl__EnableAutomaticButton_CMFCColorButton__QEAAXPEB_WKH_Z(
@@ -22,7 +40,7 @@ extern "C" void MS_ABI impl__EnableAutomaticButton_CMFCColorButton__QEAAXPEB_WKH
 // EnableOtherButton(LPCTSTR lpszLabel, BOOL bAuto, BOOL bShowBorder): stores
 // the other-button label (CString at 0xba0, a null label defaults to the
 // empty string in retail) and bAuto (0xbb8).  Transcribed from retail RVA
-// 0x28d70; the bShowBorder gate only chooses the null-label fallback.
+// 0x28d70 (mfc140u); the bShowBorder gate only chooses the null-label fallback.
 // Symbol: ?EnableOtherButton@CMFCColorButton@@QEAAXPEB_WHH@Z
 extern "C" void MS_ABI impl__EnableOtherButton_CMFCColorButton__QEAAXPEB_WHH_Z(
     void* pThis, const wchar_t* lpszLabel, int bAuto, int /*bShowBorder*/)
@@ -32,22 +50,28 @@ extern "C" void MS_ABI impl__EnableOtherButton_CMFCColorButton__QEAAXPEB_WHH_Z(
     AssignCStr_Cmfccolorbutton(&s->m_strOtherLabel, lpszLabel ? lpszLabel : L"");  // 0xba0
     s->m_bOtherButton = bAuto;                                     // 0xbb8
 }
-// IsDrawXPTheme(): retail (RVA 0x29160) gates on the module flag 0x1803be1a8
-// and dispatches the visual-manager IsDrawXPTheme-style virtual
-// (0x180009774, vtable+0x68) through 0x1802c7b30.  Neither the flag nor the
-// singleton is modeled, so 0 (the non-themed result) is returned.  The
-// callers (OnFillBackground / OnMouseMove / OnDrawBorder) then take their
-// non-themed branches, which is the behaviour of a non-themed system.
+// IsDrawXPTheme(): retail RVA 0x29160 (mfc140u) returns FALSE when
+// CMFCButton::m_bWinXPTheme is zero; otherwise it obtains the visual manager
+// and returns the result of its virtual call at vtable byte offset 0x68
+// (slot 13). OpenMFC has a C++ GetInstance definition that creates a manager,
+// but direct use adds an unaudited C++ undefined symbol; there is no impl__
+// thunk for it. To keep the per-file link audit clean, use the existing global
+// manager only and return FALSE when it is still null (a retail deviation).
 // Symbol: ?IsDrawXPTheme@CMFCColorButton@@IEBAHXZ
 extern "C" int MS_ABI impl__IsDrawXPTheme_CMFCColorButton__IEBAHXZ(
     void* /*pThis*/)
 {
-    // TODO(clean-room): transcribed partially -- module flag 0x1803be1a8 and
-    // visual-manager virtual dispatch not modeled.
-    return 0;
+    if (impl__m_bWinXPTheme_CMFCButton__1HA == 0) return 0;
+    void* pManager = impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
+    if (pManager == nullptr) return 0;
+
+    void** vtable = *reinterpret_cast<void***>(pManager);
+    using IsDrawXPThemeFn = int (MS_ABI *)(void*);
+    IsDrawXPThemeFn isDrawXPTheme = reinterpret_cast<IsDrawXPThemeFn>(vtable[13]);
+    return isDrawXPTheme(pManager) != 0;
 }
 // SetColor(COLORREF clr): stores the color at 0xb28 and, when the control has
-// a window, repaints it.  Transcribed from retail RVA 0x28f50.
+// a window, repaints it.  Transcribed from retail RVA 0x28f50 (mfc140u).
 // Symbol: ?SetColor@CMFCColorButton@@QEAAXK@Z
 extern "C" void MS_ABI impl__SetColor_CMFCColorButton__QEAAXK_Z(
     void* pThis, unsigned long clr)
@@ -56,12 +80,13 @@ extern "C" void MS_ABI impl__SetColor_CMFCColorButton__QEAAXK_Z(
     CColorBtn* s = reinterpret_cast<CColorBtn*>(pThis);
     s->m_nColor = static_cast<int>(clr);                    // 0xb28
     if (s->m_hWnd != nullptr) {
-        ::InvalidateRect(s->m_hWnd, nullptr, TRUE);         // 0x1802c7128
-        ::UpdateWindow(s->m_hWnd);                          // 0x1802c7300
+        ::InvalidateRect(s->m_hWnd, nullptr, TRUE);
+        ::UpdateWindow(s->m_hWnd);
     }
 }
-// OnGetDlgCode(): retail is `mov $0x1,%eax; ret` (RVA 0x3a60).  Transcribed
-// verbatim.
+// Retail's CMFCColorButton message map routes WM_GETDLGCODE to the shared
+// body returning 1 at RVA 0x3a60 (mfc140u); the symbol map names that folded body
+// as accDoDefaultAction on another class.  Return DLGC_WANTARROWS (1).
 // Symbol: ?OnGetDlgCode@CMFCColorButton@@IEAAIXZ
 extern "C" unsigned int MS_ABI impl__OnGetDlgCode_CMFCColorButton__IEAAIXZ(
     void* /*pThis*/)
@@ -69,7 +94,7 @@ extern "C" unsigned int MS_ABI impl__OnGetDlgCode_CMFCColorButton__IEAAIXZ(
     return 1;
 }
 // OnSysColorChange(): runs the CWnd base handler, rebuilds the button's
-// palette and repaints.  Transcribed from retail RVA 0x29120.
+// palette and repaints.  Transcribed from retail RVA 0x29120 (mfc140u).
 // Symbol: ?OnSysColorChange@CMFCColorButton@@IEAAXXZ
 extern "C" void MS_ABI impl__OnSysColorChange_CMFCColorButton__IEAAXXZ(
     void* pThis)
@@ -79,14 +104,15 @@ extern "C" void MS_ABI impl__OnSysColorChange_CMFCColorButton__IEAAXXZ(
     impl__OnSysColorChange_CWnd__IEAAXXZ(reinterpret_cast<CWnd*>(pThis));
     impl__RebuildPalette_CMFCColorButton__IEAAXPEAVCPalette___Z(pThis, nullptr);
     if (s->m_hWnd != nullptr) {
-        ::InvalidateRect(s->m_hWnd, nullptr, TRUE);         // 0x1802c7128
-        ::UpdateWindow(s->m_hWnd);                          // 0x1802c7300
+        ::InvalidateRect(s->m_hWnd, nullptr, TRUE);
+        ::UpdateWindow(s->m_hWnd);
     }
 }
 // OnMouseMove(UINT, CPoint): while XP-theme drawing is active the retail
 // forces m_nStyle to 2 (pushed) around the CMFCButton base handler and
-// restores it afterwards.  Transcribed from retail RVA 0x28cb0 (IsDrawXPTheme
-// is conservatively 0, so the style is never forced in this build).
+// restores it afterwards.  Transcribed from retail RVA 0x28cb0 (mfc140u).
+// The style is forced only when the local IsDrawXPTheme returns nonzero; its
+// null-manager fallback differs from retail's manager-creating helper.
 // Symbol: ?OnMouseMove@CMFCColorButton@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CMFCColorButton__IEAAXIVCPoint___Z(
     void* pThis, unsigned int nFlags, POINT point)
@@ -100,28 +126,25 @@ extern "C" void MS_ABI impl__OnMouseMove_CMFCColorButton__IEAAXIVCPoint___Z(
     impl__OnMouseMove_CMFCButton__IEAAXIVCPoint___Z(pThis, nFlags, point);
     s->m_nStyle = nStyleSaved;
 }
-// OnLButtonDown(UINT, CPoint): retail (RVA 0x28c80) calls CWnd::SetFocus
-// (0x1802a9b60) then dispatches the vslot+0x348 virtual -- the same handler
-// OnKeyDown reaches, i.e. the color popup.  The popup dispatch is not modeled,
-// so the conservative OnShowColorPopup below is used.
+// OnLButtonDown(UINT, CPoint): retail RVA 0x28c80 (mfc140u) calls
+// CWnd::SetFocus then dispatches the vslot+0x348 virtual (the color-popup
+// handler).  This implementation substitutes a direct call to the local
+// OnShowColorPopup thunk, so derived-class virtual overrides are not dispatched.
 // Symbol: ?OnLButtonDown@CMFCColorButton@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCColorButton__IEAAXIVCPoint___Z(
     void* pThis, unsigned int /*nFlags*/, POINT /*point*/)
 {
     if (pThis == nullptr) return;
-    CColorBtn* s = reinterpret_cast<CColorBtn*>(pThis);
-    if (s->m_hWnd != nullptr) {
-        ::SetFocus(s->m_hWnd);   // retail: CWnd::SetFocus
-    }
-    // TODO(clean-room): transcribed partially -- the vslot+0x348 dispatch
-    // (0x1802c7b30) is routed to the conservative OnShowColorPopup.
+    impl__SetFocus_CWnd__QEAAPEAV1_XZ(reinterpret_cast<CWnd*>(pThis));
+    // TODO(clean-room): the vslot+0x348 virtual dispatch is replaced with a
+    // direct call to the local OnShowColorPopup implementation.
     impl__OnShowColorPopup_CMFCColorButton__MEAAXXZ(pThis);
 }
-// OnKeyDown(UINT, UINT, UINT): retail (RVA 0x28c60) only handles keys with
-// (nChar - 0x20) & 0xFFFFFFF7 == 0 (VK_SPACE 0x20 and friends); everything
-// else goes to CWnd::Default (0x18028ac80).  The handled keys dispatch the
-// vslot+0x348 virtual (the color popup), which is routed to the conservative
-// OnShowColorPopup.
+// OnKeyDown(UINT, UINT, UINT): retail RVA 0x28c60 (mfc140u) only handles
+// keys with (nChar - 0x20) & 0xFFFFFFF7 == 0 (VK_SPACE 0x20 and friends);
+// everything else goes to CWnd::Default.  The handled keys dispatch the
+// vslot+0x348 virtual; this implementation substitutes a direct call to the
+// local OnShowColorPopup thunk.
 // Symbol: ?OnKeyDown@CMFCColorButton@@IEAAXIII@Z
 extern "C" void MS_ABI impl__OnKeyDown_CMFCColorButton__IEAAXIII_Z(
     void* pThis, unsigned int nChar, unsigned int /*nRepCnt*/,
@@ -132,15 +155,14 @@ extern "C" void MS_ABI impl__OnKeyDown_CMFCColorButton__IEAAXIII_Z(
         (void)impl__Default_CWnd__IEAA_JXZ(reinterpret_cast<CWnd*>(pThis));
         return;
     }
-    // TODO(clean-room): transcribed partially -- the vslot+0x348 dispatch is
-    // routed to the conservative OnShowColorPopup.
+    // TODO(clean-room): the vslot+0x348 virtual dispatch is replaced with a
+    // direct call to the local OnShowColorPopup implementation.
     impl__OnShowColorPopup_CMFCColorButton__MEAAXXZ(pThis);
 }
-// OnShowColorPopup(): when a popup is already active the retail closes it by
-// sending WM_CLOSE to the popup window and clears 0xb98 (RVA 0x28a09..0x28a31).
-// The fresh-popup branch (0x28a36..0x28c39) allocates a 0x2ed8-byte
-// CMFCColorPopup, initialises it from the CArray at 0xb30 and the labels, and
-// positions it through virtuals -- that machinery is not modeled.
+// OnShowColorPopup(): retail closes an already-active popup with WM_CLOSE
+// and clears m_pColorPopup at 0xb98.  Otherwise it initializes the color array
+// when empty, allocates and configures a CMFCColorPopup, then positions it via
+// virtual calls; the latter popup-creation and positioning machinery is not modeled.
 // Symbol: ?OnShowColorPopup@CMFCColorButton@@MEAAXXZ
 extern "C" void MS_ABI impl__OnShowColorPopup_CMFCColorButton__MEAAXXZ(
     void* pThis)
@@ -151,35 +173,27 @@ extern "C" void MS_ABI impl__OnShowColorPopup_CMFCColorButton__MEAAXXZ(
     if (pPopup != nullptr) {
         HWND hwndPopup = *reinterpret_cast<HWND*>(
             reinterpret_cast<char*>(pPopup) + 0x40);        // popup CWnd::m_hWnd
-        if (hwndPopup != nullptr) {
-            ::SendMessageW(hwndPopup, WM_CLOSE, 0, 0);      // 0x1802c7120
-        }
+        ::SendMessage(hwndPopup, WM_CLOSE, 0, 0);
         s->m_pColorPopup = nullptr;
         return;
     }
-    // Retail fills the color CArray from the system palette when empty
-    // (0x1800265f0), then creates and shows the popup.  Only the InitColors
-    // side effect is reproduced.
-    // TODO(clean-room): transcribed partially -- the 0x2ed8-byte CMFCColorPopup
-    // creation (ctor 0x1800b4cb0, vtable 0x1802e13d0, Create 0x180024730) and
-    // its positioning virtuals (vslot+0x430 / vslot+0x3a0 / 0x1800ba8a0) are
+    // Retail fills the color CArray from the system palette when empty, then
+    // creates and shows the popup.  Only the InitColors side effect is reproduced.
+    // TODO(clean-room): popup allocation, initialization, and positioning are
     // not modeled.
-    CColorBtn* b = reinterpret_cast<CColorBtn*>(pThis);
     void* pArray = reinterpret_cast<char*>(pThis) + 0xb30;
     if (*reinterpret_cast<long long*>(reinterpret_cast<char*>(pArray) + 0x10) == 0) {
         (void)impl__InitColors_CMFCColorBar__KAHPEAVCPalette__AEAV__CArray_KK___Z(
             nullptr, pArray);
     }
-    (void)b; // keep b referenced for clarity if extended later
 }
-// OnDraw(CDC*, const CRect&, UINT): retail (RVA 0x28360) ensures the palette
-// holder at 0xbc0 (RebuildPalette when null), selects/realises the palette
-// into the DC, shrinks the rect by 8 + CMenuImages::Size().cx, draws the
-// automatic label (when m_nColor == -1) and the color cell -- a 3-D border
-// via CDC::Draw3dRect with unmodeled visual-manager globals (0x1803c1650 /
-// 0x1803c165c) and the cell fill.  The label text and the palette-index
-// conversion (global 0x1803c18a8 == 8) are not modeled; the cell is filled
-// with the current (or automatic) colour.
+// OnDraw(CDC*, const CRect&, UINT): retail RVA 0x28360 (mfc140u) ensures the
+// palette holder at 0xbc0 (RebuildPalette when null), selects/realises the
+// palette into the DC, shrinks the rect by 8 + CMenuImages::Size().cx, draws
+// the automatic label when m_nColor == -1 and its label is non-empty, and fills
+// the cell with the current or automatic color unless disabled.  The local gutter size and 3-D border
+// are approximations; automatic-label drawing and palette-index conversion
+// are not modeled.
 // Symbol: ?OnDraw@CMFCColorButton@@MEAAXPEAVCDC@@AEBVCRect@@I@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCColorButton__MEAAXPEAVCDC__AEBVCRect__I_Z(
     void* pThis, void* pDC, const RECT* rect, unsigned int uiState)
@@ -192,43 +206,44 @@ extern "C" void MS_ABI impl__OnDraw_CMFCColorButton__MEAAXPEAVCDC__AEBVCRect__I_
     if (s->m_pPaletteObj == nullptr) {
         impl__RebuildPalette_CMFCColorButton__IEAAXPEAVCPalette___Z(pThis, nullptr);
     }
+    HPALETTE hOldPalette = nullptr;
     if (s->m_pPaletteObj != nullptr && s->m_pPaletteObj->m_hPal != nullptr) {
-        ::SelectPalette(hdc, s->m_pPaletteObj->m_hPal, FALSE);   // 0x1802c60e8
-        ::RealizePalette(hdc);                                   // 0x1802c6238
+        hOldPalette = ::SelectPalette(hdc, s->m_pPaletteObj->m_hPal, FALSE);
+        ::RealizePalette(hdc);
     }
 
-    // Cell rect: right shrunk by 8 + CMenuImages::Size().cx (default 9).
-    // TODO(clean-room): CMenuImages::Size (0x18008f600) is DPI-scaled when the
-    // theme global 0x1803be258 is set; the constant 9 is the non-themed size.
+    // Cell rect: right shrunk by 8 + CMenuImages::Size().cx (approximated as 9).
     RECT r = *rect;
     r.right -= (8 + 9);
 
-    // 3-D border + cell fill (retail: CDC::Draw3dRect with the unmodeled
-    // globals 0x1803c1650/0x1803c165c; DrawEdge is the public equivalent).
+    // DrawEdge approximates retail's 3-D border.
     RECT border = r;
     ::InflateRect(&border, -2, -2);
     ::DrawEdge(hdc, &border, BDR_SUNKENOUTER, BF_RECT);
     RECT cell = border;
     ::InflateRect(&cell, -1, -1);
 
-    if (s->m_nColor != -1 && (uiState & ODS_DISABLED) == 0) {
-        HBRUSH br = ::CreateSolidBrush(static_cast<COLORREF>(s->m_nColor));
-        ::FillRect(hdc, &cell, br);                             // 0x1802c7208
-        ::DeleteObject(br);
-    } else {
-        ::FillRect(hdc, &cell, ::GetSysColorBrush(COLOR_BTNFACE));
+    if ((uiState & ODS_DISABLED) == 0) {
+        const COLORREF color = static_cast<COLORREF>(
+            s->m_nColor == -1 ? s->m_clrAutomaticButton : s->m_nColor);
+        HBRUSH br = ::CreateSolidBrush(color);
+        if (br != nullptr) {
+            ::FillRect(hdc, &cell, br);
+            ::DeleteObject(br);
+        }
+    }
+    if (hOldPalette != nullptr) {
+        ::SelectPalette(hdc, hOldPalette, FALSE);
     }
 
-    // TODO(clean-room): transcribed partially -- the automatic-label text
-    // (m_nColor == -1 && label at 0xbb0 non-empty, drawn via the CDC
-    // DrawText virtual with the auto colour 0x1803c1654), the palette-index
-    // conversion (GetNearestPaletteIndex 0x1802c6230 + bit 0x18) and the
-    // themed focus-rect pass are not modeled.
+    // TODO(clean-room): automatic-label text, palette-index conversion, and
+    // the themed focus-rectangle pass are not modeled.
 }
 // OnFillBackground(CDC*, const CRect&): non-themed (IsDrawXPTheme == 0) routes
-// to CMFCButton::OnFillBackground; themed fills with the global brush at
-// 0x1803c1730 (approximated with the button-face brush).  Transcribed from
-// retail RVA 0x282e0.
+// to CMFCButton::OnFillBackground; the themed global brush is approximated
+// with the button-face brush.  A null manager takes the base path here because
+// the local IsDrawXPTheme cannot call retail's lazy-creating helper.  Transcribed
+// from retail RVA 0x282e0 (mfc140u).
 // Symbol: ?OnFillBackground@CMFCColorButton@@MEAAXPEAVCDC@@AEBVCRect@@@Z
 extern "C" void MS_ABI impl__OnFillBackground_CMFCColorButton__MEAAXPEAVCDC__AEBVCRect___Z(
     void* pThis, void* pDC, const RECT* rectClient)
@@ -241,16 +256,14 @@ extern "C" void MS_ABI impl__OnFillBackground_CMFCColorButton__MEAAXPEAVCDC__AEB
     }
     HDC hdc = hdc_of_Cmfccolorbutton(pDC);
     if (hdc == nullptr) return;
-    // TODO(clean-room): the global brush at 0x1803c1730 (lazy-init
-    // 0x18006a790) is approximated with the button-face brush.
+    // TODO(clean-room): the retail themed brush and its lazy initialization
+    // are not modeled; the button-face brush is used instead.
     ::FillRect(hdc, rectClient, ::GetSysColorBrush(COLOR_BTNFACE));
 }
-// OnDrawBorder(CDC*, CRect&, UINT): non-themed retail (RVA 0x28830) draws a
-// sunken 3-D border (inflated -1), and when m_nStyle && m_bClickStarted draws
-// a second pressed border using the unmodeled globals 0x1803c164c/0x1803c1660.
-// The themed branch dispatches the visual-manager DrawButtonBorder
-// (0x180009774 / vslot+0x3a8).  The visual-manager path is not modeled; the
-// standard border is drawn through DrawEdge.
+// OnDrawBorder(CDC*, CRect&, UINT): retail RVA 0x28830 (mfc140u) draws a
+// 3-D border and, when m_nStyle && m_bClickStarted, a second pressed border.
+// The themed branch dispatches the visual-manager DrawButtonBorder virtual;
+// that path and its retail colors are not modeled, so DrawEdge approximates it.
 // Symbol: ?OnDrawBorder@CMFCColorButton@@MEAAXPEAVCDC@@AEAVCRect@@I@Z
 extern "C" void MS_ABI impl__OnDrawBorder_CMFCColorButton__MEAAXPEAVCDC__AEAVCRect__I_Z(
     void* pThis, void* pDC, RECT* rect, unsigned int /*uiState*/)
@@ -260,9 +273,8 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCColorButton__MEAAXPEAVCDC__AEAVCRe
     HDC hdc = hdc_of_Cmfccolorbutton(pDC);
     if (hdc == nullptr) return;
 
-    // TODO(clean-room): transcribed partially -- the themed visual-manager
-    // dispatch (0x180009774 / vslot+0x3a8) and the border colours
-    // (0x1803c1650/0x1803c165c/0x1803c164c/0x1803c1660) are not modeled.
+    // TODO(clean-room): the themed visual-manager dispatch and retail border
+    // colors are not modeled.
     RECT r = *rect;
     ::DrawEdge(hdc, &r, BDR_RAISEDINNER, BF_RECT | BF_ADJUST);
     if (s->m_nStyle != 0 && s->m_bClickStarted != 0) {
@@ -271,42 +283,67 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCColorButton__MEAAXPEAVCDC__AEAVCRe
 }
 // OnDrawFocusRect(CDC*, const CRect&): shrinks the right edge by
 // 8 + CMenuImages::Size().cx (the colour-cell gutter) and forwards to
-// CMFCButton::OnDrawFocusRect.  Transcribed from retail RVA 0x28980.
+// CMFCButton::OnDrawFocusRect.  Transcribed from retail RVA 0x28980 (mfc140u).
 // Symbol: ?OnDrawFocusRect@CMFCColorButton@@MEAAXPEAVCDC@@AEBVCRect@@@Z
 extern "C" void MS_ABI impl__OnDrawFocusRect_CMFCColorButton__MEAAXPEAVCDC__AEBVCRect___Z(
     void* pThis, void* pDC, const RECT* rect)
 {
     if (pThis == nullptr || pDC == nullptr || rect == nullptr) return;
-    // TODO(clean-room): CMenuImages::Size (0x18008f600) default 9 is used.
+    // TODO(clean-room): use of the CMenuImages::Size() API is approximated as 9;
+    // retail has separate theme/DPI-dependent size paths.
     RECT r = *rect;
     r.right -= (8 + 9);
     impl__OnDrawFocusRect_CMFCButton__MEAAXPEAVCDC__AEBVCRect___Z(
         pThis, pDC, &r);
 }
-// OnInitControl(unsigned __int64, __int64): retail (RVA 0x291a0) reads the
-// per-button "MFCCColorButton_EnableOtherButton" / "..._EnableAutomaticButton"
-// profile entries (keys at 0x18033dab0 / 0x18033db10 through the CWinApp
-// GetProfileString machinery at 0x1803b25e8 / 0x180034080) and, when set,
-// calls EnableOtherButton(this, "Other", 1, flag) / EnableAutomaticButton
-// (this, "Automatic", 0, flag).  The profile plumbing and the ATL CString
-// machinery are not modeled, so the unset-profile path (no calls) is taken.
+// OnInitControl(unsigned __int64 wParam, __int64 lParam): retail entry RVA
+// 0x291a0 (mfc140u) converts the UTF-8 init string to CString, reads the
+// MFCColorButton_EnableOtherButton / EnableAutomaticButton / ColumnsCount
+// properties through CTagManager, and returns 0.
 // Symbol: ?OnInitControl@CMFCColorButton@@IEAA_J_K_J@Z
 extern "C" long long MS_ABI impl__OnInitControl_CMFCColorButton__IEAA_J_K_J_Z(
-    void* pThis, unsigned long long /*pApp*/, long long /*nCommandId*/)
+    void* pThis, unsigned long long wParam, long long lParam)
 {
     if (pThis == nullptr) return 0;
-    // TODO(clean-room): transcribed partially -- the CWinApp GetProfileString
-    // reads (0x1803b25e8 / 0x180034080 / 0x1801409a0, keys 0x18033dab0 /
-    // 0x18033db10) and the conditional EnableOtherButton / EnableAutomaticButton
-    // calls (labels "Other" 0x18033daf8 / "Automatic" 0x18033db60) are not
-    // modeled; the unset-profile defaults are used.
+
+    CString strDst;
+    impl__UTF8ToString_CMFCControlContainer__SAHPEBDAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+        reinterpret_cast<const char*>(lParam), &strDst, static_cast<int>(wParam));
+
+    alignas(16) unsigned char tagManagerStorage[64] = {};
+    impl___0CTagManager__QEAA_PEB_W_Z(tagManagerStorage, strDst.GetString());
+
+    int bValue = FALSE;
+    if (impl__ReadBoolProp__YAHAEAVCTagManager__PEB_WAEAH_Z(
+            tagManagerStorage, L"MFCColorButton_EnableOtherButton", &bValue)) {
+        impl__EnableOtherButton_CMFCColorButton__QEAAXPEB_WHH_Z(
+            pThis, bValue ? L"Other" : nullptr, 1, bValue);
+    }
+    bValue = FALSE;
+    if (impl__ReadBoolProp__YAHAEAVCTagManager__PEB_WAEAH_Z(
+            tagManagerStorage, L"MFCColorButton_EnableAutomaticButton", &bValue)) {
+        impl__EnableAutomaticButton_CMFCColorButton__QEAAXPEB_WKH_Z(
+            pThis, bValue ? L"Automatic" : nullptr, 0, bValue);
+    }
+
+    CString strColumns;
+    if (impl__ExcludeTag_CTagManager__QEAAHPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+            tagManagerStorage, L"MFCColorButton_ColumnsCount", &strColumns, FALSE) &&
+        !strColumns.IsEmpty()) {
+        const int nColumns = ::_wtoi(strColumns.GetString());
+        if (nColumns > 0) {
+            reinterpret_cast<CColorBtn*>(pThis)->m_nPopupArg = nColumns;  // 0xb90
+        }
+    }
+
+    impl___1CTagManager__UEAA_XZ(tagManagerStorage);
     return 0;
 }
 // RebuildPalette(CPalette*): builds a system (pPalette == null) or
 // caller-palette (pPalette != null) LOGPALETTE, CreatePalette's it and stores
 // the handle in the 0x10-byte holder at 0xbc0, freeing the previous holder.
-// Transcribed from retail RVA 0x29000 (the holder vtable delete is replaced
-// by DeleteObject + free; foreign blocks -- vtable != 0 -- are not freed).
+// Transcribed from retail RVA 0x29000 (mfc140u); the holder vtable delete is
+// replaced by DeleteObject + free, and foreign blocks (vtable != 0) are not freed.
 // Symbol: ?RebuildPalette@CMFCColorButton@@IEAAXPEAVCPalette@@@Z
 extern "C" void MS_ABI impl__RebuildPalette_CMFCColorButton__IEAAXPEAVCPalette___Z(
     void* pThis, void* pPalette)
@@ -334,7 +371,7 @@ extern "C" void MS_ABI impl__RebuildPalette_CMFCColorButton__IEAAXPEAVCPalette__
         if (pLog != nullptr && hdc != nullptr) {
             pLog->palVersion = 0x300;
             pLog->palNumEntries = 0x100;
-            ::GetSystemPaletteEntries(hdc, 0, 0x100, pLog->palPalEntry);  // 0x1802c6228
+            ::GetSystemPaletteEntries(hdc, 0, 0x100, pLog->palPalEntry);
         } else if (pLog != nullptr) {
             pLog->palVersion = 0x300;
             pLog->palNumEntries = 0x100;
@@ -344,7 +381,7 @@ extern "C" void MS_ABI impl__RebuildPalette_CMFCColorButton__IEAAXPEAVCPalette__
         void* hPalObj = *reinterpret_cast<void**>(
             reinterpret_cast<char*>(pPalette) + 8);      // CPalette::m_hObject
         if (hPalObj != nullptr &&
-            ::GetObjectW(hPalObj, sizeof(WORD), &wCount) != 0) {  // 0x1802c6290
+            ::GetObject(hPalObj, sizeof(WORD), &wCount) != 0) {
             nCount = wCount;
             pLog = static_cast<LOGPALETTE*>(std::malloc(8 + static_cast<size_t>(nCount) * 4));
             if (pLog != nullptr) {
@@ -352,26 +389,26 @@ extern "C" void MS_ABI impl__RebuildPalette_CMFCColorButton__IEAAXPEAVCPalette__
                 pLog->palNumEntries = static_cast<WORD>(nCount);
                 ::GetPaletteEntries(reinterpret_cast<HPALETTE>(hPalObj), 0,
                                     static_cast<UINT>(nCount),
-                                    pLog->palPalEntry);          // 0x1802c6248
+                                    pLog->palPalEntry);
             }
         }
     }
 
     if (pLog != nullptr) {
-        HPALETTE hPal = ::CreatePalette(pLog);                   // 0x1802c6240
+        HPALETTE hPal = ::CreatePalette(pLog);
         if (hPal != nullptr) {
-            holder->m_hPal = hPal;   // retail: CGdiObject::Attach (0x1802a3ed0)
+            holder->m_hPal = hPal;   // retail attaches the created palette handle.
         }
-        std::free(pLog);                                         // 0x1802c74e8
+        std::free(pLog);
     }
     if (hdc != nullptr) ::ReleaseDC(s->m_hWnd, hdc);
     (void)nCount;
 }
 // SetPalette(CPalette*): releases the color CArray at 0xb30 when non-empty,
 // sizes the internal buffer, fills the array through CMFCColorBar::InitColors
-// and rebuilds the button palette.  Transcribed from retail RVA 0x28e70; the
-// CArray layout is m_pData@+0x8 / m_nSize@+0x10 / m_nMaxSize@+0x18 and the
-// existing conservative InitColors leaves the array empty.
+// and rebuilds the button palette.  Transcribed from retail RVA 0x28e70
+// (mfc140u); the CArray layout is m_pData@+0x8 / m_nSize@+0x10 /
+// m_nMaxSize@+0x18.  The local InitColors implementation fills the array.
 // Symbol: ?SetPalette@CMFCColorButton@@QEAAXPEAVCPalette@@@Z
 extern "C" void MS_ABI impl__SetPalette_CMFCColorButton__QEAAXPEAVCPalette___Z(
     void* pThis, void* pPalette)
@@ -387,7 +424,7 @@ extern "C" void MS_ABI impl__SetPalette_CMFCColorButton__QEAAXPEAVCPalette___Z(
         reinterpret_cast<char*>(pArray) + 0x18);
 
     if (nSize != 0) {
-        // CArray::SetSize(arr, 0): release the buffer (0x180015034).
+        // CArray::SetSize(arr, 0): release the buffer.
         if (pData != nullptr) std::free(pData);
         pData = nullptr;
         nSize = 0;
@@ -411,36 +448,34 @@ extern "C" void MS_ABI impl__SetPalette_CMFCColorButton__QEAAXPEAVCPalette___Z(
     *reinterpret_cast<long long*>(reinterpret_cast<char*>(pArray) + 0x10) = nSize;
     *reinterpret_cast<long long*>(reinterpret_cast<char*>(pArray) + 0x18) = nMaxSize;
 
-    // Retail: InitColors(&0xb30, pPalette) then RebuildPalette(this, pPalette).
-    // TODO(clean-room): InitColors (0x1800265f0) is the conservative
-    // implementation in global_cmfccolorbar.cpp and leaves the array empty.
+    // Retail calls InitColors(&0xb30, pPalette) then RebuildPalette(this, pPalette).
+    // The local InitColors implementation fills the array from the supplied
+    // palette, or from the system default palette when pPalette is null.
     (void)impl__InitColors_CMFCColorBar__KAHPEAVCPalette__AEAV__CArray_KK___Z(
         pPalette, pArray);
     impl__RebuildPalette_CMFCColorButton__IEAAXPEAVCPalette___Z(pThis, pPalette);
 }
-// SetDocumentColors(LPCTSTR, CList<COLORREF,COLORREF>&): clears the member
-// list at 0xb58, stores the label (CString at 0xba8, null -> L"") and, when
-// the label is non-empty, copies the caller's colors into the member list.
-// Transcribed from retail RVA 0x28de0; the list copy requires the retail CList
-// layout (head@+0x8, count@+0x18, nodes {next@0x0, data@0x10}) and is kept
-// out because the stub constructor leaves the member list uninitialized.
+// Retail SetDocumentColors clears the member list at 0xb58, stores the label
+// (CString at 0xba8, null -> L""), and copies the caller's colors when the label
+// is non-empty.  Transcribed from retail RVA 0x28de0 (mfc140u); local list
+// operations are omitted because the stub constructor leaves the member list
+// uninitialized.  The caller-provided label is still stored below.
 // Symbol: ?SetDocumentColors@CMFCColorButton@@QEAAXPEB_WAEAV?$CList@KK@@@Z
 extern "C" void MS_ABI impl__SetDocumentColors_CMFCColorButton__QEAAXPEB_WAEAV__CList_KK___Z(
     void* pThis, const wchar_t* lpszLabel, void* /*lstColors*/)
 {
     if (pThis == nullptr) return;
     CColorBtn* s = reinterpret_cast<CColorBtn*>(pThis);
-    // TODO(clean-room): retail RemoveAll's the member list at 0xb58
-    // (0x180008350) and, when the label is non-empty, walks the caller's
-    // CList (head@+0x8; nodes {next@0x0, data@0x10}) appending each colour
-    // through 0x180027d84; the member list is not touched because the stub
-    // constructor does not initialise it.
+    // TODO(clean-room): retail RemoveAll's the member list at 0xb58 and, when
+    // the label is non-empty, walks the caller's CList (head@+0x8; nodes
+    // {next@0x0, data@0x10}) appending each colour.  The member list is not
+    // touched because the stub constructor does not initialize it.
     AssignCStr_Cmfccolorbutton(&s->m_strDocLabel, lpszLabel ? lpszLabel : L"");  // 0xba8
 }
 // SizeToContent(BOOL): runs the CMFCButton base (retail passes bCalcOnly=0),
-// adds CMenuImages::Size().cx to the width and resizes the window unless
-// bCalcOnly.  Transcribed from retail RVA 0x28270 (SetWindowPos flags 0x16 =
-// SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE, x/y = -1).
+// approximates CMenuImages::Size().cx as 9 when adding to the width, and resizes unless
+// bCalcOnly.  Transcribed from retail RVA 0x28270 (mfc140u; SetWindowPos
+// flags 0x16 = SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE, x/y = -1).
 // Symbol: ?SizeToContent@CMFCColorButton@@UEAA?AVCSize@@H@Z
 extern "C" CSize* MS_ABI impl__SizeToContent_CMFCColorButton__UEAA_AVCSize__H_Z(
     void* pThis, CSize* pRet, int bCalcOnly)
@@ -452,7 +487,8 @@ extern "C" CSize* MS_ABI impl__SizeToContent_CMFCColorButton__UEAA_AVCSize__H_Z(
         return pRet;
     }
     impl__SizeToContent_CMFCButton__UEAA_AVCSize__H_Z(pThis, pRet, 0);
-    // TODO(clean-room): CMenuImages::Size().cx (0x18008f600) default 9 is used.
+    // TODO(clean-room): CMenuImages::Size().cx is approximated as 9; retail has
+    // separate theme/DPI-dependent size paths.
     pRet->cx += 9;
     if (bCalcOnly == 0) {
         impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
@@ -463,8 +499,8 @@ extern "C" CSize* MS_ABI impl__SizeToContent_CMFCColorButton__UEAA_AVCSize__H_Z(
 }
 // UpdateColor(COLORREF clr): stores the color (SetColor) and notifies the
 // parent dialog with a WM_COMMAND/BN_CLICKED message.  Transcribed from
-// retail RVA 0x28f90 (CWnd::FromHandle on the parent, CWnd::GetDlgCtrlID,
-// SendMessageW 0x111).
+// retail RVA 0x28f90 (mfc140u) uses CWnd::FromHandle on the parent,
+// CWnd::GetDlgCtrlID, and sends WM_COMMAND (BN_CLICKED).
 // Symbol: ?UpdateColor@CMFCColorButton@@MEAAXK@Z
 extern "C" void MS_ABI impl__UpdateColor_CMFCColorButton__MEAAXK_Z(
     void* pThis, unsigned long clr)
@@ -473,20 +509,28 @@ extern "C" void MS_ABI impl__UpdateColor_CMFCColorButton__MEAAXK_Z(
     CColorBtn* s = reinterpret_cast<CColorBtn*>(pThis);
     impl__SetColor_CMFCColorButton__QEAAXK_Z(pThis, clr);
     if (s->m_hWnd == nullptr) return;
-    HWND hwndParent = ::GetParent(s->m_hWnd);                    // 0x1802c72d8
+    HWND hwndParent = ::GetParent(s->m_hWnd);
     if (hwndParent == nullptr) return;
     CWnd* pParent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(hwndParent);
     if (pParent == nullptr || pParent->m_hWnd == nullptr) return;
     WORD wId = static_cast<WORD>(::GetDlgCtrlID(s->m_hWnd));
-    ::SendMessageW(pParent->m_hWnd, WM_COMMAND,                   // 0x1802c7120
-                   static_cast<WPARAM>(wId),                      // id (BN_CLICKED == 0)
-                   reinterpret_cast<LPARAM>(s->m_hWnd));
+    ::SendMessage(pParent->m_hWnd, WM_COMMAND,
+                  static_cast<WPARAM>(wId),
+                  reinterpret_cast<LPARAM>(s->m_hWnd));
 }
 // Symbol: ??0CMFCColorButton@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCColorButton__QEAA_XZ(void* pThis) {
     return pThis;
 }
+// Retail RVA 0x28180 (mfc140u) destroys the palette holder, releases the
+// three CString members, destroys the CList and CArray members, then calls
+// CMFCButton::~CMFCButton. The local CMFCColorButton constructor thunk above
+// currently returns without constructing any of those subobjects, so their
+// fields cannot be safely treated as initialized here. Leave this as an
+// explicit stub rather than dereferencing or releasing potentially invalid
+// object state; faithful cleanup requires first implementing that constructor
+// and modeling the retail-owned palette/list/array teardown.
 // Symbol: ??1CMFCColorButton@@UEAA@XZ
-extern "C" void MS_ABI impl___1CMFCColorButton__UEAA_XZ(void* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl___1CMFCColorButton__UEAA_XZ(void* /*pThis*/) {
+    // TODO(clean-room): unsafe until this class's subobjects are initialized.
 }

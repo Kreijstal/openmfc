@@ -88,6 +88,12 @@ extern "C" int MS_ABI impl__GetString_CToolBarCtrl__QEBAHHAEAV__CStringT__WV__St
     *pString = buffer.data();
     return static_cast<int>(copied);
 }
+// Retail CToolBarCtrl::~CToolBarCtrl (entry RVA 0x294a40, mfc140u) first
+// installs the CToolBarCtrl vfptr, then destroys the window and calls
+// CWnd::~CWnd. This tree has no CToolBarCtrl declaration or local vftable;
+// without that store, dispatch depends on the caller's current vfptr rather
+// than the retail CToolBarCtrl vfptr. Leave this as a stub instead of partially
+// reproducing the destructor without a local table.
 // Symbol: ??1CToolBarCtrl@@UEAA@XZ
 extern "C" void MS_ABI impl___1CToolBarCtrl__UEAA_XZ(void* pThis) {
     (void)pThis;

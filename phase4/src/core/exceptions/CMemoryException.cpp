@@ -11,8 +11,8 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRun
     return &CMemoryException::classCMemoryException;
 }
 // Symbol: ?GetRuntimeClass@CMemoryException@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" void* MS_ABI impl__GetRuntimeClass_CMemoryException__UEBAPEAUCRuntimeClass__XZ(
-    void* pThis) {
-    (void)pThis;
-    return nullptr;
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMemoryException__UEBAPEAUCRuntimeClass__XZ(
+    const CMemoryException*) {
+    // Retail RVA 0x2275c0 (mfc140u) forms the static runtime-class descriptor's address and returns it.
+    return &CMemoryException::classCMemoryException;
 }

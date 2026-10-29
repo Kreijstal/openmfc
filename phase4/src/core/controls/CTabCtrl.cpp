@@ -6,6 +6,10 @@
 #include "detail/CtrlOwnerdrawSupport.h"
 #include "detail/CtrlcoreSupport.h"
 
+extern "C" CImageList* MS_ABI impl__FromHandlePermanent_CImageList__SAPEAV1_PEAU_IMAGELIST___Z(
+    HIMAGELIST hImageList);
+extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd* pThis);
+
 // Symbol: ?DrawItem@CTabCtrl@@UEAAXPEAUtagDRAWITEMSTRUCT@@@Z
 extern "C" void MS_ABI impl__DrawItem_CTabCtrl__UEAAXPEAUtagDRAWITEMSTRUCT___Z(
     CTabCtrl* pThis, DRAWITEMSTRUCT* pDraw) {
@@ -83,9 +87,17 @@ extern "C" int MS_ABI impl__OnChildNotify_CTabCtrl__MEAAHI_K_JPEA_J_Z(
     }
     return FALSE;
 }
+// Retail RVA 0x2968e0 (mfc140u): retrieve the tab control's image list, clear
+// the control's association only when FromHandlePermanent finds a permanent
+// wrapper, then invoke CWnd::OnDestroy.
 // Symbol: ?OnDestroy@CTabCtrl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CTabCtrl__IEAAXXZ(CTabCtrl* pThis) {
-    (void)pThis;
+    HIMAGELIST hImageList = reinterpret_cast<HIMAGELIST>(
+        ::SendMessage(pThis->m_hWnd, TCM_GETIMAGELIST, 0, 0));
+    if (impl__FromHandlePermanent_CImageList__SAPEAV1_PEAU_IMAGELIST___Z(hImageList)) {
+        ::SendMessage(pThis->m_hWnd, TCM_SETIMAGELIST, 0, 0);
+    }
+    impl__OnDestroy_CWnd__IEAAXXZ(pThis);
 }
 // Symbol: ?SetItemState@CTabCtrl@@QEAAHHKK@Z
 extern "C" int MS_ABI impl__SetItemState_CTabCtrl__QEAAHHKK_Z(

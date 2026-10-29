@@ -6,6 +6,20 @@
 #include "detail/CtrlOwnerdrawSupport.h"
 #include "detail/CtrlcoreSupport.h"
 
+extern "C" CImageList* MS_ABI impl__FromHandlePermanent_CImageList__SAPEAV1_PEAU_IMAGELIST___Z(
+    HIMAGELIST hImageList);
+extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd* pThis);
+
+namespace {
+void RemoveTreeCtrlImageList(CTreeCtrl* pThis, int type) {
+    HWND hWnd = pThis->m_hWnd;
+    HIMAGELIST hImageList = (HIMAGELIST)::SendMessage(hWnd, TVM_GETIMAGELIST, type, 0);
+    if (impl__FromHandlePermanent_CImageList__SAPEAV1_PEAU_IMAGELIST___Z(hImageList)) {
+        ::SendMessage(hWnd, TVM_SETIMAGELIST, type, 0);
+    }
+}
+}
+
 // Symbol: ?CreateDragImage@CTreeCtrl@@QEAAPEAVCImageList@@PEAU_TREEITEM@@@Z
 extern "C" CImageList* MS_ABI impl__CreateDragImage_CTreeCtrl__QEAAPEAVCImageList__PEAU_TREEITEM___Z(
     CTreeCtrl* pThis, HTREEITEM hItem) {
@@ -167,9 +181,15 @@ extern "C" int MS_ABI impl__ItemHasChildren_CTreeCtrl__QEBAHPEAU_TREEITEM___Z(
     TVITEMW item = {};
     return TreeCtrlGetItem(TreeCtrlHwnd(pThis), hItem, TVIF_CHILDREN, &item) ? (item.cChildren != 0) : FALSE;
 }
+// Retail OnDestroy at RVA 0x295d80 (mfc140u) calls its image-list helper at
+// RVA 0x2773b0 (mfc140u) for types 0 and 2, then tail-jumps to CWnd::OnDestroy
+// at RVA 0x28b840 (mfc140u). The helper clears each control list only when
+// FromHandlePermanent finds an MFC wrapper.
 // Symbol: ?OnDestroy@CTreeCtrl@@QEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CTreeCtrl__QEAAXXZ(CTreeCtrl* pThis) {
-    (void)pThis;
+    RemoveTreeCtrlImageList(pThis, 0);
+    RemoveTreeCtrlImageList(pThis, 2);
+    impl__OnDestroy_CWnd__IEAAXXZ(static_cast<CWnd*>(pThis));
 }
 // Symbol: ?RemoveImageList@CTreeCtrl@@IEAAXH@Z
 extern "C" void MS_ABI impl__RemoveImageList_CTreeCtrl__IEAAXH_Z(CTreeCtrl* pThis, int nImageList) {

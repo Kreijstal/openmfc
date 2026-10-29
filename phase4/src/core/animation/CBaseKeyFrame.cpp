@@ -17,6 +17,7 @@
 #include <new>
 #include <cstdlib>
 #include <cstring>
+#include <cstddef>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -53,11 +54,27 @@ extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransacti
 
 
 
-// CBaseKeyFrame::AddToStoryboard(IUIAnimationStoryboard*, BOOL) — the base
-// keyframe represents UI_ANIMATION_KEYFRAME_STORYBOARD_START, which is already
-// part of every storyboard, so there is nothing to add. Retail mfc140u compiles
-// this to exactly `mov eax,1 / ret` (verified at the export's RVA): it touches
-// no members and ignores both arguments. Derived keyframes override it.
+// CBaseKeyFrame is not declared in include/openmfc, so pin the retail layout
+// locally. The MSVC retail declaration has these fields after CObject's vfptr
+// (afxanimationcontroller.h:298-326); mfc140u's sentinel at RVA 0x3b1ba8
+// stores the vftable, storyboard-start keyframe, and two TRUE BOOLs.
+namespace {
+struct S_CBaseKeyFrameLayout {
+    void* vfptr;
+    unsigned long long m_keyframe;
+    int m_bAdded;
+    int m_bIsKeyframeAtOffset;
+};
+static_assert(offsetof(S_CBaseKeyFrameLayout, m_keyframe) == 0x08, "CBaseKeyFrame::m_keyframe");
+static_assert(offsetof(S_CBaseKeyFrameLayout, m_bAdded) == 0x10, "CBaseKeyFrame::m_bAdded");
+static_assert(offsetof(S_CBaseKeyFrameLayout, m_bIsKeyframeAtOffset) == 0x14, "CBaseKeyFrame::m_bIsKeyframeAtOffset");
+static_assert(sizeof(S_CBaseKeyFrameLayout) == 0x18, "sizeof(CBaseKeyFrame) == 24");
+}
+
+// CBaseKeyFrame::AddToStoryboard(IUIAnimationStoryboard*, BOOL). The exact
+// export name has no resolved RVA. Retail mfc140u's vftable (RVA 0x2dae80)
+// has slot 5 at RVA 0x2daea8 pointing to code RVA 0x3a60, which disassembles
+// as `mov $1,%eax; ret`: it ignores this and both arguments and returns TRUE.
 // Symbol: ?AddToStoryboard@CBaseKeyFrame@@UEAAHPEAUIUIAnimationStoryboard@@H@Z
 extern "C" int MS_ABI impl__AddToStoryboard_CBaseKeyFrame__UEAAHPEAUIUIAnimationStoryboard__H_Z(
     void* /*pThis*/, void* /*pStoryboard*/, int /*bDeepAdd*/)

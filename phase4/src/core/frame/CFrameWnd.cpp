@@ -38,7 +38,10 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(C
     return pThis ? pThis->PreTranslateMessage(pMsg) : FALSE;
 }
 // Symbol: ?rectDefault@CFrameWnd@@2VCRect@@B
-extern "C" const CRect MS_ABI impl__rectDefault_CFrameWnd__2VCRect__B = {};
+// Retail data is {CW_USEDEFAULT, CW_USEDEFAULT, 0, 0}; mfc140 RVA 0x3ab470
+// contains bytes 00 00 00 80 00 00 00 80 00 00 00 00 00 00 00 00.
+extern "C" const CRect MS_ABI impl__rectDefault_CFrameWnd__2VCRect__B = {
+    static_cast<int>(CW_USEDEFAULT), static_cast<int>(CW_USEDEFAULT), 0, 0};
 // Symbol: ?GetThisClass@CFrameWnd@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ() {
     return &CFrameWnd::classCFrameWnd;
