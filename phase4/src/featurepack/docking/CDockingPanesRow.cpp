@@ -35,14 +35,11 @@
 // method symbols to dispatch through) — a devirtualisation, noted per call.
 //
 // Two systematic deviations, stated once here:
-//  * `pPane->IsVisible()` — retail calls CBasePane::IsVisible (0xb390), which
-//    forwards to the tab container when IsTabbed(), returns
-//    GetRecentVisibleState() while the module-wide "restoring state" flag is
-//    set, and otherwise returns (GetStyle() & WS_VISIBLE) != 0.  OpenMFC's
-//    impl__IsVisible_CBasePane__UEBAHXZ is still a `return 0` stub, which would
-//    make every loop here a no-op, so PaneIsVisible() below implements the
-//    third (ordinary-window) branch only.  The tabbed / restoring branches are
-//    NOT implemented.
+//  * Pane visibility routes through impl__IsVisible_CBasePane (entry RVA
+//    0xb310, mfc140u), whose body now covers the tabbed, restoring-state, and
+//    ordinary-window branches; the thunk still devirtualizes
+//    IsTabbed/GetParentTabWnd and reads m_bRecentVisibleState directly, as
+//    documented at its definition.
 //  * Retail's CWnd rectangle coordinate methods convert both corners and then
 //    swap left/right when WS_EX_LAYOUTRTL is set (see CWndCoordinates.cpp and the
 //    retail entries). CWnd* sites use the real thunk above; the remaining raw-HWND
@@ -79,9 +76,23 @@ extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const C
                                                                         const CRuntimeClass* pClass);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ();
 extern "C" void MS_ABI impl__RecalcLayout_CPane__UEAAXXZ(CPane* pThis);
+extern "C" int MS_ABI impl__IsVisible_CBasePane__UEBAHXZ(const CBasePane* pThis);
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ();
+extern "C" SIZE* MS_ABI impl__CalcFixedLayout_CDockablePane__UEAA_AVCSize__HH_Z(
+    CDockablePane* pThis, SIZE* pRet, int bStretch, int bHorz);
 extern "C" void* MS_ABI impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
     CBasePane* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy,
     unsigned int nFlags, void* hdwp);
+extern "C" int MS_ABI impl__CalcLastPaneOffset_CDockingPanesRow__IEAAHXZ(void* pThis);
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
+extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
+extern "C" void* impl__m_pRTIDefault_CMFCVisualManager__1PEAUCRuntimeClass__EA;
+extern "C" CMFCVisualManager* MS_ABI
+    impl__CreateVisualManager_CMFCVisualManager__KAPEAV1_PEAUCRuntimeClass___Z(CRuntimeClass* pRTI);
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCVisualManager__SAPEAVCObject__XZ();
+extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ(
+    CMFCVisualManager* pThis);
 
 // Verified 2026-09-07 against phase4/src/featurepack/docking/CPane.cpp: of the
 // four CPane helpers below, IsLeftOf (CPane.cpp:737), StretchPaneDeferWndPos
@@ -149,6 +160,7 @@ static_assert(offsetof(S_CDockingPanesRow, m_bVisible)             == 0x0C, "row
 static_assert(offsetof(S_CDockingPanesRow, m_nRowHeight)           == 0x10, "row layout");
 static_assert(offsetof(S_CDockingPanesRow, m_nRowOffset)           == 0x1C, "row layout");
 static_assert(offsetof(S_CDockingPanesRow, m_nExtraSpace)          == 0x20, "row layout");
+static_assert(offsetof(S_CDockingPanesRow, m_nExtraAlignment)       == 0x24, "row layout");
 static_assert(offsetof(S_CDockingPanesRow, m_lstControlBars)       == 0x28, "row layout");
 static_assert(offsetof(S_CDockingPanesRow, m_dwRowAlignment)       == 0x60, "row layout");
 static_assert(offsetof(S_CDockingPanesRow, m_pParentDockBar)       == 0x68, "row layout");
@@ -244,11 +256,83 @@ inline const RECT* RP(const CRect* r) { return reinterpret_cast<const RECT*>(r);
 
 inline CPane* PaneOf(ObNode* n) { return reinterpret_cast<CPane*>(n->data); }
 
-// See the file header: only the ordinary-window branch of retail
-// CBasePane::IsVisible (0xb390) is implemented.
+// OpenMFC does not model the full CBasePane vtable, so retail virtuals are
+// routed through implemented thunks where available. CalcFixedLayout has no
+// CBasePane thunk: retail's base implementation returns CSize(0,0) for FALSE,
+// while CDockablePane has a verified body that returns the current window size.
+inline void PaneSetWindowPos(CPane* pPane, int x, int y, int cx, int cy,
+                             unsigned int flags) {
+    impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+        static_cast<CBasePane*>(pPane), nullptr, x, y, cx, cy, flags, nullptr);
+}
+
+inline CSize PaneFixedLayout(CPane* pPane, bool bHorz) {
+    CSize size(0, 0);
+    if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            reinterpret_cast<const CObject*>(pPane),
+            impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ())) {
+        SIZE nativeSize = {};
+        impl__CalcFixedLayout_CDockablePane__UEAA_AVCSize__HH_Z(
+            reinterpret_cast<CDockablePane*>(pPane), &nativeSize, FALSE,
+            bHorz ? TRUE : FALSE);
+        size.cx = nativeSize.cx;
+        size.cy = nativeSize.cy;
+    }
+    return size;
+}
+
+inline int VisualManagerArrangeQuery() {
+    // Retail's internal getter at entry RVA 0x9774 (mfc140u) lazily creates the
+    // manager from m_pRTIDefault (or constructs the base manager), then invokes
+    // OnUpdateSystemColors at vslot +0x70.  There is no GetInstance thunk, so
+    // reproduce singleton creation through the existing creation thunks.
+    if (impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA == nullptr) {
+        auto* pDefault = static_cast<CRuntimeClass*>(
+            impl__m_pRTIDefault_CMFCVisualManager__1PEAUCRuntimeClass__EA);
+        CMFCVisualManager* pManager = pDefault != nullptr
+            ? impl__CreateVisualManager_CMFCVisualManager__KAPEAV1_PEAUCRuntimeClass___Z(pDefault)
+            : static_cast<CMFCVisualManager*>(
+                  impl__CreateObject_CMFCVisualManager__SAPEAVCObject__XZ());
+        if (pManager != nullptr) {
+            // Retail sets its private m_bAutoDestroy (+0x104) and dispatches
+            // OnUpdateSystemColors virtually.  The OpenMFC base thunk is a
+            // no-op; derived manager overrides cannot be reached from this TU.
+            impl__OnUpdateSystemColors_CMFCVisualManager__UEAAXXZ(pManager);
+        }
+    }
+
+    // Retail then calls HasOverlappedAutoHideButtons (vslot +0x368).  The SDK
+    // inline base implementation is `return FALSE`, and OpenMFC exposes no
+    // override for that virtual, so this is the result for modeled managers.
+    return FALSE;
+}
+
+// AFX_GLOBAL_DATA::m_nAutoHideToolBarSpacing is at +0x294; the gate at +0
+// and field offset are pinned by the AFX_GLOBAL_DATA shadow in core/runtime.
+inline int ReadAutoHideToolBarSpacing() {
+    int spacing = 0;
+    std::memcpy(&spacing,
+                impl__afxGlobalData__3UAFX_GLOBAL_DATA__A + 0x294,
+                sizeof(spacing));
+    return spacing;
+}
+
+inline int InitializeAndReadAutoHideToolBarSpacing() {
+    int initialized = 0;
+    std::memcpy(&initialized, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A,
+                sizeof(initialized));
+    if (initialized == 0) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(
+            impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+        initialized = 1;
+        std::memcpy(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A,
+                    &initialized, sizeof(initialized));
+    }
+    return ReadAutoHideToolBarSpacing();
+}
+
 BOOL PaneIsVisible(const CBasePane* p) {
-    if (p == nullptr || p->m_hWnd == nullptr) return FALSE;
-    return (::GetWindowLongPtrW(p->m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0 ? TRUE : FALSE;
+    return p != nullptr ? impl__IsVisible_CBasePane__UEBAHXZ(p) : FALSE;
 }
 
 // The `pBar->IsVisible() || m_bIgnoreBarVisibility` guard retail repeats in
@@ -338,19 +422,79 @@ extern "C" void MS_ABI impl___1CDockingPanesRow__UEAA_XZ(void* pThis) {
     impl__RemoveAll_CObList__QEAAXXZ(&s->m_lstControlBars);
 }
 // Symbol: ?AddPane@CDockingPanesRow@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@H@Z
-// Retail mfc140 RVA 0x4f510; mfc140u RVA 0x4f6c0.  Left stubbed: the
-// nonempty-rect path maps the supplied rect and computes row-axis placement,
-// while the fallback path consults CalcLastPaneOffset and shared layout state;
-// both paths then derive pane geometry and dispatch SetWindowPos, OnInsertPane,
-// and UpdateVirtualRect.  I did not establish an OpenMFC counterpart for the
-// shared fallback state, so a partial transcription could silently misplace panes.
+// Retail entry RVA 0x4f6c0 (mfc140u). Both rect and fallback paths compute a
+// target origin, then dispatch CalcFixedLayout (slot 0x4d0), SetWindowPos
+// (slot 0x480), OnInsertPane (row slot 0xd8), and UpdateVirtualRect. OpenMFC
+// cannot safely read this retail vtable: CDockablePane-derived objects use the
+// existing CDockablePane fixed-layout thunk; other CPane subclasses use the
+// base FALSE result (0,0). Custom CalcFixedLayout overrides are not reached,
+// including further-derived CDockablePane overrides. SetWindowPos also uses
+// the base thunk. The fallback's shared value is
+// AFX_GLOBAL_DATA::m_nAutoHideToolBarSpacing (+0x294), whose OpenMFC global blob
+// and initializer are available.  dockMethod is not inspected by retail here.
 extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT__H_Z(
-    void* pThis, CPane* pPane, int dockMethod, const RECT* pRect, int arg) {
-    (void)pThis;
-    (void)pPane;
+    void* pThis, CPane* pPane, int dockMethod, const RECT* pRect, int bAddLast) {
     (void)dockMethod;
-    (void)pRect;
-    (void)arg;
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr || pPane == nullptr) return;
+
+    const bool bHorz = RowIsHorz(s);
+    int x;
+    int y;
+    CRect rectInput(0, 0, 0, 0);
+
+    if (pRect != nullptr && !::IsRectEmpty(pRect)) {
+        ::CopyRect(RP(&rectInput), pRect);
+
+        CRect rectClient(0, 0, 0, 0);
+        if (s->m_pParentDockBar != nullptr)
+            ::GetClientRect(s->m_pParentDockBar->m_hWnd, RP(&rectClient));
+
+        CRect rectRow(0, 0, 0, 0);
+        impl__GetWindowRect_CDockingPanesRow__QEBAXAEAVCRect___Z(pThis, &rectRow);
+        if (s->m_pParentDockBar != nullptr) {
+            impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(
+                s->m_pParentDockBar, RP(&rectInput));
+            impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(
+                s->m_pParentDockBar, RP(&rectRow));
+        }
+
+        if (bHorz) {
+            x = rectInput.left - rectRow.left;
+            y = rectClient.top + s->m_nRowOffset;
+        } else {
+            x = rectClient.left + s->m_nRowOffset;
+            y = rectInput.top - rectRow.top;
+        }
+    } else {
+        int nOffset = 0;
+        if (bAddLast != 0) {
+            nOffset = impl__CalcLastPaneOffset_CDockingPanesRow__IEAAHXZ(pThis);
+            if (nOffset > 0) nOffset += InitializeAndReadAutoHideToolBarSpacing();
+        }
+
+        CRect rectClient(0, 0, 0, 0);
+        impl__GetClientRect_CDockingPanesRow__QEBAXAEAVCRect___Z(pThis, &rectClient);
+        if (bHorz) {
+            x = rectClient.left + nOffset;
+            y = s->m_nExtraAlignment == 1 ? s->m_nExtraSpace : s->m_nRowOffset;
+        } else {
+            x = s->m_nExtraAlignment == 1
+                    ? s->m_nExtraSpace + s->m_nRowOffset
+                    : s->m_nRowOffset;
+            y = rectClient.top + nOffset;
+        }
+    }
+
+    // The retail call is CBasePane vslot 0x4d0. OpenMFC's CBasePane vtable is
+    // incomplete, so use the verified CDockablePane thunk when applicable;
+    // other CPane subclasses use the retail base result for FALSE (0,0); their
+    // custom overrides are not dispatched.
+    const CSize size = PaneFixedLayout(pPane, bHorz);
+    PaneSetWindowPos(pPane, x, y, size.cx, size.cy,
+                     SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+    impl__OnInsertPane_CDockingPanesRow__MEAAXPEAVCPane___Z(pThis, pPane);
+    impl__UpdateVirtualRect_CPane__QEAAXXZ(pPane);
 }
 
 // Symbol: ?AddPaneFromRow@CDockingPanesRow@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@@Z
@@ -478,22 +622,99 @@ extern "C" void MS_ABI impl__AdjustPaneToRowArea_CDockingPanesRow__IEAAXPEAVCPan
 }
 
 // Symbol: ?ArrangePanes@CDockingPanesRow@@UEAAXHH@Z
-// Retail mfc140 RVA 0x51510; mfc140u RVA 0x516c0.  Left stubbed: this
-// multi-pane layout pass combines an application/window query, pane virtual
-// calls, row geometry, and repeated SetWindowPos operations.  I did not
-// establish a faithful mapping for the app/window state and virtual effects.
+// Retail entry RVA 0x516c0 (mfc140u). The row's screen rect and visual-manager
+// query seed the pass; visible panes are placed one at a time, then retail calls
+// vslot 0x420 StretchPane(length, vertical), and the resulting window extent
+// plus nSpacing determines the next pane's origin. OpenMFC omits that virtual
+// call because the modeled base returns CSize(0,0) and there is no safe thunk for
+// overrides. SetWindowPos is routed through the available impl__ thunk rather
+// than issuing a raw call through the retail slot.
+// The first-in-group and orientation tests are re-read at the same points as
+// retail. The SDK
+// HasOverlappedAutoHideButtons base virtual returns FALSE. OpenMFC does not
+// model client overrides, retail's m_bAutoDestroy write, or derived
+// OnUpdateSystemColors dispatch when the manager is first created; those are
+// the limits of this body.
 extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(
-    void* pThis, int arg1, int arg2) {
-    (void)pThis;
-    (void)arg1;
-    (void)arg2;
+    void* pThis, int nMargin, int nSpacing) {
+    S_CDockingPanesRow* s = Row(pThis);
+    if (s == nullptr) return;
+
+    CRect rectRow(0, 0, 0, 0);
+    impl__GetWindowRect_CDockingPanesRow__QEBAXAEAVCRect___Z(pThis, &rectRow);
+    const int bHasOverlappedAutoHideButtons = VisualManagerArrangeQuery();
+
+    int x = 0;
+    int y = 0;
+    bool bFirst = true;
+    for (ObNode* n = HeadNode(s); n != nullptr; ) {
+        CPane* pPane = PaneOf(n);
+        ObNode* pNext = n->pNext;
+        n = pNext;
+        if (pPane == nullptr) continue;
+        if (!PaneIsVisible(pPane) && s->m_bIgnoreBarVisibility == 0) continue;
+
+        CRect rectPane(0, 0, 0, 0);
+        ::GetWindowRect(pPane->m_hWnd, RP(&rectPane));
+
+        if (bFirst) {
+            if (RowIsHorz(s)) x = rectRow.left + nMargin;
+            else              y = rectRow.top + nMargin;
+        }
+
+        if (pPane->m_bFirstInGroup == 0 && !bFirst) {
+            const int nGroupGap = nSpacing + ReadAutoHideToolBarSpacing();
+            if (RowIsHorz(s)) {
+                x -= nGroupGap;
+                if (bHasOverlappedAutoHideButtons != 0)
+                    x -= (rectPane.Height() / 2);
+            } else {
+                y -= nGroupGap;
+                if (bHasOverlappedAutoHideButtons != 0)
+                    y -= (rectPane.Width() / 2);
+            }
+        }
+
+        bFirst = false;
+        const bool bHorzForPosition = RowIsHorz(s);
+        int nLength;
+        if (bHorzForPosition) {
+            nLength = rectPane.Width();
+            rectPane.left = x;
+            rectPane.right = x + nLength;
+        } else {
+            nLength = rectPane.Height();
+            rectPane.top = y;
+            rectPane.bottom = y + nLength;
+        }
+
+        if (s->m_pParentDockBar != nullptr)
+            impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(
+                s->m_pParentDockBar, RP(&rectPane));
+        PaneSetWindowPos(pPane, rectPane.left, rectPane.top,
+                         rectPane.Width(), rectPane.Height(),
+                         SWP_NOZORDER | SWP_NOACTIVATE);
+
+        const bool bHorzForStretch = RowIsHorz(s);
+        // Retail calls vslot 0x420, CBasePane::StretchPane(nLength, bVert).
+        // Its inline base body returns CSize(0,0); no safe thunk exists for an
+        // application override because OpenMFC does not model this vtable slot.
+        (void)nLength;
+        (void)bHorzForStretch;
+
+        // Retail re-reads the live rect after StretchPane; the modeled base
+        // method has no side effect, while a custom override is not dispatched.
+        ::GetWindowRect(pPane->m_hWnd, RP(&rectPane));
+        if (RowIsHorz(s)) x += nSpacing + rectPane.Width();
+        else              y += nSpacing + rectPane.Height();
+    }
 }
 
 // Symbol: ?ArrangePanes@CDockingPanesRow@@UEAAXPEAVCPane@@@Z
 // Retail RVA 0x518f0 (mfc140u), transcribed in full.  The row helpers called
 // below have substantive bodies here; external CPane thunks used by this routine
-// were checked in CPane.cpp.  The ordinary-window visibility approximation from
-// the file header still applies:
+// were checked in CPane.cpp. The IsVisible helper routes through the real
+// CBasePane visibility thunk:
 //   if (m_lstControlBars.GetCount() == 0) return;
 //   CRect rectClient; GetClientRect(rectClient);            // RVA 0x4ff00 (mfc140u)
 //   if (::IsRectEmpty(&rectClient)) return;

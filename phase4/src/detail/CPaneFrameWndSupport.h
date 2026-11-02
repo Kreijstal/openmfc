@@ -5,27 +5,21 @@
 namespace openmfc { namespace detail { namespace cpaneframewnd {} } }
 using namespace openmfc::detail::cpaneframewnd;
 // CPaneFrameWnd message handlers and helpers, wave "other-6".
-//
-// Every function here was decoded from the retail mfc140u export (ordinal ->
-// RVA -> objdump, see /tmp/openmfc_remaining/dis_out/*.txt) rather than
-// inferred. The retail member offsets used below (0x140 exit-size-move focus
-// hwnd, 0x148 pane hwnd, 0x120/0x124 timer ids, 0x12c roll-up flags, 0x10d
-// dragging flag, 0xec idle-active flag) are NOT named in the OpenMFC headers
-// (CPaneFrameWnd is modeled as a thin CMiniFrameWnd subclass), so object state
-// is kept in a private side table - the same pattern cbarcore.cpp uses for the
-// sibling CPaneFrameWnd exports. Only CWnd members declared in afxwin.h are
-// accessed directly (m_hWnd @ 64 and the inline wrapper methods).
-//
-// Where a retail body depends on internal virtual slots (drag-frame impl,
-// docking-manager / caption-button internals) or unexported globals, a
-// type-correct conservative version is emitted (safe defaults, no state
-// corruption) with a `TODO(clean-room)` note.
+// Retail CPaneFrameWnd is 0x258 bytes and derives from CWnd; the OpenMFC public
+// declaration remains a smaller CMiniFrameWnd-derived object. Consequently all
+// retail fields below are pThis-keyed side-table state, never raw offsets into
+// the OpenMFC allocation. The base constructor entry RVA 0xad110 (mfc140u)
+// establishes the member stores, while AddButton entry RVA 0xb0f50 and
+// ArrangeCaptionButtons entry RVA 0xb13d0 (mfc140u) establish the caption list
+// representation and button fields. Existing CWnd storage (m_hWnd +0x40) is
+// still accessed through the declared CWnd base only.
 //
 // Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass drops the
 // generated stubs for these ordinals.
 
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
+#include "detail/DockingState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -47,13 +41,44 @@ using namespace openmfc::detail::cpaneframewnd;
 
 namespace openmfc { namespace detail { namespace cpaneframewnd {
 struct PaneFrameState {
-    HWND exitSizeMoveHwnd = nullptr;  // retail 0x140: hwnd to re-focus after sizing
-    HWND paneHwnd = nullptr;          // retail 0x148: hwnd of the hosted pane
-    int  dockTimerID = 0;             // retail 0x120
-    int  rollupTimerID = 0;           // retail 0x124
-    int  rollupFlags = 0;             // retail 0x12c
-    int  idleActive = 0;              // retail 0xec (bool-ish)
-    bool dragging = false;            // retail 0x10d (byte)
+    bool blockMove = false;                 // m_bBlockMove +0x0e8
+    HWND exitSizeMoveHwnd = nullptr;        // m_hLastFocusWnd +0x140
+    HWND paneHwnd = nullptr;                // m_hEmbeddedBar +0x148
+    int  dockTimerID = 0;                   // m_nDockTimerID +0x120
+    int  rollupTimerID = 0;                 // m_nRollTimerID +0x124
+    int  rollupFlags = 0;                   // m_dwCaptionButtons +0x12c
+    int  idleActive = 0;                    // m_bActive +0xec
+    bool moving = false;                    // m_bIsMoving +0xf0
+    bool enablePreDockState = false;        // m_bEnablePreDockState +0xf4
+    bool rolledUp = false;                  // m_bRolledUp +0xf8
+    bool pinned = false;                    // m_bPinned +0xfc
+    bool noDelayedDestroy = false;          // m_bNoDelayedDestroy +0x100
+    bool hostsToolbar = false;               // m_bHostsToolbar +0x104
+    bool delayShow = false;                 // m_bDelayShow +0x108
+    bool tabDragRectDisplayed = false;       // m_bTabDragRectDisplayed +0x10c
+    bool dragging = false;                  // m_bCaptured +0x10d
+    UINT heightBeforeRollUp = 0;             // m_nHeightBeforeRollUp +0x110
+    UINT captionHeight = 0;                  // m_nCaptionHeight +0x114
+
+    UINT hitButtonID = 0;                   // m_nHit +0x118
+    UINT hotButtonID = 0;                   // m_nHot +0x11c
+    UINT restoredEmbeddedBarID = 0;         // m_nRestoredEmbeddedBarID +0x128
+    HWND ownerHwnd = nullptr;               // m_hParentWnd +0x130
+    HWND destroyOnReleaseHwnd = nullptr;    // m_hWndToDestroyOnRelease +0x138
+    RECT recentFloatingRect{};              // m_rectRecentFloatingRect +0x150
+    SIZE minSize{};                         // m_sizeMinSize +0x160
+    RECT redrawRect{};                      // m_rectRedraw +0x168
+    POINT captionButtonHotPoint{};          // m_ptHot +0x178
+    CMFCDragFrameImpl dragFrame{};           // m_dragFrameImpl +0x1c8
+    openmfc::docking_state::CaptionButtonState* captionButtons = nullptr; // side data for m_lstCaptionButtons @+0x180
+    std::size_t captionButtonCount = 0;      // retail CObList m_nCount +0x198
+    std::size_t captionButtonCapacity = 0;   // side-table allocation capacity
+    CToolTipCtrl* toolTip = nullptr;         // m_pToolTip +0x1b8
+    CDockablePane* preDockPane = nullptr;    // m_pPreDockBar +0x1c0
+    openmfc::docking_state::DockingTooltipState* toolTips = nullptr;
+    std::size_t toolTipCount = 0;
+    CDockingManager* dockManager = nullptr;  // m_pDockManager +0x248
+    int preDockState = 0;                   // m_preDockStateCurr +0x250
 };
 } } }
 

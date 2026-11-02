@@ -763,7 +763,9 @@ public:
     void* m_xAccessible;               // +0x60, embedded interface vfptr
     void* m_xAccessibleServer;         // +0x68, embedded interface vfptr
     union {
-        unsigned char _cwnd_padding2[48];
+        // The byte view includes the inline CWnd::m_hWndOwner slot so legacy
+        // padding-based layout probes cover +0xa0 without shifting any fields.
+        unsigned char _cwnd_padding2[56];
         struct {
             BOOL m_bIsTouchWindowRegistered; // +0x70
             POINT m_ptGestureFrom;           // +0x74
@@ -773,9 +775,9 @@ public:
             DWORD _gesture_pointer_alignment;
             GESTUREINFO* m_pCurrentGestureInfo; // +0x90
             CMFCDynamicLayout* m_pDynamicLayout; // +0x98
+            HWND m_hWndOwner;                // +0xa0
         };
     };
-    HWND m_hWndOwner;                  // +0xA0
     DWORD m_nFlags;                    // +0xA8
     DWORD _cwnd_flags_alignment;
     WNDPROC m_pfnSuper;                // +0xB0
@@ -1131,14 +1133,39 @@ public:
 
 public:
     static const CRect rectDefault;
-    char _frame_prefix[16];     // +0xe8..+0xf7
-    HACCEL m_hAccelTable;       // +0xf8
-    char _frame_middle[100];    // +0x100..+0x163
-    UINT m_nIDHelp;             // +0x164
-    char _frame_tracking[8];    // +0x168..+0x16f
-    CWnd* m_pViewActive;        // +0x170
-protected:
-    char _framewnd_padding[96]; // +0x178..+0x1d7
+    struct RetailPrefixStorage {
+        BYTE m_reserved_e8[8];
+        HMENU m_hMenuDefault;                  // retail +0xf0; GetHelpMenu RVA 0x255ea0 (mfc140u)
+    };
+    union {
+        RetailPrefixStorage m_retailPrefix;
+        char _frame_prefix[16];                // +0xe8..+0xf7
+    };
+    HACCEL m_hAccelTable;                      // +0xf8
+    struct RetailMiddleStorage {
+        BYTE m_reserved_100[4];
+        BOOL m_bHelpMode;                      // retail +0x104; ContextSensitiveHelp RVA 0x2494d0 (mfc140u)
+        BYTE m_reserved_108[8];
+        RECT m_rectBorder;                     // retail +0x110; GetBorder RVA 0x2495c0 (mfc140u)
+        BYTE m_pNotifyHook[sizeof(void*)];     // retail +0x120; COleFrameHook ctor RVA 0x247d90 (mfc140u)
+        BYTE m_reserved_128[0x3c];
+    };
+    union {
+        RetailMiddleStorage m_retailMiddle;
+        char _frame_middle[100];               // +0x100..+0x163
+    };
+    UINT m_nIDHelp;                            // +0x164
+    char _frame_tracking[8];                   // +0x168..+0x16f
+    CWnd* m_pViewActive;                       // +0x170
+    struct RetailTailStorage {
+        BYTE m_reserved_178[0x58];
+        DWORD m_dwBorderFlags;                 // retail +0x1d0; OnDocActivate RVA 0x247f70 (mfc140u)
+        DWORD m_reserved_1d4;
+    };
+    union {
+        RetailTailStorage m_retailTail;
+        char _framewnd_padding[96];            // +0x178..+0x1d7
+    };
 };
 
 //=============================================================================
@@ -1254,7 +1281,7 @@ public:
 protected:
     unsigned long m_clrBackground;
     void* m_hBackgroundImage;
-    char _dialogex_padding[56];
+    char _dialogex_padding[48];
 };
 
 //=============================================================================

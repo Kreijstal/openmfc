@@ -156,19 +156,18 @@ HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, const GU
 //                                                 {&IID_IOleDocumentSite, 0x110}
 //                                                 (interface-map entry shape)
 //
-// OpenMFC's COleDocObjectItem (include/openmfc/afxole.h:1236) declares none of
-// these; it ends in `char _coledocobjectitem_padding[40]`, which its C++
-// constructor zeroes.  The offsets above are pinned below as a raw in-file
-// view of that padding, and static_asserts check that the two members this
-// file reads and writes (+0xf8 and +0x100) lie inside it.
+// OpenMFC's COleDocObjectItem (include/openmfc/afxole.h) now names these
+// members in a union over the existing 40-byte tail, which its constructor
+// zeroes. The offsets are pinned below against that same storage; the object
+// view and IPrint pointer are still not initialized with retail interface
+// vtables/ownership semantics.
 //
-// Base-class members are a different matter.  OpenMFC's COleClientItem is NOT
-// laid out like retail's (see the offset table in COleClientItem.cpp): retail's
-// m_lpObject sits at +0x48, OpenMFC's at +0x50, and +0x48 in OpenMFC is
-// m_pContainerDoc.  So, following COleClientItem.cpp, base members that
-// OpenMFC declares are reached BY NAME (pThis->m_lpObject), and retail base
-// members OpenMFC does not declare at all -- m_pView at retail +0x98 above all
-// -- are unreachable; every body that needs one is left a documented stub.
+// Base-class members still differ: retail m_lpObject is +0x48, while OpenMFC
+// keeps it at +0x50 and uses +0x48 for m_pContainerDoc. Base fields already
+// declared by OpenMFC are reached BY NAME; newly modeled retail-only tail
+// fields such as m_pView (+0x98) are accessed through RetailTailStorage. Some
+// bodies remain stubs because other dependencies (notably CPrintDialog's
+// PRINTDLG state and the uninstalled nested interface parts) are still absent.
 //=============================================================================
 
 // Sibling / base thunks this section calls.  Signatures match the definitions:
@@ -190,6 +189,9 @@ extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERIN
     CCmdTarget* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
 extern "C" const void* MS_ABI impl__GetThisCommandMap_CCmdTarget__KAPEBUAFX_OLECMDMAP__XZ();
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(
+    const CWnd* pThis);
+extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU hMenu);
 
 // Forward declaration of this file's own SupportsIPrint thunk (defined below),
 // which GetPageCount calls directly, as retail does (`call` to the
@@ -198,37 +200,43 @@ extern "C" int MS_ABI impl__SupportsIPrint_COleDocObjectItem__IEAAHXZ(COleDocObj
 
 namespace {
 
-// ---- retail member offsets of COleDocObjectItem (see the table above) ------
-constexpr size_t kOff_pHelpPopupMenu    = 0xf0;
-constexpr size_t kOff_pActiveView       = 0xf8;
-constexpr size_t kOff_pIPrint           = 0x100;
-constexpr size_t kOff_xOleDocumentSite  = 0x110;
-
-// Reaches OpenMFC's protected padding member so the pinned offsets can be
-// checked against it.  Never instantiated.
-struct DocObjItemLayoutProbe : COleDocObjectItem {
-    static constexpr size_t PadBegin() {
-        return offsetof(DocObjItemLayoutProbe, _coledocobjectitem_padding);
-    }
-    static constexpr size_t PadEnd() {
-        return PadBegin() + sizeof(static_cast<DocObjItemLayoutProbe*>(nullptr)->_coledocobjectitem_padding);
-    }
-};
+// ---- named retail tail offsets of COleDocObjectItem -------------------------
 static_assert(sizeof(COleDocObjectItem) == 0x118,
-              "COleDocObjectItem must be retail-sized (0x118) for the pinned offsets");
-static_assert(DocObjItemLayoutProbe::PadBegin() <= kOff_pActiveView &&
-              kOff_pIPrint + sizeof(void*) <= DocObjItemLayoutProbe::PadEnd(),
-              "retail m_pActiveView/m_pIPrint must fall inside OpenMFC's zeroed padding");
+              "COleDocObjectItem must retain its retail size");
+#ifndef __GNUC__
+static_assert(offsetof(COleDocObjectItem, m_retailTail) == 0xf0,
+              "COleDocObjectItem retail tail begins at +0xf0");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_pHelpPopupMenu) == 0xf0,
+              "COleDocObjectItem help menu at +0xf0");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_pActiveView) == 0xf8,
+              "COleDocObjectItem active view at +0xf8");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_pIPrint) == 0x100,
+              "COleDocObjectItem IPrint pointer at +0x100");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_bInHelpMenu) == 0x108,
+              "COleDocObjectItem help-menu state at +0x108");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_reserved_10c) == 0x10c,
+              "COleDocObjectItem reserved gap at +0x10c");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSiteVftable) == 0x110,
+              "COleDocObjectItem document-site part at +0x110");
+static_assert(offsetof(COleClientItem, m_retailTail) +
+                  offsetof(COleClientItem::RetailTailStorage, m_pView) == 0x98,
+              "COleClientItem retail view at +0x98");
+static_assert(offsetof(CFrameWnd, m_retailPrefix) +
+                  offsetof(CFrameWnd::RetailPrefixStorage, m_hMenuDefault) == 0xf0,
+              "CFrameWnd default menu at +0xf0");
+#endif
 
-template <class T>
-inline T& RetailMember(COleDocObjectItem* pThis, size_t off) {
-    return *reinterpret_cast<T*>(reinterpret_cast<char*>(pThis) + off);
-}
 inline IOleDocumentView*& ItemActiveView(COleDocObjectItem* pThis) {
-    return RetailMember<IOleDocumentView*>(pThis, kOff_pActiveView);
+    return pThis->m_retailTail.m_pActiveView;
 }
 inline IPrint*& ItemIPrint(COleDocObjectItem* pThis) {
-    return RetailMember<IPrint*>(pThis, kOff_pIPrint);
+    return pThis->m_retailTail.m_pIPrint;
 }
 // SupportsIPrint caches (LPPRINT)-1 in m_pIPrint once OleRun has failed, so
 // that later calls answer FALSE without retrying; Release skips that value.
@@ -303,7 +311,10 @@ const S_OleCmdMap kCommandMap_COleDocObjectItem = {
 
 // Symbol: ?OnPreparePrinting@COleDocObjectItem@@SAHPEAVCView@@PEAUCPrintInfo@@H@Z
 // static BOOL COleDocObjectItem::OnPreparePrinting(CView*, CPrintInfo*, BOOL bPrintAll)
-// -- STUB.  Retail (mfc140u 0x256270 by export ordinal; mfc140 0x255330) walks
+// -- PARTIAL IMPLEMENTATION. Retail function entry RVA 0x256270 (mfc140u;
+// ordinal-resolved) walks the document and updates print-page state; this body
+// implements only its null/non-COleDocument early-out and success return.
+// The corresponding ANSI-twin entry is RVA 0x255330 (mfc140). It walks
 // the caller's COleDocument (pCaller->m_pDocument, +0xe8; returns FALSE when
 // that is NULL or not a COleDocument) with GetStartPosition /
 // GetNextItemOfKind(COleClientItem), and for each item that
@@ -318,9 +329,10 @@ const S_OleCmdMap kCommandMap_COleDocObjectItem = {
 // when nMaxPage is 0xffff) and sets m_bDocObject.  Then, if m_bDocObject,
 // m_pd.Flags |= PD_NOSELECTION, and also |= PD_NOPAGENUMS when bPrintAll.
 // Returns TRUE.
-// Blocked on two members OpenMFC does not have: the item's m_pView (retail
-// COleClientItem +0x98, undeclared in OpenMFC) and CPrintDialog::m_pd (retail
-// +0x130, a PRINTDLG&; OpenMFC's CPrintDialog declares no such member).
+// This body does not implement item enumeration/filtering or page counts.
+// Although the item's m_pView (+0x98) is now modeled, no in-tree path assigns
+// it. It also cannot update nMaxPage/Flags faithfully because OpenMFC lacks the
+// retail CPrintDialog PRINTDLG-backed state (reference slot at +0x130).
 // What IS done is retail's own early-out and its return value: FALSE when the
 // caller has no document or it is not a COleDocument, TRUE otherwise.  The
 // previous placeholder returned FALSE unconditionally, which cancels printing
@@ -346,18 +358,24 @@ extern "C" int MS_ABI impl__OnPreparePrinting_COleDocObjectItem__SAHPEAVCView__P
 
 // Symbol: ?OnPrint@COleDocObjectItem@@SAXPEAVCView@@PEAUCPrintInfo@@H@Z
 // static void COleDocObjectItem::OnPrint(CView*, CPrintInfo*, BOOL bPrintAll)
-// -- STUB.  Retail (mfc140u 0x2563d0 by export ordinal; mfc140 0x255490) walks
+// -- STUB. Retail function entry RVA 0x2563d0 (mfc140u; ordinal-resolved,
+// no direct symbol-map entry) walks
 // the caller's document items with the same COleDocument / COleDocObjectItem
 // checks and the same m_pView filter (when !bPrintAll) as OnPreparePrinting,
 // but, unlike it, does not stop after the first matching item.  For an item
 // that SupportsIPrint() it GlobalLocks m_pd.hDevNames and m_pd.hDevMode, builds
-// a target device from them (helper mfc140u 0x26031c / mfc140 0x25f0f8, no
-// export), CoTaskMemAllocs a 0x18-byte PAGESET whose range
-// is m_pd.nFromPage..m_pd.nToPage, and calls m_pIPrint->Print (IPrint vtable
-// byte 0x28); for any other item it calls ExecCommand(OLECMDID_PRINT = 6,
-// OLECMDEXECOPT_DONTPROMPTUSER = 2, NULL).
-// Blocked on the same two members as OnPreparePrinting: the item's m_pView
-// and CPrintDialog::m_pd.
+// a target device from them (helper entry RVA 0x26031c (mfc140u) / 0x25f0f8
+// (mfc140), no export), CoTaskMemAllocs a 0x18-byte PAGESET whose range is
+// m_pd.nFromPage..m_pd.nToPage, and calls m_pIPrint->Print (IPrint vtable byte
+// 0x28) if both locks and allocations succeed. On those failures retail frees
+// any acquired resources and skips printing that item. For any other item it
+// calls ExecCommand(OLECMDID_PRINT = 6, OLECMDEXECOPT_DONTPROMPTUSER = 2, NULL).
+// m_pView is now modeled but is not assigned by any in-tree path. OpenMFC's
+// CPrintDialog stores hDevNames, hDevMode, nFromPage, and nToPage separately,
+// but has no retail PRINTDLG view;
+// in particular DoModal does not preserve the returned PRINTDLG.Flags, which
+// this body reads at +0x28 to derive IPrint flags. Reconstructing m_pd from the
+// available fields would therefore not faithfully reproduce this path.
 extern "C" void MS_ABI impl__OnPrint_COleDocObjectItem__SAXPEAVCView__PEAUCPrintInfo__H_Z(
         CView* pCaller, void* pInfo, int bPrintAll) {
     (void)pCaller;
@@ -468,21 +486,40 @@ extern "C" const void* MS_ABI impl__GetCommandMap_COleDocObjectItem__MEBAPEBUAFX
 }
 
 // Symbol: ?GetHelpMenu@COleDocObjectItem@@MEAAPEAVCMenu@@AEAI@Z
-// CMenu* COleDocObjectItem::GetHelpMenu(UINT& nPosition) -- STUB.  Retail
-// mfc140u 0x255ea0:
-//     CFrameWnd* pFrame = m_pView /*item +0x98*/->GetTopLevelFrame();
-//     if (pFrame == NULL) AfxThrowInvalidArgException();
-//     CMenu* pMenu = CMenu::FromHandle(pFrame->[+0xf0]);   // m_hMenuDefault by
-//                                                          // retail declaration order
-//     if (pMenu != NULL) nPosition = ::GetMenuItemCount(pMenu->m_hMenu) - 1;
-//     return pMenu;
-// Blocked: m_pView (retail COleClientItem +0x98) is not declared by OpenMFC's
-// COleClientItem and nothing in OpenMFC ever sets it.
+// CMenu* COleDocObjectItem::GetHelpMenu(UINT& nPosition) -- transcribed from
+// the retail mfc140u function entry RVA 0x255ea0. It loads m_pView at item
+// +0x98, calls CWnd::GetTopLevelFrame (entry RVA 0x28e490, mfc140u), and throws
+// AfxThrowInvalidArgException if no frame is returned. It then wraps the
+// frame's m_hMenuDefault at +0xf0 with CMenu::FromHandle (entry RVA 0x2a80a0,
+// mfc140u).
+// If that wrapper is non-NULL, it stores GetMenuItemCount(m_hMenu) - 1 through
+// nPosition; the call's ANSI-twin IAT slot 0x1802c4c90 resolves to
+// USER32!GetMenuItemCount. A NULL menu leaves nPosition untouched.
+// The two named retail fields are pinned by the static_asserts above. The
+// non-MSVC source-check build has no COleClientItem RetailTailStorage member;
+// its local path supplies NULL rather than treating the compact layout as the
+// retail overlay. The deployed MSVC ABI path reads the modeled +0x98 field.
+// OpenMFC zeroes this slot in the item constructor but currently has no in-tree
+// assignment to it, so absent caller-provided view state this follows retail's
+// null-view outcome and throws the invalid-argument exception.
 extern "C" CMenu* MS_ABI impl__GetHelpMenu_COleDocObjectItem__MEAAPEAVCMenu__AEAI_Z(
         COleDocObjectItem* pThis, unsigned int* pnPosition) {
-    (void)pThis;
-    (void)pnPosition;
-    return nullptr;
+#if defined(_MSC_VER)
+    CView* pView = static_cast<COleClientItem*>(pThis)->m_retailTail.m_pView;
+#else
+    CView* pView = nullptr;
+#endif
+    CFrameWnd* pFrame = impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pView);
+    if (pFrame == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return nullptr;
+    }
+    CMenu* pMenu = impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(
+        pFrame->m_retailPrefix.m_hMenuDefault);
+    if (pMenu != nullptr) {
+        *pnPosition = static_cast<unsigned int>(::GetMenuItemCount(pMenu->m_hMenu) - 1);
+    }
+    return pMenu;
 }
 
 // Symbol: ?GetPageCount@COleDocObjectItem@@QEAAHPEAJ0@Z
@@ -527,11 +564,9 @@ extern "C" const void* MS_ABI impl__GetThisCommandMap_COleDocObjectItem__KAPEBUA
 //         m_pView->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo))   // vtable 0x28
 //         return TRUE;
 //     return CCmdTarget::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);  // direct call
-// DEVIATION: only the second line is implemented.  OpenMFC's COleClientItem
-// has no m_pView (retail +0x98) and nothing in OpenMFC ever records the item's
-// view, so the routing to the view that retail tries first cannot be done;
-// this is retail's behaviour for an item whose m_pView is NULL.  When m_pView
-// is modelled, the first branch must be added here.
+// DEVIATION: only the second line is implemented. The item's m_pView is now
+// named in RetailTailStorage, but this body still does not dispatch to it; the
+// first retail branch remains to be implemented.
 // The reinterpret_cast: retail's CDocItem derives CCmdTarget (retail afxole.h:
 // `class CDocItem : public CCmdTarget`), so the CCmdTarget sub-object sits at
 // offset 0 and retail passes `this` unchanged (`mov %rbx,%rcx`).  OpenMFC's
@@ -550,15 +585,27 @@ extern "C" int MS_ABI impl__OnCmdMsg_COleDocObjectItem__MEAAHIHPEAXPEAUAFX_CMDHA
 }
 
 // Symbol: ?OnGetItemPosition@COleDocObjectItem@@MEAAXAEAVCRect@@@Z
-// void COleDocObjectItem::OnGetItemPosition(CRect& rPosition) -- STUB.
-// Retail (mfc140u 0x246570 by export ordinal; mfc140 0x244b70) is three
-// instructions:
-//     ::GetClientRect(m_pView /*+0x98*/->m_hWnd /*+0x40*/, &rPosition);  // tail jump
-// Blocked on m_pView, as GetHelpMenu is.  rPosition is left untouched.
+// void COleDocObjectItem::OnGetItemPosition(CRect& rPosition) -- transcribed
+// from the retail function entry RVA 0x246570 (mfc140u). The three
+// instructions load m_pView from item +0x98, load that CView's m_hWnd at
+// +0x40, then tail-jump to USER32!GetClientRect. The ANSI twin's function
+// entry is RVA 0x244b70 (mfc140); iat.py resolves its ANSI import slot
+// 0x1802c5358 to USER32!GetClientRect. The +0x98 overlay is asserted above.
+// The non-MSVC compile-check declaration does not expose that overlay, so this
+// source-only path does not attempt a raw-offset substitute. OpenMFC's item
+// constructor zeroes the modeled slot, but no in-tree path currently assigns
+// m_pView; unlike retail, the native path returns without touching rPosition
+// when that unsupported state is NULL rather than dereferencing a null view.
 extern "C" void MS_ABI impl__OnGetItemPosition_COleDocObjectItem__MEAAXAEAVCRect___Z(
         COleDocObjectItem* pThis, CRect* rPosition) {
+#if defined(_MSC_VER)
+    CView* pView = static_cast<COleClientItem*>(pThis)->m_retailTail.m_pView;
+    if (pView == nullptr) return;
+    ::GetClientRect(pView->GetSafeHwnd(), static_cast<RECT*>(*rPosition));
+#else
     (void)pThis;
     (void)rPosition;
+#endif
 }
 
 // Symbol: ?OnInsertMenus@COleDocObjectItem@@UEAAXPEAVCMenu@@PEAUtagOleMenuGroupWidths@@@Z
@@ -566,8 +613,9 @@ extern "C" void MS_ABI impl__OnGetItemPosition_COleDocObjectItem__MEAAXAEAVCRect
 //                                       LPOLEMENUGROUPWIDTHS lpMenuWidths)
 // -- STUB.  Retail (mfc140u 0x255f00 by export ordinal; mfc140 0x254fd0):
 // sets width[0] = 1, width[2] = width[4] = 0 and turns -1 in width[1]/[3]/[5]
-// into 0; reads the in-place menu m_pDocument(+0x40)->[+0x50]->[+0x68] and
-// returns if it is NULL; otherwise calls the virtual GetHelpMenu(nPos)
+// into 0; reads the in-place menu m_pDocument(+0x40)->[+0x50]->[+0x68]. If it
+// is NULL, it returns without help-menu insertion or AfxMergeMenus; otherwise
+// it calls the virtual GetHelpMenu(nPos)
 // (vtable byte 0x1d0: the mfc140 COleDocObjectItem vftable starts at .rdata
 // 0x32c938 -- OnCmdMsg at +0x28 -- and holds GetHelpMenu's address at +0x1d0)
 // and, when that yields a menu pHelp whose
@@ -592,11 +640,11 @@ extern "C" void MS_ABI impl__OnGetItemPosition_COleDocObjectItem__MEAAXAEAVCRect
 // merge; a GetMenuString failure returns early, skipping the merge.)  IAT
 // slots resolved with iatu.py: GetMenuItemCount, GetSubMenu, CreateMenu,
 // InsertMenuW.
-// Blocked: the document template's in-place menu (retail CDocument +0x50 ->
-// CDocTemplate +0x68) is not declared by OpenMFC -- COleClientItem.cpp leaves
-// its own OnInsertMenus a stub for the same reason -- and GetHelpMenu needs
-// m_pView.  Implementing only the help-menu half would also leave it
-// unbalanced with OnRemoveMenus.
+// Blocked: OpenMFC does not model retail CDocument::m_pDocTemplate (+0x50) or
+// CDocTemplate::m_hMenuInPlace (+0x68), so this function cannot obtain the
+// merge source; COleClientItem.cpp leaves its corresponding menu methods
+// stubbed for the same missing state. GetHelpMenu and m_pView are now modeled,
+// but implementing only that half would remain unbalanced with OnRemoveMenus.
 extern "C" void MS_ABI impl__OnInsertMenus_COleDocObjectItem__UEAAXPEAVCMenu__PEAUtagOleMenuGroupWidths___Z(
         COleDocObjectItem* pThis, CMenu* pMenuShared, OLEMENUGROUPWIDTHS* lpMenuWidths) {
     (void)pThis;
@@ -620,9 +668,11 @@ extern "C" void MS_ABI impl__OnInsertMenus_COleDocObjectItem__UEAAXPEAVCMenu__PE
 //     HMENU hMenuOLE = m_pDocument(+0x40)->[+0x50]->[+0x68];
 //     if (hMenuOLE != NULL) AfxUnmergeMenus(pMenuShared->m_hMenu, hMenuOLE, NULL);
 // (IAT slots resolved with iat.py: GetMenuItemCount, GetSubMenu, DeleteMenu,
-// RemoveMenu.)  Blocked on the same in-place menu handle as OnInsertMenus, and
-// the first half undoes what OnInsertMenus inserts, so it must not run while
-// OnInsertMenus is a stub: it would delete the container's own last popup.
+// RemoveMenu.) Blocked on the same unmodeled CDocument::m_pDocTemplate and
+// CDocTemplate::m_hMenuInPlace fields as OnInsertMenus. Its destructive
+// last-popup removal must not run while this implementation's OnInsertMenus is
+// a stub: without a paired insertion it could remove pre-existing shared-menu
+// content belonging to the caller.
 extern "C" void MS_ABI impl__OnRemoveMenus_COleDocObjectItem__UEAAXPEAVCMenu___Z(
         COleDocObjectItem* pThis, CMenu* pMenuShared) {
     (void)pThis;
@@ -735,17 +785,14 @@ extern "C" int MS_ABI impl__SupportsIPrint_COleDocObjectItem__IEAAHXZ(COleDocObj
 // UIActivate(FALSE), Show(FALSE) and Release, m_pIPrint is released unless it
 // is NULL or -1 and is then set to NULL; the new view is stored in
 // m_pActiveView, ActivateAndShow is called, and S_OK is returned.
-// Blocked: OpenMFC's COleDocObjectItem has no XOleDocumentSite sub-object at
-// +0x110 (no vtable is ever installed there, so `this - 0x110` would not land
-// on an item), the item's m_pView is not modelled, and OpenMFC's
-// GetClientSite thunk returns NULL.  E_FAIL is what retail itself returns when
+// Blocked: the +0x110 XOleDocumentSite slot is named but no compatible vtable
+// is installed there, and OpenMFC's GetClientSite thunk returns NULL. m_pView
+// and m_pActiveView are now modeled. E_FAIL is what retail itself returns when
 // it cannot obtain the client site; S_OK would claim an activation that did
 // not happen.
 extern "C" long MS_ABI impl__ActivateMe_XOleDocumentSite_COleDocObjectItem__UEAAJPEAUIOleDocumentView___Z(
         void* pThisSite, IOleDocumentView* pViewToActivate) {
     (void)pThisSite;
     (void)pViewToActivate;
-    (void)kOff_xOleDocumentSite;
-    (void)kOff_pHelpPopupMenu;
     return E_FAIL;
 }

@@ -130,6 +130,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/CPaneFrameWndSupport.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -161,7 +162,7 @@ extern "C" void  MS_ABI impl__KillRollupTimer_CPaneFrameWnd__IEAAXXZ(void* pThis
 extern "C" void  MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(void* pThis, CSize* pSize, MINMAXINFO* pMMI);
 extern "C" void  MS_ABI impl__SaveRecentFloatingState_CPaneFrameWnd__MEAAXXZ(void* pThis);
 // docking/CPaneFrameWnd.cpp:2099 -- a documented stub (retail 0xb2d20 not reproduced).
-extern "C" void  MS_ABI impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(void* pThis, void* pArchive);
+extern "C" void  MS_ABI impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(void* pThis, CArchive& archive);
 
 // CPaneContainerManager (docking/CPaneContainerManager.cpp)
 extern "C" void* MS_ABI impl___0CPaneContainerManager__QEAA_XZ(void* pThis);
@@ -192,7 +193,7 @@ extern "C" void  MS_ABI impl__GetAvailableSpace_CPaneContainerManager__UEBAXAEAV
 // RemovePane below).
 extern "C" int   MS_ABI impl__RemovePaneFromPaneContainer_CPaneContainerManager__UEAAHPEAVCDockablePane___Z(void* pThis, void* pPane);
 // docking/CPaneContainerManager.cpp:2086 -- generated placeholder `(void** p0) {}`.
-extern "C" void  MS_ABI impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(void* pThis, void* pArchive);
+extern "C" void  MS_ABI impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(void* pThis, CArchive& archive);
 
 // CPaneContainer (docking/CPaneContainer.cpp)
 extern "C" void  MS_ABI impl__ReleaseEmptyPaneContainer_CPaneContainer__QEAAXXZ(void* pThis);
@@ -222,6 +223,14 @@ extern "C" void  MS_ABI impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(CDo
 // and calls it with this three-parameter shape.
 extern "C" void  MS_ABI impl__StoreDockInfo_CRecentDockSiteInfo__UEAAXPEAVCPaneContainer__PEAVCDockablePane___Z(
                      void* pThis, void* pContainer, void* pPane);
+extern "C" void* MS_ABI impl__GetRecentPaneContainer_CRecentDockSiteInfo__QEAAPEAVCPaneContainer__H_Z(
+                     void* pThis, int bForSlider);
+extern "C" void* MS_ABI impl__GetRecentTabContainer_CRecentDockSiteInfo__QEAAPEAVCPaneContainer__H_Z(
+                     void* pThis, int bForSlider);
+extern "C" int   MS_ABI impl__IsRecentLeftPane_CRecentDockSiteInfo__QEAAHH_Z(
+                     void* pThis, int bForSlider);
+extern "C" void* MS_ABI impl__AddPaneToRecentPaneContainer_CPaneContainerManager__UEAAPEAVCDockablePane__PEAV2_PEAVCPaneContainer___Z(
+                     void* pThis, void* pBarToAdd, void* pRecentContainer);
 
 // CWnd / CObject (core/window/CWnd.cpp, core/window/Thunks.cpp,
 // core/runtime/CObject.cpp)
@@ -299,6 +308,7 @@ extern "C" void  MS_ABI impl__RemovePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane_
 extern "C" void  MS_ABI impl__OnSetRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnKillRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(void* pThis);
+extern "C" void  MS_ABI impl__OnShowPane_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__H_Z(void* pThis, void* pBar, int bShow);
 extern "C" void  MS_ABI impl__CheckGripperVisibility_CMultiPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnDockToRecentPos_CMultiPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void* MS_ABI impl___0CMultiPaneFrameWnd__QEAA_XZ(void* pThis);
@@ -381,6 +391,16 @@ struct ObNode {
     CObject* data;
 };
 static_assert(sizeof(CObList::POSITION) == sizeof(void*), "POSITION is one pointer");
+
+// The CPaneContainer shadow in docking/CPaneContainer.cpp pins these leading
+// pane pointers at +0x08 (left) and +0x10 (right).
+struct PaneContainerPaneSlots {
+    void* vfptr;
+    CDockablePane* leftPane;
+    CDockablePane* rightPane;
+};
+static_assert(offsetof(PaneContainerPaneSlots, leftPane) == 0x08, "CPaneContainer left pane");
+static_assert(offsetof(PaneContainerPaneSlots, rightPane) == 0x10, "CPaneContainer right pane");
 static_assert(sizeof(CObList) == 0x38, "CObList must be 56 bytes");
 inline ObNode* NodeFromPos(CObList::POSITION pos) {
     ObNode* p = nullptr;
@@ -672,36 +692,75 @@ extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEA
 }
 
 // Symbol: ?AddRecentPane@CMultiPaneFrameWnd@@UEAAHPEAVCDockablePane@@@Z
-// STUB.  Retail entry RVA 0x92940 (mfc140u).  The body branches on two members of the
-// pane's CRecentDockSiteInfo (pane +0x3c0 / +0x3c8, which by the shipping
-// afxrecentdocksiteinfo.h layout are m_recentDockInfo.m_recentMiniFrameInfo.
-// m_pRecentBarContainer and .m_pRecentContainerOfTabWnd).  With the first
-// non-NULL it re-parents the pane (::SetParent,
-// import 0x2c52b0), registers it (AddRemovePaneFromGlobalList, 0xaf740), calls
-// m_barContainerManager.AddPaneToRecentPaneContainer (mgr slot 0x50), fixes
-// m_hEmbeddedBar (0x148), and -- when the frame then holds exactly one visible pane
-// and it is this one -- CWnd::SetWindowPos to m_rectRecentFloatingRect (0x150);
-// with the second it either dispatches the tabbed pane's AttachToTabWnd (pane
-// slot 0x6a8) / ShowPane (0x458) / OnPaneRecalcLayout; that existing-pane
-// path goes directly to OnSetRollUpTimer (slot 0x3f8), without OnShowPane.
-// If no existing pane is selected, the method falls back to
-// AddPaneToRecentPaneContainer and calls OnShowPane (slot 0x3e0) with its
-// result. In the first recent-container path, OnShowPane is likewise called
-// only when AddPaneToRecentPaneContainer returns non-NULL. A non-NULL recent
-// container ultimately returns TRUE (with the roll-up timer update), whereas
-// both members NULL returns FALSE. The recent-container branch conditions are
-// readable through CRecentDockSiteInfo's existing GetRecentPaneContainer /
-// GetRecentTabContainer thunks, but AddPaneToRecentPaneContainer is a documented
-// stub that returns NULL. The existing-tab route also depends on the stubbed
-// CDockablePane::AttachToTabWnd, and the one-pane resize route needs the frame's
-// +0x150 recent rectangle, which has no reader for this file's CPaneFrameWnd
-// side table. Without those operations/state, the success paths cannot be
-// reproduced faithfully, so this body remains a documented stub.
-// Signature corrected: the generated list dropped `this`.
+// Decoded from retail entry RVA 0x92940 (mfc140u). If the pane's recent
+// mini-frame info has a recent pane container, retail reparents the pane to
+// this frame, registers it in the floating-pane list, and calls the manager's
+// AddPaneToRecentPaneContainer. For a non-NULL result, retail resolves the
+// frame's hosted-pane HWND at +0x148 and stores the result's HWND if no
+// permanent CWnd is registered for the existing handle; when the manager then
+// reports exactly one visible pane and the result is the input pane, it moves
+// the frame to the saved +0x150 rectangle (MoveWindow entry RVA 0x2a9a10,
+// mfc140u). OnShowPane is called only for a non-NULL returned pane. Otherwise,
+// when recent tab-container info exists, retail selects the container's
+// left/right target according to IsRecentLeftPane; the input pane receives
+// AttachToTabWnd(target, DM_DBL_CLICK, TRUE), then the target receives
+// ShowPane(TRUE, FALSE, TRUE) and the frame recalculates layout. If no target
+// is selected, it calls AddPaneToRecentPaneContainer and passes that result to
+// OnShowPane even when NULL. Both recent-container branches update the roll-up
+// timer and return TRUE; absence of both containers returns FALSE. SetParent's
+// IAT slot 0x1802c7288 (mfc140u) resolves to USER32!SetParent. The manager and
+// AttachToTabWnd exports remain documented stubs; the calls are still made.
+// Deviations: NULL inputs return FALSE rather than faulting. The +0x148
+// hosted-pane handle update and conditional MoveWindow to the saved +0x150
+// rectangle are omitted: PaneFrameState has no link-safe impl__ accessor in
+// this TU. The manager stub currently returns NULL, so these operations are
+// not reached in this build; if that sibling stub is implemented, they remain
+// missing. The CPaneContainer pane slots are pinned by the shadow and
+// static_asserts in docking/CPaneContainer.cpp:85-118.
 extern "C" int MS_ABI impl__AddRecentPane_CMultiPaneFrameWnd__UEAAHPEAVCDockablePane___Z(void* pThis, void* pBar) {
-    (void)pThis;
-    (void)pBar;
-    return FALSE;
+    if (pThis == nullptr || pBar == nullptr) return FALSE;
+
+    auto* pPane = static_cast<CPane*>(pBar);
+    auto* pRecentInfo = &pPane->m_recentDockInfo;
+    void* pRecentContainer = impl__GetRecentPaneContainer_CRecentDockSiteInfo__QEAAPEAVCPaneContainer__H_Z(
+        pRecentInfo, FALSE);
+    if (pRecentContainer != nullptr) {
+        const HWND oldParent = ::SetParent(AsWnd(pBar)->m_hWnd, FrameHwnd(pThis));
+        impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(oldParent);
+        impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pBar, TRUE);
+
+        void* pAdded = impl__AddPaneToRecentPaneContainer_CPaneContainerManager__UEAAPEAVCDockablePane__PEAV2_PEAVCPaneContainer___Z(
+            Mgr(pThis), pBar, pRecentContainer);
+        if (pAdded != nullptr)
+            impl__OnShowPane_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__H_Z(pThis, pAdded, TRUE);
+    } else {
+        void* pRecentTabContainer = impl__GetRecentTabContainer_CRecentDockSiteInfo__QEAAPEAVCPaneContainer__H_Z(
+            pRecentInfo, FALSE);
+        if (pRecentTabContainer == nullptr) return FALSE;
+
+        const HWND oldParent = ::SetParent(AsWnd(pBar)->m_hWnd, FrameHwnd(pThis));
+        impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(oldParent);
+        impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pBar, TRUE);
+
+        const auto* slots = static_cast<const PaneContainerPaneSlots*>(pRecentTabContainer);
+        void* pTabTarget = impl__IsRecentLeftPane_CRecentDockSiteInfo__QEAAHH_Z(pRecentInfo, FALSE)
+            ? static_cast<void*>(slots->leftPane)
+            : static_cast<void*>(slots->rightPane);
+        if (pTabTarget != nullptr) {
+            impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AFX_DOCK_METHOD__HPEAPEAV1__Z(
+                static_cast<CDockablePane*>(pBar), static_cast<CDockablePane*>(pTabTarget),
+                kDockMethodDblClick, TRUE, nullptr);
+            impl__ShowPane_CDockablePane__UEAAXHHH_Z(
+                static_cast<CDockablePane*>(pTabTarget), TRUE, FALSE, TRUE);
+            impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+        } else {
+            void* pAdded = impl__AddPaneToRecentPaneContainer_CPaneContainerManager__UEAAPEAVCDockablePane__PEAV2_PEAVCPaneContainer___Z(
+                Mgr(pThis), pBar, pRecentTabContainer);
+            impl__OnShowPane_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__H_Z(pThis, pAdded, TRUE);
+        }
+    }
+    impl__OnSetRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+    return TRUE;
 }
 
 // Symbol: ?AdjustPaneFrames@CMultiPaneFrameWnd@@UEAAXXZ
@@ -862,8 +921,8 @@ extern "C" int MS_ABI impl__DockFrame_CMultiPaneFrameWnd__UEAAHPEAVCPaneFrameWnd
     (void)pThis;
     (void)pDockedFrame;
     (void)dockMethod;
-    // Retail returns TRUE on every early-out and FALSE after a completed dock;
-    // TRUE is the "nothing was docked" value.
+    // Still stubbed: the merge needs manager-merge exports that are themselves
+    // stubs, plus unexported virtual slots; TRUE is retail's "nothing was docked" value.
     return TRUE;
 }
 
@@ -1462,10 +1521,11 @@ extern "C" int MS_ABI impl__SaveState_CMultiPaneFrameWnd__UEAAHPEB_WI_Z(void* pT
 // Both callees are documented stubs in OpenMFC (see their declarations), so
 // this transcription currently serializes nothing; static dispatch.
 // Signature corrected: the generated list dropped `this`.
-extern "C" void MS_ABI impl__Serialize_CMultiPaneFrameWnd__UEAAXAEAVCArchive___Z(void* pThis, void* pArchive) {
+extern "C" void MS_ABI impl__Serialize_CMultiPaneFrameWnd__UEAAXAEAVCArchive___Z(
+    void* pThis, CArchive& archive) {
     if (pThis == nullptr) return;
-    impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(pThis, pArchive);
-    impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(Mgr(pThis), pArchive);
+    impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(pThis, archive);
+    impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(Mgr(pThis), archive);
 }
 
 // Symbol: ?SetDockState@CMultiPaneFrameWnd@@UEAAXPEAVCDockingManager@@@Z
@@ -1762,9 +1822,9 @@ extern "C" void MS_ABI impl__SetDockState_CMultiPaneFrameWnd__UEAAXPEAVCDockingM
 }
 
 // Symbol: ?SetPreDockState@CMultiPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z
-// STUB. The mfc140u vtable +0x330 entry is RVA 0x92e30; disas.py --u does not
-// resolve this name directly. The ANSI twin entry is RVA 0x933f0 (mfc140.dll),
-// ~430 instructions; read in full:
+// STUB. The mfc140u vtable +0x330 entry is RVA 0x92e30. The Unicode symbol
+// map does not resolve this name, but the ANSI symbol lookup does: its twin is
+// entry RVA 0x933f0 (mfc140.dll), ~430 instructions; read in full:
 //   * `if (preDockState == PDS_NOTHING /*0*/) return TRUE;`; for
 //     PDS_DOCK_REGULAR (2) it also returns TRUE unless pBarToDock's slot 0x328
 //     is non-zero; pBarToDock is then DYNAMIC_DOWNCAST to CDockablePane.
@@ -1803,12 +1863,14 @@ extern "C" void MS_ABI impl__SetDockState_CMultiPaneFrameWnd__UEAAXPEAVCDockingM
 //     the target or AdjustDockingLayout (slot 0x4e0) on the first pane,
 //     OnSetRollUpTimer, slot 0x6c8 on every recorded pane that is still a
 //     permanent CDockablePane, and returns FALSE.
-// Not reproduced: IsPointNearDockSite remains a documented stub
-// (docking/CDockingManager.cpp:989), DockPaneContainer is a documented stub
-// (docking/CDockablePane.cpp:1155), no CPaneDivider in this build has a
-// retail-shaped vtable, and the 0x248/0x130 members are not modelled -- so
-// neither docking arm could be taken faithfully. CheckAlignment is implemented
-// in core/runtime/CGlobalUtils.cpp:487 and is not the missing dependency.
+// Not reproduced: IsPointNearDockSite is implemented (docking/CDockingManager.cpp),
+// as is CheckAlignment (core/runtime/CGlobalUtils.cpp); neither is a blocker.
+// DockPaneContainer and AttachToTabWnd are documented stubs (docking/CDockablePane.cpp),
+// CreateDefaultPaneDivider cannot create a retail-shaped divider in this build,
+// and no CPaneDivider here has the retail vtable layout. The owner HWND,
+// docking-manager pointer and recent rectangle are represented in PaneFrameState
+// (+0x130/+0x248/+0x150; detail/CPaneFrameWndSupport.h), but this TU has no
+// link-safe impl__ accessors for that state, so it cannot use those values here.
 // TRUE is retail's "nothing was docked" value on every early-out.
 // Signature corrected: the generated 29-parameter list was garbage.
 extern "C" int MS_ABI impl__SetPreDockState_CMultiPaneFrameWnd__UEAAHW4AFX_PREDOCK_STATE__PEAVCBasePane__W4AFX_DOCK_METHOD___Z(
@@ -1817,6 +1879,12 @@ extern "C" int MS_ABI impl__SetPreDockState_CMultiPaneFrameWnd__UEAAHW4AFX_PREDO
     (void)preDockState;
     (void)pBarToDock;
     (void)dockMethod;
+    // Still stubbed: the stateful dock paths are not reproduced. The pane path
+    // reaches DockPaneContainer / AttachToTabWnd stubs, while the NULL-pane path
+    // cannot create its required retail divider; the frame-side manager/owner/
+    // recent-rectangle state also has no link-safe accessor in this TU. TRUE is
+    // the retail result for the understood no-dock early-outs, not a faithful
+    // result for every possible input.
     return TRUE;
 }
 

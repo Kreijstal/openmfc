@@ -68,35 +68,17 @@
 // DECLARE_DYNAMIC(COleFrameHook) and OlecoreSupport.cpp:175 defines the
 // descriptor; that is an OpenMFC addition, harmless but not retail.
 //
-// WHAT OPENMFC MODELS, AND WHAT IT DOES NOT.  include/openmfc/afxole.h:871
-// declares only three members — m_pFrameWnd, m_pActiveItem and
-// m_lpActiveUIWindow — followed by char _oleframehook_padding[48].  Mapping
-// them onto retail -- by NAME only, because none of the offsets agree.
-// OpenMFC's CCmdTarget (include/openmfc/afxwin.h:397, a CObject vptr plus
-// `char _padding[24]`) is 0x20 bytes where retail's is 0x40, so every OpenMFC
-// member sits 0x20 bytes lower than its retail counterpart and the class is
-// 0x68 bytes, not retail's 0x90 (measured 2026-09-29 by compiling
-// offsetof/sizeof probes with the phase4 mingw flags: m_pFrameWnd +0x20,
-// m_pActiveItem +0x28, m_lpActiveUIWindow +0x30, sizeof 0x68,
-// sizeof(CCmdTarget) 0x20):
-//   retail +0x40 m_pFrameWnd       -> OpenMFC m_pFrameWnd        (+0x20)
-//   retail +0x50 m_pActiveItem     -> OpenMFC m_pActiveItem      (+0x28)
-//   retail +0x48 m_lpActiveObject  -> OpenMFC m_lpActiveUIWindow (+0x30; MISNAMED AND
-//       MISTYPED: retail's member is an IOleInPlaceActiveObject*, set by
-//       XOleInPlaceFrame::SetActiveObject at `mov %rbx,-0x38(%rdi)` inside
-//       mfc140 0x247c50, and every use below calls IOleInPlaceActiveObject
-//       slots.  OpenMFC types it LPOLEINPLACEUIWINDOW.  The two interfaces
-//       agree only through slot 4 (IOleWindow::GetWindow and
-//       ContextSensitiveHelp); slots 5+ are different methods, so the cast in
-//       ActiveObject() below is only safe because nothing in this tree ever
-//       stores an IOleInPlaceUIWindow there — the constructor sets it to NULL
-//       and XOleInPlaceFrame::SetActiveObject is not reachable (see below).
-//       A headerRequest asks for it to be renamed and retyped.)
-// Retail members OpenMFC has no declaration for, hence the stubs below:
-//   +0x58 m_hWndFrame, +0x60 (unread by anything decoded here),
-//   +0x68 the in-place accelerator table, +0x70 m_nModelessCount,
-//   +0x78 CString m_strObjName, +0x80 XOleInPlaceFrame sub-object,
-//   +0x88 XOleCommandTarget sub-object.
+// WHAT OPENMFC MODELS, AND WHAT IT DOES NOT. include/openmfc/afxole.h keeps
+// the existing three members — m_pFrameWnd, m_pActiveItem and
+// m_lpActiveUIWindow — followed by its 48-byte tail. This file's size
+// assertion is 0x88 bytes, including in the GNU per-file checker; the
+// clang-cl/MSVC ABI check also lays CCmdTarget out as 0x40 bytes. The tail now
+// names the retail-compatible storage it can hold without moving
+// those members. In clang-cl the members are +0x40/+0x48/+0x50. Retail instead
+// has m_lpActiveObject at +0x48 and m_pActiveItem at +0x50, so their retail
+// values still require side-table-aware access. The named tail holds +0x58
+// m_hWndFrame, +0x68 accelerator, +0x70 modeless count, +0x78 CString storage,
+// and a raw +0x80 interface slot. No local COM vtable is installed.
 //
 // THE NESTED INTERFACES.  Retail compiles every XOleInPlaceFrame /
 // XOleCommandTarget method with a METHOD_PROLOGUE that backs the incoming
@@ -117,17 +99,17 @@
 //                                    (mfc140 0x2477db) and QueryStatus the same
 //                                    at 0x24783b, and 0x88 - 0x38 == 0x50
 //                                    agrees with the vftable placement.
-// OpenMFC has neither sub-object -- both retail offsets, +0x80 and +0x88, lie
-// past the end of OpenMFC's 0x68-byte object: COleFrameHook's declaration has no nested
-// classes, the constructor plants no interface vftables, and the interface map
-// registered at phase4/src/detail/InterfaceMapsSupport.cpp:38-39 forwards
-// straight to CCmdTarget with no entries of its own, so OpenMFC's
-// COleFrameHook cannot hand out an IOleInPlaceFrame or an IOleCommandTarget at
-// all.  There is therefore no pointer in this build from which the -0x80 /
-// -0x88 back-up would land on a COleFrameHook, and all fourteen nested methods
-// below are left as documented stubs rather than given bodies that would
-// compute a garbage `this`.  Their parameter lists ARE corrected, because the
-// auto-generated ones omitted the interface `this` entirely.
+// OpenMFC has no usable nested interface parts. Under clang-cl +0x80 is a
+// named but zeroed storage slot; the constructor does not install a compatible
+// XOleInPlaceFrame vtable. The +0x88 XOleCommandTarget part cannot fit without
+// changing the current class size, and the interface map at
+// detail/InterfaceMapsSupport.cpp forwards directly to CCmdTarget. No valid
+// pointer is published for either METHOD_PROLOGUE back-up, so COM callers
+// cannot currently obtain these methods. Several simple callback bodies are
+// nevertheless implemented below from their recovered behavior and available
+// state; methods that need the unpublished interface/callback infrastructure
+// remain explicit stubs. Their parameter lists are corrected because the
+// generated signatures omitted interface this.
 
 #define OPENMFC_APPCORE_IMPL
 
@@ -171,12 +153,44 @@ typedef int(MS_ABI* PFN_HOOKNOTIFY)(COleFrameHook*, int);
 
 extern "C" int MS_ABI impl__NotifyAllInPlace_COleFrameHook__QEAAHHP81_EAAHH_Z_Z(
     COleFrameHook* pThis, int bParam, PFN_HOOKNOTIFY pfn);
+extern "C" void MS_ABI impl__BeginModalState_CFrameWnd__UEAAXXZ(CFrameWnd* pThis);
+extern "C" void MS_ABI impl__EndModalState_CFrameWnd__UEAAXXZ(CFrameWnd* pThis);
+extern "C" void* MS_ABI impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(
+    void* pThis, AFX_MODULE_STATE* pState);
+extern "C" void MS_ABI impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(void* pThis);
+extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(
+    CFrameWnd* pThis, MSG* pMsg);
+extern "C" int MS_ABI impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(
+    COleClientItem* pThis, CFrameWnd* pFrameWnd, int bShow);
+extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int bNotify);
+extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(
+    const CWnd* pThis);
+extern "C" int MS_ABI impl__CanEnterHelpMode_CFrameWnd__QEAAHXZ(CFrameWnd* pThis);
+extern "C" void MS_ABI impl__ExitHelpMode_CFrameWnd__UEAAXXZ(CFrameWnd* pThis);
 extern "C" int MS_ABI impl__DoContextSensitiveHelp_COleFrameHook__QEAAHH_Z(
     COleFrameHook* pThis, int bEnter);
 extern "C" int MS_ABI impl__DoEnableModeless_COleFrameHook__QEAAHH_Z(
     COleFrameHook* pThis, int bEnable);
 
 namespace {
+
+// AFX_MAINTAIN_STATE2 is two pointers in the retail x64 ABI. Use its exported
+// thunks so callback prologues switch to the hook's module state without
+// introducing an internal C++ method reference.
+class FrameHookModuleStateScope {
+public:
+    explicit FrameHookModuleStateScope(AFX_MODULE_STATE* state) : storage_{} {
+        impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(storage_, state);
+    }
+    ~FrameHookModuleStateScope() {
+        impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(storage_);
+    }
+    FrameHookModuleStateScope(const FrameHookModuleStateScope&) = delete;
+    FrameHookModuleStateScope& operator=(const FrameHookModuleStateScope&) = delete;
+
+private:
+    void* storage_[2];
+};
 
 // ---------------------------------------------------------------------------
 // Retail mfc140u COleFrameHook layout, as a file-local view.  This struct is
@@ -257,62 +271,135 @@ static_assert(offsetof(COleFrameHook, m_pActiveItem) ==
 static_assert(offsetof(COleFrameHook, m_lpActiveUIWindow) ==
                   offsetof(COleFrameHook, m_pActiveItem) + sizeof(void*),
               "afxole.h COleFrameHook member order changed");
+static_assert(sizeof(COleFrameHook) == 0x88,
+              "preserve the current clang-cl COleFrameHook size");
+static_assert(offsetof(COleFrameHook, m_retailTail) +
+                  offsetof(COleFrameHook::RetailTailStorage, m_hWndFrame) == 0x58,
+              "COleFrameHook retail frame HWND storage at +0x58");
+static_assert(offsetof(COleFrameHook, m_retailTail) +
+                  offsetof(COleFrameHook::RetailTailStorage, m_unknown_60) == 0x60,
+              "COleFrameHook retail +0x60 storage");
+static_assert(offsetof(COleFrameHook, m_retailTail) +
+                  offsetof(COleFrameHook::RetailTailStorage, m_hAccelTable) == 0x68,
+              "COleFrameHook retail accelerator storage at +0x68");
+static_assert(offsetof(COleFrameHook, m_retailTail) +
+                  offsetof(COleFrameHook::RetailTailStorage, m_nModelessCount) == 0x70,
+              "COleFrameHook retail modeless count at +0x70");
+static_assert(offsetof(COleFrameHook, m_retailTail) +
+                  offsetof(COleFrameHook::RetailTailStorage, m_reserved_74) == 0x74,
+              "COleFrameHook retail alignment word at +0x74");
+static_assert(offsetof(COleFrameHook, m_retailTail) +
+                  offsetof(COleFrameHook::RetailTailStorage, m_strObjNameStorage) == 0x78,
+              "COleFrameHook retail CString storage at +0x78");
+static_assert(offsetof(COleFrameHook, m_retailTail) +
+                  offsetof(COleFrameHook::RetailTailStorage, m_xOleInPlaceFrameVftable) == 0x80,
+              "COleFrameHook retail in-place-frame part storage at +0x80");
 
-// The slot OpenMFC calls m_lpActiveUIWindow is retail's m_lpActiveObject; see
-// the header comment for why the reinterpret_cast is currently safe and why a
-// headerRequest asks for the member to be retyped.
+#define ASSERT_FRAMEWND_FIELD(member, offset) \
+    static_assert(offsetof(CFrameWnd, member) == (offset), "CFrameWnd::" #member)
+static_assert(sizeof(CFrameWnd) == 0x1d8, "CFrameWnd size is unchanged");
+static_assert(sizeof(CFrameWnd::RetailPrefixStorage) == 0x10,
+              "CFrameWnd prefix overlay size is unchanged");
+static_assert(sizeof(CFrameWnd::RetailMiddleStorage) == 0x64,
+              "CFrameWnd middle overlay size is unchanged");
+static_assert(sizeof(CFrameWnd::RetailTailStorage) == 0x60,
+              "CFrameWnd tail overlay size is unchanged");
+ASSERT_FRAMEWND_FIELD(m_retailPrefix, 0xe8);
+ASSERT_FRAMEWND_FIELD(m_hAccelTable, 0xf8);
+ASSERT_FRAMEWND_FIELD(m_nIDHelp, 0x164);
+ASSERT_FRAMEWND_FIELD(m_pViewActive, 0x170);
+static_assert(offsetof(CFrameWnd, m_retailPrefix) +
+                  offsetof(CFrameWnd::RetailPrefixStorage, m_reserved_e8) == 0xe8,
+              "CFrameWnd retail prefix pad");
+static_assert(offsetof(CFrameWnd, m_retailPrefix) +
+                  offsetof(CFrameWnd::RetailPrefixStorage, m_hMenuDefault) == 0xf0,
+              "CFrameWnd retail default menu");
+ASSERT_FRAMEWND_FIELD(m_retailMiddle, 0x100);
+static_assert(offsetof(CFrameWnd, m_retailMiddle) +
+                  offsetof(CFrameWnd::RetailMiddleStorage, m_bHelpMode) == 0x104,
+              "CFrameWnd retail help-mode flag");
+static_assert(offsetof(CFrameWnd, m_retailMiddle) +
+                  offsetof(CFrameWnd::RetailMiddleStorage, m_rectBorder) == 0x110,
+              "CFrameWnd retail border rectangle");
+static_assert(offsetof(CFrameWnd, m_retailMiddle) +
+                  offsetof(CFrameWnd::RetailMiddleStorage, m_pNotifyHook) == 0x120,
+              "CFrameWnd retail notification-hook pointer");
+ASSERT_FRAMEWND_FIELD(m_retailTail, 0x178);
+static_assert(offsetof(CFrameWnd, m_retailTail) +
+                  offsetof(CFrameWnd::RetailTailStorage, m_dwBorderFlags) == 0x1d0,
+              "CFrameWnd retail border flags");
+#undef ASSERT_FRAMEWND_FIELD
+
+// Retail's m_lpActiveObject (+0x48) collides with OpenMFC's m_pActiveItem at
+// that offset, while retail m_pActiveItem (+0x50) collides with OpenMFC's
+// m_lpActiveUIWindow. Keep both retail values in the pThis-keyed state rather
+// than interpreting either public member as the other.
 inline IOleInPlaceActiveObject* ActiveObject(const COleFrameHook* p) {
-    return reinterpret_cast<IOleInPlaceActiveObject*>(p->m_lpActiveUIWindow);
+    if (!p)
+        return nullptr;
+    FrameHookState* state = GetFrameHookState(const_cast<COleFrameHook*>(p), false);
+    return state ? state->activeObject : nullptr;
+}
+inline COleClientItem* ActiveItem(const COleFrameHook* p) {
+    if (!p)
+        return nullptr;
+    FrameHookState* state = GetFrameHookState(const_cast<COleFrameHook*>(p), false);
+    return state ? state->activeItem : nullptr;
 }
 
-// Retail guards almost every body with
-//     m_lpActiveObject != NULL && m_pActiveItem->m_pInPlaceFrame == this
-// (e.g. mfc140u 0x248040..0x248052 in OnContextHelp).  The second half
-// distinguishes the container frame's hook (retail COleClientItem+0xa8) from
-// the doc frame's hook (+0xb0); OpenMFC's COleClientItem declares neither
-// member -- see the layout note at core/ole/COleClientItem.cpp:1497 -- so the
-// test degrades here to "the hook has an active item at all".  That is weaker
-// than retail: a doc-frame hook (retail item+0xb0) would pass it too.  It is
-// harmless today only because nothing in OpenMFC constructs a COleFrameHook
-// (the exported ctor thunk below is the only way in) and nothing ever stores
-// m_lpActiveUIWindow, so every guarded body returns at the first test.  The
-// deviation is called out again at each call site.
+// Retail guards these callbacks with a non-null active object and verifies
+// item->m_pInPlaceFrame == this at COleClientItem +0xa8. The item hook field
+// is overlaid and offset-asserted in afxole.h / COleClientItem.cpp, so this
+// helper can perform retail's exact equality test without side-table linkage.
 inline bool ActiveForThisFrame(const COleFrameHook* p) {
-    return p != nullptr && ActiveObject(p) != nullptr && p->m_pActiveItem != nullptr;
+    COleClientItem* item = ActiveItem(p);
+    if (ActiveObject(p) == nullptr || item == nullptr)
+        return false;
+#if defined(__GNUC__)
+    // The non-MSVC declaration intentionally has no retail tail overlay.
+    // Per-file GNU compilation is therefore conservative; the shipping MSVC
+    // ABI path below performs the retail +0xa8 owner-link comparison.
+    return true;
+#else
+    return item->m_retailTail.m_pInPlaceFrame == p;
+#endif
 }
 
-// Retail COleDocObjectItem keeps these members in its derived tail. OpenMFC's
-// class reserves the required bytes in _coledocobjectitem_padding (which begins
-// at +0xec, four bytes before the first retail pointer), so this file accesses
-// only the two verified offsets needed by COleFrameHook. The retail
-// names are confirmed by the installed MFC afxole.h (m_pHelpPopupMenu and
-// m_bInHelpMenu); COleDocObjectItem.cpp also pins its retail-sized 0x118 layout.
+// METHOD_PROLOGUE for XOleInPlaceFrame backs its interface pointer up by
+// exactly 0x80 bytes, as shown by the retail constructor and method prologues.
+inline COleFrameHook* HookFromInPlaceFrameInterface(void* pInterface) {
+    return reinterpret_cast<COleFrameHook*>(
+        static_cast<unsigned char*>(pInterface) - 0x80);
+}
+
+// Retail COleDocObjectItem keeps these members in its derived tail. The
+// named RetailTailStorage overlays that same tail and is statically pinned at
+// the retail +0xf0 and +0x108 offsets. The XOleDocumentSite vftable storage at
+// +0x110 is still not initialized by the OpenMFC constructor.
 constexpr size_t kOffDocObjectHelpPopupMenu = 0xf0;
 constexpr size_t kOffDocObjectInHelpMenu = 0x108;
-struct COleDocObjectItemLayoutProbe : COleDocObjectItem {
-    static constexpr size_t PaddingBegin() {
-        return offsetof(COleDocObjectItemLayoutProbe, _coledocobjectitem_padding);
-    }
-    static constexpr size_t PaddingSize() {
-        return sizeof(static_cast<COleDocObjectItemLayoutProbe*>(nullptr)->
-                          _coledocobjectitem_padding);
-    }
-};
 static_assert(sizeof(COleDocObjectItem) == 0x118,
-              "retail COleDocObjectItem size required for its tail members");
-static_assert(COleDocObjectItemLayoutProbe::PaddingBegin() <= kOffDocObjectHelpPopupMenu,
-              "m_pHelpPopupMenu must lie in COleDocObjectItem padding");
-static_assert(kOffDocObjectHelpPopupMenu + sizeof(CMenu*) <=
-                  COleDocObjectItemLayoutProbe::PaddingBegin() +
-                      COleDocObjectItemLayoutProbe::PaddingSize(),
-              "m_pHelpPopupMenu must fit in COleDocObjectItem padding");
-static_assert(kOffDocObjectInHelpMenu ==
-                  COleDocObjectItemLayoutProbe::PaddingBegin() + 0x1c,
-              "m_bInHelpMenu must be at retail +0x108 in COleDocObjectItem padding");
-static_assert(kOffDocObjectInHelpMenu + sizeof(BOOL) <=
-                  COleDocObjectItemLayoutProbe::PaddingBegin() +
-                      COleDocObjectItemLayoutProbe::PaddingSize(),
-              "m_bInHelpMenu must fit in COleDocObjectItem padding");
+              "COleDocObjectItem size must remain retail-sized");
+#ifndef __GNUC__
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_pHelpPopupMenu) ==
+                  kOffDocObjectHelpPopupMenu,
+              "retail m_pHelpPopupMenu at +0xf0");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_pActiveView) == 0xf8,
+              "retail m_pActiveView at +0xf8");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_pIPrint) == 0x100,
+              "retail m_pIPrint at +0x100");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_bInHelpMenu) ==
+                  kOffDocObjectInHelpMenu,
+              "retail m_bInHelpMenu at +0x108");
+static_assert(offsetof(COleDocObjectItem, m_retailTail) +
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSiteVftable) ==
+                  0x110,
+              "retail XOleDocumentSite storage at +0x110");
+#endif
 
 inline COleDocObjectItem* AsDocObjectItem(COleClientItem* pItem) {
     if (pItem == nullptr ||
@@ -324,13 +411,11 @@ inline COleDocObjectItem* AsDocObjectItem(COleClientItem* pItem) {
 }
 
 inline CMenu* DocObjectHelpPopupMenu(COleDocObjectItem* pItem) {
-    return *reinterpret_cast<CMenu**>(reinterpret_cast<char*>(pItem) +
-                                      kOffDocObjectHelpPopupMenu);
+    return pItem->m_retailTail.m_pHelpPopupMenu;
 }
 
 inline BOOL& DocObjectInHelpMenu(COleDocObjectItem* pItem) {
-    return *reinterpret_cast<BOOL*>(reinterpret_cast<char*>(pItem) +
-                                   kOffDocObjectInHelpMenu);
+    return pItem->m_retailTail.m_bInHelpMenu;
 }
 
 }  // namespace
@@ -354,35 +439,40 @@ extern "C" void* MS_ABI impl___0COleFrameHook__QEAA_PEAVCFrameWnd__PEAVCOleClien
         return nullptr;
     return new (pThis) COleFrameHook(pFrameWnd, pItem);
 }
-// Retail ctor, mfc140u 0x247d90: CCmdTarget::CCmdTarget, plant the three
-// vftables, then
-//     m_lpActiveObject = NULL; m_pActiveItem = pItem; m_pFrameWnd = pFrameWnd;
-//     m_hWndFrame = pFrameWnd->m_hWnd; [+0x60] = [+0x68] = NULL;
-//     m_nModelessCount = 0; m_strObjName = <empty>;
-//     pFrameWnd->[+0x120] = this;              // 0x247e14
-// The last statement installs the hook on the frame window (MFC's
-// CFrameWnd::m_pNotifyHook).  OpenMFC's CFrameWnd declares no such member, and
-// the five members between +0x58 and +0x78 are likewise undeclared, so only
-// the three OpenMFC has are set here.  The padding memset keeps the undeclared
-// tail deterministic.
+// Retail ctor entry RVA 0x247d90 (mfc140u): CCmdTarget::CCmdTarget, plant
+// the vftables, then initialize m_lpActiveObject, m_pActiveItem, m_pFrameWnd,
+// m_hWndFrame, the accelerator, modeless count and empty CString, and finally
+// write the frame's m_pNotifyHook at +0x120. OpenMFC models the frame pointer
+// and same-sized tail, initializes the modeled frame back-pointer, and mirrors
+// the CString in pThis-keyed FrameHookState; compatible COM interface vtables
+// are still absent.
 COleFrameHook::COleFrameHook(CFrameWnd* pFrameWnd, COleClientItem* pItem)
     : m_pFrameWnd(pFrameWnd), m_pActiveItem(pItem), m_lpActiveUIWindow(nullptr) {
     memset(_oleframehook_padding, 0, sizeof(_oleframehook_padding));
+    m_retailTail.m_hWndFrame = pFrameWnd ? pFrameWnd->m_hWnd : nullptr;
+    if (pFrameWnd)
+        *reinterpret_cast<void**>(pFrameWnd->m_retailMiddle.m_pNotifyHook) = this;
+    if (FrameHookState* state = GetFrameHookState(this, true)) {
+        state->activeItem = pItem;
+        state->frameWindow = m_retailTail.m_hWndFrame;
+    }
 }
-// Retail dtor, mfc140u 0x247e80: restore the vftable, clear the frame's
-// back-pointer (`if (m_pFrameWnd != NULL && m_pFrameWnd->[+0x120] == this)
-// m_pFrameWnd->[+0x120] = NULL;`, 0x247e93..0x247ea5), release
-// m_strObjName's CStringData, then tail-jump to ~CCmdTarget.  It does not
-// clear m_pFrameWnd / m_pActiveItem / m_lpActiveObject.  Neither the frame
-// back-pointer nor the CString is modelled in OpenMFC, so nothing is left to
-// do here; the three assignments this body used to make were not retail's.
+// Retail dtor entry RVA 0x247e80 (mfc140u): restore the vftable, clear the
+// frame back-pointer when it still names this hook, release m_strObjName's
+// CStringData, then tail-jump to ~CCmdTarget. OpenMFC clears the now-modeled
+// frame back-pointer and removes its side-table association; the CString
+// object itself remains represented in the state table.
 COleFrameHook::~COleFrameHook() {
+    if (m_pFrameWnd &&
+        *reinterpret_cast<void**>(m_pFrameWnd->m_retailMiddle.m_pNotifyHook) == this)
+        *reinterpret_cast<void**>(m_pFrameWnd->m_retailMiddle.m_pNotifyHook) = nullptr;
+    RemoveFrameHookState(this);
 }
-// Retail OnDocActivate, mfc140u 0x247f70 (vftable slot 25).  Its first act is
+// STUB. Retail OnDocActivate entry RVA 0x247f70 (mfc140u, vftable slot 25). Its first act is
 //     if (m_lpActiveObject == NULL) return TRUE;
-// (mfc140u 0x247f88 / mfc140 0x2463e8: `lea 0x1(%rcx),%eax` with rcx already
-// known zero).  Everything after that is unreachable here, and this comment
-// used to skip its first step, so for the record it is:
+// (mfc140u entry RVA 0x247f70: the null check is the first body operation).
+// Everything after that remains unreachable until a real SetActiveObject path
+// populates the side-table state, so for the record it is:
 //     m_lpActiveObject->OnDocWindowActivate(bActivate);      // vtbl 0x38, slot 7
 //     COleFrameHook* pHook = m_pActiveItem->[+0xa8];         // 0x247fa1
 //     pHook->m_pFrameWnd->[+0x1d0] |= 2;                     // 0x247fac
@@ -397,12 +487,14 @@ COleFrameHook::~COleFrameHook() {
 //         if (pHook != this) pHook->m_pFrameWnd->[+0x120] = NULL;   // 0x248014
 //     }
 //     return bActivate;                                      // NOT TRUE  (0x24802c)
-// which needs COleClientItem+0xa8 / +0xb0 and the hook's own XOleInPlaceFrame
-// sub-object, none of which OpenMFC declares.  m_lpActiveUIWindow is always
-// NULL in this build (the ctor sets it and nothing in the DLL ever stores
-// there), so the retail early-out is the only reachable path and TRUE is the
-// faithful answer.  The exported thunk for this symbol lives in
-// core/ole/Thunks.cpp, not here.
+// which now has named COleClientItem +0xa8 / +0xb0 storage but still needs a
+// compatible XOleInPlaceFrame sub-object. The retail active-object value is
+// deliberately kept in FrameHookState (not the colliding m_lpActiveUIWindow
+// member). SetActiveObject now updates that state, but its +0x80 interface is
+// unpublished, so ordinary COM callers cannot reach the setter. This typed
+// method still returns TRUE unconditionally and therefore matches only the
+// null-active-object early-out; the later retail path remains unimplemented.
+// The exported thunk for this symbol lives in core/ole/Thunks.cpp, not here.
 BOOL COleFrameHook::OnDocActivate(BOOL bActivate) {
     (void)bActivate;
     return TRUE;
@@ -443,8 +535,7 @@ BOOL COleFrameHook::OnGetClipboardData(COleDataSource* pDataSource) {
 //   ret_true: return TRUE;                                            // 0x248060
 // The r8 the tail-jump passes is 0x180248560, which IS
 // COleFrameHook::DoContextSensitiveHelp (its own entry, per the mfc140u map).
-// Deviation: the m_pInPlaceFrame test becomes a null test on m_pActiveItem --
-// see ActiveForThisFrame().
+// ActiveForThisFrame compares the overlaid COleClientItem +0xa8 hook field.
 extern "C" int MS_ABI impl__OnContextHelp_COleFrameHook__UEAAHH_Z(COleFrameHook* pThis,
                                                                   int bEnter) {
     if (!ActiveForThisFrame(pThis))
@@ -473,25 +564,25 @@ extern "C" int MS_ABI impl__DoContextSensitiveHelp_COleFrameHook__QEAAHH_Z(
 }
 
 // Symbol: ?DoEnableModeless@COleFrameHook@@QEAAHH@Z
-// STUB.  mfc140u 0x248580 / mfc140 0x2469e0 is a reference-counted enable:
-//     UINT n = m_nModelessCount;                       // [this+0x70]
-//     if (!bEnable) { m_nModelessCount = n + 1;
-//                     if (n == 0) m_lpActiveObject->EnableModeless(FALSE); }
-//     else          { if (n == 0) return TRUE;
-//                     m_nModelessCount = n - 1;
-//                     if (n - 1 == 0) m_lpActiveObject->EnableModeless(TRUE); }
-//     return TRUE;                                     // every path
-// (vtable byte 0x48 is slot 9, IOleInPlaceActiveObject::EnableModeless.)
-// The counter is retail's member at +0x70, which OpenMFC's COleFrameHook does
-// not declare, and without it the nesting cannot be reproduced: calling
-// EnableModeless on every request instead of on the 0<->1 transition would
-// re-enable the UI underneath a still-open nested modal dialog.  TRUE is
-// retail's return value on every path, so only the side effect is missing.
-// See headerRequests for the member.
+// Retail entry RVA 0x248580 (mfc140u): maintain the +0x70 nesting count and
+// call IOleInPlaceActiveObject::EnableModeless only on the 0->1 / 1->0 edges.
+// The counter is the modeled m_retailTail.m_nModelessCount (offset asserted
+// above); FrameHookState supplies the active-object pointer. Nested transitions
+// that leave the count nonzero do not call the COM method.
 extern "C" int MS_ABI impl__DoEnableModeless_COleFrameHook__QEAAHH_Z(COleFrameHook* pThis,
                                                                      int bEnable) {
-    (void)pThis;
-    (void)bEnable;
+    const UINT count = pThis->m_retailTail.m_nModelessCount;
+    if (!bEnable) {
+        pThis->m_retailTail.m_nModelessCount = count + 1;
+        if (count == 0)
+            ActiveObject(pThis)->EnableModeless(FALSE);
+    } else {
+        if (count == 0)
+            return TRUE;
+        pThis->m_retailTail.m_nModelessCount = count - 1;
+        if (count == 1)
+            ActiveObject(pThis)->EnableModeless(TRUE);
+    }
     return TRUE;
 }
 
@@ -531,14 +622,14 @@ extern "C" int MS_ABI impl__DoEnableModeless_COleFrameHook__QEAAHH_Z(COleFrameHo
 // resolve to AfxGetModuleState, CObject::IsKindOf and AfxIsDescendant, and the
 // `call *0x1802c7b30` used for every indirect call is
 // __guard_dispatch_icall_fptr, not an import.)
-// The inner test needs COleClientItem+0xa8 (the item's own frame hook) and
-// +0x98 (its view), and the outer walk needs m_hWndFrame at +0x58; OpenMFC
-// declares none of the three -- see core/ole/COleClientItem.cpp:1497 for the
-// same finding about the item.  With no enumerable in-place item the loop body
-// never runs, and TRUE is exactly what retail returns in that case, which is
-// what makes OnContextHelp and OnEnableModeless above correct compositions
-// today.  The callback is still invoked through the real signature so that
-// filling this in later needs no signature change.
+// The item hook (+0xa8) is an asserted COleClientItem tail field; the view
+// (+0x98) and this hook's frame HWND (+0x58) are represented by family state.
+// The remaining blocker
+// is exact retail enumeration through the active module state's app/document
+// manager/template vtables, which this file does not model. Substituting the
+// process-wide side tables would include documents outside the retail walk and
+// would not preserve its ordering. The callback keeps its recovered signature
+// for when that traversal is available.
 extern "C" int MS_ABI impl__NotifyAllInPlace_COleFrameHook__QEAAHHP81_EAAHH_Z_Z(
     COleFrameHook* pThis, int bParam, PFN_HOOKNOTIFY pfn) {
     (void)pThis;
@@ -555,7 +646,7 @@ extern "C" int MS_ABI impl__NotifyAllInPlace_COleFrameHook__QEAAHHP81_EAAHH_Z_Z(
 //     if (!m_pFrameWnd->IsWindowEnabled()) return;          // call 0x1802a9b00
 //     m_lpActiveObject->OnFrameWindowActivate(bActive);     // vtable 0x30 = slot 6
 // 0x1802a9b00 is ?IsWindowEnabled@CWnd@@QEBAHXZ per the mfc140u map.
-// Deviation: the m_pInPlaceFrame test becomes a null test (ActiveForThisFrame).
+// ActiveForThisFrame compares the overlaid COleClientItem +0xa8 hook field.
 extern "C" void MS_ABI impl__OnActivate_COleFrameHook__UEAAXH_Z(COleFrameHook* pThis,
                                                                 int bActive) {
     if (!ActiveForThisFrame(pThis))
@@ -575,8 +666,8 @@ extern "C" void MS_ABI impl__OnActivate_COleFrameHook__UEAAXH_Z(COleFrameHook* p
 // The r8 the call passes is mfc140u 0x180248580 (mfc140 0x1802469e0), which is
 // DoEnableModeless's own entry in each image's map.  The
 // BOOL NotifyAllInPlace returns is discarded (this override returns void).
-// Deviation: the m_pInPlaceFrame test becomes a null test; and the callback
-// itself is the documented stub above, so the walk currently has no effect.
+// ActiveForThisFrame checks the overlaid +0xa8 link; the callback itself is
+// implemented, but retail document-manager enumeration remains unavailable.
 extern "C" void MS_ABI impl__OnEnableModeless_COleFrameHook__UEAAXH_Z(COleFrameHook* pThis,
                                                                       int bEnable) {
     if (!ActiveForThisFrame(pThis))
@@ -597,7 +688,7 @@ extern "C" void MS_ABI impl__OnEnableModeless_COleFrameHook__UEAAXH_Z(COleFrameH
 extern "C" void MS_ABI impl__OnInitMenu_COleFrameHook__UEAAXPEAVCMenu___Z(
     COleFrameHook* pThis, CMenu* pMenu) {
     (void)pMenu;
-    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    COleDocObjectItem* pItem = AsDocObjectItem(ActiveItem(pThis));
     if (pItem != nullptr)
         DocObjectInHelpMenu(pItem) = FALSE;
 }
@@ -616,7 +707,7 @@ extern "C" int MS_ABI impl__OnInitMenuPopup_COleFrameHook__UEAAHPEAVCMenu__HH_Z(
     COleFrameHook* pThis, CMenu* pMenu, int nIndex, int bSysMenu) {
     if (bSysMenu)
         return FALSE;
-    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    COleDocObjectItem* pItem = AsDocObjectItem(ActiveItem(pThis));
     if (pItem == nullptr || !DocObjectInHelpMenu(pItem))
         return FALSE;
     CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pItem);
@@ -641,7 +732,7 @@ extern "C" int MS_ABI impl__OnInitMenuPopup_COleFrameHook__UEAAHPEAVCMenu__HH_Z(
 // still performed in the same order as retail.
 extern "C" int MS_ABI impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(
     COleFrameHook* pThis, unsigned int nItemID, unsigned int nFlags, HMENU hSysMenu) {
-    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    COleDocObjectItem* pItem = AsDocObjectItem(ActiveItem(pThis));
     if (pItem == nullptr)
         return FALSE;
     CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pItem);
@@ -681,9 +772,10 @@ extern "C" int MS_ABI impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(
 // no-op until that lands -- but the composition is retail's.
 extern "C" void MS_ABI impl__OnPaletteChanged_COleFrameHook__UEAAXPEAVCWnd___Z(
     COleFrameHook* pThis, CWnd* pFocusWnd) {
-    if (!pThis || pThis->m_pActiveItem == nullptr)
+    COleClientItem* activeItem = ActiveItem(pThis);
+    if (!activeItem)
         return;
-    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pThis->m_pActiveItem);
+    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(activeItem);
     if (pWnd == nullptr)
         return;
     ::SendMessage(pWnd->m_hWnd, WM_PALETTECHANGED,
@@ -700,8 +792,7 @@ extern "C" void MS_ABI impl__OnPaletteChanged_COleFrameHook__UEAAXPEAVCWnd___Z(
 // result is whether that call returned nonzero. The Unicode IAT slot
 // 0x1802c6fb8 resolves to USER32!SendNotifyMessageW (iatu.py); the ANSI twin's
 // corresponding call is SendNotifyMessageA. The exact +0xa8 in-place-frame
-// equality test cannot be represented by OpenMFC's COleClientItem declaration,
-// so ActiveForThisFrame weakens it to an active-item non-null check. This body
+// exact +0xa8 hook-pointer equality is checked by ActiveForThisFrame. This body
 // also retains a defensive null-pMsg check absent in retail. The in-place
 // window thunk is currently a null-returning stub.
 extern "C" int MS_ABI impl__OnPreTranslateMessage_COleFrameHook__UEAAHPEAUtagMSG___Z(
@@ -712,7 +803,7 @@ extern "C" int MS_ABI impl__OnPreTranslateMessage_COleFrameHook__UEAAHPEAUtagMSG
         return ActiveObject(pThis)->TranslateAccelerator(pMsg) == S_OK ? TRUE : FALSE;
     if (pMsg->message != WM_COMMAND)
         return FALSE;
-    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    COleDocObjectItem* pItem = AsDocObjectItem(ActiveItem(pThis));
     if (pItem == nullptr || !DocObjectInHelpMenu(pItem))
         return FALSE;
     LRESULT result = 0;
@@ -733,9 +824,10 @@ extern "C" int MS_ABI impl__OnPreTranslateMessage_COleFrameHook__UEAAHPEAUtagMSG
 // GetInPlaceWindow is a stub in this tree today, so this returns FALSE until
 // that lands.
 extern "C" int MS_ABI impl__OnQueryNewPalette_COleFrameHook__UEAAHXZ(COleFrameHook* pThis) {
-    if (!pThis || pThis->m_pActiveItem == nullptr)
+    COleClientItem* activeItem = ActiveItem(pThis);
+    if (!activeItem)
         return FALSE;
-    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pThis->m_pActiveItem);
+    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(activeItem);
     if (pWnd == nullptr)
         return FALSE;
     return ::SendMessage(pWnd->m_hWnd, WM_QUERYNEWPALETTE, 0, 0) != 0 ? TRUE : FALSE;
@@ -748,14 +840,12 @@ extern "C" int MS_ABI impl__OnQueryNewPalette_COleFrameHook__UEAAHXZ(COleFrameHo
 //     m_pFrameWnd->NegotiateBorderSpace(1 /* borderGet */, &rc);   // vtbl 0x348
 //     m_lpActiveObject->ResizeBorder(&rc, &m_xOleInPlaceFrame,     // vtbl 0x40 = slot 8
 //                                    m_pActiveItem->m_pInPlaceFrame == this);
-// The second argument is the address of the hook's OWN XOleInPlaceFrame
-// sub-object (this+0x80).  OpenMFC's COleFrameHook has no such sub-object and
-// its interface map (detail/InterfaceMapsSupport.cpp:38-39) exposes no
-// IOleInPlaceUIWindow at all, so there is no pointer to pass; passing NULL
-// instead is not an option because ResizeBorder's pUIWindow is the object the
-// server calls back on.  The NegotiateBorderSpace(borderGet) call alone has no
-// observable effect (it only fills the local RECT), so nothing partial is
-// worth emitting.  See headerRequests.
+// The second argument is the hook's own XOleInPlaceFrame sub-object (this+0x80).
+// OpenMFC names that same-sized storage but has no compatible vtable there,
+// and its interface map exposes no IOleInPlaceUIWindow. Passing that zeroed
+// slot would not provide the callback target ResizeBorder requires. The
+// NegotiateBorderSpace(borderGet) call alone only fills a local RECT, so no
+// partial body is useful. See state_ole.md for the remaining interface blocker.
 extern "C" void MS_ABI impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(COleFrameHook* pThis) {
     (void)pThis;
 }
@@ -769,49 +859,41 @@ extern "C" void MS_ABI impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(COleFrameHook
 // COleClientItem vftable byte 0x170 is OnUpdateFrameTitle; that slot is
 // identified, and its retail base body (`xor %eax,%eax ; ret`) transcribed, at
 // core/ole/COleClientItem.cpp:2155.
-// Deviations: the m_pInPlaceFrame test becomes a null test
-// (ActiveForThisFrame), and the virtual dispatch is devirtualized -- OpenMFC's
+// Deviation: ActiveForThisFrame reads the overlaid +0xa8 hook link, and the
+// virtual dispatch is devirtualized -- OpenMFC's
 // COleClientItem does not declare OnUpdateFrameTitle virtual (it is not in the
 // class declaration in afxole.h at all), so the base thunk is called directly
 // and a COleDocObjectItem override would not be reached.
 extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameHook* pThis) {
     if (!ActiveForThisFrame(pThis))
         return FALSE;
-    return impl__OnUpdateFrameTitle_COleClientItem__UEAAHXZ(pThis->m_pActiveItem);
+    return impl__OnUpdateFrameTitle_COleClientItem__UEAAHXZ(ActiveItem(pThis));
 }
 
 // ---------------------------------------------------------------------------
 // COleFrameHook::XOleInPlaceFrame (IOleInPlaceFrame) and
 // COleFrameHook::XOleCommandTarget (IOleCommandTarget).
 //
-// All fourteen below are STUBS, for one shared reason stated once here rather
-// than fourteen times: each retail body begins by backing the incoming
-// interface pointer up to the containing COleFrameHook -- `lea -0x80(%rcx)`
-// for XOleInPlaceFrame (mfc140 0x24793f) and -0x88 for XOleCommandTarget
-// (mfc140 0x2477db reads m_pActiveItem as `mov -0x38(%rcx),%rdi`, and
-// 0x88 - 0x38 == 0x50) -- and OpenMFC's COleFrameHook contains neither
-// sub-object.  Both offsets lie past the end of OpenMFC's 0x68-byte object
-// (see the header comment for the measurement), its constructor plants no
-// interface vftables, and the interface map at
-// detail/InterfaceMapsSupport.cpp:38-39 forwards to CCmdTarget with no entries
-// of its own, so nothing in this build can ever produce a pointer for which
-// that back-up is meaningful.  A body doing the arithmetic anyway would
-// synthesise a `this` pointing 0x80 bytes before whatever the caller passed.
-// Even with a recoverable hook, six of the fourteen bodies would still be
-// blocked on members OpenMFC does not declare (named per entry below):
-// ContextSensitiveHelp (CFrameWnd +0x104), GetBorder (CFrameWnd +0x110),
-// SetBorderSpace (CFrameWnd +0x1d0), GetWindow (hook +0x58),
-// TranslateAccelerator (hook +0x68 and CFrameWnd +0xf8) and SetActiveObject
-// (hook +0x78).  The other eight -- RequestBorderSpace, InsertMenus, SetMenu,
-// RemoveMenus, SetStatusText, EnableModeless, Exec and QueryStatus -- need
-// only the hook's m_pFrameWnd / m_pActiveItem plus vtable slots; what blocks
-// them is solely the unrecoverable `this`.
-//
-// What IS fixed here is the parameter lists: the auto-generated ones omitted
-// the interface `this` entirely, which would have shifted every argument by
-// one register had any of these ever been reached.  The E_NOTIMPL the stubs
-// return is NOT a retail value -- no retail body below returns it -- it is
-// the honest answer for "not implemented in this build".
+// The remaining unimplemented methods below are blocked by incomplete
+// interface publication or sibling infrastructure: retail backs incoming
+// XOleInPlaceFrame pointers up by 0x80 and XOleCommandTarget pointers by 0x88.
+// OpenMFC reserves the +0x80 storage but installs no compatible vtable there;
+// +0x88 cannot fit in the unchanged clang-cl object. The interface map
+// publishes neither part, so COM callers cannot currently obtain these
+// pointers. ContextSensitiveHelp, EnableModeless, GetBorder, GetWindow,
+// RequestBorderSpace, SetActiveObject, SetBorderSpace, SetStatusText, and
+// TranslateAccelerator have bodies using available state/callees; this does
+// not publish the missing vtable. SetActiveObject omits CString mutation.
+// The bodies needing AFX_MAINTAIN_STATE2 use its thunk-backed scope. The state
+// additions name CFrameWnd help mode, border RECT/flags, menu, notify-hook and
+// accelerator storage, the
+// COleClientItem +0xa8/+0xb0 hook links, and frame-hook tail state. The
+// slot-safe NegotiateBorderSpace adapter is in OlecoreSupport.h. The remaining
+// E_NOTIMPL returns are honest placeholders for methods that still need the
+// missing interface/command-target infrastructure; they are not retail
+// HRESULTs. The current object declaration is 0x88 bytes in both the per-file
+// GNU checker and clang-cl ABI check; the +0x80 slot is storage only, not a
+// published part.
 //
 // Retail behaviour, so that filling these in later needs no second pass.
 // First RVA is mfc140 (ANSI, where every body below was read); the mfc140u RVA
@@ -835,8 +917,8 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameH
 //                                 !fEnterMode: pFrame->ExitHelpMode() (vtbl 0x378);
 //                                 return S_OK.
 //                                 fEnterMode: if pFrame->[+0x104] != 0 (retail
-//                                 CFrameWnd m_bHelpMode; OpenMFC's CFrameWnd has
-//                                 no such member) return S_OK.  Otherwise
+//                                 CFrameWnd m_bHelpMode; now named in
+//                                 CFrameWnd::RetailMiddleStorage) return S_OK. Otherwise
 //                                 return E_UNEXPECTED if
 //                                 !pFrame->CanEnterHelpMode() (call 0x18029fbb0),
 //                                 or if !H->OnContextHelp(TRUE) (H's own vtbl
@@ -850,9 +932,8 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameH
 //   0x247a20 GetBorder            (mfc140u 0x2495c0)
 //                                 BOOL b = H->m_pActiveItem->OnShowControlBars(
 //                                          H->m_pFrameWnd, FALSE);   // vtbl 0x178
-//                                 RECT saved = m_pFrameWnd->[+0x110]  (16 bytes,
-//                                 copied AFTER that call; retail CFrameWnd
-//                                 m_rectBorder, undeclared in OpenMFC);
+//                                 RECT saved = m_pFrameWnd->m_rectBorder
+//                                 (+0x110, copied AFTER that call);
 //                                 then three m_pFrameWnd->NegotiateBorderSpace
 //                                 calls (vtbl 0x348): (3, NULL), (1, lprectBorder
 //                                 -- passed unchecked), (3, &saved); then
@@ -868,13 +949,13 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameH
 //                                 then always
 //                                 H->m_pActiveItem->OnShowControlBars(m_pFrameWnd,
 //                                 pborderwidths == NULL); return S_OK.
-//                                 +0x1d0 is undeclared in OpenMFC's CFrameWnd.
+//                                 +0x1d0 is named m_dwBorderFlags.
 //   0x247c50 SetActiveObject      (seeds E_UNEXPECTED)  release H->m_lpActiveObject
 //                                 through the unexported helper mfc140
 //                                 0x18026ba84 (IUnknown slot 2, then NULL it);
 //                                 H->m_lpActiveObject = pActiveObject, AddRef'd
 //                                 (slot 1) when non-NULL; H->m_strObjName.Empty()
-//                                 (+0x78, undeclared in OpenMFC); then ONLY if
+//                                 (+0x78 CString is mirrored in FrameHookState); then ONLY if
 //                                 pszObjName && pActiveObject:
 //                                 H->m_strObjName = pszObjName and
 //                                 H->m_pActiveItem->OnUpdateFrameTitle() (vtbl
@@ -929,25 +1010,58 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameH
 // ---------------------------------------------------------------------------
 
 // Symbol: ?ContextSensitiveHelp@XOleInPlaceFrame@COleFrameHook@@UEAAJH@Z
-// STUB -- retail body decoded under "ContextSensitiveHelp" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// Retail entry RVA 0x247930 (mfc140 ANSI twin): get the top-level frame;
+// leave help mode when fEnterMode is false, otherwise return S_OK if help mode
+// is already active, or require CanEnterHelpMode, hook OnContextHelp(TRUE),
+// and successful PostMessage(WM_COMMAND, 0xe145). Retail raises an invalid-arg
+// exception for a missing top-level frame and catches exceptions into
+// E_UNEXPECTED; this body maps explicit failures and caught exceptions to that
+// HRESULT and uses the thunk-backed AFX module-state scope. The +0x80 interface remains
+// unpublished.
 extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleInPlaceFrame_COleFrameHook__UEAAJH_Z(
     void* pThis, int fEnterMode) {
-    (void)pThis;
-    (void)fEnterMode;
-    return E_NOTIMPL;
+    try {
+        COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+        FrameHookModuleStateScope state(hook->m_pModuleState);
+        CFrameWnd* frame = impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(
+            hook->m_pFrameWnd);
+        if (frame == nullptr)
+            return E_UNEXPECTED;
+        if (!fEnterMode) {
+            impl__ExitHelpMode_CFrameWnd__UEAAXXZ(frame);
+            return S_OK;
+        }
+        if (frame->m_retailMiddle.m_bHelpMode)
+            return S_OK;
+        if (!impl__CanEnterHelpMode_CFrameWnd__QEAAHXZ(frame) ||
+            !impl__OnContextHelp_COleFrameHook__UEAAHH_Z(hook, TRUE) ||
+            !::PostMessage(frame->m_hWnd, WM_COMMAND, 0xe145u, 0))
+            return E_UNEXPECTED;
+        return S_OK;
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
 }
 
 // Symbol: ?EnableModeless@XOleInPlaceFrame@COleFrameHook@@UEAAJH@Z
-// STUB -- retail body decoded under "EnableModeless" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// Retail entry RVA 0x249b00 (mfc140u): call BeginModalState when disabling,
+// EndModalState when enabling, then return S_OK. The normal path uses the
+// available CFrameWnd thunks and the thunk-backed MFC module-state scope; the
+// catch-all maps thrown exceptions to E_UNEXPECTED. The
+// constructor still does not publish a compatible +0x80 interface vtable.
 extern "C" long MS_ABI impl__EnableModeless_XOleInPlaceFrame_COleFrameHook__UEAAJH_Z(
     void* pThis, int fEnable) {
-    (void)pThis;
-    (void)fEnable;
-    return E_NOTIMPL;
+    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    try {
+        FrameHookModuleStateScope state(hook->m_pModuleState);
+        if (fEnable)
+            impl__EndModalState_CFrameWnd__UEAAXXZ(hook->m_pFrameWnd);
+        else
+            impl__BeginModalState_CFrameWnd__UEAAXXZ(hook->m_pFrameWnd);
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
+    return S_OK;
 }
 
 // Symbol: ?Exec@XOleCommandTarget@COleFrameHook@@UEAAJPEBU_GUID@@KKPEAUtagVARIANT@@1@Z
@@ -964,32 +1078,44 @@ extern "C" long MS_ABI impl__Exec_XOleCommandTarget_COleFrameHook__UEAAJPEBU_GUI
 }
 
 // Symbol: ?GetBorder@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUtagRECT@@@Z
-// STUB -- retail body decoded under "GetBorder" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// Retail entry RVA 0x247a20 (mfc140 ANSI twin): hide the active item's bars,
+// save the frame border RECT, negotiate commands 3/1/3 (the caller's output
+// pointer is passed unchecked), then restore the bars only if they were
+// initially shown. The needed frame fields and both sibling thunks are
+// available; as elsewhere, this body is callable only if a +0x80 interface
+// pointer is supplied, because OpenMFC does not publish that interface.
 extern "C" long MS_ABI impl__GetBorder_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUtagRECT___Z(
     void* pThis, RECT* lprectBorder) {
-    (void)pThis;
-    (void)lprectBorder;
-    return E_NOTIMPL;
+    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    FrameHookModuleStateScope state(hook->m_pModuleState);
+    CFrameWnd* frame = hook->m_pFrameWnd;
+    COleClientItem* item = ActiveItem(hook);
+    const int barsWereShown =
+        impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(item, frame, FALSE);
+    RECT savedBorder = frame->m_retailMiddle.m_rectBorder;
+    CallRetailCFrameWndNegotiateBorderSpace(frame, 3, nullptr);
+    CallRetailCFrameWndNegotiateBorderSpace(frame, 1, lprectBorder);
+    CallRetailCFrameWndNegotiateBorderSpace(frame, 3, &savedBorder);
+    if (barsWereShown)
+        impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(item, frame, TRUE);
+    return S_OK;
 }
 
 // Symbol: ?GetWindow@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAPEAUHWND__@@@Z
+// Retail entry RVA 0x247910 (mfc140 ANSI twin): E_POINTER for a null output,
+// otherwise return the stored +0x58 frame HWND and S_OK, or E_FAIL if null.
 extern "C" long MS_ABI impl__GetWindow_XOleInPlaceFrame_COleFrameHook__UEAAJPEAPEAUHWND_____Z(
     void* pThis, HWND* phwnd) {
-    (void)pThis;
-    // Retail's only unconditional step is the E_POINTER check at 0x247910,
-    // which needs no `this`; everything after it reads m_hWndFrame.
     if (phwnd == nullptr)
         return E_POINTER;
-    *phwnd = nullptr;
-    return E_FAIL;
+    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    *phwnd = hook->m_retailTail.m_hWndFrame;
+    return *phwnd != nullptr ? S_OK : E_FAIL;
 }
 
 // Symbol: ?InsertMenus@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@PEAUtagOleMenuGroupWidths@@@Z
-// STUB -- retail body decoded under "InsertMenus" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// STUB -- the retail +0x80 interface slot is reserved but has no compatible
+// vtable and is not published by OpenMFC's interface map.
 extern "C" long MS_ABI impl__InsertMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU____PEAUtagOleMenuGroupWidths___Z(
     void* pThis, HMENU hmenuShared, OLEMENUGROUPWIDTHS* lpMenuWidths) {
     (void)pThis;
@@ -1011,9 +1137,8 @@ extern "C" long MS_ABI impl__QueryStatus_XOleCommandTarget_COleFrameHook__UEAAJP
 }
 
 // Symbol: ?RemoveMenus@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@@Z
-// STUB -- retail body decoded under "RemoveMenus" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// STUB -- the retail +0x80 interface slot is reserved but has no compatible
+// vtable and is not published by OpenMFC's interface map.
 extern "C" long MS_ABI impl__RemoveMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU_____Z(
     void* pThis, HMENU hmenuShared) {
     (void)pThis;
@@ -1022,43 +1147,77 @@ extern "C" long MS_ABI impl__RemoveMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPE
 }
 
 // Symbol: ?RequestBorderSpace@XOleInPlaceFrame@COleFrameHook@@UEAAJPEBUtagRECT@@@Z
-// STUB -- retail body decoded under "RequestBorderSpace" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// Retail entry RVA 0x247b30 (mfc140 ANSI twin): call the frame's
+// NegotiateBorderSpace(2, pborderwidths), mapping TRUE to S_OK and FALSE to
+// OLE_E_INVALIDRECT. The adapter uses the verified retail vtable byte offset
+// +0x348 from OlecoreSupport.h; this body does not publish the missing +0x80
+// interface vtable.
 extern "C" long MS_ABI impl__RequestBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAAJPEBUtagRECT___Z(
     void* pThis, const RECT* pborderwidths) {
-    (void)pThis;
-    (void)pborderwidths;
-    return E_NOTIMPL;
+    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    FrameHookModuleStateScope state(hook->m_pModuleState);
+    return CallRetailCFrameWndNegotiateBorderSpace(
+               hook->m_pFrameWnd, 2, const_cast<RECT*>(pborderwidths))
+        ? S_OK : OLE_E_INVALIDRECT;
 }
 
 // Symbol: ?SetActiveObject@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUIOleInPlaceActiveObject@@PEB_W@Z
-// STUB -- retail body decoded under "SetActiveObject" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// Retail entry RVA 0x247c50 (mfc140 ANSI twin; --u has no resolved export):
+// release the old active object, store/AddRef the new one, empty the object
+// name, and only for a non-null name AND active object assign the string and
+// update the frame title. The active-object ownership and title callback are
+// reproduced below. The CString Empty/assignment sequence is intentionally
+// omitted because no thunk-safe CString helper is modeled in this file; a
+// direct C++ operator call would violate the thunk-only link rule. This body
+// uses the thunk-backed module-state scope and catches exceptions as E_UNEXPECTED. The
+// +0x80 interface vtable is still not published.
 extern "C" long MS_ABI impl__SetActiveObject_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUIOleInPlaceActiveObject__PEB_W_Z(
     void* pThis, IOleInPlaceActiveObject* pActiveObject, const wchar_t* pszObjName) {
-    (void)pThis;
-    (void)pActiveObject;
-    (void)pszObjName;
-    return E_NOTIMPL;
+    try {
+        COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+        FrameHookModuleStateScope moduleState(hook->m_pModuleState);
+        FrameHookState* state = GetFrameHookState(hook, true);
+        if (state == nullptr)
+            return E_UNEXPECTED;
+        if (state->activeObject != nullptr) {
+            state->activeObject->Release();
+            state->activeObject = nullptr;
+        }
+        state->activeObject = pActiveObject;
+        if (pActiveObject != nullptr)
+            pActiveObject->AddRef();
+        if (pszObjName != nullptr && pActiveObject != nullptr)
+            impl__OnUpdateFrameTitle_COleClientItem__UEAAHXZ(ActiveItem(hook));
+        return S_OK;
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
 }
 
 // Symbol: ?SetBorderSpace@XOleInPlaceFrame@COleFrameHook@@UEAAJPEBUtagRECT@@@Z
-// STUB -- retail body decoded under "SetBorderSpace" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// Retail entry RVA 0x247ba0 (mfc140 ANSI twin): on successful command-3
+// negotiation clear frame border flags 0xc and recalculate layout; regardless
+// of that result, tell the active item whether to show its control bars and
+// return S_OK. The +0x80 interface part remains unpublished.
 extern "C" long MS_ABI impl__SetBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAAJPEBUtagRECT___Z(
     void* pThis, const RECT* pborderwidths) {
-    (void)pThis;
-    (void)pborderwidths;
-    return E_NOTIMPL;
+    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    FrameHookModuleStateScope state(hook->m_pModuleState);
+    CFrameWnd* frame = hook->m_pFrameWnd;
+    COleClientItem* item = ActiveItem(hook);
+    if (CallRetailCFrameWndNegotiateBorderSpace(
+            frame, 3, const_cast<RECT*>(pborderwidths))) {
+        frame->m_retailTail.m_dwBorderFlags &= ~0xcu;
+        impl__RecalcLayout_CFrameWnd__UEAAXH_Z(frame, FALSE);
+    }
+    impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(
+        item, frame, pborderwidths == nullptr);
+    return S_OK;
 }
 
 // Symbol: ?SetMenu@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@PEAXPEAUHWND__@@@Z
-// STUB -- retail body decoded under "SetMenu" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// STUB -- the hook's frame state is modeled, but retail +0x80 has no compatible
+// vtable and is not published by the interface map.
 extern "C" long MS_ABI impl__SetMenu_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU____PEAXPEAUHWND_____Z(
     void* pThis, HMENU hmenuShared, void* holemenu, HWND hwndActiveObject) {
     (void)pThis;
@@ -1069,23 +1228,47 @@ extern "C" long MS_ABI impl__SetMenu_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHM
 }
 
 // Symbol: ?SetStatusText@XOleInPlaceFrame@COleFrameHook@@UEAAJPEB_W@Z
-// STUB -- retail body decoded under "SetStatusText" in the block above; no
-// COleFrameHook is recoverable from `this` in this build (retail +0x80 lies
-// past the end of OpenMFC's 0x68-byte object).
+// Retail entry RVA 0x247ea0 (mfc140 ANSI twin): synchronously send
+// WM_SETMESSAGESTRING (0x362), wParam 0, and the temporary CString's text (or
+// NULL) to the frame HWND, then return S_OK. The ANSI body's import slot
+// 0x1802c5378 resolves via iat.py to USER32!SendMessageA; the Unicode source
+// uses ::SendMessage so the build's UNICODE setting selects SendMessageW.
+// Passing pszStatusText directly is equivalent here because SendMessage is
+// synchronous and the retail CString copy is not otherwise observed.
 extern "C" long MS_ABI impl__SetStatusText_XOleInPlaceFrame_COleFrameHook__UEAAJPEB_W_Z(
     void* pThis, const wchar_t* pszStatusText) {
-    (void)pThis;
-    (void)pszStatusText;
-    return E_NOTIMPL;
+    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    ::SendMessage(hook->m_pFrameWnd->m_hWnd, 0x0362u, 0,
+                  reinterpret_cast<LPARAM>(pszStatusText));
+    return S_OK;
 }
 
 // Symbol: ?TranslateAcceleratorW@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUtagMSG@@G@Z
-// (mfc140u exports this as TranslateAcceleratorW; the ANSI twin's symbol, and
-// therefore the body quoted above, is TranslateAcceleratorA at mfc140 0x247fc0.)
+// Retail ANSI entry RVA 0x247fc0 (mfc140); the --u symbol lookup did not
+// resolve. Save the frame accelerator, temporarily install the hook's +0x68
+// table, call PreTranslateMessage on a 0x30-byte MSG copy, copy it back, restore
+// the old table, and map TRUE/FALSE to S_OK/S_FALSE. Retail ignores wID. This
+// implementation also restores the table on C++ exceptions and uses the
+// thunk-backed AFX module-state scope.
 extern "C" long MS_ABI impl__TranslateAcceleratorW_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUtagMSG__G_Z(
     void* pThis, MSG* lpmsg, unsigned short wID) {
-    (void)pThis;
-    (void)lpmsg;
     (void)wID;
-    return S_FALSE;
+    try {
+        COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+        FrameHookModuleStateScope moduleState(hook->m_pModuleState);
+        CFrameWnd* frame = hook->m_pFrameWnd;
+        struct RestoreAccelerator {
+            CFrameWnd* frame;
+            HACCEL saved;
+            ~RestoreAccelerator() { frame->m_hAccelTable = saved; }
+        } restore{frame, frame->m_hAccelTable};
+        frame->m_hAccelTable = hook->m_retailTail.m_hAccelTable;
+        MSG message = *lpmsg;
+        const int translated =
+            impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(frame, &message);
+        *lpmsg = message;
+        return translated ? S_OK : S_FALSE;
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
 }

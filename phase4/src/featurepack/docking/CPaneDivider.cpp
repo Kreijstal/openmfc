@@ -263,6 +263,8 @@ struct DividerState {
     CWnd*  pWndTrack        = nullptr;                  // +0x210  CPaneTrackingWnd* (built as a bare CWnd here, see OnLButtonDown)
 };
 constexpr size_t kSizeCPaneDivider = 0x218;
+static_assert(sizeof(CPaneDivider) == 0x18,
+              "preserve the existing compact CPaneDivider allocation");
 constexpr size_t kOffFirstOwnMember = 0x1a8;
 static_assert(sizeof(CBasePane) == kOffFirstOwnMember, "retail CPaneDivider members start right after CBasePane (0x1a8)");
 static_assert(offsetof(DividerState, nID) == 0x00 && offsetof(DividerState, dwDividerStyle) == 0x04 &&
@@ -1066,10 +1068,11 @@ extern "C" void MS_ABI impl__OnDestroy_CPaneDivider__IEAAXXZ(void* pThis) {
 }
 
 // Symbol: ?OnEraseBkgnd@CPaneDivider@@IEAAHPEAVCDC@@@Z
-// This export has no RVA of its own in either map because the linker folded it:
-// the WM_ERASEBKGND entry (msg 0x14) of CPaneDivider's message map (mfc140u
-// AFX_MSGMAP at 0x1802f6c38, entries at 0x1802f6c50) points at 0x3a60, the
-// shared `mov $0x1,%eax ; ret` body -- `return TRUE;`.
+// The RVA symbol maps do not give this folded alias a distinct named entry;
+// ordinal 9784 resolves in mfc140u's export table to the shared body at RVA
+// 0x3a60. The WM_ERASEBKGND entry (msg 0x14) of CPaneDivider's message map
+// (mfc140u AFX_MSGMAP at 0x1802f6c38, entries at 0x1802f6c50) points there --
+// the shared `mov $0x1,%eax ; ret` body, i.e. `return TRUE;`.
 extern "C" int MS_ABI impl__OnEraseBkgnd_CPaneDivider__IEAAHPEAVCDC___Z(void* pThis, CDC* pDC) {
     (void)pThis;
     (void)pDC;

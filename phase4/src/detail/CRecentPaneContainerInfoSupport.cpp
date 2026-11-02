@@ -1,7 +1,17 @@
 #include "CRecentPaneContainerInfoSupport.h"
 
-static_assert(sizeof(ListS) == 56, "ListS must be 56 bytes");
-static_assert(sizeof(S_Crecentpanecontainerinfo) == 104, "S_Crecentpanecontainerinfo must be size(104)");
+// The list constructor at RVA 0xd17b0 (mfc140u) writes its head/tail/count/
+// free-node/blocks/block-size stores at these offsets; afxtempl.h confirms the
+// member order and INT_PTR types.
+static_assert(offsetof(ListS, vfptr) == 0x00, "CList vfptr");
+static_assert(offsetof(ListS, pNodeHead) == 0x08, "CList head");
+static_assert(offsetof(ListS, pNodeTail) == 0x10, "CList tail");
+static_assert(offsetof(ListS, nCount) == 0x18, "CList count");
+static_assert(offsetof(ListS, pNodeFree) == 0x20, "CList free node");
+static_assert(offsetof(ListS, pBlocks) == 0x28, "CList blocks");
+static_assert(offsetof(ListS, nBlockSize) == 0x30, "CList block size");
+static_assert(sizeof(ListS) == 0x38, "ListS must be 56 bytes");
+static_assert(sizeof(S_Crecentpanecontainerinfo) == 0x68, "S_Crecentpanecontainerinfo must be size(104)");
 static_assert(offsetof(S_Crecentpanecontainerinfo, m_rectDockedRect) == 8, "m_rectDockedRect @8");
 static_assert(offsetof(S_Crecentpanecontainerinfo, m_lstRecentListOfBars) == 32, "list @32");
 static_assert(offsetof(S_Crecentpanecontainerinfo, m_pRecentBarContainer) == 88, "container @88");

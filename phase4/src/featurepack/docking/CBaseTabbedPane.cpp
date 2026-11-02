@@ -5,14 +5,29 @@
 
 #include "detail/MfccoreSupport.h"
 
+static_assert(sizeof(CBaseTabbedPane) == 0x4d8,
+              "preserve the existing compact CBaseTabbedPane allocation");
+
 // The existing thunk calls the virtual CanFloat method on this object.
 extern "C" int MS_ABI impl__CanFloat_CBasePane__UEBAHXZ(const CBasePane* pThis);
+extern "C" void MS_ABI impl__RecalcLayout_CPane__UEAAXXZ(CPane* pThis);
+extern "C" void MS_ABI impl__OnNcDestroy_CPane__IEAAXXZ(CPane* pThis);
+extern "C" void MS_ABI impl__OnSetFocus_CDockablePane__IEAAXPEAVCWnd___Z(
+    CDockablePane* pThis, CWnd* pOldWnd);
+extern "C" void MS_ABI impl__OnSize_CBasePane__IEAAXIHH_Z(
+    CBasePane* pThis, unsigned int nType, int cx, int cy);
+extern "C" void MS_ABI impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(
+    CDockablePane* pThis, CArchive& archive);
+extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(CDockablePane* pThis);
 
 // Symbol: ??0CBaseTabbedPane@@QEAA@H@Z
 extern "C" void* MS_ABI impl___0CBaseTabbedPane__QEAA_H_Z(void* pThis, int iStyle) { return new (pThis) CBaseTabbedPane(iStyle); }
 // Symbol: ??1CBaseTabbedPane@@UEAA@XZ
 extern "C" void MS_ABI impl___1CBaseTabbedPane__UEAA_XZ(CBaseTabbedPane* pThis) { if (pThis) pThis->~CBaseTabbedPane(); }
 CBaseTabbedPane::CBaseTabbedPane(int iStyle) {
+    // Retail m_pTabWnd (+0x4e8) and m_arDefaultTabsOrder (+0x4f0) exceed this
+    // local 0x4d8-byte object. Their semantic fields are held in PaneCoreState;
+    // this constructor does not construct retail's in-object CArray storage.
     memset(_basetabbedpane_padding, 0, sizeof(_basetabbedpane_padding));
     (void)iStyle;
 }
@@ -62,7 +77,7 @@ extern "C" int MS_ABI impl__Dock_CBaseTabbedPane__MEAAHPEAVCBasePane__PEBUtagREC
     return 0;
 }
 
-// STUB: retail RVA 0x14b10 (mfc140u) reads m_pTabWnd at +0x4e8 and the CArray at +0x4f0; neither member has a pinned layout here.
+// STUB: retail RVA 0x14b10 (mfc140u) reads m_pTabWnd at +0x4e8 and the CArray at +0x4f0. The fields exist in PaneCoreState, but safe synchronized lookup adds std::__throw_system_error rejected by checkfile.sh; the existing GetTabID thunk also returns -1 for valid indices, leaving no complete safe C-ABI path here.
 // Symbol: ?FillDefaultTabsOrderArray@CBaseTabbedPane@@QEAAXXZ
 extern "C" void MS_ABI impl__FillDefaultTabsOrderArray_CBaseTabbedPane__QEAAXXZ(CBaseTabbedPane* pThis) {
     (void)pThis;
@@ -133,8 +148,8 @@ extern "C" void MS_ABI impl__GetPaneList_CBaseTabbedPane__UEAAXAEAVCObList__PEAU
 // STUB: retail RVA 0x13d10 (mfc140u) parses CArchive's internal buffer and mutates the CList through a private helper; no verified typed archive/list path is available in this file.
 // Symbol: ?LoadSiblingPaneIDs@CBaseTabbedPane@@SAXAEAVCArchive@@AEAV?$CList@II@@@Z
 extern "C" void MS_ABI impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive__AEAV__CList_II___Z(
-    CArchive* pArchive, void* pBarIDs) {
-    (void)pArchive; (void)pBarIDs;
+    CArchive& archive, CList<UINT, UINT>& barIDs) {
+    (void)archive; (void)barIDs;
 }
 
 // STUB: retail RVA 0x13ee0 (mfc140u) builds tab order and iterates m_pTabWnd at +0x4e8; this declaration has no pinned member there.
@@ -161,33 +176,57 @@ extern "C" int MS_ABI impl__OnEraseBkgnd_CBaseTabbedPane__IEAAHPEAVCDC___Z(
     return 0;
 }
 
-// STUB: no RVA is resolved for this handler in the retail symbol map.
+// OpenMFC approximation from the mfc140.dll ANSI-twin entry RVA 0x13110:
+// preserve CPane cleanup. Retail first destroys m_pTabWnd, then calls
+// CPane::OnNcDestroy, and dispatches scalar-deleting-destructor slot 1 when
+// m_bAutoDestroy (+0x4e0) is set. The tab pointer is side-table state and the
+// auto-destroy flag is not modeled, so those two retail actions are omitted.
 // Symbol: ?OnNcDestroy@CBaseTabbedPane@@IEAAXXZ
 extern "C" void MS_ABI impl__OnNcDestroy_CBaseTabbedPane__IEAAXXZ(CBaseTabbedPane* pThis) {
-    (void)pThis;
+    if (pThis) impl__OnNcDestroy_CPane__IEAAXXZ(static_cast<CPane*>(pThis));
 }
 
-// STUB: no RVA is resolved for this handler in the retail symbol map.
+// OpenMFC approximation from mfc140.dll ANSI-twin entry RVA 0x140a0:
+// call CDockablePane::OnSetFocus (entry RVA 0x46260, mfc140). Retail then
+// asks private vslot +0x750 for this pane's tab control and calls SetFocus on
+// it; OpenMFC has no safe accessor for that unexported virtual, so that step
+// is omitted.
 // Symbol: ?OnSetFocus@CBaseTabbedPane@@IEAAXPEAVCWnd@@@Z
 extern "C" void MS_ABI impl__OnSetFocus_CBaseTabbedPane__IEAAXPEAVCWnd___Z(
     CBaseTabbedPane* pThis, CWnd* pOldWnd) {
-    (void)pThis; (void)pOldWnd;
+    if (pThis) {
+        impl__OnSetFocus_CDockablePane__IEAAXPEAVCWnd___Z(
+            static_cast<CDockablePane*>(pThis), pOldWnd);
+    }
 }
 
-// STUB: no RVA is resolved for this handler in the retail symbol map.
+// OpenMFC approximation from mfc140.dll ANSI-twin entry RVA 0x13060:
+// retain CBasePane::OnSize. Retail then calls private vslot +0x750 to get the
+// tab control and sizes it from the pane's client rectangle; that accessor is
+// not modeled in OpenMFC.
 // Symbol: ?OnSize@CBaseTabbedPane@@IEAAXIHH@Z
 extern "C" void MS_ABI impl__OnSize_CBaseTabbedPane__IEAAXIHH_Z(
     CBaseTabbedPane* pThis, unsigned int nType, int cx, int cy) {
-    (void)pThis; (void)nType; (void)cx; (void)cy;
+    if (pThis) {
+        impl__OnSize_CBasePane__IEAAXIHH_Z(
+            static_cast<CBasePane*>(pThis), nType, cx, cy);
+    }
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// OpenMFC approximation from the mfc140.dll ANSI-twin entry RVA 0x14060:
+// retain the CPane::RecalcLayout call. Retail then dispatches CMFCTabCtrl
+// vslot +0x318 when m_pTabWnd (+0x4e8) is non-null; that side-table state
+// cannot be read here without adding a C++ runtime symbol rejected by the
+// per-file link audit, so the tab-control branch is omitted.
 // Symbol: ?RecalcLayout@CBaseTabbedPane@@UEAAXXZ
 extern "C" void MS_ABI impl__RecalcLayout_CBaseTabbedPane__UEAAXXZ(CBaseTabbedPane* pThis) {
-    (void)pThis;
+    if (pThis) impl__RecalcLayout_CPane__UEAAXXZ(static_cast<CPane*>(pThis));
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// STUB: the mfc140.dll ANSI-twin entry RVA 0x13710 reads m_pTabWnd (+0x4e8),
+// removes a tab by virtual dispatch, then performs further pane/tab-control
+// virtual calls. The side-table tab pointer and required operations have no
+// safe C-ABI access path in this file.
 // Symbol: ?RemovePane@CBaseTabbedPane@@UEAAHPEAVCWnd@@@Z
 extern "C" int MS_ABI impl__RemovePane_CBaseTabbedPane__UEAAHPEAVCWnd___Z(
     CBaseTabbedPane* pThis, CWnd* pBar) {
@@ -195,14 +234,18 @@ extern "C" int MS_ABI impl__RemovePane_CBaseTabbedPane__UEAAHPEAVCWnd___Z(
     return 0;
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// STUB: the mfc140.dll ANSI-twin entry RVA 0x13d90 writes a tab count and
+// per-tab IDs through CArchive's internal buffer, using m_pTabWnd (+0x4e8).
+// Neither the tab list nor a verified typed archive path is available here.
 // Symbol: ?SaveSiblingBarIDs@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
-    CBaseTabbedPane* pThis, CArchive* pArchive) {
-    (void)pThis; (void)pArchive;
+    CBaseTabbedPane* pThis, CArchive& archive) {
+    (void)pThis; (void)archive;
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// STUB: the exact Unicode export ?SaveState@CBaseTabbedPane@@MEAAHPEB_WHI@Z
+// is unresolved in the mfc140u map. Its ANSI char-signature counterpart is at
+// RVA 0x13f70 (mfc140) and traverses tab state; it is not the same export.
 // Symbol: ?SaveState@CBaseTabbedPane@@MEAAHPEB_WHI@Z
 extern "C" int MS_ABI impl__SaveState_CBaseTabbedPane__MEAAHPEB_WHI_Z(
     CBaseTabbedPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
@@ -210,21 +253,30 @@ extern "C" int MS_ABI impl__SaveState_CBaseTabbedPane__MEAAHPEB_WHI_Z(
     return 0;
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// Retail mfc140.dll ANSI-twin entry RVA 0x13ca0 is a tail jump to
+// CDockablePane::Serialize (entry RVA 0x45660, mfc140); delegate through its
+// existing C-ABI thunk.
 // Symbol: ?Serialize@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
-    CBaseTabbedPane* pThis, CArchive* pArchive) {
-    (void)pThis; (void)pArchive;
+    CBaseTabbedPane* pThis, CArchive& archive) {
+    if (pThis) {
+        impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(
+            static_cast<CDockablePane*>(pThis), archive);
+    }
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// STUB: the mfc140.dll ANSI-twin entry RVA 0x13cb0 checks m_pTabWnd (+0x4e8)
+// and, when non-null, dispatches vslot +0x10 with the CArchive reference.
+// The pointer is side-table state with no safe C-ABI accessor in this file.
 // Symbol: ?SerializeTabWindow@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
-    CBaseTabbedPane* pThis, CArchive* pArchive) {
-    (void)pThis; (void)pArchive;
+    CBaseTabbedPane* pThis, CArchive& archive) {
+    (void)pThis; (void)archive;
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// STUB: the mfc140.dll ANSI-twin entry RVA 0x140e0 contains a substantial
+// tab/auto-hide transition using m_pTabWnd (+0x4e8), multiple tab-control
+// virtuals, and pane state not represented by a safe accessor in this file.
 // Symbol: ?SetAutoHideMode@CBaseTabbedPane@@UEAAPEAVCMFCAutoHideBar@@HKPEAV2@H@Z
 extern "C" CMFCAutoHideBar* MS_ABI impl__SetAutoHideMode_CBaseTabbedPane__UEAAPEAVCMFCAutoHideBar__HKPEAV2_H_Z(
     CBaseTabbedPane* pThis, int bMode, unsigned long dwAlignment,
@@ -233,7 +285,9 @@ extern "C" CMFCAutoHideBar* MS_ABI impl__SetAutoHideMode_CBaseTabbedPane__UEAAPE
     return nullptr;
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// STUB: the mfc140.dll ANSI-twin entry RVA 0x13850 uses m_pTabWnd (+0x4e8)
+// for tab-index lookup, visibility/activation updates, and pane notifications.
+// Its required tab-control state and virtual operations are unavailable here.
 // Symbol: ?ShowTab@CBaseTabbedPane@@UEAAHPEAVCWnd@@HHH@Z
 extern "C" int MS_ABI impl__ShowTab_CBaseTabbedPane__UEAAHPEAVCWnd__HHH_Z(
     CBaseTabbedPane* pThis, CWnd* pBar, int bShow, int bDelay, int bActivate) {
@@ -241,8 +295,15 @@ extern "C" int MS_ABI impl__ShowTab_CBaseTabbedPane__UEAAHPEAVCWnd__HHH_Z(
     return 0;
 }
 
-// STUB: no RVA is resolved for this export in the retail symbol map, so its body and required layout are unverified.
+// OpenMFC approximation from the mfc140.dll ANSI-twin entry RVA 0x13b70:
+// delegate to CDockablePane::StoreRecentDockSiteInfo. Retail tail-jumps to it
+// after walking m_pTabWnd's tabs and calling StoreRecentDockSiteInfo on CPane
+// tabs; the tab pointer is side-table state, and safe synchronized access adds
+// a C++ runtime symbol rejected by the per-file link audit, so that loop is omitted.
 // Symbol: ?StoreRecentDockSiteInfo@CBaseTabbedPane@@MEAAXXZ
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CBaseTabbedPane__MEAAXXZ(CBaseTabbedPane* pThis) {
-    (void)pThis;
+    if (pThis) {
+        impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(
+            static_cast<CDockablePane*>(pThis));
+    }
 }

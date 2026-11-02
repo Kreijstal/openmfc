@@ -9,6 +9,8 @@
 #include "afxwin.h"
 #include "afxole.h"
 
+#include <cstddef>
+
 //=============================================================================
 // Forward declarations — ALL types used anywhere in this header
 //=============================================================================
@@ -32,12 +34,14 @@ class CMFCPropertyGridProperty;
 class CMFCCaptionBar;
 class CMFCTasksPane;
 class CMFCAutoHideBar;
+class CMFCAutoHideButton;
 class CPane;
 class CDockablePane;
 class CBasePane;
 class CDockSite;
 class CDockBar;
 class CDockBarRow;
+class CDockingPanesRow;
 class CPaneFrameWnd;
 class CDockingManager;
 class CPaneContainer;
@@ -311,16 +315,126 @@ class CMFCVisualManagerAero : public CMFCVisualManager { DECLARE_DYNAMIC(CMFCVis
 //=============================================================================
 // Aggregates embedded by value in CPane / CMFCToolBar
 //=============================================================================
-// Retail sizes confirmed with /d1reportSingleClassLayout. Their internals are
-// not modelled yet, so each is a correctly-sized opaque block: that pins the
-// offsets of everything after it in CPane, which is what the ABI depends on.
-// Replace the storage with real members when these classes are implemented.
-struct CMFCDragFrameImpl {   // retail sizeof 128
-    char _storage[128];
+// POD mirror of the embedded retail member; no constructor or virtual is
+// added. Offsets are established by the constructor and Init function entries
+// (RVA 0x553c0 and 0x55500, mfc140u). The vfptr word is explicit storage, not
+// an OpenMFC C++ vptr.
+struct CMFCDragFrameImplLayout {   // retail sizeof 0x80
+    void* vfptr;                    // +0x00, constructor entry 0x553c0 (mfc140u)
+    POINT m_ptHot;                  // +0x08, constructor entry 0x553c0 (mfc140u)
+    RECT m_rectDrag;                // +0x10, constructor entry 0x553c0 (mfc140u)
+    RECT m_rectExpectedDocked;      // +0x20, constructor entry 0x553c0 (mfc140u)
+    BOOL m_bDockToTab;              // +0x30, constructor entry 0x553c0 (mfc140u)
+    BOOL m_bDragStarted;             // +0x34, constructor entry 0x553c0 (mfc140u)
+    int m_nInsertedTabID;            // +0x38, constructor entry 0x553c0 (mfc140u)
+    void* m_pFinalTargetBar;          // +0x40, constructor entry 0x553c0 (mfc140u)
+    void* m_pOldTargetBar;            // +0x48, constructor entry 0x553c0 (mfc140u)
+    int m_nOldThickness;              // +0x50, constructor entry 0x553c0 (mfc140u)
+    CWnd* m_pDraggedWnd;              // +0x58, Init entry 0x55500 (mfc140u)
+    CDockingManager* m_pDockManager;  // +0x60, Init entry 0x55500 (mfc140u)
+    void* m_pTargetBar;               // +0x68, retail constructor entry 0x553c0 (mfc140u)
+    CWnd* m_pWndDummy;                // +0x70, retail constructor entry 0x553c0 (mfc140u)
+    BOOL m_bFrameTabDrawn;            // +0x78, retail constructor entry 0x553c0 (mfc140u)
 };
-struct CRecentDockSiteInfo { // retail sizeof 288
-    char _storage[288];
+struct CMFCDragFrameImpl {
+    CMFCDragFrameImplLayout m_layout;
 };
+static_assert(offsetof(CMFCDragFrameImplLayout, vfptr) == 0x00, "CMFCDragFrameImpl vfptr");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_ptHot) == 0x08, "CMFCDragFrameImpl::m_ptHot");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_rectDrag) == 0x10, "CMFCDragFrameImpl::m_rectDrag");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_rectExpectedDocked) == 0x20, "CMFCDragFrameImpl::m_rectExpectedDocked");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_bDockToTab) == 0x30, "CMFCDragFrameImpl::m_bDockToTab");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_bDragStarted) == 0x34, "CMFCDragFrameImpl::m_bDragStarted");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_nInsertedTabID) == 0x38, "CMFCDragFrameImpl::m_nInsertedTabID");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_pFinalTargetBar) == 0x40, "CMFCDragFrameImpl::m_pFinalTargetBar");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_pOldTargetBar) == 0x48, "CMFCDragFrameImpl::m_pOldTargetBar");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_nOldThickness) == 0x50, "CMFCDragFrameImpl::m_nOldThickness");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_pDraggedWnd) == 0x58, "CMFCDragFrameImpl::m_pDraggedWnd");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_pDockManager) == 0x60, "CMFCDragFrameImpl::m_pDockManager");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_pTargetBar) == 0x68, "CMFCDragFrameImpl::m_pTargetBar");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_pWndDummy) == 0x70, "CMFCDragFrameImpl::m_pWndDummy");
+static_assert(offsetof(CMFCDragFrameImplLayout, m_bFrameTabDrawn) == 0x78, "CMFCDragFrameImpl::m_bFrameTabDrawn");
+static_assert(sizeof(CMFCDragFrameImplLayout) == 0x80, "CMFCDragFrameImpl retail layout size");
+static_assert(offsetof(CMFCDragFrameImpl, m_layout) == 0x00, "CMFCDragFrameImpl layout view");
+static_assert(sizeof(CMFCDragFrameImpl) == 0x80, "CMFCDragFrameImpl retail size");
+
+// CRecentPaneContainerInfo's retail 0x68-byte member, expressed only as POD
+// storage so CPane's raw-zeroing constructor keeps its existing semantics.
+// Member order/offsets are corroborated by constructor entry RVA 0xd17b0
+// (mfc140u); CRecentDockSiteInfo constructs the two subobjects at +0x48/+0xb0
+// in constructor entry RVA 0xd1a80 (mfc140u).
+struct CRecentPaneContainerInfoStorage {
+    void* vfptr;                       // +0x00
+    RECT m_rectDockedRect;             // +0x08
+    int m_nRecentPercent;              // +0x18
+    BOOL m_bIsRecentLeftBar;           // +0x1c
+    struct ListStorage {
+        void* vfptr;                   // +0x00
+        void* m_pNodeHead;             // +0x08
+        void* m_pNodeTail;             // +0x10
+        INT_PTR m_nCount;              // +0x18
+        void* m_pNodeFree;             // +0x20
+        void* m_pBlocks;               // +0x28
+        INT_PTR m_nBlockSize;           // +0x30
+    } m_lstRecentListOfBars;            // +0x20; retail CList<HWND, HWND>
+    void* m_pRecentBarContainer;        // +0x58
+    void* m_pRecentContainerOfTabWnd;   // +0x60
+};
+static_assert(offsetof(CRecentPaneContainerInfoStorage, vfptr) == 0x00, "recent pane info vfptr");
+static_assert(offsetof(CRecentPaneContainerInfoStorage, m_rectDockedRect) == 0x08, "recent pane rect");
+static_assert(offsetof(CRecentPaneContainerInfoStorage, m_nRecentPercent) == 0x18, "recent pane percent");
+static_assert(offsetof(CRecentPaneContainerInfoStorage, m_bIsRecentLeftBar) == 0x1c, "recent pane side");
+static_assert(offsetof(CRecentPaneContainerInfoStorage, m_lstRecentListOfBars) == 0x20, "recent pane list");
+static_assert(offsetof(CRecentPaneContainerInfoStorage, m_pRecentBarContainer) == 0x58, "recent pane container");
+static_assert(offsetof(CRecentPaneContainerInfoStorage, m_pRecentContainerOfTabWnd) == 0x60, "recent tab container");
+static_assert(offsetof(CRecentPaneContainerInfoStorage::ListStorage, vfptr) == 0x00, "recent pane list vfptr");
+static_assert(offsetof(CRecentPaneContainerInfoStorage::ListStorage, m_pNodeHead) == 0x08, "recent pane list head");
+static_assert(offsetof(CRecentPaneContainerInfoStorage::ListStorage, m_pNodeTail) == 0x10, "recent pane list tail");
+static_assert(offsetof(CRecentPaneContainerInfoStorage::ListStorage, m_nCount) == 0x18, "recent pane list count");
+static_assert(offsetof(CRecentPaneContainerInfoStorage::ListStorage, m_pNodeFree) == 0x20, "recent pane list free node");
+static_assert(offsetof(CRecentPaneContainerInfoStorage::ListStorage, m_pBlocks) == 0x28, "recent pane list blocks");
+static_assert(offsetof(CRecentPaneContainerInfoStorage::ListStorage, m_nBlockSize) == 0x30, "recent pane list block size");
+static_assert(sizeof(CRecentPaneContainerInfoStorage::ListStorage) == 0x38, "recent pane CList size");
+static_assert(sizeof(CRecentPaneContainerInfoStorage) == 0x68, "recent pane info size");
+
+struct CRecentDockSiteInfoLayout { // retail sizeof 0x120
+    void* vfptr;                                  // +0x00; ctor entry 0xd1a80 (mfc140u)
+    RECT m_rectRecentFloatingRect;                // +0x08; Init entry 0xd1b90 (mfc140u)
+    DWORD m_dwRecentAlignmentToFrame;             // +0x18; Init entry 0xd1b90 (mfc140u)
+    int m_nRecentTabNumber;                       // +0x1c; Init entry 0xd1b90 (mfc140u)
+    int m_nRecentRowIndex;                        // +0x20; Init entry 0xd1b90 (mfc140u)
+    CDockSite* m_pRecentDockBar;                  // +0x28; Init entry 0xd1b90 (mfc140u)
+    CDockingPanesRow* m_pRecentDockBarRow;        // +0x30; Init entry 0xd1b90 (mfc140u)
+    HWND m_hRecentDefaultSlider;                  // +0x38; Init entry 0xd1b90 (mfc140u)
+    HWND m_hRecentMiniFrame;                      // +0x40; Init entry 0xd1b90 (mfc140u)
+    CRecentPaneContainerInfoStorage m_recentSliderInfo;    // +0x48; ctor entry 0xd1a80 (mfc140u)
+    CRecentPaneContainerInfoStorage m_recentMiniFrameInfo; // +0xb0; ctor entry 0xd1a80 (mfc140u)
+    CPane* m_pBar;                                // +0x118; ctor entry 0xd1a80 (mfc140u)
+};
+struct CRecentDockSiteInfo {
+    union {
+        CRecentDockSiteInfoLayout m_layout;
+        // Legacy byte view retained for untouched source revisions; the named
+        // POD layout above is the primary model and has the same 0x120 bytes.
+        char _storage[0x120];
+    };
+};
+static_assert(offsetof(CRecentDockSiteInfoLayout, vfptr) == 0x00, "recent info vfptr");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_rectRecentFloatingRect) == 0x08, "recent floating rect");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_dwRecentAlignmentToFrame) == 0x18, "recent alignment");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_nRecentTabNumber) == 0x1c, "recent tab number");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_nRecentRowIndex) == 0x20, "recent row index");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_pRecentDockBar) == 0x28, "recent dock site");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_pRecentDockBarRow) == 0x30, "recent row");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_hRecentDefaultSlider) == 0x38, "recent default slider");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_hRecentMiniFrame) == 0x40, "recent mini-frame");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_recentSliderInfo) == 0x48, "recent slider info");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_recentMiniFrameInfo) == 0xb0, "recent mini-frame info");
+static_assert(offsetof(CRecentDockSiteInfoLayout, m_pBar) == 0x118, "recent pane pointer");
+static_assert(sizeof(CRecentDockSiteInfoLayout) == 0x120, "CRecentDockSiteInfo layout size");
+static_assert(offsetof(CRecentDockSiteInfo, m_layout) == 0x00, "CRecentDockSiteInfo layout view");
+static_assert(offsetof(CRecentDockSiteInfo, _storage) == 0x00, "CRecentDockSiteInfo legacy byte view");
+static_assert(sizeof(CRecentDockSiteInfo) == 0x120, "CRecentDockSiteInfo retail size");
 struct CMFCControlBarImpl {  // retail sizeof 16
     char _storage[16];
 };
@@ -474,7 +588,40 @@ public:
     BOOL IsTabbed() const;
 
 protected:
-    char _dockablepane_padding[128];
+    // The retail prefix through m_ahSlideMode fits in the existing 0x80-byte
+    // tail. alignas(8) prevents MinGW from reusing CPane's four-byte base tail
+    // padding; MSVC already places this at +0x3f8. The byte array is retained
+    // only as a source-compatibility view for the old constructor's memset; the
+    // primary model is the named POD field struct. Later retail members live
+    // in the pThis-keyed docking_state::PaneCoreState, not in a grown object.
+    alignas(8) union {
+        struct {
+            RECT m_rectCloseButton;             // +0x3f8, ctor entry 0x3fe60 (mfc140u)
+            bool m_bPrepareToFloat;             // +0x408, ctor entry 0x3fe60 (mfc140u)
+            bool m_bReadyToFloat;               // +0x409, ctor entry 0x3fe60 (mfc140u)
+            BYTE _dockablepane_pad40a[2];        // +0x40a
+            int m_cyGripper;                     // +0x40c, ctor entry 0x3fe60 (mfc140u)
+            int m_nLastPercent;                  // +0x410, ctor entry 0x3fe60 (mfc140u)
+            int m_nBorderSize;                   // +0x414, ctor entry 0x3fe60 (mfc140u)
+            BOOL m_bHasGripper;                  // +0x418, ctor entry 0x3fe60 (mfc140u)
+            BOOL m_bActive;                     // +0x41c, ctor entry 0x3fe60 (mfc140u)
+            BOOL m_bEnableAutoHideAll;           // +0x420, ctor entry 0x3fe60 (mfc140u)
+            DWORD m_dwSCBStyle;                  // +0x424, ctor entry 0x3fe60 (mfc140u)
+            RECT m_rectRedraw;                   // +0x428, ctor entry 0x3fe60 (mfc140u)
+            BOOL m_bPinState;                   // +0x438, ctor entry 0x3fe60 (mfc140u)
+            BYTE _dockablepane_pad43c[4];        // +0x43c
+            UINT_PTR m_nAutoHideConditionTimerID;// +0x440, ctor entry 0x3fe60 (mfc140u)
+            UINT_PTR m_nSlideTimer;              // +0x448, ctor entry 0x3fe60 (mfc140u)
+            int m_nSlideStep;                    // +0x450, ctor entry 0x3fe60 (mfc140u)
+            int m_nSlideDelta;                   // +0x454, ctor entry 0x3fe60 (mfc140u)
+            RECT m_rectRestored;                 // +0x458, ctor entry 0x3fe60 (mfc140u)
+            BOOL m_bIsSliding;                  // +0x468, ctor entry 0x3fe60 (mfc140u)
+            BOOL m_bIsResizing;                 // +0x46c, ctor entry 0x3fe60 (mfc140u)
+            BOOL m_bIsHiding;                   // +0x470, ctor entry 0x3fe60 (mfc140u)
+            UINT m_ahSlideMode;                  // +0x474, ctor entry 0x3fe60 (mfc140u)
+        };
+        char _dockablepane_padding[0x80];
+    };
 };
 
 //=============================================================================
@@ -1112,6 +1259,9 @@ public:
     virtual ~CBaseTabbedPane();
 
 protected:
+    // This local object ends at +0x4d8, before retail m_pTabWnd (+0x4e8) and
+    // m_arDefaultTabsOrder (+0x4f0). Keep the ABI size unchanged; both values
+    // live in the existing openmfc::docking_state::PaneCoreState side table.
     char _basetabbedpane_padding[96];
 };
 
@@ -1372,6 +1522,9 @@ public:
     virtual BOOL IsRollUp() const;
 
 protected:
+    // Retail CPaneFrameWnd state at +0x118..+0x250 is not overlaid here: this
+    // is an OpenMFC CMiniFrameWnd-derived object with a different base layout.
+    // The verified fields are held in detail/CPaneFrameWndSupport.h's side table.
     char _paneframewnd_padding[128];
 };
 
@@ -1395,6 +1548,9 @@ public:
     void SetDockState();
 
 protected:
+    // OpenMFC's compact field remains at +0x08 for existing users. Retail
+    // m_pParentWnd is +0x1b0; manager lists/preview state beyond this allocation
+    // are kept in the pThis-keyed DockingManagerState side table.
     CFrameWnd* m_pParentWnd;
     char _dockingmanager_padding[128];
 };
@@ -1745,6 +1901,8 @@ public: CMFCDesktopAlertWndButton() {} char _pad[16]; };
 class CMFCStatusBar : public CStatusBar {
     DECLARE_DYNAMIC(CMFCStatusBar)
 public: CMFCStatusBar(); virtual ~CMFCStatusBar(); void EnablePaneProgressBar(int nIndex, long nTotal, int nMax, unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText); long GetPaneProgress(int nIndex) const; void SetPaneProgress(int nIndex, long nProgress, int bRedraw); char _pad[64]; };
+// This compact declaration stays unchanged (sizeof 0x18); retail divider
+// members after CBasePane +0x1a8 are held in CPaneDivider.cpp's pThis side table.
 class CPaneDivider : public CObject {
 public:
     CPaneDivider() {}

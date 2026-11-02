@@ -7,6 +7,12 @@
 #include "detail/CPaneFrameWndSupport.h"
 #include "detail/MfccoreSupport.h"
 
+#include <cstdlib>
+#include <new>
+
+static_assert(sizeof(CPaneFrameWnd) == 0x278,
+              "preserve the existing compact CPaneFrameWnd allocation");
+
 // ---------------------------------------------------------------------------
 // Retail decode notes for the handlers added in this file.
 //
@@ -22,23 +28,18 @@
 // through RAX -- it is not a USER32 import.
 //
 // OpenMFC does NOT reproduce the retail CPaneFrameWnd object layout (the
-// public class in include/openmfc/afxmfc.h is a thin CMiniFrameWnd subclass
-// with a padding array), so retail offsets do not identify corresponding
-// in-object fields here. The private side tables represent retail 0x0ec
-// (idle-active flag), 0x0f8 (roll-up state), 0x10d (dragging), 0x120/0x124
-// (timer IDs), 0x12c (caption-button mask), 0x140 (saved focus HWND), and
-// 0x148 (hosted pane HWND). The following members have no modeled counterpart:
-//   0x0e8 mouse-move re-entry byte      0x114 caption height
-//   0x118/0x11c tracked/hot button id   0x130 owner HWND
-//   0x138 drag-helper HWND              0x178/0x1d0 drag anchor points
-//   0x180/0x188/0x190 caption-button lists
-//   0x1b8 tooltip control               0x1c8 CMFCDragFrameImpl
-//   0x248 CDockingManager*
-// Bodies that need one of those carry a TODO(clean-room) note naming exactly
-// which part of the retail body is not reproduced.
+// public class in include/openmfc/afxmfc.h is a CMiniFrameWnd subclass with a
+// different base layout), so retail offsets are represented by the pThis-keyed
+// PaneFrameState side table rather than applied to this allocation. That table
+// now covers the constructor-established member state from +0xe8 through
+// +0x250, including the hosted-pane/owner HWNDs, timers, caption-button list
+// model, tooltip, drag-frame POD, docking-manager association and pre-dock
+// enum. The caption list and tooltip tools use semantic side storage; the
+// retail CObList/CToolTipCtrl internals are not overlaid on this object. Bodies
+// that need additional external collaborators still document those omissions.
 //
-// Retail CPaneFrameWnd vtable (read out of .rdata at 0x1802f5ad8, the address
-// the retail constructor ??0CPaneFrameWnd@@QEAA@XZ (0xad6d0) stores at +0):
+// Retail CPaneFrameWnd vtable (mfc140.dll; read out of .rdata VA 0x1802f5ad8,
+// the address constructor entry RVA 0xad6d0 (mfc140.dll) stores at +0):
 //   0x2e0 IsRollDown            0x2e8 IsRollUp
 //   0x2f0 <unexported> `return m_nCaptionHeight;` (0x92350)
 //   0x358 <unexported> visible-pane count (0xad610)
@@ -57,6 +58,22 @@ extern "C" void* MS_ABI impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEA
     CBasePane* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy,
     unsigned int flags, void* pParams);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePaneAdapter__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCOutlookBar__SAPEAUCRuntimeClass__XZ();
+extern "C" int MS_ABI impl__SaveState_CDockablePaneAdapter__UEAAHPEB_WHI_Z(
+    void* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID);
+extern "C" int MS_ABI impl__IsDocked_CBasePane__UEBAHXZ(const CBasePane* pThis);
+extern "C" int MS_ABI impl__IsInFloatingMultiPaneFrameWnd_CDockablePane__UEBAHXZ(
+    const CDockablePane* pThis);
+extern "C" int MS_ABI impl__CanAcceptPane_CMFCOutlookBar__UEBAHPEBVCBasePane___Z(
+    const void* pThis, const void* pPane);
+extern "C" int MS_ABI impl__SaveState_CBasePane__UEAAHPEB_WHI_Z(
+    CBasePane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID);
+extern "C" int MS_ABI impl__SaveState_CPane__UEAAHPEB_WHI_Z(
+    CPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID);
+extern "C" int MS_ABI impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(
+    CMFCToolBar* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID);
 extern "C" std::int32_t impl__m_bHandleMinSize_CPane__2HA;
 extern "C" void MS_ABI impl__SizeToContent_CPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
@@ -69,6 +86,8 @@ extern "C" void  MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(void* pT
 extern "C" void  MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis);
+extern "C" void  MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCaptionButton___Z(
+    void* pThis, void* pButton);
 
 extern "C" int   MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(CWnd* pThis, CREATESTRUCTW& cs);
 extern "C" int   MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg);
@@ -89,14 +108,14 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBaseTabbedPane__SAPEAUCRunt
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ();
 extern "C" void  MS_ABI impl__AdjustRectToWorkArea_CGlobalUtils__QEAAXAEAVCRect__PEAV2__Z(
                      void* pThis, CRect* rect, CRect* pRectDelta);
-// The global CGlobalUtils instance (retail: the object at .data 0x1803aacf8).
+// The global CGlobalUtils instance (retail mfc140.dll: object at .data VA 0x1803aacf8).
 // CGlobalUtils::AdjustRectToWorkArea reads no members, so passing the exported
 // storage is safe even though OpenMFC never runs a constructor over it.
 extern "C" unsigned char impl__afxGlobalUtils__3VCGlobalUtils__A[];
 
 namespace {
-// Registry behind CPaneFrameWnd::m_mapFloatingBars.  Retail keeps a
-// CMap<UINT,UINT,HWND__*,HWND__*> in static storage at .data 0x1803aad90 and
+// Registry behind CPaneFrameWnd::m_mapFloatingBars. Retail mfc140.dll keeps a
+// CMap<UINT,UINT,HWND__*,HWND__*> in static storage at .data VA 0x1803aad90 and
 // AddRemovePaneFromGlobalList / FindFloatingPaneByID / GetPaneList are its only
 // readers and writers.  The exported data symbol below is only storage (no
 // constructed CMap), so the three functions share this private table instead.
@@ -110,6 +129,40 @@ std::mutex& FloatingPaneMutex() { static std::mutex m; return m; }
 std::unordered_map<int, HWND>& FloatingPaneMap() {
     static std::unordered_map<int, HWND> m;
     return m;
+}
+
+using CaptionButtonState = openmfc::docking_state::CaptionButtonState;
+
+CaptionButtonState* FindCaptionButton(PaneFrameState& state, unsigned int id) {
+    for (std::size_t i = 0; state.captionButtons != nullptr && i < state.captionButtonCount; ++i) {
+        if (state.captionButtons[i].id == id) return &state.captionButtons[i];
+    }
+    return nullptr;
+}
+
+bool EnsureCaptionButtonCapacity(PaneFrameState& state) {
+    if (state.captionButtons != nullptr && state.captionButtonCount < state.captionButtonCapacity) {
+        return true;
+    }
+    std::size_t nextCapacity = state.captionButtonCapacity == 0 ? 4 : state.captionButtonCapacity * 2;
+    if (nextCapacity < state.captionButtonCapacity || nextCapacity <= state.captionButtonCount) {
+        nextCapacity = state.captionButtonCount + 1;
+        if (nextCapacity <= state.captionButtonCount) return false;
+    }
+    if (nextCapacity > static_cast<std::size_t>(-1) / sizeof(CaptionButtonState)) return false;
+    auto* replacement = static_cast<CaptionButtonState*>(
+        std::malloc(nextCapacity * sizeof(CaptionButtonState)));
+    if (replacement == nullptr) return false;
+    for (std::size_t i = 0; i < nextCapacity; ++i) {
+        ::new (static_cast<void*>(&replacement[i])) CaptionButtonState{};
+    }
+    for (std::size_t i = 0; state.captionButtons != nullptr && i < state.captionButtonCount; ++i) {
+        replacement[i] = state.captionButtons[i];
+    }
+    std::free(state.captionButtons);
+    state.captionButtons = replacement;
+    state.captionButtonCapacity = nextCapacity;
+    return true;
 }
 }  // namespace
 
@@ -253,16 +306,47 @@ extern "C" int MS_ABI impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu__
     return pThis != nullptr;
 }
 // Symbol: ?StopCaptionButtonsTracking@CPaneFrameWnd@@MEAAXXZ
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb2280: for each of the two tracked
-// caption-button ids -- pressed at 0x118 and hot at 0x11c -- it looks the
-// button up in the CObList at 0x188, zeroes the id, calls ReleaseCapture,
-// clears the button's pressed (+0x8) / hot (+0xc) flag, and redraws it through
-// RedrawCaptionButton. The mfc140u symbol map did not resolve this export.
-// STUB: no caption-button list exists in this object layout, so there is
-// nothing tracked to stop -- and calling ::ReleaseCapture() unconditionally
-// would steal the capture from a drag that this class did not start.
+// Retail mfc140.dll (ANSI twin) entry RVA 0xb2280 (the mfc140u symbol map did
+// not resolve this export): for each nonzero pressed/hot ID at +0x118/+0x11c,
+// it clears the ID, calls USER32!ReleaseCapture (import slot 0x1802c5280),
+// clears the matching button state at +0x8/+0xc, then redraws that button.
+// The semantic CaptionButtonState list now carries the IDs and flags. Deviation:
+// updates are protected by the side-table mutex, and RedrawCaptionButton receives
+// a temporary semantic record; its current implementation redraws the full
+// non-client area because the retail button object/rect is not modeled.
 extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) return;
+    auto stopOne = [pThis](bool pressed) {
+        unsigned int id = 0;
+        {
+            std::lock_guard<std::mutex> lock(g_other6Mutex);
+            PaneFrameState* state = FindStatePtr(pThis);
+            if (state == nullptr) return;
+            unsigned int& trackedID = pressed ? state->hitButtonID : state->hotButtonID;
+            id = trackedID;
+            if (id == 0) return;
+            trackedID = 0;
+        }
+        ::ReleaseCapture();
+        CaptionButtonState snapshot{};
+        bool found = false;
+        {
+            std::lock_guard<std::mutex> lock(g_other6Mutex);
+            PaneFrameState* state = FindStatePtr(pThis);
+            if (state != nullptr) {
+                if (CaptionButtonState* button = FindCaptionButton(*state, id)) {
+                    if (pressed) button->pressed = FALSE;
+                    else button->hot = FALSE;
+                    snapshot = *button;
+                    found = true;
+                }
+            }
+        }
+        if (found) impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCaptionButton___Z(
+            pThis, &snapshot);
+    };
+    stopOne(true);
+    stopOne(false);
 }
 // Symbol: ?StoreRecentDockSiteInfo@CPaneFrameWnd@@UEAAXPEAVCPane@@@Z
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CPaneFrameWnd__UEAAXPEAVCPane___Z(void* pThis, void* pPane) {
@@ -282,18 +366,14 @@ extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneFrameWnd__UEAAXPEAVC
     AddUniquePane(state, pTabSibling);
 }
 // Symbol: ?UpdateTooltips@CPaneFrameWnd@@IEAAXXZ
-// Retail (0xb1870):
-//     if (m_pToolTip /*0x1b8*/ == NULL || m_pToolTip->m_hWnd == NULL) return;
-//     CRect rc; ::GetWindowRect(m_hWnd, &rc); ScreenToClient(rc);  // 0x2a11f0
-//     for each caption button in the list at 0x188:
-//         ask the tooltip control for its tool count (TTM_GETTOOLCOUNT, 0x40d)
-//         and reposition that button's tool rect.
-// STUB: neither the tooltip control nor the caption-button list exists in this
-// object layout, so this reproduces retail's m_pToolTip == NULL path, which
-// returns having touched nothing.  (An earlier version of this body called
-// ::InvalidateRect on the whole frame; retail invalidates nothing here, and
-// ArrangeCaptionButtons -- which SetCaptionButtons and RemoveButton now call --
-// runs this on every caption-button change.)
+// Retail mfc140.dll entry RVA 0xb1870 returns if m_pToolTip (+0x1b8) or its
+// HWND is null; otherwise it gets the frame's client rect, walks the caption
+// buttons, queries TTM_GETTOOLCOUNT, and updates tool rectangles. The SendMessageA
+// import slot 0x1802c5378 is USER32!SendMessageA (UNICODE twin: SendMessageW).
+// STUB: side slots now exist for a tooltip pointer, semantic button rectangles,
+// and tooltip records, but this code has no initialized native tooltip control
+// or tool-registration lifecycle to update. The body intentionally touches
+// nothing, matching the retail null-tooltip early return when no control exists.
 extern "C" void MS_ABI impl__UpdateTooltips_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
@@ -335,9 +415,9 @@ BOOL CPaneFrameWnd::IsRollUp() const {
 }
 // Symbol: ?HitTest@CPaneFrameWnd@@UEAA_JVCPoint@@H@Z
 // Retail walks caption-button and pane hit paths (border/caption/button ids,
-// CDockablePane resize handles); those depend on the caption-button list at
-// retail 0x188 and internal virtuals. Only the window/caption-region part is
-// transcribed here - anything we cannot model falls back to HTCLIENT-ish 1.
+// CDockablePane resize handles). Semantic button records now exist, but this
+// partial hit test still lacks their native geometry and the pane virtuals; only
+// its window/caption-region approximation is currently transcribed.
 // TODO(clean-room): transcribed partially.
 extern "C" __int64 MS_ABI impl__HitTest_CPaneFrameWnd__UEAA_JVCPoint__H_Z(
     void* pThis, CPoint point, int nIndex) {
@@ -370,9 +450,9 @@ extern "C" __int64 MS_ABI impl__HitTest_CPaneFrameWnd__UEAA_JVCPoint__H_Z(
 }
 // Symbol: ?IsCustModeAndNotFloatingToolbar@CPaneFrameWnd@@IEBAHXZ
 // Retail: (CMFCToolBar::IsCustomizeMode() && pane != NULL &&
-//          !pane->IsKindOf(RUNTIME_CLASS(CMFCToolBar))). The pane lookup uses
-// retail 0x148 which is not modeled -> side table (empty for now), so this
-// conservatively reports FALSE unless we have a tracked pane.
+//          !pane->IsKindOf(RUNTIME_CLASS(CMFCToolBar))). The pane HWND at
+// retail +0x148 is represented by PaneFrameState::paneHwnd; it is absent until
+// a frame's AddPane path populates that side-table slot.
 extern "C" int MS_ABI impl__IsCustModeAndNotFloatingToolbar_CPaneFrameWnd__IEBAHXZ(
     const void* pThis) {
     if (pThis == nullptr) return FALSE;
@@ -415,7 +495,7 @@ extern "C" void MS_ABI impl__KillDockingTimer_CPaneFrameWnd__QEAAXXZ(void* pThis
 //     SetCaptionButtons(m_dwCaptionButtons /*0x12c*/ & ~1);   // vtable 0x328
 // (an earlier note here called slot 0x328 "an internal virtual ... to refresh
 // roll-up visuals" and left the call out.  Dumping the CPaneFrameWnd vtable at
-// .rdata 0x1802f5ad8 shows 0x328 is ?SetCaptionButtons@CPaneFrameWnd@@UEAAXK@Z
+// .rdata VA 0x1802f5ad8 (mfc140.dll) shows 0x328 is ?SetCaptionButtons@CPaneFrameWnd@@UEAAXK@Z
 // (0xb13f0), which IS implemented below, so the call is made.  Note retail does
 // not store the masked value itself -- SetCaptionButtons stores it at its end.)
 // Deviation: SetCaptionButtons is called directly rather than through the
@@ -448,21 +528,13 @@ extern "C" int MS_ABI impl__LoadState_CPaneFrameWnd__UEAAHPEB_WI_Z(
     return TRUE;
 }
 // Symbol: ?MoveDragFrame@CPaneFrameWnd@@IEAAXXZ
-// Retail (0xaf060) is three instructions:
-//     rcx += 0x1c8;  edx = 1;  jmp CMFCDragFrameImpl::MoveDragFrame (0x55450)
-// i.e. CMFCDragFrameImpl::MoveDragFrame(&m_dragFrameImpl /*retail 0x1c8*/, TRUE).
-// STUB: 0x1c8 is a RETAIL offset and, as the header note at the top of this file
-// says, OpenMFC does not reproduce the retail CPaneFrameWnd layout -- the public
-// class (include/openmfc/afxmfc.h) is a thin CMiniFrameWnd subclass whose whole
-// size is 632 bytes as this build's compiler lays it out, with the trailing
-// `_paneframewnd_padding` starting at 504 -- so byte 0x1c8 (456) falls inside
-// the CWnd/CFrameWnd subobject and holds no drag-frame impl.
-// An earlier version of this body passed `(char*)this + 0x1c8` to the
-// CMFCDragFrameImpl thunk; that is only harmless today because that thunk is
-// still a generated no-op -- retail's MoveDragFrame writes through the pointer
-// immediately (`mov %r13,0x40(%rcx)` at 0x180055480) and would scribble over
-// this object's own members the moment it is implemented.  Left as a no-op
-// until a drag-frame impl is actually modelled.
+// Retail mfc140u entry RVA 0xaeaa0 adds +0x1c8 to `this`, sets the force flag,
+// and tail-jumps to CMFCDragFrameImpl::MoveDragFrame(TRUE). The drag-frame
+// fields are now modeled in PaneFrameState::dragFrame, not at `this+0x1c8`.
+// STUB: the CMFCDragFrameImpl::MoveDragFrame thunk has no source definition in
+// phase4 (verified by searching the source tree); calling the generated no-op
+// would not move or draw a frame. Do not pass the retail offset into the compact
+// CPaneFrameWnd allocation or treat its current padding as that subobject.
 extern "C" void MS_ABI impl__MoveDragFrame_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
@@ -501,23 +573,14 @@ extern "C" void MS_ABI impl__OnCancelMode_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     }
 }
 // Symbol: ?OnCapture@CPaneFrameWnd@@MEAAXH@Z
-// Retail (0xb26a0):
-//     CPane* p = CWnd::FromHandlePermanent(m_hwndPane /*0x148*/);
-//     if (p is a CPane) p-><vtable +0x628>(bCapture); else p = NULL;
-//     if (::IsWindow(m_hwndDragHelper /*0x138*/) && !bCapture) {
-//         ::DestroyWindow(m_hwndDragHelper); m_hwndDragHelper = NULL;
-//     }
-//     if (p && !bCapture) {
-//         if (p->0x228 != m_hWnd && ::IsWindow(p->0x228)) ::DestroyWindow(p->0x228);
-//         p->0x228 = NULL;
-//     }
-// STUB: the two helper HWNDs it destroys are retail 0x138 (this frame's) and
-// pane+0x228; NEITHER is modelled here, and the pane virtual at +0x628 is
-// unexported.  An earlier version of this body destroyed the side table's
-// `exitSizeMoveHwnd` -- but that field is retail 0x140, the window OnSetFocus
-// (0xb3e50, the store at 0xb3eb2) saves so that OnExitSizeMove can put the
-// focus BACK on it.  Destroying it meant ::DestroyWindow on whatever window
-// last had the focus, which is not something this class ever does.
+// Retail mfc140.dll entry RVA 0xb26a0 resolves the pane HWND at +0x148 and, if
+// it is a CPane, invokes its vtable +0x628 with bCapture. On capture loss it
+// also destroys a valid frame helper HWND at +0x138 and conditionally destroys
+// the pane helper HWND at pane+0x228 before clearing that pane field. USER32
+// IsWindow/DestroyWindow imports were resolved at slots 0x1802c5390/0x1802c4da8.
+// STUB: the frame helper handle is now available as destroyOnReleaseHwnd, but
+// the pane's +0x228 field and the unexported virtual +0x628 are not modeled.
+// Destroying only the frame helper would omit the pane callback/cleanup path.
 extern "C" void MS_ABI impl__OnCapture_CPaneFrameWnd__MEAAXH_Z(
     void* pThis, int nCap) {
     (void)pThis;
@@ -560,7 +623,7 @@ extern "C" void MS_ABI impl__OnCheckRollState_CPaneFrameWnd__MEAAXXZ(void* pThis
 // Symbol: ?OnClose@CPaneFrameWnd@@IEAAXXZ
 // Retail (0xb3d30) is three instructions: a tail jump through this object's
 // vtable slot 0x458.  An earlier note here said that slot's target was not
-// modelled; the vtable at .rdata 0x1802f5ad8 gives 0x458 == 0xb1b10 ==
+// modelled; the mfc140.dll vtable at .rdata VA 0x1802f5ad8 gives 0x458 == entry RVA 0xb1b10 ==
 // ?CloseMiniFrame@CPaneFrameWnd@@MEAAXXZ, which is implemented below, so the
 // whole retail body is `CloseMiniFrame();`.  Note WM_CLOSE therefore hides a
 // mini frame (and its pane) rather than destroying it.
@@ -603,7 +666,8 @@ extern "C" int MS_ABI impl__OnCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___
 // and roll-up timers; remove from docking manager and the global miniframe
 // list; destroy the tooltip; then tail-call CWnd::OnDestroy.
 // TODO(clean-room): transcribed partially (manager/global-list/tooltip steps
-// need internals we do not model).
+// need internals we do not model). The OpenMFC side-array allocation is freed
+// when its state record is dropped; retail has no such side storage.
 extern "C" void MS_ABI impl__OnDestroy_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
     HWND hwnd = HwndOf(pThis);
@@ -623,7 +687,12 @@ extern "C" void MS_ABI impl__OnDestroy_CPaneFrameWnd__IEAAXXZ(void* pThis) {
             if (hwnd) ::KillTimer(hwnd, static_cast<UINT_PTR>(st->rollupTimerID));
             st->rollupTimerID = 0;
         }
-        g_other6State.erase(pThis);   // frame is going away; drop side state
+        auto it = g_other6State.find(pThis);
+        if (it != g_other6State.end()) {
+            std::free(it->second.captionButtons);
+            it->second.captionButtons = nullptr;
+            g_other6State.erase(it);
+        }
     }
     impl__OnDestroy_CWnd__IEAAXXZ(AsCwnd(pThis));
 }
@@ -644,8 +713,10 @@ extern "C" void MS_ABI impl__OnDrawBorder_CPaneFrameWnd__MEAAXPEAVCDC___Z(
     if (pThis == nullptr) return;
 }
 // Symbol: ?OnDrawCaptionButtons@CPaneFrameWnd@@MEAAXPEAVCDC@@@Z
-// Retail walks the caption-button list (retail 0x188) and draws each button
-// through its vtable; CMFCCaptionButton is not modeled. Safe no-op.
+// Retail walks the caption-button list (retail +0x188) and draws each button
+// through its vtable. Semantic records now model IDs/flags/rectangles, but the
+// native CMFCCaptionButton object/vtable and visual-manager drawing path remain
+// absent. Safe no-op.
 // TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnDrawCaptionButtons_CPaneFrameWnd__MEAAXPEAVCDC___Z(
     void* pThis, void* /*pDC*/) {
@@ -773,8 +844,9 @@ extern "C" void MS_ABI impl__OnKillRollUpTimer_CPaneFrameWnd__UEAAXXZ(void* pThi
     impl__KillRollupTimer_CPaneFrameWnd__IEAAXXZ(pThis);
 }
 // Symbol: ?OnLButtonDblClk@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
-// Retail hit-tests the caption buttons (FindButton + vtable 0x340) and always
-// ends in Default(). Caption buttons are not modeled -> Default() only.
+// Retail hit-tests caption buttons (FindButton + vtable 0x340) and always ends
+// in Default(). Semantic button records exist, but native hit-test/action routing
+// is not modeled -> Default() only.
 // TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnLButtonDblClk_CPaneFrameWnd__IEAAXIVCPoint___Z(
     void* pThis, unsigned int /*nFlags*/, CPoint /*point*/) {
@@ -783,8 +855,8 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CPaneFrameWnd__IEAAXIVCPoint___Z(
 }
 // Symbol: ?OnLButtonDown@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
 // Retail closes any captured popup, routes the click to a caption button
-// (list at 0x188) or starts a drag, and ends in Default(). Only the Default()
-// tail is reproducible.
+// (list at +0x188) or starts a drag, and ends in Default(). Semantic records
+// exist, but native hit-test/action routing is not modeled; only Default() runs.
 // TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnLButtonDown_CPaneFrameWnd__IEAAXIVCPoint___Z(
     void* pThis, unsigned int /*nFlags*/, CPoint /*point*/) {
@@ -793,8 +865,8 @@ extern "C" void MS_ABI impl__OnLButtonDown_CPaneFrameWnd__IEAAXIVCPoint___Z(
 }
 // Symbol: ?OnLButtonUp@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
 // Retail completes a caption-button click (toggle roll-up, close) or ends a
-// drag; both paths end in Default(). Caption-button ids + CDockablePane
-// virtuals are not modeled -> Default() only.
+// drag; both paths end in Default(). Semantic button IDs exist, but native
+// hit-test/action routing and CDockablePane virtuals do not -> Default() only.
 // TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnLButtonUp_CPaneFrameWnd__IEAAXIVCPoint___Z(
     void* pThis, unsigned int /*nFlags*/, CPoint /*point*/) {
@@ -803,8 +875,17 @@ extern "C" void MS_ABI impl__OnLButtonUp_CPaneFrameWnd__IEAAXIVCPoint___Z(
 }
 CPaneFrameWnd::CPaneFrameWnd() {
     memset(_paneframewnd_padding, 0, sizeof(_paneframewnd_padding));
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    g_other6State.try_emplace(this);
 }
-CPaneFrameWnd::~CPaneFrameWnd() {}
+CPaneFrameWnd::~CPaneFrameWnd() {
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    auto it = g_other6State.find(this);
+    if (it != g_other6State.end()) {
+        std::free(it->second.captionButtons);
+        g_other6State.erase(it);
+    }
+}
 BOOL CPaneFrameWnd::Create(CWnd* pParentWnd, DWORD dwStyle, UINT) {
     CRect rect(0, 0, 320, 220);
     if (pParentWnd && pParentWnd->GetSafeHwnd()) {
@@ -825,28 +906,37 @@ void CPaneFrameWnd::RemovePane(CBasePane* pBar, BOOL bDestroy) {
     impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(this, pBar, bDestroy, FALSE);
 }
 // Symbol: ?m_mapFloatingBars@CPaneFrameWnd@@1V?$CMap@IIPEAUHWND__@@PEAU1@@@A
-// Static data member.  Retail places a constructed
-// CMap<UINT,UINT,HWND__*,HWND__*> here (.data 0x1803aad90): the qword at +0 is
-// a vtable pointer in the retail image and CPaneFrameWnd::GetPaneList (0xb3d50)
-// and FrameFromPoint (0xb2940) read the element count at +0x18.  That matches
-// MFC's CMap layout -- CObject vptr, m_pHashTable, m_nHashTableSize, m_nCount,
-// m_pFreeList, m_pBlocks, m_nBlockSize -- i.e. 0x38 bytes.  OpenMFC does not
+// Static data member. Retail places a constructed CMap<UINT,UINT,HWND__*,HWND__*>
+// at data RVA 0x3aad90 (mfc140.dll) / 0x3b1d90 (mfc140u.dll): the qword at +0
+// is a vtable pointer, and GetPaneList / FrameFromPoint read the element count
+// at +0x18. That matches MFC's CMap layout -- CObject vptr, m_pHashTable,
+// m_nHashTableSize, m_nCount, m_pFreeList, m_pBlocks, m_nBlockSize (0x38 bytes).
+// OpenMFC does not
 // construct a CMap here, so this stays zeroed storage; it is sized to 0x38 so
 // that a client writing through the export cannot run off the end (the previous
 // 8-byte definition could).  The live registry is the private table above.
 extern "C" alignas(8) unsigned char impl__m_mapFloatingBars_CPaneFrameWnd__1V__CMap_IIPEAUHWND____PEAU1___A[0x38] = {};
 
 // Symbol: ?AddButton@CPaneFrameWnd@@MEAAXI@Z
-// Retail (0xb1510) searches the caption-button CObList embedded at 0x180 for a
-// button whose id (CMFCCaptionButton +0x20) equals uiID; if found it does
-// nothing.  Otherwise it allocates a CMFCCaptionButton (0x38 bytes) -- or a
-// CMFCCaptionMenuButton (0x48 bytes) when uiID == 0x19 -- AddHead()s it and
-// sets +0x30 (visible) to 1.
-// STUB: the caption-button list has no counterpart in this object layout and
-// CMFCCaptionButton is not modelled, so there is nothing to add it to.
+// Retail mfc140u entry RVA 0xb0f50 first ignores a duplicate ID, otherwise
+// constructs the matching caption-button type, AddHead()s it, and marks it
+// enabled and unhidden (the base member order is in afxcaptionbutton.h).
+// Deviation: store those semantic fields in PaneFrameState's ordered side array;
+// do not create a guessed CMFCCaptionButton/vtable or CMFCCaptionMenuButton.
 extern "C" void MS_ABI impl__AddButton_CPaneFrameWnd__MEAAXI_Z(void* pThis, unsigned int uiID) {
-    (void)pThis;
-    (void)uiID;
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    PaneFrameState& state = GetState(pThis);
+    if (FindCaptionButton(state, uiID) != nullptr || !EnsureCaptionButtonCapacity(state)) return;
+    for (std::size_t i = state.captionButtonCount; i > 0; --i) {
+        state.captionButtons[i] = state.captionButtons[i - 1];
+    }
+    CaptionButtonState button{};
+    button.id = uiID;
+    button.visible = TRUE;
+    button.enabled = TRUE;
+    state.captionButtons[0] = button;
+    ++state.captionButtonCount;
 }
 
 // Symbol: ?AddRemovePaneFromGlobalList@CPaneFrameWnd@@SAHPEAVCBasePane@@H@Z
@@ -892,31 +982,56 @@ extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCB
 }
 
 // Symbol: ?ArrangeCaptionButtons@CPaneFrameWnd@@IEAAXXZ
-// Retail (0xb1990): GetCaptionRect() (vtable 0x3a0), then walks the visible
-// caption-button list at 0x190 laying the buttons out right-to-left inside the
-// caption rect, and finishes with an unconditional UpdateTooltips() (the call
-// at 0xb1a5a to 0xb1870).  No caption buttons exist in this object layout, so
-// the layout loop has nothing to iterate and only the unconditional tail call
-// is reproduced.
-// TODO(clean-room): transcribed partially (button layout loop).
+// Retail mfc140u entry RVA 0xb13d0 obtains GetCaptionRect(), lays visible
+// caption buttons out using their size/alignment fields, then unconditionally
+// calls UpdateTooltips. The ordered semantic side array now exists, but the
+// native button-size/visual-manager path and full button layout model do not;
+// this helper therefore retains only the verified unconditional tooltip call.
+// TODO(clean-room): button geometry/layout remains unimplemented.
 extern "C" void MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
     impl__UpdateTooltips_CPaneFrameWnd__IEAAXXZ(pThis);
 }
 
 // Symbol: ?CanBeDockedToPane@CPaneFrameWnd@@UEBAHPEBVCDockablePane@@@Z
-// Retail (0xb3770):
-//     CWnd* p = CWnd::FromHandlePermanent(m_hwndPane /*0x148*/);
-//     CPane* pPane = (p && p->IsKindOf(RUNTIME_CLASS(CPane))) ? (CPane*)p : NULL;
-//     return pDockablePane->vtable[0x318](pPane);   // tail call on the ARGUMENT
-// STUB: the answer comes entirely from an unexported virtual on the passed-in
-// CDockablePane, which OpenMFC does not model; guessing it would silently
-// allow or forbid docking.
+// Retail mfc140.dll entry RVA 0xb3770 resolves the pane HWND at +0x148, keeps it
+// only when it is a CPane, then tail-dispatches the passed CDockablePane's
+// vtable +0x318 CanAcceptPane. The base CDockablePane body is RVA 0x12d90
+// (mfc140.dll): accept only a non-null CDockablePane when the target is docked
+// or in a floating multi-pane frame. Those checks have existing typed thunks.
+// Deviation: the known CMFCOutlookBar override is dispatched through its thunk,
+// which remains a stub; for the base body, IsDocked uses the CBasePane thunk and
+// therefore does not reach further-derived overrides.
 extern "C" int MS_ABI impl__CanBeDockedToPane_CPaneFrameWnd__UEBAHPEBVCDockablePane___Z(
     const void* pThis, const void* pDockablePane) {
-    (void)pThis;
-    (void)pDockablePane;
-    return FALSE;
+    if (pThis == nullptr || pDockablePane == nullptr) return FALSE;
+    HWND paneHwnd = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const PaneFrameState* state = FindStatePtr(pThis);
+        if (state != nullptr) paneHwnd = state->paneHwnd;
+    }
+    CWnd* pWnd = impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(paneHwnd);
+    CPane* pPane = nullptr;
+    CRuntimeClass* pPaneClass = impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ();
+    if (pWnd != nullptr && pPaneClass != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pWnd, pPaneClass)) {
+        pPane = static_cast<CPane*>(pWnd);
+    }
+    CRuntimeClass* pOutlookClass = impl__GetThisClass_CMFCOutlookBar__SAPEAUCRuntimeClass__XZ();
+    if (pOutlookClass != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            static_cast<const CObject*>(static_cast<const CWnd*>(pDockablePane)), pOutlookClass)) {
+        return impl__CanAcceptPane_CMFCOutlookBar__UEBAHPEBVCBasePane___Z(pDockablePane, pPane);
+    }
+    CRuntimeClass* pDockableClass = impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ();
+    if (pPane == nullptr || pDockableClass == nullptr ||
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pPane, pDockableClass)) {
+        return FALSE;
+    }
+    const CDockablePane* pTarget = static_cast<const CDockablePane*>(pDockablePane);
+    if (impl__IsDocked_CBasePane__UEBAHXZ(static_cast<const CBasePane*>(pTarget))) return TRUE;
+    return impl__IsInFloatingMultiPaneFrameWnd_CDockablePane__UEBAHXZ(pTarget) ? TRUE : FALSE;
 }
 
 // Symbol: ?CloseMiniFrame@CPaneFrameWnd@@MEAAXXZ
@@ -944,7 +1059,7 @@ extern "C" void MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis) 
 //         p->vtable[0x5d0](FALSE);              // unexported CDockablePane virtual
 //         ::PostMessage(m_hWnd, AFX_WM_CHECKEMPTYMINIFRAME, 0, 0);
 //     }
-// The .data slot at 0x1803bae78 is ?AFX_WM_CHECKEMPTYMINIFRAME@@3IA (zero in
+// The .data slot at VA 0x1803bae78 (mfc140.dll) is ?AFX_WM_CHECKEMPTYMINIFRAME@@3IA (zero in
 // the image only because RegisterWindowMessage fills it in at run time).
 // Correction to an earlier note here: OpenMFC DOES have that id -- see
 // impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA in phase4/src/core/runtime/Globals.cpp
@@ -1042,11 +1157,11 @@ extern "C" void* MS_ABI impl__DockPaneStandard_CPaneFrameWnd__MEAAPEAVCDockableP
 //     CDockingManager* p = m_pDockManager /*0x248*/;
 //     if (!p) p = afxGlobalUtils.GetDockingManager(this);
 //     p-><unexported> (0x4d910);
-// Reproduced: the re-entry guard, the mouse capture, the dragging flag (the
-// side table's `dragging`, which OnCancelMode/OnChar already consume), the
-// OnCapture(TRUE) notification and the drag cursor.
-// TODO(clean-room): transcribed partially -- the 0x138 drag-helper HWND, the
-// two drag anchor points and the final docking-manager call are not modelled.
+// Reproduced: the re-entry guard, mouse capture, side-table dragging flag,
+// OnCapture(TRUE) notification, and drag cursor. The helper HWND at +0x138 is
+// represented by destroyOnReleaseHwnd, and the +0x178 hot point has a side slot.
+// TODO(clean-room): the separate anchor at +0x1d0 and final docking-manager
+// virtual call are not modeled.
 extern "C" void MS_ABI impl__EnterDragMode_CPaneFrameWnd__MEAAXPEAUHWND_____Z(
     void* pThis, HWND /*hwndCaptured*/) {
     if (pThis == nullptr) return;
@@ -1070,7 +1185,8 @@ extern "C" void MS_ABI impl__EnterDragMode_CPaneFrameWnd__MEAAXPEAUHWND_____Z(
 // 0x188 (node layout
 // pNext/pPrev/data at +0/+8/+0x10) and returns the first button whose id
 // (CMFCCaptionButton +0x20) equals uiID, else NULL.
-// STUB: no caption-button list exists in this object layout.
+// STUB: the semantic array can locate an ID, but this export must return a
+// native CMFCCaptionButton* with a usable vtable; that object is not modeled.
 extern "C" void* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__I_Z(
     const void* pThis, unsigned int uiID) {
     (void)pThis;
@@ -1084,7 +1200,8 @@ extern "C" void* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButto
 // 0x188 asking each
 // button for its rect (its vtable +0x28), offsetting that rect by the window
 // origin and returning the first button whose rect contains the point.
-// STUB: no caption-button list exists in this object layout.
+// STUB: semantic rectangles exist, but the current layout does not populate
+// native button geometry, and the return value must be a real CMFCCaptionButton*.
 extern "C" void* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__VCPoint___Z(
     const void* pThis, CPoint point) {
     (void)pThis;
@@ -1134,12 +1251,10 @@ extern "C" void* MS_ABI impl__FrameFromPoint_CPaneFrameWnd__SAPEAV1_VCPoint__HPE
 }
 
 // Symbol: ?GetCaptionButtonTotalWidth@CPaneFrameWnd@@IEBAHXZ
-// Retail mfc140u entry RVA 0xb1dc0 sums (rect.right - rect.left) over the
-// caption-button list at 0x188, asking each button for its rect through its
-// vtable +0x28.
-// STUB: no caption-button list exists in this object layout.  Zero happens to
-// be what retail returns for an empty list, but nothing here can produce a
-// non-zero width, so this is not an implementation of the function.
+// Retail mfc140u entry RVA 0xb1dc0 sums GetRect().Width() for every native
+// caption-button object. The semantic records do not receive geometry because
+// ArrangeCaptionButtons lacks the native sizing/layout path; returning their
+// currently-zero rectangles would merely disguise a stub as an implementation.
 extern "C" int MS_ABI impl__GetCaptionButtonTotalWidth_CPaneFrameWnd__IEBAHXZ(const void* pThis) {
     (void)pThis;
     return 0;
@@ -1150,7 +1265,7 @@ extern "C" int MS_ABI impl__GetCaptionButtonTotalWidth_CPaneFrameWnd__IEBAHXZ(co
 //     CWnd* p = GetPane();                               // vtable 0x360
 //     if (p && p->IsKindOf(RUNTIME_CLASS(CBasePane)))
 //         return p->GetDockingMode();                    // pane vtable 0x380, tail call
-//     return <global default at .data 0x1803aaac8>;
+//     return <global default at .data VA 0x1803aaac8 (mfc140.dll)>;
 // The enum is returned in EAX (no hidden return pointer).  OpenMFC's
 // CBasePane::GetDockingMode export is itself an unimplemented stub, so the
 // delegation cannot be reproduced and only retail's fallback is returned; the
@@ -1240,14 +1355,12 @@ extern "C" int MS_ABI impl__OnMouseActivate_CPaneFrameWnd__IEAAHPEAVCWnd__II_Z(
 
 // Symbol: ?OnMouseMove@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
 // Retail mfc140.dll (ANSI twin) entry RVA 0xae5a0 is the drag loop: it uses
-// the re-entry byte at 0xe8, the
-// dragging byte at 0x10d, the "moving" flag at 0xf0, the drag anchor at
-// 0x178/0x17c and the drag-frame implementation at 0x1c8, and drives the
-// docking manager's hit testing while the frame is being dragged.
-// STUB: the re-entry byte, moving flag, drag anchors, drag-frame implementation,
-// and docking-manager state are not modelled. The dragging byte is represented
-// in the side table, but that alone is insufficient to reproduce the loop; a
-// partial move without the docking manager's agreement would be worse than no-op.
+// the re-entry/moving/dragging flags, hot-point anchor, drag-frame state, and
+// docking-manager hit testing while the frame is being dragged. Those scalar
+// and POD fields are now represented in PaneFrameState. STUB: the full loop
+// still depends on unexported pane/manager virtuals, live docking-site state,
+// and the absent CMFCDragFrameImpl::MoveDragFrame implementation; a partial
+// move without those collaborators could desynchronize the native frame.
 extern "C" void MS_ABI impl__OnMouseMove_CPaneFrameWnd__IEAAXIVCPoint___Z(
     void* pThis, unsigned int nFlags, CPoint point) {
     (void)pThis;
@@ -1323,9 +1436,9 @@ extern "C" int MS_ABI impl__OnNcActivate_CPaneFrameWnd__IEAAHH_Z(void* pThis, in
 //     lpncsp->rgrc[0].left   += rectBorder.left;
 //     lpncsp->rgrc[0].right  -= rectBorder.right;
 //     CWnd::Default();
-// Deviation: retail's m_nCaptionHeight (0x114, computed by RecalcCaptionHeight)
-// has no counterpart here, so the file's own kPaneFrameCaptionHeight constant
-// is used -- the same constant GetCaptionRect above already uses.
+// Deviation: m_nCaptionHeight has a PaneFrameState side slot, but RecalcCaptionHeight
+// cannot populate it without the unexported AFX_GLOBAL_DATA virtual at +0x298;
+// this handler therefore continues to use kPaneFrameCaptionHeight.
 extern "C" void MS_ABI impl__OnNcCalcSize_CPaneFrameWnd__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(
     void* pThis, int /*bCalcValidRects*/, NCCALCSIZE_PARAMS* lpncsp) {
     if (pThis == nullptr) return;
@@ -1384,21 +1497,31 @@ extern "C" int MS_ABI impl__OnNcCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW_
 }
 
 // Symbol: ?OnNcDestroy@CPaneFrameWnd@@IEAAXXZ
-// Retail (0xb1e40), transcribed in full:
-//     OnCancelMode();          // direct call to 0xb1e80
-//     CWnd::OnNcDestroy();     // direct call to 0x289d80
-//     delete this;             // vtable slot 1 (scalar deleting dtor, flag 1)
+// Retail mfc140.dll entry RVA 0xb1e40 calls OnCancelMode, then CWnd::OnNcDestroy,
+// then the scalar deleting destructor. The semantic side-array allocation is
+// freed before deleting this compact wrapper; that cleanup is OpenMFC-only.
 extern "C" void MS_ABI impl__OnNcDestroy_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
     impl__OnCancelMode_CPaneFrameWnd__IEAAXXZ(pThis);
     impl__OnNcDestroy_CWnd__IEAAXXZ(AsCwnd(pThis));
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto it = g_other6State.find(pThis);
+        if (it != g_other6State.end()) {
+            std::free(it->second.captionButtons);
+            it->second.captionButtons = nullptr;
+            it->second.captionButtonCount = 0;
+            it->second.captionButtonCapacity = 0;
+            g_other6State.erase(it);
+        }
+    }
     delete reinterpret_cast<CPaneFrameWnd*>(pThis);
 }
 
 // Symbol: ?OnNcHitTest@CPaneFrameWnd@@IEAA_JVCPoint@@@Z
 // Retail (0xb01c0), transcribed in full -- four instructions that tail-jump to
 // vtable +0x3e8 with the third argument zeroed, i.e. `return HitTest(point, 0)`
-// (slot 0x3e8 is CPaneFrameWnd::HitTest, 0xb01e0, in the vtable at 0x1802f5ad8).
+// (slot 0x3e8 is CPaneFrameWnd::HitTest, entry RVA 0xb01e0, in the mfc140.dll vtable at VA 0x1802f5ad8).
 // Deviation: the call is made directly to this class's HitTest instead of
 // through the vtable, so a further-derived override is not reached.
 extern "C" __int64 MS_ABI impl__OnNcHitTest_CPaneFrameWnd__IEAA_JVCPoint___Z(
@@ -1410,10 +1533,10 @@ extern "C" __int64 MS_ABI impl__OnNcHitTest_CPaneFrameWnd__IEAA_JVCPoint___Z(
 // Symbol: ?OnNcLButtonDblClk@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
 // This export has no RVA of its own in mfc140_rva_symbols.json, but the retail
 // body is still identifiable: CPaneFrameWnd's message map (the AFX_MSGMAP at
-// .rdata 0x1802f5620, entries at 0x1802f5630) maps message 0xa3
+// .rdata VA 0x1802f5620, entries at VA 0x1802f5630 (mfc140.dll) maps message 0xa3
 // (WM_NCLBUTTONDBLCLK) with signature 0x36 -- void(UINT, CPoint), the same
 // signature its OnLButtonDown/OnMouseMove entries use -- to RVA 0xdab0.  That
-// address is a single `jmp 0x180289090` (?Default@CWnd@@IEAA_JXZ); the RVA map
+// address is a single `jmp` to VA 0x180289090 (?Default@CWnd@@IEAA_JXZ, mfc140.dll); the RVA map
 // labels it ?VKeyToItem@CListBox@@UEAAHII@Z because the linker folded the two
 // identical one-instruction bodies onto the same address.
 // So the whole retail body is:  CWnd::Default();   -- neither argument is read.
@@ -1446,30 +1569,24 @@ extern "C" void MS_ABI impl__OnNcMouseMove_CPaneFrameWnd__IEAAXIVCPoint___Z(
 }
 
 // Symbol: ?OnNcPaint@CPaneFrameWnd@@IEAAXXZ
-// Retail (0xaf9d0) paints the whole non-client frame: it resolves the docking
-// manager (0x248 or afxGlobalUtils.GetDockingManager on the owner at 0x130),
-// gets a window DC, and drives the active CMFCVisualManager to draw the border
-// (vtable 0x438 OnDrawBorder), the caption (using the caption height at 0x114)
-// and the caption buttons (vtable 0x440 OnDrawCaptionButtons).
-// STUB: the visual manager drawing entry points and the caption-button list are
-// not modelled; painting a hand-made approximation would look nothing like the
-// rest of the frame.
+// Retail mfc140.dll entry RVA 0xaf9d0 resolves the docking manager, gets a
+// window DC, and asks CMFCVisualManager to draw the border, caption, and caption
+// buttons. Manager association, caption height, and semantic button records are
+// now represented in side state. STUB: the native button objects, visual-manager
+// drawing dispatch, and glyph resources are still unavailable; a hand-made
+// approximation would not reproduce retail's non-client paint path.
 extern "C" void MS_ABI impl__OnNcPaint_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
 // Symbol: ?OnNeedTipText@CPaneFrameWnd@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
 // Retail mfc140.dll (ANSI twin) entry RVA 0xb4120 throws on null pNMHDR. It
-// returns FALSE if the notification HWND does not match the tooltip HWND at
-// +0x1b8, the active-popup global is non-null, or idFrom is outside 1..the
-// caption-button count (+0x198). Otherwise idFrom-1 indexes the list at +0x188;
-// button IDs 8/9 map to resource 0x3ea1, 0x14 to 0x3ee9, and 0x19 to 0x4279.
-// On a successful resource/string load it stores the text pointer at NMTTDISPINFO
-// +0x18 and returns TRUE; a failed load also throws. The UINT id argument is
-// not used by this body.
-// STUB: the tooltip control and caption-button list are unmodelled, so the
-// notification cannot be mapped to a caption button safely. This body returns
-// FALSE even on retail's null-NMHDR / failed-load throw paths.
+// returns FALSE for a mismatched tooltip HWND, an active popup, or an out-of-range
+// idFrom; otherwise IDs 8/9, 0x14, and 0x19 select resources 0x3ea1, 0x3ee9,
+// and 0x4279 respectively; loaded text is stored in NMTTDISPINFO +0x18. The UINT id argument
+// is not used. STUB: tooltip/button side slots now exist, but no initialized
+// native tooltip tool-ID mapping or resource-string ownership path is available;
+// this body also does not reproduce retail's exception paths.
 extern "C" int MS_ABI impl__OnNeedTipText_CPaneFrameWnd__IEAAHIPEAUtagNMHDR__PEA_J_Z(
     void* pThis, unsigned int id, NMHDR* pNMHDR, __int64* pResult) {
     (void)pThis;
@@ -1541,15 +1658,11 @@ extern "C" void MS_ABI impl__OnPaneRecalcLayout_CPaneFrameWnd__UEAAXXZ(void* pTh
 }
 
 // Symbol: ?OnPressButtons@CPaneFrameWnd@@MEAAXI@Z
-// Retail (0xb4430) first gates the WHOLE body on a global: the compare at
-// 0xb4463 against .data 0x1803b70bc (?m_bCustomizeMode@CMFCToolBar@@1HA)
-// returns immediately when customize mode is on.  Otherwise, for the menu
-// button (id 0x19) only, it looks the button up in the list at 0x188 and pops
-// up the pane menu; every other id falls through and does nothing.
-// STUB: no caption-button list exists in this object layout.  (The customize
-// flag itself IS available here -- impl__m_bCustomizeMode_CMFCToolBar__1HA,
-// declared in detail/CPaneFrameWndSupport.h -- but with no button to press
-// there is nothing for the gate to guard.)
+// Retail mfc140.dll entry RVA 0xb4430 returns immediately in customize mode;
+// otherwise only ID 0x19 is handled, by finding its menu button and opening the
+// pane menu. The customize flag and semantic button records are available here.
+// STUB: the menu-button object and popup-menu construction/command-routing path
+// are not modeled, so handling ID 0x19 cannot be reproduced safely.
 extern "C" void MS_ABI impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(
     void* pThis, unsigned int uiID) {
     (void)pThis;
@@ -1646,21 +1759,33 @@ extern "C" void MS_ABI impl__OnSetFocus_CPaneFrameWnd__IEAAXPEAVCWnd___Z(
 }
 
 // Symbol: ?OnSetRollUpTimer@CPaneFrameWnd@@UEAAXXZ
-// Retail (0xaf4f0):
-//     CWnd* p = GetPane();                             // vtable 0x360
-//     if (p && p->IsKindOf(RUNTIME_CLASS(CBasePane)) && (p->vtable[0x398]() & 0x10))
-//         SetRollUpTimer();                            // direct call to 0xaf5d0
-// STUB: whether the timer is started is decided entirely by an unexported
-// CBasePane virtual (+0x398); starting the timer unconditionally would roll the
-// frame up for panes that never asked for it.
+// Retail mfc140.dll entry RVA 0xaf4f0 gets the pane, verifies CBasePane RTTI,
+// then calls its vtable slot +0x398 and tests bit 0x10 before starting the timer.
+// That base virtual's body is RVA 0x8850 (mfc140.dll): `return m_dwControlBarStyle`
+// from +0x108. Read the verified field directly; this matches CBasePane's base
+// implementation but, unlike retail virtual dispatch, skips derived overrides.
+static_assert(offsetof(CBasePane, m_dwControlBarStyle) == 0x108,
+              "OnSetRollUpTimer reads CBasePane::m_dwControlBarStyle");
 extern "C" void MS_ABI impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) return;
+    CWnd* pPane = reinterpret_cast<CWnd*>(
+        impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(pThis));
+    if (pPane == nullptr) return;
+    CRuntimeClass* pBasePane = impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
+    if (pBasePane == nullptr ||
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pPane, pBasePane)) {
+        return;
+    }
+    const CBasePane* pBase = static_cast<const CBasePane*>(pPane);
+    if ((pBase->m_dwControlBarStyle & 0x10) != 0) {
+        impl__SetRollUpTimer_CPaneFrameWnd__IEAAXXZ(pThis);
+    }
 }
 
 // Symbol: ?OnSettingChange@CPaneFrameWnd@@IEAAXIPEB_W@Z
 // Retail (0xb4090 -- the ANSI twin's ?OnSettingChange@CPaneFrameWnd@@IEAAXIPEBD@Z),
 // transcribed in full: CWnd::OnSettingChange(uFlags, lpszSection), then a tail
-// call to vtable +0x498, which the CPaneFrameWnd vtable at 0x1802f5ad8 shows is
+// call to vtable +0x498, which the mfc140.dll CPaneFrameWnd vtable at VA 0x1802f5ad8 shows is
 // CPaneFrameWnd::RecalcCaptionHeight (0xb40c0).
 // Deviation: RecalcCaptionHeight is called directly rather than through the
 // vtable, so a further-derived override is not reached.
@@ -1747,19 +1872,12 @@ extern "C" void MS_ABI impl__OnTimer_CPaneFrameWnd__IEAAX_K_Z(
 }
 
 // Symbol: ?OnTrackCaptionButtons@CPaneFrameWnd@@MEAAXVCPoint@@@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb2170 returns immediately when
-// the global at .data 0x1803b6fe8
-// (?m_pActivePopupMenu@CMFCPopupMenu@@1PEAV1@EA) is non-NULL -- the test at
-// 0xb217f. Otherwise it hit-tests the caption-button list at 0x188 through
-// FindButton(point) (0xb1720), updates the hot button id at 0x11c, and redraws
-// buttons that gain or lose the highlight (RedrawCaptionButton, 0xb1a80). When
-// customize mode is active (the same flag OnPressButtons reads), the unsigned
-// test `(buttonId - 0x13) <= 1` allows only IDs 0x13 and 0x14 to go hot. It
-// takes or releases mouse capture so the highlight can be cleared as the cursor
-// leaves.
-// STUB: no caption-button list exists in this object layout, so there is
-// nothing to track -- and taking the capture here without any button to
-// release it on would strand the mouse.
+// Retail mfc140.dll (ANSI twin) entry RVA 0xb2170 returns while a popup is
+// active; otherwise it hit-tests buttons, updates the hot ID/flag, redraws
+// changed buttons, applies the customize-mode ID filter, and takes/releases
+// capture as the cursor enters/leaves. Semantic IDs and flags now exist.
+// STUB: current button rectangles are not populated by the incomplete layout
+// path, and the native hit-test/redraw/capture lifecycle is not yet modeled.
 extern "C" void MS_ABI impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint___Z(
     void* pThis, CPoint point) {
     (void)pThis;
@@ -1774,12 +1892,10 @@ extern "C" void MS_ABI impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint__
 //         UpdateTooltips();                // direct call to 0xb1870
 //     }
 //     return 0;
-// TODO(clean-room): transcribed partially -- the tooltip control at 0x1b8 is
-// not modelled, so CTooltipManager::CreateToolTip is skipped; the two direct
-// calls that follow it are reproduced. Both helper bodies are currently no-ops,
-// so this wrapper has no tooltip side effects and is retained only as a
-// control-flow approximation. OpenMFC also returns 0 for null pThis, while
-// retail dereferences the object.
+// TODO(clean-room): the tooltip pointer slot exists, but no initialized native
+// tooltip control is available, so CTooltipManager::CreateToolTip is skipped;
+// the two helper calls are reproduced and remain no-ops. OpenMFC also returns
+// 0 for null pThis, while retail dereferences the object.
 extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CPaneFrameWnd__IEAA_J_K_J_Z(
     void* pThis, unsigned __int64 wParam, __int64 /*lParam*/) {
     if (pThis == nullptr) return 0;
@@ -1809,8 +1925,8 @@ extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CPaneFrameWnd__IEAA_J_K_J_Z(
 //         lpwndpos->x = rect.left; lpwndpos->y = rect.top;
 //     }
 //     CWnd::Default();
-// Deviation: retail's caption height (0x114) has no counterpart here, so the
-// file's kPaneFrameCaptionHeight constant is used for the delta rect.
+// Deviation: the caption-height side slot exists, but the unexported global-data
+// sizing virtual is not available, so this handler uses kPaneFrameCaptionHeight.
 extern "C" void MS_ABI impl__OnWindowPosChanging_CPaneFrameWnd__IEAAXPEAUtagWINDOWPOS___Z(
     void* pThis, WINDOWPOS* lpwndpos) {
     if (pThis == nullptr) return;
@@ -1877,7 +1993,7 @@ extern "C" void* MS_ABI impl__PaneFromPoint_CPaneFrameWnd__UEAAPEAVCBasePane__VC
 // Retail 0xb1c80 -- the ANSI twin's
 // ?PreCreateWindow@CPaneFrameWnd@@MEAAHAEAUtagCREATESTRUCTA@@@Z.  (The mangled
 // name above has no entry of its own in mfc140_rva_symbols.json; slot 0xd8 of
-// the CPaneFrameWnd vtable at .rdata 0x1802f5ad8 is what points at 0xb1c80.)
+// the CPaneFrameWnd vtable at .rdata VA 0x1802f5ad8 (mfc140.dll) points at entry RVA 0xb1c80.)
 // Two instructions, transcribed in full:
 //     btsl $8, cs.style      // cs.style |= MFS_SYNCACTIVE (0x100)
 // (MFS_SYNCACTIVE is 0x100 in MFC's own afxwin.h but is not defined by any
@@ -1907,10 +2023,10 @@ extern "C" int MS_ABI impl__PreCreateWindow_CPaneFrameWnd__MEAAHAEAUtagCREATESTR
 //                           0, (LPARAM)pMsg);
 //         break;
 //     return CWnd::PreTranslateMessage(pMsg);     // 0x28a080, tail jump
-// TODO(clean-room): transcribed partially -- the tooltip control at 0x1b8 has
-// no counterpart in this object layout, so the relay is skipped and only the
-// unconditional CWnd::PreTranslateMessage tail call is reproduced.  That is
-// exactly what retail does on every path whenever m_pToolTip is NULL.
+// TODO(clean-room): the tooltip pointer slot exists, but no initialized native
+// tooltip control/tool-registration lifecycle is available; the relay is skipped
+// and only the CWnd::PreTranslateMessage tail call runs. This matches retail's
+// null-m_pToolTip path.
 extern "C" int MS_ABI impl__PreTranslateMessage_CPaneFrameWnd__UEAAHPEAUtagMSG___Z(
     void* pThis, MSG* pMsg) {
     if (pThis == nullptr) return FALSE;
@@ -1918,34 +2034,32 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CPaneFrameWnd__UEAAHPEAUtagMSG__
 }
 
 // Symbol: ?RecalcCaptionHeight@CPaneFrameWnd@@MEAAXXZ
-// Retail (0xb40c0), transcribed:
+// Retail mfc140.dll entry RVA 0xb40c0, transcribed:
 //     CSize sz = afxGlobalData.<unexported virtual, vtable +0x298>();
 //     m_nCaptionHeight /*0x114*/ = sz.cy + ::GetSystemMetrics(SM_CYSMCAPTION);
 //     m_?? /*0x160*/ = m_?? /*0x164*/ = m_nCaptionHeight + 15;
-// (afxGlobalData is the lazily-constructed singleton returned by 0x97f4; the
-// virtual at +0x298 returns a CSize by value and only its .cy -- the second
-// int of the returned pair, read at 0xb40ef -- is used.)
-// STUB: neither the afxGlobalData virtual nor a caption-height member exists
-// here.  PaneFrameState (phase4/src/detail/CPaneFrameWndSupport.h) has no field
-// to hold the result, and this file's GetCaptionRect / OnNcCalcSize use the
-// fixed kPaneFrameCaptionHeight constant, so a computed height would have
-// nowhere to go and no reader.  See headerRequests.
+// (afxGlobalData is the lazily-constructed singleton returned by the getter at
+// RVA 0x97f4 (mfc140.dll); its virtual at +0x298 returns CSize by value, and
+// only .cy -- the second int, read at instruction 0xb40ef inside RecalcCaptionHeight -- is used.)
+// STUB: captionHeight and minSize fields now exist in PaneFrameState, but the
+// required AFX_GLOBAL_DATA virtual at vtable +0x298 is unexported and the local
+// global-data blob has no verified callable slot for it. Substituting another
+// metric would invent behavior; GetCaptionRect/OnNcCalcSize still use a constant.
 extern "C" void MS_ABI impl__RecalcCaptionHeight_CPaneFrameWnd__MEAAXXZ(void* pThis) {
     (void)pThis;
 }
 
 // Symbol: ?RedrawAll@CPaneFrameWnd@@SAXXZ
-// Retail (0xb3620) walks a private list of live mini-frame HWNDs whose head
-// node pointer is the qword at .data 0x1803aadd0 (node layout: pNext at +0,
-// the HWND at +0x10) and, for every entry that CWnd::FromHandlePermanent
-// (0x2891d0) still resolves, calls
+// Retail mfc140.dll entry RVA 0xb3620 walks a private list of live mini-frame
+// HWNDs whose head is at data RVA 0x3aadd0 (mfc140.dll; node layout pNext +0,
+// HWND +0x10), and for each entry that FromHandlePermanent resolves, calls
 //     ::RedrawWindow(hwnd, NULL, NULL, 0x585)
-// i.e. RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN|RDW_UPDATENOW|RDW_FRAME.
-// STUB: OpenMFC keeps no list of live CPaneFrameWnd windows.  Neither side
-// table in this file stores a frame's own HWND (g_framePanes is keyed by object
-// pointer and is never pruned when a frame dies; g_other6State only holds the
-// hosted-pane and exit-size-move handles), so recovering an HWND would mean
-// dereferencing an object that may already be freed.
+// (mfc140.dll USER32 import slot VA 0x1802c5388 resolves to RedrawWindow.) Flags are
+// RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN|RDW_UPDATENOW|RDW_FRAME.
+// STUB: OpenMFC keeps no list of live CPaneFrameWnd HWNDs. The side-state map
+// is keyed by object pointer and is pruned on destruction, but it does not store
+// the frame's own HWND; recovering it from an object pointer after global-list
+// traversal would risk dereferencing an already-freed frame.
 extern "C" void MS_ABI impl__RedrawAll_CPaneFrameWnd__SAXXZ() {}
 
 // Symbol: ?RedrawCaptionButton@CPaneFrameWnd@@IEAAXPEAVCMFCCaptionButton@@@Z
@@ -1971,7 +2085,7 @@ extern "C" void MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCap
 }
 
 // Symbol: ?RemoveAllCaptionButtons@CPaneFrameWnd@@IEAAXXZ
-// Retail (0xb1810), transcribed in full:
+// Retail mfc140.dll entry RVA 0xb1810, transcribed in full:
 //     m_dwCaptionButtons /*0x12c*/ = 0;             // unconditional, first
 //     while (m_lstCaptionButtons.GetCount() /*0x198*/ != 0) {
 //         CObject* p = m_lstCaptionButtons.RemoveHead();   // 0x230560
@@ -1979,16 +2093,15 @@ extern "C" void MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCap
 //     }
 // (m_lstCaptionButtons is the CObList embedded at 0x180: head 0x188, tail
 // 0x190, count 0x198.)
-// TODO(clean-room): transcribed partially -- there is no caption-button list in
-// this object layout, so only the mask store is reproduced.  It is kept in the
-// side table's `rollupFlags`, which is retail's 0x12c (the field's name in
-// CPaneFrameWndSupport.h predates the decode of SetCaptionButtons; the word
-// really is the caption-button mask SetCaptionButtons stores, and bit 0 of it
-// is the button SetRollUpTimer turns on -- AddButton id 9).
+// Deviation: clear the semantic array count and caption-button mask, retaining
+// its allocation for reuse. Retail destroys CMFCCaptionButton objects from a
+// CObList; this model owns only POD records.
 extern "C" void MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
     std::lock_guard<std::mutex> lock(g_other6Mutex);
-    GetState(pThis).rollupFlags = 0;
+    PaneFrameState& state = GetState(pThis);
+    state.rollupFlags = 0;
+    state.captionButtonCount = 0;
 }
 
 // Symbol: ?RemoveButton@CPaneFrameWnd@@IEAAXI@Z
@@ -2002,17 +2115,27 @@ extern "C" void MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(void
 //         }
 //         p = <node pNext at +0>;
 //     }
-//     ArrangeCaptionButtons();                      // 0xb1990, UNCONDITIONAL tail jump
-// TODO(clean-room): transcribed partially -- no caption-button list exists in
-// this object layout, so the matching button cannot be removed; for non-null
-// pThis, retail's unconditional ArrangeCaptionButtons tail call is reproduced.
-// ArrangeCaptionButtons currently only calls the no-op UpdateTooltips helper,
-// so this is a control-flow approximation with no visible effect. OpenMFC's
-// null-this guard returns without that call; retail dereferences this.
+//     ArrangeCaptionButtons();                      // unconditional tail jump
+// The semantic side array removes the first matching ID. Deviation: POD records
+// need no scalar deleting destructor; ArrangeCaptionButtons is still called
+// unconditionally as in retail, but its native geometry work remains absent.
 extern "C" void MS_ABI impl__RemoveButton_CPaneFrameWnd__IEAAXI_Z(
     void* pThis, unsigned int uiID) {
     if (pThis == nullptr) return;
-    (void)uiID;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        PaneFrameState* state = FindStatePtr(pThis);
+        if (state != nullptr) {
+            for (std::size_t i = 0; i < state->captionButtonCount; ++i) {
+                if (state->captionButtons[i].id != uiID) continue;
+                for (std::size_t j = i + 1; j < state->captionButtonCount; ++j) {
+                    state->captionButtons[j - 1] = state->captionButtons[j];
+                }
+                --state->captionButtonCount;
+                break;
+            }
+        }
+    }
     impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
 }
 
@@ -2072,19 +2195,21 @@ extern "C" void MS_ABI impl__RemoveNonValidPanes_CPaneFrameWnd__UEAAXXZ(void* pT
 }
 
 // Symbol: ?ReplaceButton@CPaneFrameWnd@@IEAAXII@Z
-// Retail (0xb1690), transcribed in full:
+// Retail mfc140.dll (ANSI twin) entry RVA 0xb1690, transcribed in full:
 //     for (POSITION p = m_lstCaptionButtons.GetHeadPosition() /*0x188*/; p;
 //          p = <node pNext at +0>) {
 //         CMFCCaptionButton* b = <node data at +0x10>;
 //         if (b->m_nHit /*+0x20*/ == uiOldID) { b->m_nHit = uiNewID; return; }
 //     }
-// STUB: no caption-button list exists in this object layout, so there is no
-// button whose id could be rewritten.
+// The same first-match rewrite is applied to the semantic side array; it does
+// not fabricate or modify a native CMFCCaptionButton object.
 extern "C" void MS_ABI impl__ReplaceButton_CPaneFrameWnd__IEAAXII_Z(
     void* pThis, unsigned int uiOldID, unsigned int uiNewID) {
-    (void)pThis;
-    (void)uiOldID;
-    (void)uiNewID;
+    if (pThis == nullptr) return;
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    PaneFrameState* state = FindStatePtr(pThis);
+    if (state == nullptr) return;
+    if (CaptionButtonState* button = FindCaptionButton(*state, uiOldID)) button->id = uiNewID;
 }
 
 // Symbol: ?ReplacePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@0@Z
@@ -2153,26 +2278,55 @@ extern "C" void MS_ABI impl__SaveRecentFloatingState_CPaneFrameWnd__MEAAXXZ(void
 }
 
 // Symbol: ?SaveState@CPaneFrameWnd@@UEAAHPEB_WI@Z
-// Retail 0xb2c40 -- the ANSI twin's ?SaveState@CPaneFrameWnd@@UEAAHPEBDI@Z.
-// (The mangled name above has no entry of its own in mfc140_rva_symbols.json;
-// slot 0x3b8 of the CPaneFrameWnd vtable at .rdata 0x1802f5ad8 points there.)
-// Transcribed in full:
-//     CWnd* p = CWnd::FromHandlePermanent(m_hwndPane /*0x148*/);
-//     if (!p || !p->IsKindOf(RUNTIME_CLASS(CBasePane) /*0x1802da490*/)) return TRUE;
-//     return p-><vtable +0x470>(lpszProfileName, uiID, (UINT)-1);
-// (that CBasePane virtual is SaveState(LPCTSTR, int nIndex, UINT uiID) -- note
-// retail passes this frame's uiID as the pane's nIndex and -1 as its uiID.)
-// STUB: OpenMFC's CBasePane::SaveState is itself a null stub and its thunk
-// (phase4/src/featurepack/docking/CBasePane.cpp:397) is declared without a
-// `this` parameter, so it cannot be called correctly from here.  TRUE is what
-// retail returns whenever there is no CBasePane to delegate to, but this body does
-// not implement the delegation and must not be read as if it did.
+// Retail mfc140.dll ANSI-twin entry RVA 0xb2c40; the Unicode spelling has no
+// resolved RVA in the symbol map. It resolves the hosted pane at +0x148, returns
+// TRUE when no CBasePane is found, and otherwise dispatches its vtable +0x470
+// SaveState(profile, uiID, UINT(-1)). Use the real C ABI thunks for the modeled
+// CMFCToolBar, CDockablePaneAdapter, and CPane paths (CPane covers
+// CDockablePane's forwarding body); other CBasePane instances use their base
+// thunk. Deviation: this explicit type routing does not cover every derived
+// override. CBaseTabbedPane has a source thunk, but that thunk is itself a
+// documented stub, so the CPane path is used as the available fallback for
+// CPane-derived types.
 extern "C" int MS_ABI impl__SaveState_CPaneFrameWnd__UEAAHPEB_WI_Z(
     void* pThis, const wchar_t* lpszProfileName, unsigned int uiID) {
-    (void)pThis;
-    (void)lpszProfileName;
-    (void)uiID;
-    return TRUE;
+    if (pThis == nullptr) return FALSE;
+    HWND paneHwnd = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const PaneFrameState* state = FindStatePtr(pThis);
+        if (state != nullptr) paneHwnd = state->paneHwnd;
+    }
+    CWnd* pPane = impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(paneHwnd);
+    if (pPane == nullptr) return TRUE;
+    CRuntimeClass* pBaseClass = impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
+    if (pBaseClass == nullptr ||
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pPane, pBaseClass)) {
+        return TRUE;
+    }
+
+    const int nIndex = static_cast<int>(uiID);
+    const unsigned int paneUIID = static_cast<unsigned int>(-1);
+    CRuntimeClass* pToolbarClass = impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ();
+    if (pToolbarClass != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pPane, pToolbarClass)) {
+        return impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(
+            static_cast<CMFCToolBar*>(pPane), lpszProfileName, nIndex, paneUIID);
+    }
+    CRuntimeClass* pAdapterClass = impl__GetThisClass_CDockablePaneAdapter__SAPEAUCRuntimeClass__XZ();
+    if (pAdapterClass != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pPane, pAdapterClass)) {
+        return impl__SaveState_CDockablePaneAdapter__UEAAHPEB_WHI_Z(
+            pPane, lpszProfileName, nIndex, paneUIID);
+    }
+    CRuntimeClass* pPaneClass = impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ();
+    if (pPaneClass != nullptr &&
+        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pPane, pPaneClass)) {
+        return impl__SaveState_CPane__UEAAHPEB_WHI_Z(
+            static_cast<CPane*>(pPane), lpszProfileName, nIndex, paneUIID);
+    }
+    return impl__SaveState_CBasePane__UEAAHPEB_WHI_Z(
+        static_cast<CBasePane*>(pPane), lpszProfileName, nIndex, paneUIID);
 }
 
 // Symbol: ?Serialize@CPaneFrameWnd@@UEAAXAEAVCArchive@@@Z
@@ -2189,28 +2343,28 @@ extern "C" int MS_ABI impl__SaveState_CPaneFrameWnd__UEAAHPEB_WI_Z(
 //   load: style, rect, one skipped DWORD (the visible flag), then 0x128, 0x12c
 //     and 0xfc; it clears bit 28 of the style word and calls its own vtable
 //     +0x418 (CPaneFrameWnd::Create) with the loaded rect and, as the parent,
-//     the global at .data 0x1803b6fe0
+//     the global at .data VA 0x1803b6fe0 (mfc140.dll)
 //     (?m_pParentWndForSerialize@CPaneFrameWnd@@1PEAVCFrameWnd@@EA), finally
 //     storing that parent's m_hWnd into 0x130.
-// STUB: four of the six items (0xf8/0x110, 0xfc, 0x128, 0x130) have no
-// counterpart in this object layout.  OpenMFC does define the parent global
-// (phase4/src/core/runtime/StaticData.cpp) -- correcting an earlier note here
-// that said it did not -- but nothing ever sets it, so the load path would
-// re-create the frame with a null parent.  A partial round-trip would silently
-// produce a frame with the wrong geometry and no pane, which is worse than not
-// restoring it at all.
+// Those frame members are represented in PaneFrameState, but CArchive's local
+// declaration places m_nMode at +0x10 and its buffer pointers at +0x18/+0x20/+0x28;
+// retail reads mode at +0x20 and buffer pointers at +0x38/+0x40. Reinterpreting
+// this object through the retail inlined archive code would read the wrong data.
+// The parent global exists (phase4/src/core/runtime/StaticData.cpp) but remains
+// null, so load would also recreate the frame without its parent. Keep this a
+// stub until the shared archive ABI and parent-state lifecycle are corrected.
 extern "C" void MS_ABI impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(
-    void* pThis, void* pArchive) {
+    CPaneFrameWnd* pThis, CArchive& archive) {
     (void)pThis;
-    (void)pArchive;
+    (void)archive;
 }
 
 // Symbol: ?SetCaptionButtons@CPaneFrameWnd@@UEAAXK@Z
-// Retail (0xb13f0), transcribed in full:
+// Retail mfc140.dll ANSI twin entry RVA 0xb13f0, transcribed in full:
 //     RemoveAllCaptionButtons();                        // 0xb1810
 //     if (dwButtons & 2) {
 //         CWnd* p = GetPane();                          // vtable 0x360
-//         if (p && p->IsKindOf(RUNTIME_CLASS(CBasePane) /*0x1802da490*/) &&
+//         if (p && p->IsKindOf(RUNTIME_CLASS(CBasePane) /*descriptor VA 0x1802da490, mfc140.dll*/) &&
 //             p-><vtable +0x3a0>())
 //             AddButton(0x14);                          // vtable 0x470
 //     }
@@ -2218,18 +2372,18 @@ extern "C" void MS_ABI impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(
 //     if (dwButtons & 4)    AddButton(8);
 //     if (dwButtons & 0x10) AddButton(0x19);            // the menu button
 //     m_dwCaptionButtons /*0x12c*/ = dwButtons;
-//     SetCaptionButtonsToolTips();                      // 0xb4300
-//     ArrangeCaptionButtons();                          // 0xb1990
-//     ::SendMessage(m_hWnd, WM_NCPAINT, 0, 0);          // tail jump
-// The four AddButton calls and the RemoveAllCaptionButtons call are reproduced
-// as calls (AddButton has no list to add to yet, so today they do nothing, but
-// the control flow is retail's).  The mask store is real: it goes to the side
+//     SetCaptionButtonsToolTips();                      // entry RVA 0xb4300 (mfc140.dll)
+//     ArrangeCaptionButtons();                          // entry RVA 0xb13d0 (mfc140u.dll)
+//     ::SendMessage(m_hWnd, WM_NCPAINT, 0, 0);          // mfc140.dll USER32 import slot VA 0x1802c5378, tail jump
+// The four AddButton calls and RemoveAllCaptionButtons now populate/clear the
+// semantic side array. The native button objects, exact size/layout, and drawing
+// are still absent. The mask store is real: it goes to the side
 // table's `rollupFlags`, which is retail's 0x12c -- SetRollUpTimer and
 // RemoveAllCaptionButtons below read and clear the same word.
 // TODO(clean-room): transcribed partially -- the extra CBasePane virtual
 // (+0x3a0) that retail requires before adding button 0x14 cannot be called, so
-// the bit-1 branch is taken on the CBasePane test alone.  That is observable
-// only once AddButton itself is implemented.
+// the bit-1 branch is taken on the CBasePane test alone. The semantic records
+// now expose this branch's behavior, but the native-object/layout deviation remains.
 extern "C" void MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(
     void* pThis, unsigned long dwButtons) {
     if (pThis == nullptr) return;
@@ -2257,14 +2411,11 @@ extern "C" void MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(
 }
 
 // Symbol: ?SetCaptionButtonsToolTips@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb4300 drives its own tooltip
-// control (m_pToolTip, 0x1b8): it asks the control for its tool count
-// (TTM_GETTOOLCOUNT, 0x40d), compares it with
-// the caption-button count (0x198), adds tools with CTooltipManager (0x273d40)
-// until the counts match, then deletes surplus tools (0x273c00) with an empty
-// rect.  Every step needs either the tooltip control or the caption-button
-// list.
-// STUB: neither exists in this object layout.
+// Retail mfc140.dll (ANSI twin) entry RVA 0xb4300 drives its tooltip control
+// at +0x1b8: it queries TTM_GETTOOLCOUNT (SendMessageA import slot 0x1802c5378),
+// compares with the caption-button count, then creates/deletes tools through
+// CTooltipManager. STUB: semantic button and tooltip records now exist, but no
+// initialized native tooltip control or actual tool-registration lifecycle does.
 extern "C" void MS_ABI impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     (void)pThis;
 }
@@ -2296,15 +2447,15 @@ extern "C" void MS_ABI impl__SetDockingTimer_CPaneFrameWnd__QEAAXI_Z(
 // from a saved dock state. It reads the saved pane id at 0x128, asks the
 // CDockingManager argument for the pane
 // with that id (manager vtable +0x58), and then re-parents and re-shows it:
-// ::GetParent / ::SetParent on the frame's owner (0x130), a pane virtual at
+// USER32 imports GetParent/SetParent are slots 0x1802c5300/0x1802c52b0.
+// ::GetParent / ::SetParent operate on the frame's owner (0x130), followed by a pane virtual at
 // +0x790, a CDockablePane branch (+0x3f0, +0x3c8, +0x6e0), rect fix-ups through
 // +0x460 / +0x408, CWnd::SetWindowPos and finally SetCaptionButtons with the
 // mask at 0x12c.  When the saved id is 0, or the manager cannot produce a pane,
 // it calls its own DestroyWindow (vtable 0xd0) instead.
-// STUB: the CDockingManager lookup and multiple unexported pane virtuals decide
-// the restoration path, and the saved-id member (0x128) is not modelled.
-// Guessing would leave a frame either destroyed or holding a pane it never
-// owned.
+// STUB: the saved-id/owner/manager slots now exist in PaneFrameState, but the
+// manager lookup and multiple unexported pane virtuals still decide the restore
+// path. Guessing could destroy a frame or attach a pane it never owned.
 extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManager___Z(
     void* pThis, void* pDockManager) {
     (void)pThis;
@@ -2312,22 +2463,22 @@ extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManage
 }
 
 // Symbol: ?SetPreDockState@CPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z
-// Retail (0xb0d80), transcribed in full.  dockMethod (the 4th argument) is
+// Retail mfc140.dll ANSI twin entry RVA 0xb0d80, transcribed in full. dockMethod
+// (the 4th argument) is
 // never read:
 //     if (preDockState == PDS_NOTHING /*0*/) return TRUE;
 //     if (preDockState == 2 && pBar && !pBar-><vtable +0x328>()) return TRUE;
 //     if (pBar && pBar-><vtable +0x460>(0) != NULL) return TRUE;
 //     BOOL bWasDragging = m_bDragging /*0x10d*/;
 //     if (bWasDragging) {
-//         ::ReleaseCapture();
+//         ::ReleaseCapture();                         // USER32 slot 0x1802c5280
 //         m_bDragging = FALSE;
 //         OnCapture(FALSE);                            // vtable 0x428
 //     }
-//     CPoint pt(0, 0); ::GetCursorPos(&pt);
+//     CPoint pt(0, 0); ::GetCursorPos(&pt);          // USER32 slot 0x1802c5348
 //     ::ScreenToClient(GetPane()->m_hWnd, &pt);        // result discarded
 //     m_preDockState /*0x250*/ = preDockState;
-//     m_pDockBar /*0x1c0*/ = (pBar && pBar->IsKindOf(RUNTIME_CLASS(CDockablePane)
-//                                                    /*0x1803aa178*/)) ? pBar : NULL;
+//     m_pDockBar /*0x1c0*/ = (pBar && pBar->IsKindOf(RUNTIME_CLASS(CDockablePane))) ? pBar : NULL;
 //     BOOL bWasDocked = 0;
 //     CDockablePane* p = DockPane(bWasDocked);         // vtable 0x318
 //     if (p) {
@@ -2335,12 +2486,11 @@ extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManage
 //         if (bWasDragging) p-><vtable +0x638>(0);
 //     }
 //     return FALSE;
-// STUB: the two CBasePane virtuals that gate every early return (+0x328,
-// +0x460) are unexported, so this body cannot tell the "nothing to do" case
-// from the real one -- and taking the wrong branch would either release a drag
-// capture that a live drag still owns or silently skip the dock.  The 0x250 and
-// 0x1c0 members are not modelled either.  TRUE (retail's "nothing to do")
-// is returned; this is not an implementation of the docking path.
+// STUB: the pre-dock state, pane, dragging, and manager slots now exist in
+// PaneFrameState, but the unexported CBasePane virtuals at +0x328/+0x460 gate
+// every early return and later docking requires further pane/frame virtuals.
+// Without those calls, releasing capture or skipping the dock can corrupt the
+// live drag; the current TRUE result is not an implementation of the path.
 extern "C" int MS_ABI impl__SetPreDockState_CPaneFrameWnd__UEAAHW4AFX_PREDOCK_STATE__PEAVCBasePane__W4AFX_DOCK_METHOD___Z(
     void* pThis, int preDockState, void* pBar, int dockMethod) {
     (void)pThis;
@@ -2380,41 +2530,50 @@ extern "C" void MS_ABI impl__SetRollUpTimer_CPaneFrameWnd__IEAAXXZ(void* pThis) 
 }
 
 // Symbol: ?ShowButton@CPaneFrameWnd@@IEAAXIH@Z
-// Retail (0xb16c0), transcribed in full:
+// Retail mfc140.dll (ANSI twin) entry RVA 0xb16c0, transcribed in full:
 //     for (POSITION p = m_lstCaptionButtons.GetHeadPosition() /*0x188*/; p;
 //          p = <node pNext at +0>) {
 //         CMFCCaptionButton* b = <node data at +0x10>;
 //         if (b->m_nHit /*+0x20*/ == uiID) {
 //             b->m_bHidden? /*+0x10*/ = bShow;
-//             ArrangeCaptionButtons();               // 0xb1990
+//             ArrangeCaptionButtons();
 //             return;
 //         }
 //     }
-// STUB: no caption-button list exists in this object layout.  Note the
-// ArrangeCaptionButtons call here is INSIDE the match, unlike RemoveButton's,
-// so there is nothing to reproduce unconditionally.
+// The retail store is to m_bHidden (+0x10), so the semantic `visible` flag is
+// the inverse of bShow. ArrangeCaptionButtons is called only after a match.
+// Its native-size layout remains unavailable; this updates the modeled state.
 extern "C" void MS_ABI impl__ShowButton_CPaneFrameWnd__IEAAXIH_Z(
     void* pThis, unsigned int uiID, int bShow) {
-    (void)pThis;
-    (void)uiID;
-    (void)bShow;
+    if (pThis == nullptr) return;
+    bool found = false;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        PaneFrameState* state = FindStatePtr(pThis);
+        if (state != nullptr) {
+            if (CaptionButtonState* button = FindCaptionButton(*state, uiID)) {
+                button->visible = bShow == FALSE;
+                found = true;
+            }
+        }
+    }
+    if (found) impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
 }
 
 // Symbol: ?SizeToContent@CPaneFrameWnd@@UEAAXXZ
-// Retail (0xb0b30), transcribed in full:
+// Retail mfc140.dll ANSI twin entry RVA 0xb0b30, transcribed in full:
 //     CWnd* p = CWnd::FromHandlePermanent(m_hwndPane /*0x148*/);
 //     if (!p || !p->IsKindOf(RUNTIME_CLASS(CPane))) return;
 //     CSize size = p-><vtable +0x4d0>(0, TRUE);       // the pane's content size
-//     CRect rectWindow; ::GetWindowRect(m_hWnd, &rectWindow);
-//     CRect rectClient; ::GetClientRect(m_hWnd, &rectClient);
+//     CRect rectWindow; ::GetWindowRect(m_hWnd, &rectWindow); // USER32 slot 0x1802c5370
+//     CRect rectClient; ::GetClientRect(m_hWnd, &rectClient); // USER32 slot 0x1802c5358
 //     SetWindowPos(NULL, 0, 0,
 //                  size.cx + rectWindow.Width()  - rectClient.Width(),
 //                  size.cy + rectWindow.Height() - rectClient.Height(),
 //                  SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE /*0x16*/);
-// STUB: the content size comes entirely from an unexported CPane virtual
-// (+0x4d0).  Only the non-client margins can be computed here; substituting the
-// pane's current window size for its ideal size would resize the frame to
-// whatever it already is and defeat the call.
+// STUB: the pane HWND is represented in side state, but its ideal content size
+// still comes entirely from the unexported CPane virtual at +0x4d0. Substituting
+// the current window size would defeat the operation.
 extern "C" void MS_ABI impl__SizeToContent_CPaneFrameWnd__UEAAXXZ(void* pThis) {
     (void)pThis;
 }

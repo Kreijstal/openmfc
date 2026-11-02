@@ -837,9 +837,247 @@ struct DropTargetState {
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
+// Retail-only shadows. These are layout references, not castable views of
+// OpenMFC's compact public declarations; offsets are pinned below and traced
+// to the retail constructors/field users plus the installed MFC headers.
+struct RetailCDocObjectServerLayout {
+    BYTE m_ccmdTargetPrefix[0x40];
+    IOleDocumentSite* m_pDocSite;             // +0x40; ctor entry RVA 0x256ce0 (mfc140u)
+    COleServerDoc* m_pOwner;                  // +0x48; ctor entry RVA 0x256ce0 (mfc140u)
+    LONG m_nFirstPage;                       // +0x50; ctor entry RVA 0x256ce0 (mfc140u)
+    BYTE m_reserved_54[4];
+    LPCONTINUECALLBACK m_pContinueCallback;   // +0x58; afxdocob.h order between ctor-confirmed +0x50/+0x60, RVA 0x256ce0 (mfc140u)
+    IOleInPlaceSite* m_pViewSite;             // +0x60; ctor entry RVA 0x256ce0 (mfc140u)
+    void* m_xOleObjectVftable;                // +0x68; ctor entry RVA 0x256ce0 (mfc140u)
+    void* m_xOleDocumentVftable;              // +0x70; ctor entry RVA 0x256ce0 (mfc140u)
+    void* m_xOleDocumentViewVftable;           // +0x78; ctor entry RVA 0x256ce0 (mfc140u)
+    void* m_xOleCommandTargetVftable;          // +0x80; ctor entry RVA 0x256ce0 (mfc140u)
+    void* m_xPrintVftable;                    // +0x88; ctor entry RVA 0x256ce0 (mfc140u)
+};
+#define ASSERT_RETAIL_DOC_OBJECT_SERVER(member, offset) \
+    static_assert(offsetof(RetailCDocObjectServerLayout, member) == (offset), \
+                  "RetailCDocObjectServerLayout::" #member)
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_ccmdTargetPrefix, 0x00);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pDocSite, 0x40);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pOwner, 0x48);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_nFirstPage, 0x50);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_reserved_54, 0x54);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pContinueCallback, 0x58);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pViewSite, 0x60);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleObjectVftable, 0x68);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleDocumentVftable, 0x70);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleDocumentViewVftable, 0x78);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleCommandTargetVftable, 0x80);
+ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xPrintVftable, 0x88);
+#undef ASSERT_RETAIL_DOC_OBJECT_SERVER
+static_assert(sizeof(RetailCDocObjectServerLayout) == 0x90,
+              "retail CDocObjectServer size");
+
+struct RetailCOleDocumentLayout {
+    BYTE m_documentPrefix[0x180];
+    BYTE m_docItemList[0x38];                // CObList +0x180; ctor entry RVA 0x253e90 (mfc140u)
+    UINT m_dwNextItemNumber;              // +0x1b8; ctor RVA 0x253e90 (mfc140u)
+    BOOL m_bLastVisible;                  // +0x1bc; afxole.h order between ctor-confirmed +0x1b8/+0x1c0, RVA 0x253e90 (mfc140u)
+    BOOL m_bCompoundFile;                 // +0x1c0; ctor RVA 0x253e90 (mfc140u)
+    DWORD m_reserved_1c4;                 // +0x1c4; gap before ctor-confirmed root storage at +0x1c8, RVA 0x253e90 (mfc140u)
+    IStorage* m_lpRootStg;                 // +0x1c8; storage RVA 0x245aa0 (mfc140u)
+    BOOL m_bSameAsLoad;                   // +0x1d0; ctor RVA 0x253e90 (mfc140u)
+    BOOL m_bRemember;                     // +0x1d4; ctor RVA 0x253e90 (mfc140u)
+    void* m_strStorageNameStorage;        // +0x1d8; CString storage, ctor RVA 0x253e90 (mfc140u)
+    DVTARGETDEVICE* m_ptd;                // +0x1e0; ctor RVA 0x253e90 (mfc140u)
+};
+#define ASSERT_RETAIL_DOC(member, offset) \
+    static_assert(offsetof(RetailCOleDocumentLayout, member) == (offset), \
+                  "RetailCOleDocumentLayout::" #member)
+ASSERT_RETAIL_DOC(m_documentPrefix, 0x00);
+ASSERT_RETAIL_DOC(m_docItemList, 0x180);
+ASSERT_RETAIL_DOC(m_dwNextItemNumber, 0x1b8);
+ASSERT_RETAIL_DOC(m_bLastVisible, 0x1bc);
+ASSERT_RETAIL_DOC(m_bCompoundFile, 0x1c0);
+ASSERT_RETAIL_DOC(m_reserved_1c4, 0x1c4);
+ASSERT_RETAIL_DOC(m_lpRootStg, 0x1c8);
+ASSERT_RETAIL_DOC(m_bSameAsLoad, 0x1d0);
+ASSERT_RETAIL_DOC(m_bRemember, 0x1d4);
+ASSERT_RETAIL_DOC(m_strStorageNameStorage, 0x1d8);
+ASSERT_RETAIL_DOC(m_ptd, 0x1e0);
+#undef ASSERT_RETAIL_DOC
+static_assert(sizeof(RetailCOleDocumentLayout) == 0x1e8,
+              "retail COleDocument size");
+
+// Full retail COleClientItem shadow used for disassembly cross-checks. The
+// OpenMFC object only overlays the tail fields that do not collide with its
+// existing public members; its side-table state below covers the conflicts.
+struct RetailCOleClientItemLayout {
+    BYTE m_ccmdTargetPrefix[0x40];
+    COleDocument* m_pDocument;             // +0x40; ctor RVA 0x244200 (mfc140u)
+    IOleObject* m_lpObject;                // +0x48; ctor RVA 0x244200 (mfc140u)
+    IViewObject2* m_lpViewObject;          // +0x50; ctor RVA 0x244200 (mfc140u)
+    DWORD m_dwItemNumber;                  // +0x58; RVA 0x244700 (mfc140u)
+    DVASPECT m_nDrawAspect;                // +0x5c; ctor RVA 0x244200 (mfc140u)
+    SCODE m_scLast;                        // +0x60; afxole.h order after ctor-confirmed m_nDrawAspect (+0x5c), ctor RVA 0x244200 (mfc140u)
+    DWORD m_reserved_64;                   // +0x64; alignment before ctor-confirmed storage at +0x68, RVA 0x244200 (mfc140u)
+    IStorage* m_lpStorage;                 // +0x68; RVA 0x2456b0 (mfc140u)
+    ILockBytes* m_lpLockBytes;             // +0x70; RVA 0x2456b0 (mfc140u)
+    DWORD m_dwConnection;                  // +0x78; ctor entry RVA 0x244200 (mfc140u)
+    BYTE m_bFlags[8];                      // +0x7c; flags/reserved; ctor entry RVA 0x244200 (mfc140u)
+    IStorage* m_lpNewStorage;              // +0x88; ctor entry RVA 0x244200 (mfc140u)
+    int m_nItemState;                      // +0x90; ctor RVA 0x244200 (mfc140u)
+    DWORD m_nItemType;                     // +0x94; UpdateItemType RVA 0x244b20 (mfc140u)
+    CView* m_pView;                        // +0x98; RVA 0x255ea0 (mfc140u)
+    DWORD m_dwContainerStyle;              // +0xa0; OnActivateUI RVA 0x248760 (mfc140u)
+    DWORD m_reserved_a4;                   // +0xa4; gap bracketed by OnActivateUI +0xa0 and ctor field +0xa8, RVAs 0x248760/0x244200 (mfc140u)
+    COleFrameHook* m_pInPlaceFrame;         // +0xa8; ctor RVA 0x244200 (mfc140u)
+    COleFrameHook* m_pInPlaceDoc;           // +0xb0; ctor RVA 0x244200 (mfc140u)
+    HWND m_hWndServer;                     // +0xb8; OnActivateUI RVA 0x248760 (mfc140u)
+    DWORD m_dwFrameMenuBarVisibility;       // +0xc0; OnActivateUI RVA 0x248760 (mfc140u)
+    DWORD m_reserved_c4;                   // +0xc4; gap before header-declared ClassesAllowed union
+    void* m_ClassesAllowedInStorage;        // +0xc8; afxole.h ClassesAllowedInStorage union/member order
+    DWORD m_nClassesAllowedInStorage;       // +0xd0; afxole.h member order
+    DWORD m_reserved_d4;                   // +0xd4; alignment before interface part at +0xd8, ctor RVA 0x244200 (mfc140u)
+    void* m_xOleClientSiteVftable;          // +0xd8; ctor RVA 0x244200 (mfc140u)
+    void* m_xAdviseSinkVftable;             // +0xe0; ctor RVA 0x244200 (mfc140u)
+    void* m_xOleIPSiteVftable;              // +0xe8; ctor RVA 0x244200 (mfc140u)
+};
+#define ASSERT_RETAIL_ITEM(member, offset) \
+    static_assert(offsetof(RetailCOleClientItemLayout, member) == (offset), \
+                  "RetailCOleClientItemLayout::" #member)
+ASSERT_RETAIL_ITEM(m_ccmdTargetPrefix, 0x00);
+ASSERT_RETAIL_ITEM(m_pDocument, 0x40);
+ASSERT_RETAIL_ITEM(m_lpObject, 0x48);
+ASSERT_RETAIL_ITEM(m_lpViewObject, 0x50);
+ASSERT_RETAIL_ITEM(m_dwItemNumber, 0x58);
+ASSERT_RETAIL_ITEM(m_nDrawAspect, 0x5c);
+ASSERT_RETAIL_ITEM(m_scLast, 0x60);
+ASSERT_RETAIL_ITEM(m_reserved_64, 0x64);
+ASSERT_RETAIL_ITEM(m_lpStorage, 0x68);
+ASSERT_RETAIL_ITEM(m_lpLockBytes, 0x70);
+ASSERT_RETAIL_ITEM(m_dwConnection, 0x78);
+ASSERT_RETAIL_ITEM(m_bFlags, 0x7c);
+ASSERT_RETAIL_ITEM(m_lpNewStorage, 0x88);
+ASSERT_RETAIL_ITEM(m_nItemState, 0x90);
+ASSERT_RETAIL_ITEM(m_nItemType, 0x94);
+ASSERT_RETAIL_ITEM(m_pView, 0x98);
+ASSERT_RETAIL_ITEM(m_dwContainerStyle, 0xa0);
+ASSERT_RETAIL_ITEM(m_reserved_a4, 0xa4);
+ASSERT_RETAIL_ITEM(m_pInPlaceFrame, 0xa8);
+ASSERT_RETAIL_ITEM(m_pInPlaceDoc, 0xb0);
+ASSERT_RETAIL_ITEM(m_hWndServer, 0xb8);
+ASSERT_RETAIL_ITEM(m_dwFrameMenuBarVisibility, 0xc0);
+ASSERT_RETAIL_ITEM(m_reserved_c4, 0xc4);
+ASSERT_RETAIL_ITEM(m_ClassesAllowedInStorage, 0xc8);
+ASSERT_RETAIL_ITEM(m_nClassesAllowedInStorage, 0xd0);
+ASSERT_RETAIL_ITEM(m_reserved_d4, 0xd4);
+ASSERT_RETAIL_ITEM(m_xOleClientSiteVftable, 0xd8);
+ASSERT_RETAIL_ITEM(m_xAdviseSinkVftable, 0xe0);
+ASSERT_RETAIL_ITEM(m_xOleIPSiteVftable, 0xe8);
+#undef ASSERT_RETAIL_ITEM
+static_assert(sizeof(RetailCOleClientItemLayout) == 0xf0,
+              "retail COleClientItem size");
+
+// Retail COleControlSite shadow. OpenMFC's fields before +0x78 have conflicting
+// offsets, so implementations must use the pThis-keyed state for those values.
+struct RetailCOleControlSiteLayout {
+    BYTE m_ccmdTargetPrefix[0x40];
+    COleControlContainer* m_pCtrlCont;       // +0x40; ctor RVA 0x2394e0 (mfc140u)
+    HWND m_hWnd;                             // +0x48; CreateControlCommon RVA 0x239c90 (mfc140u)
+    CWnd* m_pWndCtrl;                        // +0x50; ctor RVA 0x2394e0 (mfc140u)
+    UINT m_nID;                              // +0x58; ctor RVA 0x2394e0 (mfc140u)
+    RECT m_rect;                             // +0x5c; ctor RVA 0x2394e0 (mfc140u)
+    IID m_iidEvents;                         // +0x6c; CreateControlCommon entry RVA 0x239c90 (mfc140u)
+    IOleObject* m_pObject;                   // +0x80; ctor RVA 0x2394e0 (mfc140u)
+    IOleInPlaceObject* m_pInPlaceObject;     // +0x88; ctor RVA 0x2394e0 (mfc140u)
+    IOleInPlaceActiveObject* m_pActiveObject; // +0x90; ctor RVA 0x2394e0 (mfc140u)
+    IOleInPlaceObjectWindowless* m_pWindowlessObject; // +0x98; ctor RVA 0x2394e0 (mfc140u)
+    DWORD m_dwEventSink;                     // +0xa0; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD m_dwPropNotifySink;                // +0xa4; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD m_dwStyleMask;                     // +0xa8; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD m_dwStyle;                         // +0xac; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD m_dwMiscStatus;                    // +0xb0; ctor RVA 0x2394e0 (mfc140u)
+    BOOL m_bIsWindowless;                    // +0xb4; GetStyle entry RVA 0x23b820 (mfc140u)
+    CONTROLINFO m_ctlInfo;                   // +0xb8; GetControlInfo RVA 0x23b1b0 (mfc140u)
+    BOOL m_bIgnoreNotify;                    // +0xd0; ctor RVA 0x2394e0 (mfc140u)
+    DWORD m_dwNotifyDBEvents;                // +0xd4; CreateControlCommon RVA 0x239c90 (mfc140u)
+    void* m_pDataSourceControl;              // +0xd8; ctor RVA 0x2394e0 (mfc140u)
+    void* m_pBindings;                       // +0xe0; ctor RVA 0x2394e0 (mfc140u)
+    void* m_pDSCSiteOrRowSource;             // +0xe8; ctor RVA 0x2394e0 (mfc140u)
+    DISPID m_defdispid;                      // +0xf0; ctor RVA 0x2394e0 (mfc140u)
+    UINT m_dwType;                           // +0xf4; afxocc.h member order
+    void* m_strDataFieldStorage;             // +0xf8; CString storage, ctor RVA 0x2394e0 (mfc140u)
+    BOOL m_bIsDirty;                         // +0x100; afxocc.h member order
+    DWORD m_reserved_104;                    // +0x104; alignment before ctor-initialized VARIANT, RVA 0x2394e0 (mfc140u)
+    BYTE m_varResult[0x10];                  // +0x108; retail VARIANT storage, ctor RVA 0x2394e0 (mfc140u)
+    void* m_dispDriverStorage[2];            // +0x118; COleDispatchDriver storage, ctor RVA 0x2394e0 (mfc140u)
+    CDC* m_pDC;                              // +0x128; retail member order / ctor RVA 0x2394e0 (mfc140u)
+    BYTE m_reserved_130[8];                  // +0x130; gap before nested interface parts initialized at ctor RVA 0x2394e0 (mfc140u)
+    void* m_xOleClientSiteVftable;           // +0x138; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xOleIPSiteVftable;               // +0x140; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xOleControlSiteVftable;          // +0x148; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xAmbientPropsVftable;            // +0x150; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xPropertyNotifySinkVftable;      // +0x158; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xEventSinkVftable;               // +0x160; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xBoundObjectSiteVftable;          // +0x168; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xNotifyDBEventsVftable;          // +0x170; ctor RVA 0x2394e0 (mfc140u)
+    void* m_xRowsetNotifyVftable;            // +0x178; ctor RVA 0x2394e0 (mfc140u)
+};
+#define ASSERT_RETAIL_SITE(member, offset) \
+    static_assert(offsetof(RetailCOleControlSiteLayout, member) == (offset), \
+                  "RetailCOleControlSiteLayout::" #member)
+ASSERT_RETAIL_SITE(m_ccmdTargetPrefix, 0x00);
+ASSERT_RETAIL_SITE(m_pCtrlCont, 0x40);
+ASSERT_RETAIL_SITE(m_hWnd, 0x48);
+ASSERT_RETAIL_SITE(m_pWndCtrl, 0x50);
+ASSERT_RETAIL_SITE(m_nID, 0x58);
+ASSERT_RETAIL_SITE(m_rect, 0x5c);
+ASSERT_RETAIL_SITE(m_iidEvents, 0x6c);
+ASSERT_RETAIL_SITE(m_pObject, 0x80);
+ASSERT_RETAIL_SITE(m_pInPlaceObject, 0x88);
+ASSERT_RETAIL_SITE(m_pActiveObject, 0x90);
+ASSERT_RETAIL_SITE(m_pWindowlessObject, 0x98);
+ASSERT_RETAIL_SITE(m_dwEventSink, 0xa0);
+ASSERT_RETAIL_SITE(m_dwPropNotifySink, 0xa4);
+ASSERT_RETAIL_SITE(m_dwStyleMask, 0xa8);
+ASSERT_RETAIL_SITE(m_dwStyle, 0xac);
+ASSERT_RETAIL_SITE(m_dwMiscStatus, 0xb0);
+ASSERT_RETAIL_SITE(m_bIsWindowless, 0xb4);
+ASSERT_RETAIL_SITE(m_ctlInfo, 0xb8);
+ASSERT_RETAIL_SITE(m_bIgnoreNotify, 0xd0);
+ASSERT_RETAIL_SITE(m_dwNotifyDBEvents, 0xd4);
+ASSERT_RETAIL_SITE(m_pDataSourceControl, 0xd8);
+ASSERT_RETAIL_SITE(m_pBindings, 0xe0);
+ASSERT_RETAIL_SITE(m_pDSCSiteOrRowSource, 0xe8);
+ASSERT_RETAIL_SITE(m_defdispid, 0xf0);
+ASSERT_RETAIL_SITE(m_dwType, 0xf4);
+ASSERT_RETAIL_SITE(m_strDataFieldStorage, 0xf8);
+ASSERT_RETAIL_SITE(m_bIsDirty, 0x100);
+ASSERT_RETAIL_SITE(m_reserved_104, 0x104);
+ASSERT_RETAIL_SITE(m_varResult, 0x108);
+ASSERT_RETAIL_SITE(m_dispDriverStorage, 0x118);
+ASSERT_RETAIL_SITE(m_pDC, 0x128);
+ASSERT_RETAIL_SITE(m_reserved_130, 0x130);
+ASSERT_RETAIL_SITE(m_xOleClientSiteVftable, 0x138);
+ASSERT_RETAIL_SITE(m_xOleIPSiteVftable, 0x140);
+ASSERT_RETAIL_SITE(m_xOleControlSiteVftable, 0x148);
+ASSERT_RETAIL_SITE(m_xAmbientPropsVftable, 0x150);
+ASSERT_RETAIL_SITE(m_xPropertyNotifySinkVftable, 0x158);
+ASSERT_RETAIL_SITE(m_xEventSinkVftable, 0x160);
+ASSERT_RETAIL_SITE(m_xBoundObjectSiteVftable, 0x168);
+ASSERT_RETAIL_SITE(m_xNotifyDBEventsVftable, 0x170);
+ASSERT_RETAIL_SITE(m_xRowsetNotifyVftable, 0x178);
+#undef ASSERT_RETAIL_SITE
+static_assert(sizeof(RetailCOleControlSiteLayout) == 0x180,
+              "retail COleControlSite size");
+} } }
+
+namespace openmfc { namespace detail { namespace olecore {
 struct DocumentState {
     COleDocument* document = nullptr;
     std::vector<COleClientItem*> items;
+    UINT nextItemNumber = 1;                 // retail seed is document +0x1b8
+    BOOL lastVisible = FALSE;                // retail document +0x1bc
+    IStorage* rootStorage = nullptr;          // borrowed retail document +0x1c8
+    BOOL sameAsLoad = TRUE;
+    CString storageName;
+    DVTARGETDEVICE* targetDevice = nullptr;
 };
 } } }
 
@@ -848,6 +1086,24 @@ struct ClientItemState {
     COleClientItem* item = nullptr;
     LONG activeVerb = OLEIVERB_PRIMARY;
     BOOL modified = FALSE;
+    DWORD itemNumber = 0;
+    SCODE lastStatus = S_OK;
+    DWORD adviseConnection = 0;
+    BYTE linkUnavailable = 0;
+    BYTE monikerAssigned = 0;
+    BYTE externallyLocked = 0;
+    BYTE needCommit = 0;
+    BYTE closing = 0;
+    IViewObject2* viewObject = nullptr;
+    IStorage* storage = nullptr;                     // retail +0x68
+    ILockBytes* lockBytes = nullptr;                 // retail +0x70
+    IStorage* newStorage = nullptr;                  // retail +0x88 (not overlaid in the compact public object)
+    CView* activeView = nullptr;
+    DWORD savedViewStyle = 0;
+    COleFrameHook* inPlaceFrame = nullptr;
+    COleFrameHook* inPlaceDoc = nullptr;
+    HWND serverWindow = nullptr;
+    DWORD frameMenuBarVisibility = 0;
     CString hostName;
     CString hostObjectName;
     IUnknown* attachedDataObject = nullptr;
@@ -858,12 +1114,25 @@ struct ClientItemState {
     ClientItemState& operator=(const ClientItemState&) = delete;
     ClientItemState(ClientItemState&& other) noexcept
         : item(other.item), activeVerb(other.activeVerb), modified(other.modified),
+          itemNumber(other.itemNumber), lastStatus(other.lastStatus),
+          adviseConnection(other.adviseConnection), linkUnavailable(other.linkUnavailable),
+          monikerAssigned(other.monikerAssigned), externallyLocked(other.externallyLocked),
+          needCommit(other.needCommit), closing(other.closing),
+          viewObject(other.viewObject), storage(other.storage), lockBytes(other.lockBytes),
+          newStorage(other.newStorage),
+          activeView(other.activeView), savedViewStyle(other.savedViewStyle),
+          inPlaceFrame(other.inPlaceFrame), inPlaceDoc(other.inPlaceDoc),
+          serverWindow(other.serverWindow), frameMenuBarVisibility(other.frameMenuBarVisibility),
           hostName(std::move(other.hostName)),
           hostObjectName(std::move(other.hostObjectName)),
           attachedDataObject(other.attachedDataObject),
           iconicMetafile(other.iconicMetafile), contentMetafile(other.contentMetafile) {
         other.item = nullptr;
         other.attachedDataObject = nullptr;
+        other.viewObject = nullptr;
+        other.storage = nullptr;
+        other.lockBytes = nullptr;
+        other.newStorage = nullptr;
         other.iconicMetafile = nullptr;
         other.contentMetafile = nullptr;
         other.hostName.Empty();
@@ -872,11 +1141,32 @@ struct ClientItemState {
     ClientItemState& operator=(ClientItemState&& other) noexcept {
         if (this != &other) {
             if (attachedDataObject) attachedDataObject->Release();
+            if (viewObject) viewObject->Release();
+            if (storage) storage->Release();
+            if (lockBytes) lockBytes->Release();
             if (iconicMetafile) GlobalFree(iconicMetafile);
             if (contentMetafile) GlobalFree(contentMetafile);
             item = other.item;
             activeVerb = other.activeVerb;
             modified = other.modified;
+            itemNumber = other.itemNumber;
+            lastStatus = other.lastStatus;
+            adviseConnection = other.adviseConnection;
+            linkUnavailable = other.linkUnavailable;
+            monikerAssigned = other.monikerAssigned;
+            externallyLocked = other.externallyLocked;
+            needCommit = other.needCommit;
+            closing = other.closing;
+            viewObject = other.viewObject;
+            storage = other.storage;
+            lockBytes = other.lockBytes;
+            newStorage = other.newStorage;
+            activeView = other.activeView;
+            savedViewStyle = other.savedViewStyle;
+            inPlaceFrame = other.inPlaceFrame;
+            inPlaceDoc = other.inPlaceDoc;
+            serverWindow = other.serverWindow;
+            frameMenuBarVisibility = other.frameMenuBarVisibility;
             hostName = std::move(other.hostName);
             hostObjectName = std::move(other.hostObjectName);
             attachedDataObject = other.attachedDataObject;
@@ -884,6 +1174,10 @@ struct ClientItemState {
             contentMetafile = other.contentMetafile;
             other.item = nullptr;
             other.attachedDataObject = nullptr;
+            other.viewObject = nullptr;
+            other.storage = nullptr;
+            other.lockBytes = nullptr;
+            other.newStorage = nullptr;
             other.hostName.Empty();
             other.hostObjectName.Empty();
             other.iconicMetafile = nullptr;
@@ -893,10 +1187,49 @@ struct ClientItemState {
     }
     ~ClientItemState() {
         if (attachedDataObject) attachedDataObject->Release();
+        if (viewObject) viewObject->Release();
+        if (storage) storage->Release();
+        if (lockBytes) lockBytes->Release();
         if (iconicMetafile) GlobalFree(iconicMetafile);
         if (contentMetafile) GlobalFree(contentMetafile);
     }
 };
+} } }
+
+namespace openmfc { namespace detail { namespace olecore {
+struct FrameHookState {
+    COleFrameHook* hook = nullptr;
+    IOleInPlaceActiveObject* activeObject = nullptr; // borrowed retail +0x48 state
+    COleClientItem* activeItem = nullptr;
+    HWND frameWindow = nullptr;                    // retail +0x58
+    HACCEL acceleratorTable = nullptr;             // retail +0x68
+    UINT modelessCount = 0;                        // retail +0x70
+    CString objectName;                            // retail CString at +0x78
+    void* commandTargetPart = nullptr;             // no room for retail +0x88
+};
+
+// Retail COleFrameHook::OnRecalcLayout entry RVA 0x247ef0 (mfc140u) dispatches
+// CFrameWnd::NegotiateBorderSpace through vtable byte offset +0x348. Keep this
+// slot-preserving path available to OLE implementations; a direct C++ method
+// call would use OpenMFC's abbreviated declaration order instead.
+constexpr size_t kRetailCFrameWndNegotiateBorderSpaceSlot = 0x348 / sizeof(void*);
+static_assert(kRetailCFrameWndNegotiateBorderSpaceSlot * sizeof(void*) == 0x348,
+              "retail CFrameWnd NegotiateBorderSpace slot");
+#if defined(__GNUC__)
+using RetailCFrameWndNegotiateBorderSpaceFn =
+    int (__attribute__((ms_abi)) *)(CFrameWnd*, unsigned int, RECT*);
+#else
+using RetailCFrameWndNegotiateBorderSpaceFn =
+    int (*)(CFrameWnd*, unsigned int, RECT*);
+#endif
+inline int CallRetailCFrameWndNegotiateBorderSpace(CFrameWnd* frame,
+                                                    unsigned int command,
+                                                    RECT* border) {
+    void** vtable = *reinterpret_cast<void***>(frame);
+    auto fn = reinterpret_cast<RetailCFrameWndNegotiateBorderSpaceFn>(
+        vtable[kRetailCFrameWndNegotiateBorderSpaceSlot]);
+    return fn(frame, command, border);
+}
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
@@ -969,6 +1302,9 @@ extern std::vector<DocumentState> g_documentStates;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern std::vector<ClientItemState> g_clientItemStates;
+} } }
+namespace openmfc { namespace detail { namespace olecore {
+extern std::vector<FrameHookState> g_frameHookStates;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern std::vector<ServerDocState> g_serverDocStates;
@@ -1075,6 +1411,12 @@ ClientItemState* FindClientItemState(const COleClientItem* item);
 
 namespace openmfc { namespace detail { namespace olecore {
 void RemoveClientItemState(COleClientItem* item);
+} } }
+namespace openmfc { namespace detail { namespace olecore {
+extern "C" FrameHookState* GetFrameHookState(COleFrameHook* hook, bool create);
+} } }
+namespace openmfc { namespace detail { namespace olecore {
+extern "C" void RemoveFrameHookState(COleFrameHook* hook);
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
@@ -2085,8 +2427,41 @@ private:
 
 namespace openmfc { namespace detail { namespace olecore {
 struct OleControlSiteState {
-    UINT controlId = 0;
+    // Retail COleControlSite members whose offsets conflict with the compact
+    // public declaration are modeled here, keyed by the owning site. The
+    // corresponding verified offsets are pinned in RetailCOleControlSiteLayout.
+    HWND window = nullptr;                            // retail m_hWnd +0x48; ctor RVA 0x2394e0 (mfc140u)
+    CWnd* windowControl = nullptr;                    // m_pWndCtrl +0x50; CreateControlCommon RVA 0x239c90 (mfc140u)
+    UINT controlId = 0;                               // m_nID +0x58; CreateControlCommon RVA 0x239c90 (mfc140u)
+    RECT rect{};                                      // m_rect +0x5c; CreateControlCommon RVA 0x239c90 (mfc140u)
+    bool rectValid = false;
+    IID eventIID = IID_NULL;                          // m_iidEvents +0x6c; CreateControlCommon RVA 0x239c90 (mfc140u)
+    IOleObject* object = nullptr;                     // m_pObject +0x80; ctor RVA 0x2394e0 (mfc140u)
+    IOleInPlaceObject* inPlaceObject = nullptr;       // m_pInPlaceObject +0x88; ctor RVA 0x2394e0 (mfc140u)
+    IOleInPlaceActiveObject* activeObject = nullptr;  // +0x90; ctor RVA 0x2394e0 (mfc140u)
+    IOleInPlaceObjectWindowless* windowlessObject = nullptr; // +0x98; retail header + ctor RVA 0x2394e0 (mfc140u)
+    DWORD eventCookie = 0;                            // m_dwEventSink +0xa0; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD propertyNotifyCookie = 0;                   // m_dwPropNotifySink +0xa4; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD styleMask = 0;                              // +0xa8; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD style = 0;                                  // +0xac; CreateControlCommon RVA 0x239c90 (mfc140u)
+    DWORD miscStatus = 0;                             // +0xb0; ctor RVA 0x2394e0 (mfc140u)
+    BOOL windowless = FALSE;                          // +0xb4; GetStyle entry RVA 0x23b820 (mfc140u)
+    CONTROLINFO controlInfo{};                        // +0xb8; GetControlInfo RVA 0x23b1b0 (mfc140u)
+    BOOL ignoreNotify = FALSE;                        // +0xd0; ctor RVA 0x2394e0 (mfc140u)
+    DWORD notifyDBEvents = 0;                         // +0xd4; ctor RVA 0x2394e0 (mfc140u)
+    void* dataSourceControl = nullptr;                // +0xd8; ctor RVA 0x2394e0 (mfc140u)
+    void* bindings = nullptr;                         // +0xe0; ctor RVA 0x2394e0 (mfc140u)
+    void* dataSourceSiteOrRowSource = nullptr;        // +0xe8; ctor RVA 0x2394e0 (mfc140u)
+    DISPID defaultDispid = 0;                         // +0xf0; ctor RVA 0x2394e0 (mfc140u)
+    UINT type = 0;                                    // +0xf4; retail afxocc.h member order
+    CString dataField;                                // +0xf8; ctor RVA 0x2394e0 (mfc140u)
+    BOOL dirty = FALSE;                               // +0x100; retail afxocc.h member order
+    VARIANT result{};                                 // +0x108; ctor RVA 0x2394e0 (mfc140u)
+    LPDISPATCH dispatch = nullptr;                    // COleDispatchDriver side storage at +0x118
+    CDC* dc = nullptr;                                // +0x128; ctor RVA 0x2394e0 (mfc140u)
     ControlSiteAdapter* adapter = nullptr;
+    IPropertyNotifySink* propertyNotifySink = nullptr; // borrowed until a site adapter owns it
+    IDispatch* eventSink = nullptr;                    // borrowed until a site adapter owns it
 };
 } } }
 
@@ -2096,6 +2471,9 @@ extern std::map<const COleControlSite*, OleControlSiteState> g_oleControlSiteSta
 
 namespace openmfc { namespace detail { namespace olecore {
 void SetControlSiteId(const COleControlSite* pSite, UINT controlId);
+} } }
+namespace openmfc { namespace detail { namespace olecore {
+extern "C" OleControlSiteState* GetOleControlSiteState(COleControlSite* pSite, bool create);
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {

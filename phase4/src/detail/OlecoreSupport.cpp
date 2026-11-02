@@ -1219,6 +1219,7 @@ extern "C" void MS_ABI impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(
 std::vector<DropTargetState> g_dropTargetStates;
 std::vector<DocumentState> g_documentStates;
 std::vector<ClientItemState> g_clientItemStates;
+std::vector<FrameHookState> g_frameHookStates;
 std::vector<ServerDocState> g_serverDocStates;
 std::vector<ServerItemState> g_serverItemStates;
 std::vector<OleControlState> g_oleControlStates;
@@ -1297,6 +1298,22 @@ void RemoveClientItemState(COleClientItem* item) {
         std::remove_if(g_clientItemStates.begin(), g_clientItemStates.end(),
                        [item](const ClientItemState& state) { return state.item == item; }),
         g_clientItemStates.end());
+}
+extern "C" FrameHookState* GetFrameHookState(COleFrameHook* hook, bool create) {
+    if (!hook) return nullptr;
+    for (FrameHookState& state : g_frameHookStates) {
+        if (state.hook == hook) return &state;
+    }
+    if (!create) return nullptr;
+    g_frameHookStates.push_back(FrameHookState());
+    g_frameHookStates.back().hook = hook;
+    return &g_frameHookStates.back();
+}
+extern "C" void RemoveFrameHookState(COleFrameHook* hook) {
+    g_frameHookStates.erase(
+        std::remove_if(g_frameHookStates.begin(), g_frameHookStates.end(),
+                       [hook](const FrameHookState& state) { return state.hook == hook; }),
+        g_frameHookStates.end());
 }
 void AddOleObjectFactory(COleObjectFactory* factory) {
     if (!factory) return;
@@ -1593,6 +1610,15 @@ BOOL TryGetAmbientOverride(COleControlSite* pSite, DISPID dispid, VARIANT* pVarR
     return FALSE;
 }
 std::map<const COleControlSite*, OleControlSiteState> g_oleControlSiteState;
+extern "C" OleControlSiteState* GetOleControlSiteState(COleControlSite* pSite, bool create) {
+    if (!pSite) return nullptr;
+    auto it = g_oleControlSiteState.find(pSite);
+    if (it == g_oleControlSiteState.end()) {
+        if (!create) return nullptr;
+        it = g_oleControlSiteState.emplace(pSite, OleControlSiteState{}).first;
+    }
+    return &it->second;
+}
 void SetControlSiteId(const COleControlSite* pSite, UINT controlId) {
     if (!pSite) {
         return;

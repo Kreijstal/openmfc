@@ -44,7 +44,7 @@ struct ListS {
     INT_PTR nCount;       // +24
     CNode*  pNodeFree;    // +32
     void*   pBlocks;      // +40  CPlex*
-    int     nBlockSize;   // +48
+    INT_PTR nBlockSize;   // +48
 };
 } } }
 

@@ -2,6 +2,26 @@
 // Sources: manual_small_stub_implementations.cpp
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/CDocObjectServerSupport.h"
+
+#define ASSERT_SERVERDOC_TAIL(member, offset) \
+    static_assert(offsetof(COleServerDoc, m_retailTail) + \
+                      offsetof(COleServerDoc::RetailTailStorage, member) == (offset), \
+                  "COleServerDoc::RetailTailStorage::" #member)
+static_assert(sizeof(COleServerDoc) == 0x298,
+              "COleServerDoc size remains retail-sized");
+static_assert(offsetof(COleServerDoc, m_retailTail) == 0x234,
+              "COleServerDoc retail tail begins at +0x234");
+ASSERT_SERVERDOC_TAIL(m_reserved_234, 0x234);
+ASSERT_SERVERDOC_TAIL(m_pInPlaceFrame, 0x250);
+ASSERT_SERVERDOC_TAIL(m_reserved_258, 0x258);
+ASSERT_SERVERDOC_TAIL(m_pDocObjectServer, 0x268);
+ASSERT_SERVERDOC_TAIL(m_xPersistStorageVftable, 0x270);
+ASSERT_SERVERDOC_TAIL(m_xOleObjectVftable, 0x278);
+ASSERT_SERVERDOC_TAIL(m_xDataObjectVftable, 0x280);
+ASSERT_SERVERDOC_TAIL(m_xOleInPlaceObjectVftable, 0x288);
+ASSERT_SERVERDOC_TAIL(m_xOleInPlaceActiveObjectVftable, 0x290);
+#undef ASSERT_SERVERDOC_TAIL
 
 // ---------------------------------------------------------------------------
 // CDocObjectServer's nested interface parts, decoded from retail mfc140.
@@ -130,9 +150,9 @@
 // throughout; the bodies that are still stubs ignore every argument, so the
 // parameter names below are documentation of the ABI and nothing more.
 //
-// Return values of the remaining stubs.  DoPrepareDC and DoPrint are void
-// no-ops.  OnActivateView returns 0 = S_OK, which is retail's own early-out
-// value for a document with no client site (see its comment).  GetPageInfo
+// DoPrepareDC and DoPrint dispatch to the supplied CView's virtuals. OnActivateView
+// remains stubbed because retail activation depends on COleServerDoc::m_lpClientSite
+// and the in-place activation machinery, which OpenMFC does not currently model. GetPageInfo
 // and Print are PARTIAL rather than bare stubs: the argument validation and
 // the stores retail makes before it needs the printing subsystem are
 // reproduced, and the leg this DLL cannot run reports E_UNEXPECTED -- retail's
@@ -488,12 +508,9 @@ extern "C" void MS_ABI impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(void* p
 // OnPreparePrinting / OnBeginPrinting / OnPrint / OnEndPrinting in that order,
 // which is what fixes the naming; OnPrepareDC is the earlier slot 100.)
 //
-// Three of the five are reproduced here as ordinary C++ virtual calls on the
-// CView, which is how this repo models retail virtual dispatch (compare
-// CDocument::UpdateAllViews in detail/DocviewSupport.cpp).  Two are not, because
-// OpenMFC's CView (include/openmfc/afxwin.h) declares no OnPrepareDC and no
-// OnPrint -- see the header request filed with this change.
-//
+// All five are transcribed as virtual calls on CView, matching their retail
+// vtable dispatch. The current CView declaration includes OnPrepareDC and OnPrint
+// (include/openmfc/afxwin.h), and CViewRendering.cpp provides their C++ wrappers.
 // One deviation applies to all of them: retail dereferences pView with no null
 // check (it would fault); the guards below return without dispatching instead.
 
@@ -513,23 +530,17 @@ extern "C" void MS_ABI impl__DoEndPrinting_CDocObjectServer__IEAAXPEAVCView__PEA
     pView->OnEndPrinting(pDC, pInfo);
 }
 
-// STUB: retail (0x256070 in mfc140; the same seven instructions at RVA
-// 0x256fb0 in mfc140u, re-read there) tail-jumps to pView->vtbl[0x320/8 = 100],
-// CView::OnPrepareDC(CDC*, CPrintInfo*), through the CFG dispatch pointer.
-// OpenMFC's CView (include/openmfc/afxwin.h, re-checked) still declares no
-// OnPrepareDC virtual.  An impl__ thunk for the BASE body does exist
-// (core/view/CView.cpp: ?OnPrepareDC@CView@@UEAAXPEAVCDC@@PEAUCPrintInfo@@@Z),
-// but calling it here would replace retail's virtual dispatch with the base
-// implementation and silently bypass the override that every printing view
-// supplies -- a wrong answer rather than a missing one -- so this stays a stub
-// until the header carries the virtual (header request filed).
+// Retail entry RVA 0x256fb0 (mfc140u) tail-jumps through pView's vtable slot
+// 0x320/8 = 100, CView::OnPrepareDC(CDC*, CPrintInfo*). The corresponding
+// virtual is present in the current CView declaration, so call it virtually
+// rather than the base impl__ thunk (which would bypass derived overrides).
+// Deviation: retail dereferences a null pView; this guard returns instead.
 // Symbol: ?DoPrepareDC@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z
 extern "C" void MS_ABI impl__DoPrepareDC_CDocObjectServer__IEAAXPEAVCView__PEAVCDC__PEAUCPrintInfo___Z(
     void* pThis, CView* pView, void* pDC, void* pInfo) {
-    (void)pThis;
-    (void)pView;
-    (void)pDC;
-    (void)pInfo;
+    (void)pThis;   // retail ignores this argument
+    if (pView == nullptr) return;
+    pView->OnPrepareDC(static_cast<CDC*>(pDC), pInfo);
 }
 
 // Symbol: ?DoPreparePrinting@CDocObjectServer@@IEAAHPEAVCView@@PEAUCPrintInfo@@@Z
@@ -540,22 +551,16 @@ extern "C" int MS_ABI impl__DoPreparePrinting_CDocObjectServer__IEAAHPEAVCView__
     return pView->OnPreparePrinting(pInfo);
 }
 
-// STUB: retail (0x256090 in mfc140; the same seven instructions at RVA
-// 0x256fd0 in mfc140u, re-read there) tail-jumps to pView->vtbl[0x360/8 = 108],
-// CView::OnPrint(CDC*, CPrintInfo*), through the CFG dispatch pointer.
-// OpenMFC's CView (include/openmfc/afxwin.h, re-checked) still declares no
-// OnPrint virtual.  An impl__ thunk for the BASE body does exist
-// (core/view/CView.cpp: ?OnPrint@CView@@MEAAXPEAVCDC@@PEAUCPrintInfo@@@Z), but
-// a direct call to it would bypass the OnPrint override that is the whole point
-// of the helper, so this stays a stub until the header carries the virtual
-// (header request filed).
+// Retail entry RVA 0x256fd0 (mfc140u) tail-jumps through pView's vtable slot
+// 0x360/8 = 108, CView::OnPrint(CDC*, CPrintInfo*). The current CView virtual
+// declaration allows the same override-aware dispatch here.
+// Deviation: retail dereferences a null pView; this guard returns instead.
 // Symbol: ?DoPrint@CDocObjectServer@@IEAAXPEAVCView@@PEAVCDC@@PEAUCPrintInfo@@@Z
 extern "C" void MS_ABI impl__DoPrint_CDocObjectServer__IEAAXPEAVCView__PEAVCDC__PEAUCPrintInfo___Z(
     void* pThis, CView* pView, void* pDC, void* pInfo) {
-    (void)pThis;
-    (void)pView;
-    (void)pDC;
-    (void)pInfo;
+    (void)pThis;   // retail ignores this argument
+    if (pView == nullptr) return;
+    pView->OnPrint(static_cast<CDC*>(pDC), pInfo);
 }
 
 // Symbol: ?GetControllingFrame@CDocObjectServer@@QEBAPEAVCOleDocIPFrameWnd@@XZ
@@ -614,12 +619,15 @@ extern "C" CFrameWnd* MS_ABI impl__GetControllingFrame_CDocObjectServer__QEBAPEA
 // epilogue on the fall-through) is the in-place
 // activation path and is far outside what this DLL can express.  Note that
 // +0x230 of the owner is retail's m_lpClientSite but OpenMFC's m_bEmbedded
-// (layout note at the top), so the early-out cannot be read from the object
-// here.  It does not need to be: OpenMFC's COleServerDoc has no client site
-// at all (its XOleObject::SetClientSite thunk in core/ole/COleServerDoc.cpp
-// stores nothing, and no member or side table holds one), so every document
-// this DLL builds is one retail would early-out on, and the S_OK below is
-// that early-out's value, not a guess.  What was read from the disassembly,
+// (layout note at the top), so the retail test cannot safely be applied to this
+// object: m_bEmbedded is a BOOL, not an IOleClientSite pointer, and can be
+// nonzero.  Although OpenMFC's XOleObject::SetClientSite thunk stores no site
+// (and no member or side table holds one), that does NOT prove every document
+// follows retail's NULL-client-site early-out; a nonzero m_bEmbedded would make
+// retail take the other branch if it read this object.  The return 0 below is
+// therefore only known to match the retail NULL-client-site branch; this body
+// remains a stub because the non-null activation path needs client-site state
+// and in-place activation infrastructure.  What was read from the disassembly,
 // so the next reader does not have to start over (addresses are mfc140u
 // unless marked; callees named through the mfc140u export table, the owner
 // slots through the COleServerDocEx vtable at .rdata 0x2efe28 in mfc140):
@@ -657,8 +665,8 @@ extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* pThi
 }
 
 // Symbol: ?OnApplyViewState@CDocObjectServer@@MEAAXAEAVCArchive@@@Z
-// CDocObjectServer::OnApplyViewState(CArchive&) -- the default implementation is
-// EMPTY, and that is decoded, not assumed.  This export has no RVA of its own in
+// STUB under the campaign's no-op-body rule: CDocObjectServer::OnApplyViewState
+// is verified to have an empty retail body. This export has no RVA of its own in
 // the map, but the CDocObjectServer class vtable (.rdata 0x32d2e8) resolves it:
 //     slot 22 (0x32d398) -> 0x2820      slot 23 (0x32d3a0) -> 0x2820
 //     slot 24 (0x32d3a8) -> 0x2586a0    ?OnActivateView@CDocObjectServer@@
@@ -678,8 +686,7 @@ extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* pThi
 // archive and touches no member.
 extern "C" void MS_ABI impl__OnApplyViewState_CDocObjectServer__MEAAXAEAVCArchive___Z(
     void* pThis, CArchive& ar) {
-    // The retail body is empty, so this no-op is the faithful transcription,
-    // not a placeholder.
+    // Kept as the observed no-op; the campaign counts cast-only bodies as stubs.
     (void)pThis;
     (void)ar;
 }
@@ -738,16 +745,15 @@ extern "C" long MS_ABI impl__OnExecOleCmd_CDocObjectServer__IEAAJPEBU_GUID__KKPE
 }
 
 // Symbol: ?OnSaveViewState@CDocObjectServer@@MEAAXAEAVCArchive@@@Z
-// CDocObjectServer::OnSaveViewState(CArchive&) -- empty, on exactly the evidence
-// written out under OnApplyViewState above: class vtable slot 23 (.rdata
+// STUB under the campaign's no-op-body rule: retail OnSaveViewState is empty,
+// on the evidence written out under OnApplyViewState above: class vtable slot 23 (.rdata
 // 0x32d3a0, mfc140) holds 0x2820 (mfc140), `ret $0`; and the mfc140u export
 // address table maps this export (ordinal 10963) to RVA 0x27d0 (mfc140u), the
 // same `ret $0` (C2 00 00).  Retail writes nothing to the archive and touches
 // no member.
 extern "C" void MS_ABI impl__OnSaveViewState_CDocObjectServer__MEAAXAEAVCArchive___Z(
     void* pThis, CArchive& ar) {
-    // The retail body is empty, so this no-op is the faithful transcription,
-    // not a placeholder.
+    // Kept as the observed no-op; the campaign counts cast-only bodies as stubs.
     (void)pThis;
     (void)ar;
 }
@@ -907,7 +913,8 @@ extern "C" long MS_ABI impl__ApplyViewState_XOleDocumentView_CDocObjectServer__U
 }
 
 // Symbol: ?Clone@XOleDocumentView@CDocObjectServer@@UEAAJPEAUIOleInPlaceSite@@PEAPEAUIOleDocumentView@@@Z
-// IOleDocumentView::Clone.  This export has no RVA of its own in the mfc140
+// STUB under the campaign's bare-default-return rule: IOleDocumentView::Clone
+// has the verified constant E_NOTIMPL body. This export has no RVA of its own in the mfc140
 // map, but slot 15 of the XOleDocumentView vtable (.rdata 0x18032d1a8, inside
 // the vtable at 0x18032d130) holds 0x180258f50 -- byte-identical to the
 // SetRectComplex slot at 0x18032d170, i.e. the two bodies were COMDAT-folded.
@@ -920,8 +927,9 @@ extern "C" long MS_ABI impl__ApplyViewState_XOleDocumentView_CDocObjectServer__U
 // AFX_MANAGE_STATE on `mov -0x40(%rcx),%rdx`
 // -- the part is at server + 0x78, so that is server + 0x38, m_pModuleState --
 // then `mov $0x80004001,%eax` and return.  Neither parameter is read and
-// *ppViewNew is NOT written.  The body below IS the retail body, not a
-// placeholder; the only omission is the module-state push, which this file
+// *ppViewNew is NOT written. The function therefore remains reported as a
+// stub rather than disguising its bare E_NOTIMPL return as an implementation;
+// the only omitted retail operation is the module-state push, which this file
 // does not reproduce anywhere (see the IOleObject forwards note).
 extern "C" long MS_ABI impl__Clone_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite__PEAPEAUIOleDocumentView___Z(
     void* pThis, IOleInPlaceSite* pIPSiteNew, IOleDocumentView** ppViewNew) {
@@ -1539,11 +1547,12 @@ extern "C" long MS_ABI impl__Open_XOleDocumentView_CDocObjectServer__UEAAJXZ(
 // What is reproduced: the three E_POINTER tests, the E_INVALIDARG test, the
 // m_nFirstPage store, the *pcPagesPrinted = 0 store and the view walk (through
 // OpenMFC's CDocument virtuals, as GetControllingFrame above does it) with its
-// E_UNEXPECTED.  What is NOT, and why: the pump needs a CPrintInfo with a real
+// E_UNEXPECTED. What is NOT, and why: the pump needs a CPrintInfo with a real
 // CPrintDialog behind m_pPD (OpenMFC's ??0CPrintInfo in core/view/CPrintInfo.cpp
-// allocates none, and no CPrintInfo type is declared), a printer CDC, and the
-// two CView virtuals (OnPrepareDC, OnPrint) that DoPrepareDC / DoPrint are
-// stubbed for.  That leg therefore reports E_UNEXPECTED -- retail's own answer
+// allocates none, and no CPrintInfo type is declared), a printer CDC, and its
+// own calls to CView::OnPrepareDC / CView::OnPrint. The separate DoPrepareDC / DoPrint
+// helpers now dispatch those virtuals, but do not implement this complete pump.
+// That leg therefore reports E_UNEXPECTED -- retail's own answer
 // when no printer DC can be created for *pptd -- with *pcPagesPrinted already
 // zero, which is also what retail leaves there on that path; the
 // AfxMessageBox for PRINTFLAG_MAYBOTHERUSER is not reproduced.  The generated
@@ -1859,9 +1868,10 @@ extern "C" long MS_ABI impl__SetRect_XOleDocumentView_CDocObjectServer__UEAAJPEA
 }
 
 // Symbol: ?SetRectComplex@XOleDocumentView@CDocObjectServer@@UEAAJPEAUtagRECT@@000@Z
-// IOleDocumentView::SetRectComplex -- retail (0x258f50):
-//     AFX_MANAGE_STATE(this[-0x40]); mov $0x80004001,%eax; ret
-// Nothing else: no parameter is read and no member is touched.
+// STUB under the campaign's bare-default-return rule. Retail
+// IOleDocumentView::SetRectComplex (entry RVA 0x259ed0, mfc140u; folded with
+// Clone) only performs AFX_MANAGE_STATE(this[-0x40]) and returns E_NOTIMPL;
+// it reads no parameter and touches no member.
 extern "C" long MS_ABI impl__SetRectComplex_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT__000_Z(
     void* pThis, RECT* prcView, RECT* prcHScroll, RECT* prcVScroll, RECT* prcSizeBox) {
     (void)pThis;

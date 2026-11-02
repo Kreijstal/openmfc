@@ -4,9 +4,10 @@
 // The bodies below marked "decoded from retail" were transcribed from the
 // retail export disassembly (disas.py against
 // /home/kreijstal/msvc/VC/Redist/MSVC/14.51.36231/x64/Microsoft.VC145.MFC/mfc140.dll,
-// the ANSI twin of mfc140u.dll; function bodies are byte-identical between the
-// two images, only the export RVAs differ, so every RVA quoted here is an
-// mfc140.dll RVA and is named as such).
+// the ANSI twin of mfc140u.dll). Function bodies are byte-identical between
+// the two images, but export RVAs and absolute VAs differ. Unless an annotation
+// explicitly says mfc140u, bare addresses below refer to mfc140.dll; never treat
+// an unqualified absolute VA as an mfc140u address.
 
 #define OPENMFC_APPCORE_IMPL
 
@@ -26,8 +27,9 @@
 // ?GetTotalReferenceCount@ 0xa7e70, ?GetAssociatedSiblingPaneIDs@ 0xa7bd0).
 //
 // sizeof == 0xf8 is not a guess: ?Copy@CPaneContainer@@UEAAPEAV1@PEAV1@@Z
-// (entry RVA 0xa7ca0) allocates a fresh container with `operator new(0xf8)`
-// (the `mov $0xf8,%ecx; call 0x180002840` pair at 0xa7cc5) before running the
+// (entry RVA 0xa7ca0, mfc140.dll) allocates a fresh container with
+// `operator new(0xf8)` (the call at instruction RVA 0xa7cc5 targets VA
+// 0x180002840 in mfc140.dll) before running the
 // constructor on it.
 //
 // Exactly one OpenMFC code path allocates a CPaneContainer: the default
@@ -58,11 +60,19 @@ struct S_CListUINT {
     void*   vfptr;         // 0x00
     void*   m_pNodeHead;   // 0x08
     void*   m_pNodeTail;   // 0x10
-    void*   m_pNodeFree;   // 0x18
-    void*   m_pBlocks;     // 0x20
-    INT_PTR m_nCount;      // 0x28
+    INT_PTR m_nCount;      // 0x18
+    void*   m_pNodeFree;   // 0x20
+    void*   m_pBlocks;     // 0x28
     INT_PTR m_nBlockSize;  // 0x30
 };
+static_assert(offsetof(S_CListUINT, vfptr) == 0x00, "CList<UINT> vfptr");
+static_assert(offsetof(S_CListUINT, m_pNodeHead) == 0x08, "CList<UINT> head");
+static_assert(offsetof(S_CListUINT, m_pNodeTail) == 0x10, "CList<UINT> tail");
+static_assert(offsetof(S_CListUINT, m_nCount) == 0x18, "CList<UINT> count");
+static_assert(offsetof(S_CListUINT, m_pNodeFree) == 0x20, "CList<UINT> free node");
+static_assert(offsetof(S_CListUINT, m_pBlocks) == 0x28, "CList<UINT> blocks");
+static_assert(offsetof(S_CListUINT, m_nBlockSize) == 0x30, "CList<UINT> block size");
+static_assert(sizeof(S_CListUINT) == 0x38, "CList<UINT> retail size");
 
 // One node of that list, as walked by the non-exported CList<UINT,UINT>::Find at
 // RVA 0x11f3c (mfc140.dll): the head comes from list+0x08, the successor from
@@ -102,6 +112,7 @@ struct S_CPaneContainer {
     S_CListUINT m_lstRightSiblingIDs;          // 0xc0
 };
 
+static_assert(offsetof(S_CPaneContainer, vfptr) == 0x00, "CPaneContainer vfptr");
 static_assert(offsetof(S_CPaneContainer, m_pLeftPane) == 0x08, "CPaneContainer m_pLeftPane");
 static_assert(offsetof(S_CPaneContainer, m_pRightPane) == 0x10, "CPaneContainer m_pRightPane");
 static_assert(offsetof(S_CPaneContainer, m_pSlider) == 0x18, "CPaneContainer m_pSlider");
@@ -110,11 +121,17 @@ static_assert(offsetof(S_CPaneContainer, m_pRightPaneContainer) == 0x28, "CPaneC
 static_assert(offsetof(S_CPaneContainer, m_pParentContainer) == 0x30, "CPaneContainer m_pParentContainer");
 static_assert(offsetof(S_CPaneContainer, m_pContainerManager) == 0x38, "CPaneContainer m_pContainerManager");
 static_assert(offsetof(S_CPaneContainer, m_nPercent) == 0x40, "CPaneContainer m_nPercent");
+static_assert(offsetof(S_CPaneContainer, m_nField44) == 0x44, "CPaneContainer field 0x44");
+static_assert(offsetof(S_CPaneContainer, m_nField48) == 0x48, "CPaneContainer field 0x48");
+static_assert(offsetof(S_CPaneContainer, m_nField4C) == 0x4c, "CPaneContainer field 0x4c");
 static_assert(offsetof(S_CPaneContainer, m_nRefCount) == 0x50, "CPaneContainer m_nRefCount");
 static_assert(offsetof(S_CPaneContainer, m_bDividerHorz) == 0x54, "CPaneContainer m_bDividerHorz");
+static_assert(offsetof(S_CPaneContainer, m_nField58) == 0x58, "CPaneContainer field 0x58");
 static_assert(offsetof(S_CPaneContainer, m_bReleased) == 0x5c, "CPaneContainer m_bReleased");
+static_assert(offsetof(S_CPaneContainer, m_nField60) == 0x60, "CPaneContainer field 0x60");
 static_assert(offsetof(S_CPaneContainer, m_rect64) == 0x64, "CPaneContainer m_rect64");
 static_assert(offsetof(S_CPaneContainer, m_rect74) == 0x74, "CPaneContainer m_rect74");
+static_assert(offsetof(S_CPaneContainer, m_pad84) == 0x84, "CPaneContainer list alignment pad");
 static_assert(offsetof(S_CPaneContainer, m_lstLeftSiblingIDs) == 0x88, "CPaneContainer m_lstLeftSiblingIDs");
 static_assert(offsetof(S_CPaneContainer, m_lstRightSiblingIDs) == 0xc0, "CPaneContainer m_lstRightSiblingIDs");
 static_assert(sizeof(S_CPaneContainer) == 0xf8, "CPaneContainer size (operator new(0xf8) in ?Copy@ 0xa7ca0)");
@@ -249,11 +266,18 @@ inline int PaneIsVisible(const void* pPane) {
 // OpenMFC lays CPane out at the retail offsets (m_sizeMin is pinned at 0x200 in
 // include/openmfc/afxmfc.h), so the member is read directly.
 //
-// DEVIATION: the CTabbedPane vftable (0x30f738) overrides that slot with
-// ?GetMinSize@CBaseTabbedPane@ (0x14b70), which delegates to the active tabbed
-// pane when the module-global at 0x1803b6fd0 is set and otherwise falls through
-// to the same `size = m_sizeMin` read at 0x14bd8.  OpenMFC's
-// impl__GetMinSize_CBaseTabbedPane__UEBAXAEAVCSize___Z is an empty stub
+// DEVIATION: the CTabbedPane vftable (RVA 0x30f738, mfc140.dll) overrides that
+// slot with ?GetMinSize@CBaseTabbedPane@ (entry RVA 0x14ba0, mfc140u; 0x14b70
+// in mfc140.dll). When the module-global at VA 0x1803be270 (mfc140u; ANSI twin
+// VA 0x1803b6fd0 in mfc140.dll) is nonzero, retail calls the function at
+// CBaseTabbedPane +0x4e8's vtable byte offset 0x430 to get a candidate pane;
+// only a non-null result that passes IsKindOf(CDockablePane) is queried through
+// its vtable byte offset 0x4f0. A zero guard, null result, or failed type check
+// falls through to `size = m_sizeMin` at instruction RVA 0x14c08 (mfc140u;
+// 0x14bd8 in mfc140.dll). The retail path does not null-check m_pTabWnd before
+// calling its vtable when the global guard is nonzero. OpenMFC's
+// impl__GetMinSize_CBaseTabbedPane__UEBAXAEAVCSize___Z
+// is an empty stub
 // (CBaseTabbedPane.cpp:72), so that fallback is the only behaviour available
 // here in any case.
 inline void PaneMinSize(const void* pPane, SIZE* pOut) {
@@ -299,18 +323,14 @@ inline CWnd* ManagerDockSite(const S_CPaneContainer* p) {
         static_cast<const char*>(p->m_pContainerManager) + kOffManagerDockSite);
 }
 
-// The divider's own window handle, CWnd::m_hWnd at +0x40 (retail and OpenMFC
-// agree on that offset -- include/openmfc/afxwin.h:589).
-//
-// DEVIATION: OpenMFC's CPaneDivider is not a CWnd at all (afxmfc.h:1747 declares
-// it as a small CObject), so +0x40 only holds a handle when the object came from
-// a retail-shaped allocation.  ::IsWindow rejects the other case, and the one
-// caller (OnMoveInternalPaneDivider) then skips retail's screen-to-client
-// mapping instead of handing a garbage handle to ::GetParent.
+// OpenMFC's local CPaneDivider declaration/factory creates a 24-byte
+// CObject-derived object, not a CWnd. DividerState in CPaneDivider.cpp has no
+// accessor for this object's own HWND; reading the retail CWnd::m_hWnd offset
+// (+0x40) here would be out of bounds before ::IsWindow could validate it.
+// Until a safe accessor is available, do not infer a handle from this pointer.
 inline HWND PaneDividerHwnd(const void* pSlider) {
-    if (pSlider == nullptr) return nullptr;
-    HWND h = *reinterpret_cast<HWND const*>(static_cast<const char*>(pSlider) + 0x40);
-    return ::IsWindow(h) ? h : nullptr;
+    (void)pSlider;
+    return nullptr;
 }
 
 // Byte 0x3c8 of the CPaneDivider vftable -- the same DWORD at CPaneDivider
@@ -735,8 +755,10 @@ extern "C" void* MS_ABI impl__CalcAvailableSpace_CPaneContainer__UEAA_AVCSize__V
 // szLeft/szRight are collected exactly as retail collects them and, exactly as
 // in retail, no later instruction reads them -- only the rects are used.
 //
-// DEVIATION: nTotal == 0 makes retail divide by zero in double and truncate the
-// resulting infinity, which x86 turns into INT_MIN; a zero total yields 0 here.
+// DEVIATION: nTotal == 0 makes retail divide by zero in double: a nonzero
+// numerator produces an infinity, while a zero numerator produces NaN. The
+// subsequent x86 double-to-int conversion yields INT_MIN for either result;
+// this implementation instead returns 0 when nTotal is zero.
 // Symbol: ?CalculateRecentSize@CPaneContainer@@QEAAXXZ
 extern "C" void MS_ABI impl__CalculateRecentSize_CPaneContainer__QEAAXXZ(void* pThis) {
     S_CPaneContainer* p = PC(pThis);
@@ -862,7 +884,8 @@ extern "C" void MS_ABI impl__CalculateRecentSize_CPaneContainer__QEAAXXZ(void* p
 // containers' IsVisible() after recursing into them -- and, only when a divider
 // is present, calls CWnd::ShowWindow(SW_SHOW / SW_HIDE) on it. The
 // `neg/sbb/and $5` tail at 0xa726b is what turns the flag into 5 (SW_SHOW) or
-// 0 (SW_HIDE).
+// 0 (SW_HIDE). OpenMFC cannot safely read a compact CPaneDivider's HWND, so the
+// window operation is skipped when PaneDividerHwnd has no safe handle.
 // Symbol: ?CheckPaneDividerVisibility@CPaneContainer@@QEAAXXZ
 extern "C" void MS_ABI impl__CheckPaneDividerVisibility_CPaneContainer__QEAAXXZ(void* pThis) {
     S_CPaneContainer* p = PC(pThis);
@@ -896,7 +919,8 @@ extern "C" void MS_ABI impl__CheckPaneDividerVisibility_CPaneContainer__QEAAXXZ(
         (bRightPaneVisible && bLeftContainerVisible) ||
         (bLeftContainerVisible && bRightContainerVisible);
 
-    impl__ShowWindow_CWnd__QEAAHH_Z(reinterpret_cast<CWnd*>(p->m_pSlider), bShow ? SW_SHOW : SW_HIDE);
+    const HWND hwndSlider = PaneDividerHwnd(p->m_pSlider);
+    if (hwndSlider != nullptr) ::ShowWindow(hwndSlider, bShow ? SW_SHOW : SW_HIDE);
 }
 
 // STUB. Retail ?CleanUp@CPaneContainer@@IEAAXXZ, entry RVA 0xa3910 (mfc140.dll),
@@ -998,12 +1022,13 @@ extern "C" void MS_ABI impl__CleanUp_CPaneContainer__IEAAXXZ(void* pThis) {
 //
 // Blocked.  The operator-new arm hands back an object whose +0x00 retail's
 // constructor fills with the CPaneContainer vftable and OpenMFC's exported
-// constructor does not write at all, so a client that dispatches on the clone
-// -- including this function's own virtual recursion into the children --
-// would jump through whatever operator new left there.  (The CreateObject arm
-// gets whatever vftable the RTC's class constructor writes, so it is not
-// affected.)  The child recursion alone could be routed through this export
-// directly, as the other bodies here do.  The divider-detach arm cannot: it
+// constructor does not write at all, so later virtual dispatch on the returned
+// clone would jump through whatever operator new left there.  This function's
+// recursive virtual calls are on the SOURCE child containers, not on the clone;
+// those could be routed through this export directly, as the other bodies here
+// do.  (The CreateObject arm gets whatever vftable the RTC's class constructor
+// writes, so that arm is not affected by the missing local vftable.)  The
+// divider-detach arm cannot: it
 // copies CPaneDivider +0x1ac (m_dwDividerStyle) into m_nField60 and caches
 // the orientation from vftable byte 0x2d8, whose body (RVA 0xab490,
 // mfc140.dll) is `mov 0x1ac(%rcx),%eax; and $0x1,%eax` -- the same member.
@@ -1212,8 +1237,9 @@ extern "C" void* MS_ABI impl__FindSubPaneContainer_CPaneContainer__QEAAPEAV1_PEB
 //   }
 //
 // Find is the non-exported CList<UINT,UINT>::Find at 0x11f3c, transcribed as
-// FindSiblingID above; the recursion is the direct entry point
-// (`call 0x1800a7b50` at 0xa7b86), this method not being virtual.
+// FindSiblingID above; the recursion is the direct entry point (the call at
+// VA 0x1800a7b50 inside FindTabbedPane, entry RVA 0xa7b50, mfc140.dll), this
+// method not being virtual.
 //
 // The two sibling-id lists this walks are only ever filled by ?Serialize@,
 // ?SaveTabbedPane@ and ?LoadTabbedPane@, all of which are still stubs in this
@@ -1324,12 +1350,12 @@ extern "C" void* MS_ABI impl__GetAssociatedSiblingPaneIDs_CPaneContainer__QEAAPE
 // there.  Byte 0x30 of the CPaneContainer vftable (0x2f4070) is slot 6, GetMinSize
 // itself; retail recurses through the vftable, this file calls the entry point.
 //
-// DEVIATION, on top of the two documented at CountsHiddenPanes / PaneMinSize:
-// retail adds the divider's own extent, the int at CPaneDivider +0x1b0.  OpenMFC's
-// CPaneDivider has no retail-shaped storage (see CountsHiddenPanes), so
-// kPaneDividerThickness -- the divider extent the rest of OpenMFC's docking code
-// uses, defined in phase4/src/detail/CbarcoreSupport.h and applied by
-// ?AddPane@CPaneDivider@ -- is substituted for it.
+// DEVIATIONS, on top of the two documented at CountsHiddenPanes / PaneMinSize:
+// retail adds the divider's own extent, the int at CPaneDivider +0x1b0. OpenMFC
+// has no safe access to its compact divider object's state, so
+// kPaneDividerThickness -- the extent used by the rest of this docking code --
+// is substituted. Retail also checks the divider window's WS_VISIBLE bit; this
+// implementation only does so when PaneDividerHwnd can provide a safe handle.
 // Symbol: ?GetMinSize@CPaneContainer@@UEBAXAEAVCSize@@@Z
 extern "C" void MS_ABI impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(
     const void* pThis, SIZE* pSize) {
@@ -1362,8 +1388,10 @@ extern "C" void MS_ABI impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(
         impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(p->m_pRightPaneContainer, &szRightCont);
     }
 
+    const HWND hwndSlider = PaneDividerHwnd(p->m_pSlider);
     if (p->m_pSlider != nullptr &&
-        ((impl__GetStyle_CWnd__QEBAKXZ(reinterpret_cast<const CWnd*>(p->m_pSlider)) & WS_VISIBLE) || bAll)) {
+        ((hwndSlider != nullptr &&
+          (::GetWindowLongPtrW(hwndSlider, GWL_STYLE) & WS_VISIBLE) != 0) || bAll)) {
         const int nDivider = kPaneDividerThickness;   // stands in for m_pSlider->+0x1b0
         if (impl__IsPaneDividerHorz_CPaneContainer__IEBAHXZ(p)) {
             pSize->cx = MaxI(MaxI(szRightPane.cx, szLeftPane.cx),
@@ -1746,9 +1774,9 @@ extern "C" int MS_ABI impl__IsVisible_CPaneContainer__QEBAHXZ(const void* pThis)
 // could be routed through the exported CArchive Read/Write thunks the way
 // detail/CMDITabInfoSupport.h does, but
 // impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive__AEAV__CList_II___Z
-// and impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z are
-// still empty generated placeholders (CBaseTabbedPane.cpp, `p0` parameter
-// lists), and the pane-side virtuals at bytes 0x398 / 0x658 / 0x7c0 are
+// and impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z still
+// have empty typed stub bodies in CBaseTabbedPane.cpp (their signatures are
+// already corrected), and the pane-side virtuals at bytes 0x398 / 0x658 / 0x7c0 are
 // retail MSVC vftable offsets: the CDockablePane this DLL builds is the class
 // declared in include/openmfc/afxmfc.h, compiled by the mingw toolchain with an
 // Itanium-ABI vtable, so those byte offsets do not select the same functions
@@ -1756,11 +1784,11 @@ extern "C" int MS_ABI impl__IsVisible_CPaneContainer__QEBAHXZ(const void* pThis)
 // the parameter list is corrected, to the (this, CArchive&, CList<UINT,UINT>&)
 // shape the export ABI passes.
 // Symbol: ?LoadTabbedPane@CPaneContainer@@IEAAPEAVCDockablePane@@AEAVCArchive@@AEAV?$CList@II@@@Z
-extern "C" void* MS_ABI impl__LoadTabbedPane_CPaneContainer__IEAAPEAVCDockablePane__AEAVCArchive__AEAV__CList_II___Z(
-    void* pThis, void* pArchive, void* pListIDs) {
+extern "C" CDockablePane* MS_ABI impl__LoadTabbedPane_CPaneContainer__IEAAPEAVCDockablePane__AEAVCArchive__AEAV__CList_II___Z(
+    CPaneContainer* pThis, CArchive& archive, CList<UINT, UINT>& listIDs) {
     (void)pThis;
-    (void)pArchive;
-    (void)pListIDs;
+    (void)archive;
+    (void)listIDs;
     return nullptr;
 }
 
@@ -1796,10 +1824,11 @@ extern "C" void* MS_ABI impl__LoadTabbedPane_CPaneContainer__IEAAPEAVCDockablePa
 //
 // Byte 0x480 of the pane vftable is ?SetWindowPos@CBasePane@@UEAAPEAXPEBVCWnd@@HHHHIPEAX@Z
 // (RVA 0xb6a0) in the CPane (0x2f3a18), CDockablePane (0x2e3068) and
-// CPaneDivider (0x2f4d28) vftables alike, and that export has a real body in
-// OpenMFC (docking/Thunks.cpp:1208), so the dispatch is replaced by a direct
-// call to its thunk -- a client override would be missed.  0x15 is
-// SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE.
+// CPaneDivider (0x2f4d28) vftables alike. Pane moves use the OpenMFC thunk
+// directly (docking/Thunks.cpp:1208); a client override would be missed. For a
+// divider the local object has no safely readable CWnd HWND, so only the
+// coordinate/layout contribution is retained and its window move is skipped.
+// 0x15 is SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE.
 //
 // Retail also ::SetRectEmpty's a second CRect at rsp+0x68 (0xa6b2e) that no
 // later instruction reads; it is not reproduced.
@@ -1833,14 +1862,13 @@ extern "C" void MS_ABI impl__Move_CPaneContainer__UEAAXVCPoint___Z(void* pThis, 
     int cy = rect.bottom - rect.top;
 
     if (p->m_pSlider != nullptr) {
+        const HWND hwndSlider = PaneDividerHwnd(p->m_pSlider);
         if (impl__IsPaneDividerHorz_CPaneContainer__IEBAHXZ(p)) {
-            impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
-                reinterpret_cast<CBasePane*>(p->m_pSlider), nullptr, x, y + cy, 0, 0, nFlags, nullptr);
+            if (hwndSlider != nullptr) ::SetWindowPos(hwndSlider, nullptr, x, y + cy, 0, 0, nFlags);
             cx = 0;
             cy += kPaneDividerThickness;
         } else {
-            impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
-                reinterpret_cast<CBasePane*>(p->m_pSlider), nullptr, x + cx, y, 0, 0, nFlags, nullptr);
+            if (hwndSlider != nullptr) ::SetWindowPos(hwndSlider, nullptr, x + cx, y, 0, 0, nFlags);
             cy = 0;
             cx += kPaneDividerThickness;
         }
@@ -1937,12 +1965,12 @@ extern "C" void MS_ABI impl__MoveWnd_CPaneContainer__IEAAXPEAVCWnd__HH_Z(
 // ?MoveWindow@CBasePane@ (RVA 0xb580) and byte 0x4f0 the `size = m_sizeMin`
 // accessor, both documented above.
 //
-// DEVIATION: retail dereferences m_pSlider unconditionally.  PaneDividerHwnd
-// (above) returns NULL unless the divider really carries a window handle at
-// +0x40, and the screen-to-client mapping is then skipped -- rectLeft/rectRight
-// stay in screen coordinates, which is the same frame ::GetWindowRect produced
-// them in, so the offset arithmetic below is unaffected; only the coordinates
-// handed to MoveWindow/Resize are.  ?Resize@CPaneContainer@ (below) is still a
+// DEVIATION: retail dereferences m_pSlider unconditionally. PaneDividerHwnd
+// (above) currently returns NULL because this translation unit cannot safely
+// access the compact divider's HWND, so the screen-to-client mapping is skipped;
+// rectLeft/rectRight stay in screen coordinates, which is the frame
+// ::GetWindowRect produced them in, so the offset arithmetic below is unaffected
+// but the coordinates handed to MoveWindow/Resize differ. ?Resize@CPaneContainer@ (below) is still a
 // stub, so the two container arms reach no-ops; ?MoveWindow@CBasePane@ has a
 // real body in docking/CBasePane.cpp (verified 2026-09-08), and its return value
 // is stored back into the caller's HDWP exactly as retail's `mov %rax,(%rsi)`
@@ -2155,8 +2183,9 @@ extern "C" void MS_ABI impl__ReleaseEmptyPaneContainer_CPaneContainer__QEAAXXZ(v
 //
 // Retail recurses only into the left sub-container and walks the right spine
 // iteratively; that shape is kept here.  The recursive call is the direct entry
-// point, which is what retail uses too (`call 0x1800a7ec0` at 0xa7ef7) -- this
-// method is not virtual.
+// point, which is what retail uses too (the call at VA 0x1800a7ec0 inside
+// RemoveNonValidPanes, entry RVA 0xa7ec0, mfc140.dll) -- this method is not
+// virtual.
 // Symbol: ?RemoveNonValidPanes@CPaneContainer@@QEAAXXZ
 extern "C" void MS_ABI impl__RemoveNonValidPanes_CPaneContainer__QEAAXXZ(void* pThis) {
     S_CPaneContainer* p = PC(pThis);
@@ -2386,9 +2415,9 @@ extern "C" void MS_ABI impl__ResizePartOfPaneContainer_CPaneContainer__UEAAXHHAE
 // Blocked on the siblings.  The archive I/O alone could go through the
 // exported CArchive Write/WriteObject thunks, but
 // impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z and
-// impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z are still
-// empty generated placeholders (CBaseTabbedPane.cpp, `p0` parameter lists),
-// the tab count needs CBaseTabbedPane +0x4e8 (m_pTabWnd), which OpenMFC's
+// impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z still have
+// empty typed stub bodies in CBaseTabbedPane.cpp (their signatures are already
+// corrected), the tab count needs CBaseTabbedPane +0x4e8 (m_pTabWnd), which OpenMFC's
 // CBaseTabbedPane does not pin, and bytes 0x758 / 0x7c8 / 0x7c0 are retail MSVC
 // vftable offsets that do not select the same functions in the Itanium-ABI
 // vtable of the pane classes this DLL compiles.  Writing the -1 marker without
@@ -2398,9 +2427,9 @@ extern "C" void MS_ABI impl__ResizePartOfPaneContainer_CPaneContainer__UEAAXHHAE
 // passes.
 // Symbol: ?SaveTabbedPane@CPaneContainer@@IEAAXAEAVCArchive@@PEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__PEAVCDockablePane___Z(
-    void* pThis, void* pArchive, void* pPane) {
+    CPaneContainer* pThis, CArchive& archive, CDockablePane* pPane) {
     (void)pThis;
-    (void)pArchive;
+    (void)archive;
     (void)pPane;
 }
 
@@ -2481,9 +2510,9 @@ extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__P
 // shape the export ABI passes.
 // Symbol: ?Serialize@CPaneContainer@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CPaneContainer__UEAAXAEAVCArchive___Z(
-    void* pThis, void* pArchive) {
+    CPaneContainer* pThis, CArchive& archive) {
     (void)pThis;
-    (void)pArchive;
+    (void)archive;
 }
 
 // Decoded from retail ?SetPane@CPaneContainer@@QEAAXPEAVCDockablePane@@H@Z,
@@ -2561,8 +2590,9 @@ extern "C" void MS_ABI impl__SetPaneContainerManager_CPaneContainer__IEAAXPEAVCP
 //
 // Retail recurses only into the left sub-container and walks the right-child
 // spine iteratively -- the same shape ?RemoveNonValidPanes@ uses above -- and its
-// recursive call is the direct entry point (`call 0x1800a7860` at 0xa788f), this
-// method not being virtual.  The stores at 0xa78a6 / 0xa78c3 write the pane into
+// recursive call is the direct entry point (the call at VA 0x1800a7860 inside
+// SetUpByID, entry RVA 0xa7860, mfc140.dll), this method not being virtual.
+// The stores at 0xa78a6 / 0xa78c3 write the pane into
 // the node the loop is currently standing on, not into `this`.
 // Symbol: ?SetUpByID@CPaneContainer@@QEAAHIPEAVCDockablePane@@@Z
 extern "C" int MS_ABI impl__SetUpByID_CPaneContainer__QEAAHIPEAVCDockablePane___Z(

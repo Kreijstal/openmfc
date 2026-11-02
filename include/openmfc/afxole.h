@@ -877,8 +877,23 @@ public:
     COleClientItem* m_pActiveItem;
     LPOLEINPLACEUIWINDOW m_lpActiveUIWindow;
 
-protected:
-    char _oleframehook_padding[48];
+    // Retail COleFrameHook state that fits the existing 48-byte tail. The
+    // CString and interface members are represented as pointer-sized storage
+    // here because this OpenMFC constructor does not construct those embedded
+    // objects. Their retail offsets are asserted in COleFrameHook.cpp.
+    struct RetailTailStorage {
+        HWND m_hWndFrame;                       // +0x58; COleFrameHook ctor RVA 0x247d90 (mfc140u)
+        void* m_unknown_60;                     // +0x60; ctor RVA 0x247d90 (mfc140u)
+        HACCEL m_hAccelTable;                   // +0x68; ctor RVA 0x247d90 (mfc140u)
+        UINT m_nModelessCount;                  // +0x70; ctor RVA 0x247d90 (mfc140u)
+        DWORD m_reserved_74;                    // +0x74; gap before CString, ctor RVA 0x247d90 (mfc140u)
+        void* m_strObjNameStorage;              // CString +0x78; ctor RVA 0x247d90 (mfc140u)
+        void* m_xOleInPlaceFrameVftable;        // interface part +0x80; ctor RVA 0x247d90 (mfc140u)
+    };
+    union {
+        RetailTailStorage m_retailTail;
+        char _oleframehook_padding[48];
+    };
 };
 
 //=============================================================================
@@ -1010,8 +1025,21 @@ public:
     BOOL m_bCompoundFile;
     BOOL m_bRemember;
 
-protected:
-    char _coledocument_padding[96];
+    // Retail document-file members that overlap the existing 96-byte pad.
+    // CString is kept as same-size storage: this class's current constructor
+    // does not construct the embedded CString representation.
+    struct RetailTailStorage {
+        BYTE m_reserved_188[0x40];              // through +0x1c8; COleDocument ctor RVA 0x253e90 (mfc140u)
+        IStorage* m_lpRootStg;                  // +0x1c8; COleClientItem::GetItemStorageCompound RVA 0x245aa0 (mfc140u)
+        BOOL m_bSameAsLoad;                     // +0x1d0; ctor RVA 0x253e90 (mfc140u)
+        BOOL m_bRememberRetail;                 // +0x1d4; ctor RVA 0x253e90 (mfc140u)
+        void* m_strStorageNameStorage;          // CString +0x1d8; ctor RVA 0x253e90 (mfc140u)
+        DVTARGETDEVICE* m_ptd;                  // +0x1e0; ctor RVA 0x253e90 (mfc140u)
+    };
+    union {
+        RetailTailStorage m_retailTail;
+        char _coledocument_padding[96];
+    };
 };
 
 //=============================================================================
@@ -1074,8 +1102,30 @@ public:
 public:
     BOOL m_bEmbedded;
 
-protected:
-    char _coleserverdoc_padding[96];
+public:
+    // These retail COleServerDoc fields occupy the existing tail and its
+    // four-byte class-alignment slack; the complete class size stays 0x298.
+    // Pack the overlay to four-byte alignment so it starts immediately after
+    // m_bEmbedded at +0x230 without shifting that existing ABI layout. The
+    // two interface parts are storage only; no retail-compatible vtables are
+    // installed by the current constructor.
+#pragma pack(push, 4)
+    struct RetailTailStorage {
+        BYTE m_reserved_234[0x1c];              // through +0x250; ctor RVA 0x2657b0 (mfc140u)
+        COleIPFrameWnd* m_pInPlaceFrame;         // +0x250; ctor RVA 0x2657b0 (mfc140u)
+        BYTE m_reserved_258[0x10];               // through +0x268; ctor RVA 0x2657b0 (mfc140u)
+        void* m_pDocObjectServer;                // +0x268; ctor RVA 0x2657b0 (mfc140u)
+        void* m_xPersistStorageVftable;          // interface part +0x270; ctor RVA 0x2657b0 (mfc140u)
+        void* m_xOleObjectVftable;                // interface part +0x278; ctor RVA 0x2657b0 (mfc140u)
+        void* m_xDataObjectVftable;               // interface part +0x280; ctor RVA 0x2657b0 (mfc140u)
+        void* m_xOleInPlaceObjectVftable;         // interface part +0x288; ctor RVA 0x2657b0 (mfc140u)
+        void* m_xOleInPlaceActiveObjectVftable;   // interface part +0x290; ctor RVA 0x2657b0 (mfc140u)
+    };
+#pragma pack(pop)
+    union {
+        RetailTailStorage m_retailTail;
+        char _coleserverdoc_padding[96];
+    };
 };
 
 //=============================================================================
@@ -1185,8 +1235,43 @@ public:
     LPOLEINPLACEUIWINDOW m_lpDocFrame;
     BOOL m_bInPlaceActive;
 
+#ifdef __GNUC__
 protected:
+    // Keep the existing MinGW/Itanium declaration unchanged. This compiler is
+    // a source/link check only; the retail overlay below is for MSVC ABI.
     char _oleclientitem_padding[96];
+#else
+public:
+    // Retail fields that fit this class's current tail. Earlier retail
+    // members whose offsets overlap the existing OpenMFC declarations are
+    // represented in the COleClientItem side table (OlecoreSupport.h). The
+    // four-byte packing keeps this overlay at +0x8c rather than aligning it up.
+#pragma pack(push, 4)
+    struct RetailTailStorage {
+        DWORD m_reserved_8c;                     // +0x8c; gap before ctor-initialized state, RVA 0x244200 (mfc140u)
+        int m_nItemState;                        // +0x90; ctor RVA 0x244200 (mfc140u)
+        DWORD m_nItemType;                       // +0x94; UpdateItemType RVA 0x244b20 (mfc140u)
+        CView* m_pView;                          // +0x98; OnActivateUI RVA 0x248760 (mfc140u)
+        DWORD m_dwContainerStyle;                // +0xa0; OnActivateUI RVA 0x248760 (mfc140u)
+        DWORD m_reserved_a4;                     // +0xa4; gap before hook field, ctor RVA 0x244200 (mfc140u)
+        COleFrameHook* m_pInPlaceFrame;          // +0xa8; ctor RVA 0x244200 (mfc140u)
+        COleFrameHook* m_pInPlaceDoc;            // +0xb0; ctor RVA 0x244200 (mfc140u)
+        HWND m_hWndServer;                       // +0xb8; OnActivateUI RVA 0x248760 (mfc140u)
+        DWORD m_dwFrameMenuBarVisibility;        // +0xc0; OnActivateUI RVA 0x248760 (mfc140u)
+        DWORD m_reserved_c4;                     // +0xc4; gap before ClassesAllowed, retail afxole.h order
+        void* m_ClassesAllowedInStorage;         // union +0xc8; retail afxole.h member order
+        DWORD m_nClassesAllowedInStorage;        // +0xd0; ctor RVA 0x244200 (mfc140u)
+        DWORD m_reserved_d4;                     // +0xd4; alignment before interface part, ctor RVA 0x244200 (mfc140u)
+        void* m_xOleClientSiteVftable;           // interface part +0xd8; ctor RVA 0x244200 (mfc140u)
+        void* m_xAdviseSinkVftable;              // interface part +0xe0; ctor RVA 0x244200 (mfc140u)
+        void* m_xOleIPSiteVftable;               // interface part +0xe8; ctor RVA 0x244200 (mfc140u)
+    };
+#pragma pack(pop)
+    union {
+        RetailTailStorage m_retailTail;
+        char _oleclientitem_padding[100];
+    };
+#endif
 };
 
 //=============================================================================
@@ -1244,8 +1329,26 @@ public:
     HRESULT ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt = OLECMDEXECOPT_DONTPROMPTUSER,
                         const GUID* pguidCmdGroup = nullptr);
 
-protected:
-    char _coledocobjectitem_padding[40];
+public:
+    // Retail COleDocObjectItem tail, mapped into the existing 40 bytes.
+    // Pack it to four-byte alignment so MinGW can retain its original reusable
+    // base-tail padding; clang-cl starts this storage at the retail +0xf0.
+    // XOleDocumentSite remains raw vftable storage because the constructor
+    // does not currently install a compatible local interface vtable.
+#pragma pack(push, 4)
+    struct RetailTailStorage {
+        CMenu* m_pHelpPopupMenu;                 // +0xf0; COleDocObjectItem ctor RVA 0x2557b0 (mfc140u)
+        IOleDocumentView* m_pActiveView;          // +0xf8; ctor RVA 0x2557b0 (mfc140u)
+        IPrint* m_pIPrint;                       // +0x100; ctor RVA 0x2557b0 (mfc140u)
+        BOOL m_bInHelpMenu;                      // +0x108; ctor RVA 0x2557b0 (mfc140u)
+        DWORD m_reserved_10c;                    // +0x10c; gap before interface part, ctor RVA 0x2557b0 (mfc140u)
+        void* m_xOleDocumentSiteVftable;         // interface part +0x110; ctor RVA 0x2557b0 (mfc140u)
+    };
+    union {
+        RetailTailStorage m_retailTail;
+        char _coledocobjectitem_padding[40];
+    };
+#pragma pack(pop)
 };
 
 //=============================================================================
@@ -1446,8 +1549,54 @@ public:
     BOOL m_bInPlaceActive;
     DWORD m_dwStyle;
 
-protected:
-    char _olecontrolsite_padding[296];
+public:
+    // Retail state beyond the compact public prefix overlays the existing
+    // 296-byte tail. Embedded CString/VARIANT/dispatch-driver values are raw
+    // storage only; their constructors are not added to this compact class.
+    // RetailCOleControlSiteLayout and per-field offset assertions live in the
+    // OLE support/family sources. Evidence is cited beside each overlay field.
+    struct RetailTailStorage {
+        BYTE m_reserved_78[8];                  // through +0x80; ctor RVA 0x2394e0 (mfc140u)
+        LPOLEOBJECT m_pObject;                  // +0x80; ctor RVA 0x2394e0 (mfc140u)
+        LPOLEINPLACEOBJECT m_pInPlaceObject;    // +0x88; ctor RVA 0x2394e0 (mfc140u)
+        void* m_pActiveObject;                  // +0x90; ctor RVA 0x2394e0 (mfc140u)
+        void* m_pWindowlessObject;              // +0x98; ctor RVA 0x2394e0 (mfc140u)
+        DWORD m_dwEventSink;                    // +0xa0; CreateControlCommon RVA 0x239c90 (mfc140u)
+        DWORD m_dwPropNotifySink;               // +0xa4; CreateControlCommon RVA 0x239c90 (mfc140u)
+        DWORD m_dwStyleMask;                    // +0xa8; CreateControlCommon RVA 0x239c90 (mfc140u)
+        DWORD m_dwStyleRetail;                  // +0xac; CreateControlCommon RVA 0x239c90 (mfc140u)
+        DWORD m_dwMiscStatus;                   // +0xb0; ctor RVA 0x2394e0 (mfc140u)
+        BOOL m_bIsWindowless;                   // +0xb4; GetStyle entry RVA 0x23b820 (mfc140u)
+        CONTROLINFO m_ctlInfo;                  // +0xb8; GetControlInfo RVA 0x23b1b0 (mfc140u)
+        BOOL m_bIgnoreNotify;                   // +0xd0; ctor RVA 0x2394e0 (mfc140u)
+        DWORD m_dwNotifyDBEvents;               // +0xd4; CreateControlCommon RVA 0x239c90 (mfc140u)
+        void* m_pDataSourceControl;             // +0xd8; ctor RVA 0x2394e0 (mfc140u)
+        void* m_pBindings;                      // +0xe0; ctor RVA 0x2394e0 (mfc140u)
+        void* m_pDSCSiteOrRowSource;            // +0xe8; ctor RVA 0x2394e0 (mfc140u)
+        DISPID m_defdispid;                     // +0xf0; ctor RVA 0x2394e0 (mfc140u)
+        UINT m_dwType;                          // +0xf4; retail afxocc.h member order
+        void* m_strDataFieldStorage;            // CString +0xf8; ctor RVA 0x2394e0 (mfc140u)
+        BOOL m_bIsDirty;                        // +0x100; retail afxocc.h member order
+        DWORD m_reserved_104;                   // +0x104; alignment before VARIANT
+        BYTE m_varResult[0x10];                 // VARIANT +0x108; ctor RVA 0x2394e0 (mfc140u)
+        void* m_dispDriverStorage[2];           // COleDispatchDriver +0x118; ctor RVA 0x2394e0 (mfc140u)
+        CDC* m_pDC;                             // +0x128; ctor RVA 0x2394e0 (mfc140u)
+        BYTE m_reserved_130[8];                 // through +0x138; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xOleClientSiteVftable;          // interface part +0x138; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xOleIPSiteVftable;              // interface part +0x140; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xOleControlSiteVftable;          // interface part +0x148; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xAmbientPropsVftable;            // interface part +0x150; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xPropertyNotifySinkVftable;      // interface part +0x158; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xEventSinkVftable;               // interface part +0x160; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xBoundObjectSiteVftable;         // interface part +0x168; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xNotifyDBEventsVftable;          // interface part +0x170; ctor RVA 0x2394e0 (mfc140u)
+        void* m_xRowsetNotifyVftable;            // interface part +0x178; ctor RVA 0x2394e0 (mfc140u)
+        BYTE m_reserved_180[0x20];               // compact-only existing tail; no retail field modeled here
+    };
+    union {
+        RetailTailStorage m_retailTail;
+        char _olecontrolsite_padding[296];
+    };
 };
 
 //=============================================================================
@@ -2087,8 +2236,15 @@ public:
     void* m_xFontNotification;        // 0x2B8 696
     void* m_xQuickActivate;           // 0x2C0 704
     void* m_xPointerInactive;         // 0x2C8 712
-    char  m_xEventConnPt[96];         // 0x2D0 720
-    char  m_xPropConnPt[96];          // 0x330 816
+    struct ConnectionPointStorage {
+        BYTE m_ccmdTargetPrefix[0x40]; // CCmdTarget prefix; CConnectionPoint ctor RVA 0x24b390 (mfc140u)
+        size_t m_nOffset;             // +0x40; COleControl ctor RVA 0x1df5c0 (mfc140u)
+        IUnknown* m_pUnkFirstConnection; // +0x48; CConnectionPoint ctor RVA 0x24b390 (mfc140u)
+        void* m_pConnections;          // +0x50; CConnectionPoint ctor RVA 0x24b390 (mfc140u)
+        void* m_xConnPtVftable;        // IConnectionPoint view +0x58; ctor RVA 0x24b390 (mfc140u)
+    };
+    ConnectionPointStorage m_xEventConnPt; // +0x2d0; COleControl ctor RVA 0x1df5c0 (mfc140u)
+    ConnectionPointStorage m_xPropConnPt;  // +0x330; COleControl ctor RVA 0x1df5c0 (mfc140u)
 };                                    // 0x390 912
 
 //=============================================================================

@@ -295,6 +295,12 @@ extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_WH_Z(
     void* pThis, const wchar_t* name, int value);
 extern "C" void MS_ABI impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(
     CString* pThis, const wchar_t* format, ...);
+extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(
+    CArchive* pThis, void* pBuf, unsigned int nMax);
+extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(
+    CArchive* pThis, const void* pBuf, unsigned int nMax);
+extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
+    int cause, const wchar_t* lpszArchiveName);
 
 // Sibling thunks defined further down in THIS file.
 extern "C" int MS_ABI impl__OnSetAccData_CBasePane__UEAAHJ_Z(CBasePane* pThis, long lVal);
@@ -958,8 +964,10 @@ extern "C" void* MS_ABI impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWn
 //     if (p == NULL || !p->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return NULL;
 //     return (CBaseTabbedPane*)p;
 // (The descriptor at RVA 0x2db168 reads "CBaseTabbedPane", m_nObjectSize 1304.)
-// Deviation: IsTabbed is called through this file's own thunk, so a derived
-// override is not seen.
+// Deviations: IsTabbed is called through this file's own thunk, so a derived
+// override is not seen. GetParentTabWnd's adapter-to-CBaseTabbedPane route also
+// returns NULL because its unexported slot-234 accessor is not modeled; this
+// method consequently returns NULL on that route instead of the retail pane.
 // Symbol: ?GetParentTabbedPane@CBasePane@@QEBAPEAVCBaseTabbedPane@@XZ
 extern "C" void* MS_ABI impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(
     const CBasePane* pThis) {
@@ -1106,8 +1114,10 @@ extern "C" int MS_ABI impl__IsMDITabbed_CBasePane__UEBAHXZ(const CBasePane* pThi
 //                ->IsKindOf(RUNTIME_CLASS(CMFCBaseTabCtrl));
 // (0x1802c5300 is USER32!GetParent, 0x289180 is CWnd::FromHandle, 0x233310 is
 // CObject::IsKindOf, and the descriptor at 0x2dba98 reads "CMFCBaseTabCtrl".)
-// Note retail passes the FromHandle result straight to IsKindOf; IsKindOf itself
-// tests it for NULL first (0x233319), so a NULL parent yields FALSE.
+// Note retail passes the FromHandle result straight to IsKindOf. IsKindOf tests
+// its `this` pointer for NULL but then enters the invalid-argument/assert path;
+// it does not return FALSE for a NULL parent. OpenMFC's IsKindOf thunk likewise
+// throws on NULL, so this path is not a successful FALSE result.
 // Symbol: ?IsTabbed@CBasePane@@UEBAHXZ
 extern "C" int MS_ABI impl__IsTabbed_CBasePane__UEBAHXZ(const CBasePane* pThis) {
     if (pThis == nullptr) return FALSE;
@@ -1233,10 +1243,10 @@ extern "C" void* MS_ABI impl__MoveWindow_CBasePane__UEAAPEAXAEBVCRect__HPEAX_Z(
     return nullptr;
 }
 
-// STUB. CBasePane's OnEraseBkgnd vtable slot 7 targets the shared retail body
-// at RVA 0x3a60 (mfc140u), which disassembles to `mov $1,%eax; ret`. The result
-// is exact, but the campaign classifies a lone constant return as a stub; this
-// handler suppresses background erasure.
+// STUB. In the ANSI image, CBasePane vtable slot 7 resolves to the shared body
+// at RVA 0x3ae0 (mfc140), also named for CPaneTrackingWnd::OnEraseBkgnd; it is
+// `mov $1,%eax; ret`. The exact result is still a lone constant return, which
+// the campaign classifies as a stub.
 // Symbol: ?OnEraseBkgnd@CBasePane@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CBasePane__IEAAHPEAVCDC___Z(CBasePane* pThis, CDC* pDC) {
     (void)pThis;
@@ -1344,7 +1354,7 @@ extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CBasePane__IEAA_J_K_J_Z(
 // CCriticalSection declared in the shipping afxbasepane.h), so the two guarded
 // critical-section calls are omitted; m_bMultiThreaded defaults to FALSE, which
 // is the path where retail omits them too.  DoPaint is called through this
-// file's own thunk (currently a documented stub), losing derived dispatch.
+// file's own thunk (implemented above), losing derived dispatch.
 // Symbol: ?OnPaint@CBasePane@@IEAAXXZ
 extern "C" void MS_ABI impl__OnPaint_CBasePane__IEAAXXZ(CBasePane* pThis) {
     if (pThis == nullptr) return;
@@ -1415,9 +1425,10 @@ extern "C" __int64 MS_ABI impl__OnPrintClient_CBasePane__IEAA_JPEAVCDC__I_Z(
     return 0;
 }
 
-// STUB. CBasePane vftable slot 151 points to the shared body at RVA 0x3a60
-// (mfc140u), which disassembles to `mov $1,%eax; ret`; it reads no arguments.
-// The result matches retail, but a lone constant return is classified as a stub.
+// STUB. In the ANSI image, CBasePane vftable slot 151 resolves to the shared
+// body at RVA 0x3ae0 (mfc140), also named for CPaneTrackingWnd::OnEraseBkgnd;
+// it is `mov $1,%eax; ret` and reads no arguments. The exact result is still a
+// lone constant return, which the campaign classifies as a stub.
 // Symbol: ?OnSetAccData@CBasePane@@UEAAHJ@Z
 extern "C" int MS_ABI impl__OnSetAccData_CBasePane__UEAAHJ_Z(CBasePane* pThis, long lVal) {
     (void)pThis;
@@ -1576,17 +1587,41 @@ extern "C" int MS_ABI impl__SaveState_CBasePane__UEAAHPEB_WHI_Z(
     return TRUE;
 }
 
-// STUB. CBasePane vtable slot 2 targets retail entry RVA 0xc2e0 (mfc140u),
-// which checks the archive mode at +0x20 and accesses buffer pointers at +0x38
-// and +0x40. OpenMFC declares CArchive in include/openmfc/afx.h with m_nMode at
-// +0x10 (also recorded by detail/CMDITabInfoSupport.h), so using its mode and
-// Read/Write methods here would not faithfully consume a retail CArchive.
-// Leave this stub until the shared CArchive ABI layout is corrected.
+// CBasePane::Serialize -- transcribed from retail entry RVA 0xc2e0 (mfc140u).
+// Retail loads two DWORDs: OR the first into m_dwStyle, then assign the second
+// to m_bRecentVisibleState. When storing, it writes m_dwStyle & CBRS_ALIGN_ANY,
+// then the result of virtual slot 97 (IsVisible). The retail body accesses
+// CArchive's private buffer at +0x20/+0x38/+0x40, but that does not prevent an
+// equivalent implementation through OpenMFC's own IsLoading/Read/Write API;
+// those methods operate on the local CArchive layout. Short reads are converted
+// to the same end-of-file archive exception. Deviation: IsVisible uses this
+// file's base thunk, so a derived override is not dispatched.
 // Symbol: ?Serialize@CBasePane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(
-    CBasePane* pThis, CArchive* pArchive) {
-    (void)pThis;
-    (void)pArchive;
+    CBasePane* pThis, CArchive& archive) {
+    if (pThis == nullptr) return;
+    if (archive.IsLoading()) {
+        DWORD dwAlignment = 0;
+        if (impl__Read_CArchive__QEAAIPEAXI_Z(
+                &archive, &dwAlignment, sizeof(dwAlignment)) != sizeof(dwAlignment)) {
+            impl__AfxThrowArchiveException__YAXHPEB_W_Z(3 /* endOfFile */, nullptr);
+        }
+        pThis->m_dwStyle |= dwAlignment;
+
+        BOOL bRecentVisible = FALSE;
+        if (impl__Read_CArchive__QEAAIPEAXI_Z(
+                &archive, &bRecentVisible, sizeof(bRecentVisible)) != sizeof(bRecentVisible)) {
+            impl__AfxThrowArchiveException__YAXHPEB_W_Z(3 /* endOfFile */, nullptr);
+        }
+        pThis->m_bRecentVisibleState = bRecentVisible;
+    } else {
+        const DWORD dwAlignment = pThis->m_dwStyle & 0xF000UL;
+        impl__Write_CArchive__QEAAXPEBXI_Z(
+            &archive, &dwAlignment, sizeof(dwAlignment));
+        const BOOL bVisible = impl__IsVisible_CBasePane__UEBAHXZ(pThis);
+        impl__Write_CArchive__QEAAXPEBXI_Z(
+            &archive, &bVisible, sizeof(bVisible));
+    }
 }
 
 // STUB. The ANSI twin's entry RVA 0xcaa0 (mfc140) has message-specific

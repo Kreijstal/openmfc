@@ -91,8 +91,8 @@ extern decltype(openmfc::docking_state::PaneCoreStates()) g_paneCoreState_Mfccor
 
 namespace openmfc { namespace detail { namespace mfccore {
 struct DockingManagerState {
-    std::vector<CBasePane*> panes;
-    std::vector<void*> miniFrames;
+    std::vector<CBasePane*> panes;                  // m_lstControlBars, head at +0x30
+    std::vector<void*> miniFrames;                   // mini-frame list at +0x180
     std::unordered_set<CBasePane*> hiddenPanes;
     std::unordered_set<CBasePane*> floatingPanes;
     DWORD enabledAlignment = 0;
@@ -100,6 +100,23 @@ struct DockingManagerState {
     bool paneContextMenu = false;
     UINT paneContextMenuID = 0;
     CString paneContextMenuName;
+
+    // Additional retail state absent from the compact CDockingManager object.
+    // These are semantic side-table values, not views over the retail offsets.
+    CFrameWnd* parentFrame = nullptr;                // m_pParentWnd +0x1b0
+    RECT boundsAt1c8{};                            // manager rectangle at +0x1c8
+    RECT boundsAt1d8{};                            // manager rectangle at +0x1d8
+    void** dockSites = nullptr;                      // entries in m_lstControlBars +0x28, side storage
+    std::size_t dockSiteCount = 0;
+    std::size_t dockSiteCapacity = 0;
+    CBasePane** hiddenMDITabbedBars = nullptr;       // m_lstHiddenMDITabbedBars +0x2d0, side storage
+    std::size_t hiddenMDITabbedBarCount = 0;
+    std::size_t hiddenMDITabbedBarCapacity = 0;
+    CBasePane** printPreviewHiddenBars = nullptr;    // preview saved list +0x210, side storage
+    std::size_t printPreviewHiddenBarCount = 0;
+    std::size_t printPreviewHiddenBarCapacity = 0;
+    bool printPreviewMode = false;                   // preview state +0x208
+    bool showPanesMode = false;                       // ShowPanes state +0x298/+0x354
 };
 } } }
 
