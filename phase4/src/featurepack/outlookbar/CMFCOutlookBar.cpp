@@ -3,6 +3,16 @@
 
 #include "detail/CMFCOutlookBarSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/CMemDCSupport.h"
+
+// CPaintDC placement thunks (core/gdi/CPaintDC.cpp).
+extern "C" CPaintDC* MS_ABI impl___0CPaintDC__QEAA_PEAVCWnd___Z(CPaintDC* pThis, CWnd* pWnd);
+extern "C" void MS_ABI impl___1CPaintDC__UEAA_XZ(CPaintDC* pThis);
+// Visual-manager background-fill thunk (featurepack/visualmanager/Thunks.cpp)
+// and its exported static pointer mirror (core/runtime/StaticData.cpp).
+extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManager__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CBasePane* pBar, CRect rect, CRect rectClip, int bNCArea);
+extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
 
 // The shadow reserves the 0x568-byte retail object size but models only the
 // fields used here. The retail constructor writes m_bMode2003 at +0x550
@@ -113,9 +123,12 @@ extern "C" unsigned int MS_ABI impl__FindAvailablePageID_CMFCOutlookBar__IEAAIXZ
 }
 
 // Symbol: ?FloatTab@CMFCOutlookBar@@UEAAHPEAVCWnd@@HW4AFX_DOCK_METHOD@@H@Z
-// Stub: retail checks the underlying tab window and delegates to
-// CBaseTabbedPane::FloatTab (mfc140u RVA 0x97fc0); the tab-window offset is
-// absent from the shadow and the existing base thunk has placeholder arguments.
+// Stub: retail obtains the tab-control pointer through vtable byte offset
+// +0x750, queries that control at byte offset +0x368, and calls
+// CBaseTabbedPane::FloatTab only when the query returns >1 (mfc140u entries
+// RVA 0x97fc0 for CMFCOutlookBar and RVA 0x13950 for CBaseTabbedPane). This
+// class has no modeled compatible virtual dispatch here, and the available
+// base FloatTab thunk is itself a stub.
 extern "C" int MS_ABI impl__FloatTab_CMFCOutlookBar__UEAAHPEAVCWnd__HW4AFX_DOCK_METHOD__H_Z(
     void* pThis, void* pWnd, int nTabID, int dockMethod, int bHide) {
     (void)pThis;
@@ -172,16 +185,47 @@ extern "C" int MS_ABI impl__OnCreate_CMFCOutlookBar__IEAAHPEAUtagCREATESTRUCTW__
 }
 
 // Symbol: ?OnPaint@CMFCOutlookBar@@IEAAXXZ
-// Stub: the supplied retail RVA map has no entry for this symbol, and the
-// surrounding outlook-bar painting dependencies are not modeled here.
+// The mfc140u map did not resolve this symbol. The ANSI twin resolves the
+// export at entry RVA 0xaa30 (mfc140.dll); its body is shared with
+// CAutoHideDockSite::OnPaint and is transcribed here. This uses the exported
+// visual-manager pointer mirror instead of retail's GetInstance helper, so it
+// does not lazily create a manager; the NULL-this guard is also an OpenMFC
+// safety deviation.
 extern "C" void MS_ABI impl__OnPaint_CMFCOutlookBar__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis == nullptr)
+        return;
+
+    alignas(CPaintDC) unsigned char paintDCStorage[sizeof(CPaintDC)] = {};
+    CPaintDC* pPaintDC = reinterpret_cast<CPaintDC*>(paintDCStorage);
+    CWnd* pWnd = reinterpret_cast<CWnd*>(pThis);
+    impl___0CPaintDC__QEAA_PEAVCWnd___Z(pPaintDC, pWnd);
+
+    alignas(S_Cmemdc) unsigned char memDCStorage[sizeof(S_Cmemdc)] = {};
+    S_Cmemdc* pMemDC = reinterpret_cast<S_Cmemdc*>(memDCStorage);
+    impl___0CMemDC__QEAA_AEAVCDC__PEAVCWnd___Z(pMemDC, pPaintDC, pWnd);
+    CDC* pDC = pMemDC->m_bMemDC
+        ? reinterpret_cast<CDC*>(&pMemDC->m_dcMem)
+        : static_cast<CDC*>(pMemDC->m_dc);
+
+    RECT rectClient = { 0, 0, 0, 0 };
+    ::GetClientRect(static_cast<OutlookBar*>(pThis)->m_hWnd, &rectClient);
+    CMFCVisualManager* pVisualManager = static_cast<CMFCVisualManager*>(
+        impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
+    if (pVisualManager != nullptr) {
+        impl__OnFillBarBackground_CMFCVisualManager__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(
+            pVisualManager, pDC, reinterpret_cast<CBasePane*>(pThis),
+            CRect(rectClient), CRect(rectClient), FALSE);
+    }
+
+    impl___1CMemDC__UEAA_XZ(pMemDC);
+    impl___1CPaintDC__UEAA_XZ(pPaintDC);
 }
 
 // Symbol: ?RemoveCustomPage@CMFCOutlookBar@@QEAAHIPEAVCMFCOutlookBarTabCtrl@@@Z
-// Stub: the supplied retail RVA map has no entry for this symbol; implementing
-// removal without the page list, tab-control state and global ID bitmap would
-// not reproduce retail behavior.
+// Stub: the mfc140u map did not resolve this symbol, but the ANSI twin resolves
+// it at RVA 0x979c0 (mfc140.dll). The body checks tab/page runtime classes,
+// searches the custom-page list at +0x518, updates the page-ID bitmap, and
+// removes the page; this file has no modeled list or tab-control state.
 extern "C" int MS_ABI impl__RemoveCustomPage_CMFCOutlookBar__QEAAHIPEAVCMFCOutlookBarTabCtrl___Z(
     void* pThis, unsigned int uiPage, void* pTargetWnd) {
     (void)pThis;
@@ -191,9 +235,10 @@ extern "C" int MS_ABI impl__RemoveCustomPage_CMFCOutlookBar__QEAAHIPEAVCMFCOutlo
 }
 
 // Symbol: ?SaveState@CMFCOutlookBar@@UEAAHPEB_WHI@Z
-// Stub: the supplied retail RVA map has no entry for this symbol; archive
-// serialization and custom-page state are not available through verified
-// implementations for this class.
+// Stub: the mfc140u map did not resolve this UTF-16 signature. The ANSI twin's
+// counterpart (?SaveState@CMFCOutlookBar@@UEAAHPEBDHI@Z) is at RVA 0x98060
+// (mfc140.dll) and serializes custom-page state through archive helpers; that
+// archive/list infrastructure is not modeled by the verified support here.
 extern "C" int MS_ABI impl__SaveState_CMFCOutlookBar__UEAAHPEB_WHI_Z(
     void* pThis, const wchar_t* profileName, int nIndex, unsigned int uiID) {
     (void)pThis;
@@ -204,8 +249,11 @@ extern "C" int MS_ABI impl__SaveState_CMFCOutlookBar__UEAAHPEB_WHI_Z(
 }
 
 // Symbol: ?SetButtonsFont@CMFCOutlookBar@@QEAAXPEAVCFont@@H@Z
-// Stub: the supplied retail RVA map has no entry for this symbol; the
-// per-page font propagation depends on the unmodeled custom-page collection.
+// Stub: the mfc140u map did not resolve this symbol, but the ANSI twin resolves
+// it at RVA 0x98550 (mfc140.dll): it stores pFont at +0x558 and, when redraw is
+// requested and m_hWnd is non-null, calls RedrawWindow(hwnd, nullptr, 0, 0x585).
+// The current shadow has no member for +0x558; do not model it via a guessed
+// field or access until the owned shadow header is extended.
 extern "C" void MS_ABI impl__SetButtonsFont_CMFCOutlookBar__QEAAXPEAVCFont__H_Z(
     void* pThis, CFont* pFont, int bRedraw) {
     (void)pThis;

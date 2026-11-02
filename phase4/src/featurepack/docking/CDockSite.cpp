@@ -480,7 +480,9 @@ extern "C" void MS_ABI impl__ResizeDockSiteByOffset_CDockSite__IEAAXHH_Z(void* p
 //   ResizeDockSiteByOffset(nActualOffset, bAdjustLayout);             // 0x54810
 //   return nActualOffset;
 // IsHorizontal (vslot +0x2d8) is re-evaluated at each of its three uses in
-// retail; the value cannot change between them, so it is read once here.
+// retail.  For the stock CDockSite implementation it returns the alignment
+// without side effects; this devirtualized implementation reads it once (as
+// noted above, overrides in derived dock sites are not preserved).
 extern "C" int MS_ABI impl__ResizeRow_CDockSite__QEAAHPEAVCDockingPanesRow__HH_Z(
     void* pThis, void* pRow, int nNewSize, int bAdjustLayout) {
     if (pThis == nullptr || pRow == nullptr) return 0;
@@ -898,9 +900,9 @@ extern "C" void* MS_ABI impl__FindNextVisibleRow_CDockSite__IEAAPEAVCDockingPane
 //   for (POSITION pos = m_lstControlBars.GetHeadPosition(); pos != NULL; ) {
 //       CPane* pBar = (CPane*)m_lstControlBars.GetNext(pos);
 //       if ((UINT)pBar->GetDlgCtrlID() == nID) return pBar;           // 0x2a78b0
-//       CMFCReBar* pReBar = DYNAMIC_DOWNCAST(CMFCReBar, pBar);         // 0x233310, RTTI 0x1802fb808
+//       CMFCReBar* pReBar = DYNAMIC_DOWNCAST(CMFCReBar, pBar);         // direct CObject::IsKindOf entry RVA 0x234cf0 (mfc140u; 0x233310 mfc140); RTTI descriptor VA 0x1802fb808 (mfc140)
 //       if (pReBar != NULL) {
-//           CPane* pChild = DYNAMIC_DOWNCAST(CPane, pReBar->GetDlgItem(nID));  // 0x2a72a0, RTTI 0x1802f3868
+//           CPane* pChild = DYNAMIC_DOWNCAST(CPane, pReBar->GetDlgItem(nID));  // GetDlgItem entry RVA 0x2a9390 (mfc140u; 0x2a72a0 mfc140), then IsKindOf 0x234cf0 (mfc140u); RTTI descriptor VA 0x1802f3868 (mfc140)
 //           if (pChild != NULL) return pChild;
 //       }
 //   }
@@ -1083,9 +1085,10 @@ extern "C" int MS_ABI impl__IsRectWithinDockSite_CDockSite__QEAAHVCRect__AEAVCPo
 //   }
 //   return FALSE;
 // Two things to know before editing: (1) the `/ 3` is the signed
-// multiply-by-0x55555556 idiom at 0x534e3; (2) the HDWP& retail hands to
+// multiply-by-0x55555556 idiom at the instructions around RVA 0x53693 inside
+// MovePane (entry RVA 0x53520, mfc140u); (2) the HDWP& retail hands to
 // CDockingPanesRow::MovePane (the `lea -0x29(%rbp),%rax; mov %rax,0x20(%rsp)`
-// at 0x536c1 inside MovePane (0x53370)) points at the stack slot that last held
+// at RVA 0x53871 inside MovePane (entry RVA 0x53520, mfc140u)) points at the stack slot that last held
 // nSensitivity, not at the hdwp in RDI that ::EndDeferWindowPos receives.  The
 // row's MovePane (0x50300) only forwards that pointer to CheckPanes, and the
 // leaf overloads never dereference it (CDockingPanesRow.cpp:1361/1387/1482 are
@@ -1333,7 +1336,7 @@ extern "C" void MS_ABI impl__OnSize_CDockSite__IEAAXIHH_Z(void* pThis, unsigned 
 }
 
 // Symbol: ?PaneFromPoint@CDockSite@@UEAAPEAVCPane@@VCPoint@@@Z
-// Retail 0x54c30, transcribed in full (CPoint packed in RDX):
+// Retail mfc140 RVA 0x54c30 (ANSI export; mfc140u symbol-map RVA was not resolved), transcribed in full (CPoint packed in RDX):
 //   for (POSITION pos = m_lstControlBars.GetHeadPosition(); pos != NULL; ) {
 //       CPane* pBar = (CPane*)m_lstControlBars.GetNext(pos);
 //       CRect rectBar; ::GetWindowRect(pBar->m_hWnd, &rectBar);         // import 0x1802c5370
@@ -1446,7 +1449,7 @@ extern "C" int MS_ABI impl__ReplacePane_CDockSite__QEAAHPEAVCPane__0_Z(void* pTh
 }
 
 // Symbol: ?RepositionPanes@CDockSite@@UEAAXAEAVCRect@@@Z
-// Retail 0x53eb0, transcribed in full:
+// Retail mfc140 RVA 0x53eb0 (ANSI export; mfc140u symbol-map RVA was not resolved), transcribed in full:
 //   CRect rectClient; ::GetClientRect(m_hWnd, &rectClient);           // import 0x1802c5358
 //   int nDeltaW = rectNew.Width()  - rectClient.Width();
 //   int nDeltaH = rectNew.Height() - rectClient.Height();

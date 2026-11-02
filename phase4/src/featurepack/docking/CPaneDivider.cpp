@@ -55,10 +55,14 @@
 // because a WM_* only arrives for an HWND that maps to such an object, and
 // CreateEx/Move/RepositionPanes/... because their retail callers
 // (?CreatePaneDivider@CPaneContainerManager@@, ?CreateDefaultPaneDivider@
-// CDockablePane@@) are both stubs in this tree and a client compiled against
-// the shipping headers allocates the full 0x218 bytes. No body here can tell a
-// 24-byte object from a retail one; the cast below (AsWnd/AsBasePane) documents
-// the assumption rather than hiding it.
+// CDockablePane@@) are both stubs in this tree, and a client compiled against
+// the shipping headers allocates the full 0x218 bytes. This is not guaranteed
+// for objects made by this DLL's own DynCreateFactories.cpp factory, which uses
+// the 24-byte OpenMFC declaration; passing one of those to a CWnd/CBasePane
+// entry point can access beyond the allocation. The exported constructor thunks
+// mark retail-ABI instances; CreateEx rejects unmarked instances before touching
+// base storage. Other direct CWnd/CBasePane entry points still require the
+// retail-sized caller object.
 //
 // VIRTUAL DISPATCH: OpenMFC publishes no CPaneDivider or CPaneContainerManager
 // vftable (the manager object is built with a NULL vfptr, see
@@ -77,6 +81,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <unordered_set>
 
 // ---------------------------------------------------------------------------
 // Cross-class entry points. BRIEFING S1: the C++ methods do not exist inside
@@ -260,7 +265,17 @@ struct DividerState {
 constexpr size_t kSizeCPaneDivider = 0x218;
 constexpr size_t kOffFirstOwnMember = 0x1a8;
 static_assert(sizeof(CBasePane) == kOffFirstOwnMember, "retail CPaneDivider members start right after CBasePane (0x1a8)");
-static_assert(kOffFirstOwnMember + 0x70 == kSizeCPaneDivider, "retail CPaneDivider is 0x218 bytes");
+static_assert(offsetof(DividerState, nID) == 0x00 && offsetof(DividerState, dwDividerStyle) == 0x04 &&
+              offsetof(DividerState, nWidth) == 0x08 && offsetof(DividerState, nMinOffset) == 0x0c &&
+              offsetof(DividerState, nMaxOffset) == 0x10 && offsetof(DividerState, nStep) == 0x14 &&
+              offsetof(DividerState, bCaptured) == 0x18 && offsetof(DividerState, bDefaultDivider) == 0x1c &&
+              offsetof(DividerState, bAutoHideMode) == 0x20 && offsetof(DividerState, rectLastDragRect) == 0x24 &&
+              offsetof(DividerState, rectDragBounds) == 0x34 && offsetof(DividerState, ptHotTotal) == 0x44 &&
+              offsetof(DividerState, ptHotDrag) == 0x4c && offsetof(DividerState, pParentWndForSerialize) == 0x58 &&
+              offsetof(DividerState, pContainerManager) == 0x60 && offsetof(DividerState, pWndTrack) == 0x68,
+              "divider side-table fields must preserve the retail member offsets");
+static_assert(sizeof(DividerState) == 0x70 && kOffFirstOwnMember + sizeof(DividerState) == kSizeCPaneDivider,
+              "retail CPaneDivider is 0x218 bytes");
 
 std::mutex& StateMutex() {
     static std::mutex s_mutex;
@@ -269,6 +284,18 @@ std::mutex& StateMutex() {
 std::unordered_map<const void*, DividerState>& States() {
     static std::unordered_map<const void*, DividerState> s_states;
     return s_states;
+}
+std::unordered_set<const void*>& RetailLayoutInstances() {
+    static std::unordered_set<const void*> s_instances;
+    return s_instances;
+}
+void MarkRetailLayoutInstance(const void* pThis) {
+    std::lock_guard<std::mutex> lock(StateMutex());
+    RetailLayoutInstances().insert(pThis);
+}
+bool IsRetailLayoutInstance(const void* pThis) {
+    std::lock_guard<std::mutex> lock(StateMutex());
+    return RetailLayoutInstances().find(pThis) != RetailLayoutInstances().end();
 }
 // Copy-out / copy-in accessors. The mutex is never held across a thunk call:
 // several of the manager entry points call back into this file
@@ -285,6 +312,7 @@ template <class F> void WithState(const void* pThis, F f) {
 void EraseState(const void* pThis) {
     std::lock_guard<std::mutex> lock(StateMutex());
     States().erase(pThis);
+    RetailLayoutInstances().erase(pThis);
 }
 
 // The `this` casts. Retail's CPaneDivider is a CBasePane, whose CWnd subobject
@@ -459,6 +487,7 @@ extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_HPEAVCWnd___Z(void* pThis, in
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
         g_dividerPanes[pThis] = {};
     }
+    MarkRetailLayoutInstance(pThis);
     impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(pThis, bDefaultDivider, static_cast<CWnd*>(pParent));
     return pThis;
 }
@@ -468,6 +497,7 @@ extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_XZ(void* pThis) {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
         g_dividerPanes[pThis] = {};
     }
+    MarkRetailLayoutInstance(pThis);
     impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(pThis, FALSE, nullptr);
     return pThis;
 }
@@ -799,6 +829,11 @@ extern "C" int MS_ABI impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd_
         if (dwStyle & kStyleVert)      s.nWidth = rect.right - rect.left;
         else if (dwStyle & kStyleHorz) s.nWidth = rect.bottom - rect.top;
     });
+    if (!IsRetailLayoutInstance(pThis)) {
+        // The in-tree inline CPaneDivider factory allocates only 24 bytes. Keep
+        // the side-table state above, but do not touch CBasePane/CWnd storage.
+        return FALSE;
+    }
     if (LoadState(pThis).bDefaultDivider) {
         CRuntimeClass* pRTC = static_cast<CRuntimeClass*>(impl__m_pContainerManagerRTC_CPaneDivider__2PEAUCRuntimeClass__EA);
         if (pRTC == nullptr) return FALSE;   // deviation: retail AfxThrowInvalidArgException()
@@ -1072,9 +1107,9 @@ extern "C" int MS_ABI impl__OnEraseBkgnd_CPaneDivider__IEAAHPEAVCDC___Z(void* pT
 //     CWnd::Default();                                                        // CWnd::OnLButtonDown
 // Retail dereferences m_pWndTrack unchecked after the `new`.
 // ?GetMinMaxOffset@CPaneContainerManager@@ is a placeholder in
-// CPaneContainerManager.cpp:1252 (empty), so the three offsets keep their
-// Init values until it is implemented. See NewTrackingWnd for the tracking
-// window deviation.
+// CPaneContainerManager.cpp:1252 (empty), so it leaves the three offsets at
+// their current side-table values (Init starts them at 0, 0, and -1). See
+// NewTrackingWnd for the tracking-window deviation.
 extern "C" void MS_ABI impl__OnLButtonDown_CPaneDivider__IEAAXIVCPoint___Z(void* pThis, unsigned int nFlags, long long point) {
     (void)nFlags;
     (void)point;
@@ -1095,9 +1130,9 @@ extern "C" void MS_ABI impl__OnLButtonDown_CPaneDivider__IEAAXIVCPoint___Z(void*
             impl__CreateEx_CWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAV1_IPEAX_Z(
                 pTrack, WS_EX_TOPMOST | WS_EX_TOOLWINDOW, static_cast<const wchar_t*>(*pClassName), L"",
                 WS_POPUP | kMfsSyncActive, rectWnd, AsWnd(pThis), 0, nullptr)) {
-            // deviation: SetOwner(this) is retail's inline `m_hWndOwner = m_hWnd`
-            // (CWnd +0xa0); OpenMFC's CWnd has no m_hWndOwner member, that byte
-            // range is unmodelled padding, so the owner is not recorded.
+            // SetOwner(this) is retail's inline `pTrack->m_hWndOwner = this->m_hWnd`;
+            // CWnd models m_hWndOwner at +0xa0, so keep the tracking popup owned.
+            pTrack->m_hWndOwner = HwndOf(pThis);
             impl__ShowWindow_CWnd__QEAAHH_Z(pTrack, SW_SHOWNOACTIVATE);
         }
         pClassName->~CString();
@@ -1242,10 +1277,11 @@ extern "C" void MS_ABI impl__OnMouseMove_CPaneDivider__IEAAXIVCPoint___Z(void* p
 // statically as the exported destructor thunk -- ??1CPaneContainerManager@@
 // (CPaneContainerManager.cpp:319, the pattern CMultiPaneFrameWnd.cpp:542 uses)
 // and ??1CPaneDivider@@ -- followed by MFC's exported operator delete
-// (??3@YAXPEAX@Z), the pair ?OnLButtonDown@'s `new` is matched with. The
-// manager can only be here when CreateEx's default-divider arm produced it from
-// ?CreateObject@CRuntimeClass@@, i.e. heap-allocated, so the free is right;
-// today that arm is dead (see CreateEx) and this branch never runs.
+// (??3@YAXPEAX@Z), matching the tail of retail's scalar deleting destructor.
+// This is not paired with ?OnLButtonDown@'s `new`, which allocates the separate
+// tracking window. The manager can only be here when CreateEx's default-divider
+// arm produced it from ?CreateObject@CRuntimeClass@@, i.e. heap-allocated, so
+// the manager free is appropriate; today that arm is dead (see CreateEx).
 // DEVIATION: callers that keep a CPaneDivider on the stack or embedded --
 // retail forbids that too -- would be freed twice by the `delete this`.
 extern "C" void MS_ABI impl__OnNcDestroy_CPaneDivider__IEAAXXZ(void* pThis) {
@@ -1278,7 +1314,7 @@ extern "C" void MS_ABI impl__OnNcDestroy_CPaneDivider__IEAAXXZ(void* pThis) {
 // and lazily creates the default manager when it is NULL (m_pRTIDefault->
 // CreateObject() or new CMFCVisualManager, m_bAutoDestroy = TRUE, vslot +0x70).
 // That creation exists in this tree only as the C++ static
-// CMFCVisualManager::GetInstance() (visualmanager/CMFCVisualManager.cpp:715);
+// CMFCVisualManager::GetInstance() (visualmanager/CMFCVisualManager.cpp:766);
 // there is no impl__ thunk for it, and a call to the C++ method from this
 // translation unit is a new C++ undefined that the campaign's link audit
 // (checkfile.sh) rejects -- the same trade-off toolbar/CMFCToolBar.cpp's

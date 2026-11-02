@@ -1,8 +1,11 @@
 // COleLinkingDoc — OpenMFC implementation.
 // Sources: olecore.cpp
 //
-// Every implemented body below was transcribed from the retail disassembly
-// (OnFindEmbeddedItem stays a stub, see there).  The disassembler reads
+// The retail-dependent behavior below was checked against the retail
+// disassembly (OnFindEmbeddedItem stays a stub, see there).  OpenMFC layout and
+// infrastructure gaps require adaptations; each such deviation is called out
+// at the affected body, so this is not a byte-for-byte transcription.  The
+// disassembler reads
 // mfc140.dll, the ANSI twin of the mfc140u.dll this project reimplements.
 // Control flow, member offsets and constants agree between the two images for
 // every function in this file, but code that handles TCHAR strings does NOT
@@ -225,6 +228,15 @@ LONG volatile* RefWord(CCmdTarget* p) {
     return reinterpret_cast<LONG volatile*>(reinterpret_cast<char*>(p) + 0x08);
 }
 
+// CDocument.cpp maps its S_CDocumentRetailTail over the document's padding
+// starting at +0x90; bFinalRelease is the BOOL at +0x94 and is initialized by
+// the CDocument constructor.  Read that existing overlay rather than treating
+// the member as absent just because the public class declaration omits it.
+static_assert(sizeof(CDocument) >= 0x98, "CDocument padding must contain retail m_bFinalRelease");
+BOOL IsFinalRelease(const CDocument* p) {
+    return *reinterpret_cast<const BOOL*>(reinterpret_cast<const char*>(p) + 0x94);
+}
+
 // IID_IStorage, {0000000B-0000-0000-C000-000000000046}: the 16 bytes at .rdata
 // 0x2d7a78 (mfc140) / 0x2d9b28 (mfc140u) that GetObjectStorage memcmp's riid
 // against.  Spelled out locally rather than pulled from libuuid.
@@ -249,9 +261,10 @@ bool IsItemDelimiter(wchar_t ch) {
 // vftables at +0x220/+0x228, default-constructs m_strMoniker and zeroes
 // m_pFactory, m_bDeferErrors, m_pLastException, m_dwRegister, m_lpMonikerROT
 // and m_bVisibleLock.  OpenMFC installs no nested-part vftables (the parts are
-// not declared); the memset below zeroes the whole padding span, which gives
-// the S_COleLinkingDocExtra overlay exactly the initial values retail's
-// constructor writes.
+// not declared) and has no retail CString at this location; the memset below
+// only initializes the private overlay fields used by this implementation.
+// It does not construct byte-for-byte retail state for the missing CString or
+// interface subobjects.
 COleLinkingDoc::COleLinkingDoc()
     : COleDocument(), m_bRegistered(FALSE), m_lpMoniker(nullptr) {
     memset(_colelinkingdoc_padding, 0, sizeof(_colelinkingdoc_padding));
@@ -665,8 +678,9 @@ extern "C" int MS_ABI impl__OnOpenDocument_COleLinkingDoc__UEAAHPEB_W_Z(
 //     }
 //     return TRUE;
 // The E_FAIL throw is replaced by returning FALSE: OpenMFC has no exception
-// path that matches it here and a NULL path name with m_bRemember set cannot
-// be saved either way.
+// path that matches it here.  The base save is attempted first, so a NULL path
+// with m_bRemember set may still cause the base implementation to save the
+// current document before this wrapper reports failure.
 extern "C" int MS_ABI impl__OnSaveDocument_COleLinkingDoc__UEAAHPEB_W_Z(
         COleLinkingDoc* pThis, const wchar_t* lpszPathName) {
     if (!pThis) return FALSE;
@@ -701,10 +715,10 @@ extern "C" int MS_ABI impl__OnSaveDocument_COleLinkingDoc__UEAAHPEB_W_Z(
 //     if (bAutoDelete)
 //         this->vftable[+0x08](1);   // scalar deleting destructor: delete this
 // DEVIATIONS:
-//   * m_bFinalRelease is not declared by OpenMFC's CDocument, so the early-out
-//     degenerates to `if (IsSearchAndOrganizeHandler()) return;` -- i.e. the
-//     handler-mode document is never closed here, where retail still closes it
-//     during its own final release.
+//   * the public CDocument declaration omits m_bFinalRelease, but the padding
+//     overlay in core/doc/CDocument.cpp reserves its retail +0x94 location and
+//     initializes it; this body reads that overlay to preserve the retail
+//     final-release exception to the handler-mode early-out.
 //   * the ++/-- pair is reproduced as interlocked updates of m_dwRef (+0x08),
 //     exactly as retail does it; see RefWord.
 //   * `delete this` is spelled directly rather than through the retail vftable
@@ -712,7 +726,8 @@ extern "C" int MS_ABI impl__OnSaveDocument_COleLinkingDoc__UEAAHPEB_W_Z(
 //     ~COleLinkingDoc gives the same dispatch.
 extern "C" void MS_ABI impl__OnCloseDocument_COleLinkingDoc__UEAAXXZ(COleLinkingDoc* pThis) {
     if (!pThis) return;
-    if (impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(pThis)) return;
+    if (impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(pThis) &&
+        !IsFinalRelease(pThis)) return;
 
     ::InterlockedIncrement(RefWord(pThis));
     impl__UpdateVisibleLock_COleLinkingDoc__IEAAXHH_Z(pThis, FALSE, FALSE);
@@ -799,12 +814,13 @@ extern "C" void MS_ABI impl__SaveToStorage_COleLinkingDoc__MEAAXPEAVCObject___Z(
 //         if (lstrcmp(szName, lpszItemName) == 0) return (COleClientItem*)p;
 //     }
 //     return NULL;
-// Left as a stub: the per-item number at COleClientItem+0x58 is the only thing
-// the comparison is built from, and OpenMFC's COleClientItem does not declare
-// it -- the same gap that leaves COleClientItem::GetNewItemNumber and
-// GetItemStorageCompound stubbed in core/ole/COleClientItem.cpp.  Returning an
-// arbitrary item instead of the one whose number matches would hand a linking
-// client the wrong embedding.
+// Left as a stub: the per-item number at retail COleClientItem+0x58 is needed
+// to format the comparison name, but OpenMFC's COleClientItem does not model
+// that number; its +0x58 is m_lpLink, so reading it as an integer would use
+// pointer bits as an item number.  The same missing number leaves
+// COleClientItem::GetNewItemNumber and GetItemStorageCompound stubbed in
+// core/ole/COleClientItem.cpp.  Returning an arbitrary item instead of the one
+// whose number matches would hand a linking client the wrong embedding.
 extern "C" COleClientItem* MS_ABI impl__OnFindEmbeddedItem_COleLinkingDoc__MEAAPEAVCOleClientItem__PEB_W_Z(
         COleLinkingDoc* pThis, const wchar_t* lpszItemName) {
     (void)pThis; (void)lpszItemName;

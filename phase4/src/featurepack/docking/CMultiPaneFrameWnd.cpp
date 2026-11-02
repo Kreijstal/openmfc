@@ -182,6 +182,9 @@ extern "C" void* MS_ABI impl__PaneFromPoint_CPaneContainerManager__UEAAPEAVCDock
 extern "C" void* MS_ABI impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
                      void* pThis, void* pPane, int* pbLeftPane);
 extern "C" int   MS_ABI impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockablePane__0_Z(void* pThis, void* pBarOld, void* pBarNew);
+extern "C" int   MS_ABI impl__InsertPane_CPaneContainerManager__UEAAHPEAVCDockablePane__0KPEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+                     void* pThis, void* pControlBarToInsert, void* pTargetControlBar,
+                     unsigned long dwAlignment, const RECT* lpRect, int dockMethod);
 extern "C" void  MS_ABI impl__ResizePaneContainers_CPaneContainerManager__UEAAXVCRect__AEAPEAX_Z(void* pThis, const RECT* pRect, void** phdwp);
 extern "C" void  MS_ABI impl__GetAvailableSpace_CPaneContainerManager__UEBAXAEAVCRect___Z(const void* pThis, CRect& rect);
 // docking/CPaneContainerManager.cpp:1942 -- generated placeholder `(void** p0)`
@@ -211,6 +214,7 @@ extern "C" int   MS_ABI impl__DockPane_CPane__UEAAHPEAVCBasePane__PEBUtagRECT__W
 extern "C" int   MS_ABI impl__LoadState_CPane__UEAAHPEB_WHI_Z(CPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID);
 extern "C" int   MS_ABI impl__SaveState_CPane__UEAAHPEB_WHI_Z(CPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID);
 extern "C" void  MS_ABI impl__EnableGripper_CDockablePane__UEAAXH_Z(CDockablePane* pThis, int bEnable);
+extern "C" void  MS_ABI impl__UndockPane_CDockablePane__UEAAXH_Z(CDockablePane* pThis, int bDelay);
 extern "C" void  MS_ABI impl__ConvertToTabbedDocument_CDockablePane__UEAAXH_Z(CDockablePane* pThis, int bActiveTabOnly);
 extern "C" void  MS_ABI impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(CDockablePane* pThis);
 // docking/CRecentDockSiteInfo.cpp:64 -- generated placeholder `(void** p0,
@@ -235,6 +239,9 @@ extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(co
 // real body that reads no members of `this`; ForceAdjustLayout (:166) is a
 // generated placeholder `(void** p0, int, int) {}`.
 extern "C" CDockingManager* MS_ABI impl__GetDockingManager_CGlobalUtils__QEAAPEAVCDockingManager__PEAVCWnd___Z(CGlobalUtils* pThis, CWnd* pWnd);
+extern "C" int   MS_ABI impl__GetPaneAndAlignFromPoint_CGlobalUtils__QEAAHAEAVCPaneContainerManager__VCPoint__PEAPEAVCDockablePane__AEAKAEAH4_Z(
+                     void* pThis, void* pBarContainerManager, long long pt, void** ppTargetControlBar,
+                     unsigned long* pdwAlignment, int* pbTabArea, int* pbCaption);
 extern "C" void  MS_ABI impl__ForceAdjustLayout_CGlobalUtils__QEAAXPEAVCDockingManager__HH_Z(CGlobalUtils* pThis, CDockingManager* pDockManager, int bForce, int bForceInvalidate);
 // ?afxGlobalUtils@@3VCGlobalUtils@@A -- the storage other docking files pass
 // as the CGlobalUtils `this` (retail .data 0x3aacf8).
@@ -544,7 +551,7 @@ extern "C" void* MS_ABI impl___1CMultiPaneFrameWnd__UEAA_XZ(void* pThis) {
     return pThis;
 }
 // Symbol: ?AddPane@CMultiPaneFrameWnd@@UEAAXPEAVCBasePane@@@Z
-// Decoded from retail entry RVA 0x92e80:
+// Decoded from retail entry RVA 0x928c0 (mfc140u; vtable +0x300):
 //     CDockablePane* p = DYNAMIC_DOWNCAST(CDockablePane, pWnd);       // RTC 0x3aa178
 //     if (m_barContainerManager.m_lstControlBars.m_nCount == 0) {     // cmpq $0,0x20(mgr)
 //         m_barContainerManager.AddPane(p);                           // mgr slot 0x48
@@ -571,7 +578,7 @@ extern "C" void MS_ABI impl__AddPane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane___Z(
     impl__OnSetRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(pThis);
 }
 // Symbol: ?RemovePane@CMultiPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
-// Decoded from retail entry RVA 0x932b0 (the third argument, %r9d, is never read):
+// Decoded from retail vtable +0x308, entry RVA 0x92cf0 (mfc140u; the third argument, %r9d, is never read):
 //     if (pWnd->IsKindOf(RUNTIME_CLASS(CDockablePane))) {            // 0x233310, RTC 0x3aa178
 //         m_barContainerManager.RemovePaneFromPaneContainer(pWnd);  // mgr slot 0x78
 //         if (m_barContainerManager.m_lstControlBars.m_nCount != 0) // cmpq $0,0x278(this)
@@ -665,7 +672,7 @@ extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEA
 }
 
 // Symbol: ?AddRecentPane@CMultiPaneFrameWnd@@UEAAHPEAVCDockablePane@@@Z
-// STUB.  Retail entry RVA 0x92f00.  The body branches on two members of the
+// STUB.  Retail entry RVA 0x92940 (mfc140u).  The body branches on two members of the
 // pane's CRecentDockSiteInfo (pane +0x3c0 / +0x3c8, which by the shipping
 // afxrecentdocksiteinfo.h layout are m_recentDockInfo.m_recentMiniFrameInfo.
 // m_pRecentBarContainer and .m_pRecentContainerOfTabWnd).  With the first
@@ -675,13 +682,21 @@ extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEA
 // m_hEmbeddedBar (0x148), and -- when the frame then holds exactly one visible pane
 // and it is this one -- CWnd::SetWindowPos to m_rectRecentFloatingRect (0x150);
 // with the second it either dispatches the tabbed pane's AttachToTabWnd (pane
-// slot 0x6a8) / ShowPane (0x458) / OnPaneRecalcLayout, or falls back to
-// AddPaneToRecentPaneContainer; both paths end in OnShowPane (slot 0x3e0) and
-// OnSetRollUpTimer (0x3f8) and return TRUE, or FALSE when both members are
-// NULL.  Not reproduced: CRecentDockSiteInfo is an opaque block in OpenMFC with
-// no accessor thunk that carries `this` (docking/CRecentDockSiteInfo.cpp), so
-// neither branch condition can be read, and AddPaneToRecentPaneContainer
-// (docking/CPaneContainerManager.cpp) is itself a placeholder.
+// slot 0x6a8) / ShowPane (0x458) / OnPaneRecalcLayout; that existing-pane
+// path goes directly to OnSetRollUpTimer (slot 0x3f8), without OnShowPane.
+// If no existing pane is selected, the method falls back to
+// AddPaneToRecentPaneContainer and calls OnShowPane (slot 0x3e0) with its
+// result. In the first recent-container path, OnShowPane is likewise called
+// only when AddPaneToRecentPaneContainer returns non-NULL. A non-NULL recent
+// container ultimately returns TRUE (with the roll-up timer update), whereas
+// both members NULL returns FALSE. The recent-container branch conditions are
+// readable through CRecentDockSiteInfo's existing GetRecentPaneContainer /
+// GetRecentTabContainer thunks, but AddPaneToRecentPaneContainer is a documented
+// stub that returns NULL. The existing-tab route also depends on the stubbed
+// CDockablePane::AttachToTabWnd, and the one-pane resize route needs the frame's
+// +0x150 recent rectangle, which has no reader for this file's CPaneFrameWnd
+// side table. Without those operations/state, the success paths cannot be
+// reproduced faithfully, so this body remains a documented stub.
 // Signature corrected: the generated list dropped `this`.
 extern "C" int MS_ABI impl__AddRecentPane_CMultiPaneFrameWnd__UEAAHPEAVCDockablePane___Z(void* pThis, void* pBar) {
     (void)pThis;
@@ -739,7 +754,7 @@ extern "C" int MS_ABI impl__CanBeDockedToPane_CMultiPaneFrameWnd__UEBAHPEBVCDock
 }
 
 // Symbol: ?CheckGripperVisibility@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x94540:
+// Decoded from retail entry RVA 0x93f80 (mfc140u; vtable +0x320):
 //     if (!::IsWindowVisible(m_hWnd)) return;                     // import 0x2c5350
 //     if (m_barContainerManager.GetVisiblePaneCount() == 1) {     // mgr slot 0xb8
 //         CWnd* p = m_barContainerManager.GetFirstVisiblePane();  // mgr slot 0x100
@@ -763,7 +778,7 @@ extern "C" void MS_ABI impl__CheckGripperVisibility_CMultiPaneFrameWnd__UEAAXXZ(
 }
 
 // Symbol: ?CloseMiniFrame@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x944f0:
+// Decoded from retail entry RVA 0x93f30 (mfc140u; vtable +0x458):
 //     if (OnCloseMiniFrame()) {                 // slot 0x450 -> CPaneFrameWnd::OnCloseMiniFrame (0xb4940)
 //         CWnd::ShowWindow(SW_HIDE);            // call 0x2a79e0
 //         m_barContainerManager.HideAll();      // mgr slot 0xc8
@@ -779,7 +794,7 @@ extern "C" void MS_ABI impl__CloseMiniFrame_CMultiPaneFrameWnd__UEAAXXZ(void* pT
 }
 
 // Symbol: ?ConvertToTabbedDocument@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x94ea0:
+// Decoded from retail entry RVA 0x948e0 (mfc140u; vtable +0x410):
 //     CObList lst;                                                  // vftable 0x328538
 //     m_barContainerManager.AddPanesToList(&lst, NULL);             // call 0xaa960
 //     for (each entry) {
@@ -824,22 +839,23 @@ extern "C" void* MS_ABI impl__CreateObject_CMultiPaneFrameWnd__SAPEAVCObject__XZ
 }
 
 // Symbol: ?DockFrame@CMultiPaneFrameWnd@@UEAAHPEAVCPaneFrameWnd@@W4AFX_DOCK_METHOD@@@Z
-// STUB.  Retail entry RVA 0x92570.  After requiring pDockedFrame to be a
-// CMultiPaneFrameWnd (RTC 0x3aa2f8) whose GetFirstVisiblePane (slot 0x368) is a
-// CBasePane (RTC 0x2da490) passing the unexported CBasePane virtual at slot
-// 0x340 (0x87d0), it: for DM_MOUSE (1) / DM_STANDARD (5) asks
-// CGlobalUtils::GetPaneAndAlignFromPoint (0x6d560) for the target pane and
-// alignment at the cursor; then either merges the other frame's manager into
-// this one through AddPaneContainerManagerToDockablePane (mgr slot 0x40) --
-// after possibly re-targeting through a CBaseTabbedPane virtual (+0x7b0, RTC
-// 0x2db168) -- or AddPaneContainerManager (mgr slot 0x30); posts
+// STUB.  Retail entry RVA 0x91fb0 (mfc140u).  After requiring pDockedFrame to
+// be a CMultiPaneFrameWnd (RTC 0x3aa2f8) whose GetFirstVisiblePane (slot 0x368)
+// is a CBasePane (RTC 0x2da490) passing the unexported CBasePane virtual at
+// slot 0x340, it: for DM_MOUSE (1) / DM_STANDARD (5) asks
+// CGlobalUtils::GetPaneAndAlignFromPoint (entry RVA 0x6d6c0, mfc140u) for the
+// target pane and alignment at the cursor; then either merges the other frame's
+// manager into this one through AddPaneContainerManagerToDockablePane (mgr slot
+// 0x40) -- after possibly re-targeting through a CBaseTabbedPane virtual
+// (+0x7b0) -- or AddPaneContainerManager (mgr slot 0x30); posts
 // AFX_WM_CHECKEMPTYMINIFRAME to the other frame, re-applies its 0x150
 // rectangle, calls OnPaneRecalcLayout, for DM_MOUSE re-enters drag mode on the
-// target pane (slot 0x638, RTC 0x2f3868) or synthesises WM_LBUTTONDOWN, and
-// ends in OnSetRollUpTimer.  Not reproduced: GetPaneAndAlignFromPoint is a
-// generated placeholder (core/runtime/CGlobalUtils.cpp:169), the two
-// AddPaneContainerManager exports are placeholders in
-// docking/CPaneContainerManager.cpp, and slots 0x340/0x7b0 are unexported.
+// target pane (slot 0x638) or synthesises WM_LBUTTONDOWN, and ends in
+// OnSetRollUpTimer.  Not reproduced: both AddPaneContainerManager exports are
+// stubs in docking/CPaneContainerManager.cpp (their required pane-container
+// creation/merge operations are unavailable); the slots 0x340/0x7b0 are
+// unexported. GetPaneAndAlignFromPoint is implemented in
+// core/runtime/CGlobalUtils.cpp:575; it is not the missing infrastructure.
 // Signature corrected: the generated 15-parameter list was garbage.
 extern "C" int MS_ABI impl__DockFrame_CMultiPaneFrameWnd__UEAAHPEAVCPaneFrameWnd__W4AFX_DOCK_METHOD___Z(
     void* pThis, void* pDockedFrame, int dockMethod) {
@@ -852,23 +868,62 @@ extern "C" int MS_ABI impl__DockFrame_CMultiPaneFrameWnd__UEAAHPEAVCPaneFrameWnd
 }
 
 // Symbol: ?DockPane@CMultiPaneFrameWnd@@UEAAHPEAVCDockablePane@@@Z
-// STUB.  Retail entry RVA 0x92880.  ::GetCursorPos, then
-// CGlobalUtils::GetPaneAndAlignFromPoint(m_barContainerManager, pt, &pTarget,
-// &dwAlignment, &bTabArea, &bCaption) (0x6d560); when that yields a target
-// and alignment it calls the pane's slot 0x490 with FALSE, ::SetParent(pBar,
-// this), m_barContainerManager.InsertPane(pBar, pTarget, dwAlignment, NULL,
-// DM_UNKNOWN) (mgr slot 0x58), and on success AddRemovePaneFromGlobalList(pBar,
-// TRUE), CheckGripperVisibility, OnPaneRecalcLayout, WM_NCPAINT; then
-// OnSetRollUpTimer, a conditional pBar->SetFocus (pane slot 0x3c0), a second
-// OnPaneRecalcLayout, and returns `InsertPane() == 0`.  Not reproduced:
-// GetPaneAndAlignFromPoint is a generated placeholder
-// (core/runtime/CGlobalUtils.cpp:169) that can never yield a target, so the
-// only path this build could take is the early `return TRUE`.
+// Decoded from retail entry RVA 0x922c0 (mfc140u): get the cursor position,
+// then call CGlobalUtils::GetPaneAndAlignFromPoint (entry RVA 0x6d6c0,
+// mfc140u). If it fails, or returns no target/alignment, return TRUE. Otherwise
+// call CDockablePane::UndockPane(FALSE) (slot 0x490; body RVA 0x44ed0,
+// mfc140u), ::SetParent(pBar, this), and CPaneContainerManager::InsertPane
+// (slot 0x58) with a NULL rect and DM_UNKNOWN. On a successful insert it adds
+// the pane to CPaneFrameWnd's global list, checks gripper visibility, recalculates
+// the frame, and sends WM_NCPAINT. It then always sets the roll-up timer, calls
+// SetFocus because pane slot 0x3c0 is the `return 1` body at RVA 0x3a60
+// (mfc140u), recalculates again, and returns `!InsertPane()`.
+// IAT slots were resolved with iatu.py: mfc140u VA 0x1802c7320 is USER32!GetCursorPos,
+// 0x1802c7288 is USER32!SetParent, and 0x1802c7120 is USER32!SendMessageW (called as
+// ::SendMessage in this UNICODE build). Deviations: NULL inputs return TRUE
+// rather than faulting; virtual calls are dispatched through the available
+// thunks, so further-derived overrides are not reached. UndockPane is currently
+// a documented stub (CDockablePane.cpp:3294), and InsertPane eventually reaches
+// the documented AddPaneAndPaneDivider stub (CPaneContainerManager.cpp:435),
+// which limits successful docking in this build. The retail sequence is still
+// reproduced around those unavailable sibling operations.
 // Signature corrected: the generated list dropped `this`.
 extern "C" int MS_ABI impl__DockPane_CMultiPaneFrameWnd__UEAAHPEAVCDockablePane___Z(void* pThis, void* pBar) {
-    (void)pThis;
-    (void)pBar;
-    return TRUE;
+    if (pThis == nullptr || pBar == nullptr) return TRUE;
+
+    POINT cursor = {};
+    ::GetCursorPos(&cursor);
+    long long point = 0;
+    static_assert(sizeof(cursor) == sizeof(point), "CPoint uses one 8-byte MS_ABI register");
+    std::memcpy(&point, &cursor, sizeof(point));
+
+    void* pTarget = nullptr;
+    unsigned long dwAlignment = 0;
+    int bTabArea = FALSE;
+    int bCaption = FALSE;
+    CGlobalUtils* pUtils = reinterpret_cast<CGlobalUtils*>(impl__afxGlobalUtils__3VCGlobalUtils__A);
+    if (!impl__GetPaneAndAlignFromPoint_CGlobalUtils__QEAAHAEAVCPaneContainerManager__VCPoint__PEAPEAVCDockablePane__AEAKAEAH4_Z(
+            pUtils, Mgr(pThis), point, &pTarget, &dwAlignment, &bTabArea, &bCaption) ||
+        pTarget == nullptr || dwAlignment == 0) {
+        return TRUE;
+    }
+
+    impl__UndockPane_CDockablePane__UEAAXH_Z(static_cast<CDockablePane*>(pBar), FALSE);
+    const HWND hOldParent = ::SetParent(AsWnd(pBar)->m_hWnd, FrameHwnd(pThis));
+    (void)impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(hOldParent);
+
+    const int bInserted = impl__InsertPane_CPaneContainerManager__UEAAHPEAVCDockablePane__0KPEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+        Mgr(pThis), pBar, pTarget, dwAlignment, nullptr, kDockMethodUnknown);
+    if (bInserted) {
+        impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pBar, TRUE);
+        impl__CheckGripperVisibility_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+        impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+        ::SendMessage(FrameHwnd(pThis), WM_NCPAINT, 0, 0);
+    }
+    impl__OnSetRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+    impl__SetFocus_CWnd__QEAAPEAV1_XZ(AsWnd(pBar));
+    impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+    return bInserted ? FALSE : TRUE;
 }
 
 // Symbol: ?DockPaneStandard@CMultiPaneFrameWnd@@MEAAPEAVCDockablePane@@AEAH@Z
@@ -947,7 +1002,7 @@ extern "C" int MS_ABI impl__LoadState_CMultiPaneFrameWnd__UEAAHPEB_WI_Z(void* pT
 }
 
 // Symbol: ?OnCheckEmptyState@CMultiPaneFrameWnd@@IEAA_J_K_J@Z
-// Decoded from retail entry RVA 0x949f0 (wParam/lParam are never read):
+// Decoded from retail entry RVA 0x94430 (mfc140u; WM_APP message-map handler; wParam/lParam are never read):
 //     CPaneContainer* pRoot = m_barContainerManager.m_pRootContainer;  // +0x2d0
 //     if (pRoot) pRoot->ReleaseEmptyPaneContainer();                  // call 0xa4e90
 //     pRoot = m_barContainerManager.m_pRootContainer;                 // re-read
@@ -1013,7 +1068,7 @@ extern "C" int MS_ABI impl__OnCreate_CMultiPaneFrameWnd__IEAAHPEAUtagCREATESTRUC
 }
 
 // Symbol: ?OnDockToRecentPos@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x946b0:
+// Decoded from retail entry RVA 0x940f0 (mfc140u; vtable +0x340):
 //     CDockingManager* pDM = m_pDockManager /*0x248*/;
 //     if (!pDM) pDM = afxGlobalUtils.GetDockingManager(this);        // call 0x6ccc0
 //     CObList lst;  m_barContainerManager.AddPanesToList(&lst, NULL); // call 0xaa960
@@ -1082,7 +1137,7 @@ extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CMultiPaneFrameWnd__IEAA_J_K_J
 }
 
 // Symbol: ?OnKillRollUpTimer@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x92d30:
+// Decoded from retail entry RVA 0x92770 (mfc140u; vtable +0x400):
 //     CObList lst;  m_barContainerManager.AddPanesToList(&lst, NULL);   // call 0xaa960
 //     for (each entry) {
 //         CBasePane* p = DYNAMIC_DOWNCAST(CBasePane, entry);             // RTC 0x2da490
@@ -1111,7 +1166,7 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CMultiPaneFrameWnd__IEAAXIVCPoint__
 }
 
 // Symbol: ?OnPaneRecalcLayout@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x93160:
+// Decoded from retail entry RVA 0x92ba0 (mfc140u; vtable +0x3a8):
 //     CRect rectClient;  ::GetClientRect(m_hWnd, &rectClient);            // import 0x2c5358
 //     HDWP hdwp = ::BeginDeferWindowPos(20);                             // import 0x2c4d28
 //     m_barContainerManager.ResizePaneContainers(rectClient, hdwp);      // mgr slot 0x80
@@ -1134,16 +1189,16 @@ extern "C" void MS_ABI impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(void
     if (pThis == nullptr) return;
     HWND hwnd = FrameHwnd(pThis);
     RECT rectClient = {0, 0, 0, 0};
-    if (hwnd) ::GetClientRect(hwnd, &rectClient);
+    ::GetClientRect(hwnd, &rectClient);
     HDWP hdwp = ::BeginDeferWindowPos(20);
     void* pHdwp = hdwp;
     impl__ResizePaneContainers_CPaneContainerManager__UEAAXVCRect__AEAPEAX_Z(Mgr(pThis), &rectClient, &pHdwp);
-    if (pHdwp) ::EndDeferWindowPos(static_cast<HDWP>(pHdwp));
+    ::EndDeferWindowPos(static_cast<HDWP>(pHdwp));
     if (impl__m_bHandleMinSize_CPane__2HA != 0) {
         CRect rectAvail(0, 0, 0, 0);
         impl__GetAvailableSpace_CPaneContainerManager__UEBAXAEAVCRect___Z(Mgr(pThis), rectAvail);
         RECT rectWnd = {0, 0, 0, 0};
-        if (hwnd) ::GetWindowRect(hwnd, &rectWnd);
+        ::GetWindowRect(hwnd, &rectWnd);
         int cx = (rectAvail.right - rectAvail.left) - (rectClient.right - rectClient.left);
         int cy = (rectAvail.bottom - rectAvail.top) - (rectClient.bottom - rectClient.top);
         if (cx < 0) cx = 0;
@@ -1157,7 +1212,8 @@ extern "C" void MS_ABI impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(void
 }
 
 // Symbol: ?OnSetFocus@CMultiPaneFrameWnd@@IEAAXPEAVCWnd@@@Z
-// Decoded from retail entry RVA 0x94d50 (pOldWnd is never read; CWnd::OnSetFocus
+// Decoded from WM_SETFOCUS message-map handler entry RVA 0x94790 (mfc140u;
+// message map RVA 0x2f06a8; pOldWnd is never read; CWnd::OnSetFocus
 // is NOT called -- unlike CPaneFrameWnd's handler):
 //     CBasePane* pFirst = DYNAMIC_DOWNCAST(CBasePane, GetFirstVisiblePane());  // slot 0x368, RTC 0x2da490
 //     if (m_hWndLastFocused /*0x2f8*/ == NULL) {
@@ -1209,7 +1265,7 @@ extern "C" void MS_ABI impl__OnSetFocus_CMultiPaneFrameWnd__IEAAXPEAVCWnd___Z(vo
 }
 
 // Symbol: ?OnSetRollUpTimer@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x92c70:
+// Decoded from retail entry RVA 0x926b0 (mfc140u; vtable +0x3f8):
 //     CObList lst;  m_barContainerManager.AddPanesToList(&lst, NULL);   // call 0xaa960
 //     for (each entry) {
 //         CBasePane* p = DYNAMIC_DOWNCAST(CBasePane, entry);             // RTC 0x2da490
@@ -1227,7 +1283,7 @@ extern "C" void MS_ABI impl__OnSetRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(void* 
 }
 
 // Symbol: ?OnShowPane@CMultiPaneFrameWnd@@UEAAXPEAVCDockablePane@@H@Z
-// Decoded from retail entry RVA 0x94400:
+// Decoded from retail entry RVA 0x93e40 (mfc140u; vtable +0x3e0):
 //     m_barContainerManager.OnShowPane(pBar, bShow);                 // mgr slot 0xa0
 //     if (bShow) {
 //         if (!m_bDelayShow /*+0x108*/)
@@ -1346,7 +1402,7 @@ extern "C" void MS_ABI impl__ReplacePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane_
 }
 
 // Symbol: ?SaveRecentFloatingState@CMultiPaneFrameWnd@@MEAAXXZ
-// Decoded from retail entry RVA 0x94810:
+// Decoded from retail entry RVA 0x94250 (mfc140u; vtable +0x448):
 //     ::GetWindowRect(m_hWnd, &m_rectRecentFloatingRect /*0x150*/);   // import 0x2c5370
 //     CObList lst;  m_barContainerManager.AddPanesToList(&lst, NULL);  // call 0xaa960
 //     for (each entry) {
@@ -1413,9 +1469,9 @@ extern "C" void MS_ABI impl__Serialize_CMultiPaneFrameWnd__UEAAXAEAVCArchive___Z
 }
 
 // Symbol: ?SetDockState@CMultiPaneFrameWnd@@UEAAXPEAVCDockingManager@@@Z
-// Decoded from retail entry RVA 0x93bd0 (mfc140.dll; the body runs to the
-// `ret` at 0x94388, 0x94389 is its ENSURE throw and 0x94390 is the next
-// export).  Read in full:
+// Decoded from the mfc140u vtable +0x3c8 entry, RVA 0x93610. The ANSI twin
+// entry is RVA 0x93bd0 (mfc140.dll); that body runs to the `ret` at 0x94388,
+// 0x94389 is its ENSURE throw and 0x94390 is the next export. Read in full:
 //     CObList lstBarsToRemove;                                          // vftable 0x328538
 //     if (m_barContainerManager.m_lstControlBars.m_nCount == 0) {       // cmpq 0x278
 //         ::PostMessage(m_hWnd, AFX_WM_CHECKEMPTYMINIFRAME, 0, 0);       // import 0x2c52d8, .data 0x3bae78
@@ -1706,7 +1762,9 @@ extern "C" void MS_ABI impl__SetDockState_CMultiPaneFrameWnd__UEAAXPEAVCDockingM
 }
 
 // Symbol: ?SetPreDockState@CMultiPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z
-// STUB.  Retail entry RVA 0x933f0, ~430 instructions.  Read in full:
+// STUB. The mfc140u vtable +0x330 entry is RVA 0x92e30; disas.py --u does not
+// resolve this name directly. The ANSI twin entry is RVA 0x933f0 (mfc140.dll),
+// ~430 instructions; read in full:
 //   * `if (preDockState == PDS_NOTHING /*0*/) return TRUE;`; for
 //     PDS_DOCK_REGULAR (2) it also returns TRUE unless pBarToDock's slot 0x328
 //     is non-zero; pBarToDock is then DYNAMIC_DOWNCAST to CDockablePane.
@@ -1745,11 +1803,12 @@ extern "C" void MS_ABI impl__SetDockState_CMultiPaneFrameWnd__UEAAXPEAVCDockingM
 //     the target or AdjustDockingLayout (slot 0x4e0) on the first pane,
 //     OnSetRollUpTimer, slot 0x6c8 on every recorded pane that is still a
 //     permanent CDockablePane, and returns FALSE.
-// Not reproduced: CheckAlignment and IsPointNearDockSite are generated
-// placeholders (core/runtime/CGlobalUtils.cpp:161, docking/CDockingManager.cpp:879),
-// DockPaneContainer is a documented stub (docking/CDockablePane.cpp:1155), no
-// CPaneDivider in this build has a retail-shaped vtable, and the 0x248/0x130
-// members are not modelled -- so neither docking arm could be taken faithfully.
+// Not reproduced: IsPointNearDockSite remains a documented stub
+// (docking/CDockingManager.cpp:989), DockPaneContainer is a documented stub
+// (docking/CDockablePane.cpp:1155), no CPaneDivider in this build has a
+// retail-shaped vtable, and the 0x248/0x130 members are not modelled -- so
+// neither docking arm could be taken faithfully. CheckAlignment is implemented
+// in core/runtime/CGlobalUtils.cpp:487 and is not the missing dependency.
 // TRUE is retail's "nothing was docked" value on every early-out.
 // Signature corrected: the generated 29-parameter list was garbage.
 extern "C" int MS_ABI impl__SetPreDockState_CMultiPaneFrameWnd__UEAAHW4AFX_PREDOCK_STATE__PEAVCBasePane__W4AFX_DOCK_METHOD___Z(
@@ -1762,7 +1821,7 @@ extern "C" int MS_ABI impl__SetPreDockState_CMultiPaneFrameWnd__UEAAHW4AFX_PREDO
 }
 
 // Symbol: ?StoreRecentDockSiteInfo@CMultiPaneFrameWnd@@UEAAXPEAVCPane@@@Z
-// Decoded from retail entry RVA 0x948d0:
+// Decoded from retail entry RVA 0x94310 (mfc140u; vtable +0x3d0):
 //     if (pBar == NULL) return;
 //     if (pBar->IsKindOf(RUNTIME_CLASS(CDockablePane))) {                      // RTC 0x3aa178
 //         BOOL bLeft = TRUE;

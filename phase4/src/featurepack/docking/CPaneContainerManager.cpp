@@ -1,18 +1,18 @@
 // CPaneContainerManager — OpenMFC implementation.
 // Sources: cbarcore.cpp
 //
-// The bodies marked "decoded from retail" below were transcribed from the retail
-// export disassembly (disas.py against
-// /home/kreijstal/msvc/VC/Redist/MSVC/14.51.36231/x64/Microsoft.VC145.MFC/mfc140.dll,
-// the ANSI twin of the mfc140u.dll OpenMFC reimplements). Function bodies are
-// byte-identical between the two images; only the export RVAs differ, so every
-// RVA quoted here is an mfc140.dll RVA and is named as such.
+// The bodies marked "decoded from retail" below were transcribed from retail
+// export disassembly. mfc140.dll (ANSI) and mfc140u.dll (Unicode, the image
+// OpenMFC reimplements) have byte-identical function bodies but different export
+// RVAs; each RVA citation names its source image (mfc140.dll or mfc140u.dll).
 
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/CRecentPaneContainerInfoSupport.h"
 
 #include <cstddef>
+#include <cstdlib>
 
 // ---------------------------------------------------------------------------
 // Retail CPaneContainerManager instance layout
@@ -33,15 +33,15 @@
 //   +0x98  CWnd*           m_pDockSite
 //   sizeof == 0xa0
 //
-// sizeof is not a guess: ?CreateObject@CPaneContainerManager@@SAPEAVCObject@@XZ
-// (entry RVA 0xa8070) does `mov $0xa0,%ecx; call operator new` before running
-// the constructor, and docking/RuntimeClasses.cpp already records 160 for this
-// class.
+// The offsets are transcribed from the mfc140u constructor at RVA 0xa7af0. The
+// size is also pinned by ?CreateObject@CPaneContainerManager@@SAPEAVCObject@@XZ
+// (mfc140u RVA 0xa7ab0), which passes 0xa0 to operator new; docking/RuntimeClasses.cpp
+// records 160 for this class as well. The local shadow below asserts every offset.
 //
 // The two embedded CObLists are confirmed by every list-walking body in this
 // file: they load the head pointer from +0x10 (= list base 0x08 + CObList's
 // m_pNodeHead at +0x08) and from +0x48 (= 0x40 + 0x08), and step nodes with
-// `node->pNext` at +0x00 / `node->data` at +0x10. ?IsEmpty@ (entry RVA 0xaa8e0)
+// `node->pNext` at +0x00 / `node->data` at +0x10. ?IsEmpty@ (entry RVA 0xaa8e0, mfc140.dll)
 // tests +0x20, which is m_lstControlBars.m_nCount.
 //
 // LIST REPRESENTATION -- deliberate, file-wide deviation.
@@ -68,16 +68,45 @@ constexpr size_t kOffDockSite             = 0x98;
 constexpr size_t kOffLstControlBars       = 0x08;
 constexpr size_t kOffLstSliders           = 0x40;
 constexpr size_t kSizeCPaneContainerManager = 0xa0;
-static_assert(kOffLstSliders - kOffLstControlBars == 0x38, "sizeof(CObList) == 0x38");
-static_assert(kOffDockSite + 8 == kSizeCPaneContainerManager, "CPaneContainerManager tail");
+
+// Byte-shaped shadow: CPaneContainerManager is not declared in include/openmfc,
+// so keep the retail member positions local without exposing a public type.
+struct CPaneContainerManagerShadow {
+    void* m_vfptr;
+    unsigned char m_lstControlBars[0x38];
+    unsigned char m_lstSliders[0x38];
+    void* m_pRootContainer;
+    CRuntimeClass* m_pContainerRTC;
+    void* m_pDefaultSlider;
+    int m_bDestroyRootContainer;
+    unsigned char m_padding[4];
+    void* m_pDockSite;
+};
+static_assert(sizeof(CObList) == 0x38, "retail embedded CObList size");
+static_assert(offsetof(CPaneContainerManagerShadow, m_lstControlBars) == kOffLstControlBars,
+              "CPaneContainerManager::m_lstControlBars offset");
+static_assert(offsetof(CPaneContainerManagerShadow, m_lstSliders) == kOffLstSliders,
+              "CPaneContainerManager::m_lstSliders offset");
+static_assert(offsetof(CPaneContainerManagerShadow, m_pRootContainer) == kOffRootContainer,
+              "CPaneContainerManager::m_pRootContainer offset");
+static_assert(offsetof(CPaneContainerManagerShadow, m_pContainerRTC) == kOffContainerRTC,
+              "CPaneContainerManager::m_pContainerRTC offset");
+static_assert(offsetof(CPaneContainerManagerShadow, m_pDefaultSlider) == kOffDefaultSlider,
+              "CPaneContainerManager::m_pDefaultSlider offset");
+static_assert(offsetof(CPaneContainerManagerShadow, m_bDestroyRootContainer) == kOffDestroyRootContainer,
+              "CPaneContainerManager::m_bDestroyRootContainer offset");
+static_assert(offsetof(CPaneContainerManagerShadow, m_pDockSite) == kOffDockSite,
+              "CPaneContainerManager::m_pDockSite offset");
+static_assert(sizeof(CPaneContainerManagerShadow) == kSizeCPaneContainerManager,
+              "CPaneContainerManager retail size");
 
 // CPaneContainer::m_pSlider, +0x18. Same offset the sibling shadow struct in
 // docking/CPaneContainer.cpp pins; retail ?RemovePaneDivider@ (entry RVA
-// 0xa9400) both compares and clears it there.
+// 0xa9400, mfc140.dll) both compares and clears it there.
 constexpr size_t kOffContainerSlider = 0x18;
 // NOTE -- CPaneDivider::m_pContainerManager (+0x208 in retail) is deliberately
 // NOT modelled here, and there is no kOffDividerManager constant any more.
-// Retail ?CreatePaneDivider@ (entry RVA 0xa92e0) stores `this` there and
+// Retail ?CreatePaneDivider@ (entry RVA 0xa92e0, mfc140.dll) stores `this` there and
 // ?RemovePaneDivider@ (0xa9400) clears it, and RuntimeClasses.cpp does record
 // 536 (0x218) as CPaneDivider's m_nObjectSize -- but that is the RETAIL size.
 // The CPaneDivider this DLL actually builds is the one declared in
@@ -89,7 +118,7 @@ constexpr size_t kOffContainerSlider = 0x18;
 // CDockablePane::m_bIsResizing, +0x46c. The member order in the shipping
 // afxdockablepane.h puts it right after CRect m_rectRestored (+0x458) and
 // BOOL m_bIsSliding (+0x468); docking/CDockablePane.cpp's layout comment pins
-// the same offset. Retail ?SetResizeMode@ (entry RVA 0xa9f20) stores its
+// the same offset. Retail ?SetResizeMode@ (entry RVA 0xa9f20, mfc140.dll) stores its
 // argument there for every entry of m_lstControlBars.
 constexpr size_t kOffPaneIsResizing = 0x46c;
 // CPaneContainer::m_pContainerManager, +0x38, and sizeof(CPaneContainer) ==
@@ -102,7 +131,7 @@ constexpr size_t kOffContainerManagerOfContainer = 0x38;
 constexpr size_t kSizeCPaneContainer            = 0xf8;
 
 // CBRS_ALIGN_*, as spelled in the shipping atlmfc afxres.h and as tested by
-// retail ?CalcRects@ (entry RVA 0xa95d0: `test $0xa000,%r11d`, then
+// retail ?CalcRects@ (entry RVA 0xa95d0, mfc140.dll: `test $0xa000,%r11d`, then
 // `and $0xf000,%r11d` and four compares against 0x1000/0x2000/0x4000/0x8000).
 // They are NOT taken from include/openmfc/afxole.h: that header defines
 // CBRS_ALIGN_ANY as 0x000F, which is not the value retail masks with.
@@ -119,10 +148,10 @@ constexpr unsigned long kSliderStyleHorz = 0x1UL;
 constexpr unsigned long kSliderStyleVert = 0x2UL;
 
 // BC_FIND_CRITERIA::BC_FIND_BY_SLIDER, as dispatched by
-// ?FindSubPaneContainer@CPaneContainer@@ (entry RVA 0xa5230).
+// ?FindSubPaneContainer@CPaneContainer@@ (entry RVA 0xa5230, mfc140.dll).
 constexpr int kFindBySlider = 2;
 
-// WS_EX_LAYOUTRTL. Retail ?OnPaneDividerMove@ (entry RVA 0xa8e10) masks
+// WS_EX_LAYOUTRTL. Retail ?OnPaneDividerMove@ (entry RVA 0xa8e10, mfc140.dll) masks
 // CWnd::GetExStyle() with 0x400000 at 0xa8eb9 and uses the result to pick which
 // edge of the root rectangle the offset is applied to. The Windows SDK spells
 // the same bit WS_EX_LAYOUTRTL; it is named locally because the mingw headers
@@ -196,6 +225,8 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__X
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPaneFrameWnd__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ();
 
 extern "C" unsigned long MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis);
 extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow);
@@ -229,6 +260,10 @@ extern "C" void MS_ABI impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z
 extern "C" void MS_ABI impl__NotifyAboutRelease_CPaneDivider__UEAAXXZ(void* pThis);
 
 extern "C" void MS_ABI impl__CheckPaneDividerVisibility_CPaneContainer__QEAAXXZ(void* pThis);
+extern "C" void MS_ABI impl__DeletePane_CPaneContainer__UEAAXPEAVCDockablePane__W4BC_FIND_CRITERIA_1__Z(
+    void* pThis, void* pPane, int criteria);
+extern "C" void MS_ABI impl__SaveListOfRecentPanes_CRecentDockSiteInfo__QEAAXAEAV__CList_PEAUHWND____PEAU1___H_Z(
+    void* pThis, void* pList, int bForSlider);
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CPaneContainer__UEAAXPEAVCDockablePane___Z(
     void* pThis, void* pBar);
 extern "C" void* MS_ABI impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
@@ -239,6 +274,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ
 // allocator retail ?CreateObject@CPaneContainerManager@@ calls (0x2840, mfc140.dll).
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 // ?m_nDefaultWidth@CPaneDivider@@2HA -- the exported static that retail
 // ?CalcRects@ reads at 0x1803aab0c (mfc140.dll) when it reserves the divider
@@ -271,13 +307,14 @@ extern "C" int MS_ABI impl__OnMoveInternalPaneDivider_CPaneContainer__UEAAHHAEAP
 
 extern "C" int MS_ABI impl__GetCaptionHeight_CDockablePane__UEBAHXZ(const void* pThis);
 extern "C" int MS_ABI impl__HitTest_CDockablePane__UEAAHVCPoint__H_Z(
-    void* pThis, void* point, int bDetectCaption);
+    void* pThis, long long point, int bDetectCaption);
 
 // Same-file entry point, forward declared so OnPaneDividerMove can reach it the
 // way retail does (retail calls it through this->vftable slot 0x80, which for an
 // unsubclassed CPaneContainerManager is exactly that body).
 extern "C" void MS_ABI impl__ResizePaneContainers_CPaneContainerManager__UEAAXVCRect__AEAPEAX_Z(
     void* pThis, const RECT* pRect, void** phdwp);
+extern "C" int MS_ABI impl__GetVisiblePaneCount_CPaneContainerManager__UEBAHXZ(const void* pThis);
 
 namespace {
 
@@ -292,7 +329,7 @@ void* DynDowncast(void* p, CRuntimeClass* pRTC) {
 } // namespace
 
 // Symbol: ??0CPaneContainerManager@@QEAA@XZ
-// Decoded from retail ??0CPaneContainerManager@@QEAA@XZ, entry RVA 0xa80b0
+// Decoded from retail ??0CPaneContainerManager@@QEAA@XZ, entry RVA 0xa80b0 (mfc140.dll)
 // (mfc140.dll): the ctor stores the CPaneContainerManager vftable at +0x00 and
 // the CObList vftable at +0x08 / +0x40, zeroes both lists' head/tail/count/free/
 // blocks words, stores 10 (CObList's default block size) into both m_nBlockSize
@@ -376,7 +413,7 @@ extern "C" void* MS_ABI impl__GetFirstVisiblePane_CPaneContainerManager__UEBAPEA
 // m_pRootContainer is NULL, then collects pBarOriginal's minimum size
 // (CDockablePane vtable +0x4f0) and window rect and pContainerToInsert's
 // (CPaneContainer vtable +0x30 / +0x28), maps them into the dock site's client
-// space (CWnd::ScreenToClient, 0x2a11f0), calls CalcRects (0xa95d0) to split
+// space (CWnd::ScreenToClient, 0x2a11f0), calls CalcRects (entry RVA 0xa95d0, mfc140.dll) to split
 // them and CreatePaneDivider (0xa92e0) to build the new divider, then
 // repositions both halves through CDockablePane vtable +0x478 and
 // CPaneContainer vtable +0xa0 / +0x70 before splicing the node in.
@@ -399,7 +436,7 @@ extern "C" int MS_ABI impl__AddPaneAndPaneContainer_CPaneContainerManager__IEAAH
 
 // Symbol: ?AddPaneAndPaneDivider@CPaneContainerManager@@IEAAHPEAVCDockablePane@@0PEAU__POSITION@@K@Z
 // Retail entry RVA 0xa9a00 (mfc140.dll), 293 instructions. (An earlier revision
-// of this comment cited 0xa9770; that RVA is AddPaneAndPaneContainer.) It
+// of this comment cited 0xa9770; that is the AddPaneAndPaneContainer entry in mfc140.dll.) It
 // returns FALSE when m_pRootContainer is NULL or when dwAlignment masked with
 // CBRS_ALIGN_ANY is neither LEFT/TOP nor RIGHT/BOTTOM, otherwise splices
 // pBarToInsert into m_lstControlBars with CObList::InsertBefore (0x230630) or
@@ -460,7 +497,10 @@ extern "C" int MS_ABI impl__AddPaneAndPaneDivider_CPaneContainerManager__IEAAHPE
 // ?AddPane@CDockingManager@@ are not reachable from here, and CDockablePane
 // vtable +0x3d0 is not identified -- so the copy that is the whole point of the
 // merge cannot be made.
-extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHAEAV1_H_Z(void* /*class*/* p0, int p1) {
+extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHAEAV1_H_Z(
+    void* pThis, void* pSrcManager, int bOuterEdge) {
+    (void)pThis; (void)pSrcManager; (void)bOuterEdge;
+    // STUB: the required CPaneContainer::Copy export is still a documented stub.
     return 0;
 }
 
@@ -484,7 +524,11 @@ extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAH
 // site and finishes with CheckPaneDividerVisibility and CalculateRecentSize.
 // Left a stub for the same reasons as the overload above, plus
 // AddPaneAndPaneContainer, which is itself a stub in this file.
-extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(void* /*class*/* p0, unsigned long p1, void* /*class*/* p2, int p3) {
+extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(
+    void* pThis, void* pTargetControlBar, unsigned long dwAlignment,
+    void* pSrcManager, int bCopy) {
+    (void)pThis; (void)pTargetControlBar; (void)dwAlignment; (void)pSrcManager; (void)bCopy;
+    // STUB: this merge depends on CPaneContainer::Copy and AddPaneAndPaneContainer, both unavailable.
     return 0;
 }
 
@@ -510,7 +554,10 @@ extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAH
 // middle section depends on the same CPaneContainer plumbing the overloads above
 // need. The two IsKindOf descriptors and the virtual slot were not resolved, so
 // nothing is claimed about them here.
-extern "C" int MS_ABI impl__AddPaneContainerManagerToDockablePane_CPaneContainerManager__UEAAHPEAVCDockablePane__AEAV1__Z(void* /*class*/* p0, void* /*class*/* p1) {
+extern "C" int MS_ABI impl__AddPaneContainerManagerToDockablePane_CPaneContainerManager__UEAAHPEAVCDockablePane__AEAV1__Z(
+    void* pThis, void* pTargetControlBar, void* pSrcManager) {
+    (void)pThis; (void)pTargetControlBar; (void)pSrcManager;
+    // STUB: retail delegates to AddPaneAndPaneDivider, which cannot create its required divider.
     return 0;
 }
 
@@ -593,7 +640,7 @@ extern "C" void MS_ABI impl__AddPaneToList_CPaneContainerManager__QEAAXPEAVCDock
 //   if (p != pRecentContainer) {                                   // 0xa89f6
 //       p = NULL;
 //       if (m_pRootContainer->m_pLeftPaneContainer)                // +0x20
-//           p = ...->FindSubPaneContainer(pRecentContainer, 3);    // 0xa5230
+//           p = ...->FindSubPaneContainer(pRecentContainer, 3);    // entry RVA 0xa5230 (mfc140.dll)
 //       if (p == NULL && m_pRootContainer->m_pRightPaneContainer)  // +0x28
 //           p = ...->FindSubPaneContainer(pRecentContainer, 3);
 //   }
@@ -647,7 +694,10 @@ extern "C" void MS_ABI impl__AddPaneToList_CPaneContainerManager__QEAAXPEAVCDock
 //    call at 0xa8b83 rather than the InsertAfter at 0xa8bad. That is an observation about
 //    retail's own arithmetic, not a licence to hard-code AddHead here -- this
 //    file keeps m_lstControlBars in a side table with no POSITION to insert at.)
-extern "C" void* MS_ABI impl__AddPaneToRecentPaneContainer_CPaneContainerManager__UEAAPEAVCDockablePane__PEAV2_PEAVCPaneContainer___Z(void* /*class*/* p0) {
+extern "C" void* MS_ABI impl__AddPaneToRecentPaneContainer_CPaneContainerManager__UEAAPEAVCDockablePane__PEAV2_PEAVCPaneContainer___Z(
+    void* pThis, void* pBarToAdd, void* pRecentContainer) {
+    (void)pThis; (void)pBarToAdd; (void)pRecentContainer;
+    // STUB: recent-divider creation depends on CPaneDivider retail storage and unavailable recent-state setup.
     return nullptr;
 }
 
@@ -816,19 +866,23 @@ extern "C" void MS_ABI impl__CalcRects_CPaneContainerManager__QEAAXAEAVCRect__00
 // { return FALSE; }`, and CDockablePane's vftable (0x1802e3068) overrides the
 // same slot with the shared `mov $1,%eax; ret` body at 0x3ae0.
 //
-// DEVIATION: called through OpenMFC's own CBasePane vtable rather than by slot
-// index -- OpenMFC's CBasePane declares CanBeAttached as a virtual but the retail
-// method is inline, so no impl__ thunk for it exists. Retail also calls through a
-// NULL `this` when the downcast fails; that case is skipped here.
+// DEVIATIONS: OpenMFC's CBasePane::CanBeAttached returns TRUE, unlike retail's
+// inline base implementation, which returns FALSE. Dispatch through the local
+// virtual only for CDockablePane descendants (whose override returns TRUE); a
+// valid non-CDockable CBasePane returns retail's default FALSE. Custom
+// non-CDockable overrides are not represented. Retail also calls through a
+// NULL `this` when the downcast fails; those entries are skipped here.
 extern "C" int MS_ABI impl__CanBeAttached_CPaneContainerManager__UEBAHXZ(const void* pThis) {
     if (pThis == nullptr) return TRUE;
     CRuntimeClass* pBasePaneClass = impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
+    CRuntimeClass* pDockablePaneClass = impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ();
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     std::vector<void*>* panes = PaneListLocked(pThis);
     if (panes == nullptr) return TRUE;
     for (void* obj : *panes) {
         void* p = DynDowncast(obj, pBasePaneClass);
         if (p == nullptr) continue;
+        if (DynDowncast(p, pDockablePaneClass) == nullptr) return FALSE;
         if (!static_cast<const CBasePane*>(p)->CanBeAttached()) return FALSE;
     }
     return TRUE;
@@ -893,13 +947,29 @@ extern "C" int MS_ABI impl__CheckAndRemoveNonValidPane_CPaneContainerManager__QE
 // ::GetWindowRect by it and ::PtInRect-tests `point`; on a hit it takes
 // GetFirstVisiblePane() (this->vtable +0x100) and returns it only if it is a
 // CDockablePane (RTTI at 0x1803aa178).
-// Left a stub: none of those three CPaneFrameWnd virtuals is identified here and
-// OpenMFC has no CMultiPaneFrameWnd runtime class to test m_pDockSite against,
-// so the IsKindOf guard at the top could not be reproduced faithfully. (?Create@
-// in this file now does set m_pDockSite, so the guard is no longer unreachable
-// for the reason an earlier revision of this comment gave.)
-extern "C" int MS_ABI impl__CheckForMiniFrameAndCaption_CPaneContainerManager__UEAAHVCPoint__PEAPEAVCDockablePane___Z(void* /*class*/ p0, void* /*class*/** p1) {
-    return 0;
+// OpenMFC does have the CMultiPaneFrameWnd runtime descriptor (its GetThisClass
+// thunk is in docking/RuntimeClasses.cpp), so the retail type guard and visible-
+// pane-count early exit are reproduced below. The earlier comment claiming the
+// runtime class did not exist was false. Retail then uses CPaneFrameWnd slots
+// +0x3a0/+0x388 and the unexported +0x2f0 caption-height getter. The first two
+// have thunks in CPaneFrameWnd.cpp, but its +0x114 caption-height field is not
+// modeled here; this body declines the final geometry hit test rather than read
+// beyond the OpenMFC CPaneFrameWnd object or invent that field.
+extern "C" int MS_ABI impl__CheckForMiniFrameAndCaption_CPaneContainerManager__UEAAHVCPoint__PEAPEAVCDockablePane___Z(
+    void* pThis, long long point, void** ppTargetControlBar) {
+    (void)point;
+    if (ppTargetControlBar != nullptr) *ppTargetControlBar = nullptr;
+    if (pThis == nullptr) return FALSE;
+
+    void* pDockSite = Field<void*>(pThis, kOffDockSite);
+    CRuntimeClass* pMiniFrameClass =
+        impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ();
+    if (DynDowncast(pDockSite, pMiniFrameClass) == nullptr) return FALSE;
+    if (impl__GetVisiblePaneCount_CPaneContainerManager__UEBAHXZ(pThis) > 1) return FALSE;
+
+    // STUB remainder: retail's CPaneFrameWnd caption-height getter reads an
+    // OpenMFC-unmodeled field, so no geometry or pane hit is claimed.
+    return FALSE;
 }
 
 // Symbol: ?Create@CPaneContainerManager@@UEAAHPEAVCWnd@@PEAVCPaneDivider@@PEAUCRuntimeClass@@@Z
@@ -1262,7 +1332,7 @@ extern "C" void MS_ABI impl__GetAvailableSpace_CPaneContainerManager__UEBAXAEAVC
 // nMinOffset = nMaxOffset = 0 and nStep = -1 and reads ::GetWindowRect of
 // pSlider's own window, then splits on the BOOL at CPaneDivider +0x1c4 -- the
 // default-divider flag, which ?Init@CPaneDivider@@QEAAXHPEAVCWnd@@@Z (entry RVA
-// 0xab720) stores its `bDefaultSlider` argument into:
+// 0xab720, mfc140.dll) stores its `bDefaultSlider` argument into:
 //   * default divider: it takes the pane's dock-site window from the CBasePane
 //     virtual at vtable +0x348, hands it to
 //     ?GetDockingManager@CGlobalUtils@@ (0x6ccc0), inflates the docking
@@ -1271,7 +1341,7 @@ extern "C" void MS_ABI impl__GetAvailableSpace_CPaneContainerManager__UEBAXAEAVC
 //   * internal divider: it finds the owning CPaneContainer -- m_pRootContainer
 //     itself when its m_pSlider matches, otherwise
 //     CPaneContainer::FindSubPaneContainer(pSlider, BC_FIND_BY_SLIDER)
-//     (0xa5230) on its two children -- and derives the limits from that node's
+//     (entry RVA 0xa5230, mfc140.dll) on its two children -- and derives the limits from that node's
 //     GetWindowRect (vtable +0x28), GetMinSizeLeft (+0x38) and GetMinSizeRight
 //     (+0x40), choosing the vertical or horizontal formula on the CPaneDivider
 //     virtual at +0x2d8.
@@ -1289,7 +1359,11 @@ extern "C" void MS_ABI impl__GetAvailableSpace_CPaneContainerManager__UEBAXAEAVC
 // CPaneContainer accessors this would use -- GetWindowRect, GetMinSizeLeft,
 // GetMinSizeRight, GetResizeStep -- are stubs, and all four now have real bodies
 // in docking/CPaneContainer.cpp.)
-extern "C" void MS_ABI impl__GetMinMaxOffset_CPaneContainerManager__UEAAXPEAVCPaneDivider__AEAH11_Z(void* /*class*/* p0, int* p1, int* p2, int* p3) {}
+extern "C" void MS_ABI impl__GetMinMaxOffset_CPaneContainerManager__UEAAXPEAVCPaneDivider__AEAH11_Z(
+    void* pThis, void* pSlider, int* pMinOffset, int* pMaxOffset, int* pStep) {
+    (void)pThis; (void)pSlider; (void)pMinOffset; (void)pMaxOffset; (void)pStep;
+    // STUB: retail reads CPaneDivider fields beyond OpenMFC's 24-byte declaration.
+}
 
 // Symbol: ?GetMinSize@CPaneContainerManager@@UEAAXAEAVCSize@@@Z
 // Decoded from retail ?GetMinSize@CPaneContainerManager@@UEAAXAEAVCSize@@@Z,
@@ -1467,7 +1541,7 @@ extern "C" int MS_ABI impl__IsEmpty_CPaneContainerManager__QEBAHXZ(const void* p
 // Decoded from retail ?IsRootPaneContainerVisible@CPaneContainerManager@@UEBAHXZ,
 // entry RVA 0xaa690 (mfc140.dll): `m_pRootContainer == NULL ? FALSE :
 // m_pRootContainer->IsVisible()` -- tail jump to ?IsVisible@CPaneContainer@@
-// (0xa7150).
+// (entry RVA 0xa7150, mfc140.dll).
 extern "C" int MS_ABI impl__IsRootPaneContainerVisible_CPaneContainerManager__UEBAHXZ(const void* pThis) {
     if (pThis == nullptr) return FALSE;
     const void* pRoot = Field<void*>(pThis, kOffRootContainer);
@@ -1554,32 +1628,18 @@ extern "C" void MS_ABI impl__NotifyPaneDivider_CPaneContainerManager__QEAAXXZ(vo
 // at +0x80.
 //
 // DEVIATIONS:
-//  * HAZARD, not a deviation -- flagged here because the call is retail's and is
-//    reproduced faithfully: the default-divider path hands `pSlider` to
-//    ?GetCurrentAlignment@CBasePane@@, which reads CBasePane::m_dwStyle. In this
-//    DLL that member sits at offset 260 of a 424-byte CBasePane, while
-//    CPaneDivider (include/openmfc/afxmfc.h) is CObject plus a 16-byte pad --
-//    sizeof 24. So on a real OpenMFC CPaneDivider that read runs ~236 bytes past
-//    the end of the object and the alignment it returns is garbage; the switch
-//    below then usually falls through its `default`. Retail's CPaneDivider is
-//    0x218 bytes and derives from CBasePane, so retail is reading its own field.
-//    The fix belongs in the CPaneDivider declaration, not here.
+//  * The default-divider branch is deliberately declined before reading its
+//    alignment. OpenMFC's CPaneDivider is CObject plus a 16-byte pad (24 bytes),
+//    but retail's GetCurrentAlignment call reads CBasePane::m_dwStyle at +0x104
+//    and retail CPaneDivider is 0x218 bytes deriving from CBasePane. Dispatching
+//    that call on an OpenMFC divider would read beyond the object; the previous
+//    body did exactly that despite documenting the hazard.
 //  * `this` and m_pRootContainer are NULL-checked; retail dereferences both.
 //  * The dead ::GetWindowRect(pSlider->m_hWnd) call is not made. It writes a
 //    stack CRect that no later instruction reads.
-//  * ResizePaneContainers is called as this file's own body rather than through
-//    vtable slot +0x80; for an unsubclassed manager that slot is exactly this
-//    body, but a derived override would be missed.
-//  * All three CPaneContainer entry points this dispatches to -- GetWindowRect,
-//    GetMinSize and OnMoveInternalPaneDivider -- have real bodies in
-//    docking/CPaneContainer.cpp, so both paths do real work. (An earlier
-//    revision of this comment called all three generated stubs and said the
-//    geometry this computes is necessarily all zeroes and the internal-divider
-//    path necessarily returns FALSE; that has not been true since those bodies
-//    landed.) One arm one level down is still inert: OnMoveInternalPaneDivider
-//    applies its pane rectangles through ?MoveWindow@CBasePane@@, which is
-//    implemented, but its sub-container rectangles through
-//    ?Resize@CPaneContainer@@, which is still a stub.
+//  * The internal-divider path still dispatches to the implemented
+//    CPaneContainer::OnMoveInternalPaneDivider body. Its sub-container resizing
+//    can still reach ?Resize@CPaneContainer@@, which remains a stub.
 // The generated stub's parameter list omitted the implicit `this`.
 extern "C" int MS_ABI impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCPaneDivider__IHAEAPEAX_Z(
     void* pThis, void* pSlider, unsigned int uFlags, int nOffset, void** phdwp) {
@@ -1594,34 +1654,8 @@ extern "C" int MS_ABI impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCP
     impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(pRoot, sizeMin);
 
     if (pSlider == Field<void*>(pThis, kOffDefaultSlider)) {
-        const unsigned long dwAlign =
-            impl__GetCurrentAlignment_CBasePane__UEBAKXZ(static_cast<const CBasePane*>(pSlider));
-        CWnd* pDockSite = static_cast<CWnd*>(Field<void*>(pThis, kOffDockSite));
-        impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pDockSite, static_cast<RECT*>(rect));
-        const bool bRTL = (impl__GetExStyle_CWnd__QEBAKXZ(pDockSite) & kExLayoutRtl) != 0;
-        switch (dwAlign) {
-        case kCbrsAlignLeft:
-            if (bRTL) rect.left += nOffset; else rect.right += nOffset;
-            if (rect.right - rect.left < sizeMin.cx) rect.right = rect.left + sizeMin.cx;
-            break;
-        case kCbrsAlignTop:
-            rect.bottom += nOffset;
-            if (rect.bottom - rect.top < sizeMin.cy) rect.bottom = rect.top + sizeMin.cy;
-            break;
-        case kCbrsAlignRight:
-            if (bRTL) rect.right += nOffset; else rect.left += nOffset;
-            if (rect.right - rect.left < sizeMin.cx) rect.left = rect.right - sizeMin.cx;
-            break;
-        case kCbrsAlignBottom:
-            rect.top += nOffset;
-            if (rect.bottom - rect.top < sizeMin.cy) rect.top = rect.bottom - sizeMin.cy;
-            break;
-        default:
-            break;
-        }
-        RECT rectCopy = {rect.left, rect.top, rect.right, rect.bottom};
-        impl__ResizePaneContainers_CPaneContainerManager__UEAAXVCRect__AEAPEAX_Z(
-            pThis, &rectCopy, phdwp);
+        // Cannot safely read the retail CBasePane alignment field from this
+        // DLL's 24-byte CPaneDivider shadow; keep the divider object untouched.
         return FALSE;
     }
 
@@ -1757,7 +1791,7 @@ extern "C" int MS_ABI impl__OnShowPane_CPaneContainerManager__UEAAHPEAVCDockable
 // MS x64 ABI (retail hands it straight to ::PtInRect as a POINT), so it is taken
 // here as an opaque 64-bit value, exactly as CDockablePane::HitTest does.
 extern "C" void* MS_ABI impl__PaneFromPoint_CPaneContainerManager__UEAAPEAVCDockablePane__VCPoint__HHAEAH1_Z(
-    void* pThis, void* point, int nSensitivity, int bExactBar,
+    void* pThis, long long point, int nSensitivity, int bExactBar,
     int* pbIsTabArea, int* pbCaption) {
     POINT pt;
     std::memcpy(&pt, &point, sizeof(pt));
@@ -1968,19 +2002,112 @@ extern "C" void MS_ABI impl__RemovePaneDivider_CPaneContainerManager__UEAAXPEAVC
 //   return TRUE;
 //
 // (+0x2b8 of CDockablePane is the CRecentDockSiteInfo the save call is made on;
-// 0xd2310 resolves to ?SaveListOfRecentPanes@CRecentDockSiteInfo@@QEAAXAEAV?$CList@PEAUHWND__@@PEAU1@@@H@Z.)
+// 0xd2310 (mfc140.dll) resolves to ?SaveListOfRecentPanes@CRecentDockSiteInfo@@QEAAXAEAV?$CList@PEAUHWND__@@PEAU1@@@H@Z.)
 // There is no ReleaseEmptyPaneContainer call, no sibling re-parenting and no
 // divider destruction anywhere in the body; the earlier description of those was
 // wrong.
-// Left a stub: ?SaveListOfRecentPanes@CRecentDockSiteInfo@@ has no reachable
-// implementation here, and the m_lstSliders membership test would raise the
-// invalid-argument exception on every call whose container has a divider,
-// because this file's slider table is never populated: the only entry point that
-// would fill it, ?CreatePaneDivider@, is a stub (see its comment).
-// (An earlier revision of this comment also named CPaneContainer::DeletePane as
-// a blocker; docking/CPaneContainer.cpp implements it now.)
-extern "C" int MS_ABI impl__RemovePaneFromPaneContainer_CPaneContainerManager__UEAAHPEAVCDockablePane___Z(void* /*class*/* p0) {
-    return 0;
+// The list of slider dividers is intentionally empty in this translation unit:
+// CreatePaneDivider is a stub and no other entry point appends to SliderList.
+// Consequently retail's membership check for a non-null container slider always
+// fails in this build, and the same invalid-argument path is taken here. The
+// The pane-removal path and recent-HWND snapshot use the side-table state this
+// file maintains. FindPaneContainer currently reports bLeftBar as FALSE, so the
+// left-bar DeletePane case remains unavailable; dispatch is also direct rather
+// than through a derived manager's vtable override.
+extern "C" int MS_ABI impl__RemovePaneFromPaneContainer_CPaneContainerManager__UEAAHPEAVCDockablePane___Z(
+    void* pThis, void* pControlBar) {
+    if (pThis == nullptr || Field<void*>(pThis, kOffRootContainer) == nullptr) return FALSE;
+
+    int bLeftBar = FALSE;
+    void* pContainer = impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+        pThis, pControlBar, &bLeftBar);
+    if (pContainer == nullptr) return FALSE;
+
+    // CPaneContainer's BC_FIND_LEFT_PANE / BC_FIND_RIGHT_PANE values are 0 / 1.
+    impl__DeletePane_CPaneContainer__UEAAXPEAVCDockablePane__W4BC_FIND_CRITERIA_1__Z(
+        pContainer, pControlBar, bLeftBar ? 0 : 1);
+    void* pRoot = Field<void*>(pThis, kOffRootContainer);
+    impl__CheckPaneDividerVisibility_CPaneContainer__QEAAXXZ(pRoot);
+
+    if (Field<void*>(pContainer, kOffContainerSlider) != nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return FALSE;
+    }
+
+    using RecentList = openmfc::detail::crecentpanecontainerinfo::ListS;
+    using RecentNode = openmfc::detail::crecentpanecontainerinfo::CNode;
+    struct RecentNodes {
+        RecentNode* head = nullptr;
+        RecentNode* tail = nullptr;
+        ~RecentNodes() {
+            while (head != nullptr) {
+                RecentNode* next = head->pNext;
+                std::free(head);
+                head = next;
+            }
+        }
+        bool Append(HWND hWnd) {
+            RecentNode* node = static_cast<RecentNode*>(std::malloc(sizeof(RecentNode)));
+            if (node == nullptr) return false;
+            node->pNext = nullptr;
+            node->pPrev = tail;
+            node->data = hWnd;
+            if (tail != nullptr) tail->pNext = node; else head = node;
+            tail = node;
+            return true;
+        }
+    } recentNodes;
+
+    bool bFound = false;
+    bool bAllocationFailed = false;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        std::vector<void*>* panes = PaneListLocked(pThis);
+        if (panes != nullptr) {
+            bFound = pControlBar != nullptr &&
+                     std::find(panes->begin(), panes->end(), pControlBar) != panes->end();
+            if (bFound) {
+                CRuntimeClass* pWndClass = impl__GetThisClass_CWnd__SAPEAUCRuntimeClass__XZ();
+                for (void* obj : *panes) {
+                    void* pWnd = DynDowncast(obj, pWndClass);
+                    if (!recentNodes.Append(pWnd != nullptr
+                            ? static_cast<CWnd*>(pWnd)->m_hWnd : nullptr)) {
+                        bAllocationFailed = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (bAllocationFailed) {
+        impl__AfxThrowMemoryException__YAXXZ();
+        return FALSE;
+    }
+
+    if (bFound) {
+        RecentList sourceList{};
+        sourceList.pNodeHead = recentNodes.head;
+
+        CWnd* pDockSite = static_cast<CWnd*>(Field<void*>(pThis, kOffDockSite));
+        const bool bPaneFrame = DynDowncast(
+            pDockSite, impl__GetThisClass_CPaneFrameWnd__SAPEAUCRuntimeClass__XZ()) != nullptr;
+        // CDockablePane::m_recentDockInfo is the 0x120-byte member at +0x2b8.
+        impl__SaveListOfRecentPanes_CRecentDockSiteInfo__QEAAXAEAV__CList_PEAUHWND____PEAU1___H_Z(
+            static_cast<char*>(pControlBar) + 0x2b8, &sourceList, bPaneFrame ? FALSE : TRUE);
+
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        std::vector<void*>* panes = PaneListLocked(pThis);
+        if (panes != nullptr) {
+            auto it = std::find(panes->begin(), panes->end(), pControlBar);
+            if (it != panes->end()) panes->erase(it);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        g_paneToContainer.erase(pControlBar);
+    }
+    return TRUE;
 }
 
 // Symbol: ?ReplacePane@CPaneContainerManager@@UEAAHPEAVCDockablePane@@0@Z
@@ -1999,7 +2126,7 @@ extern "C" int MS_ABI impl__RemovePaneFromPaneContainer_CPaneContainerManager__U
 //   return TRUE;                                                       // every path
 //
 // The two container stores are exactly what ?SetPane@CPaneContainer@@ (entry RVA
-// 0xa5200) does, so they go through that export here.
+// 0xa5200, mfc140.dll) does, so they go through that export here.
 //
 // NOTE: this file's FindPaneContainer always reports bLeftBar == FALSE, so the
 // left-pane store is currently unreachable. That imprecision is in
@@ -2116,14 +2243,20 @@ extern "C" void MS_ABI impl__ResizePaneContainers_CPaneContainerManager__UEAAXVC
 //       int nCount; ar >> nCount;
 //       for (nCount times) { int nID; ar >> nID; if (nID != -1) pMgr->{vt +0x58}(nID, TRUE); ... }
 //
-// Left a stub. The storing half writes straight into CArchive's m_lpBufCur /
-// m_lpBufMax (+0x38 / +0x40) with inlined bounds checks against
-// ?Flush@CArchive@@ and ?FillBuffer@CArchive@@; reproducing that from here means
-// reaching into CArchive's buffer, and ?Serialize@CPaneContainer@@ -- the first
-// thing both halves call -- is a generated stub in docking/CPaneContainer.cpp,
-// so the stream would be truncated on the very first element. A half-written
-// dock-state stream is worse than none, because it would be read back.
-extern "C" void MS_ABI impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(void* /*class*/* p0) {}
+// Left a stub. Retail Serialize (entry RVA 0xa9f40, mfc140.dll) reads
+// CArchive::m_nMode at +0x20 and writes through m_lpBufCur / m_lpBufMax at
+// +0x38 / +0x40, with inlined bounds checks against Flush and FillBuffer. The
+// current include/openmfc/afx.h CArchive shadow places those fields at +0x10,
+// +0x20 and +0x28 respectively, so accessing them here would use the wrong
+// layout. Both halves also first call ?Serialize@CPaneContainer@@, whose body
+// in docking/CPaneContainer.cpp is currently empty; the stream would be
+// truncated on the first container. A half-written dock-state stream is worse
+// than none, because it would be read back.
+extern "C" void MS_ABI impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(
+    void* pThis, CArchive& ar) {
+    (void)pThis; (void)ar;
+    // STUB: CPaneContainer::Serialize is unavailable; an incomplete dock-state stream is unsafe.
+}
 
 // Symbol: ?SetDefaultPaneDividerForPanes@CPaneContainerManager@@QEAAXPEAVCPaneDivider@@@Z
 // Decoded from retail ?SetDefaultPaneDividerForPanes@CPaneContainerManager@@QEAAXPEAVCPaneDivider@@@Z,

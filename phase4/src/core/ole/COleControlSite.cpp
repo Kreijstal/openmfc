@@ -1222,17 +1222,18 @@ extern "C" int MS_ABI impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(void
 }
 
 // Symbol: ?QuickActivate@COleControlSite@@UEAAHXZ
-// Stub: the --u lookup does not resolve this export; its ANSI twin is at
-// mfc140.dll RVA 0x238a70. Retail throws for a null m_pObject, and returns
-// FALSE when QueryInterface(IQuickActivate) fails. Otherwise it builds a
-// QACONTAINER using site interface subobjects at +0x138, +0x158 and +0x160,
-// queries ambient properties, and invokes QuickActivate; missing required
-// interfaces/container/window throw, while the result determines the BOOL
-// return and successful activation caches misc status and sink cookies. The
-// OpenMFC ControlSiteAdapter lacks IPropertyNotifySink and its IDispatch only
-// handles ambient-property gets, so it cannot supply the retail interface set
-// or preserve QuickActivate's sink state (OlecoreSupport.h:1692). This fallback
-// always returns FALSE.
+// Stub retained: the --u lookup has no mapped RVA; the ANSI twin was
+// disassembled at mfc140.dll RVA 0x238a70. Retail throws for a null m_pObject
+// and returns FALSE when QueryInterface(IQuickActivate) fails. On success it
+// builds a QACONTAINER using site subobjects at +0x138, +0x158 and +0x160,
+// queries ambient properties and calls IQuickActivate::QuickActivate. A null
+// object, a null QI result after success, or a missing container/window throws;
+// failed QueryInterface(IQuickActivate) or QuickActivate returns FALSE.
+// Successful activation caches misc status and sink cookies. OpenMFC's
+// ControlSiteAdapter (defined
+// in detail/OlecoreSupport.h) lacks the property-notify/event sink interfaces
+// and cannot preserve those site fields, so this body cannot safely reproduce
+// the retail path and remains a FALSE stub.
 extern "C" int MS_ABI impl__QuickActivate_COleControlSite__UEAAHXZ(void* pThis) {
     (void)pThis;
     return FALSE;
@@ -1450,7 +1451,11 @@ extern "C" void MS_ABI impl__SetWindowTextW_COleControlSite__UEAAXPEB_W_Z(
 }
 
 // Symbol: ?ShowWindow@COleControlSite@@UEAAHH@Z
-// COleControlSite::ShowWindow() — retail 0x23a380:
+// COleControlSite::ShowWindow() — ANSI twin mfc140.dll RVA 0x23a380;
+// --u has no mapped RVA for this export. Retail reads m_hWnd at +0x48;
+// this OpenMFC declaration places the C++ member at +0x68 (measured with the
+// phase4 compiler), so the body intentionally accesses the local member rather
+// than a raw retail offset; see the header request in the result.
 //   BOOL bWasVisible = ::IsWindowVisible(m_hWnd(+0x48));
 //   switch (nCmdShow) {
 //     case SW_HIDE:                                     DoVerb(OLEIVERB_HIDE, NULL); break;
@@ -1462,16 +1467,13 @@ extern "C" void MS_ABI impl__SetWindowTextW_COleControlSite__UEAAXPEB_W_Z(
 // (the switch is compiled as the chain nCmdShow==0, ==1, ==4, ==5; DoVerb is
 // vtable slot 0xc8.)
 //
-// Retail does NOT call ::ShowWindow here, and nCmdShow never reaches the window
-// manager.  The one-argument call at 0x23a398 goes to the import thunk at
-// 0x2c5350, which mfc140.dll's import directory names IsWindowVisible;
-// ::ShowWindow is a different thunk, 0x2c52b8.  The two are told apart by
-// CWnd::ShowWindow (0x2a79e0), which tail-jumps to 0x2c52b8 when the CWnd has
-// no control site (CWnd+0xd0) and to *this* method through vtable slot 0x150
-// when it has one — so an OLE control is shown and hidden by the verb alone,
-// and this entry point only samples the visibility the site had on entry.
-// Calling ::ShowWindow here would hide or show the control's window behind the
-// control's back, which is exactly what retail avoids.
+// Retail does NOT call ::ShowWindow here. The call at mfc140.dll RVA 0x23a398
+// uses IAT slot 0x1802c5350, resolved by iat.py to USER32!IsWindowVisible.
+// CWnd::ShowWindow (ANSI mfc140.dll RVA 0x2a79e0) routes a CWnd without a
+// control site to the distinct USER32 ShowWindow thunk at mfc140.dll RVA
+// 0x2c52b8, and routes a sited control through slot 0x150, which is this method.
+// Retail shows/hides the OLE control by verb alone and samples visibility on
+// entry; this existing body preserves that behavior.
 extern "C" int MS_ABI impl__ShowWindow_COleControlSite__UEAAHH_Z(COleControlSite* pThis, int nCmdShow) {
     if (!pThis) return FALSE;
     const BOOL bWasVisible = ::IsWindowVisible(pThis->m_hWnd);
@@ -1527,10 +1529,11 @@ extern "C" long MS_ABI impl__AdjustRect_XOleIPSite_COleControlSite__UEAAJPEAUtag
 }
 
 // Symbol: ?CanInPlaceActivate@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::CanInPlaceActivate() — retail mfc140u.dll
-// 0x71e0 is `xor %eax,%eax; ret`, i.e. an unconditional S_OK.  (That RVA is a
-// two-instruction body shared by identical-code folding, so it carries no
-// site state at all.)  Nothing else to transcribe.
+// The --u lookup has no mapped RVA for this folded export. In the ANSI twin,
+// mfc140.dll XOleIPSite vftable RVA 0x328fa8 slot 5 points to shared body RVA
+// 0x7260 (`xor %eax,%eax; ret`), so the verified ANSI body returns S_OK
+// without touching state. This remains a metric stub rather than being
+// reported as an implementation because its body is only a bare constant.
 extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleControlSite__UEAAJXZ(void* pThis) {
     (void)pThis;
     return S_OK;
@@ -1538,12 +1541,12 @@ extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleControlSite__UEAA
 
 // Symbol: ?CanWindowlessActivate@XOleIPSite@COleControlSite@@UEAAJXZ
 // COleControlSite::XOleIPSite::CanWindowlessActivate() — retail mfc140u.dll
-// 0x23c6e0: the same METHOD_PROLOGUE as AdjustRect above (the load at
-// this-0x108 is the owning site's m_pModuleState, fed to AFX_MAINTAIN_STATE2
-// at 0x133170) around `return S_OK;` (xor %eax,%eax at 0x23c708).  The site
-// never refuses windowless activation, so only the return value is reproduced.
-// mfc140u folds this body with XOleIPSite::RequestUIActivate, which is why the
-// RVA reverse-maps to that name.
+// RVA 0x23c6e0: METHOD_PROLOGUE loads the site's m_pModuleState from
+// this-0x108 and passes it to AFX_MAINTAIN_STATE2 (mfc140u RVA 0x133170), then
+// returns S_OK. The state guard is not represented in OpenMFC, so this stays a
+// metric stub; the return value alone is not reported as an implementation.
+// The mfc140u symbol-to-RVA lookup for this export resolves this body at
+// 0x23c6e0; the separate RequestUIActivate export has no mfc140u map entry.
 extern "C" long MS_ABI impl__CanWindowlessActivate_XOleIPSite_COleControlSite__UEAAJXZ(void* pThis) {
     (void)pThis;
     return S_OK;
@@ -1634,16 +1637,12 @@ extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleIPSite_COleControlSite__UE
 //=============================================================================
 
 // Symbol: ?DeactivateAndUndo@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::DeactivateAndUndo() — retail 0x23ab60:
-//     mov  -0xb8(%rcx),%rcx       ; site+0x88 = m_lpInPlaceObject
-//     test %rcx,%rcx ; je 0x23ab84 ; -> AfxThrowInvalidArgException (0x225b80)
-//     mov  (%rcx),%rax
-//     mov  0x30(%rax),%rax        ; vftable byte 0x30 = slot 6 = UIDeactivate
-//     call *__guard_dispatch
-//     xor  %eax,%eax ; ret
-// i.e. `m_lpInPlaceObject->UIDeactivate(); return S_OK;`, with a null
-// m_lpInPlaceObject throwing CInvalidArgException rather than returning.  Left
-// as generated: the site cannot be recovered from the sub-object pointer.
+// COleControlSite::XOleIPSite::DeactivateAndUndo() — retail mfc140u.dll RVA
+// 0x23c560. It loads the site's m_lpInPlaceObject from subobject-relative
+// offset -0xb8, throws AfxThrowInvalidArgException if null, otherwise calls
+// vtable byte offset 0x30 (slot 6, UIDeactivate) and returns S_OK. The site
+// cannot be recovered because OpenMFC has no embedded XOleIPSite subobject;
+// the current S_OK body is therefore a stub missing the deactivation call.
 extern "C" long MS_ABI impl__DeactivateAndUndo_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return 0;   // retail: S_OK after IOleInPlaceObject::UIDeactivate()
@@ -1668,10 +1667,11 @@ extern "C" long MS_ABI impl__DidEvent_XNotifyDBEvents_COleControlSite__UEAAJKKQE
 }
 
 // Symbol: ?DiscardUndoState@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::DiscardUndoState() — this symbol has no RVA of
-// its own; slot 12 of the XOleIPSite vftable (0x328fa8) points at the folded
-// body 0x7260, `xor %eax,%eax; ret`.  An unconditional S_OK that touches no
-// state, so it is transcribed exactly.
+// No Unicode mapped RVA is available. The ANSI twin's XOleIPSite vftable at
+// mfc140.dll RVA 0x328fa8 has slot 12 pointing to folded body RVA 0x7260,
+// disassembled as `xor %eax,%eax; ret` (S_OK). This function has no stateful
+// behavior to add; it remains a bare-return metric stub, not an implemented
+// symbol.
 extern "C" long MS_ABI impl__DiscardUndoState_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return S_OK;
@@ -1809,12 +1809,11 @@ extern "C" long MS_ABI impl__GetExtendedControl_XOleControlSite_COleControlSite_
 }
 
 // Symbol: ?GetFocus@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::GetFocus() — no RVA of its own; slot 21 of the
-// XOleIPSite vftable (0x328fa8) points at 0x23ad10, the body shared with
-// ScrollRect, AdjustRect and OnDefWindowMessage: METHOD_PROLOGUE (the load at
-// this-0x108 is the site's m_pModuleState, fed to AFX_MAINTAIN_STATE2 at
-// 0x133df0) around `mov $0x80004001,%eax`, i.e. E_NOTIMPL.  No site state is
-// read, so only the return value is reproduced.
+// No Unicode mapped RVA is available. The ANSI twin's XOleIPSite vftable at
+// mfc140.dll RVA 0x328fa8 has slot 21 pointing to shared body RVA 0x23ad10;
+// the disassembly performs the module-state guard then returns E_NOTIMPL.
+// OpenMFC has no equivalent guard or embedded XOleIPSite, and this bare
+// E_NOTIMPL return remains a metric stub.
 extern "C" long MS_ABI impl__GetFocus_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return E_NOTIMPL;
@@ -2075,15 +2074,12 @@ extern "C" long MS_ABI impl__OnChanged_XPropertyNotifySink_COleControlSite__UEAA
 }
 
 // Symbol: ?OnControlInfoChanged@XOleControlSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleControlSite::OnControlInfoChanged() — retail 0x23b250
-// is five instructions:
-//     add $-0x148,%rcx           ; recover the site
-//     call 0x1802397b0           ; COleControlSite::GetControlInfo()
-//     xor %eax,%eax ; ret        ; return S_OK
-// The return value is transcribed; the GetControlInfo() call is not, because
-// the site cannot be recovered from the sub-object pointer.  OpenMFC does
-// implement GetControlInfo (it refreshes the cached CONTROLINFO in the side
-// table at the top of this file), so this is the one thing missing here.
+// COleControlSite::XOleControlSite::OnControlInfoChanged() — retail mfc140u.dll
+// RVA 0x23cc50: subtracts 0x148 from the XOleControlSite pointer to recover
+// the site, calls COleControlSite::GetControlInfo (mfc140u RVA 0x23b1b0),
+// then returns S_OK. OpenMFC implements GetControlInfo using the side-table
+// cache, but does not embed/expose this XOleControlSite subobject, so the
+// current bare S_OK body omits the refresh and remains a metric stub.
 extern "C" long MS_ABI impl__OnControlInfoChanged_XOleControlSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return S_OK;   // retail: S_OK, after pThis->GetControlInfo()
@@ -2135,10 +2131,10 @@ extern "C" long MS_ABI impl__OnFocus_XOleControlSite_COleControlSite__UEAAJH_Z(
 }
 
 // Symbol: ?OnInPlaceActivate@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::OnInPlaceActivate() — no RVA of its own; slot 6
-// of the XOleIPSite vftable (0x328fa8) is the folded body 0x7260, an
-// unconditional S_OK that touches no state.  (Slot 5, CanInPlaceActivate, is
-// the same body — see that function above.)  Transcribed exactly.
+// No Unicode mapped RVA is available. The ANSI twin's XOleIPSite vftable at
+// mfc140.dll RVA 0x328fa8 has slot 6 pointing to the folded body at RVA 0x7260,
+// disassembled as unconditional S_OK. This no-state function remains a
+// bare-return metric stub rather than being listed as implemented.
 extern "C" long MS_ABI impl__OnInPlaceActivate_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return S_OK;
@@ -2281,17 +2277,12 @@ extern "C" long MS_ABI impl__OnShowWindow_XOleClientSite_COleControlSite__UEAAJH
 }
 
 // Symbol: ?OnUIActivate@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::OnUIActivate() — retail 0x23a9a0 is:
-//     lea -0x140(%rcx),%rdx        ; the site
-//     mov 0x40(%rdx),%rcx          ; m_pCtrlCont
-//     test %rcx,%rcx ; je throw    ; AfxThrowInvalidArgException (0x225b80)
-//     call *0xd0(vftable)          ; slot 26 = COleControlContainer::OnUIActivate
-//                                  ; (0x234650; the slot was read out of that
-//                                  ;  class's vftable at 0x328be8), passed the
-//                                  ;  site as its argument
-//     xor %eax,%eax ; ret
-// Left as generated: the container call needs the site.  The generated S_OK
-// matches retail's unconditional return.
+// COleControlSite::XOleIPSite::OnUIActivate() — ANSI twin mfc140.dll RVA
+// 0x23a9a0: recovers the site by subtracting 0x140, validates m_pCtrlCont,
+// then calls the container's vtable byte offset 0xd0 (slot 26) with the site
+// and returns S_OK. OpenMFC has no embedded XOleIPSite subobject/interface-map
+// entry, so the container call cannot be reached from this thunk's this; the
+// current bare S_OK body remains a metric stub missing that call.
 extern "C" long MS_ABI impl__OnUIActivate_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return 0;
@@ -2326,34 +2317,30 @@ extern "C" long MS_ABI impl__ReleaseDC_XOleIPSite_COleControlSite__UEAAJPEAUHDC_
 }
 
 // Symbol: ?RequestNewObjectLayout@XOleClientSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleClientSite::RequestNewObjectLayout() — no RVA of its
-// own; slot 8 of the XOleClientSite vftable (0x3290f8) is the folded 0xf540,
-// an unconditional E_NOTIMPL.  Transcribed exactly.
+// No Unicode mapped RVA is available. In the ANSI twin, XOleClientSite
+// vftable RVA 0x3290f8 slot 8 points to folded body RVA 0xf540, which returns
+// E_NOTIMPL. The existing constant body remains a metric stub.
 extern "C" long MS_ABI impl__RequestNewObjectLayout_XOleClientSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return E_NOTIMPL;
 }
 
 // Symbol: ?RequestUIActivate@XOleIPSite@COleControlSite@@UEAAJXZ
-// Stub: the --u lookup does not resolve this export; the ANSI twin is at
-// mfc140.dll RVA 0x23ace0. Retail recovers the site's module state from the
-// XOleIPSite subobject, constructs AFX_MAINTAIN_STATE2 (mfc140.dll helper
-// entry at RVA 0x133df0), restores the prior state when the helper returns a
-// state cookie, and returns S_OK. OpenMFC has no XOleIPSite subobject/interface-
-// map entry, so this body returns S_OK without that state switch; it does not
-// reproduce the retail call path.
+// Stub retained: --u has no mapped RVA; the ANSI twin was disassembled at
+// mfc140.dll RVA 0x23ace0. Its body runs AFX_MAINTAIN_STATE2 using the module
+// state reached through the XOleIPSite subobject (helper RVA 0x133df0), then
+// returns S_OK. OpenMFC has no such embedded subobject/module-state guard, so
+// the current return alone does not reproduce the retail call path.
 extern "C" long MS_ABI impl__RequestUIActivate_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return S_OK;
 }
 
 // Symbol: ?SaveObject@XOleClientSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleClientSite::SaveObject() — no RVA of its own; slot 3 of
-// the XOleClientSite vftable (0x3290f8) is the folded body 0xf540,
-// `mov $0x80004001,%eax; ret`.  An unconditional E_NOTIMPL that reads nothing,
-// so it is transcribed exactly.  (The slot numbering is pinned by the named
-// entries in the same vftable: slot 5 GetContainer 0x23a8e0, slot 6 ShowObject
-// 0x23a900.)
+// No Unicode mapped RVA is available. In the ANSI twin, XOleClientSite
+// vftable RVA 0x3290f8 slot 3 points to folded body RVA 0xf540, disassembled
+// as `mov $0x80004001,%eax; ret` (E_NOTIMPL). The constant body is retained
+// as a metric stub, not reported as an implementation.
 extern "C" long MS_ABI impl__SaveObject_XOleClientSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return E_NOTIMPL;
@@ -2419,24 +2406,21 @@ extern "C" long MS_ABI impl__SetFocus_XOleIPSite_COleControlSite__UEAAJH_Z(
 }
 
 // Symbol: ?ShowObject@XOleClientSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleClientSite::ShowObject() — retail 0x23a900:
-//     lea -0x138(%rcx),%rbx        ; the site
-//     ... METHOD_PROLOGUE ...
-//     call 0x180239a30             ; COleControlSite::AttachWindow()
-//     xor %eax,%eax ; ret          ; S_OK
-// Left as generated: AttachWindow needs the site, which cannot be recovered
-// from the sub-object pointer.  The generated S_OK is retail's unconditional
-// return; only the AttachWindow side effect is missing.
+// COleControlSite::XOleClientSite::ShowObject() — ANSI twin mfc140.dll RVA
+// 0x23a900: subtracts 0x138 to recover the site, calls AttachWindow (ANSI
+// mfc140.dll RVA 0x239a30), then returns S_OK. OpenMFC does not embed/expose
+// XOleClientSite at that offset, so this current constant body omits the
+// attach side effect and remains a metric stub.
 extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return 0;   // retail: S_OK after COleControlSite::AttachWindow()
 }
 
 // Symbol: ?ShowPropertyFrame@XOleControlSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleControlSite::ShowPropertyFrame() — no RVA of its own;
-// slot 9 of the XOleControlSite vftable (0x3290a0) is the folded 0xf540, an
-// unconditional E_NOTIMPL.  Transcribed exactly; the generated `return 0` told
-// the control the container had shown its property frame.
+// No Unicode mapped RVA is available. In the ANSI twin, XOleControlSite
+// vftable RVA 0x3290a0 slot 9 points to folded body RVA 0xf540, which returns
+// E_NOTIMPL. The current bare constant is retained as a metric stub; retail
+// itself does not show a property frame through this interface method.
 extern "C" long MS_ABI impl__ShowPropertyFrame_XOleControlSite_COleControlSite__UEAAJXZ(void* pThisItf) {
     (void)pThisItf;
     return E_NOTIMPL;

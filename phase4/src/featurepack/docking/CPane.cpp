@@ -40,6 +40,7 @@
 //   slot 106 (+0x350) 0x87e0  `return m_pParentDockBar;` (member at +0x128)
 //   slot 112 (+0x380) 0xc820  CBasePane::GetDockingMode()
 //   slot 114 (+0x390) 0x8840  GetPaneStyle()  -> `return m_dwStyle;` (+0x104)
+//   slot 117 (+0x3a8) 0xc840 CBasePane::CanFloat()
 //   slot 129 (+0x408) 0xa09f0 CPane::FloatPane()
 //   slot 140 (+0x460) 0xb460  CBasePane::GetParentMiniFrame(BOOL bNoAssert)
 //   slot 144 (+0x480) 0xb6a0  CBasePane::SetWindowPos()
@@ -85,21 +86,16 @@
 //    generated stub can hand these thunks anything.
 //  * where retail dispatches a virtual through the CPane vtable, OpenMFC's
 //    CPane has no matching vtable, so the corresponding exported base
-//    implementation is called through its impl__ thunk instead.  That loses
-//    dispatch to a derived override; each site says so.  Several of those base
-//    thunks (IsDocked, GetCurrentAlignment, GetDockingMode,
-//    GetDockSiteFrameWnd, GetParentMiniFrame) are still generated stubs in
-//    phase4/src/featurepack/docking/CBasePane.cpp as of this writing, so the
-//    bodies below currently take the "not docked / no alignment / no dock site
-//    / no mini frame" branch at run time.  They become correct as those are
-//    implemented; nothing here needs to change.
+//    implementation is called through its impl__ thunk instead. That loses
+//    dispatch to a derived override; each site says so. The CBasePane thunks
+//    for IsDocked, GetCurrentAlignment, GetDockingMode, GetDockSiteFrameWnd,
+//    and GetParentMiniFrame now have bodies in CBasePane.cpp, so these call
+//    sites execute the base behavior rather than a generated no-op.
 // ---------------------------------------------------------------------------
 
-// Sibling exports called below.  BRIEFING S1: the C++ methods do not exist
-// inside this DLL, only these extern "C" thunks.  Some of them are still
-// generated stubs whose parameter list omits the implicit `this`; the retail
-// exports do take it in RCX and those stub bodies read no argument, so
-// declaring the retail-correct list here is safe under the MS x64 ABI.
+// Sibling exports called below. BRIEFING S1: call the extern "C" impl__
+// thunks rather than C++ member names; declarations use the parameter lists
+// required by the mangled export signatures.
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" int  MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis, const CRuntimeClass* pClass);
@@ -118,13 +114,13 @@ extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTr
 extern "C" int MS_ABI impl__IsDocked_CBasePane__UEBAHXZ(const CBasePane* pThis);
 extern "C" unsigned long MS_ABI impl__GetCurrentAlignment_CBasePane__UEBAKXZ(const CBasePane* pThis);
 extern "C" int MS_ABI impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(const CBasePane* pThis);
-extern "C" CWnd* MS_ABI impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(const CBasePane* pThis);
 extern "C" void* MS_ABI impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(
     const CBasePane* pThis, int bNoAssert);
 extern "C" void MS_ABI impl__CopyState_CBasePane__UEAAXPEAV1__Z(CBasePane* pThis, CBasePane* pOrgBar);
 extern "C" void* MS_ABI impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
     CBasePane* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy,
     unsigned int nFlags, void* pExtra);
+extern "C" const unsigned char impl__wndTop_CWnd__2V1_B[];
 extern "C" void MS_ABI impl__EndDrawDragFrame_CMFCDragFrameImpl__QEAAXH_Z(void* pThis, int bClearInternalRects);
 extern "C" void MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis);
 extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(
@@ -175,12 +171,9 @@ extern "C" int MS_ABI impl__OnBeforeDock_CPane__MEAAHPEAPEAVCBasePane__PEBUtagRE
 extern "C" int MS_ABI impl__FloatPane_CPane__UEAAHVCRect__W4AFX_DOCK_METHOD___N_Z(
     CPane* pThis, const RECT* pRectFloat, int dockMethod, bool bShow);
 
-// Sibling exports added for the 2026-09-08 batch (OnLButtonUp, SaveState).
-// impl__SaveState_CBasePane__UEAAHPEB_WHI_Z is still a generated stub in
-// phase4/src/featurepack/docking/CBasePane.cpp whose parameter list omits the
-// implicit `this`; the retail export does take it in RCX and that stub body
-// reads no argument, so the retail-correct list declared here is safe under
-// the MS x64 ABI (the same reasoning as the block above).
+// Sibling exports used by OnLButtonUp and state serialization. CBasePane's
+// SaveState and LoadState thunks are implemented in CBasePane.cpp and take the
+// explicit `this`, profile-name, index, and ID arguments shown below.
 extern "C" int MS_ABI impl__GetDlgCtrlID_CWnd__QEBAHXZ(const CWnd* pThis);
 extern "C" void MS_ABI impl__FixupVirtualRects_CDockingPanesRow__QEAAX_NPEAVCPane___Z(
     void* pThis, bool bMoveBackToVirtualRect, CPane* pBarToExclude);
@@ -328,6 +321,39 @@ const std::size_t kRecentFloatingRect = 0x08;  // CRect m_rectRecentFloatingRect
 const std::size_t kRecentAlignment    = 0x18;  // DWORD m_dwRecentAlignmentToFrame
 const std::size_t kRecentRowIndex     = 0x20;  // int   m_nRecentRowIndex
 const std::size_t kRecentDockedRect   = 0x50;  // m_recentSliderInfo.m_rectDockedRect
+
+static_assert(sizeof(CPane) == 0x3f8, "CPane retail size");
+static_assert(sizeof(CRecentDockSiteInfo) == 0x120, "CRecentDockSiteInfo retail size");
+static_assert(sizeof(CRect) == 0x10, "retail CRect size");
+static_assert(kRecentFloatingRect + sizeof(CRect) <= sizeof(CRecentDockSiteInfo), "recent floating rect within opaque block");
+static_assert(kRecentDockedRect + sizeof(CRect) <= sizeof(CRecentDockSiteInfo), "recent docked rect within opaque block");
+static_assert(offsetof(CPane, m_bFirstInGroup) == 0x1ac, "CPane::m_bFirstInGroup retail offset");
+static_assert(offsetof(CPane, m_bLastInGroup) == 0x1b0, "CPane::m_bLastInGroup retail offset");
+static_assert(offsetof(CPane, m_bActiveInGroup) == 0x1b4, "CPane::m_bActiveInGroup retail offset");
+static_assert(offsetof(CPane, m_nCount) == 0x1b8, "CPane::m_nCount retail offset");
+static_assert(offsetof(CPane, m_pData) == 0x1c0, "CPane::m_pData retail offset");
+static_assert(offsetof(CBasePane, m_pParentDockBar) == 0x128, "CBasePane::m_pParentDockBar retail offset");
+static_assert(offsetof(CBasePane, m_pDockBarRow) == 0x130, "CBasePane::m_pDockBarRow retail offset");
+static_assert(offsetof(CPane, m_cxLeftBorder) == 0x1c8, "CPane::m_cxLeftBorder retail offset");
+static_assert(offsetof(CPane, m_cxRightBorder) == 0x1cc, "CPane::m_cxRightBorder retail offset");
+static_assert(offsetof(CPane, m_cyTopBorder) == 0x1d0, "CPane::m_cyTopBorder retail offset");
+static_assert(offsetof(CPane, m_cyBottomBorder) == 0x1d4, "CPane::m_cyBottomBorder retail offset");
+static_assert(offsetof(CPane, m_nMRUWidth) == 0x1dc, "CPane::m_nMRUWidth retail offset");
+static_assert(offsetof(CPane, m_rectVirtual) == 0x1e0, "CPane::m_rectVirtual retail offset");
+static_assert(offsetof(CPane, m_rectDragImmediate) == 0x1f0, "CPane::m_rectDragImmediate retail offset");
+static_assert(offsetof(CPane, m_sizeMin) == 0x200, "CPane::m_sizeMin retail offset");
+static_assert(offsetof(CPane, m_ptClientHotSpot) == 0x208, "CPane::m_ptClientHotSpot retail offset");
+static_assert(offsetof(CPane, m_bCaptured) == 0x210, "CPane::m_bCaptured retail offset");
+static_assert(offsetof(CPane, m_bDblClick) == 0x212, "CPane::m_bDblClick retail offset");
+static_assert(offsetof(CPane, m_hwndMiniFrameToBeClosed) == 0x228, "CPane::m_hwndMiniFrameToBeClosed retail offset");
+static_assert(offsetof(CPane, m_dragFrameImpl) == 0x238, "CPane::m_dragFrameImpl retail offset");
+static_assert(offsetof(CPane, m_bDragMode) == 0x214, "CPane::m_bDragMode retail offset");
+static_assert(offsetof(CPane, m_bPinState) == 0x21c, "CPane::m_bPinState retail offset");
+static_assert(offsetof(CPane, m_nID) == 0x220, "CPane::m_nID retail offset");
+static_assert(offsetof(CPane, m_recentDockInfo) == 0x2b8, "CPane::m_recentDockInfo retail offset");
+static_assert(offsetof(CPane, m_rectSavedDockedRect) == 0x3d8, "CPane::m_rectSavedDockedRect retail offset");
+static_assert(offsetof(CPane, m_bRecentFloatingState) == 0x3e8, "CPane::m_bRecentFloatingState retail offset");
+static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd retail offset");
 
 inline char* RecentDockInfoBytes(CPane* pThis) {
     return reinterpret_cast<char*>(&pThis->m_recentDockInfo);
@@ -581,7 +607,7 @@ extern "C" void MS_ABI impl__CalcInsideRect_CPane__QEBAXAEAVCRect__H_Z(
 }
 
 // Symbol: ?CanBeTabbedDocument@CPane@@UEBAHXZ
-// NOT IMPLEMENTED.  Retail mfc140 RVA 0xa36c0 is:
+// NOT IMPLEMENTED. Retail mfc140 ANSI-twin function entry RVA 0xa36c0 is:
 //   if (this->virt(+0x3c8)()) return FALSE;                 // CPane's own
 //                                                           // target is 0x7260
 //                                                           // == `xor eax,eax`
@@ -589,10 +615,10 @@ extern "C" void MS_ABI impl__CalcInsideRect_CPane__QEBAXAEAVCRect__H_Z(
 //   if (pFrame == NULL) return FALSE;
 //   if (!pFrame->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx))) return FALSE;
 //   return ((CMDIFrameWndEx*)pFrame)->virt(+0x3c8)() != 0;
-// The last step is CMDIFrameWndEx vtable slot 121, whose target 0x880c0 is the
-// unexported inline `return *(int*)(this + 0x208);` -- an AreMDITabs-style flag
-// that OpenMFC's CMDIFrameWndEx does not model (no shadow struct, no member at
-// +0x208).  Writing the first three steps and then hard-coding FALSE would
+// The last step is CMDIFrameWndEx vtable slot 121, whose target RVA 0x880c0
+// (mfc140) is the unexported inline `return *(int*)(this + 0x208);`. OpenMFC's
+// CMDIFrameWndEx declaration has no modeled member at +0x208. Writing the first
+// three steps and then hard-coding FALSE would
 // give the wrong answer exactly on the path the function exists for, so this
 // stays a stub.
 extern "C" int MS_ABI impl__CanBeTabbedDocument_CPane__UEBAHXZ(const CPane* pThis) {
@@ -919,32 +945,13 @@ extern "C" int MS_ABI impl__IsTabbed_CPane__UEBAHXZ(const CPane* pThis) {
 }
 
 // Symbol: ?LoadState@CPane@@UEAAHPEB_WHI@Z
-// NOT IMPLEMENTED.  Retail mfc140u RVA 0xa1ca0 (this overload exists only in
-// the Unicode image; the ANSI twin has ?LoadState@CPane@@UEAAHPEBDHI@Z at
-// mfc140 0xa2260 instead).  Transcribed as far as it was decoded: it formats a
-// registry section name from "Panes" (0x18033f100) plus "%TsPane-%d"
-// (0x18033fff8) or "%TsPane-%d%x" (0x180340010) depending on whether uiID is
-// -1, opens a settings-store object through that object's own vtable, and on
-// success reads eight NAMED values -- not one blob:
-//   "ID"                   -> +0x220 m_nID
-//   "RectRecentFloat"      -> +0x2c0 (inside m_recentDockInfo)
-//   "RectRecentDocked"     -> +0x3d8 m_rectSavedDockedRect, then copied
-//                             verbatim to +0x308 (inside m_recentDockInfo)
-//   "RecentFrameAlignment" -> +0x2d0 (inside m_recentDockInfo)
-//   "RecentRowIndex"       -> +0x2d8 (inside m_recentDockInfo)
-//   "IsFloating"           -> +0x3e8 m_bRecentFloatingState
-//   "MRUWidth"             -> +0x1dc m_nMRUWidth
-//   "PinState"             -> +0x21c m_bPinState
-// then tail-calls 0x18000c410 with the same four arguments.  Four of the eight
-// destinations are inside CRecentDockSiteInfo, which OpenMFC models as an
-// opaque 288-byte block with no members.  Left a stub.  (Correcting an earlier
-// revision of this comment, which added "and the settings-store object it reads
-// through is not modelled here at all": that is false.  OpenMFC does model the
-// store -- phase4/src/core/app/CSettingsStore.cpp exports the whole Read/Write
-// family and CSettingsStoreSP.cpp exports Create -- and CPane::SaveState below
-// now writes these eight values through it.  What still blocks LoadState is
-// that 0x18000c410, the CBasePane::LoadState it tail-calls, is a stub here, so
-// the half of the state that lives in the base class would not come back.)
+// STUB. Retail mfc140u function entry RVA 0xa1ca0 reads and writes several
+// fields inside CRecentDockSiteInfo (this+0x2c0, +0x2d0, +0x2d8, and +0x308).
+// OpenMFC models that 0x120-byte member as opaque storage, and this file is
+// not authorized to change its owning header/shadow layout. The direct CPane
+// fields are known, and CBasePane::LoadState is available, but a partial load
+// would leave the recent dock-site state inconsistent; keep this symbol
+// stubbed until those nested fields are modeled.
 extern "C" int MS_ABI impl__LoadState_CPane__UEAAHPEB_WHI_Z(
     CPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
     (void)pThis;
@@ -955,20 +962,62 @@ extern "C" int MS_ABI impl__LoadState_CPane__UEAAHPEB_WHI_Z(
 }
 
 // Symbol: ?MoveByAlignment@CPane@@QEAAHKH@Z
-// NOT IMPLEMENTED.  Retail mfc140 RVA 0xa1000 does GetWindowRect ->
-// parent ScreenToClient -> ::OffsetRect by nOffset along the axis chosen by
-// dwAlignment -> UpdateVirtualRect(CPoint) -> CBasePane::SetWindowPos(&wndTop,
-// ..., SWP_NOSIZE|SWP_NOACTIVATE|...).  The final SetWindowPos passes
-// `CWnd::wndTop` (a static CWnd) as pWndInsertAfter; OpenMFC's
-// SetWindowPos thunk in featurepack/docking/Thunks.cpp is a stub, and
-// UpdateVirtualRect(CPoint) in this file is a stub too, so transcribing this
-// would produce a body whose two effects both go nowhere.
+// Retail mfc140u RVA 0xa0a40, transcribed:
+//   GetWindowRect; FromHandle(GetParent(m_hWnd))->ScreenToClient(&rect);
+//   switch (dwAlignment & 0xf000) {
+//     case CBRS_ALIGN_LEFT/RIGHT: OffsetRect(&rect, nOffset, 0);
+//                                 UpdateVirtualRect(CPoint(nOffset, 0)); break;
+//     case CBRS_ALIGN_TOP/BOTTOM: OffsetRect(&rect, 0, nOffset);
+//                                 UpdateVirtualRect(CPoint(0, nOffset)); break;
+//     default: leave rect and virtual rect unchanged;
+//   }
+//   return SetWindowPos(&CWnd::wndTop, rect.left, rect.top, rect.Width(),
+//                       rect.Height(), 0x15, NULL) != NULL.
+// GetWindowRect, GetParent and OffsetRect use mfc140u import slots
+// 0x1802c6c08, 0x1802c72d8 and 0x1802c72f0, resolved with iatu.py. The
+// SetWindowPos thunk forwards to the implemented CBasePane method in
+// CBasePane.cpp, and UpdateVirtualRect(CPoint) is implemented above. Deviation:
+// a null parent wrapper is guarded before ScreenToClient; retail dereferences it.
 extern "C" int MS_ABI impl__MoveByAlignment_CPane__QEAAHKH_Z(
     CPane* pThis, unsigned long dwAlignment, int nOffset) {
-    (void)pThis;
-    (void)dwAlignment;
-    (void)nOffset;
-    return FALSE;
+    if (pThis == nullptr) return FALSE;
+
+    RECT rect = {0, 0, 0, 0};
+    ::GetWindowRect(pThis->m_hWnd, &rect);
+    CWnd* pParent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
+        ::GetParent(pThis->m_hWnd));
+    if (pParent != nullptr) {
+        impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pParent, &rect);
+    }
+
+    int dx = 0;
+    int dy = 0;
+    bool bUpdateVirtualRect = true;
+    switch (dwAlignment & kCbrsAlignAny) {
+    case 0x1000:  // CBRS_ALIGN_LEFT
+    case 0x4000:  // CBRS_ALIGN_RIGHT
+        dx = nOffset;
+        ::OffsetRect(&rect, nOffset, 0);
+        break;
+    case 0x2000:  // CBRS_ALIGN_TOP
+    case 0x8000:  // CBRS_ALIGN_BOTTOM
+        dy = nOffset;
+        ::OffsetRect(&rect, 0, nOffset);
+        break;
+    default:
+        bUpdateVirtualRect = false;
+        break;
+    }
+    if (bUpdateVirtualRect) {
+        impl__UpdateVirtualRect_CPane__QEAAXVCPoint___Z(pThis, PackPoint(dx, dy));
+    }
+
+    const int cx = rect.right - rect.left;
+    const int cy = rect.bottom - rect.top;
+    const CWnd* pWndTop = reinterpret_cast<const CWnd*>(impl__wndTop_CWnd__2V1_B);
+    return impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+               static_cast<CBasePane*>(pThis), pWndTop, rect.left, rect.top, cx, cy,
+               0x15u, nullptr) != nullptr;
 }
 
 // Symbol: ?MovePane@CPane@@UEAA?AVCSize@@VCRect@@HAEAPEAX@Z
@@ -1020,8 +1069,8 @@ extern "C" void MS_ABI impl__OnAfterChangeParent_CPane__UEAAXPEAVCWnd___Z(
 // -- an ordinary export, so it is reachable after all.  R8D is zero at the call
 // site, i.e. AFX_DOCK_METHOD DM_UNKNOWN (an earlier note in this file read that
 // argument as FALSE; it is the dock method, not a flag).
-// Calling the thunk loses dispatch to a CDockSite override, and that thunk is
-// itself still a generated stub, so this currently has no run-time effect.
+// Calling the thunk loses dispatch to a CDockSite override; the CDockSite
+// RemovePane thunk has a body in CDockSite.cpp and performs the base removal.
 extern "C" void MS_ABI impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(
     CPane* pThis, CWnd* pWndNewParent, int bDelay) {
     (void)pWndNewParent;
@@ -1033,13 +1082,13 @@ extern "C" void MS_ABI impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(
 }
 
 // Symbol: ?OnBeforeDock@CPane@@MEAAHPEAPEAVCBasePane@@PEBUtagRECT@@W4AFX_DOCK_METHOD@@@Z
-// Retail mfc140 RVA 0xa0900 is exactly:
+// STUB (only the return value is preserved). Retail mfc140 RVA 0xa0900 does:
 //   CPaneFrameWnd* p = GetParentMiniFrame(FALSE);      // slot 140, EDX = 0
-//   if (p != NULL) m_bPinState = *(int*)((char*)p + 0xfc);   // +0x21c
+//   if (p != NULL) m_bPinState = *(int*)((char*)p + 0xfc);   // CPane+0x21c
 //   return TRUE;
-// (ppDockBar, lpRect and dockMethod are not read).  The +0xfc read is against
-// the retail CPaneFrameWnd layout, which OpenMFC does not reproduce, so only
-// the unconditional TRUE is faithful here -- the m_bPinState copy is omitted.
+// ppDockBar, lpRect and dockMethod are not read. The +0xfc source field is in
+// the retail CPaneFrameWnd layout, which OpenMFC replaces with padding; this
+// body must not claim implementation status until that field is modeled.
 extern "C" int MS_ABI impl__OnBeforeDock_CPane__MEAAHPEAPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
     CPane* pThis, CBasePane** ppDockBar, const RECT* lpRect, int dockMethod) {
     (void)pThis;
@@ -1121,9 +1170,10 @@ extern "C" void MS_ABI impl__OnChar_CPane__IEAAXIII_Z(
 // 148 (+0x4a0) is 0xcf50 ==
 // ?OnPaneContextMenu@CBasePane@@UEAAXPEAVCWnd@@VCPoint@@@Z.
 // The `pWnd` parameter of the message handler is never read by retail.
-// Both OnShowControlBarMenu (below) and the OnPaneContextMenu thunk are still
-// stubs, so today this reliably reaches the final call and that call does
-// nothing; the routing itself is what is transcribed here.
+// OnShowControlBarMenu (below) remains a stub. The final CBasePane
+// OnPaneContextMenu thunk is implemented in CBasePane.cpp: it sends
+// AFX_WM_TOOLBARMENU to the selected frame and may then forward to its docking
+// manager, so this path is not a no-op.
 extern "C" void MS_ABI impl__OnContextMenu_CPane__IEAAXPEAVCWnd__VCPoint___Z(
     CPane* pThis, CWnd* pWnd, void* point) {
     (void)pWnd;
@@ -1206,16 +1256,15 @@ extern "C" void MS_ABI impl__OnDestroy_CPane__IEAAXXZ(CPane* pThis) {
 }
 
 // Symbol: ?OnLButtonDblClk@CPane@@IEAAXIVCPoint@@@Z
-// NOT IMPLEMENTED.  Retail mfc140 RVA 0xa2010 is:
-//   OnProcessDblClk();                                      // slot 177
-//   if (CanFloat()) {                                       // slot 117
-//       CRect rect = *(CRect*)(this + 0x2c0);   // m_recentDockInfo + 8
-//       FloatPane(rect, DM_DBL_CLICK, true);                // slot 129
-//       Default();
-//   }
-// The rectangle comes from inside CRecentDockSiteInfo, which OpenMFC models as
-// an opaque 288-byte block with no members, and FloatPane is itself unavailable
-// (see above), so both halves of the `if` body are unreachable here.
+// STUB. Retail mfc140 ANSI-twin entry RVA 0xa2010 calls OnProcessDblClk
+// through slot 177 (+0x588), tests CanFloat through slot 117 (+0x3a8), and on
+// true passes m_recentDockInfo.m_rectRecentFloatingRect (+0x2c0) to FloatPane
+// through slot 129 (+0x408), then calls Default(). The CPane vtable's slot 117
+// points to CBasePane::CanFloat (mfc140 RVA 0xc840), while OpenMFC declares a
+// CPane::CanFloat override; calling that local body or assuming TRUE would not
+// preserve retail's test. FloatPane also depends on the unmodeled mini-frame
+// and docking-manager layouts, so leave this handler stubbed rather than
+// taking a plausible but unverified path.
 extern "C" void MS_ABI impl__OnLButtonDblClk_CPane__IEAAXIVCPoint___Z(
     CPane* pThis, unsigned int nFlags, void* point) {
     (void)pThis;
@@ -1252,7 +1301,7 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CPane__IEAAXIVCPoint___Z(
 //               (GetDockingMode() & DT_STANDARD))
 //               m_dragFrameImpl.EndDrawDragFrame(TRUE);      // 0x55cb0
 //           BOOL bWasDocked = FALSE;
-//           StoreRecentDockSiteInfo();                       // slot 201
+//           StoreRecentDockSiteInfo();                       // slot 201 (stubbed below)
 //           CPane* pDocked = DockPaneStandard(bWasDocked);       // slot 174
 //           if (!bWasDocked && !::IsRectEmpty(&rect) && pDocked != this)
 //               FloatPane(rect, DM_STANDARD /*5*/, true);    // slot 129
@@ -1277,8 +1326,9 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CPane__IEAAXIVCPoint___Z(
 // 0x1802c5250, SendMessageA 0x1802c5378 -- SendMessageW in mfc140u --
 // IsRectEmpty 0x1802c52c8).
 //
-// Two deliberate deviations, both because OpenMFC does not model the object
-// involved:
+// Deliberate deviations because OpenMFC does not model the objects involved:
+//  * StoreRecentDockSiteInfo is currently stubbed (see below), so recent
+//    dock-site state is not updated on this standard-docking path.
 //  * the CSmartDockingManager stop is DROPPED.  CDockingManager is modelled in
 //    include/openmfc/afxmfc.h as a ~144-byte object with no member at +0x308,
 //    so the pointer retail loads there does not exist; reading that offset
@@ -1463,7 +1513,7 @@ extern "C" void MS_ABI impl__OnPressCloseButton_CPane__UEAAXXZ(CPane* pThis) {
 // Symbol: ?OnProcessDblClk@CPane@@UEAAXXZ
 // Retail mfc140 RVA 0xa2080, transcribed:
 //   m_bDblClick = TRUE;                                     // +0x212
-//   StoreRecentDockSiteInfo();                              // slot 201
+//   StoreRecentDockSiteInfo();                              // slot 201 (stubbed below)
 //   if (m_bCaptured) {                                      // +0x210
 //       ::ReleaseCapture();
 //       m_bCaptured = FALSE;
@@ -1474,7 +1524,9 @@ extern "C" void MS_ABI impl__OnPressCloseButton_CPane__UEAAXXZ(CPane* pThis) {
 //       m_hwndMiniFrameToBeClosed = NULL;
 //   }
 // Unlike OnCancelMode this path does NOT call Default() and does NOT test the
-// docking mode / end the drag frame.
+// docking mode / end the drag frame. Deviation: StoreRecentDockSiteInfo remains
+// stubbed because its nested recent-info and CDockSite row-list layouts are not
+// modeled, so this call does not persist that retail state.
 extern "C" void MS_ABI impl__OnProcessDblClk_CPane__UEAAXXZ(CPane* pThis) {
     if (pThis == nullptr) return;
     pThis->m_bDblClick = TRUE;
@@ -1752,22 +1804,22 @@ extern "C" void MS_ABI impl__RemoveFromMiniframe_CPane__MEAAXPEAVCWnd__W4AFX_DOC
 // back.  The Write vtable slots were read off the call sites: +0x68 takes a
 // CRect, +0x78 a DWORD, +0x80 an int.)
 //
-// The four m_recentDockInfo destinations are named through the offsets pinned
-// in the anonymous namespace above; they are inside the opaque 288-byte blob
-// but at offsets derived from the SDK class declaration, not invented.
+// The recent-info offsets below come from the shipping SDK layout, but
+// CRecentDockSiteInfo remains opaque in OpenMFC; these nested members are not
+// modeled or independently pinned by a shadow struct. This pre-existing body
+// retains its documented byte-view approximation rather than expanding into
+// the unmodeled CDockSite/CObList row-list layout.
 //
-// Deliberate deviations, each because OpenMFC does not model the object:
-//  * the row-index scan is NOT reproduced.  It walks a CObList living at
-//    +0x1e8 of the parent dock site; OpenMFC only forward-declares CDockSite
-//    and models no such list, so there is no list to walk.  Note that retail
-//    always STORES a value into m_nRecentRowIndex on this path -- the
-//    instructions at 0xa2624..0xa2654 inside SaveState (entry mfc140 0xa24e0)
-//    start with ecx = 0 and store ecx whether m_pDockBarRow is NULL, the node
-//    is found, or the walk falls off the end -- so leaving the field alone,
-//    as the code below does, differs from retail even in the trivial cases.
-//    The value written under "RecentRowIndex" is therefore whatever
-//    m_nRecentRowIndex already held, not a freshly computed index.
-//  * Format uses L"%sPane-%d" / L"%sPane-%d%x".  Retail's literal is
+// Deviations: the retail row-index scan is NOT reproduced. It walks a CObList
+// at parent-dock-site +0x1e8 with CNode data at +0x10; OpenMFC does not model
+// those types. Retail's instructions at 0xa2624..0xa2654 inside SaveState
+// (entry mfc140 RVA 0xa24e0) write zero for a null or not-found row, whereas
+// this body leaves the existing recent row index unchanged. In addition,
+// OpenMFC's same-file CalcRecentDockedRect helper updates only its auxiliary
+// PaneCoreState; it does not refresh the opaque retail recent-docked rectangle,
+// so this body's saved "RectRecentDocked" may be stale. Both are retained
+// approximations from the pre-existing SaveState implementation.
+// Format uses L"%sPane-%d" / L"%sPane-%d%x".  Retail's literal is
 //    "%TsPane-%d"; %Ts is ATL's type-neutral string specifier, which in a
 //    Unicode build formats a wide string.  OpenMFC's CString::Format
 //    (include/openmfc/afxstr.h) is a plain vswprintf and does not implement
@@ -1795,10 +1847,11 @@ extern "C" void MS_ABI impl__RemoveFromMiniframe_CPane__MEAAXPEAVCWnd__W4AFX_DOC
 //    the pane's values somewhere no reader looks.  Open(_T("")) resets the
 //    path to "Software\OpenMFC" (NormalizeSettingPath's empty-base default),
 //    which is byte-for-byte the state a freshly constructed store is in, so
-//    the CreateKey below produces the same path a per-call store would.  What
-//    the sharing still costs is that two threads saving state at once share
-//    one store; OpenMFC's settings store is a process-wide std::map with no
-//    locking of its own, so that is not a new hazard.
+//    the CreateKey below produces the same path a per-call store would.
+//    However, concurrent calls now share this store object's mutable path, so
+//    one call can redirect another call's key. The global settings maps are
+//    also unsynchronized; this static-store reuse adds a path race and is not
+//    thread-safe.
 //  * IsFloating and GetCurrentAlignment are reached through the exported
 //    CBasePane implementations rather than by virtual dispatch, so a derived
 //    override is not seen.  For GetCurrentAlignment that is not a behavioural
@@ -1854,7 +1907,6 @@ extern "C" int MS_ABI impl__SaveState_CPane__UEAAHPEB_WHI_Z(
                 *reinterpret_cast<unsigned long*>(pInfo + kRecentAlignment) =
                     impl__GetCurrentAlignment_CBasePane__UEBAKXZ(
                         reinterpret_cast<const CBasePane*>(pThis->m_pParentDockBar));
-                // (retail recomputes m_nRecentRowIndex here -- see above)
             }
         }
 
@@ -1937,13 +1989,11 @@ extern "C" void MS_ABI impl__SetDockState_CPane__UEAAXPEAVCDockingManager___Z(
 }
 
 // Symbol: ?SetDragMode@CPane@@MEAAXH@Z
-// Still a stub.  Retail mfc140 RVA 0xa21a0 is CPane::SetDragMode(BOOL); only
-// the parameter list is corrected here (the generated stub omitted the implicit
-// `this`, which the retail export does take in RCX and which the call sites in
-// this file and in CDockablePane.cpp already pass).
+// Retail mfc140 ANSI-twin RVA 0xa21a0 is one store: m_bDragMode = bOnOff
+// (CPane+0x214), then ret. The offset is pinned above.
 extern "C" void MS_ABI impl__SetDragMode_CPane__MEAAXH_Z(CPane* pThis, int bOnOff) {
-    (void)pThis;
-    (void)bOnOff;
+    if (pThis == nullptr) return;
+    pThis->m_bDragMode = bOnOff;
 }
 
 // Symbol: ?SetVirtualRect@CPane@@QEAAXAEBVCRect@@H@Z
@@ -1980,23 +2030,11 @@ extern "C" void MS_ABI impl__SetVirtualRect_CPane__QEAAXAEBVCRect__H_Z(
 }
 
 // Symbol: ?StoreRecentDockSiteInfo@CPane@@MEAAXXZ
-// NOT IMPLEMENTED.  Retail mfc140 RVA 0x9fff0, transcribed:
-//   m_recentDockInfo.<+0x28> = m_pDockBarRow;             // this+0x2e8 <- +0x130
-//   m_recentDockInfo.<+0x20> = m_pParentDockBar;          // this+0x2e0 <- +0x128
-//   if (m_pParentDockBar != NULL) {
-//       int nIndex = 0;
-//       if (m_pDockBarRow != NULL) {
-//           // walk the CObList at m_pParentDockBar+0x1e8 counting nodes until
-//           // node->data (+0x10) == m_pDockBarRow; 0 if never found
-//       }
-//       m_recentDockInfo.<+0x18> = nIndex;                // this+0x2d8
-//   }
-//   CalcRecentDockedRect();                               // tail jump 0xa27e0
-// Every destination is inside m_recentDockInfo (CPane +0x2b8), which OpenMFC
-// models as an opaque 288-byte block with no members and no pinned interior
-// offsets, and the walk needs the CDockSite row list at its +0x1e8, which
-// OpenMFC does not model either.  Parameter list corrected to take the implicit
-// `this`, which the call sites in this file pass.
+// STUB. Retail mfc140 ANSI-twin function entry RVA 0x9fff0 stores fields in
+// the opaque CRecentDockSiteInfo member and traverses a CObList at
+// m_pParentDockBar+0x1e8. Neither the nested recent-info fields nor the
+// CDockSite/CObList layout are modeled in the owned files, so do not access
+// those offsets through ad-hoc byte views here.
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CPane__MEAAXXZ(CPane* pThis) {
     (void)pThis;
 }
@@ -2084,9 +2122,9 @@ extern "C" int MS_ABI impl__StretchPaneDeferWndPos_CPane__UEAAHHAEAPEAX_Z(
 // the call site, i.e. AFX_DOCK_METHOD DM_UNKNOWN.  CPane vtable slot 156
 // (+0x4e0) is 0xbdb0 == ?AdjustDockingLayout@CBasePane@@UEAAXPEAX@Z, called
 // with EDX = 0.
-// Both are called through their exported thunks, so a derived override of
-// either is missed; both of those thunks are still generated stubs as of this
-// writing, so this body currently has no observable effect at run time.
+// Both calls use exported thunks, so derived overrides are missed. The
+// CDockSite RemovePane thunk is implemented; AdjustDockingLayout remains an
+// empty base thunk because OpenMFC does not model the frame layouts it walks.
 // Signature corrected: the generated stub dropped the implicit `this`.
 extern "C" void MS_ABI impl__UndockPane_CPane__UEAAXH_Z(CPane* pThis, int bDelay) {
     if (pThis == nullptr) return;

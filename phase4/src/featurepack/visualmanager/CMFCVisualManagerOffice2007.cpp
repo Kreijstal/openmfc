@@ -32,12 +32,15 @@
 #include "openmfc/afxmfc.h"
 
 #include <cstring>
+#include <cstdint>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
 #else
   #define MS_ABI
 #endif
+
+namespace { inline void Office2007PredicateInitGate(); }
 
 //=============================================================================
 // CMFCVisualManagerOffice2007 - Ribbon drawing overrides
@@ -525,31 +528,32 @@ extern "C" unsigned long MS_ABI impl__OnDrawMenuLabel_CMFCVisualManager__UEAAKPE
     CMFCVisualManager* pThis, CDC* pDC, CRect rect);
 
 // Symbol: ?m_strStylePrefix@CMFCVisualManagerOffice2007@@1V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
-// Data export (a private static CString), not a function, so it has no RVA to
-// disassemble. Retail fills it in when a style resource module is loaded and
-// ?MakeResourceID@CMFCVisualManagerOffice2007@@KA... (ANSI twin at 0x198eb0)
-// prepends it to every resource name. OpenMFC never loads a style module, so
-// the prefix stays empty; the storage is left as a null CStringT pointer
-// exactly as before, because handing out a CStringData that this build's
-// ATL::CStringT does not own would be worse than an untouched slot.
-extern "C" void* /*CRuntimeClass*/ MS_ABI impl__m_strStylePrefix_CMFCVisualManagerOffice2007__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
+// Data export for the private CString at RVA 0x3c32a8 (mfc140u). OpenMFC
+// models it as a null backing pointer, not a constructed CString object; no
+// style resource is loaded by this implementation.
+extern "C" void* /*CString storage*/ MS_ABI impl__m_strStylePrefix_CMFCVisualManagerOffice2007__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
 
 // Symbol: ?CleanStyle@CMFCVisualManagerOffice2007@@SAXXZ
-// Retail (0x199190) releases the loaded style resource module. The three
-// .data addresses it touches are themselves named exports, so they are not
-// guesses: 0x1803b70fc is ?m_bAutoFreeRes@CMFCVisualManagerOffice2007@@1HA,
-// 0x1803b7128 is ?m_hinstRes@CMFCVisualManagerOffice2007@@1PEAUHINSTANCE__@@EA
-// and 0x1803b7130 is ?m_Style@CMFCVisualManagerOffice2007@@1W4Style@1@A.
-// Transcribed:
-//     if (m_bAutoFreeRes && (UINT_PTR)m_hinstRes > 0x20)
-//         ::FreeLibrary(m_hinstRes);              // IAT slot 0x1802c4698
-//     m_hinstRes = NULL; m_Style = 0;
-//     m_strStylePrefix.Empty();                   // tail-jmp 0x180003430 =
-//                                                 // ?Empty@?$CSimpleStringT@D$00@ATL@@QEAAXXZ
-// OpenMFC has no style resource module and no populated m_strStylePrefix, so
-// there is nothing to release. Left an explicit no-op rather than inventing
-// state to clear.
-extern "C" void MS_ABI impl__CleanStyle_CMFCVisualManagerOffice2007__SAXXZ() {}
+// Retail entry RVA 0x19ab90 (mfc140u): if m_bAutoFreeRes (data RVA 0x3be39c)
+// and the numeric m_hinstRes (data RVA 0x3be3c8) value exceeds 0x20, call
+// KERNEL32!FreeLibrary (mfc140u IAT slot 0x1802c6670 resolves to FreeLibrary).
+// Then clear m_hinstRes, set m_Style (data RVA 0x3be3d0) to 0, and call
+// CStringT<wchar_t>::Empty on m_strStylePrefix (data RVA 0x3c32a8). OpenMFC
+// keeps that static as a null backing pointer, so it remains empty without
+// invoking CString::Empty on unconstructed storage. The local style mirror is
+// also reset so OpenMFC's GetStyle continues to agree with the exported m_Style.
+extern "C" void MS_ABI impl__CleanStyle_CMFCVisualManagerOffice2007__SAXXZ()
+{
+    void* hinstRes = impl__m_hinstRes_CMFCVisualManagerOffice2007__1PEAUHINSTANCE____EA;
+    if (impl__m_bAutoFreeRes_CMFCVisualManagerOffice2007__1HA != 0 &&
+        reinterpret_cast<std::uintptr_t>(hinstRes) > 0x20) {
+        ::FreeLibrary(static_cast<HMODULE>(hinstRes));
+    }
+    impl__m_hinstRes_CMFCVisualManagerOffice2007__1PEAUHINSTANCE____EA = nullptr;
+    impl__m_Style_CMFCVisualManagerOffice2007__1W4Style_1_A = 0;
+    g_office2007Style = CMFCVisualManagerOffice2007::Office2007_LunaBlue;
+    impl__m_strStylePrefix_CMFCVisualManagerOffice2007__1V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = nullptr;
+}
 
 // Symbol: ?CleanUp@CMFCVisualManagerOffice2007@@MEAAXXZ
 // Retail (0x1991e0 (mfc140)) resets the whole Office2007 theme block: it
@@ -588,7 +592,7 @@ extern "C" void MS_ABI impl__CleanStyle_CMFCVisualManagerOffice2007__SAXXZ() {}
 extern "C" void MS_ABI impl__CleanUp_CMFCVisualManagerOffice2007__MEAAXXZ(void* /*pThis*/) {}
 
 // Symbol: ?DrawNcBtn@CMFCVisualManagerOffice2007@@IEAAXPEAVCDC@@AEBVCRect@@IW4AFX_BUTTON_STATE@CMFCVisualManager@@HHH@Z
-// Retail (0x1a0a40) has NO non-themed fallback: it selects one of the embedded
+// Retail entry RVA 0x1a2440 (mfc140u) has NO non-themed fallback: it selects one of the embedded
 // CMFCToolBarImages objects by the SC_ command id -- 0xf060 SC_CLOSE -> +0x970,
 // 0xf020 SC_MINIMIZE -> +0x1300, 0xf030 SC_MAXIMIZE -> +0xfd0, 0xf120
 // SC_RESTORE -> +0xca0, each +0x198 further when the bSmall argument is
@@ -890,12 +894,14 @@ extern "C" int MS_ABI impl__GetRibbonPopupBorderSize_CMFCVisualManagerOffice2007
 }
 
 // Symbol: ?GetRibbonQuickAccessToolBarRightMargin@CMFCVisualManagerOffice2007@@UEAAHXZ
-// Retail 0x1a7ad0, complete: `if (predicate() && this->[+0x5998] != NULL)
-// return this->[+0x5ac8]; return 0;` -- both guarded paths need Office2007
-// members, and the only reachable edge in this build returns 0.
+// Retail entry RVA 0x1a94d0 (mfc140u): if the predicate at 0x198ce8 is true
+// and this->[+0x5998] is non-null, return this->[+0x5ac8]; otherwise return 0.
+// Office2007 style resources are never loaded in this build, so the predicate
+// is false. Its afxGlobalData initialization side effect is retained here.
 extern "C" int MS_ABI impl__GetRibbonQuickAccessToolBarRightMargin_CMFCVisualManagerOffice2007__UEAAHXZ(
     CMFCVisualManagerOffice2007* /*pThis*/)
 {
+    Office2007PredicateInitGate();
     return 0;
 }
 
@@ -1109,21 +1115,22 @@ extern "C" void MS_ABI impl__GetTabFrameColors_CMFCVisualManagerOffice2007__UEAA
 }
 
 // Symbol: ?GetTabHorzMargin@CMFCVisualManagerOffice2007@@UEAAHPEBVCMFCBaseTabCtrl@@@Z
-// Retail 0x1a62f0 (mfc140), complete. Every guard failure -- predicate FALSE, or any of
-// the tab control's four vtable queries at +0x520/+0x560/+0x528/+0x530
+// Retail entry RVA 0x1a7cf0 (mfc140u), complete (ANSI twin entry RVA
+// 0x1a62f0 (mfc140)). Every guard failure -- predicate FALSE, or any of the
+// tab control's four vtable queries at +0x520/+0x560/+0x528/+0x530
 // returning non-zero, or the manager's pointer at [+0x4d98 (+0x400 when the
 // tab control's vtable +0x510 query returned non-zero)] being NULL -- lands on
 // `xor %eax,%eax`. Only the fully themed path returns this->[+0x4ec8, with the
 // same +0x400 adjustment] / 2. In this build the predicate is FALSE, so the
 // reachable result is 0.
-// STUB (re-checked 2026-09-29 at mfc140u entry 0x1a7cf0): the themed edge
-// needs this->[+0x2f0], [+0x4d98] and [+0x4ec8] (+0x400 variants), none of
-// which OpenMFC's CMFCVisualManager + char _pad[64] layout holds, and retail
-// with its style resources loaded returns the themed margin there. The
-// predicate's afxGlobalData init gate is also not run here.
+// The themed edge needs this->[+0x2f0], [+0x4d98] and [+0x4ec8] (+0x400
+// variants), none of which OpenMFC's abbreviated class layout models. The
+// predicate-false path is reachable here; its afxGlobalData init gate is kept
+// in the body below.
 extern "C" int MS_ABI impl__GetTabHorzMargin_CMFCVisualManagerOffice2007__UEAAHPEBVCMFCBaseTabCtrl___Z(
     CMFCVisualManagerOffice2007* /*pThis*/, const CMFCBaseTabCtrl* /*pTabWnd*/)
 {
+    Office2007PredicateInitGate();
     return 0;
 }
 
@@ -1235,16 +1242,17 @@ extern "C" int MS_ABI impl__IsOwnerDrawMenuCheck_CMFCVisualManagerOffice2007__UE
 // ?IsRibbonPresent@CMFCVisualManagerWindows7@@QEBAHPEAVCWnd@@@Z (0x1a1740) --
 // PROVED: in mfc140u.dll both names resolve to the single RVA 0x1a3140.
 // That body is
-// `pBar = GetRibbonBar(pWnd); return pBar != NULL && ::IsWindowVisible(pBar->m_hWnd);`
-// (the call at 0x1a1744 goes to GetRibbonBar at 0x1a16b0 and the import slot at
-// 0x1802c5350 resolves to USER32!IsWindowVisible). Since GetRibbonBar cannot be
-// implemented here (see above), the result would be FALSE unconditionally,
-// which is indistinguishable from a stub -- so this is left a stub rather than
-// dressed up as an implementation.
+// `pBar = GetRibbonBar(pWnd); return pBar != NULL && ::IsWindowVisible(pBar->m_hWnd);`.
+// The GetRibbonBar call reaches the thunk defined above; the U-image import
+// slot 0x1802c7328 resolves to USER32!IsWindowVisible (iatu.py). GetRibbonBar
+// still returns NULL when it cannot identify the unmodelled frame members, but
+// this body preserves retail's conditional query for any non-null result.
 extern "C" int MS_ABI impl__IsRibbonPresent_CMFCVisualManagerOffice2007__QEBAHPEAVCWnd___Z(
-    const void* /*pThis*/, CWnd* /*pWnd*/)
+    const void* pThis, CWnd* pWnd)
 {
-    return 0;
+    auto* pRibbon = static_cast<CMFCRibbonBar*>(
+        impl__GetRibbonBar_CMFCVisualManagerOffice2007__QEBAPEAVCMFCRibbonBar__PEAVCWnd___Z(pThis, pWnd));
+    return pRibbon != nullptr && ::IsWindowVisible(pRibbon->m_hWnd);
 }
 
 // Symbol: ?IsWindowActive@CMFCVisualManagerOffice2007@@IEBAHPEAVCWnd@@@Z
@@ -1800,6 +1808,7 @@ extern "C" void MS_ABI impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOffice200
     CMFCVisualManagerOffice2007* pThis, CDC* pDC, CMFCRibbonButton* pButton)
 {
     if (!pThis) return;
+    Office2007PredicateInitGate();
     impl__OnDrawRibbonButtonBorder_CMFCVisualManagerOfficeXP__MEAAXPEAVCDC__PEAVCMFCRibbonButton___Z(
         AsOfficeXP(pThis), pDC, pButton);
 }
@@ -1899,17 +1908,14 @@ extern "C" void MS_ABI impl__OnDrawTearOffCaption_CMFCVisualManagerOffice2007__U
 //     if (predicate() && this->[+0xc568] /* HBRUSH of the CBrush at +0xc560 */ != NULL) {
 //         ::FillRect(pDC->m_hDC, &rectClient, that brush); return TRUE; }
 //     return FALSE;
-// Only the FALSE edge is reachable here, and it is a bare `return FALSE`, so
-// this stays an honest stub: there is no base call to make.
-// Re-checked 2026-09-29: the FillRect import slot 0x1802c7208 (mfc140u)
-// resolves to USER32!FillRect, pDC->m_hDC is read from pDC+0x8, and the
-// `lea 0xc560(%rbx); test` NULL check on the brush ADDRESS never fails for a
-// valid this; the HBRUSH at +0xc568 is the operative test.
-// STUB: the CBrush at +0xc560 and the +0x2f0 flag are Office2007 state
-// OpenMFC does not model; the predicate's afxGlobalData init gate is not run.
+// Only the predicate-false edge is reachable; retain that predicate's
+// afxGlobalData initialization side effect. Re-checked 2026-09-29: the FillRect
+// import slot 0x1802c7208 (mfc140u) resolves to USER32!FillRect, pDC->m_hDC is
+// read at +0x8, and the brush at this->[+0xc560+8] is tested on the themed edge.
 extern "C" int MS_ABI impl__OnEraseMDIClientArea_CMFCVisualManagerOffice2007__UEAAHPEAVCDC__VCRect___Z(
     CMFCVisualManagerOffice2007* /*pThis*/, CDC* /*pDC*/, CRect /*rectClient*/)
 {
+    Office2007PredicateInitGate();
     return FALSE;
 }
 
@@ -2286,35 +2292,31 @@ extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManagerOffice2007__UEAAHPEAVC
 }
 
 // Symbol: ?OnNcPaint@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z
-// Retail 0x1a3170 (mfc140u): `if (!predicate() || pWnd == NULL ||
-// pWnd->m_hWnd == NULL) return FALSE;` -- the reachable edge -- and
-// otherwise a 0x9a8-byte themed painter (CWindowDC on pWnd, clip to
-// rectRedraw when non-empty, GetRibbonBar / IsWindowVisible for the ribbon
-// case, caption and borders via DrawNcCaption / DrawNcBtn and the
-// Office2007 renderers) returning TRUE. Only `return FALSE` is reachable, so
-// this stays an honest stub.
+// Retail entry RVA 0x1a3170 (mfc140u): first call the predicate; if it is
+// false, or pWnd / pWnd->m_hWnd is null, return FALSE. Otherwise the 0x9a8-byte
+// themed painter clips to rectRedraw when non-empty, checks the ribbon window,
+// and draws the caption/buttons. The predicate is false without style resources,
+// so only its afxGlobalData initialization side effect and FALSE result are reachable.
 extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(
     CMFCVisualManagerOffice2007* /*pThis*/, CWnd* /*pWnd*/, const CObList* /*lstSysButtons*/, CRect /*rectRedraw*/)
 {
+    Office2007PredicateInitGate();
     return FALSE;
 }
 
 // Symbol: ?OnSetWindowRegion@CMFCVisualManagerOffice2007@@UEAAHPEAVCWnd@@VCSize@@@Z
-// Retail 0x1a3b20 (mfc140u): `if (pWnd == NULL || pWnd->m_hWnd == NULL ||
-// !predicate() || afxGlobalData.IsDwmCompositionEnabled()) return FALSE;`
-// is the reachable edge. The themed edge (documented, not implemented):
-// pWnd IsKindOf CMFCPopupMenu (descriptor mfc140 0x1803aa448) -> corner
-// radius 3; else IsKindOf CMFCRibbonBar (0x1802fe3c8) -> FALSE; else if
-// (pWnd->GetStyle() & 0x01000000 /* WS_MAXIMIZE */) -> SetWindowRgn(pWnd->m_hWnd,
-// NULL, TRUE) and return TRUE; else radius 9. It then CreateRoundRectRgn(0, 0, cx+1, cy+1, r, r),
-// ORs in a CreateRectRgn(0, r, cx, cy) bottom block for windows IsKindOf
-// CMDIChildWnd (0x180339bf0) (CombineRgn RGN_OR), drops the HRGN from the module thread state's handle map
-// (CMapPtrToWord::RemoveKey on AFX_MODULE_THREAD_STATE+0x40+0x28) and
-// SetWindowRgn(pWnd->m_hWnd, hRgn, TRUE), returning TRUE. Only `return
-// FALSE` is reachable here, so this stays an honest stub.
+// Retail entry RVA 0x1a3b20 (mfc140u): return FALSE before the predicate when
+// pWnd or pWnd->m_hWnd is null; otherwise a false predicate returns FALSE
+// before the DWM test. With style resources absent, that predicate-false path
+// is reachable, and its afxGlobalData initialization side effect is retained.
+// The themed edge creates a rounded region (radius 3 for popup menus, 9 for
+// other eligible windows), with additional type/style-specific handling; that
+// path is not available without the unmodelled theme and window-class state.
 extern "C" int MS_ABI impl__OnSetWindowRegion_CMFCVisualManagerOffice2007__UEAAHPEAVCWnd__VCSize___Z(
-    CMFCVisualManagerOffice2007* /*pThis*/, CWnd* /*pWnd*/, long long /*sizeWindow -- CSize by value, 8-byte aggregate in a register*/)
+    CMFCVisualManagerOffice2007* /*pThis*/, CWnd* pWnd, long long /*sizeWindow -- CSize by value, 8-byte aggregate in a register*/)
 {
+    if (pWnd == nullptr || pWnd->m_hWnd == nullptr) return FALSE;
+    Office2007PredicateInitGate();
     return FALSE;
 }
 

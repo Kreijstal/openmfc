@@ -155,6 +155,27 @@ extern "C" void MS_ABI impl__CleanUp_CMFCVisualManagerWindows7__UEAAXXZ(
     CMFCVisualManagerWindows7* pThis);                                  // this file
 extern "C" void MS_ABI impl__OnUpdateSystemColors_CMFCVisualManagerWindows7__UEAAXXZ(
     CMFCVisualManagerWindows7* pThis);                                  // this file
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CMFCToolBarButton* pButton,
+    CRect rect, int state);
+extern "C" void MS_ABI impl__OnFillMenuImageRect_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+    CMFCVisualManagerWindows* pThis, CDC* pDC, CMFCToolBarButton* pButton,
+    CRect rect, int state);
+
+namespace {
+inline void W7EnsureGlobalDataInitialized() {
+    int initialized = 0;
+    std::memcpy(&initialized, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, sizeof(initialized));
+    if (!initialized) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+        const int one = 1;
+        std::memcpy(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, &one, sizeof(one));
+    }
+}
+} // namespace
+
 // Both defined in CMFCVisualManager.cpp; retail's FALSE-predicate paths reach
 // them (directly, or as this file's substitute -- see each call site).
 extern "C" void MS_ABI impl__OnFillRibbonQuickAccessToolBarPopup_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCRibbonPanelMenuBar__VCRect___Z(
@@ -557,32 +578,30 @@ extern "C" CSize* MS_ABI impl__GetSystemBorders_CMFCVisualManagerWindows7__IEBA_
 }
 
 // Symbol: ?IsHighlightWholeMenuItem@CMFCVisualManagerWindows7@@UEAAHXZ
-// Retail 0x1bb550, complete:
-//     return <predicate>(this) || this->[+0x210] != 0 || this->[+0x98] != NULL;
-// (the `je 0x1bb579` at 0x1bb572 falls out with EAX still zero, so a NULL
-// [+0x98] is the only way to reach FALSE once the first two terms fail).
-// All three terms are unavailable here -- the predicate has no representation
-// and neither +0x210 nor +0x98 is modelled -- so the value would be FALSE
-// unconditionally, which is indistinguishable from a stub. Left a stub rather
-// than dressed up as an implementation.
+// Retail entry 0x1bcf50 (mfc140u) returns the common predicate result OR
+// this->[+0x210] != 0 OR this->[+0x98] != NULL. The common predicate has the
+// same AFX_GLOBAL_DATA initialization side effect as IsOwnerDrawMenuCheck.
+// OpenMFC has no Windows7 style state at +0x210/+0x248, and the +0x98 theme
+// slot remains zero in its base padding; initialize the represented global
+// data, then return the only result represented by this build.
 extern "C" int MS_ABI impl__IsHighlightWholeMenuItem_CMFCVisualManagerWindows7__UEAAHXZ(
     CMFCVisualManagerWindows7* /*pThis*/)
 {
-    return 0;
+    W7EnsureGlobalDataInitialized();
+    return FALSE;
 }
 
 // Symbol: ?IsOwnerDrawMenuCheck@CMFCVisualManagerWindows7@@UEAAHXZ
-// Retail 0x1bb540 is five instructions: `sub $0x28,%rsp; call <predicate>;
-// xor %eax,%eax; add $0x28,%rsp; ret`. The predicate is still called (it is
-// not inlinable and has the AFX_GLOBAL_DATA::Initialize side effect) but its
-// result is never tested, so FALSE is the complete, unconditional retail
-// answer for every object state. Why the source looks that way is not visible
-// in the object code and is not asserted here.
-// (Identical in shape to ?IsOwnerDrawMenuCheck@CMFCVisualManagerOffice2007@@
-// at 0x1a57f0.)
+// Retail entry 0x1bcf40 (mfc140u) calls the common predicate at 0x1bc1e0,
+// discards its result, and returns FALSE. The predicate initializes
+// AFX_GLOBAL_DATA when its +0x0 initialized flag is clear. OpenMFC has the
+// matching 720-byte global blob and Initialize thunk, so preserve that side
+// effect without reading the unmodeled Windows7 fields the predicate also
+// examines for its discarded result.
 extern "C" int MS_ABI impl__IsOwnerDrawMenuCheck_CMFCVisualManagerWindows7__UEAAHXZ(
     CMFCVisualManagerWindows7* /*pThis*/)
 {
+    W7EnsureGlobalDataInitialized();
     return FALSE;
 }
 
@@ -1109,25 +1128,45 @@ extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManagerWindows7__UEAA
 // IsKindOf the CRuntimeClass at 0x3aa148 -- m_lpszClassName
 // "CMFCCustomizeButton" -- (the `jne 0x1c06f9` at 0x1c05f2 falls into the base
 // call at 0x1c06fe) and otherwise fills from the themed button renderers.
-// The reachable callee, CMFCVisualManagerWindows::OnFillButtonInterior, is an
-// empty generated stub in this tree, and CMFCVisualManager declares no
-// OnFillButtonInterior virtual at all (its impl__ thunk is likewise an empty
-// generated stub). There is therefore nothing to delegate to that would do
-// anything, so this is left a stub rather than a call that paints nothing.
+// The retail fallback calls CMFCVisualManagerWindows::OnFillButtonInterior.
+// Retail tests its theme handle at +0x10 before reaching OfficeXP; the OpenMFC
+// Windows thunk hardcodes that no-theme forwarding path, whose OfficeXP body
+// reads the toolbar-fill flag at +0xb0. Both offsets lie inside the manager's
+// zeroed base padding, and the toolbar-button fields used by that body are
+// modeled. Forward through the available thunk as a useful fallback. Warning:
+// OpenMFC's base constructor leaves +0xb0 zero, whereas retail initializes the
+// flag to one, so this may omit the ordinary highlight fill unless the flag has
+// been set by the caller.
 extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
-    CMFCVisualManagerWindows7* /*pThis*/, CDC* /*pDC*/, CMFCToolBarButton* /*pButton*/,
-    CRect /*rect*/, CMFCVisualManager::AFX_BUTTON_STATE /*state*/) {}
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, CMFCToolBarButton* pButton,
+    CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state)
+{
+    if (!pThis) return;
+    impl__OnFillButtonInterior_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+        reinterpret_cast<CMFCVisualManagerWindows*>(pThis), pDC, pButton, rect,
+        static_cast<int>(state));
+}
 
 // Symbol: ?OnFillMenuImageRect@CMFCVisualManagerWindows7@@UEAAXPEAVCDC@@PEAVCMFCToolBarButton@@VCRect@@W4AFX_BUTTON_STATE@CMFCVisualManager@@@Z
 // Retail 0x1c0530. Predicate FALSE (0x1c0570) calls 0x1b7ea0 =
 // ?OnFillMenuImageRect@CMFCVisualManagerWindows@@... with the same five
 // arguments; predicate TRUE dispatches a virtual on `this` instead.
-// The reachable callee is an empty generated stub in this tree and
-// CMFCVisualManager has neither an OnFillMenuImageRect virtual nor an impl__
-// thunk for one, so there is nothing to delegate to. Left a stub.
+// Retail's Windows::OnFillMenuImageRect callee tests this->[+0x98] and
+// this->[+0x210], then uses vtable slot +0x118 on its unthemed path. The
+// OpenMFC Windows thunk replaces that virtual dispatch with a direct call to
+// its OnFillButtonInterior thunk. That fallback reads only manager storage
+// within the shared base and modeled toolbar-button fields, so retain it as an
+// approximation; it does not reproduce the missing +0x210 decision or virtual
+// override dispatch.
 extern "C" void MS_ABI impl__OnFillMenuImageRect_CMFCVisualManagerWindows7__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
-    CMFCVisualManagerWindows7* /*pThis*/, CDC* /*pDC*/, CMFCToolBarButton* /*pButton*/,
-    CRect /*rect*/, CMFCVisualManager::AFX_BUTTON_STATE /*state*/) {}
+    CMFCVisualManagerWindows7* pThis, CDC* pDC, CMFCToolBarButton* pButton,
+    CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state)
+{
+    if (!pThis) return;
+    impl__OnFillMenuImageRect_CMFCVisualManagerWindows__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_CMFCVisualManager___Z(
+        reinterpret_cast<CMFCVisualManagerWindows*>(pThis), pDC, pButton, rect,
+        static_cast<int>(state));
+}
 
 // Symbol: ?OnFillRibbonButton@CMFCVisualManagerWindows7@@UEAAKPEAVCDC@@PEAVCMFCRibbonButton@@@Z
 // Retail 0x1c17d0. Predicate FALSE (0x1c1822) calls 0x1b1bf0 =
@@ -1136,11 +1175,14 @@ extern "C" void MS_ABI impl__OnFillMenuImageRect_CMFCVisualManagerWindows7__UEAA
 // from ?IsMenuMode@CMFCRibbonBaseElement@@QEBAHXZ (0x10580) and then selects
 // among a dozen CMFCControlRenderer members and the bitmap cache before
 // returning a text colour.
-// The reachable callee is CMFCVisualManagerOfficeXP's, which OpenMFC does not
-// have as an ancestor; this tree's OfficeXP override and the CMFCVisualManager
-// impl__ thunk of the same name are both empty generated stubs returning 0, and
-// CMFCVisualManager declares no OnFillRibbonButton virtual. There is nothing to
-// delegate to, so this is left a stub.
+// The retail FALSE path calls CMFCVisualManagerOfficeXP::OnFillRibbonButton.
+// That override in CMFCVisualManagerOfficeXP.cpp is still an empty placeholder
+// returning 0 because CMFCRibbonButton's state/layout is not modeled. The
+// CMFCVisualManager impl__ thunk is also only a bare -1 stub in this tree; its
+// retail branch description is not implemented, and it is not the retail
+// callee. Windows7 is declared as a direct CMFCVisualManager
+// subclass rather than the retail Windows/OfficeXP chain, so neither body is a
+// safe substitute. Leave this stub pending the ribbon layout and hierarchy.
 extern "C" unsigned long MS_ABI impl__OnFillRibbonButton_CMFCVisualManagerWindows7__UEAAKPEAVCDC__PEAVCMFCRibbonButton___Z(
     CMFCVisualManagerWindows7* /*pThis*/, CDC* /*pDC*/, CMFCRibbonButton* /*pButton*/)
 {

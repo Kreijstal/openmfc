@@ -2,10 +2,11 @@
 // Sources: manual_small_stub_implementations.cpp
 //
 // The bodies below were decoded from the retail export, the way
-// phase4/src/core/ole/COleControl.cpp describes; RVAs quoted in the comments are
-// FUNCTION ENTRY POINTS in retail mfc140.dll (the ANSI twin of mfc140u — its
-// function bodies are byte-identical, so offsets/flow read off it are valid, but
-// its addresses are NOT mfc140u addresses).
+// phase4/src/core/ole/COleControl.cpp describes. Explicit mfc140u labels refer to
+// the Unicode image; legacy unqualified RVAs in these annotations refer to the
+// ANSI mfc140.dll image. Some annotations identify branch/instruction locations
+// inside a named function rather than function entries; those addresses must not
+// be mistaken for the containing function's entry RVA.
 //
 // Instance layout (all offsets read out of the retail constructor
 // ??0CDockingPanesRow@@QEAA@PEAVCDockSite@@HH@Z, RVA 0x4f3f0, cross-checked
@@ -42,13 +43,14 @@
 //    make every loop here a no-op, so PaneIsVisible() below implements the
 //    third (ordinary-window) branch only.  The tabbed / restoring branches are
 //    NOT implemented.
-//  * Retail's `pWnd->ScreenToClient(CRect&)` (0x2a11f0) is reached here through
-//    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z, which has a real body in
-//    phase4/src/core/window/Thunks.cpp:1658.  Where the mapping target is a bare
-//    HWND rather than a CWnd*, and for retail's ClientToScreen(CRect&) (0x2a1250),
-//    the ScreenToClientRect() / ClientToScreenRect() helpers below expand the call
-//    into the two ::ScreenToClient / ::ClientToScreen point calls that MFC's own
-//    LPRECT overloads perform, so those sites need no CWnd temp map.
+//  * Retail's CWnd rectangle coordinate methods convert both corners and then
+//    swap left/right when WS_EX_LAYOUTRTL is set (see CWndCoordinates.cpp and the
+//    retail entries). CWnd* sites use the real thunk above; the remaining raw-HWND
+//    ScreenToClientRect helper reproduces both point conversions and the RTL swap.
+//  * Several bodies add defensive null checks or skip null list payloads where
+//    retail assumes valid objects and dereferences them.  Invalid-state behavior
+//    therefore differs; the ordinary valid-object path is the behavior decoded
+//    below.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
@@ -72,6 +74,7 @@ extern "C" void MS_ABI
     impl__RemoveAt_CObList__QEAAXPEAU__POSITION___Z(CObList* pThis, CObList::POSITION* pPos);
 
 extern "C" void MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* pThis, RECT* pRect);
+extern "C" void MS_ABI impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* pThis, RECT* pRect);
 extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const CObject* pThis,
                                                                         const CRuntimeClass* pClass);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ();
@@ -260,15 +263,14 @@ inline void ScreenToClientRect(HWND hWnd, CRect* pRect) {
     if (hWnd == nullptr || pRect == nullptr) return;
     ::ScreenToClient(hWnd, reinterpret_cast<POINT*>(&pRect->left));
     ::ScreenToClient(hWnd, reinterpret_cast<POINT*>(&pRect->right));
+    if ((::GetWindowLongPtrW(hWnd, GWL_EXSTYLE) & WS_EX_LAYOUTRTL) != 0) {
+        const LONG left = pRect->left;
+        pRect->left = pRect->right;
+        pRect->right = left;
+    }
 }
 
-inline void ClientToScreenRect(HWND hWnd, CRect* pRect) {
-    if (hWnd == nullptr || pRect == nullptr) return;
-    ::ClientToScreen(hWnd, reinterpret_cast<POINT*>(&pRect->left));
-    ::ClientToScreen(hWnd, reinterpret_cast<POINT*>(&pRect->right));
-}
-
-// CPane::GetVirtualRect (0xa1ca0): copy m_rectVirtual (+0x1E0) and map it from
+// CPane::GetVirtualRect (RVA 0xa16e0, mfc140u): copy m_rectVirtual (+0x1E0) and map it from
 // the pane's parent client area to screen coordinates.  Verified 2026-09-07:
 // impl__GetVirtualRect_CPane__QEBAXAEAVCRect___Z now has a real body
 // (phase4/src/featurepack/docking/CPane.cpp:699), so this routes through it;
@@ -336,27 +338,36 @@ extern "C" void MS_ABI impl___1CDockingPanesRow__UEAA_XZ(void* pThis) {
     impl__RemoveAll_CObList__QEAAXXZ(&s->m_lstControlBars);
 }
 // Symbol: ?AddPane@CDockingPanesRow@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@H@Z
-// Retail 0x4f510.  Not transcribed: it branches on AFX_DOCK_METHOD, calls
-// CPane::DockByMouse/UndockPane paths and CDockSite bookkeeping that this tree
-// does not model yet; the ordering of those side effects cannot be reproduced
-// faithfully from the list state alone.  Left a stub deliberately.
-extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT__H_Z(void* /*class*/* p0, int /*enum*/ p1, short* p2, int p3, char p4, void* p5, void* p6, unsigned long p7, int p8, float p9, unsigned char p10, void* p11, int p12, void* p13, char p14, const void* /*struct*/* p15, int p16) {}
+// Retail mfc140 RVA 0x4f510; mfc140u RVA 0x4f6c0.  Left stubbed: the
+// nonempty-rect path maps the supplied rect and computes row-axis placement,
+// while the fallback path consults CalcLastPaneOffset and shared layout state;
+// both paths then derive pane geometry and dispatch SetWindowPos, OnInsertPane,
+// and UpdateVirtualRect.  I did not establish an OpenMFC counterpart for the
+// shared fallback state, so a partial transcription could silently misplace panes.
+extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT__H_Z(
+    void* pThis, CPane* pPane, int dockMethod, const RECT* pRect, int arg) {
+    (void)pThis;
+    (void)pPane;
+    (void)dockMethod;
+    (void)pRect;
+    (void)arg;
+}
 
 // Symbol: ?AddPaneFromRow@CDockingPanesRow@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@@Z
-// Retail 0x4f6f0 (mfc140, the ANSI twin), transcribed in full -- 114 instructions:
+// Retail RVA 0x4f8a0 (mfc140u), transcribed in full -- 114 instructions:
 //   CRect rectBar; ::GetWindowRect(pBar->m_hWnd, &rectBar);       // screen coords
 //   int nOffset;
 //   if (dockMethod == 1) {                        // cmp $0x1,%ebx / jne
 //       CPoint pt; ::GetCursorPos(&pt);
 //       ::ScreenToClient(m_pParentDockBar->m_hWnd, &pt);
 //       CRect rectClient; ::GetClientRect(pBar->m_hWnd, &rectClient);
-//       pBar->ClientToScreen(rectClient);                          // 0x2a1250
+//       pBar->ClientToScreen(rectClient);                          // RVA 0x2a3310 (mfc140u)
 //       int nBorder = rectClient.left - rectBar.left;
 //       pt.x -= nBorder + pBar->m_ptClientHotSpot.x;               // CPane +0x208
 //       pt.y -= nBorder + pBar->m_ptClientHotSpot.y;               // CPane +0x20c
 //       nOffset = IsHorizontal() ? pt.x : pt.y;   // test $0xa000,m_dwRowAlignment
 //   } else {
-//       m_pParentDockBar->ScreenToClient(rectBar);                 // 0x2a11f0
+//       m_pParentDockBar->ScreenToClient(rectBar);                 // RVA 0x2a32b0 (mfc140u)
 //       nOffset = IsHorizontal() ? rectBar.left : rectBar.top;
 //   }
 //   CRect rectNew;
@@ -369,7 +380,7 @@ extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOC
 //   pBar->SetWindowPos(NULL, rectNew.left, rectNew.top,
 //                      rectNew.right, rectNew.bottom, 0x15, NULL);  // vslot 0x480
 //   OnInsertPane(pBar);                            // vslot 0xd8 == slot 27
-//   pBar->UpdateVirtualRect();                     // 0xa1ae0
+//   pBar->UpdateVirtualRect();                     // RVA 0xa1520 (mfc140u; internal helper entry)
 // Two things worth knowing before editing this: retail really does pass
 // rectNew.right/bottom in the cx/cy slots of SetWindowPos, which is harmless
 // only because 0x15 is SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE and cx/cy are
@@ -395,7 +406,8 @@ extern "C" void MS_ABI impl__AddPaneFromRow_CDockingPanesRow__UEAAXPEAVCPane__W4
 
         CRect rectClient(0, 0, 0, 0);
         ::GetClientRect(pBar->m_hWnd, RP(&rectClient));
-        ClientToScreenRect(pBar->m_hWnd, &rectClient);
+        impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(
+            static_cast<const CWnd*>(pBar), RP(&rectClient));
 
         const int nBorder = rectClient.left - rectBar.left;
         pt.x -= nBorder + pBar->m_ptClientHotSpot.x;
@@ -424,7 +436,7 @@ extern "C" void MS_ABI impl__AddPaneFromRow_CDockingPanesRow__UEAAXPEAVCPane__W4
 }
 
 // Symbol: ?AdjustPaneToRowArea@CDockingPanesRow@@IEAAXPEAVCPane@@AEBVCRect@@AEAPEAX@Z
-// Retail 0x520f0, transcribed in full (71 instructions).  It takes the pane's
+// Retail RVA 0x522a0 (mfc140u), transcribed in full (71 instructions).  It takes the pane's
 // live window rect ONCE and then makes up to two MovePane(CPoint) calls to push
 // it back inside rectRow along the row axis:
 //   CRect rectPane; ::GetWindowRect(pPane->m_hWnd, &rectPane);
@@ -466,16 +478,24 @@ extern "C" void MS_ABI impl__AdjustPaneToRowArea_CDockingPanesRow__IEAAXPEAVCPan
 }
 
 // Symbol: ?ArrangePanes@CDockingPanesRow@@UEAAXHH@Z
-// Retail 0x51510.  Not transcribed: the margin/spacing walk drives
-// CPane::SetWindowPos through a DeferWindowPos chain interleaved with
-// ResolveIntersection; left a stub deliberately.
-extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(int p0, int p1) {}
+// Retail mfc140 RVA 0x51510; mfc140u RVA 0x516c0.  Left stubbed: this
+// multi-pane layout pass combines an application/window query, pane virtual
+// calls, row geometry, and repeated SetWindowPos operations.  I did not
+// establish a faithful mapping for the app/window state and virtual effects.
+extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(
+    void* pThis, int arg1, int arg2) {
+    (void)pThis;
+    (void)arg1;
+    (void)arg2;
+}
 
 // Symbol: ?ArrangePanes@CDockingPanesRow@@UEAAXPEAVCPane@@@Z
-// Retail 0x51740, transcribed in full.  Every helper it calls now has a real
-// body in this file, so nothing here is a stand-in:
+// Retail RVA 0x518f0 (mfc140u), transcribed in full.  The row helpers called
+// below have substantive bodies here; external CPane thunks used by this routine
+// were checked in CPane.cpp.  The ordinary-window visibility approximation from
+// the file header still applies:
 //   if (m_lstControlBars.GetCount() == 0) return;
-//   CRect rectClient; GetClientRect(rectClient);            // 0x4fd50
+//   CRect rectClient; GetClientRect(rectClient);            // RVA 0x4ff00 (mfc140u)
 //   if (::IsRectEmpty(&rectClient)) return;
 //   HDWP hdwp = NULL;                                       // never handed to
 //                                                           // ::DeferWindowPos
@@ -506,7 +526,7 @@ extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(int p0, in
 //   if (nAvail > 0) { ShiftPanes(p, -n, FALSE); return; }
 //   ShiftPanes(p, abs(nAvail) - n, FALSE);
 //   if (nAvail >= 0) return;
-//   for (node = tail; node != NULL; node = node->pPrev) {      // 0x5195b
+//   for (node = tail; node != NULL; node = node->pPrev) {
 //       pBar = node->data;
 //       if (!pBar->IsVisible() && !m_bIgnoreBarVisibility) continue;
 //       int nStretched = pBar->StretchPaneDeferWndPos(nAvail, hdwp);
@@ -515,8 +535,8 @@ extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(int p0, in
 //       nAvail -= nStretched;
 //   }
 // Note the count==1 / nAvail>=0 combination falls THROUGH into the general
-// path with pInitialBar already defaulted to the head pane -- that is retail's
-// `jns 0x180051893`, not a return.
+// path with pInitialBar already defaulted to the head pane; the branch does not
+// return here.
 extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXPEAVCPane___Z(void* pThis, CPane* pInitialBar) {
     S_CDockingPanesRow* s = Row(pThis);
     if (s == nullptr) return;
@@ -752,7 +772,7 @@ extern "C" int MS_ABI impl__CalcLastPaneOffset_CDockingPanesRow__IEAAHXZ(void* p
 }
 
 // Symbol: ?CheckPanes@CDockingPanesRow@@IEAAHAEAVCRect@@PEAVCPane@@_NVCPoint@@HAEAPEAX@Z
-// Retail 0x507e0, transcribed.  It is the collision resolver MovePane(CPoint)
+// Retail RVA 0x50990 (mfc140u), transcribed.  It is the collision resolver MovePane(CPoint)
 // runs after it has computed where pBar wants to land (rect, in SCREEN
 // coordinates).  Every exit path is `mov $0x1,%eax`, so it ALWAYS returns TRUE;
 // the return value tells the caller nothing.
@@ -769,17 +789,17 @@ extern "C" int MS_ABI impl__CalcLastPaneOffset_CDockingPanesRow__IEAAHXZ(void* p
 //       if (::IntersectRect(&rectIsect, &rectHit, &rect)) { hit = p; break; }
 //   }
 //   if (hit != NULL) {
-//       hit->GetVirtualRect(rectVirtual);                   // 0xa1ca0
+//       hit->GetVirtualRect(rectVirtual);                   // RVA 0xa16e0 (mfc140u)
 //       bSwap = ::IntersectRect(&dummy, &rectVirtual, &rect) && nExtra != 0 &&
-//               (pBar->IsLeftOf(rectVirtual, TRUE) == bForward);   // 0xa1660
+//               (pBar->IsLeftOf(rectVirtual, TRUE) == bForward);   // RVA 0xa10a0 (mfc140u)
 //       if (!bSwap) {
 //           MovePane(hit, horz ? rectIsect.Width() : rectIsect.Height(),
-//                    bForward, hdwp);                       // 0x505b0
-//           ResolveIntersection(hit, bForward, hdwp);       // 0x50dd0
+//                    bForward, hdwp);                       // RVA 0x50760 (mfc140u)
+//           ResolveIntersection(hit, bForward, hdwp);       // helper entry RVA 0x50f80 (mfc140u; no export)
 //           // and fall through to MoveTrailingPanes below
 //       } else {
 //           // park `hit` on the far side of rect, keeping its size ...
-//           MovePane(hit, rectNew, hdwp);                   // 0x504e0
+//           MovePane(hit, rectNew, hdwp);                   // RVA 0x50690 (mfc140u)
 //           // ... and relink its node next to pBar's
 //           m_lstControlBars.RemoveAt(posHit);
 //           bForward ? InsertBefore(posBar, hit) : InsertAfter(posBar, hit);
@@ -796,15 +816,15 @@ extern "C" int MS_ABI impl__CalcLastPaneOffset_CDockingPanesRow__IEAAHXZ(void* p
 //           return TRUE;                                    // no MoveTrailingPanes
 //       }
 //   }
-//   MoveTrailingPanes(posBar, ptOffset, bForward, pBar, hdwp);   // 0x50be0
+//   MoveTrailingPanes(posBar, ptOffset, bForward, pBar, hdwp);   // RVA 0x50d90 (mfc140u)
 //   return TRUE;
 //
 // `nSize` above is the moved pane's extent along the row axis; retail keeps it
 // as the difference of the two edge values it had just stored for the new rect
 // (0x3c(%rsp)-0x40(%rsp) horizontally, 0x38(%rsp)-0x34(%rsp) vertically), which
-// is the same number.  Retail traps (call 0x180225b80 / int3 at 0x50bd3) if
-// posBar is NULL on the swap path; the body below leaves the list untouched and
-// returns instead.
+// is the same number.  Retail traps on the missing-posBar swap path (call and
+// int3 at 0x50d83/0x50d88 inside CheckPanes, entry RVA 0x50990 mfc140u); the body
+// below leaves the list untouched and returns instead.
 extern "C" int MS_ABI impl__CheckPanes_CDockingPanesRow__IEAAHAEAVCRect__PEAVCPane___NVCPoint__HAEAPEAX_Z(void* pThis, CRect* pRect, CPane* pBar, bool bForward, long long ptOffset, int nExtra, void** phdwp) {
     S_CDockingPanesRow* s = Row(pThis);
     if (s == nullptr || pRect == nullptr) return 1;
@@ -866,8 +886,9 @@ extern "C" int MS_ABI impl__CheckPanes_CDockingPanesRow__IEAAHAEAVCRect__PEAVCPa
             impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCRect__AEAPEAX_Z(
                 pThis, pHit, &rectNew, phdwp);
 
-            // Retail relinks unconditionally and traps (call 0x180225b80 / int3
-            // at 0x50bd3) when pBar has no node in this row, so there is no retail
+            // Retail relinks unconditionally and traps on the missing-posBar
+            // path (int3 at 0x50d88 inside CheckPanes, entry RVA 0x50990 mfc140u),
+            // so there is no retail
             // behaviour to copy for that case.  BOTH halves of the relink are
             // skipped together: doing only the RemoveAt would take pHit out of the
             // row and never put it back.
@@ -1412,8 +1433,8 @@ extern "C" void MS_ABI impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__HAEAPEAX
 }
 
 // Symbol: ?MovePane@CDockingPanesRow@@QEAAXPEAVCPane@@VCPoint@@HAEAPEAX@Z
-// Retail 0x50300, transcribed in full:
-//   CRect rectVirtual; pBar->GetVirtualRect(rectVirtual);       // 0xa1ca0
+// Retail RVA 0x504b0 (mfc140u), transcribed in full:
+//   CRect rectVirtual; pBar->GetVirtualRect(rectVirtual);       // RVA 0xa16e0 (mfc140u)
 //   CRect rectBar;     ::GetWindowRect(pBar->m_hWnd, &rectBar);
 //   // (retail then offsets a COPY of rectVirtual by ptOffset and never reads
 //   //  it again -- a dead local, so it is not reproduced here)
@@ -1422,19 +1443,20 @@ extern "C" void MS_ABI impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__HAEAPEAX
 //   if (IsHorizontal()) ptMove.x = ptOffset.x; else ptMove.y = ptOffset.y;
 //   BOOL bForward = (nDelta >= 0);            // shr $0x1f,%ebx / xor $0x1,%bl
 //   int nAllowed = nDelta;
-//   if (!IsEnoughSpaceToMove(pBar, bForward, nAllowed)) return;  // 0x50fc0
+//   if (!IsEnoughSpaceToMove(pBar, bForward, nAllowed)) return;  // RVA 0x51170 (mfc140u)
 //   if (abs(nAllowed) < labs(nDelta))         // clamp on the row axis only
 //       (IsHorizontal() ? ptMove.x : ptMove.y) = nAllowed;
 //   ::OffsetRect(&rectBar, ptMove.x, ptMove.y);
-//   if (CheckPanes(rectBar, pBar, bForward, ptMove, nExtra, hdwp)) {  // 0x507e0
+//   if (CheckPanes(rectBar, pBar, bForward, ptMove, nExtra, hdwp)) {  // RVA 0x50990 (mfc140u)
 //       m_pParentDockBar->ScreenToClient(rectBar);
 //       pBar->SetWindowPos(NULL, rectBar.left, rectBar.top,
 //                          rectBar.Width(), rectBar.Height(),
 //                          SWP_NOZORDER|SWP_NOACTIVATE, NULL);   // vslot 0x480
 //   }
 //   ArrangePanes(pBar);                                          // vslot 0x60
-// The ArrangePanes call is UNCONDITIONAL -- it runs whether or not CheckPanes
-// agreed to the move (and CheckPanes in fact always returns TRUE).
+// If IsEnoughSpaceToMove returns FALSE, retail returns before collision handling
+// and ArrangePanes. Otherwise ArrangePanes follows the CheckPanes conditional
+// regardless of that call's result; CheckPanes returns TRUE on normal paths.
 extern "C" void MS_ABI impl__MovePane_CDockingPanesRow__QEAAXPEAVCPane__VCPoint__HAEAPEAX_Z(void* pThis, CPane* pBar, long long ptOffset, int nExtra, void** phdwp) {
     S_CDockingPanesRow* s = Row(pThis);
     if (s == nullptr || pBar == nullptr) return;
@@ -1771,7 +1793,7 @@ extern "C" int MS_ABI impl__ReplacePane_CDockingPanesRow__UEAAHPEAVCPane__0_Z(
 }
 
 // Symbol: ?RepositionPanes@CDockingPanesRow@@UEAAXAEAVCRect@@IHH@Z
-// Retail 0x51b50, transcribed.  rectNew arrives in the dock site's CLIENT
+// Retail RVA 0x51b50 (mfc140 ANSI; --u lookup did not resolve this symbol), transcribed.  rectNew arrives in the dock site's CLIENT
 // coordinates and is mapped to screen immediately; everything after that works
 // in screen space.
 //   if (m_lstControlBars.GetCount() == 0) return;
@@ -1859,7 +1881,8 @@ extern "C" void MS_ABI impl__RepositionPanes_CDockingPanesRow__UEAAXAEAVCRect__I
 
     CRect rectNew = *pRectNew;
     if (s->m_pParentDockBar != nullptr)
-        ClientToScreenRect(s->m_pParentDockBar->m_hWnd, &rectNew);
+        impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(
+            s->m_pParentDockBar, RP(&rectNew));
 
     CRect rectRow(0, 0, 0, 0);
     impl__GetWindowRect_CDockingPanesRow__QEBAXAEAVCRect___Z(pThis, &rectRow);
@@ -2083,7 +2106,7 @@ extern "C" void MS_ABI impl__ResolveIntersection_CDockingPanesRow__AEAAXPEAVCPan
 }
 
 // Symbol: ?ResolveIntersectionRect@CDockingPanesRow@@IEAAXPEAVCPane@@_N@Z
-// Retail 0x52920, transcribed.  It is a pairwise sweep over the pane list in
+// Retail RVA 0x52920 (mfc140 ANSI; --u lookup did not resolve this symbol), transcribed.  It is a pairwise sweep over the pane list in
 // the walk direction, pushing each pane clear of the one before it:
 //   node = the node holding pBar (NULL if pBar is not in this row)
 //   CRect rectPrev; ::SetRectEmpty(&rectPrev);
@@ -2174,7 +2197,7 @@ extern "C" void MS_ABI impl__ScreenToClient_CDockingPanesRow__QEBAXAEAVCRect___Z
 }
 
 // Symbol: ?ShiftPanes@CDockingPanesRow@@AEAAXPEAVCPane@@HH@Z
-// Retail 0x50110, transcribed:
+// Retail RVA 0x50110 (mfc140 ANSI; --u lookup did not resolve this symbol), transcribed:
 //   if (nOffset == 0) return;
 //   node = (pBar != NULL) ? the node holding pBar
 //                         : (bForward ? m_lstControlBars head : tail);
@@ -2408,7 +2431,7 @@ extern "C" int MS_ABI impl__StretchPaneRect_CDockingPanesRow__IEAAHPEAVCPane__H_
 }
 
 // Symbol: ?UpdateVisibleState@CDockingPanesRow@@UEAAXH@Z
-// Retail 0x4fed0, transcribed:
+// Retail RVA 0x4fed0 (mfc140 ANSI; --u lookup did not resolve this symbol), transcribed:
 //   BOOL bParentVisible = ::IsWindowVisible(
 //        CWnd::FromHandle(::GetParent(m_pDockSite->m_hWnd))->m_hWnd);
 //   BOOL bVisible = FALSE;

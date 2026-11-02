@@ -156,6 +156,9 @@ extern "C" CWnd* MS_ABI impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(
 // core/ole/COleClientItem.cpp:2161
 extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleClientItem__UEAAHXZ(
     COleClientItem* pThis);
+extern "C" BOOL MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+    const CObject* pThis, const CRuntimeClass* pClass);
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleDocObjectItem__SAPEAUCRuntimeClass__XZ();
 
 // ---- forward declarations of exports defined later in this file ----
 // NotifyAllInPlace's second parameter is a pointer to member function
@@ -276,6 +279,58 @@ inline IOleInPlaceActiveObject* ActiveObject(const COleFrameHook* p) {
 // deviation is called out again at each call site.
 inline bool ActiveForThisFrame(const COleFrameHook* p) {
     return p != nullptr && ActiveObject(p) != nullptr && p->m_pActiveItem != nullptr;
+}
+
+// Retail COleDocObjectItem keeps these members in its derived tail. OpenMFC's
+// class reserves the required bytes in _coledocobjectitem_padding (which begins
+// at +0xec, four bytes before the first retail pointer), so this file accesses
+// only the two verified offsets needed by COleFrameHook. The retail
+// names are confirmed by the installed MFC afxole.h (m_pHelpPopupMenu and
+// m_bInHelpMenu); COleDocObjectItem.cpp also pins its retail-sized 0x118 layout.
+constexpr size_t kOffDocObjectHelpPopupMenu = 0xf0;
+constexpr size_t kOffDocObjectInHelpMenu = 0x108;
+struct COleDocObjectItemLayoutProbe : COleDocObjectItem {
+    static constexpr size_t PaddingBegin() {
+        return offsetof(COleDocObjectItemLayoutProbe, _coledocobjectitem_padding);
+    }
+    static constexpr size_t PaddingSize() {
+        return sizeof(static_cast<COleDocObjectItemLayoutProbe*>(nullptr)->
+                          _coledocobjectitem_padding);
+    }
+};
+static_assert(sizeof(COleDocObjectItem) == 0x118,
+              "retail COleDocObjectItem size required for its tail members");
+static_assert(COleDocObjectItemLayoutProbe::PaddingBegin() <= kOffDocObjectHelpPopupMenu,
+              "m_pHelpPopupMenu must lie in COleDocObjectItem padding");
+static_assert(kOffDocObjectHelpPopupMenu + sizeof(CMenu*) <=
+                  COleDocObjectItemLayoutProbe::PaddingBegin() +
+                      COleDocObjectItemLayoutProbe::PaddingSize(),
+              "m_pHelpPopupMenu must fit in COleDocObjectItem padding");
+static_assert(kOffDocObjectInHelpMenu ==
+                  COleDocObjectItemLayoutProbe::PaddingBegin() + 0x1c,
+              "m_bInHelpMenu must be at retail +0x108 in COleDocObjectItem padding");
+static_assert(kOffDocObjectInHelpMenu + sizeof(BOOL) <=
+                  COleDocObjectItemLayoutProbe::PaddingBegin() +
+                      COleDocObjectItemLayoutProbe::PaddingSize(),
+              "m_bInHelpMenu must fit in COleDocObjectItem padding");
+
+inline COleDocObjectItem* AsDocObjectItem(COleClientItem* pItem) {
+    if (pItem == nullptr ||
+        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+            static_cast<const CObject*>(pItem),
+            impl__GetThisClass_COleDocObjectItem__SAPEAUCRuntimeClass__XZ()))
+        return nullptr;
+    return static_cast<COleDocObjectItem*>(pItem);
+}
+
+inline CMenu* DocObjectHelpPopupMenu(COleDocObjectItem* pItem) {
+    return *reinterpret_cast<CMenu**>(reinterpret_cast<char*>(pItem) +
+                                      kOffDocObjectHelpPopupMenu);
+}
+
+inline BOOL& DocObjectInHelpMenu(COleDocObjectItem* pItem) {
+    return *reinterpret_cast<BOOL*>(reinterpret_cast<char*>(pItem) +
+                                   kOffDocObjectInHelpMenu);
 }
 
 }  // namespace
@@ -531,82 +586,82 @@ extern "C" void MS_ABI impl__OnEnableModeless_COleFrameHook__UEAAXH_Z(COleFrameH
 }
 
 // Symbol: ?OnInitMenu@COleFrameHook@@UEAAXPEAVCMenu@@@Z
-// STUB.  vftable slot 32, mfc140u 0x248120 / mfc140 0x246580, whole body:
-//     COleClientItem* pItem = m_pActiveItem;
-//     if (pItem != NULL && pItem->IsKindOf(RUNTIME_CLASS(COleDocObjectItem)))
-//         pItem->[+0x108] = 0;
-// (the RUNTIME_CLASS operand is mfc140u 0x18032eab0 / mfc140 0x18032c8f0 --
-// two addresses for the SAME descriptor in the two images, do not "correct"
-// either against the other -- whose m_lpszClassName reads "COleDocObjectItem"
-// and m_nObjectSize 0x118; pMenu is never touched.)  The single thing the
-// function does is clear a flag at item+0x108 -- the doc-object "menu message
-// forwarding armed" bit that OnMenuSelect sets and OnInitMenuPopup /
-// OnPreTranslateMessage read.  +0x108 lies past sizeof(COleClientItem) (the
-// COleClientItem descriptor, mfc140u 0x18032e788, gives m_nObjectSize 0xf0),
-// so it is a COleDocObjectItem member, which is why every access to it is
-// behind the IsKindOf test.  OpenMFC's COleDocObjectItem declares no such
-// member, so there is nothing to clear.  See headerRequests.
-extern "C" void MS_ABI impl__OnInitMenu_COleFrameHook__UEAAXPEAVCMenu___Z(COleFrameHook* pThis,
-                                                                          CMenu* pMenu) {
-    (void)pThis;
+// Retail entry RVA 0x246580 (mfc140, ANSI twin): read m_pActiveItem, and if it
+// is a COleDocObjectItem clear m_bInHelpMenu at item+0x108. The installed
+// retail afxole.h names that member; pMenu is not read. The Unicode symbol did
+// not resolve by name in the RVA map, so this transcription cites the ANSI
+// entry (the function bodies are byte-identical between the two images).
+// OpenMFC reserves the relevant COleDocObjectItem bytes in padding; the
+// file-local size/offset assertions above pin the access. headerRequests asks
+// to name these retail members in the public declaration.
+extern "C" void MS_ABI impl__OnInitMenu_COleFrameHook__UEAAXPEAVCMenu___Z(
+    COleFrameHook* pThis, CMenu* pMenu) {
     (void)pMenu;
+    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    if (pItem != nullptr)
+        DocObjectInHelpMenu(pItem) = FALSE;
 }
 
 // Symbol: ?OnInitMenuPopup@COleFrameHook@@UEAAHPEAVCMenu@@HH@Z
-// STUB.  vftable slot 31, mfc140u 0x248160 / mfc140 0x2465c0, whole body:
-//     if (bSysMenu) return FALSE;
-//     COleClientItem* pItem = m_pActiveItem;
-//     if (pItem == NULL) return FALSE;
-//     if (!pItem->IsKindOf(RUNTIME_CLASS(COleDocObjectItem))) return FALSE;
-//     if (pItem->[+0x108] == 0) return FALSE;
-//     CWnd* pWnd = pItem->GetInPlaceWindow();      // call mfc140u 0x1802492a0
-//     if (pWnd == NULL) return FALSE;
-//     ::SendMessage(pWnd->m_hWnd, WM_INITMENUPOPUP,
-//                   (WPARAM)pMenu->m_hMenu, (LPARAM)LOWORD(nIndex));
-//     return TRUE;
-// (?GetInPlaceWindow@COleClientItem@@QEAAPEAVCWnd@@XZ is mfc140u 0x2492a0 /
-// mfc140 0x247700; the SendMessage import slot is mfc140u 0x1802c7120 =
-// USER32!SendMessageW, mfc140 0x1802c5378 = SendMessageA.)  Gated entirely on
-// the doc-object flag at COleDocObjectItem+0x108, which OpenMFC does not
-// declare, and whose only retail setter (OnMenuSelect) is itself a stub here,
-// so with the flag permanently absent every retail path returns FALSE anyway.
+// Retail entry RVA 0x2465c0 (mfc140, ANSI twin): return FALSE for a system
+// menu, a missing/non-COleDocObjectItem active item, or a clear m_bInHelpMenu
+// flag (+0x108). Then call GetInPlaceWindow; if non-null, send
+// WM_INITMENUPOPUP to its HWND with pMenu->m_hMenu and LOWORD(nIndex), and
+// return TRUE. pMenu is dereferenced without a retail null check. The Unicode
+// import slot 0x1802c7120 resolves to USER32!SendMessageW (iatu.py); this uses
+// ::SendMessage so UNICODE selects that API. The GetInPlaceWindow thunk is a
+// documented null-returning stub today, so the final send is currently
+// unreachable in this build, but the control flow mirrors retail.
 extern "C" int MS_ABI impl__OnInitMenuPopup_COleFrameHook__UEAAHPEAVCMenu__HH_Z(
     COleFrameHook* pThis, CMenu* pMenu, int nIndex, int bSysMenu) {
-    (void)pThis;
-    (void)pMenu;
-    (void)nIndex;
-    (void)bSysMenu;
-    return FALSE;
+    if (bSysMenu)
+        return FALSE;
+    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    if (pItem == nullptr || !DocObjectInHelpMenu(pItem))
+        return FALSE;
+    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pItem);
+    if (pWnd == nullptr)
+        return FALSE;
+    ::SendMessage(pWnd->m_hWnd, WM_INITMENUPOPUP,
+                  reinterpret_cast<WPARAM>(pMenu->m_hMenu),
+                  static_cast<LPARAM>(static_cast<WORD>(nIndex)));
+    return TRUE;
 }
 
 // Symbol: ?OnMenuSelect@COleFrameHook@@UEAAHIIPEAUHMENU__@@@Z
-// STUB.  vftable slot 33, mfc140u 0x248070 / mfc140 0x2464d0, whole body:
-//     COleClientItem* pItem = m_pActiveItem;
-//     if (pItem == NULL) return FALSE;
-//     if (!pItem->IsKindOf(RUNTIME_CLASS(COleDocObjectItem))) return FALSE;
-//     CWnd* pWnd = pItem->GetInPlaceWindow();      // call mfc140u 0x1802492a0
-//     if (nFlags & MF_POPUP) {
-//         HMENU h = pItem->[+0xf0] ? *(HMENU*)(pItem->[+0xf0] + 8) : NULL;
-//         if (h != hSysMenu) return FALSE;
-//         pItem->[+0x108] = (nItemID != 0);
-//         if (nItemID == 0) return FALSE;
-//     } else if (pItem->[+0x108] == 0) return FALSE;
-//     if (pWnd == NULL) return FALSE;
-//     ::SendMessage(pWnd->m_hWnd, WM_MENUSELECT,
-//                   MAKEWPARAM(LOWORD(nItemID), LOWORD(nFlags)), (LPARAM)hSysMenu);
-//     return TRUE;
-// This is the function that ARMS the +0x108 flag the other three read.  It
-// needs item+0x108 and item+0xf0 (a CMenu* whose +8 is its HMENU); both lie at
-// or past sizeof(COleClientItem) == 0xf0, i.e. they are COleDocObjectItem
-// members (sizeof 0x118), read only after the IsKindOf test.  OpenMFC's
-// COleDocObjectItem declares neither.  See headerRequests.
+// Retail entry RVA 0x2464d0 (mfc140, ANSI twin): reject a missing or
+// non-COleDocObjectItem active item, then call GetInPlaceWindow. For MF_POPUP,
+// compare hSysMenu with m_pHelpPopupMenu->m_hMenu (+0xf0), set m_bInHelpMenu
+// (+0x108) to (nItemID != 0), and reject nItemID == 0. For a non-popup item,
+// require m_bInHelpMenu. Both paths then require a non-null in-place window,
+// send WM_MENUSELECT with MAKEWPARAM(LOWORD(nItemID), LOWORD(nFlags)) and
+// hSysMenu, and return TRUE. The Unicode import slot 0x1802c7120 resolves to
+// USER32!SendMessageW (iatu.py); ::SendMessage follows UNICODE. The in-place
+// window thunk currently returns NULL, but the menu-selection state update is
+// still performed in the same order as retail.
 extern "C" int MS_ABI impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(
     COleFrameHook* pThis, unsigned int nItemID, unsigned int nFlags, HMENU hSysMenu) {
-    (void)pThis;
-    (void)nItemID;
-    (void)nFlags;
-    (void)hSysMenu;
-    return FALSE;
+    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    if (pItem == nullptr)
+        return FALSE;
+    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pItem);
+    if ((nFlags & MF_POPUP) != 0) {
+        CMenu* pHelpMenu = DocObjectHelpPopupMenu(pItem);
+        HMENU hHelpMenu = pHelpMenu ? pHelpMenu->m_hMenu : nullptr;
+        if (hHelpMenu != hSysMenu)
+            return FALSE;
+        DocObjectInHelpMenu(pItem) = nItemID != 0 ? TRUE : FALSE;
+        if (nItemID == 0)
+            return FALSE;
+    } else if (!DocObjectInHelpMenu(pItem)) {
+        return FALSE;
+    }
+    if (pWnd == nullptr)
+        return FALSE;
+    ::SendMessage(pWnd->m_hWnd, WM_MENUSELECT,
+                  MAKEWPARAM(LOWORD(nItemID), LOWORD(nFlags)),
+                  reinterpret_cast<LPARAM>(hSysMenu));
+    return TRUE;
 }
 
 // Symbol: ?OnPaletteChanged@COleFrameHook@@UEAAXPEAVCWnd@@@Z
@@ -636,46 +691,35 @@ extern "C" void MS_ABI impl__OnPaletteChanged_COleFrameHook__UEAAXPEAVCWnd___Z(
 }
 
 // Symbol: ?OnPreTranslateMessage@COleFrameHook@@UEAAHPEAUtagMSG@@@Z
-// COleFrameHook::OnPreTranslateMessage(MSG* pMsg) -- vftable slot 23,
-// mfc140u 0x2481e0 / mfc140 0x246640.  Retail, whole:
-//     if (m_lpActiveObject == NULL) return FALSE;
-//     if (m_pActiveItem->m_pInPlaceFrame != this) return FALSE;
-//     UINT msg = pMsg->message;
-//     if ((UINT)(msg - 0x100) <= 9)                      // WM_KEYFIRST .. 0x109
-//         return m_lpActiveObject->TranslateAccelerator(pMsg) == S_OK; // vtbl 0x28 = slot 5
-//     if (msg != WM_COMMAND) return FALSE;              // cmp $0x111 -- WM_COMMAND,
-//                                                       // not WM_SYSCOMMAND (0x112)
-//     if (!m_pActiveItem->IsKindOf(RUNTIME_CLASS(COleDocObjectItem))) return FALSE;
-//     LRESULT lr = 0;
-//     if (m_pActiveItem->[+0x108] != 0) {
-//         CWnd* pWnd = m_pActiveItem->GetInPlaceWindow();
-//         if (pWnd != NULL)
-//             lr = ::SendNotifyMessage(pWnd->m_hWnd, WM_COMMAND,
-//                                      pMsg->wParam, pMsg->lParam);
-//     }
-//     return lr != 0;
-// (the import slot is mfc140u 0x1802c6fb8 = USER32!SendNotifyMessageW /
-// mfc140 0x1802c5048 = SendNotifyMessageA -- SendNotify, not Send; the
-// `test %eax,%eax ; sete %cl` after the TranslateAccelerator call tests
-// hr == 0, i.e. S_OK exactly, not SUCCEEDED.  GetInPlaceWindow here is
-// mfc140u 0x1802492a0, and the RUNTIME_CLASS operand mfc140u 0x18032eab0 =
-// COleDocObjectItem.)
-// DEVIATION, and it is a real one: the WM_COMMAND arm is NOT implemented,
-// because it is gated on the doc-object flag at COleDocObjectItem+0x108 that
-// OpenMFC does not declare (same gap as OnMenuSelect above).  With that flag
-// unrepresentable -- and its only retail setter, OnMenuSelect, a stub -- the
-// arm can only ever produce retail's `lr == 0` answer, which is the FALSE
-// this body returns; but a future COleDocObjectItem that models the flag
-// must restore the arm, not just flip a condition.  Also a deviation: the
-// null test on pMsg below, which retail does not make.  Plus the
-// ActiveForThisFrame() weakening of the m_pInPlaceFrame test.
+// Retail entry RVA 0x246640 (mfc140, ANSI twin). With a non-null active
+// object and the active item's in-place-frame link equal to this hook, key
+// messages WM_KEYFIRST..WM_KEYLAST are passed to TranslateAccelerator and
+// return TRUE only for S_OK. WM_COMMAND is handled only for a
+// COleDocObjectItem whose m_bInHelpMenu (+0x108) is set: its in-place window,
+// if any, receives SendNotifyMessage(WM_COMMAND, wParam, lParam), and the
+// result is whether that call returned nonzero. The Unicode IAT slot
+// 0x1802c6fb8 resolves to USER32!SendNotifyMessageW (iatu.py); the ANSI twin's
+// corresponding call is SendNotifyMessageA. The exact +0xa8 in-place-frame
+// equality test cannot be represented by OpenMFC's COleClientItem declaration,
+// so ActiveForThisFrame weakens it to an active-item non-null check. This body
+// also retains a defensive null-pMsg check absent in retail. The in-place
+// window thunk is currently a null-returning stub.
 extern "C" int MS_ABI impl__OnPreTranslateMessage_COleFrameHook__UEAAHPEAUtagMSG___Z(
     COleFrameHook* pThis, MSG* pMsg) {
     if (!ActiveForThisFrame(pThis) || pMsg == nullptr)
         return FALSE;
     if (static_cast<unsigned int>(pMsg->message - WM_KEYFIRST) <= 9u)
         return ActiveObject(pThis)->TranslateAccelerator(pMsg) == S_OK ? TRUE : FALSE;
-    return FALSE;
+    if (pMsg->message != WM_COMMAND)
+        return FALSE;
+    COleDocObjectItem* pItem = AsDocObjectItem(pThis->m_pActiveItem);
+    if (pItem == nullptr || !DocObjectInHelpMenu(pItem))
+        return FALSE;
+    LRESULT result = 0;
+    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pItem);
+    if (pWnd != nullptr)
+        result = ::SendNotifyMessage(pWnd->m_hWnd, WM_COMMAND, pMsg->wParam, pMsg->lParam);
+    return result != 0 ? TRUE : FALSE;
 }
 
 // Symbol: ?OnQueryNewPalette@COleFrameHook@@UEAAHXZ

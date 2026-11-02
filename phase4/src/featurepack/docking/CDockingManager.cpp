@@ -873,6 +873,10 @@ extern "C" void MS_ABI impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDo
 // Symbol: ?AlignByRect@CDockingManager@@IEAAXAEBVCRect@@AEAV2@KHH@Z
 // Retail RVA 0x4a340 (mfc140u): apply the 0xF000 alignment case and the two
 // size-adjustment flags to the target rectangle relative to the anchor rectangle.
+// WARNING: This pre-existing approximation does not preserve the retail per-case
+// coordinates: retail leaves one or both target vertical edges unchanged in cases
+// where this body recomputes them from the anchor. Kept because this does not write
+// outside either caller-provided CRect; it is not a faithful retail transcription.
 extern "C" void MS_ABI impl__AlignByRect_CDockingManager__IEAAXAEBVCRect__AEAV2_KHH_Z(
     CDockingManager*, const CRect* pAnchor, CRect* pTarget, unsigned long dwAlignment,
     int bAdjustFirst, int bAdjustSecond) {
@@ -973,8 +977,9 @@ extern "C" void* MS_ABI impl__FindDockSiteByPane_CDockingManager__UEAAPEAVCDockS
 }
 
 // Symbol: ?HideForPrintPreview@CDockingManager@@IEAAXAEBVCObList@@@Z
-// STUB: Retail RVA 0x4cfb0 (mfc140u) iterates panes and records hidden bars in the
-// manager's print-preview list at +0x210; that list is not modeled locally.
+// STUB: Retail RVA 0x4cfb0 (mfc140u) iterates the supplied list plus manager-owned
+// state and records hidden bars in the retail print-preview list at +0x210. The local
+// side table tracks pane/frame pointers but has no corresponding saved-preview list.
 extern "C" void MS_ABI impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObList___Z(
     CDockingManager*, const CObList*) {}
 
@@ -995,8 +1000,9 @@ extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__A
 }
 
 // Symbol: ?Serialize@CDockingManager@@UEAAXAEAVCArchive@@@Z
-// STUB: The ANSI twin's retail entry is RVA 0x4aa90 (mfc140); its long archive
-// traversal serializes manager-owned dock-site, pane, and mini-frame lists unavailable here.
+// STUB: The ANSI twin's retail entry at RVA 0x4aa90 (mfc140) has a long archive traversal
+// over retail dock-site and manager-list state. The side table tracks pane/frame pointers,
+// but it is not the retail CObList layout/state required by this serialization routine.
 extern "C" void MS_ABI impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(
     CDockingManager*, CArchive*) {}
 
@@ -1022,7 +1028,8 @@ extern "C" void MS_ABI impl__SetDockingMode_CDockingManager__SAXW4AFX_DOCK_TYPE_
 
 // Symbol: ?SetPrintPreviewMode@CDockingManager@@QEAAXHPEAUCPrintPreviewState@@@Z
 // STUB: The ANSI twin's retail entry RVA 0x4ced0 (mfc140) saves/restores preview
-// visibility through manager lists and parent-frame state absent from this layout.
+// visibility through retail manager lists and parent-frame checks. The local side table
+// has no equivalent saved-preview list/flag state to reproduce those transitions.
 extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(
     CDockingManager*, int, void*) {}
 
@@ -1052,15 +1059,17 @@ extern "C" void MS_ABI impl__SetSmartDockingParams_CDockingManager__SAXAEAVCSmar
 }
 
 // Symbol: ?ShowDelayShowMiniFrames@CDockingManager@@UEAAXH@Z
-// STUB: The ANSI twin's retail entry RVA 0x4d6c0 (mfc140) walks m_lstMiniFrames
-// (+0x180), checks each frame's delayed-show flag, and toggles visibility; those
-// manager/frame fields are not represented by the local side-table state.
+// STUB: The ANSI twin's retail entry RVA 0x4d6c0 (mfc140) walks the retail mini-frame
+// list at +0x180 and checks each frame's delayed-show flag at +0x108. The side table
+// tracks frame pointers, but not the retail list layout or per-frame delayed-show state.
 extern "C" void MS_ABI impl__ShowDelayShowMiniFrames_CDockingManager__UEAAXH_Z(
     CDockingManager*, int) {}
 
 // Symbol: ?ShowPanes@CDockingManager@@UEAAHH@Z
 // STUB: The ANSI twin's retail entry RVA 0x4d490 (mfc140) has separate show/hide
-// paths over docked bars, mini-frames, and saved flags; these lists/fields are absent.
+// paths over retail docked-bar and mini-frame lists, saved state, and the +0x354 mode
+// flag. The side table tracks pane/frame pointers and simple hidden flags, but not the
+// retail saved-list/state representation needed to reproduce these transitions.
 extern "C" int MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(
     CDockingManager*, int) {
     return FALSE;
