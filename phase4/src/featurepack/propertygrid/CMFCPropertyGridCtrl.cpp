@@ -147,6 +147,12 @@ extern "C" int MS_ABI impl__UTF8ToString_CMFCControlContainer__SAHPEBDAEAV__CStr
     const char* pszUTF8, CString* pStrResult, int cbUTF8);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertyGridColorProperty__SAPEAUCRuntimeClass__XZ();
 extern "C" void MS_ABI impl__OnClickButton_CMFCPropertyGridProperty__UEAAXVCPoint___Z(CMFCPropertyGridProperty* pThis, CPoint point);
+extern "C" int MS_ABI impl__OnUpdateValue_CMFCPropertyGridProperty__UEAAHXZ(CMFCPropertyGridProperty* pThis);
+extern "C" void MS_ABI impl__FormatProperty_CMFCPropertyGridProperty__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+    CString* pRet, CMFCPropertyGridProperty* pThis);
+extern "C" void MS_ABI impl__Expand_CMFCPropertyGridProperty__QEAAXH_Z(
+    CMFCPropertyGridProperty* pThis, int bExpand);
+extern "C" void MS_ABI impl__AdjustLayout_CMFCPropertyGridCtrl__UEAAXXZ(CMFCPropertyGridCtrl* pThis);
 extern "C" int MS_ABI impl__OnClickValue_CMFCPropertyGridProperty__UEAAHIVCPoint___Z(CMFCPropertyGridProperty* pThis, unsigned int uiMsg, CPoint point);
 extern "C" int MS_ABI impl__OnDblClk_CMFCPropertyGridProperty__UEAAHVCPoint___Z(CMFCPropertyGridProperty* pThis, CPoint point);
 extern "C" int MS_ABI impl__PushChar_CMFCPropertyGridProperty__UEAAHI_Z(CMFCPropertyGridProperty* pThis, unsigned int nChar);
@@ -372,13 +378,32 @@ struct WaitCursorScope {
 // BeginWaitCursor (FormatProperty at vslot 0x58, then ?AfxGetModuleState@@ +
 // ?BeginWaitCursor@CCmdTarget@@), so the wait-cursor scope lives here, after
 // the first FormatProperty, and EndWaitCursor runs after OnPropertyChanged as
-// the CWaitCursor destructor does.
+// the CWaitCursor destructor does. DEVIATION: the property thunks below use
+// OpenMFC's property vptr; CMFCPropertyGridColorProperty keeps the base vptr,
+// so its retail FormatProperty / OnClickButton overrides are not selected.
+struct FormattedPropertyValue {
+    alignas(CString) unsigned char storage[sizeof(CString)];
+    bool initialized = false;
+
+    CString* Get() { return reinterpret_cast<CString*>(storage); }
+    void Format(CMFCPropertyGridProperty* pProp) {
+        impl__FormatProperty_CMFCPropertyGridProperty__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
+            Get(), pProp);
+        initialized = true;
+    }
+    ~FormattedPropertyValue() {
+        if (initialized) Get()->~CString();
+    }
+};
+
 void ClickButtonAndNotify(CMFCPropertyGridCtrl* pThis, CMFCPropertyGridProperty* pProp, CPoint point) {
-    CString strPrev = pProp->FormatProperty();
+    FormattedPropertyValue strPrev;
+    strPrev.Format(pProp);
     WaitCursorScope wait;
     impl__OnClickButton_CMFCPropertyGridProperty__UEAAXVCPoint___Z(pProp, point);
-    CString strNew = pProp->FormatProperty();
-    if (strPrev.Compare(strNew) != 0) {
+    FormattedPropertyValue strNew;
+    strNew.Format(pProp);
+    if (strPrev.Get()->Compare(*strNew.Get()) != 0) {
         impl__OnPropertyChanged_CMFCPropertyGridCtrl__UEBAXPEAVCMFCPropertyGridProperty___Z(pThis, pProp);
     }
 }
@@ -982,7 +1007,8 @@ extern "C" void MS_ABI impl__InitHeader_CMFCPropertyGridCtrl__UEAAXXZ(CMFCProper
 //     m_IPToolTip.Deactivate();                                            // +0x348
 //     EndEditItem(TRUE);                                                   // vslot 100
 //     CWnd::OnCancelMode();  -> tail-jump to ?Default@CWnd@@
-// DEVIATION: m_IPToolTip has no OpenMFC member; its Deactivate is skipped.
+// DEVIATIONS: m_IPToolTip has no OpenMFC member; its Deactivate is skipped.
+// This implementation also returns for a NULL pThis, which retail assumes valid.
 extern "C" void MS_ABI impl__OnCancelMode_CMFCPropertyGridCtrl__IEAAXXZ(CMFCPropertyGridCtrl* pThis) {
     if (!pThis) return;
     PropertyGridWndState& wnd = WndState(pThis);
@@ -1029,12 +1055,16 @@ extern "C" void MS_ABI impl__OnChar_CMFCPropertyGridCtrl__IEAAXIII_Z(
 //         m_pSel->OnClickButton(point);                           // vslot 17
 //         if (strPrev != m_pSel->FormatProperty()) OnPropertyChanged(m_pSel);   // wcscmp; grid vslot 95
 //     }
-// A NULL m_pSel guard is added (retail has none).
+// NULL pThis and m_pSel guards are added; retail assumes a valid this pointer
+// and dereferences m_pSel without checking it. DEVIATION: the property click is
+// routed through OpenMFC's base-property impl__ thunk, so derived property
+// OnClickButton overrides (e.g. color/file/font dialogs) are not dispatched.
+// This class declaration has no compatible property vslot for that override.
 extern "C" void MS_ABI impl__OnClickButton_CMFCPropertyGridCtrl__UEAAXVCPoint___Z(CMFCPropertyGridCtrl* pThis, CPoint point) {
     if (!pThis) return;
     CMFCPropertyGridProperty* pSel = CurSelOf(pThis);
     if (pSel == nullptr) return;
-    if (!pSel->OnUpdateValue()) return;
+    if (!impl__OnUpdateValue_CMFCPropertyGridProperty__UEAAHXZ(pSel)) return;
     ClickButtonAndNotify(pThis, pSel, point);   // strPrev / CWaitCursor / click / compare
 }
 
@@ -1128,8 +1158,9 @@ extern "C" HBRUSH MS_ABI impl__OnCtlColor_CMFCPropertyGridCtrl__IEAAPEAUHBRUSH__
 //     CWnd::OnDestroy();  -> tail-jump to ?OnDestroy@CWnd@@
 // The property list lives in PropertyGridCtrlState; each property is detached
 // from the side tables (SetPropertyGridOwnerRecursive(NULL), as RemoveAll above
-// does) before delete.  DEVIATION: neither tooltip has an OpenMFC member; their
-// DestroyWindow calls are skipped.
+// does) before delete. DEVIATIONS: neither tooltip has an OpenMFC member; their
+// DestroyWindow calls are skipped, and this body returns for NULL pThis although
+// retail assumes a valid object.
 extern "C" void MS_ABI impl__OnDestroy_CMFCPropertyGridCtrl__IEAAXXZ(CMFCPropertyGridCtrl* pThis) {
     if (!pThis) return;
     if (PropertyGridCtrlState* state = FindMutablePropertyGridCtrlState(pThis)) {
@@ -1181,7 +1212,13 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCPropertyGridCtrl__MEAAXPEAVCDC___Z
 // DEVIATION: OpenMFC's afxGlobalData blob is zero-filled, so when a brush /
 // colour slot is empty the system value UpdateSysColors would have put there is
 // used (GetSysColorBrush(COLOR_BTNFACE), GetSysColor(COLOR_BTNSHADOW)) instead
-// of a NULL brush / black line.
+// of a NULL brush / black line. This body also adds NULL pThis/pDC/HDC guards;
+// retail dereferences its arguments. Also, the sibling property-description thunk
+// currently draws GetNameTooltip() (the property's name), not m_strDescr; this
+// call therefore does not render retail's description text. m_strDescr is
+// protected with no public getter in the OpenMFC declaration, so this unit has
+// no safe supported way to retrieve it. The thunk also cannot dispatch retail's
+// property vslot-10 override.
 // Substitutions: the temporary CBrush (??0CBrush@@QEAA@K@Z, RVA 0x2a4060
 // mfc140u) is a CreateSolidBrush/DeleteObject pair (retail's ctor throws if
 // creation fails; here FillRect just gets a NULL brush); CDC::Draw3dRect(LPCRECT,
@@ -1661,27 +1698,27 @@ extern "C" void MS_ABI impl__OnKeyDown_CMFCPropertyGridCtrl__IEAAXIII_Z(
 }
 
 // Symbol: ?OnKillFocus@CMFCPropertyGridCtrl@@IEAAXPEAVCWnd@@@Z
-// Transcribed from retail entry RVA 0xc9b90 (mfc140u):
+// Transcribed from retail mfc140.dll (ANSI twin) entry RVA 0xca0a0; the
+// mfc140u symbol-map lookup does not resolve this export. The function bodies
+// are byte-identical across the two images:
 //     if (!::IsChild(m_hWnd, pNewWnd != NULL ? pNewWnd->m_hWnd : NULL)) {
-//         if (m_pSel == NULL || m_pSel->OnKillFocus(pNewWnd)) {         // +0x678; property vslot 37 (base body: return TRUE)
+//         if (m_pSel == NULL || m_pSel->OnKillFocus(pNewWnd)) {         // +0x678; property vslot 37
 //             EndEditItem(TRUE);                                        // grid vslot 100
 //             m_bFocused = FALSE;                                       // +0x5f8
 //             if (m_pSel != NULL) m_pSel->Redraw();
 //         }
 //     }
 //     CWnd::OnKillFocus(pNewWnd);  -> tail-jump to ?Default@CWnd@@
-// The property-side OnKillFocus is the `mov eax,1; ret` base body (entry
-// 0x3a60 in slot 37 of the mfc140u property vftable 0x1802fb460) in retail and
-// is not modelled in OpenMFC, so it is taken as TRUE.  DEVIATION: retail
-// dispatches that slot virtually, so an override is honoured -- notably
-// CMFCPropertyGridColorProperty's inline one (afxpropertygridctrl.h:271,
-// `pNewWnd->GetSafeHwnd() != m_pPopup->GetSafeHwnd()`).  It is not dispatched
-// here: OpenMFC's colour property keeps the base vptr (see its ctor's DEVIATION
-// 2 in CMFCPropertyGridColorProperty.cpp).  That file does keep m_pPopup at
-// +0x180 but never sets it (its OnClickButton is a stub), so the override
-// would reduce to `hNew != NULL`: with a colour property selected and focus
-// going to no window (pNewWnd NULL), retail skips EndEditItem / m_bFocused /
-// Redraw, and this body performs them.
+// The retail property header says the base OnKillFocus returns TRUE
+// (afxpropertygridctrl.h:145); its color-property override at line 271 compares
+// pNewWnd's HWND with m_pPopup's HWND. OpenMFC's property declaration omits
+// this virtual, and the color-property constructor keeps the base vptr, so its
+// runtime type cannot be recovered through the current CObject::IsKindOf path.
+// The OpenMFC color constructor sets m_pPopup to NULL and its OnClickButton is
+// still a stub. DEVIATION: this body assumes the base TRUE result for all
+// selected properties; it cannot honor the color override's conditional result
+// until the property vtable/type representation and popup infrastructure exist.
+// A NULL pThis guard is also added; retail assumes a valid object.
 extern "C" void MS_ABI impl__OnKillFocus_CMFCPropertyGridCtrl__IEAAXPEAVCWnd___Z(CMFCPropertyGridCtrl* pThis, CWnd* pNewWnd) {
     if (!pThis) return;
     const HWND hNew = pNewWnd != nullptr ? pNewWnd->m_hWnd : nullptr;
@@ -1955,7 +1992,9 @@ extern "C" void MS_ABI impl__OnNcCalcSize_CMFCPropertyGridCtrl__IEAAXHPEAUtagNCC
 }
 
 // Symbol: ?OnNcPaint@CMFCPropertyGridCtrl@@IEAAXXZ
-// Transcribed from retail entry RVA 0xcb6f0 (mfc140u):
+// Transcribed from retail mfc140.dll (ANSI twin) entry RVA 0xcbc00; the
+// mfc140u symbol-map lookup does not resolve this export. The function bodies
+// are byte-identical across the two images:
 //     if (m_nDescrHeight == -1) {                                          // +0x5a0
 //         m_nDescrHeight = m_nRowHeight * m_nDescrRows + m_nRowHeight / 2;  // +0x5bc, +0x5a4
 //         AdjustLayout();                                                  // grid vslot 94
@@ -1967,9 +2006,12 @@ extern "C" void MS_ABI impl__OnNcCalcSize_CMFCPropertyGridCtrl__IEAAXHPEAUtagNCC
 // value is 3).  The manager is read from the exported ?m_pVisManager@ mirror of
 // CMFCVisualManager::GetInstance(), as docking/CPaneDivider.cpp does; the draw
 // is skipped when no manager exists yet (the C++ static is not linkable here).
-// DEVIATION: retail's helper (RVA 0x9774 mfc140u) creates the default manager on
-// first use instead.  Retail makes no CWnd::OnNcPaint / Default call at all, so
-// neither does this body.
+// DEVIATIONS: retail's GetInstance helper lazily creates the default manager;
+// this body only reads the mirror. Retail calls AdjustLayout through grid vslot
+// 94, but OpenMFC declares it non-virtual, so the impl__ call below invokes this
+// unit's implementation and cannot honor a client override. Retail makes no
+// CWnd::OnNcPaint / Default call at all, so neither does this body. A NULL
+// pThis guard is added; retail assumes a valid object.
 extern "C" void MS_ABI impl__OnNcPaint_CMFCPropertyGridCtrl__IEAAXXZ(CMFCPropertyGridCtrl* pThis) {
     if (!pThis) return;
     PropertyGridWndState& wnd = WndState(pThis);
@@ -1977,7 +2019,7 @@ extern "C" void MS_ABI impl__OnNcPaint_CMFCPropertyGridCtrl__IEAAXXZ(CMFCPropert
         const PropertyGridCtrlState* state = FindPropertyGridCtrlState(pThis);
         const int nDescrRows = state ? state->descriptionRows : 0;
         wnd.nDescrHeight = wnd.nRowHeight * nDescrRows + wnd.nRowHeight / 2;
-        pThis->AdjustLayout();
+        impl__AdjustLayout_CMFCPropertyGridCtrl__UEAAXXZ(pThis);
     }
     if (pThis->m_hWnd != nullptr && (::GetWindowLongW(pThis->m_hWnd, GWL_STYLE) & WS_BORDER)) {
         CMFCVisualManager* pManager = static_cast<CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
@@ -2330,7 +2372,9 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ(CMF
 }
 
 // Symbol: ?PreTranslateMessage@CMFCPropertyGridCtrl@@UEAAHPEAUtagMSG@@@Z
-// Transcribed from retail entry RVA 0xc91b0 (mfc140u):
+// Transcribed from retail mfc140.dll (ANSI twin) entry RVA 0xc96c0; the
+// mfc140u symbol-map lookup does not resolve this export. The function bodies
+// are byte-identical across the two images:
 //     switch (pMsg->message) {
 //     case WM_KEYDOWN: case WM_SYSKEYDOWN:
 //     case WM_LBUTTONDOWN: case WM_LBUTTONUP: case WM_RBUTTONDOWN: case WM_RBUTTONUP:
@@ -2338,7 +2382,7 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ(CMF
 //     case WM_NCLBUTTONDOWN: case WM_NCLBUTTONUP: case WM_NCRBUTTONDOWN: case WM_NCRBUTTONUP:
 //     case WM_NCMBUTTONDOWN: case WM_NCMBUTTONUP:
 //         ::SendMessage(m_ToolTip.m_hWnd, TTM_RELAYEVENT, 0, (LPARAM)pMsg);      // +0x128
-//         if (m_IPToolTip.m_hWnd != NULL) m_IPToolTip.ShowWindow(SW_HIDE);         // +0x388; ?ShowWindow@CWnd@@ 0x2a9ad0
+//         if (m_IPToolTip.m_hWnd != NULL) m_IPToolTip.ShowWindow(SW_HIDE);         // +0x388
 //         break;
 //     case WM_MOUSEMOVE:
 //         ::SendMessage(m_ToolTip.m_hWnd, TTM_RELAYEVENT, 0, (LPARAM)pMsg);
@@ -2360,8 +2404,8 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ(CMF
 //         m_pSel->Expand(!m_pSel->m_bExpanded); return TRUE;                       // +0x74; ?Expand@ 0xc1600
 //     }
 //     if (m_pSel == NULL || !m_pSel->m_bInPlaceEdit || !m_pSel->m_bEnabled)
-//         return CWnd::PreTranslateMessage(pMsg);                                  // ?PreTranslateMessage@CWnd@@ 0x28bc00
-//     -- in-place edit active (0xc9454 .. 0xc9a55 inside this body) --
+//         return CWnd::PreTranslateMessage(pMsg);                                  // mfc140.dll ANSI entry RVA 0x28a080; mfc140u lookup unresolved
+//     -- in-place edit active (retail path; not reachable in this OpenMFC model) --
 //     BOOL bDropped = m_pSel->m_pWndCombo != NULL &&                               // +0x108
 //                     ::SendMessage(m_pSel->m_pWndCombo->m_hWnd, CB_GETDROPPEDSTATE, 0, 0);
 //     if (pMsg->message == WM_KEYDOWN) {
@@ -2412,9 +2456,14 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ(CMF
 // TTM_RELAYEVENT sends and the SW_HIDE are skipped (TrackToolTip is still
 // dispatched, as retail does, except that an added NULL m_hWnd guard skips the
 // whole GetCursorPos / ScreenToClient / TrackToolTip block when the control has
-// no window); `m_dwFlags & AFX_PROP_HAS_BUTTON` is the sibling's HasButton
-// thunk and m_bGroup is IsGroupOf, as in OnKeyDown.  That HasButton substitution
-// is not exact: retail tests bit 0x2 alone here (`testb $0x2,0x40(%rdx)`), while
+// no window). In the Alt+Right/Down branch, retail calls the selected property's
+// vslot 17 directly; ClickButtonAndNotify uses the base-property impl__ thunk,
+// so derived OnClickButton overrides (e.g. color/file/font dialogs) are not
+// dispatched. Grid vslot 99 belongs to the separate in-place mouse-button path,
+// which is unreachable here because OpenMFC never enters in-place editing.
+// `m_dwFlags & AFX_PROP_HAS_BUTTON` is the
+// sibling's HasButton thunk and m_bGroup is IsGroupOf, as in OnKeyDown. That
+// HasButton substitution is not exact: retail tests bit 0x2 alone here (`testb $0x2,0x40(%rdx)`), while
 // retail HasButton (RVA 0xc11a0 mfc140u) tests 0x3 (HAS_LIST | HAS_BUTTON), and
 // OpenMFC's property has no m_dwFlags -- its HasButton means "has an option list",
 // matching its OnClickButton, which rotates that list.  So in this model a
@@ -2428,7 +2477,7 @@ extern "C" void MS_ABI impl__PreSubclassWindow_CMFCPropertyGridCtrl__MEAAXXZ(CMF
 // enters in-place editing (m_bInPlaceEdit is not modelled and is never set),
 // the `!m_pSel->m_bInPlaceEdit` test always hands off to CWnd::PreTranslateMessage
 // here -- nothing from the in-place branch above is reachable in this model.
-// Retail has no NULL test on pMsg; one is added.
+// Retail has no NULL test on pThis or pMsg; both guards are added.
 extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPropertyGridCtrl__UEAAHPEAUtagMSG___Z(
     CMFCPropertyGridCtrl* pThis, MSG* pMsg) {
     if (!pThis || pMsg == nullptr) return FALSE;
@@ -2463,12 +2512,15 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPropertyGridCtrl__UEAAHPEAUt
         impl__EditItem_CMFCPropertyGridCtrl__UEAAHPEAVCMFCPropertyGridProperty__PEAUtagPOINT___Z(pThis, pSel, nullptr)) {
         pSel = CurSelOf(pThis);   // retail re-reads m_pSel after EditItem (and has no NULL test; one is added)
         if (pSel != nullptr) {
-            ClickButtonAndNotify(pThis, pSel, CPoint(-1, -1));   // strPrev / CWaitCursor / click / compare
+            // Retail's PreTranslateMessage arm does the format/click/compare
+            // sequence directly; it does not call the grid OnClickButton entry
+            // (which would additionally call OnUpdateValue).
+            ClickButtonAndNotify(pThis, pSel, CPoint(-1, -1));
         }
         return TRUE;
     }
     if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN && pSel != nullptr && IsGroupOf(pSel)) {
-        pSel->Expand(!pSel->IsExpanded());   // m_bInPlaceEdit is never set in OpenMFC
+        impl__Expand_CMFCPropertyGridProperty__QEAAXH_Z(pSel, !pSel->IsExpanded());   // m_bInPlaceEdit is never set in OpenMFC
         return TRUE;
     }
     // m_pSel == NULL || !m_bInPlaceEdit || !m_bEnabled: always the base hand-off here.

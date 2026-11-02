@@ -210,9 +210,8 @@ extern "C" void MS_ABI impl__DoPaint_CMFCRibbonPanel__MEAAXPEAVCDC___Z(
     if (!pThis) return;
 }
 // CMFCRibbonPanel::EnableLaunchButton(UINT, int, const wchar_t*) -- retail
-// stores the command ID at +0x328 and forwards the text/visibility to the
-// launch button through the buttons-group at +0x170 (vtable+0x170/+0x180).
-// Neither the launch-button state nor the group is modeled.
+// stores the command ID at +0x328 and forwards text/visibility to the embedded
+// launch button at +0x170 (vtable+0x170/+0x180).  Its state is not modeled.
 // TODO(clean-room): transcribed partially -- launch-button state is not
 // modeled.
 // Symbol: ?EnableLaunchButton@CMFCRibbonPanel@@QEAAXIHPEB_W@Z
@@ -237,11 +236,10 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__FindByData_CMFCRibbonPanel__QEBAP
 }
 // CMFCRibbonPanel::FindByID(unsigned int) const -- retail scans the elements
 // calling their virtual FindByID (returning the first hit), then tests the
-// buttons-group at +0x170 and the launch button at +0x3f0.  Implemented over
-// the ribbon_state side-table element list with the modeled base FindByID;
-// the +0x170 group and the +0x3f0 launch button are not modeled.
-// TODO(clean-room): partially transcribed -- the panel's buttons group and
-// launch button are not modeled.
+// launch button at +0x170 and default button at +0x3f0. Implemented over the
+// ribbon_state side-table element list with the modeled base FindByID; neither
+// embedded button is modeled.
+// TODO(clean-room): partially transcribed -- the embedded buttons are not modeled.
 // Symbol: ?FindByID@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@I@Z
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__FindByID_CMFCRibbonPanel__QEBAPEAVCMFCRibbonBaseElement__I_Z(
     const CMFCRibbonPanel* pThis, unsigned int nID)
@@ -365,6 +363,8 @@ extern "C" void MS_ABI impl__GetItemIDsList_CMFCRibbonBaseElement__MEBAXAEAV__CL
 // CMFCRibbonCmdUI is not declared by the clean-room headers; only a pointer
 // to it crosses the OnUpdateCmdUI signature below.
 class CMFCRibbonCmdUI;
+class CMFCRibbonPanelMenu;
+class CMFCRibbonDefaultPanelButton;
 // CMFCRibbonBaseElement::CopyFrom (element vtable +0x2e0); the definition in
 // featurepack/ribbon/CMFCRibbonBaseElement.cpp copies the modeled command ID.
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonBaseElement__UEAAXAEBV1__Z(
@@ -748,25 +748,24 @@ extern "C" long MS_ABI impl__get_accParent_CMFCRibbonPanel__MEAAJPEAPEAUIDispatc
 }
 
 // CMFCRibbonPanel::GetElements(CArray<CMFCRibbonBaseElement*,
-// CMFCRibbonBaseElement*>&) -- retail (RVA 0x11c450), transcribed:
+// CMFCRibbonBaseElement*>&) -- retail (mfc140 RVA 0x11c450), transcribed:
 //     for (i = 0; i < m_arElements.GetSize(); i++)
 //         m_arElements[i]->GetElements(arElements);        // vtable +0x3e8
-//     if (<group at +0x170>.GetSize() > 0)                 // count at +0x288
-//         arElements.Add(&<group at +0x170>);
+//     if (m_btnLaunch.m_nID at panel +0x288 is nonzero)
+//         arElements.Add(&m_btnLaunch at +0x170);
 //     if (!<vtable +0x178 predicate>())
 //         arElements.Add(&<default button at +0x3f0>);
 // The array is NOT cleared on entry.  The base element's GetElements (the
-// vtable +0x3e8 slot, RVA 0xe2a0) is exactly `arElements.Add(this)`, which is
+// vtable +0x3e8 slot, mfc140u RVA 0xe1f0) is exactly `arElements.Add(this)`, which is
 // what the loop below reproduces for the modeled element list.
-// The vtable +0x178 predicate is a per-class constant, not state: in
-// CMFCRibbonPanel's own vtable (RVA 0x3072e0) that slot is RVA 0x7260
-// (`xor eax,eax; ret`), so retail DOES append the embedded default panel
-// button here; in CMFCRibbonMainPanel's vtable (RVA 0x305928) it is RVA
-// 0x3ae0 (`mov eax,1; ret`), which suppresses it.  Neither embedded object --
-// the buttons group at +0x170 nor the default panel button at +0x3f0 -- is
+// The vtable +0x178 predicate is class-specific: the regular panel's target
+// (mfc140u RVA 0x71e0) returns FALSE, while CMFCRibbonMainPanel's target
+// (mfc140u RVA 0x3a60) returns TRUE. Thus a regular panel appends the default
+// button, while MainPanel suppresses it.  Neither embedded object --
+// the launch button at +0x170 nor the default panel button at +0x3f0 -- is
 // declared by the clean-room CMFCRibbonPanel, so neither can be appended;
 // that is the deviation, not the predicate.
-// TODO(clean-room): partially transcribed -- the embedded buttons group and
+// TODO(clean-room): partially transcribed -- the embedded launch button and
 // default panel button are not modeled.
 // Symbol: ?GetElements@CMFCRibbonPanel@@QEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z
 extern "C" void MS_ABI impl__GetElements_CMFCRibbonPanel__QEAAXAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(
@@ -791,13 +790,13 @@ extern "C" void MS_ABI impl__GetElements_CMFCRibbonPanel__QEAAXAEAV__CArray_PEAV
 //     for (i = 0; i < m_arElements.GetSize(); i++)
 //         m_arElements[i]->GetElementsByID(uiCmd, arElements);  // vtable +0x3e0
 //     <default button at +0x3f0>->GetElementsByID(uiCmd, arElements);
-//     <group at +0x170>->GetElementsByID(uiCmd, arElements);     // tail call
+//     m_btnLaunch at +0x170 ->GetElementsByID(uiCmd, arElements); // tail call
 // The array is NOT cleared on entry.  The loop forwards to the exported base
 // implementation, which appends `this` when its command ID matches.  The
-// embedded default panel button (+0x3f0) and buttons group (+0x170) are not
+// embedded default panel button (+0x3f0) and launch button (+0x170) are not
 // declared by the clean-room CMFCRibbonPanel, so they contribute nothing.
 // TODO(clean-room): partially transcribed -- the embedded default panel
-// button and buttons group are not modeled.
+// button and launch button are not modeled.
 // Symbol: ?GetElementsByID@CMFCRibbonPanel@@QEAAXIAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z
 extern "C" void MS_ABI impl__GetElementsByID_CMFCRibbonPanel__QEAAXIAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(
     CMFCRibbonPanel* pThis, unsigned int uiCmd,
@@ -820,17 +819,19 @@ extern "C" void MS_ABI impl__GetElementsByID_CMFCRibbonPanel__QEAAXIAEAV__CArray
 // CMFCRibbonPanel::GetFirstTabStop() const -- retail (RVA 0x11d270) runs up
 // to three forward scans of m_arElements.  When the +0x168 parent pointer is
 // non-null it first scans for elements that are of NEITHER of the runtime
-// classes at 0x1803048e0 / 0x180307218 and whose +0x16c flag is non-zero,
-// then for elements that ARE of the 0x180307218 class; when +0x168 is NULL it
-// goes straight to the third, unfiltered scan.  Every scan asks the element
-// for its own first tab stop (vtable +0x420, base RVA 0xe300 = "return this
-// when the vtable +0x248 predicate holds and the element rect at +0xc8 is not
-// empty") and returns the first non-null answer, else NULL.  OpenMFC models
-// neither the +0x168 parent pointer nor the element rects, so no element can
-// qualify as a tab stop.
+// classes at 0x180306990 / 0x1803092c8 (mfc140u) and whose +0x16c flag is
+// non-zero, then for elements that ARE of the 0x1803092c8 class; when +0x168
+// is NULL it goes straight to the third, unfiltered scan.  Every scan asks the element
+// for its own first tab stop (vtable +0x420; the base implementation returns
+// this only when its tab-stop predicate holds and the element rect at +0xc8
+// is not empty) and returns the first non-null answer, else NULL.  OpenMFC models
+// neither the +0x168 parent pointer nor the element rects, so it cannot
+// determine whether any element qualifies as a tab stop.  The panel's element pointers are tracked in the
+// ribbon_state side table, but tab-stop dispatch is not modeled.
 // (mfc140u RVA 0x11c500; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element rects and the +0x168
 // parent link are not modeled.
+// Stub: mfc140u RVA 0x11c500 needs tab-stop dispatch and rect state; the element list itself is tracked in ribbon_state.
 // Symbol: ?GetFirstTabStop@CMFCRibbonPanel@@IEBAPEAVCMFCRibbonBaseElement@@XZ
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetFirstTabStop_CMFCRibbonPanel__IEBAPEAVCMFCRibbonBaseElement__XZ(
     const CMFCRibbonPanel* /*pThis*/)
@@ -841,7 +842,7 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetFirstTabStop_CMFCRibbonPanel__
 // CMFCRibbonPanel::GetFocused() const -- retail (RVA 0x11dc50) checks, in
 // order: the embedded default panel button (+0x3f0) -- returned when its rect
 // (+0xc8) is not empty and its IsFocused (vtable +0x1b8) is TRUE; the
-// embedded buttons group (+0x170) -- returned on IsFocused alone, with no
+// embedded launch button (+0x170) -- returned on IsFocused alone, with no
 // rect test; and finally the first element whose GetFocused (vtable +0x3a8)
 // is non-null.  The embedded objects are not declared by the clean-room
 // CMFCRibbonPanel and OpenMFC models no element focus state
@@ -851,6 +852,7 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetFirstTabStop_CMFCRibbonPanel__
 // (mfc140u RVA 0x11cee0; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element focus state is not
 // modeled.
+// Stub: mfc140u RVA 0x11cee0 checks the default button, launch button, and element focus; those states are not modeled.
 // Symbol: ?GetFocused@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetFocused_CMFCRibbonPanel__QEBAPEAVCMFCRibbonBaseElement__XZ(
     const CMFCRibbonPanel* /*pThis*/)
@@ -894,6 +896,7 @@ extern "C" CRect* MS_ABI impl__GetGalleryRect_CMFCRibbonPanel__QEAA_AVCRect__XZ(
 // (mfc140u RVA 0x117560; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- panel layout geometry is not
 // modeled.
+// Stub: mfc140u RVA 0x117560 measures embedded-button and element sizes; panel layout state is not modeled.
 // Symbol: ?GetHeight@CMFCRibbonPanel@@MEBAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__GetHeight_CMFCRibbonPanel__MEBAHPEAVCDC___Z(
     const CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/)
@@ -909,6 +912,7 @@ extern "C" int MS_ABI impl__GetHeight_CMFCRibbonPanel__MEBAHPEAVCDC___Z(
 // (mfc140u RVA 0x11ba00; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- the +0x3e8 highlighted-element
 // pointer is not modeled.
+// Stub: mfc140u RVA 0x11ba00 reads the highlighted pointer at +0x3e8; that member is not declared here.
 // Symbol: ?GetHighlighted@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetHighlighted_CMFCRibbonPanel__QEBAPEAVCMFCRibbonBaseElement__XZ(
     const CMFCRibbonPanel* /*pThis*/)
@@ -976,13 +980,15 @@ extern "C" void MS_ABI impl__GetItemIDsList_CMFCRibbonPanel__QEBAXAEAV__CList_II
 // m_arElements gated the same way on the +0x168 parent pointer and the same
 // two runtime classes (this one wants +0x16c == 0 in its first scan), the
 // last of which calls the element's GetLastTabStop (vtable +0x428).  Both
-// +0x420 and +0x428 fold to the same base body (RVA 0xe300) = "return this
-// when the vtable +0x248 predicate holds and the element rect at +0xc8 is not
-// empty".  OpenMFC models neither the +0x168 parent pointer nor the element
-// rects.
+// +0x420 and +0x428 fold to the same base behavior: return this only when the
+// tab-stop predicate holds and the element rect at +0xc8 is not empty.
+// OpenMFC models neither the +0x168 parent pointer nor the element
+// rects.  Its element pointers are tracked in the ribbon_state side table,
+// but tab-stop dispatch is not modeled.
 // (mfc140u RVA 0x11c670; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element rects and the +0x168
 // parent link are not modeled.
+// Stub: mfc140u RVA 0x11c670 needs tab-stop dispatch and rect state; the element list itself is tracked in ribbon_state.
 // Symbol: ?GetLastTabStop@CMFCRibbonPanel@@IEBAPEAVCMFCRibbonBaseElement@@XZ
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetLastTabStop_CMFCRibbonPanel__IEBAPEAVCMFCRibbonBaseElement__XZ(
     const CMFCRibbonPanel* /*pThis*/)
@@ -998,6 +1004,7 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetLastTabStop_CMFCRibbonPanel__I
 // (mfc140u RVA 0x11a520; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- the embedded default panel
 // button is not modeled.
+// Stub: mfc140u RVA 0x11a520 measures the embedded default button; that object is not modeled.
 // Symbol: ?GetMinWidth@CMFCRibbonPanel@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__GetMinWidth_CMFCRibbonPanel__IEAAHPEAVCDC___Z(
     CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/)
@@ -1042,6 +1049,7 @@ extern "C" CSize* MS_ABI impl__GetPaltteMinSize_CMFCRibbonPanel__IEBA_AVCSize__X
 // no-menu-bar early-out (NULL) is the only reachable path.
 // TODO(clean-room): transcribed partially -- the +0x160 parent menu-bar link
 // is not modeled.
+// Stub: mfc140u RVA 0x11c8f0 needs the parent menu-bar pointer at +0x160; that link and owner state are not modeled.
 // Symbol: ?GetParentButton@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetParentButton_CMFCRibbonPanel__QEBAPEAVCMFCRibbonBaseElement__XZ(
     const CMFCRibbonPanel* /*pThis*/)
@@ -1084,10 +1092,12 @@ extern "C" CWnd* MS_ABI impl__GetParentWnd_CMFCRibbonPanel__MEBAPEAVCWnd__XZ(
 // always returns nullptr), so no pressed element can be reported.
 // (mfc140u RVA 0x11b8f0; the RVA above is the ANSI twin's.)  The element
 // thunk it would loop over, impl__GetPressed_CMFCRibbonBaseElement in
-// featurepack/ribbon/CMFCRibbonBaseElement.cpp, is still a generated stub
-// without a `this` parameter, so the loop is not written either.
+// featurepack/ribbon/CMFCRibbonBaseElement.cpp, has a typed `this` parameter
+// but currently returns nullptr; forwarding to it would not recover pressed
+// state.
 // TODO(clean-room): transcribed partially -- element pressed state is not
 // modeled.
+// Stub: mfc140u RVA 0x11b8f0 queries each element's pressed virtual; element pressed state/dispatch is not modeled.
 // Symbol: ?GetPressed@CMFCRibbonPanel@@QEBAPEAVCMFCRibbonBaseElement@@XZ
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetPressed_CMFCRibbonPanel__QEBAPEAVCMFCRibbonBaseElement__XZ(
     const CMFCRibbonPanel* /*pThis*/)
@@ -1100,19 +1110,20 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetPressed_CMFCRibbonPanel__QEBAP
 //     for (i = 0; i < m_arElements.GetSize(); i++)
 //         m_arElements[i]->GetVisibleElements(ar);         // vtable +0x3f0
 //     <default button at +0x3f0>->GetVisibleElements(ar);
-//     <group at +0x170>->GetVisibleElements(ar);           // tail call
-// The base element implementation (RVA 0x11b90) appends `this` only when its
-// rect at +0xc8 is not empty, which is the whole point of the call: it is a
+//     m_btnLaunch at +0x170 ->GetVisibleElements(ar);      // tail call
+// The base element implementation (mfc140u RVA 0x11b70) appends `this` only
+// when its rect at +0xc8 is not empty, which is the whole point of the call: it is a
 // visibility filter, not a copy of the element list.  OpenMFC models no
-// element rects, so appending anything here would report elements as visible
-// that retail would not; the array is deliberately left untouched.
+// element rects, so it cannot determine which elements qualify; appending
+// every element would not be a faithful filter, and the array is left untouched.
 // (mfc140u RVA 0x11cfa0; the RVA above is the ANSI twin's.)  The element
 // thunk the loop would forward to, impl__GetVisibleElements_CMFCRibbonBaseElement
-// in featurepack/ribbon/CMFCRibbonBaseElement.cpp, is itself a generated
-// no-op with a placeholder signature, so writing the loop here would change
-// nothing; the array is left exactly as retail leaves it for all-empty rects.
+// in featurepack/ribbon/CMFCRibbonBaseElement.cpp, has the correct typed
+// parameters but an empty body.  Without element rects or embedded-button
+// state, this panel cannot classify any modeled element as visible.
 // TODO(clean-room): transcribed partially -- element rects are not modeled,
 // so no element can be classified as visible.
+// Stub: mfc140u RVA 0x11cfa0 filters element rects and visits embedded buttons; those layouts are not modeled.
 // Symbol: ?GetVisibleElements@CMFCRibbonPanel@@QEAAXAEAV?$CArray@PEAVCMFCRibbonBaseElement@@PEAV1@@@@Z
 extern "C" void MS_ABI impl__GetVisibleElements_CMFCRibbonPanel__QEAAXAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(
     CMFCRibbonPanel* /*pThis*/,
@@ -1161,6 +1172,7 @@ extern "C" int MS_ABI impl__HasElement_CMFCRibbonPanel__QEBAHPEBVCMFCRibbonBaseE
 // `long long`).
 // TODO(clean-room): transcribed partially -- panel highlight/press state and
 // element geometry are not modeled.
+// Stub: mfc140u RVA 0x11a570 updates panel highlight/press fields and hit-tests element rects; none are modeled.
 // Symbol: ?Highlight@CMFCRibbonPanel@@MEAAXHVCPoint@@@Z
 extern "C" void MS_ABI impl__Highlight_CMFCRibbonPanel__MEAAXHVCPoint___Z(
     CMFCRibbonPanel* /*pThis*/, int /*bHighlight*/, long long /*point*/)
@@ -1170,7 +1182,7 @@ extern "C" void MS_ABI impl__Highlight_CMFCRibbonPanel__MEAAXHVCPoint___Z(
 // CMFCRibbonPanel::HitTest(CPoint, BOOL) -- retail (RVA 0x11b5b0; mfc140u
 // RVA 0x11a830, re-read there) tests, in order, the default panel button's
 // rect (+0x3f0 +0xc8, non-empty and ::PtInRect -> returns the default
-// button), the rect at +0x238 (-> returns the buttons group at +0x170), and
+// button), the rect at +0x238 (-> returns the launch button at +0x170), and
 // then each element's own rect (+0xc8); for the first element rect hit it
 // returns that element's own HitTest (element vtable +0x268), which lets a
 // container element resolve a sub-item.  When nothing was hit and the BOOL
@@ -1181,6 +1193,7 @@ extern "C" void MS_ABI impl__Highlight_CMFCRibbonPanel__MEAAXHVCPoint___Z(
 // BOOL in R8D.
 // TODO(clean-room): transcribed partially -- panel and element rects are not
 // modeled.
+// Stub: mfc140u RVA 0x11a830 tests default-button, launch-button, panel, and element rects; that geometry is not modeled.
 // Symbol: ?HitTest@CMFCRibbonPanel@@UEAAPEAVCMFCRibbonBaseElement@@VCPoint@@H@Z
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__HitTest_CMFCRibbonPanel__UEAAPEAVCMFCRibbonBaseElement__VCPoint__H_Z(
     CMFCRibbonPanel* /*pThis*/, long long /*point*/, int /*bCheckPanelCaption*/)
@@ -1201,6 +1214,7 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__HitTest_CMFCRibbonPanel__UEAAPEAV
 // (mfc140u RVA 0x11a960; the RVA above is the ANSI twin's.)
 // Signature: `this` in RCX, the by-value CPoint packed in RDX.
 // TODO(clean-room): transcribed partially -- element rects are not modeled.
+// Stub: mfc140u RVA 0x11a960 scans element rects at +0xc8; element geometry is not modeled.
 // Symbol: ?HitTestEx@CMFCRibbonPanel@@UEBAHVCPoint@@@Z
 extern "C" int MS_ABI impl__HitTestEx_CMFCRibbonPanel__UEBAHVCPoint___Z(
     const CMFCRibbonPanel* /*pThis*/, long long /*point*/)
@@ -1286,6 +1300,7 @@ extern "C" int MS_ABI impl__InsertSeparator_CMFCRibbonPanel__UEAAHH_Z(
 // -> `sete %cl`; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- the +0x4b8 collapsed rect is not
 // modeled.
+// Stub: mfc140u RVA 0x11b0a0 tests the rect at +0x4b8; that member is not declared here.
 // Symbol: ?IsCollapsed@CMFCRibbonPanel@@QEBAHXZ
 extern "C" int MS_ABI impl__IsCollapsed_CMFCRibbonPanel__QEBAHXZ(
     const CMFCRibbonPanel* /*pThis*/)
@@ -1325,6 +1340,7 @@ extern "C" int MS_ABI impl__IsWindows7Look_CMFCRibbonPanel__QEBAHXZ(
 // Element rects are not modeled.
 // (mfc140u RVA 0x11a0e0; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element rects are not modeled.
+// Stub: mfc140u RVA 0x11a0e0 reads and adjusts element rects at +0xc8/+0xd0; geometry is not modeled.
 // Symbol: ?JustifyElementsInColumn@CMFCRibbonPanel@@IEAAXHH@Z
 extern "C" void MS_ABI impl__JustifyElementsInColumn_CMFCRibbonPanel__IEAAXHH_Z(
     CMFCRibbonPanel* /*pThis*/, int /*nFirst*/, int /*nLast*/)
@@ -1332,17 +1348,20 @@ extern "C" void MS_ABI impl__JustifyElementsInColumn_CMFCRibbonPanel__IEAAXHH_Z(
 }
 
 // CMFCRibbonPanel::MakeGalleryItemVisible(CMFCRibbonBaseElement*) -- retail
-// (RVA 0x11ded0) returns unless the element passes CObject::IsKindOf against
-// the runtime class at 0x180307218; then it compares the element's rect edges
-// (+0xcc / +0xd4) with the gallery rect from GetGalleryRect (0x11dfe0),
+// mfc140 (ANSI) RVA 0x11ded0 returns unless the element passes CObject::IsKindOf
+// against the runtime class at 0x180307218 (mfc140 ANSI); then it compares the
+// element's rect edges (+0xcc / +0xd4) with GetGalleryRect (mfc140 RVA 0x11dfe0),
 // returns when the item already fits, and otherwise scrolls the palette by
-// the difference (0x11d5a0) and hands the result to the parent window
-// obtained from the vtable +0x158 GetParentWnd.  Element rects, the gallery
+// the difference through ScrollPalette (mfc140 RVA 0x11d5a0) and hands the
+// result to the parent window obtained from the vtable +0x158 GetParentWnd.
+// Element rects, the gallery
 // rect and the palette scroll state are all unmodeled.
-// (mfc140u RVA 0x11d160; the runtime class tested there, 0x1803092c8, is
-// CMFCRibbonGalleryIcon; the RVA above is the ANSI twin's.)
+// (mfc140u RVA 0x11d160; it tests the CMFCRibbonGalleryIcon descriptor at
+// 0x1803092c8, calls GetGalleryRect at RVA 0x11d270 and ScrollPalette at RVA
+// 0x11c830, all in mfc140u.  The RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element rects, the gallery rect
 // and the palette scroll state are not modeled.
+// Stub: mfc140u RVA 0x11d160 uses gallery-item rects, gallery bounds, and scroll state; they are not modeled.
 // Symbol: ?MakeGalleryItemVisible@CMFCRibbonPanel@@QEAAXPEAVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__MakeGalleryItemVisible_CMFCRibbonPanel__QEAAXPEAVCMFCRibbonBaseElement___Z(
     CMFCRibbonPanel* /*pThis*/, CMFCRibbonBaseElement* /*pItem*/)
@@ -1359,6 +1378,7 @@ extern "C" void MS_ABI impl__MakeGalleryItemVisible_CMFCRibbonPanel__QEAAXPEAVCM
 // Signature: `this` in RCX, the by-value CPoint packed in RDX.
 // TODO(clean-room): transcribed partially -- the +0x3e8 highlighted element
 // and the press state are not modeled.
+// Stub: mfc140u RVA 0x11aa30 updates highlighted/pressed state and calls element virtuals; those states are not modeled.
 // Symbol: ?MouseButtonDown@CMFCRibbonPanel@@MEAAPEAVCMFCRibbonBaseElement@@VCPoint@@@Z
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__MouseButtonDown_CMFCRibbonPanel__MEAAPEAVCMFCRibbonBaseElement__VCPoint___Z(
     CMFCRibbonPanel* /*pThis*/, long long /*point*/)
@@ -1379,6 +1399,7 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__MouseButtonDown_CMFCRibbonPanel__
 // Signature: `this` in RCX, the by-value CPoint packed in RDX.
 // TODO(clean-room): transcribed partially -- the +0x3e8 highlighted element
 // and the press state are not modeled.
+// Stub: mfc140u RVA 0x11ab60 clears element press state and redraws; highlighted/pressed state is not modeled.
 // Symbol: ?MouseButtonUp@CMFCRibbonPanel@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__MouseButtonUp_CMFCRibbonPanel__MEAAXVCPoint___Z(
     CMFCRibbonPanel* /*pThis*/, long long /*point*/)
@@ -1390,17 +1411,15 @@ extern "C" void MS_ABI impl__MouseButtonUp_CMFCRibbonPanel__MEAAXVCPoint___Z(
 //     for (i = 0; i < m_arElements.GetSize(); i++)
 //         if (m_arElements[i]->NotifyControlCommand(...)) return TRUE; // vtable +0x468
 //     return FALSE;
-// The base element's NotifyControlCommand (vtable +0x468 -> RVA 0x7260,
-// `xor eax,eax; ret`) always returns FALSE; only control-hosting elements
-// override it, and OpenMFC's clean-room CMFCRibbonBaseElement declares no
-// such virtual and no derived element that could override it.  FALSE is
-// therefore the retail result for the modeled element set.
-// (mfc140u RVA 0x11ade0; the RVA above is the ANSI twin's.)  The element
-// thunk the loop would forward to, impl__NotifyControlCommand_CMFCRibbonBaseElement
-// in featurepack/ribbon/CMFCRibbonBaseElement.cpp, is a generated stub with a
-// placeholder signature (no `this`), so the loop is not written here.
+// The base element's NotifyControlCommand vtable slot (+0x468) targets
+// mfc140u RVA 0x71e0 (`xor eax,eax; ret`) and returns FALSE; control-hosting elements may override
+// that behavior.  OpenMFC's base-element thunk has the correct typed
+// parameters but currently returns FALSE, and no control-hosting dispatch is
+// modeled, so forwarding it would not implement such overrides.
+// (mfc140u RVA 0x11ade0; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element control hosting is not
 // modeled.
+// Stub: mfc140u RVA 0x11ade0 forwards to element slot +0x468; control-hosting element dispatch is not modeled.
 // Symbol: ?NotifyControlCommand@CMFCRibbonPanel@@MEAAHHH_K_J@Z
 extern "C" int MS_ABI impl__NotifyControlCommand_CMFCRibbonPanel__MEAAHHH_K_J_Z(
     CMFCRibbonPanel* /*pThis*/, int /*bAccelerator*/, int /*nNotifyCode*/,
@@ -1413,15 +1432,18 @@ extern "C" int MS_ABI impl__NotifyControlCommand_CMFCRibbonPanel__MEAAHHH_K_J_Z(
 // m_arElements and, for each element, copies its rect (+0xc8), calls the
 // element's OnShow (vtable +0x260) with "the rect is not empty" and then its
 // OnAfterChangeRect (vtable +0x258) with pDC; it then repeats both for the
-// panel rect at +0x4b8 and the default button at +0x3f0.  Element rects are
-// not modeled.  Of the two element slots only OnShow is empty in the base
-// element vtable (RVA 0x2da510 +0x260 -> RVA 0x2820, a bare `ret`); its
-// +0x258 slot is a real body (RVA 0x10ac0, shared with -- and labelled in the
-// symbol map as -- CMFCRibbonLabel::OnAfterChangeRect) that reads the
-// element's text CString at +0xb8 and calls element vtable +0x368 when that
-// string is empty.  Neither the +0xb8 string nor that slot is modeled either.
+// panel rect at +0x4b8 and the default button at +0x3f0, and finally calls
+// OnAfterChangeRect on the launch button at +0x170.  Element rects are not
+// modeled.  Of the two element slots only OnShow is empty in the base element
+// vtable (+0x260 -> mfc140u RVA 0x27d0, a bare `ret`); its +0x258 slot
+// targets the real body at mfc140u RVA 0x10a80 (mapped as
+// CMFCRibbonBaseElement::OnAfterChangeRect), which reads the element's text
+// CString at +0xb8 and calls element vtable +0x368 when that
+// string is empty.
+// Neither the +0xb8 string nor that slot is modeled either.
 // (mfc140u RVA 0x11ae80; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element rects are not modeled.
+// Stub: mfc140u RVA 0x11ae80 walks element rects and calls element virtuals; the required layout/dispatch is not modeled.
 // Symbol: ?OnAfterChangeRect@CMFCRibbonPanel@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonPanel__MEAAXPEAVCDC___Z(
     CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/)
@@ -1430,12 +1452,14 @@ extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonPanel__MEAAXPEAVCDC___Z
 
 // CMFCRibbonPanel::OnDrawPaletteMenu(CDC*) -- retail (RVA 0x117df0) starts by
 // testing the +0x168 parent pointer with CObject::IsKindOf against the
-// runtime class at 0x18030b670, and the ~0x400 bytes that follow draw the
-// palette decorations against that parent and the panel's layout rects.
+// runtime-class descriptor at 0x18030b670 in mfc140 (ANSI); the ~0x400 bytes
+// that follow draw the palette decorations against that parent and the
+// panel's layout rects.  In mfc140u the descriptor is at 0x18030d720.
 // Neither the +0x168 link nor any panel drawing state is modeled.
 // (mfc140u RVA 0x117060; the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- panel palette drawing is not
 // modeled.
+// Stub: mfc140u RVA 0x117060 uses the palette owner and panel layout rects; those objects/state are not modeled.
 // Symbol: ?OnDrawPaletteMenu@CMFCRibbonPanel@@IEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDrawPaletteMenu_CMFCRibbonPanel__IEAAXPEAVCDC___Z(
     CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/)
@@ -1445,15 +1469,16 @@ extern "C" void MS_ABI impl__OnDrawPaletteMenu_CMFCRibbonPanel__IEAAXPEAVCDC___Z
 // CMFCRibbonPanel::OnKey(UINT) -- retail (RVA 0x11c790) returns FALSE at once
 // when m_arElements is empty; the ~0xaa0 bytes that follow drive keyboard
 // navigation starting from m_pHighlighted (+0x3e8) across the element list.
-// The highlighted-element pointer and the element geometry the navigation
-// depends on are not declared by the clean-room CMFCRibbonPanel, so only the
-// empty-panel early-out could be honoured and it says nothing about a
-// populated panel.
+// The element list is tracked in the ribbon_state side table, but the
+// highlighted-element pointer and the geometry/element dispatch needed for
+// navigation are not modeled.  Therefore only the empty-panel early-out can
+// be reproduced; the populated-panel behavior remains unavailable.
 // (mfc140u RVA 0x11ba10, taken from the mfc140u CMFCRibbonPanel vftable at
 // 0x180309390 slot +0x1c8 -- this export is not in the mfc140u symbol map;
 // the RVA above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- panel focus/highlight state and
 // element geometry are not modeled.
+// Stub: mfc140u vtable target RVA 0x11ba10 needs highlight state and element navigation; the list itself is tracked in ribbon_state.
 // Symbol: ?OnKey@CMFCRibbonPanel@@UEAAHI@Z
 extern "C" int MS_ABI impl__OnKey_CMFCRibbonPanel__UEAAHI_Z(
     CMFCRibbonPanel* /*pThis*/, unsigned int /*nChar*/)
@@ -1464,15 +1489,16 @@ extern "C" int MS_ABI impl__OnKey_CMFCRibbonPanel__UEAAHI_Z(
 // CMFCRibbonPanel::OnRTLChanged(BOOL) -- retail (RVA 0x11d980):
 //     for (i ...) m_arElements[i]->OnRTLChanged(bIsRTL);   // vtable +0x3f8
 //     <default button at +0x3f0>->OnRTLChanged(bIsRTL);
-//     <group at +0x170>->OnRTLChanged(bIsRTL);             // tail call
-// The base element's OnRTLChanged (vtable +0x3f8 -> RVA 0x2820, a bare `ret`)
-// does nothing; only elements with mirrored images override it, and OpenMFC
-// declares no such element.  The embedded default button and buttons group
+//     m_btnLaunch at +0x170 ->OnRTLChanged(bIsRTL);        // tail call
+// The base element's OnRTLChanged (vtable +0x3f8 -> mfc140u RVA 0x27d0,
+// a bare `ret`) does nothing; only elements with mirrored images override it, and OpenMFC
+// declares no such element.  The embedded default button and launch button
 // are not modeled either, so the whole call is a no-op for the modeled set.
 // (mfc140u RVA 0x11cc10, from the mfc140u panel vftable slot +0x230; the RVA
 // above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element image mirroring and the
 // embedded objects are not modeled.
+// Stub: mfc140u vtable target RVA 0x11cc10 forwards to element virtuals and embedded buttons; that layout is not modeled.
 // Symbol: ?OnRTLChanged@CMFCRibbonPanel@@MEAAXH@Z
 extern "C" void MS_ABI impl__OnRTLChanged_CMFCRibbonPanel__MEAAXH_Z(
     CMFCRibbonPanel* /*pThis*/, int /*bIsRTL*/)
@@ -1489,6 +1515,7 @@ extern "C" void MS_ABI impl__OnRTLChanged_CMFCRibbonPanel__MEAAXH_Z(
 // above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- the embedded accessibility data
 // block and element rects are not modeled.
+// Stub: mfc140u vtable target RVA 0x11d2d0 writes the accessibility block at +0x40 and uses visible elements; neither is modeled.
 // Symbol: ?OnSetAccData@CMFCRibbonPanel@@MEAAHJ@Z
 extern "C" int MS_ABI impl__OnSetAccData_CMFCRibbonPanel__MEAAHJ_Z(
     CMFCRibbonPanel* /*pThis*/, long /*lVal*/)
@@ -1506,6 +1533,7 @@ extern "C" int MS_ABI impl__OnSetAccData_CMFCRibbonPanel__MEAAHJ_Z(
 // above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element rects and element show
 // state are not modeled.
+// Stub: mfc140u vtable target RVA 0x11afd0 derives each element's show flag from its rect; rect state is not modeled.
 // Symbol: ?OnShow@CMFCRibbonPanel@@MEAAXH@Z
 extern "C" void MS_ABI impl__OnShow_CMFCRibbonPanel__MEAAXH_Z(
     CMFCRibbonPanel* /*pThis*/, int /*bShow*/)
@@ -1515,19 +1543,19 @@ extern "C" void MS_ABI impl__OnShow_CMFCRibbonPanel__MEAAXH_Z(
 // CMFCRibbonPanel::OnUpdateCmdUI(CMFCRibbonCmdUI*, CFrameWnd*, BOOL) --
 // retail (RVA 0x11bac0):
 //     for (i ...) m_arElements[i]->OnUpdateCmdUI(pCmdUI, pTarget, bDisableIfNoHndler);
-//     <group at +0x170>->OnUpdateCmdUI(...);          // element vtable +0x460
+//     m_btnLaunch at +0x170 ->OnUpdateCmdUI(...);     // element vtable +0x460
 // The base element's OnUpdateCmdUI (RVA 0x10120) routes the command through
 // the target's handler and then applies the result to the element's enabled /
 // checked / radio state -- members the clean-room CMFCRibbonBaseElement does
 // not declare.  Its OpenMFC counterpart
 // (impl__OnUpdateCmdUI_CMFCRibbonBaseElement, in
-// featurepack/ribbon/CMFCRibbonBaseElement.cpp) is still a generated no-op
-// that does not even take a `this` parameter, so forwarding to it would
-// accomplish nothing.
+// featurepack/ribbon/CMFCRibbonBaseElement.cpp) has the typed `this` parameter
+// but an empty body; forwarding to it cannot apply the command-UI state.
 // (mfc140u RVA 0x11ad40, from the mfc140u panel vftable slot +0x200; the RVA
 // above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- element command-UI state is not
 // modeled.
+// Stub: mfc140u vtable target RVA 0x11ad40 updates each element through command-UI dispatch; that state/thunk is unavailable.
 // Symbol: ?OnUpdateCmdUI@CMFCRibbonPanel@@MEAAXPEAVCMFCRibbonCmdUI@@PEAVCFrameWnd@@H@Z
 extern "C" void MS_ABI impl__OnUpdateCmdUI_CMFCRibbonPanel__MEAAXPEAVCMFCRibbonCmdUI__PEAVCFrameWnd__H_Z(
     CMFCRibbonPanel* /*pThis*/, CMFCRibbonCmdUI* /*pCmdUI*/, CFrameWnd* /*pTarget*/,
@@ -1544,6 +1572,7 @@ extern "C" void MS_ABI impl__OnUpdateCmdUI_CMFCRibbonPanel__MEAAXPEAVCMFCRibbonC
 // above is the ANSI twin's.)
 // TODO(clean-room): transcribed partially -- panel layout geometry is not
 // modeled.
+// Stub: mfc140u vtable target RVA 0x11a180 performs the panel's width-fitting layout pass; layout members are not modeled.
 // Symbol: ?RecalcWidths@CMFCRibbonPanel@@UEAAXPEAVCDC@@H@Z
 extern "C" void MS_ABI impl__RecalcWidths_CMFCRibbonPanel__UEAAXPEAVCDC__H_Z(
     CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/, int /*nHeight*/)
@@ -1558,16 +1587,17 @@ extern "C" void MS_ABI impl__RecalcWidths_CMFCRibbonPanel__UEAAXPEAVCDC__H_Z(
 //     if (pWnd == NULL || pWnd->m_hWnd == NULL) return;
 //     ::InvalidateRect(pWnd->m_hWnd, &rect, TRUE);
 //     ::UpdateWindow(pWnd->m_hWnd);
-// The element rect and the panel's parent-window links are both unmodeled, so
-// the retail early-out (empty rect / no parent window) is the only reachable
-// path and no repaint can be issued.
+// The element rect is not modeled, so this implementation cannot establish
+// whether retail would take the empty-rect early return or issue a repaint.
+// The panel's parent-window relationship is recoverable through GetParentWnd.
 // (mfc140u RVA 0x11b5b0, from the mfc140u panel vftable slot +0x220 and
 // re-read there: ::IsRectEmpty on a copy of element +0xc8, then vtable +0x158,
 // then ::InvalidateRect(hWnd, &rect, TRUE) and ::UpdateWindow(hWnd); the RVA
-// above is the ANSI twin's.)  The parent window is now recoverable through
-// GetParentWnd above, but the element rect is not, so the empty-rect early
-// return still applies to every element and no repaint is issued.
+// above is the ANSI twin's.)  The parent window is recoverable through
+// GetParentWnd above, but the element rect is not; the empty-rect early return
+// therefore cannot be proven for every element.
 // TODO(clean-room): transcribed partially -- element rects are not modeled.
+// Stub: mfc140u vtable target RVA 0x11b5b0 needs the element rect at +0xc8 before invalidating; that rect is not modeled.
 // Symbol: ?RedrawElement@CMFCRibbonPanel@@MEAAXPEAVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__RedrawElement_CMFCRibbonPanel__MEAAXPEAVCMFCRibbonBaseElement___Z(
     CMFCRibbonPanel* /*pThis*/, CMFCRibbonBaseElement* /*pElem*/)
@@ -1763,12 +1793,13 @@ extern "C" int MS_ABI impl__ReplaceByID_CMFCRibbonPanel__QEAAHIPEAVCMFCRibbonBas
 // the two menu-area rects (+0x11c / +0x12c), then branches: a non-null
 // palette owner at +0x168 calls ReposPalette (vtable +0x1f8) and returns, a
 // set +0xb8 flag calls RepositionMenu (vtable +0x1f0) and returns, and
-// otherwise it links the embedded default button (+0x3f0) and the embedded
-// group (+0x170) to the parent category, stores the incoming rect into m_rect
-// (+0x10c), zeroes the group rect at +0x238 and
+// otherwise it links the embedded default button (+0x3f0) and launch button
+// (+0x170) to the parent category, stores the incoming rect into m_rect
+// (+0x10c), zeroes the launch-button rect at +0x238 and
 // runs the column layout over every element rect.  All of that state lives
 // past the end of the clean-room CMFCRibbonPanel.
 // TODO(clean-room): not transcribed -- panel layout geometry is not modeled.
+// Stub: mfc140u vtable target RVA 0x117700 lays out panel, launch-button, and element geometry; those members are not modeled.
 // Symbol: ?Reposition@CMFCRibbonPanel@@MEAAXPEAVCDC@@AEBVCRect@@@Z
 extern "C" void MS_ABI impl__Reposition_CMFCRibbonPanel__MEAAXPEAVCDC__AEBVCRect___Z(
     CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/, const CRect& /*rect*/)
@@ -1783,6 +1814,7 @@ extern "C" void MS_ABI impl__Reposition_CMFCRibbonPanel__MEAAXPEAVCDC__AEBVCRect
 // scroll offset at +0xf8 get an empty rect.  Nothing it reads or writes is
 // declared by the clean-room CMFCRibbonPanel or CMFCRibbonBaseElement.
 // TODO(clean-room): not transcribed -- menu layout geometry is not modeled.
+// Stub: mfc140u vtable target RVA 0x118dd0 lays out menu rows and element rects; those members are not modeled.
 // Symbol: ?RepositionMenu@CMFCRibbonPanel@@MEAAXPEAVCDC@@AEBVCRect@@@Z
 extern "C" void MS_ABI impl__RepositionMenu_CMFCRibbonPanel__MEAAXPEAVCDC__AEBVCRect___Z(
     CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/, const CRect& /*rect*/)
@@ -1798,6 +1830,7 @@ extern "C" void MS_ABI impl__RepositionMenu_CMFCRibbonPanel__MEAAXPEAVCDC__AEBVC
 // declared by the clean-room classes.
 // TODO(clean-room): not transcribed -- palette layout geometry is not
 // modeled.
+// Stub: mfc140u vtable target RVA 0x119110 positions gallery elements and uses palette state; that layout is not modeled.
 // Symbol: ?ReposPalette@CMFCRibbonPanel@@MEAAXPEAVCDC@@AEBVCRect@@@Z
 extern "C" void MS_ABI impl__ReposPalette_CMFCRibbonPanel__MEAAXPEAVCDC__AEBVCRect___Z(
     CMFCRibbonPanel* /*pThis*/, CDC* /*pDC*/, const CRect& /*rect*/)
@@ -1817,6 +1850,7 @@ extern "C" void MS_ABI impl__ReposPalette_CMFCRibbonPanel__MEAAXPEAVCDC__AEBVCRe
 // clean-room classes, so there is nothing to scroll.
 // TODO(clean-room): not transcribed -- the palette scroll offset and element
 // rects are not modeled.
+// Stub: mfc140u vtable target RVA 0x11c830 updates +0xf8 and offsets element rects; those members are not modeled.
 // Symbol: ?ScrollPalette@CMFCRibbonPanel@@IEAAXHH@Z
 extern "C" void MS_ABI impl__ScrollPalette_CMFCRibbonPanel__IEAAXHH_Z(
     CMFCRibbonPanel* /*pThis*/, int /*nScrollOffset*/, int /*bIsDelta*/)
@@ -2039,6 +2073,7 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__SetElementRTCByID_CMFCRibbonPanel
 // virtuals and +0x3e8 -- so neither case has a modeled effect.
 // TODO(clean-room): not transcribed -- element focus/highlight state is not
 // modeled.
+// Stub: mfc140u vtable target RVA 0x11d050 updates focus/highlight flags and virtual state; those members are not modeled.
 // Symbol: ?SetFocused@CMFCRibbonPanel@@QEAAXPEAVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__SetFocused_CMFCRibbonPanel__QEAAXPEAVCMFCRibbonBaseElement___Z(
     CMFCRibbonPanel* /*pThis*/, CMFCRibbonBaseElement* /*pNewFocus*/)
@@ -2054,16 +2089,26 @@ extern "C" void MS_ABI impl__SetFocused_CMFCRibbonPanel__QEAAXPEAVCMFCRibbonBase
 // clean-room CMFCRibbonPanel, so the keys have nowhere to go.
 // TODO(clean-room): not transcribed -- the embedded default panel button is
 // not modeled.
+// Stub: mfc140u vtable target RVA 0x11cbf0 forwards keys to the embedded default button; that object is not modeled.
 // Symbol: ?SetKeys@CMFCRibbonPanel@@QEAAXPEB_W@Z
 extern "C" void MS_ABI impl__SetKeys_CMFCRibbonPanel__QEAAXPEB_W_Z(
     CMFCRibbonPanel* /*pThis*/, const wchar_t* /*lpszKeys*/)
 {
 }
 
+// Stub: this private export has no resolved mfc140u RVA; the embedded default-button drawing state is not modeled.
 // Symbol: ?ShowDefaultButton@CMFCRibbonPanel@@IEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__ShowDefaultButton_CMFCRibbonPanel__IEAAXPEAVCDC___Z(void* /*class*/* p0) {}
+extern "C" void MS_ABI impl__ShowDefaultButton_CMFCRibbonPanel__IEAAXPEAVCDC___Z(
+    CMFCRibbonPanel* pThis, CDC* pDC) {
+    (void)pThis;
+    (void)pDC;
+}
 
+// Stub: this export has no resolved mfc140u RVA; retail declares the panel-menu signature, but that menu type is not modeled.
 // Symbol: ?ShowPopup@CMFCRibbonPanel@@QEAAPEAVCMFCRibbonPanelMenu@@PEAVCMFCRibbonDefaultPanelButton@@@Z
-extern "C" void* MS_ABI impl__ShowPopup_CMFCRibbonPanel__QEAAPEAVCMFCRibbonPanelMenu__PEAVCMFCRibbonDefaultPanelButton___Z(void* /*class*/* p0) {
+extern "C" CMFCRibbonPanelMenu* MS_ABI impl__ShowPopup_CMFCRibbonPanel__QEAAPEAVCMFCRibbonPanelMenu__PEAVCMFCRibbonDefaultPanelButton___Z(
+    CMFCRibbonPanel* pThis, CMFCRibbonDefaultPanelButton* pButton) {
+    (void)pThis;
+    (void)pButton;
     return nullptr;
 }

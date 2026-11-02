@@ -3,12 +3,31 @@
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
+// CMFCRibbonCollector is not declared in include/openmfc. Retail's constructor
+// stores m_Info at +8 and DWORD m_dwFlags at +0x10 (RVA 0xf1550, mfc140u);
+// its destructor writes the vfptr at +0 (RVA 0xf15a0, mfc140u).
+struct CMFCRibbonCollectorLayout {
+    void* vfptr;
+    void* m_Info;
+    std::uint32_t m_dwFlags;
+    std::uint32_t _pad_14;
+};
+static_assert(offsetof(CMFCRibbonCollectorLayout, m_Info) == 0x08, "CMFCRibbonCollector::m_Info");
+static_assert(offsetof(CMFCRibbonCollectorLayout, m_dwFlags) == 0x10, "CMFCRibbonCollector::m_dwFlags");
+// The constructor only establishes fields through +0x13; this is the local view's
+// rounded size, not evidence that the retail class has no further members.
+static_assert(sizeof(CMFCRibbonCollectorLayout) == 0x18, "CMFCRibbonCollector layout view size");
+
 // Symbol: ??0CMFCRibbonCollector@@QEAA@AEAVCMFCRibbonInfo@@K@Z
-extern "C" void* MS_ABI impl___0CMFCRibbonCollector__QEAA_AEAVCMFCRibbonInfo__K_Z(void* pThis, void* pInfo, unsigned long long unusedFlags) {
-    // Existing stub: RVA 0xf1550 (mfc140u) installs a vftable and stores pInfo
-    // at +8 and flags at +0x10; no compatible collector vtable is defined here.
-    (void)pInfo;
-    (void)unusedFlags;
+extern "C" void* MS_ABI impl___0CMFCRibbonCollector__QEAA_AEAVCMFCRibbonInfo__K_Z(
+    void* pThis, void* pInfo, std::uint32_t flags) {
+    // Partial transcription of RVA 0xf1550 (mfc140u): retail stores pInfo at
+    // +8 and the 32-bit flags at +0x10, and also installs its collector
+    // vftable. The latter cannot be transplanted as an absolute retail pointer;
+    // no compatible local collector vftable is defined in this translation unit.
+    auto* layout = static_cast<CMFCRibbonCollectorLayout*>(pThis);
+    layout->m_Info = pInfo;
+    layout->m_dwFlags = flags;
     return pThis;
 }
 
@@ -78,14 +97,18 @@ extern "C" void MS_ABI impl__CollectElement_CMFCRibbonCollector__MEAAXAEBVCMFCRi
 
 // Symbol: ?CollectImageInfo@CMFCRibbonCollector@@MEAAXAEAVCMFCToolBarImages@@AEAVXImage@CMFCRibbonInfo@@H@Z
 extern "C" void MS_ABI impl__CollectImageInfo_CMFCRibbonCollector__MEAAXAEAVCMFCToolBarImages__AEAVXImage_CMFCRibbonInfo__H_Z(
-    void* pThis, void* pImages, void* pInfo, int index) {
-    // Stub: RVA 0xf3280 (mfc140u) conditionally copies an image resource ID,
-    // then calls CMFCToolBarImages::CopyTo for the XImage image. The source
-    // collection internals are unmodeled, and CopyTo remains a conservative stub.
+    void* pThis, void* pImages, void* pInfo, int bCollectID) {
+    // Stub: at RVA 0xf3280 (mfc140u), when bCollectID is true, retail tests
+    // the qword at pImages+0x108 for 1 and the pointer at +0xf8 for non-null;
+    // it then copies the pointed-to record's dword at +0x10 into pInfo+8.
+    // Without a modeled source collection view, that condition cannot safely
+    // be interpreted as an element count. Retail then tail-jumps to
+    // CMFCToolBarImages::CopyTo (RVA 0x16f2f0, mfc140u), whose OpenMFC body is
+    // still a conservative stub, so the complete operation is unavailable.
     (void)pThis;
     (void)pImages;
     (void)pInfo;
-    (void)index;
+    (void)bCollectID;
 }
 
 // Symbol: ?CollectPanel@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonPanel@@AEAVXPanel@CMFCRibbonInfo@@@Z
@@ -124,8 +147,8 @@ extern "C" void MS_ABI impl__CollectRibbonBar_CMFCRibbonCollector__MEAAXAEBVCMFC
 // Symbol: ?CollectRibbonBar@CMFCRibbonCollector@@UEAAXAEBVCMFCRibbonBar@@@Z
 extern "C" void MS_ABI impl__CollectRibbonBar_CMFCRibbonCollector__UEAAXAEBVCMFCRibbonBar___Z(void* pThis, const void* pBar) {
     // Stub: RVA 0xf15b0 (mfc140u) forwards m_Info + 0x18 through collector
-    // vtable slot 1. The pre-existing constructor leaves the vfptr unset, and
-    // OpenMFC has no compatible collector vtable to dispatch through.
+    // vtable slot 1. The OpenMFC constructor cannot install a compatible local
+    // collector vftable, so its vfptr remains unset and this dispatch is unavailable.
     (void)pThis;
     (void)pBar;
 }
@@ -163,16 +186,38 @@ extern "C" void MS_ABI impl__GetElementImages_CMFCRibbonCollector__MEAAXAEBVCMFC
     (void)pImage;
 }
 
+// The collector's ordinary base-element IDs use OpenMFC's compact prefix;
+// do not apply retail +0x118 to this declaration. The destination is XID, whose
+// value field follows its 8-byte CString. These views are local because the
+// richer ribbon-info model remains private to CMFCRibbonInfo.cpp.
+struct RibbonCollectorElementIDView {
+    void* vfptr;
+    std::uint32_t m_nID;
+};
+static_assert(offsetof(RibbonCollectorElementIDView, m_nID) == sizeof(CObject),
+              "OpenMFC CMFCRibbonBaseElement::m_nID follows CObject");
+struct RibbonCollectorXIDValueView {
+    std::uint8_t _name[8];
+    std::uint32_t m_Value;
+};
+static_assert(offsetof(RibbonCollectorXIDValueView, m_Value) == 0x08,
+              "XID::m_Value follows CString");
+
 // Symbol: ?GetID@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBaseElement@@AEAVXID@CMFCRibbonInfo@@@Z
 extern "C" void MS_ABI impl__GetID_CMFCRibbonCollector__MEAAXAEBVCMFCRibbonBaseElement__AEAVXID_CMFCRibbonInfo___Z(
     void* pThis, const void* pBase, void* pID) {
-    // Stub: RVA 0xf2b00 (mfc140u) reads m_nID at +0x118 and, for context
-    // captions, m_uiID at +0x274. OpenMFC's CMFCRibbonBaseElement declaration
-    // places m_nID at +8 and its context-caption declaration omits m_uiID, so
-    // applying the retail offsets to these objects would read unrelated memory.
+    // Partial implementation of retail RVA 0xf2b00 (mfc140u): ordinary
+    // CMFCRibbonBaseElement IDs come from the compact +8 field and UINT_MAX is
+    // normalized to zero. Retail additionally detects CMFCRibbonContextCaption
+    // for IDs 0/UINT_MAX and reads m_uiID at +0x274; OpenMFC's caption is a
+    // separate CObject shell with no such field, so that exceptional branch is
+    // intentionally not applied to this differently laid-out object.
     (void)pThis;
-    (void)pBase;
-    (void)pID;
+    if (pBase == nullptr || pID == nullptr) return;
+
+    const auto* base = static_cast<const RibbonCollectorElementIDView*>(pBase);
+    auto* xid = static_cast<RibbonCollectorXIDValueView*>(pID);
+    xid->m_Value = (base->m_nID == 0xffffffffu) ? 0u : base->m_nID;
 }
 
 // Symbol: ?GetRibbonBarImages@CMFCRibbonCollector@@MEAAXAEBVCMFCRibbonBar@@AEAVXRibbonBar@CMFCRibbonInfo@@@Z

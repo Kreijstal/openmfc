@@ -6,6 +6,9 @@
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
 
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonBaseElement__UEAAXAEBV1__Z(
+    CMFCRibbonBaseElement* pThis, const CMFCRibbonBaseElement& src);
+
 // Existing approximation retained: it estimates size from text and fixed
 // dimensions. Retail reads m_nWidth, returns height 18, applies system scaling,
 // and adds room for zoom buttons (mfc140u RVA 0x123fa0).
@@ -34,6 +37,8 @@ extern "C" void MS_ABI impl__SetRange_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlid
     NormalizeRange(nMin, nMax, state.nMin, state.nMax);
     state.nPos = std::clamp(state.nPos, state.nMin, state.nMax);
 }
+// Compatibility state only: unlike retail, this does not recompute the thumb
+// geometry or honor bRedraw by issuing a redraw.
 // Symbol: ?SetPos@CMFCRibbonSlider@@QEAAXHH@Z
 extern "C" void MS_ABI impl__SetPos_CMFCRibbonSlider__QEAAXHH_Z(CMFCRibbonSlider* pThis, int nPos, int /*bRedraw*/) {
     if (!pThis) return;
@@ -67,14 +72,16 @@ extern "C" void MS_ABI impl__CommonInit_CMFCRibbonSlider__IEAAXXZ(CMFCRibbonSlid
     (void)pThis;
 }
 
-// Retail calls the base CopyFrom thunk then copies slider fields at +0x180,
-// +0x184, +0x188, +0x19c and +0x190 (mfc140u RVA 0x123f40). Those members
-// are absent from the local class layout, so copying them is not safe here.
+// Retail calls CMFCRibbonBaseElement::CopyFrom (mfc140u RVA 0x10350), then
+// copies slider fields at +0x180, +0x184, +0x188, +0x19c and +0x190
+// (mfc140u RVA 0x123f40). The local base thunk safely copies the modeled
+// command ID; slider state is keyed by that ID. The remaining per-slider fields
+// and rectangles are not represented locally, so their retail copies are omitted.
 // Symbol: ?CopyFrom@CMFCRibbonSlider@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonSlider__MEAAXAEBVCMFCRibbonBaseElement___Z(
     CMFCRibbonSlider* pThis, const CMFCRibbonBaseElement& src) {
-    (void)pThis;
-    (void)src;
+    if (!pThis) return;
+    impl__CopyFrom_CMFCRibbonBaseElement__UEAAXAEBV1__Z(pThis, src);
 }
 
 // Retail hit-testing checks the thumb, slider, zoom-out and zoom-in CRect
@@ -88,9 +95,9 @@ extern "C" int MS_ABI impl__GetHitTest_CMFCRibbonSlider__IEBAHVCPoint___Z(
     return 0;
 }
 
-// Retail maps the supplied x coordinate through the slider rect and min/max
-// range (mfc140u RVA 0x1245a0); the required range and rectangle fields are
-// not modeled in CMFCRibbonSlider here.
+// Retail returns m_nMin when the range is empty/reversed or the inherited
+// +0xc8 rectangle is empty; otherwise it maps x through m_rectSlider and the
+// min/max range (mfc140u RVA 0x1245a0). Those fields are not modeled locally.
 // Symbol: ?GetPosFromPoint@CMFCRibbonSlider@@IEAAHH@Z
 extern "C" int MS_ABI impl__GetPosFromPoint_CMFCRibbonSlider__IEAAHH_Z(
     CMFCRibbonSlider* pThis, int x) {
@@ -110,10 +117,12 @@ extern "C" int MS_ABI impl__IsAutoRepeatMode_CMFCRibbonSlider__MEBAHAEAH_Z(
     return 0;
 }
 
-// Retail routes WM_COMMAND using the base command ID at +0x118 (mfc140u RVA
-// 0x1246b0); its corresponding ANSI-twin import resolves to USER32!SendMessageA
-// (the Unicode image uses SendMessageW). Reproducing the parent/window lookup
-// requires base state and infrastructure not represented by this slider layout.
+// Retail only proceeds for command IDs 1..3, resolves the top-level ribbon
+// bar's parent window, then sends WM_COMMAND with the ID at +0x118 via
+// USER32!SendMessage (mfc140u RVA 0x1246b0). The equivalent ANSI-twin entry at
+// mfc140.dll RVA 0x125420 calls IAT slot 0x1802c5378, which resolves to
+// USER32!SendMessageA; the Unicode image uses SendMessageW. The needed base
+// window state is not represented by this local class layout.
 // Symbol: ?NotifyCommand@CMFCRibbonSlider@@IEAAXXZ
 extern "C" void MS_ABI impl__NotifyCommand_CMFCRibbonSlider__IEAAXXZ(CMFCRibbonSlider* pThis) {
     (void)pThis;
@@ -129,10 +138,10 @@ extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonSlider__MEAAXPEAVCDC___
     (void)pDC;
 }
 
-// Retail returns FALSE when the inherited disabled flag at +0x148 is set. For
-// pressed modes 2/3 at +0x198 it adjusts the position by the increment at +0x18c
-// and notifies the command; other enabled modes do nothing but return TRUE
-// (mfc140u RVA 0x124650). These slider fields are not modeled locally.
+// Retail returns FALSE when the inherited disabled flag at +0x148 is set.
+// Otherwise pressed modes 2/3 at +0x198 add/subtract +0x18c from m_nPos at
+// +0x188, call SetPos with redraw, and notify; other modes return TRUE without
+// changing position (mfc140u RVA 0x124650). These fields are not modeled here.
 // Symbol: ?OnAutoRepeat@CMFCRibbonSlider@@MEAAHXZ
 extern "C" int MS_ABI impl__OnAutoRepeat_CMFCRibbonSlider__MEAAHXZ(CMFCRibbonSlider* pThis) {
     (void)pThis;
@@ -186,10 +195,10 @@ extern "C" void MS_ABI impl__OnMouseMove_CMFCRibbonSlider__MEAAXVCPoint___Z(
 }
 
 // The ANSI-twin disassembly (mfc140.dll RVA 0x125640; no mfc140u mapping was
-// resolved) first delegates to accessibility setup, then fills slider role,
-// value and name data. Position exists only in the ID-keyed compatibility state;
-// the retail base accessibility setup and the rest of the slider layout are not
-// modeled here.
+// resolved) first delegates to base accessibility setup, then sets the role and
+// state, empties the default-action string, and formats the value string from
+// m_nPos; it does not fill the name field. The local base setup and slider
+// position/layout are not modeled.
 // Symbol: ?SetACCData@CMFCRibbonSlider@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
 extern "C" int MS_ABI impl__SetACCData_CMFCRibbonSlider__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
     CMFCRibbonSlider* pThis, CWnd* pParent, CAccessibilityData& data) {

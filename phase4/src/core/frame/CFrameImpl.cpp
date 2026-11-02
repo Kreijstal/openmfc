@@ -112,6 +112,9 @@ extern "C" int MS_ABI impl__LoadLargeIconsState_CMFCToolBar__SAHPEB_W_Z(const wc
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIChildWnd__SAPEAUCRuntimeClass__XZ();
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(unsigned int nID);
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(
+    CString* pThis, HINSTANCE hInst, unsigned int nID);
 // CObList (core/collections/CObList.cpp)
 extern "C" void* MS_ABI impl___0CObList__QEAA__J_Z(CObList* pThis, long long nBlockSize);
 extern "C" void MS_ABI impl___1CObList__UEAA_XZ(CObList* pThis);
@@ -1226,8 +1229,9 @@ static_assert(offsetof(CMFCToolBarButton, m_pWndParent) == 0x80, "CMFCToolBarBut
 //     not have.  Were the field ever non-zero, the body below would fall through
 //     to the common path instead;
 //   * the smart-docking gate and IsDocked go through DockManagerSmartDockingStarted
-//     and PaneIsDocked above; IsCustomizePane / ShowQuickCustomizePane are this
-//     file's (stub) exports, so the customize-pane step is currently inert;
+//     and PaneIsDocked above; IsCustomizePane is implemented for retail-layout
+//     popup objects, but ShowQuickCustomizePane remains a stub, so the customize-pane
+//     action is still inert;
 //   * a pThis the constructor never saw reads as a frame with no dock manager.
 // Symbol: ?OnShowPopupMenu@CFrameImpl@@IEAAHPEAVCMFCPopupMenu@@PEAVCFrameWnd@@@Z
 extern "C" int MS_ABI impl__OnShowPopupMenu_CFrameImpl__IEAAHPEAVCMFCPopupMenu__PEAVCFrameWnd___Z(
@@ -1468,23 +1472,22 @@ extern "C" void MS_ABI impl__SetMenuBar_CFrameImpl__IEAAXPEAVCMFCMenuBar___Z(voi
 extern "C" alignas(8) OpenMfcRetailFrameList impl__m_lstFrames_CFrameImpl__1V__CList_PEAVCFrameWnd__PEAV1___A = {
     nullptr, nullptr, nullptr, 0, nullptr, nullptr, 10};
 
-// Retail 0x64d40 (mfc140; RVA 0x64f10 in mfc140u), addresses mfc140:
+// Retail RVA 0x64f10 (mfc140u; ANSI twin entry RVA 0x64d40 in mfc140), addresses mfc140:
 //     CMFCToolBar* pBar = CMFCCustomizeMenuButton::m_pWndToolBar;              // 0x3b6f28
 //     if (pBar == NULL) return;
 //     CMFCToolBarsCustomizeDialog* pDlg =
 //         new CMFCToolBarsCustomizeDialog(m_pFrame (+0x118), TRUE, 0x40, NULL); // 0xdb8 bytes, ctor 0x1751d0
 //     for each node of the button list at pBar+0x1200 (i counts EVERY node, skipped
-//     ones included), skipping NULL entries, separators (+0x28 bit 0) and buttons
-//     that fail further filters (not a CMFCCustomizeButton; nID not found by the
-//     lookup at 0x2f6d0 in ?m_mapPresentIDs@CMFCCustomizeMenuButton@@ 0x3aac80; for a
-//     CMFCDropDownToolbarButton, CMFCToolBar::CommandToIndex 0x14d540 on its +0x88
-//     toolbar; for a CMFCToolBarMenuButton, a +0xe8-gated scan of its +0x90 list):
+//     ones included), skipping NULL entries, separators (+0x28 bit 0), CMFCCustomizeButton
+//     instances, buttons whose nID is already present in m_mapPresentIDs (lookup at
+//     0x2f6d0 / map 0x3aac80), dropdown buttons whose +0x88 toolbar already contains
+//     the nID (CommandToIndex 0x14d540), and menu buttons whose +0xe8-gated +0x90 list
+//     already contains that ID:
 //         CMFCCustomizeMenuButton btn(nID, NULL, image, pDlg->GetCommandName(nID), bUser);   // 0x36410, 0x177d30
 //         btn.SetItemIndex(i, FALSE, FALSE);                                    // 0x36470
 //         if (pMenuPane->InsertItem(btn, i) == -1) pMenuPane->InsertItem(btn, -1);   // 0xb7d00
 //     delete pDlg;
-// The uiToolbarID argument (r8) is never read.  (The per-filter branch polarity was
-// read off the jumps but not traced through the callees.)
+// The uiToolbarID argument (r8) is never read.
 // NOT implemented: retail stores m_pWndToolBar in ShowQuickCustomizePane (a stub
 // below) and in ?CreatePopupMenu@CMFCCustomizeButton@@ (RVA 0x35380, mfc140u; the
 // store at 0x35d50), but no file under phase4/src assigns OpenMFC's
@@ -1964,36 +1967,88 @@ extern "C" void MS_ABI impl__InitUserToolbars_CFrameImpl__IEAAXPEB_WII_Z(
     }
 }
 
-// Retail 0x64fc0 (mfc140), decoded:
-//     CMFCPopupMenu* pParent = pMenuPopup->GetParentPopupMenu();                 // 0xb7b10
-//     if (pParent == NULL) return FALSE;
-//     CString strLabel;  ENSURE(strLabel.LoadString(0x427a));                    // throws via 0x225b80 if absent
-//     CMFCToolBarMenuButton* pButton = pParent->m_pParentBtn (+0x228);
-//     if (pButton != NULL && pButton->m_strText (+0x38).Find(strLabel) == -1) return FALSE;
-//     CMFCPopupMenu* pCustomize = pParent->GetParentPopupMenu();
-//     return pCustomize != NULL && pCustomize->[+0x19b0] == 1;
-// (0x2accf0 is AfxFindStringResourceHandle, 0xdc00 CStringT::LoadString, and the
-// substring test is the _mbsstr import in the ANSI image -- wcsstr in mfc140u.)
-// NOT implemented: string 0x427a is IDS_AFXBARRES_ADD_REMOVE_BTNS (afxribbonres.h),
-// one of retail's own resources, and OpenMFC's image has no string table (the
-// phase4 build links no .rc).  OpenMFC's AfxFindStringResourceHandle
-// (featurepack/CMFC_misc_stubs.cpp) only searches the resource, instance and main
-// module handles, so a faithful ENSURE would throw CInvalidArgException on every
-// call that reaches it unless the client's own resources happen to carry that
-// string; the label comparison has no source of truth on this side.  STUB.
+// Retail RVA 0x65190 (mfc140u; ANSI twin entry RVA 0x64fc0 in mfc140), decoded:
+//     pParent = pMenuPopup->GetParentPopupMenu();
+//     if (!pParent) return FALSE;
+//     ENSURE(strLabel.LoadString(0x427a));
+//     if (pParent->m_pParentBtn (+0x228) &&
+//         pParent->m_pParentBtn->m_strText (+0x38).Find(strLabel) == -1) return FALSE;
+//     pCustomize = pParent->GetParentPopupMenu();
+//     return pCustomize != NULL && *(int*)(pCustomize + 0x19b0) == 1;
+// CString resource lookup searches the active MFC resource handles, including the
+// client's resources; a missing resource follows retail's AfxThrowInvalidArgException
+// path. The search at +0x38 is a substring search (ANSI uses _mbsstr; Unicode uses
+// the equivalent wide-character search).
+// DEVIATION: the local CMFCPopupMenu constructor creates only the short OpenMFC object,
+// not retail's 0x19c8-byte object. Avoid retail-layout reads past that object: own
+// popup objects return FALSE, as do own parent/customize popup objects whose +0x19b0
+// state is not modeled. Client/retail-layout objects use the transcribed offsets.
 // Symbol: ?IsCustomizePane@CFrameImpl@@IEBAHPEBVCMFCPopupMenu@@@Z
 extern "C" int MS_ABI impl__IsCustomizePane_CFrameImpl__IEBAHPEBVCMFCPopupMenu___Z(const void* pThis, const void* pMenuPopup) {
     (void)pThis;
-    (void)pMenuPopup;
-    return FALSE;
+    if (pMenuPopup == nullptr || IsOwnObject(pMenuPopup)) {
+        return FALSE;
+    }
+    const void* pParent = impl__GetParentPopupMenu_CMFCPopupMenu__QEBAPEAV1_XZ(pMenuPopup);
+    if (pParent == nullptr) {
+        return FALSE;
+    }
+
+    constexpr unsigned int kCustomizePaneLabel = 0x427a;
+    CString strLabel;
+    HINSTANCE hInst = static_cast<HINSTANCE>(
+        impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(kCustomizePaneLabel));
+    if (hInst == nullptr ||
+        !impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(
+            &strLabel, hInst, kCustomizePaneLabel)) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return FALSE;
+    }
+
+    if (IsOwnObject(pParent)) {
+        return FALSE;
+    }
+    const auto* pButton = *reinterpret_cast<CMFCToolBarMenuButton* const*>(
+        static_cast<const unsigned char*>(pParent) + 0x228);
+    if (pButton != nullptr) {
+        const wchar_t* pText = pButton->m_strText.GetString();
+        const wchar_t* pNeedle = strLabel.GetString();
+        bool bFound = false;
+        if (pText != nullptr && pNeedle != nullptr) {
+            if (*pNeedle == L'\0') {
+                bFound = true;
+            } else {
+                for (const wchar_t* p = pText; *p != L'\0' && !bFound; ++p) {
+                    const wchar_t* a = p;
+                    const wchar_t* b = pNeedle;
+                    while (*a != L'\0' && *b != L'\0' && *a == *b) {
+                        ++a;
+                        ++b;
+                    }
+                    bFound = (*b == L'\0');
+                }
+            }
+        }
+        if (!bFound) {
+            return FALSE;
+        }
+    }
+
+    const void* pCustomize = impl__GetParentPopupMenu_CMFCPopupMenu__QEBAPEAV1_XZ(pParent);
+    if (pCustomize == nullptr || IsOwnObject(pCustomize)) {
+        return FALSE;
+    }
+    int bCustomizePane = 0;
+    memcpy(&bCustomizePane, static_cast<const unsigned char*>(pCustomize) + 0x19b0, sizeof(bCustomizePane));
+    return bCustomizePane == 1 ? TRUE : FALSE;
 }
 
-// Transcribed from retail.  The symbol has no entry in the RVA maps because its body
-// is ICF-folded: export ordinal 7887 (mfc_complete_ordinal_mapping.json) resolves
-// through mfc140u.dll's export address table to RVA 0x3a60 (mfc140u), the two
-// instruction `mov $0x1,%eax ; ret` that 101 exports share (the map keeps it under
-// ?accDoDefaultAction@CMFCBaseAccessibleObject@@).  Neither `this` nor the CDockState
-// is read: the function is `return TRUE;`, as in the public MFC source.
+// The symbol has no entry in the RVA maps because its body is ICF-folded: export
+// ordinal 7887 (mfc_complete_ordinal_mapping.json) resolves through mfc140u.dll's
+// export address table to RVA 0x3a60 (mfc140u), the two-instruction
+// `mov $0x1,%eax ; ret` body shared by 101 exports (the symbol map keeps it under
+// ?accDoDefaultAction@CMFCBaseAccessibleObject@@). Neither `this` nor CDockState is
+// read, so this is retail's constant TRUE result.
 // Symbol: ?IsDockStateValid@CFrameImpl@@IEAAHAEBVCDockState@@@Z
 extern "C" int MS_ABI impl__IsDockStateValid_CFrameImpl__IEAAHAEBVCDockState___Z(void* pThis, const void* pDockState) {
     (void)pThis;
@@ -2134,7 +2189,7 @@ extern "C" int MS_ABI impl__LoadLargeIconsState_CFrameImpl__IEAAHXZ(void* pThis)
     return bResult;
 }
 
-// Retail 0x62a90 (mfc140; RVA 0x62c60 in mfc140u), decoded (addresses mfc140):
+// Retail RVA 0x62c60 (mfc140u; ANSI twin entry RVA 0x62a90 in mfc140), decoded (addresses mfc140):
 //     for each pBar in the +0x98 tear-off list:                                  // head +0xa0
 //         if (pBar->IsDocked()) pBar->UndockPane(TRUE);                          // pane vftable +0x2e0, +0x490
 //         pBar->DestroyWindow(); delete pBar;                                    // +0xd0; slot 1 with flag 1
@@ -3067,7 +3122,7 @@ extern "C" void MS_ABI impl__OnWindowPosChanging_CFrameImpl__IEAAXPEAUtagWINDOWP
     }
 }
 
-// Retail 0x63540 (mfc140; RVA 0x63710 in mfc140u), decoded (addresses mfc140):
+// Retail RVA 0x63540 (mfc140.dll, ANSI twin; --u name lookup did not resolve this symbol), decoded (addresses mfc140):
 //     if (pbProcessAccel) *pbProcessAccel = TRUE;
 //     if (CMFCPopupMenu* pPopup = CMFCPopupMenu::GetSafeActivePopupMenu()) {   // 0xbc470
 //         CWnd* pFocus = CWnd::FromHandle(::GetFocus());
@@ -3126,7 +3181,7 @@ extern "C" int MS_ABI impl__ProcessKeyboard_CFrameImpl__IEAAHHPEAH_Z(void* pThis
     return FALSE;
 }
 
-// Retail 0x63840 (mfc140; RVA 0x63a10 in mfc140u).  Verified part (addresses mfc140):
+// Retail RVA 0x63840 (mfc140.dll, ANSI twin; --u name lookup did not resolve this symbol). Verified part (addresses mfc140):
 //     if (m_pRibbonBar (+0x180) && ::IsWindowVisible(its m_hWnd)) {
 //         CRect r; ::GetWindowRect(m_pRibbonBar->m_hWnd, &r);
 //         m_pRibbonBar->DeactivateKeyboardFocus(::PtInRect(&r, pt));             // 0xe28e0, called either way
@@ -3837,16 +3892,17 @@ extern "C" void MS_ABI impl__SetupToolbarMenu_CFrameImpl__IEAAXAEAVCMenu__II_Z(
     }
 }
 
-// Retail 0x647d0 (mfc140; RVA 0x649a0 in mfc140u, ~280 instructions), in outline
+// Retail RVA 0x647d0 (mfc140.dll, ANSI twin; --u name lookup did not resolve this symbol), in outline
 // (addresses mfc140):
 //     pParent = pMenuPopup->GetParentPopupMenu(); pGrand = pParent ? pParent->GetParentPopupMenu() : NULL;   // 0xb7b10
 //     if (pGrand == NULL) return;
 //     find the toolbar being customised: with a parent button on pGrand (+0x228),
-//       return unless it IsKindOf CMFCCustomizeButton (descriptor 0x3aa148); then
+//       return if it IsKindOf CMFCCustomizeButton (descriptor 0x3aa148); otherwise use
 //       the toolbar in CMFCToolBar::m_lstAllToolbars (head 0x3ab098; a NULL element
 //       throws via 0x225b80) whose GetDlgCtrlID (0x2a78b0) equals atoi() of the text
-//       (+0x38) of button 0 of pMenuPopup's menu bar and whose +0x1108 is set, else
-//       that parent button's +0x140; with no parent button, CWnd::FromHandle of
+//       (+0x38) of button 0 of pMenuPopup's menu bar and whose +0x1108 is set, falling
+//       back to that parent button's +0x140 if none matches; with no parent button,
+//       CWnd::FromHandle of
 //       pGrand's +0xa0 HWND (or ::GetParent of its m_hWnd), which must IsKindOf
 //       CPaneFrameWnd (0x3aa418) or the function returns, then that window's
 //       vftable +0x360 call;

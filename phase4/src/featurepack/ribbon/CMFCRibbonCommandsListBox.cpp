@@ -3,6 +3,9 @@
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
+extern "C" void* MS_ABI impl___0CWnd__QEAA_XZ(void* pThis);
+extern "C" void MS_ABI impl___1CListBox__UEAA_XZ(CListBox* pThis);
+
 // CMFCRibbonCommandsListBox is not declared in include/openmfc, so keep only
 // the retail fields this file has verified. The constructor at RVA 0xf7650
 // (mfc140u) initializes the fields from +0xe8 onward; list operations read
@@ -58,22 +61,38 @@ void* RibbonCommandsListBoxItemData(void* pThis, int index) {
 }
 } // namespace
 
+// Retail mfc140u RVA 0xf7650 constructs the CWnd base, writes the class vptr,
+// stores pRibbonBar at +0xf8, initializes +0xe8/+0xec/+0xf0, and optionally
+// allocates a separator at +0x100. OpenMFC has no MSVC vtable/layout for this
+// class; use the CWnd constructor and initialize the verified fields, but keep
+// the separator null because its retail virtual layout is not modeled.
 // Symbol: ??0CMFCRibbonCommandsListBox@@QEAA@PEAVCMFCRibbonBar@@HHH@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonCommandsListBox__QEAA_PEAVCMFCRibbonBar__HHH_Z(
-    void* pThis, void* pRibbonBar, int p1, int p2, int p3) {
-    (void)pRibbonBar;
-    (void)p1;
-    (void)p2;
-    (void)p3;
+    void* pThis, void* pRibbonBar, int bCreateSeparator, int bDrawDefaultIcon, int bCommandsOnly) {
+    (void)bCreateSeparator;
+    if (pThis == nullptr) {
+        return nullptr;
+    }
+
+    impl___0CWnd__QEAA_XZ(pThis);
+    auto* layout = reinterpret_cast<CMFCRibbonCommandsListBoxRetailPrefix*>(pThis);
+    layout->m_nTextOffset = 0;
+    layout->m_bDrawDefaultIcon = bDrawDefaultIcon;
+    layout->m_bCommandsOnly = bCommandsOnly;
+    layout->m_pRibbonBar = pRibbonBar;
+    layout->m_pSeparator = nullptr;
     return pThis;
 }
-// Retail mfc140u RVA 0xf7740 resets the vptr, optionally runs a cleanup path
-// using the object at +0x100, then tail-calls CListBox::~CListBox (RVA 0x293f30,
-// mfc140u). The base-dtor thunk exists, but this class's retail vtable and the
-// +0x100 cleanup operation are not represented here, so keep this stubbed.
+
+// Retail mfc140u RVA 0xf7740 resets the class vptr, destroys the optional
+// object at +0x100, then calls CListBox::~CListBox (entry RVA 0x293f30,
+// mfc140u). Our constructor leaves +0x100 null and cannot install the retail
+// class vtable, so perform the modeled base teardown only.
 // Symbol: ??1CMFCRibbonCommandsListBox@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCRibbonCommandsListBox__UEAA_XZ(void* pThis) {
-    (void)pThis;
+    if (pThis != nullptr) {
+        impl___1CListBox__UEAA_XZ(static_cast<CListBox*>(pThis));
+    }
 }
 
 // Retail mfc140u RVA 0xf7f80 checks for an existing nonzero command ID, computes
@@ -180,15 +199,32 @@ extern "C" void* MS_ABI impl__GetSelected_CMFCRibbonCommandsListBox__QEBAPEAVCMF
     return index < 0 ? nullptr : RibbonCommandsListBoxItemData(pThis, index);
 }
 
-// Retail mfc140u RVA 0xf7aa0, for a non-null MEASUREITEMSTRUCT, measures text
-// through internal graphics/font helpers and writes the returned text height
-// plus 6 to itemHeight. The corresponding mfc140.dll IAT slot 0x1802c4268
-// resolves to GetTextMetricsA (GetTextMetricsW in mfc140u), but the helper-object
-// contracts needed to reproduce the path are not modeled.
+// Retail mfc140u RVA 0xf7aa0 creates a client DC, selects DEFAULT_GUI_FONT
+// (stock-object index 17), calls GetTextMetricsW, and stores tmHeight + 6.
+// Use the equivalent GDI sequence directly rather than relying on unmodeled
+// CDC/CFont handle-map wrappers. On a GDI failure, leave itemHeight untouched.
 // Symbol: ?MeasureItem@CMFCRibbonCommandsListBox@@MEAAXPEAUtagMEASUREITEMSTRUCT@@@Z
 extern "C" void MS_ABI impl__MeasureItem_CMFCRibbonCommandsListBox__MEAAXPEAUtagMEASUREITEMSTRUCT___Z(
     void* pThis, void* pMeasureItemStruct) {
-    (void)pThis;
-    (void)pMeasureItemStruct;
+    if (pThis == nullptr || pMeasureItemStruct == nullptr) {
+        return;
+    }
+
+    const HWND hwnd = RibbonCommandsListBoxHwnd(pThis);
+    HDC hdc = ::GetDC(hwnd);
+    if (hdc == nullptr) {
+        return;
+    }
+
+    HGDIOBJ oldFont = ::SelectObject(hdc, ::GetStockObject(DEFAULT_GUI_FONT));
+    TEXTMETRICW metrics{};
+    if (oldFont != nullptr && oldFont != HGDI_ERROR && ::GetTextMetricsW(hdc, &metrics)) {
+        static_cast<MEASUREITEMSTRUCT*>(pMeasureItemStruct)->itemHeight = metrics.tmHeight + 6;
+    }
+
+    if (oldFont != nullptr && oldFont != HGDI_ERROR) {
+        ::SelectObject(hdc, oldFont);
+    }
+    ::ReleaseDC(hwnd, hdc);
 }
 

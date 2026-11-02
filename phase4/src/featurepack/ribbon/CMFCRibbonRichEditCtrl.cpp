@@ -37,9 +37,10 @@ static_assert(sizeof(CString) == 0x8, "CString is one data pointer on x64");
 static_assert(sizeof(S_CMFCRibbonRichEditCtrl) == 0x108, "retail CMFCRibbonRichEditCtrl size");
 } // namespace
 
-// OpenMFC has no C++ declaration/vtable for CMFCRibbonRichEditCtrl, so this
-// initializes the CWnd base and fields but cannot install the retail derived
-// vtable; the object retains CWnd's vptr and virtual rich-edit dispatch differs.
+// OpenMFC has no complete class definition or usable derived vtable for
+// CMFCRibbonRichEditCtrl, so this initializes the CWnd base and fields but cannot
+// install the retail derived vtable; the object retains CWnd's vptr and virtual
+// rich-edit dispatch therefore differs.
 // Retail's constructor is RVA 0xfca40 (mfc140u).
 // Symbol: ??0CMFCRibbonRichEditCtrl@@QEAA@AEAVCMFCRibbonEdit@@@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonRichEditCtrl__QEAA_AEAVCMFCRibbonEdit___Z(void* pThis, void* pEdit) {

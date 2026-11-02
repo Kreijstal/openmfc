@@ -63,6 +63,10 @@ struct RibbonColorButtonView {
 };
 
 static_assert(sizeof(RibbonColorButtonArrayView) == 0x28);
+static_assert(offsetof(RibbonColorButtonArrayView, data) == 0x08);
+static_assert(offsetof(RibbonColorButtonArrayView, size) == 0x10);
+static_assert(offsetof(RibbonColorButtonArrayView, capacity) == 0x18);
+static_assert(offsetof(RibbonColorButtonArrayView, growBy) == 0x20);
 static_assert(offsetof(RibbonColorButtonView, color) == 0x4f8);
 static_assert(offsetof(RibbonColorButtonView, highlightedColor) == 0x4fc);
 static_assert(offsetof(RibbonColorButtonView, automaticColor) == 0x500);
@@ -73,6 +77,7 @@ static_assert(offsetof(RibbonColorButtonView, automaticButton) == 0x580);
 static_assert(offsetof(RibbonColorButtonView, otherButton) == 0x58c);
 static_assert(offsetof(RibbonColorButtonView, automaticButtonLabel) == 0x598);
 static_assert(offsetof(RibbonColorButtonView, otherButtonLabel) == 0x5a8);
+static_assert(offsetof(RibbonColorButtonView, documentColorsLabel) == 0x5b8);
 static_assert(offsetof(RibbonColorButtonView, otherButtonObject) == 0x5c0);
 static_assert(offsetof(RibbonColorButtonView, colorBoxSize) == 0x5d0);
 static_assert(sizeof(RibbonColorButtonView) == 0x5d8);
@@ -110,9 +115,11 @@ extern "C" void* MS_ABI impl___0CMFCRibbonColorButton__QEAA_XZ(void* pThis) {
 // Symbol: ??1CMFCRibbonColorButton@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCRibbonColorButton__UEAA_XZ(void* /*pThis*/) {}
 
-// RVA 0xf52d0 (mfc140u) traverses the supplied CList, appends colors, creates
-// ribbon gallery groups, and updates per-group icon ranges. The gallery AddGroup
-// thunk and the required CList node layout are not available here.
+// RVA 0xf52d0 (mfc140u) returns immediately for an empty list; otherwise it
+// appends colors, calls CMFCRibbonGallery::AddGroup(name, count), records the
+// group's icon range, and marks groups present. AddGroup only updates gallery
+// group state when its +0x4e0 built flag is set; that sibling thunk is currently
+// a stub, so the gallery-group registration is absent here.
 // Symbol: ?AddColorsGroup@CMFCRibbonColorButton@@QEAAXPEB_WAEBV?$CList@KK@@H@Z
 extern "C" void MS_ABI impl__AddColorsGroup_CMFCRibbonColorButton__QEAAXPEB_WAEBV__CList_KK__H_Z(
     void* /*pThis*/, const wchar_t* /*name*/, const void* /*colors*/, int /*contiguousColumns*/) {}
@@ -123,10 +130,10 @@ extern "C" void MS_ABI impl__AddColorsGroup_CMFCRibbonColorButton__QEAAXPEB_WAEB
 // Symbol: ?CommonInit@CMFCRibbonColorButton@@IEAAXXZ
 extern "C" void MS_ABI impl__CommonInit_CMFCRibbonColorButton__IEAAXXZ(void* /*pThis*/) {}
 
-// RVA 0xf48d0 (mfc140u) first calls the base CopyFrom thunk. It copies the
+// RVA 0xf48d0 (mfc140u) first calls CMFCRibbonGallery::CopyFrom, then copies
 // color-button members only when the source passes the runtime-class check;
-// otherwise it returns after the base call. The complete source/base layouts
-// are not available as a shadow here.
+// otherwise it returns after the base call. The gallery CopyFrom thunk is a
+// stub, and its source/base layouts and array ownership are not modeled here.
 // Symbol: ?CopyFrom@CMFCRibbonColorButton@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonColorButton__MEAAXAEBVCMFCRibbonBaseElement___Z(
     void* /*pThis*/, const void* /*source*/) {}
@@ -139,9 +146,10 @@ extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonColorButton__SAPEAVCObject_
     return nullptr;
 }
 
-// RVA 0xf42d0 (mfc140u) performs DPI-sensitive rectangle adjustment and routes
-// palette drawing through visual-manager virtual calls; those dependencies are
-// not modeled in this file.
+// RVA 0xf42d0 (mfc140u) immediately forwards to CMFCRibbonButton::DrawImage
+// when the simple-button-look flag at +0x594 is set. Otherwise it adjusts the
+// rectangle for DPI/RTL state, draws palette content, and calls this object's
+// vtable entry at byte offset +0x1c8 (slot 57); the full drawing state is not modeled.
 // Symbol: ?DrawImage@CMFCRibbonColorButton@@MEAAXPEAVCDC@@W4RibbonImageType@CMFCRibbonBaseElement@@VCRect@@@Z
 extern "C" void MS_ABI impl__DrawImage_CMFCRibbonColorButton__MEAAXPEAVCDC__W4RibbonImageType_CMFCRibbonBaseElement__VCRect___Z(
     void* /*pThis*/, void* /*pDC*/, int /*imageType*/, const void* /*rectImage*/) {}
@@ -237,18 +245,21 @@ extern "C" void MS_ABI impl__NotifyHighlightListItem_CMFCRibbonColorButton__MEAA
 extern "C" void MS_ABI impl__OnClickPaletteIcon_CMFCRibbonColorButton__MEAAXPEAVCMFCRibbonGalleryIcon___Z(
     void* /*pThis*/, void* /*icon*/) {}
 
-// RVA 0xf5120 (mfc140u) handles the automatic/other popup buttons, invokes
-// palette selection and notification paths, and otherwise returns FALSE. The
-// popup/menu and temporary command-routing infrastructure is not modeled.
+// RVA 0xf5120 (mfc140u) recognizes the stored other/automatic button objects;
+// the other-button path runs a temporary menu-command selection flow and returns
+// TRUE, while the automatic-button path updates its selection state but returns
+// FALSE. The popup/menu and temporary command-routing infrastructure is absent.
 // Symbol: ?OnClickPaletteSubItem@CMFCRibbonColorButton@@MEAAHPEAVCMFCRibbonButton@@PEAVCMFCRibbonPanelMenuBar@@@Z
 extern "C" int MS_ABI impl__OnClickPaletteSubItem_CMFCRibbonColorButton__MEAAHPEAVCMFCRibbonButton__PEAVCMFCRibbonPanelMenuBar___Z(
     void* /*pThis*/, void* /*button*/, void* /*menuBar*/) {
     return 0;
 }
 
-// RVA 0xf4c70 (mfc140u) computes selection/automatic/other states, updates the
-// icon rectangle, and dispatches drawing through the visual-manager vtable.
-// The relevant visual-manager and icon drawing state is not modeled.
+// RVA 0xf4c70 (mfc140u) distinguishes palette icons from special-button paths,
+// queries the icon at vtable byte offset +0x1b0 (slot 54), adjusts the icon
+// rectangle for selection/group state, then dispatches through byte offset
+// +0x5a0 (slot 180) on the object returned by the helper at RVA 0x9774
+// (mfc140u). Those objects and drawing state are not modeled here.
 // Symbol: ?OnDrawPaletteIcon@CMFCRibbonColorButton@@MEAAXPEAVCDC@@VCRect@@HPEAVCMFCRibbonGalleryIcon@@K@Z
 extern "C" void MS_ABI impl__OnDrawPaletteIcon_CMFCRibbonColorButton__MEAAXPEAVCDC__VCRect__HPEAVCMFCRibbonGalleryIcon__K_Z(
     void* /*pThis*/, void* /*pDC*/, const void* /*rect*/, int /*iconIndex*/,
@@ -317,9 +328,11 @@ extern "C" int MS_ABI impl__SetACCData_CMFCRibbonColorButton__UEAAHPEAVCWnd__AEA
 extern "C" void MS_ABI impl__SetColorBoxSize_CMFCRibbonColorButton__QEAAXVCSize___Z(
     void* /*pThis*/, long long /*sizeBox*/) {}
 
-// The Unicode wchar_t symbol is absent from the --u map. The ANSI char twin at
-// RVA 0xf57a0 (mfc140) copies the supplied CList values into the document-color
-// array and stores its label; the retail CList layout is not modeled here.
+// The ANSI twin at RVA 0xf57a0 (mfc140) stores the label and replaces the
+// document-color array. This class's constructors are currently no-op thunks,
+// so its CString/CArray subobjects are not initialized for safe mutation here.
+// Keep this entry stubbed rather than calling CString/CArray operations on
+// potentially uninitialized storage.
 // Symbol: ?SetDocumentColors@CMFCRibbonColorButton@@QEAAXPEB_WAEAV?$CList@KK@@@Z
 extern "C" void MS_ABI impl__SetDocumentColors_CMFCRibbonColorButton__QEAAXPEB_WAEAV__CList_KK___Z(
     void* /*pThis*/, const wchar_t* /*label*/, void* /*colors*/) {}

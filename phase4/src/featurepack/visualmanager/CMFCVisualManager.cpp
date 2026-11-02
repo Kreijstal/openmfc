@@ -1918,44 +1918,42 @@ extern "C" void MS_ABI impl__OnHighlightRarelyUsedMenuItems_CMFCVisualManager__U
 }
 
 // CMFCVisualManager::OnNcActivate(CWnd*, BOOL) -- faithful transcription: the
-// retail body is `xor %eax,%eax ; ret` at RVA 0x71e0 (mfc140u), i.e. the base
-// manager declines to handle WM_NCACTIVATE and returns FALSE.
+// retail body is `xor %eax,%eax ; ret` at RVA 0x71e0 (mfc140u), returning FALSE.
 // Symbol: ?OnNcActivate@CMFCVisualManager@@UEAAHPEAVCWnd@@H@Z
 extern "C" int MS_ABI impl__OnNcActivate_CMFCVisualManager__UEAAHPEAVCWnd__H_Z(
     CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, int /*bActive*/)
 {
-    return FALSE; // retail: xor eax,eax; ret
+    return FALSE;
 }
 
 // CMFCVisualManager::OnNcPaint(CWnd*, const CObList&, CRect) -- faithful
 // transcription: the retail body is `xor %eax,%eax ; ret` at RVA 0x71e0
-// (mfc140u), i.e. the base manager declines to paint the non-client area and
-// returns FALSE so the caller falls back to the default frame drawing.
+// (mfc140u), returning FALSE without drawing.
 // Symbol: ?OnNcPaint@CMFCVisualManager@@UEAAHPEAVCWnd@@AEBVCObList@@VCRect@@@Z
 extern "C" int MS_ABI impl__OnNcPaint_CMFCVisualManager__UEAAHPEAVCWnd__AEBVCObList__VCRect___Z(
     CMFCVisualManager* /*pThis*/, CWnd* /*pWnd*/, const CObList& /*lstSysButtons*/, CRect /*rect*/)
 {
-    return FALSE; // retail: xor eax,eax; ret
+    return FALSE;
 }
 
-// CMFCVisualManager::OnSetWindowRegion(CWnd*, CSize) -- retail body (RVA
-// 0x18ede0, mfc140u):
+// CMFCVisualManager::OnSetWindowRegion(CWnd*, CSize) -- retail body at RVA
+// 0x18ede0 (mfc140u):
 //     if (afxGlobalData.IsDwmCompositionEnabled()) return FALSE;
-//     if      (pWnd->IsKindOf(<CRuntimeClass at 0x1802e9210>)) p = pWnd->[+0x370];
-//     else if (pWnd->IsKindOf(<CRuntimeClass at 0x1802ee478>)) p = pWnd->[+0x710];
+//     if      (pWnd->IsKindOf(<CRuntimeClass at VA 0x1802e9210, mfc140u>)) p = pWnd->[+0x370];
+//     else if (pWnd->IsKindOf(<CRuntimeClass at VA 0x1802ee478, mfc140u>)) p = pWnd->[+0x710];
 //     else return FALSE;
 //     if (!p || !::IsWindowVisible(p->m_hWnd) || p->[+0x468] == 0) return FALSE;
 //     ... builds a rounded region out of ::CreateRectRgn / ::CreateEllipticRgn
 //     and four ::CombineRgn passes, then ::SetWindowRgn(pWnd->m_hWnd, hrgn, TRUE)
 //     and returns TRUE.
-// 0x1802e9210 is the CRuntimeClass ?GetThisClass@CFrameWndEx@@ returns and
-// 0x1802ee478 the one ?GetThisClass@CMDIFrameWndEx@@ returns (both read from
-// those getters' `lea`).  +0x370 / +0x710 are the frames' ribbon-bar pointers:
-// CFrameWndEx::AddPane (0x67d00) stores the pane there after
-// IsKindOf(<CMFCRibbonBar CRuntimeClass at 0x2fea10>), and CMDIFrameWndEx::AddPane
-// (0x890e0) does the same into +0x710.  +0x468 is a BOOL of the ribbon bar that
-// CMFCRibbonBar::CreateEx (0xd9880) also tests (the public MFC source calls it
-// m_bReplaceFrameCaption); so the region is the rounded top of a ribbon frame.
+// Those descriptors are returned by ?GetThisClass@CFrameWndEx@@ and
+// ?GetThisClass@CMDIFrameWndEx@@ respectively. +0x370 / +0x710 are the frame
+// ribbon-bar pointers: CFrameWndEx::AddPane (RVA 0x67d00, mfc140u) stores its
+// pane there after the IsKindOf test against the CMFCRibbonBar descriptor at
+// RVA 0x2fea10 (mfc140u), and CMDIFrameWndEx::AddPane (RVA 0x890e0, mfc140u)
+// stores it at +0x710. The ribbon's +0x468 BOOL is also tested by
+// CMFCRibbonBar::CreateEx (RVA 0xd9880, mfc140u); the public MFC source calls
+// it m_bReplaceFrameCaption, so the region is the rounded top of a ribbon frame.
 // The ribbon-side flag IS modeled (CMFCRibbonBar::m_bReplaceFrameCaption,
 // offset 0x468 pinned by a static_assert in ribbon/CMFCRibbonPanelMenuBar.cpp),
 // but the frame side is not: OpenMFC's CFrameWndEx does not carry the +0x370

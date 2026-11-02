@@ -9,6 +9,7 @@
 
 static_assert(sizeof(CMFCToolBarButton) == 0x88, "retail CMFCToolBarButton size");
 static_assert(offsetof(CMFCToolBarButton, m_bUserButton) == 0x08, "m_bUserButton @0x08");
+static_assert(offsetof(CMFCToolBarButton, m_bText) == 0x0c, "m_bText @0x0c");
 static_assert(offsetof(CMFCToolBarButton, m_bImage) == 0x10, "m_bImage @0x10");
 static_assert(offsetof(CMFCToolBarButton, m_bWrap) == 0x14, "m_bWrap @0x14");
 static_assert(offsetof(CMFCToolBarButton, m_bWholeText) == 0x18, "m_bWholeText @0x18");
@@ -33,12 +34,20 @@ extern "C" BOOL MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis, const CRuntimeClass* pClass);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ();
 
+// Retail exports a CString object at mfc140u data RVA 0x3c32a0; afxstr.h models
+// CString with its ABI-compatible single data pointer.
+static_assert(sizeof(CString) == sizeof(void*), "CString export object is one pointer");
+// Symbol: ?m_strClipboardFormatName@CMFCToolBarButton@@2V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
+extern "C" CString MS_ABI impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
+
 // Symbol: ?SetClipboardFormatName@CMFCToolBarButton@@SAXPEB_W@Z
 void CMFCToolBarButton::SetClipboardFormatName(const wchar_t* lpszName) {
     if (lpszName && *lpszName) {
         m_strClipboardFormatName = lpszName;
+        impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = lpszName;
     } else {
         m_strClipboardFormatName.Empty();
+        impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A.Empty();
     }
 }
 CString CMFCToolBarButton::m_strClipboardFormatName;
@@ -68,10 +77,6 @@ extern "C" void MS_ABI impl__ResetImageToDefault_CMFCToolBarButton__UEAAXXZ(void
 // Stub: mfc140u data RVA 0x3b20c8 needs a 0x38-byte retail CList object; the local CList storage is not ABI-compatible.
 // Symbol: ?m_lstProtectedCommands@CMFCToolBarButton@@1V?$CList@II@@A
 extern "C" void* MS_ABI impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A = {};
-
-// Stub: mfc140u data RVA 0x3c32a0 is not aliased to the separately defined class CString storage.
-// Symbol: ?m_strClipboardFormatName@CMFCToolBarButton@@2V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@A
-extern "C" void* MS_ABI impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = {};
 
 // Stub: retail mfc140u RVA 0x15c790 performs OLE clipboard retrieval and format decoding, which is not modeled here.
 // Symbol: ?CreateFromOleData@CMFCToolBarButton@@SAPEAV1@PEAVCOleDataObject@@@Z
@@ -116,16 +121,18 @@ extern "C" unsigned short MS_ABI impl__GetClipboardFormat_CMFCToolBarButton__SAG
     return 0;
 }
 
-// Retail mfc140u RVA 0x15c0c0 writes only these members (plus SetRectEmpty);
-// notably it leaves m_bText and m_bIsHidden untouched.
+// Retail mfc140u RVA 0x15c0c0 clears m_bUserButton/m_bText at +0x08, stores
+// m_bImage=TRUE and m_bWrap=FALSE together at +0x10, and leaves m_bIsHidden untouched.
 // Symbol: ?Initialize@CMFCToolBarButton@@IEAAXXZ
 extern "C" void MS_ABI impl__Initialize_CMFCToolBarButton__IEAAXXZ(void* pThis) {
     auto* pButton = static_cast<CMFCToolBarButton*>(pThis);
     pButton->m_bImage = TRUE;
+    pButton->m_bWrap = FALSE;
     pButton->m_nID = 0;
     pButton->m_iImage = -1;
     pButton->m_iUserImage = -1;
     pButton->m_bUserButton = FALSE;
+    pButton->m_bText = FALSE;
     pButton->m_bTextBelow = FALSE;
     pButton->m_bLocked = FALSE;
     pButton->m_dwdItemData = 0;
@@ -242,7 +249,7 @@ extern "C" int MS_ABI impl__SetACCData_CMFCToolBarButton__UEAAHPEAVCWnd__AEAVCAc
     return 0;
 }
 
-// Stub: no mfc140u RVA resolves, and the retail 0x38-byte CList object is not modeled as usable CList<UINT, UINT> storage.
+// Stub: the mfc140u symbol map has no RVA for this export; its ANSI twin's body clears the global list and copies retail CList nodes (head +0x08, value +0x10, next +0x00). OpenMFC's CList layout/storage is incompatible.
 // Symbol: ?SetProtectedCommands@CMFCToolBarButton@@SAXAEBV?$CList@II@@@Z
 extern "C" void MS_ABI impl__SetProtectedCommands_CMFCToolBarButton__SAXAEBV__CList_II___Z(
     const CList<UINT, UINT>* pCommands) {

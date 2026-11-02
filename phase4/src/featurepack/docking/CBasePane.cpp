@@ -271,6 +271,10 @@ extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__OnSettingChange_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
 extern "C" int MS_ABI impl__SetTabIcon_CMFCBaseTabCtrl__UEAAHHI_Z(
     CMFCBaseTabCtrl* pThis, int iTab, unsigned int uiIcon);
+extern "C" int MS_ABI impl__GetClipBox_CDC__UEBAHPEAUtagRECT___Z(
+    const CDC* pThis, RECT* pRect);
+extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManager__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(
+    CMFCVisualManager* pThis, CDC* pDC, CBasePane* pPane, CRect rectClient, CRect rectClip, int bNCArea);
 extern "C" void MS_ABI impl__OnResizePane_CDockingPanesRow__UEAAXPEAVCBasePane___Z(
     void* pThis, CBasePane* pPane);
 extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
@@ -420,21 +424,19 @@ extern "C" long MS_ABI impl__accLocation_CBasePane__UEAAJPEAJ000UtagVARIANT___Z(
     return S_OK;
 }
 
-// STUB.  Retail entry RVA 0xd4d0, fully decoded:
-//     IAccessible* p = m_pStdObject;      // CWnd member at +0x50
-//     if (p == NULL) return E_INVALIDARG;
-//     return p->accSelect(flagsSelect, varChild);   // IAccessible vtable +0xa8
-// OpenMFC's CWnd does not model m_pStdObject: its +0x50 is m_nFlags/m_dwStyle
-// (include/openmfc/afxwin.h:589-593), so there is no accessible object to
-// forward to and reading +0x50 as a pointer would read two unrelated DWORDs.
-// See headerRequests.
+// CBasePane::accSelect -- transcribed from retail entry RVA 0xd4d0 (mfc140,
+// ANSI twin): read CWnd::m_pStdObject at +0x50, return E_INVALIDARG when it is
+// null, otherwise forward flagsSelect and the by-value VARIANT to
+// IAccessible::accSelect (vtable byte offset +0xa8). OpenMFC models this field
+// at CWnd +0x50 (include/openmfc/afxwin.h) and pins it in
+// core/window/CWndAccessibility.cpp. Null argument guards below are defensive.
 // Symbol: ?accSelect@CBasePane@@UEAAJJUtagVARIANT@@@Z
 extern "C" long MS_ABI impl__accSelect_CBasePane__UEAAJJUtagVARIANT___Z(
     CBasePane* pThis, long flagsSelect, const VARIANT* pvarChild) {
-    (void)pThis;
-    (void)flagsSelect;
-    (void)pvarChild;
-    return E_INVALIDARG;
+    if (pThis == nullptr || pvarChild == nullptr || pThis->m_pStdObject == nullptr) {
+        return E_INVALIDARG;
+    }
+    return pThis->m_pStdObject->accSelect(flagsSelect, *pvarChild);
 }
 
 // STUB.  Retail entry RVA 0xb710 (mfc140u).  It obtains the owning frame via
@@ -463,8 +465,8 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_CBasePane__UEAAXPEAX_Z(CBasePan
     (void)hdwp;
 }
 
-// CBasePane::CopyState -- transcribed from retail entry RVA 0xce40.  The body
-// is a straight-line copy of seven fields out of pOrgBar:
+// CBasePane::CopyState -- transcribed from retail entry RVA 0xce40. The body
+// is a straight-line copy of eight fields out of pOrgBar:
 //     m_dwEnabledAlignment    = pOrgBar->GetEnabledAlignment();     // slot 104
 //     m_bRecentVisibleState   = pOrgBar->GetRecentVisibleState();   // slot 109
 //     m_bIsRestoredFromRegistry = pOrgBar->IsRestoredFromRegistry();// slot 110
@@ -473,9 +475,9 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_CBasePane__UEAAXPEAX_Z(CBasePan
 //     m_bIsDlgControl         = pOrgBar->m_bIsDlgControl;           // +0xf4
 //     m_dwStyle               = pOrgBar->GetPaneStyle();            // slot 114
 //     m_dwControlBarStyle     = pOrgBar->GetControlBarStyle();      // slot 115
-// Deviation: OpenMFC's CBasePane has no vtable slot for any of those five
-// accessors.  For a plain CBasePane each of them returns exactly the member
-// read directly here (slots 104/109/110/114/115 are the one-instruction bodies
+// Deviation: OpenMFC's CBasePane has no vtable slot for those six accessors.
+// For a plain CBasePane, five return exactly the member read directly here
+// (slots 104/109/110/114/115 are the one-instruction bodies
 // at 0x87d0/0x87f0/0x8800/0x8840/0x8850), and GetDockSiteFrameWnd is called
 // through this file's own thunk.  A derived override of any of them is lost.
 // Symbol: ?CopyState@CBasePane@@UEAAXPEAV1@@Z
@@ -505,35 +507,49 @@ extern "C" void MS_ABI impl__DockPaneUsingRTTI_CBasePane__QEAAXH_Z(CBasePane* pT
     (void)bUseDockSite;
 }
 
-// STUB. Retail entry RVA 0xb1b0 (mfc140u): CDC vtable slot +0xb0 obtains the
-// clip rectangle, ::GetClientRect obtains the pane client rectangle, and the
-// visual manager's vtable slot +0x78 receives (pDC, this, clientRect, clipRect,
-// FALSE). The GetClientRect import slot was resolved as USER32!GetClientRect.
-// OpenMFC has the OnFillBarBackground thunk, but its GetInstance getter exists
-// only as a C++ static method and has no impl__ thunk. Calling that method
-// directly would violate the thunk rule; see headerRequests for the missing
-// getter thunk.
+// CBasePane::DoPaint -- transcribed from retail entry RVA 0xb1b0 (mfc140u):
+// CDC vtable slot +0xb0 obtains the clip rectangle, USER32!GetClientRect gets
+// this pane's client rectangle, and the visual manager's slot +0x78 receives
+// (pDC, this, clientRect, clipRect, FALSE). The C++ GetInstance body exists at
+// CMFCVisualManager.cpp:766, but checkfile.sh flags a direct reference as a new
+// C++ undefined symbol; use the existing exported m_pVisManager mirror instead.
+// This also means no lazy manager creation. CDC::GetClipBox uses its base impl__
+// thunk here rather than retail's virtual slot, so a derived-CDC override is not
+// dispatched. OnFillBarBackground uses its existing impl__ thunk; null checks
+// are defensive (retail does not test these).
 // Symbol: ?DoPaint@CBasePane@@MEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__DoPaint_CBasePane__MEAAXPEAVCDC___Z(CBasePane* pThis, CDC* pDC) {
-    (void)pThis;
-    (void)pDC;
+    if (pThis == nullptr || pDC == nullptr) return;
+
+    RECT clipRect = {0, 0, 0, 0};
+    (void)impl__GetClipBox_CDC__UEBAHPEAUtagRECT___Z(pDC, &clipRect);
+    RECT clientRect = {0, 0, 0, 0};
+    (void)::GetClientRect(pThis->m_hWnd, &clientRect);
+
+    const CRect rectClip(clipRect);
+    const CRect rectClient(clientRect);
+    CMFCVisualManager* pVisualManager = reinterpret_cast<CMFCVisualManager*>(
+        impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
+    if (pVisualManager != nullptr) {
+        impl__OnFillBarBackground_CMFCVisualManager__UEAAXPEAVCDC__PEAVCBasePane__VCRect__2H_Z(
+            pVisualManager, pDC, pThis, rectClient, rectClip, FALSE);
+    }
 }
 
-// STUB.  Retail entry RVA 0xd040:
-//     if (*ppdispChild == NULL) return E_INVALIDARG;   // note: the retail test
-//     if (varChild.vt == VT_I4 && varChild.lVal == 0) return E_INVALIDARG;
-//     *ppdispChild = (IDispatch*)m_pStdObject;         // CWnd member at +0x50
-//     return S_OK;
-// (`cmpq $0x0,(%r8)` at 0xd040 really does dereference the out parameter rather
-// than testing it for NULL.)  As with accSelect, OpenMFC's CWnd does not model
-// m_pStdObject, so the only thing this could return is unrelated storage.
+// CBasePane::get_accChild -- transcribed from retail entry RVA 0xd040
+// (mfc140, ANSI twin): reject a null *ppdispChild and CHILDID_SELF, otherwise
+// store CWnd::m_pStdObject (+0x50) and return S_OK. Retail dereferences the
+// output pointer without checking ppdispChild itself; the extra null guards are
+// defensive. The field is modeled by OpenMFC at CWnd +0x50.
 // Symbol: ?get_accChild@CBasePane@@UEAAJUtagVARIANT@@PEAPEAUIDispatch@@@Z
 extern "C" long MS_ABI impl__get_accChild_CBasePane__UEAAJUtagVARIANT__PEAPEAUIDispatch___Z(
     CBasePane* pThis, const VARIANT* pvarChild, IDispatch** ppdispChild) {
-    (void)pThis;
-    (void)pvarChild;
-    (void)ppdispChild;
-    return E_INVALIDARG;
+    if (pThis == nullptr || pvarChild == nullptr || ppdispChild == nullptr ||
+        *ppdispChild == nullptr || (pvarChild->vt == VT_I4 && pvarChild->lVal == 0)) {
+        return E_INVALIDARG;
+    }
+    *ppdispChild = pThis->m_pStdObject;
+    return S_OK;
 }
 
 // CBasePane::get_accChildCount -- transcribed from retail entry RVA 0xcfd0,
@@ -733,27 +749,23 @@ extern "C" long MS_ABI impl__get_accName_CBasePane__UEAAJUtagVARIANT__PEAPEA_W_Z
     return S_OK;
 }
 
-// STUB.  Retail entry RVA 0xcfe0, fully decoded:
-//     if (ppdispParent == NULL) return E_INVALIDARG;
-//     CWnd* pParent = CWnd::FromHandle(::GetParent(m_hWnd));
-//     if (pParent == NULL) return E_INVALIDARG;
-//     ::AccessibleObjectFromWindow(pParent->m_hWnd, OBJID_CLIENT,
-//                                  IID_IAccessible, (void**)ppdispParent);
-//     return *ppdispParent == NULL ? S_FALSE : S_OK;
-// (`mov $0xfffffffc,%edx` is OBJID_CLIENT -- 0xFFFFFFFC; OBJID_WINDOW is 0 --
-// the HRESULT the call returns is discarded; the GUID at RVA 0x2d7778 reads
-// {618636E0-3D3C-11CF-810C-00AA00389B71} == IID_IAccessible; the call goes
-// through the delay/AUX import slot at 0x1803e1148, i.e. OLEACC.)
-// OpenMFC does not link oleacc -- phase4/scripts/build_phase4.sh:525-539 lists
-// the import libraries and oleacc is not among them -- so calling
-// AccessibleObjectFromWindow here would introduce an unresolvable import.
-// See headerRequests.
+// CBasePane::get_accParent -- transcribed from retail entry RVA 0xcfe0
+// (mfc140, ANSI twin): obtain the parent CWnd from GetParent(m_hWnd), request
+// its OBJID_CLIENT accessible object with AccessibleObjectFromWindow/IID_IAccessible,
+// then return S_FALSE if the output remains null and S_OK otherwise. Retail uses
+// the OLEACC delay-load slot; OpenMFC links oleacc (build_phase4.sh:534) and uses
+// the import directly. It discards the API HRESULT, as retail does.
 // Symbol: ?get_accParent@CBasePane@@UEAAJPEAPEAUIDispatch@@@Z
 extern "C" long MS_ABI impl__get_accParent_CBasePane__UEAAJPEAPEAUIDispatch___Z(
     CBasePane* pThis, IDispatch** ppdispParent) {
-    (void)pThis;
-    if (ppdispParent == nullptr) return E_INVALIDARG;
-    return E_INVALIDARG;
+    if (pThis == nullptr || ppdispParent == nullptr) return E_INVALIDARG;
+    CWnd* pParent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
+        ::GetParent(pThis->m_hWnd));
+    if (pParent == nullptr) return E_INVALIDARG;
+    (void)::AccessibleObjectFromWindow(
+        pParent->m_hWnd, OBJID_CLIENT, IID_IAccessible,
+        reinterpret_cast<void**>(ppdispParent));
+    return *ppdispParent == nullptr ? S_FALSE : S_OK;
 }
 
 // CBasePane::get_accRole -- transcribed from retail entry RVA 0xd210:
@@ -1221,10 +1233,10 @@ extern "C" void* MS_ABI impl__MoveWindow_CBasePane__UEAAPEAXAEBVCRect__HPEAX_Z(
     return nullptr;
 }
 
-// STUB. The CBasePane message-map entry for WM_ERASEBKGND points to the shared
-// retail body at RVA 0x3a60 (mfc140u), which disassembles to `mov $1,%eax; ret`.
-// The result is exact, but the campaign classifies a lone constant return as a
-// stub; this handler suppresses background erasure while DoPaint remains stubbed.
+// STUB. CBasePane's OnEraseBkgnd vtable slot 7 targets the shared retail body
+// at RVA 0x3a60 (mfc140u), which disassembles to `mov $1,%eax; ret`. The result
+// is exact, but the campaign classifies a lone constant return as a stub; this
+// handler suppresses background erasure.
 // Symbol: ?OnEraseBkgnd@CBasePane@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CBasePane__IEAAHPEAVCDC___Z(CBasePane* pThis, CDC* pDC) {
     (void)pThis;
