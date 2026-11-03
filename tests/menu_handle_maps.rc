@@ -1,0 +1,9 @@
+101 MENU
+BEGIN
+    MENUITEM "OpenMFC menu map test", 41001
+END
+
+OPENMFC_TEST_MENU MENU
+BEGIN
+    MENUITEM "OpenMFC named menu map test", 41002
+END

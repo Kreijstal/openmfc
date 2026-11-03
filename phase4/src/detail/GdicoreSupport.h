@@ -29,7 +29,6 @@ struct CD2DSizeF;
 // Thread-local temporary GDI object map for SelectObject return values
 // This allows the common pattern: pOld = dc.SelectObject(&newPen); ... dc.SelectObject(pOld);
 namespace openmfc { namespace detail { namespace gdicore {
-extern thread_local std::unordered_map<HGDIOBJ, CGdiObject*> g_tempGdiMap;
 } } }
 namespace openmfc { namespace detail { namespace gdicore {
 struct DCHandleMaps {
@@ -44,7 +43,6 @@ CGdiObject* GetTempGdiObject(HGDIOBJ hObj);
 } } }
 
 namespace openmfc { namespace detail { namespace gdicore {
-void DeleteTempGdiMap();
 } } }
 
 namespace openmfc { namespace detail { namespace gdicore {
@@ -763,18 +761,6 @@ CD2DRectF* InitCD2DRectF(CD2DRectF* pThis, float leftValue, float topValue, floa
 asm(".globl \"?classCImageList@CImageList@@2UCRuntimeClass@@A\"\n"
     ".set \"?classCImageList@CImageList@@2UCRuntimeClass@@A\", _ZN10CImageList15classCImageListE\n");
 #endif
-
-// Thread-local temporary CImageList map for FromHandle
-namespace openmfc { namespace detail { namespace gdicore {
-extern thread_local std::unordered_map<HIMAGELIST, CImageList*> g_tempImageListMap;
-} } }
-
-namespace openmfc { namespace detail { namespace gdicore {
-CImageList* GetTempImageList(HIMAGELIST hImageList);
-} } }
-
-
-
 
 
 

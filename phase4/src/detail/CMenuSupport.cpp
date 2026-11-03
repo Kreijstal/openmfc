@@ -1,143 +1,96 @@
 #include "CMenuSupport.h"
+#include <cstdlib>
+#include <new>
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" int MS_ABI impl__GetMenuStringW_CMenu__QEBAHIAEAV_CString_I_Z(const CMenu* pThis, UINT nIDItem, CString& rString, UINT nFlags);
+extern "C" void* AFXAPI impl___2_YAPEAX_K_Z(size_t);
+extern "C" CMenu* MS_ABI impl___0CMenu__QEAA_XZ(CMenu*);
+extern "C" void MS_ABI impl___1CMenu__UEAA_XZ(CMenu*);
+extern "C" HMENU MS_ABI impl__Detach_CMenu__QEAAPEAUHMENU____XZ(CMenu*);
+extern "C" int MS_ABI impl__Attach_CMenu__QEAAHPEAUHMENU_____Z(CMenu*, HMENU);
+extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
+    const wchar_t*, const wchar_t*);
 
 IMPLEMENT_DYNAMIC(CMenu, CObject)
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMenu__UEBAPEAUCRuntimeClass__XZ(const CMenu* pThis) {
     return CMenu::GetThisClass();
 }
+namespace {
+void AFXAPI ConstructMenu(CObject* object) {
+    impl___0CMenu__QEAA_XZ(static_cast<CMenu*>(object));
+}
+void AFXAPI DestructMenu(CObject* object) {
+    // Explicit destruction is statically qualified: temporary-map cleanup must
+    // not dispatch through a potentially overwritten incoming vptr.
+    static_cast<CMenu*>(object)->CMenu::~CMenu();
+}
+}
+namespace openmfc { namespace detail {
+CHandleMap* GetMenuHandleMap(bool create) {
+    auto* state = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+    if (!state->m_pmapHMENU && create) {
+        auto* lease = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+        auto previous = lease->m_pfnNewHandler;
+        lease->m_pfnNewHandler = &modulethreadstate::HandleAllocationFailure;
+        auto* storage = static_cast<CHandleMap*>(impl___2_YAPEAX_K_Z(sizeof(CHandleMap)));
+        CHandleMap* map = nullptr;
+        if (storage) {
+            try { map = ::new(storage) CHandleMap(&CMenu::classCMenu, ConstructMenu, DestructMenu, 8, 1); }
+            catch (...) { std::free(storage); throw; }
+        }
+        state->m_pmapHMENU = map;
+        impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()->m_pfnNewHandler = previous;
+    }
+    return state->m_pmapHMENU;
+}
+} }
 namespace openmfc { namespace detail { namespace cmenu {
-std::mutex g_ownedMenusMutex;
-std::unordered_set<HMENU> g_ownedMenus;
-std::mutex g_permanentMenusMutex;
-std::unordered_map<HMENU, CMenu*> g_permanentMenus;
-bool IsOwnedMenu(HMENU hMenu) {
-    if (!hMenu) return false;
-    std::lock_guard<std::mutex> lock(g_ownedMenusMutex);
-    return g_ownedMenus.find(hMenu) != g_ownedMenus.end();
-}
-void MarkOwnedMenu(HMENU hMenu) {
-    if (!hMenu) return;
-    std::lock_guard<std::mutex> lock(g_ownedMenusMutex);
-    g_ownedMenus.insert(hMenu);
-}
-void UnmarkOwnedMenu(HMENU hMenu) {
-    if (!hMenu) return;
-    std::lock_guard<std::mutex> lock(g_ownedMenusMutex);
-    g_ownedMenus.erase(hMenu);
-}
-thread_local std::unordered_map<HMENU, CMenu*> g_tempMenuMap;
-CMenu* FromHandleTemp(HMENU hMenu) {
-    if (!hMenu) return nullptr;
-
-    if (auto it = g_tempMenuMap.find(hMenu); it != g_tempMenuMap.end()) {
-        return it->second;
-    }
-
-    auto* wrapper = new CMenu();
-    wrapper->m_hMenu = hMenu;
-    g_tempMenuMap.emplace(hMenu, wrapper);
-    return wrapper;
-}
-void DeleteTempMenuMap() {
-    for (auto& [_, menu] : g_tempMenuMap) {
-        delete menu;
-    }
-    g_tempMenuMap.clear();
-}
 CMenu* FindPermanentMenu(HMENU hMenu) {
-    if (!hMenu) return nullptr;
-    std::lock_guard<std::mutex> lock(g_permanentMenusMutex);
-    auto it = g_permanentMenus.find(hMenu);
-    return (it != g_permanentMenus.end()) ? it->second : nullptr;
+    auto* map = openmfc::detail::GetMenuHandleMap(false);
+    return map ? static_cast<CMenu*>(map->m_permanentMap.GetValueAt(hMenu)) : nullptr;
 }
 void RegisterPermanentMenu(CMenu* pMenu) {
     if (!pMenu || !pMenu->m_hMenu) return;
-    std::lock_guard<std::mutex> lock(g_permanentMenusMutex);
-    g_permanentMenus[pMenu->m_hMenu] = pMenu;
+    openmfc::detail::GetMenuHandleMap(true)->m_permanentMap[pMenu->m_hMenu] = pMenu;
 }
 void UnregisterPermanentMenu(CMenu* pMenu) {
     if (!pMenu) return;
-    std::lock_guard<std::mutex> lock(g_permanentMenusMutex);
-    if (pMenu->m_hMenu) {
-        auto it = g_permanentMenus.find(pMenu->m_hMenu);
-        if (it != g_permanentMenus.end() && it->second == pMenu) {
-            g_permanentMenus.erase(it);
-        }
-    }
-    for (auto it = g_permanentMenus.begin(); it != g_permanentMenus.end();) {
-        if (it->second == pMenu) {
-            it = g_permanentMenus.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    auto* map = openmfc::detail::GetMenuHandleMap(false);
+    if (map)
+        map->m_permanentMap.RemoveKey(pMenu->m_hMenu);
 }
 extern "C" CMenu* MS_ABI impl___0CMenu__QEAA_XZ(CMenu* pThis) {
     if (!pThis) return nullptr;
-    pThis->m_hMenu = nullptr;
-    return pThis;
+    // Match the native temporary-wrapper constructor, including installing
+    // CMenu's root vptr rather than only initializing the HMENU field.
+    return ::new (static_cast<void*>(pThis)) CMenu();
 }
 extern "C" void MS_ABI impl___1CMenu__UEAA_XZ(CMenu* pThis) {
-    if (!pThis || !pThis->m_hMenu) return;
-
-    UnregisterPermanentMenu(pThis);
-    if (IsOwnedMenu(pThis->m_hMenu)) {
-        ::DestroyMenu(pThis->m_hMenu);
-        UnmarkOwnedMenu(pThis->m_hMenu);
+    if (pThis && pThis->m_hMenu) {
+        HMENU handle = impl__Detach_CMenu__QEAAPEAUHMENU____XZ(pThis);
+        ::DestroyMenu(handle);
     }
-    pThis->m_hMenu = nullptr;
 }
 extern "C" int MS_ABI impl__CreateMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis) return FALSE;
-    UnregisterPermanentMenu(pThis);
-    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
-        ::DestroyMenu(pThis->m_hMenu);
-        UnmarkOwnedMenu(pThis->m_hMenu);
-    }
-    pThis->m_hMenu = ::CreateMenu();
-    MarkOwnedMenu(pThis->m_hMenu);
-    RegisterPermanentMenu(pThis);
-    return pThis->m_hMenu != nullptr;
+    return impl__Attach_CMenu__QEAAHPEAUHMENU_____Z(pThis, ::CreateMenu());
 }
 extern "C" int MS_ABI impl__CreatePopupMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis) return FALSE;
-    UnregisterPermanentMenu(pThis);
-    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
-        ::DestroyMenu(pThis->m_hMenu);
-        UnmarkOwnedMenu(pThis->m_hMenu);
-    }
-    pThis->m_hMenu = ::CreatePopupMenu();
-    MarkOwnedMenu(pThis->m_hMenu);
-    RegisterPermanentMenu(pThis);
-    return pThis->m_hMenu != nullptr;
+    return impl__Attach_CMenu__QEAAHPEAUHMENU_____Z(pThis, ::CreatePopupMenu());
 }
 extern "C" int MS_ABI impl__LoadMenuW_CMenu__QEAAHPEB_W_Z(CMenu* pThis, const wchar_t* lpszResourceName) {
     if (!pThis) return FALSE;
-    UnregisterPermanentMenu(pThis);
-    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
-        ::DestroyMenu(pThis->m_hMenu);
-        UnmarkOwnedMenu(pThis->m_hMenu);
-    }
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    pThis->m_hMenu = ::LoadMenuW(hInst, lpszResourceName);
-    MarkOwnedMenu(pThis->m_hMenu);
-    RegisterPermanentMenu(pThis);
-    return pThis->m_hMenu != nullptr;
+    HINSTANCE hInst = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(lpszResourceName,
+                                                                                 RT_MENU);
+    return impl__Attach_CMenu__QEAAHPEAUHMENU_____Z(pThis, ::LoadMenuW(hInst, lpszResourceName));
 }
 extern "C" int MS_ABI impl__LoadMenuW_CMenu__QEAAHI_Z(CMenu* pThis, UINT nIDResource) {
     if (!pThis) return FALSE;
-    UnregisterPermanentMenu(pThis);
-    if (pThis->m_hMenu && IsOwnedMenu(pThis->m_hMenu)) {
-        ::DestroyMenu(pThis->m_hMenu);
-        UnmarkOwnedMenu(pThis->m_hMenu);
-    }
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    pThis->m_hMenu = ::LoadMenuW(hInst, MAKEINTRESOURCEW(nIDResource));
-    MarkOwnedMenu(pThis->m_hMenu);
-    RegisterPermanentMenu(pThis);
-    return pThis->m_hMenu != nullptr;
+    const wchar_t* resourceName = MAKEINTRESOURCEW(nIDResource);
+    HINSTANCE hInst = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(resourceName, RT_MENU);
+    return impl__Attach_CMenu__QEAAHPEAUHMENU_____Z(pThis, ::LoadMenuW(hInst, resourceName));
 }
 extern "C" HMENU MS_ABI impl__GetSafeHmenu_CMenu__QEBAPEAUHMENU____XZ(const CMenu* pThis) {
     return pThis ? pThis->m_hMenu : nullptr;

@@ -4,6 +4,44 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/GdicoreSupport.h"
+#include "detail/CHandleMapSupport.h"
+#include "detail/ModuleThreadStateSupport.h"
+#include <cstdlib>
+
+extern "C" void* AFXAPI impl___2_YAPEAX_K_Z(size_t);
+extern "C" CImageList* MS_ABI impl___0CImageList__QEAA_XZ(CImageList*);
+extern "C" void MS_ABI impl___1CImageList__UEAA_XZ(CImageList*);
+
+namespace {
+void MS_ABI ConstructImageList(CObject* object) {
+    impl___0CImageList__QEAA_XZ(static_cast<CImageList*>(object));
+}
+void MS_ABI DestructImageList(CObject* object) {
+    impl___1CImageList__UEAA_XZ(static_cast<CImageList*>(object));
+}
+CHandleMap* GetImageListHandleMap(bool create) {
+    auto* state = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+    if (!state->m_pmapHIMAGELIST && create) {
+        auto* allocationState = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+        auto previousHandler = allocationState->m_pfnNewHandler;
+        allocationState->m_pfnNewHandler = &openmfc::detail::modulethreadstate::HandleAllocationFailure;
+        auto* storage = static_cast<CHandleMap*>(impl___2_YAPEAX_K_Z(sizeof(CHandleMap)));
+        CHandleMap* map = nullptr;
+        if (storage) {
+            try {
+                map = ::new (storage) CHandleMap(
+                    &CImageList::classCImageList, ConstructImageList, DestructImageList, 8, 1);
+            } catch (...) {
+                std::free(storage);
+                throw;
+            }
+        }
+        state->m_pmapHIMAGELIST = map;
+        impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()->m_pfnNewHandler = previousHandler;
+    }
+    return state->m_pmapHIMAGELIST;
+}
+}
 
 // Symbol: ?Create@CImageList@@QEAAHHHIHH@Z
 // Create(cx, cy, flags, cInitial, cGrow)
@@ -72,43 +110,41 @@ extern "C" int MS_ABI impl__Create_CImageList__QEAAHAEAV1_H0HHH_Z(
 // Symbol: ?Attach@CImageList@@QEAAHPEAU_IMAGELIST@@@Z
 extern "C" int MS_ABI impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(
     CImageList* pThis, HIMAGELIST hImageList) {
-    if (!pThis) return FALSE;
-    if (pThis->m_hImageList) {
-        ::ImageList_Destroy(pThis->m_hImageList);
-    }
+    if (!pThis || !hImageList) return FALSE;
+    CHandleMap* map = GetImageListHandleMap(true);
     pThis->m_hImageList = hImageList;
+    map->m_permanentMap[hImageList] = pThis;
     return TRUE;
 }
 // Symbol: ?Detach@CImageList@@QEAAPEAU_IMAGELIST@@XZ
 extern "C" HIMAGELIST MS_ABI impl__Detach_CImageList__QEAAPEAU_IMAGELIST__XZ(CImageList* pThis) {
     if (!pThis) return nullptr;
     HIMAGELIST h = pThis->m_hImageList;
+    if (h) {
+        if (CHandleMap* map = GetImageListHandleMap(false))
+            map->m_permanentMap.RemoveKey(pThis->m_hImageList);
+    }
     pThis->m_hImageList = nullptr;
     return h;
 }
 // Symbol: ?DeleteImageList@CImageList@@QEAAHXZ
 extern "C" int MS_ABI impl__DeleteImageList_CImageList__QEAAHXZ(CImageList* pThis) {
     if (!pThis || !pThis->m_hImageList) return FALSE;
-    int result = ::ImageList_Destroy(pThis->m_hImageList);
-    pThis->m_hImageList = nullptr;
-    return result;
+    HIMAGELIST imageList = impl__Detach_CImageList__QEAAPEAU_IMAGELIST__XZ(pThis);
+    return ::ImageList_Destroy(imageList);
 }
 // Symbol: ?FromHandle@CImageList@@SAPEAV1@PEAU_IMAGELIST@@@Z
 extern "C" CImageList* MS_ABI impl__FromHandle_CImageList__SAPEAV1_PEAU_IMAGELIST___Z(HIMAGELIST hImageList) {
-    return GetTempImageList(hImageList);
+    return static_cast<CImageList*>(GetImageListHandleMap(true)->FromHandle(hImageList));
 }
 // Symbol: ?FromHandlePermanent@CImageList@@SAPEAV1@PEAU_IMAGELIST@@@Z
 extern "C" CImageList* MS_ABI impl__FromHandlePermanent_CImageList__SAPEAV1_PEAU_IMAGELIST___Z(HIMAGELIST hImageList) {
-    return GetTempImageList(hImageList);
+    CHandleMap* map = GetImageListHandleMap(false);
+    return map ? static_cast<CImageList*>(map->m_permanentMap.GetValueAt(hImageList)) : nullptr;
 }
 // Symbol: ?DeleteTempMap@CImageList@@SAXXZ
 extern "C" void MS_ABI impl__DeleteTempMap_CImageList__SAXXZ() {
-    for (auto& [_, pIL] : g_tempImageListMap) {
-        // Don't destroy the image list - we don't own it
-        pIL->m_hImageList = nullptr;
-        delete pIL;
-    }
-    g_tempImageListMap.clear();
+    impl__DeleteTemp_CHandleMap__QEAAXXZ(GetImageListHandleMap(false));
 }
 // Symbol: ?DrawIndirect@CImageList@@QEAAHPEAU_IMAGELISTDRAWPARAMS@@@Z
 extern "C" int MS_ABI impl__DrawIndirect_CImageList__QEAAHPEAU_IMAGELISTDRAWPARAMS___Z(
@@ -353,7 +389,7 @@ int CImageList::DragShowNolock(int bShow) {
 }
 CImageList* CImageList::GetDragImage(LPPOINT lpPoint, LPPOINT lpPointHotSpot) {
     HIMAGELIST h = ::ImageList_GetDragImage(lpPoint, lpPointHotSpot);
-    return h ? GetTempImageList(h) : nullptr;
+    return h ? FromHandle(h) : nullptr;
 }
 int CImageList::DragEnter(CWnd* pWndLock, CPoint point) {
     HWND hWnd = pWndLock ? pWndLock->GetSafeHwnd() : nullptr;

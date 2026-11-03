@@ -1,8 +1,22 @@
 #pragma once
+#include "detail/CHandleMapSupport.h"
+#include "detail/ModuleThreadStateSupport.h"
 // Shared internals of the former menucore.cpp translation unit.
 // Definitions live in detail/CMenuSupport.cpp, so file-scope state keeps a
 // single instance across the classes this unit was split into.
-namespace openmfc { namespace detail { namespace cmenu {} } }
+namespace openmfc { namespace detail {
+CHandleMap* GetMenuHandleMap(bool create);
+namespace cmenu {
+inline CMenu* FromHandleTemp(HMENU hMenu) {
+    auto* map = GetMenuHandleMap(true);
+    return static_cast<CMenu*>(map->FromHandle(hMenu));
+}
+inline void DeleteTempMenuMap() {
+    auto* map = GetMenuHandleMap(false);
+    if (map) map->DeleteTemp();
+}
+}
+} }
 using namespace openmfc::detail::cmenu;
 // Menu Core Implementation
 //
@@ -30,56 +44,11 @@ using namespace openmfc::detail::cmenu;
 
 
 namespace openmfc { namespace detail { namespace cmenu {
-extern std::mutex g_ownedMenusMutex;
-} } }
-namespace openmfc { namespace detail { namespace cmenu {
-extern std::unordered_set<HMENU> g_ownedMenus;
-} } }
-namespace openmfc { namespace detail { namespace cmenu {
-extern std::mutex g_permanentMenusMutex;
-} } }
-namespace openmfc { namespace detail { namespace cmenu {
-extern std::unordered_map<HMENU, CMenu*> g_permanentMenus;
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
-bool IsOwnedMenu(HMENU hMenu);
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
-void MarkOwnedMenu(HMENU hMenu);
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
-void UnmarkOwnedMenu(HMENU hMenu);
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
-extern thread_local std::unordered_map<HMENU, CMenu*> g_tempMenuMap;
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
-CMenu* FromHandleTemp(HMENU hMenu);
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
-void DeleteTempMenuMap();
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
 CMenu* FindPermanentMenu(HMENU hMenu);
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
 void RegisterPermanentMenu(CMenu* pMenu);
-} } }
-
-namespace openmfc { namespace detail { namespace cmenu {
 void UnregisterPermanentMenu(CMenu* pMenu);
 } } }
-
-
-
+extern "C" HMENU MS_ABI impl__Detach_CMenu__QEAAPEAUHMENU____XZ(CMenu*);
 
 // CMenu default constructor
 namespace openmfc { namespace detail { namespace cmenu {

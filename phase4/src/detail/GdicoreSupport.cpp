@@ -1,4 +1,5 @@
 #include "GdicoreSupport.h"
+#include "GdiObjectHandleMapSupport.h"
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 IMPLEMENT_DYNAMIC(CGdiObject, CObject)
@@ -18,7 +19,6 @@ IMPLEMENT_DYNAMIC(CDCRenderTarget, CRenderTarget)
 IMPLEMENT_DYNAMIC(CAnimationVariable, CObject)
 IMPLEMENT_DYNCREATE(CImageList, CObject)
 namespace openmfc { namespace detail { namespace gdicore {
-thread_local std::unordered_map<HGDIOBJ, CGdiObject*> g_tempGdiMap;
 thread_local std::unordered_map<AFX_MODULE_STATE*,DCHandleMaps> g_dcHandleMaps;
 DCHandleMaps* GetDCHandleMaps(bool create) {
     auto* module=impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
@@ -27,27 +27,8 @@ DCHandleMaps* GetDCHandleMaps(bool create) {
     return create?&g_dcHandleMaps[module]:nullptr;
 }
 CGdiObject* GetTempGdiObject(HGDIOBJ hObj) {
-    if (!hObj) return nullptr;
-
-    auto it = g_tempGdiMap.find(hObj);
-    if (it != g_tempGdiMap.end()) {
-        return it->second;
-    }
-
-    // Create a temporary wrapper for the old object
-    auto* wrapper = new CGdiObject();
-    wrapper->m_hObject = hObj;
-    g_tempGdiMap.emplace(hObj, wrapper);
-    return wrapper;
-}
-void DeleteTempGdiMap() {
-    for (auto& [_, obj] : g_tempGdiMap) {
-        // Null out the handle so the destructor doesn't try to delete it
-        // (we don't own these GDI objects)
-        obj->m_hObject = nullptr;
-        delete obj;
-    }
-    g_tempGdiMap.clear();
+    auto* map = openmfc::detail::GetGdiObjectHandleMap(true);
+    return map ? static_cast<CGdiObject*>(map->FromHandle(hObj)) : nullptr;
 }
 CDC* GetTempDC(HDC hDC) {
     try {
@@ -290,15 +271,5 @@ CD2DRectF* InitCD2DRectF(CD2DRectF* pThis, float leftValue, float topValue, floa
     pThis->right = rightValue;
     pThis->bottom = bottomValue;
     return pThis;
-}
-thread_local std::unordered_map<HIMAGELIST, CImageList*> g_tempImageListMap;
-CImageList* GetTempImageList(HIMAGELIST hImageList) {
-    if (!hImageList) return nullptr;
-    auto it = g_tempImageListMap.find(hImageList);
-    if (it != g_tempImageListMap.end()) return it->second;
-    auto* pIL = new CImageList();
-    pIL->m_hImageList = hImageList;
-    g_tempImageListMap.emplace(hImageList, pIL);
-    return pIL;
 }
 } } }  // namespace openmfc::detail::gdicore
