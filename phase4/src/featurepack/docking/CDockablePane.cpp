@@ -10,8 +10,11 @@
 #include <cstring>   // memcpy
 #include <cwchar>    // wcscmp
 #include <mutex>
+#include <new>
 #include <unordered_map>
 
+static_assert(sizeof(CDockablePane) == 0x478,
+              "preserve the existing compact CDockablePane allocation");
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" int MS_ABI impl__Dock_CPane__MEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
@@ -66,22 +69,14 @@ extern "C" void MS_ABI impl__CopyState_CPane__UEAAXPEAV1__Z(CPane* pThis, CPane*
 //   +0x4D4  UINT     m_nHit                   (*) OnLButtonDown 0x41150 writes
 //   +0x4D8  BOOL     m_bCaptionButtonsCaptured (*) OnContextMenu 0x46200 tests
 //
-// OpenMFC's CDockablePane (include/openmfc/afxmfc.h) declares none of these by
-// name: it carries a 128-byte `_dockablepane_padding` blob and sizeof() ==
-// 1144. Measured with the phase4 mingw flags that blob starts at offset 1012
-// (0x3F4) -- the Itanium ABI folds it into CPane's four bytes of tail padding --
-// so the retail fields from +0x3F8 to +0x473 DO have storage inside the object
-// and a few bodies below use them at their retail offsets through the
-// DockablePaneField<> helper. Everything from +0x474 up does not: +0x474 is
-// where CBaseTabbedPane's own padding blob begins (measured: offset 1140,
-// sizeof(CBaseTabbedPane) == 1240) and +0x478 is one past the end of the
-// object. So m_ahSlideMode, m_pAutoHideButton, m_pAutoHideBar, m_arrButtons,
-// m_pTabbedControlBarRTC, m_pToolTip, m_hDefaultSlider, m_nHot, m_nHit and
-// m_bCaptionButtonsCaptured have no in-object storage. Three of them are kept
-// in side tables instead: m_pAutoHideBar in the shared PaneCoreState
-// (AutoHideBarOf below), m_hDefaultSlider and m_pAutoHideButton in the
-// file-private DockablePaneExtra table (ExtraOf below). The rest are what
-// still blocks the remaining stubs in this file -- see `headerRequests`.
+// OpenMFC now names and asserts the retail prefix through +0x474 in the
+// existing compact 0x478-byte CDockablePane allocation. alignas(8) on the first
+// tail member prevents MinGW from reusing CPane's four-byte base tail padding,
+// so both MinGW and clang-cl place the prefix at the retail +0x3f8. Retail
+// fields beginning at +0x478 exceed this allocation and remain pThis-keyed in
+// PaneCoreState / DockablePaneExtra; they are semantic side state, not raw
+// offsets into a larger object. The outstanding stubs are described alongside
+// their symbols below.
 // ---------------------------------------------------------------------------
 
 // Sibling thunks used below. BRIEFING S1: the C++ methods do not exist inside
@@ -127,6 +122,14 @@ extern "C" void MS_ABI impl___1CPaintDC__UEAA_XZ(CPaintDC* pThis);
 extern "C" void MS_ABI impl__DrawDragRect_CDC__QEAAXPEBUtagRECT__UtagSIZE__01PEAVCBrush__2_Z(
     CDC* pThis, const RECT* lpRect, SIZE size, const RECT* lpRectLast, SIZE sizeLast,
     CBrush* pBrush, CBrush* pBrushLast);
+extern "C" int MS_ABI impl__CreateToolTip_CTooltipManager__SAHAEAPEAVCToolTipCtrl__PEAVCWnd__I_Z(
+    CToolTipCtrl** ppToolTip, CWnd* pParent, unsigned int nType);
+extern "C" void MS_ABI impl__DeleteToolTip_CTooltipManager__SAXAEAPEAVCToolTipCtrl___Z(
+    CToolTipCtrl** ppToolTip);
+extern "C" int MS_ABI impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(
+    CToolTipCtrl* pThis, CWnd* pWnd, const wchar_t* lpszText, const RECT* pRect, unsigned __int64 nIDTool);
+extern "C" void MS_ABI impl__SetToolRect_CToolTipCtrl__QEAAXPEAVCWnd___KPEBUtagRECT___Z(
+    CToolTipCtrl* pThis, CWnd* pWnd, unsigned __int64 nIDTool, const RECT* pRect);
 // CDockingManager::m_bRestoringDockState, defined at
 // phase4/src/featurepack/docking/StaticData.cpp:50.
 extern "C" int impl__m_bRestoringDockState_CDockingManager__2HA;
@@ -196,7 +199,7 @@ extern "C" void MS_ABI impl__OnTrackCaptionButtons_CDockablePane__MEAAXVCPoint__
 //   GetDockingManager_CGlobalUtils core/runtime/CGlobalUtils.cpp:124
 //   RemoveHiddenMDITabbedBar_CDockingManager CDockingManager.cpp:621
 //   ReplacePane_CPaneFrameWnd   CPaneFrameWnd.cpp:2003
-//   ReplacePane_CPaneDivider    CPaneDivider.cpp:249 (stub)
+//   ReplacePane_CPaneDivider    CPaneDivider.cpp (side-state body)
 //   GetTabFromHwnd / GetTabLabel / SetTabLabel -- tabs/CMFCBaseTabCtrl.cpp
 extern "C" void MS_ABI impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(
     CWnd* pThis, CCmdTarget* pTarget, int bDisableIfNoHndler);
@@ -248,6 +251,21 @@ extern "C" int MS_ABI impl__SetTabLabel_CMFCBaseTabCtrl__UEAAHHAEBV__CStringT__W
 // (:38 and :32).
 extern "C" int impl__m_nTimeOutBeforeAutoHide_CDockablePane__2HA;
 extern "C" int impl__m_bHideInAutoHideMode_CDockablePane__2HA;
+extern "C" int impl__m_bDisableAnimation_CDockablePane__2HA;
+extern "C" int impl__m_nSlideDefaultTimeOut_CDockablePane__1HA;
+extern "C" int impl__m_nSlideSteps_CDockablePane__2HA;
+extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(unsigned int nID);
+extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(
+    CString* pThis, HINSTANCE hInstance, unsigned int nID);
+extern "C" void MS_ABI impl__HideAutoHidePanes_CDockingManager__QEAAXPEAVCDockablePane__H_Z(
+    CDockingManager* pThis, CDockablePane* pPane, int bHide);
+extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
+    CDockingManager* pThis, void* pDivider, int nAlignment);
+extern "C" void MS_ABI impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(
+    CDockingManager* pThis, unsigned long dwFlags, int bActivate);
 // Sibling thunks defined further down in THIS file (their definitions carry the
 // retail-correct parameter lists; several are still stubs -- see `stubbed`).
 extern "C" int MS_ABI impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(CDockablePane* pThis);
@@ -270,7 +288,7 @@ extern "C" int MS_ABI impl__IsVisible_CDockablePane__UEBAHXZ(const CDockablePane
 //   GetRootContainerRect_CPaneDivider  docking/CPaneDivider.cpp:89 (side-table body;
 //                                      NOTE its two pointer parameters are declared
 //                                      in the order (CRect* pRet, void* pThis))
-//   StoreRecentDockSiteInfo_CMultiPaneFrameWnd  docking/CMultiPaneFrameWnd.cpp:180
+//   StoreRecentDockSiteInfo_CMultiPaneFrameWnd  docking/CMultiPaneFrameWnd.cpp (side-state body)
 //                                      (stub whose parameter list omits `this`)
 //   GetThisClass_CPaneDivider is a real descriptor getter.
 extern "C" unsigned long MS_ABI impl__GetExStyle_CWnd__QEBAKXZ(const CWnd* pThis);
@@ -282,10 +300,10 @@ extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CMultiPaneFrameWnd__UEAAX
     void* pThis, CDockablePane* pDockingBar, CDockablePane* pTabbedBar);
 extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneDivider__QEAAXPEAVCDockablePane__0_Z(
     void* pThis, CDockablePane* pDockingBar, CDockablePane* pTabbedBar);
-//   ReplacePane_CMultiPaneFrameWnd     docking/CMultiPaneFrameWnd.cpp:158 (stub, no `this`)
+//   ReplacePane_CMultiPaneFrameWnd     docking/CMultiPaneFrameWnd.cpp (side-state body)
 //   GetParentFrame_CWnd                core/window/Thunks.cpp:1353 (real body)
 //   GetThisClass_CMFCPropertyGridToolTipCtrl  propertygrid/RuntimeClasses.cpp:75
-//   InsertPane_CPaneDivider            docking/CPaneDivider.cpp:193 (stub, no `this`)
+//   InsertPane_CPaneDivider            docking/CPaneDivider.cpp (side-state body)
 //   InsertPane_CBasePane               docking/CBasePane.cpp:1018 (stub, carries `this`)
 extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* pThis);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPropertyGridToolTipCtrl__SAPEAUCRuntimeClass__XZ();
@@ -311,24 +329,17 @@ extern "C" void MS_ABI impl__ReplacePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane_
 // Sibling thunks defined further down in THIS file.
 extern "C" void MS_ABI impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
     CDockablePane* pThis, void* pAutoHideBar, void* pAutoHideButton);
+extern "C" void MS_ABI impl__SetCaptionButtons_CDockablePane__MEAAXXZ(CDockablePane* pThis);
+extern "C" void MS_ABI impl__UpdateTooltips_CDockablePane__IEAAXXZ(CDockablePane* pThis);
 
 namespace {
-// --- CDockablePane instance fields reached through the padding blob ----------
-// OpenMFC's CDockablePane declares no members; it carries
-// `char _dockablepane_padding[128]` (include/openmfc/afxmfc.h:476). Measured
-// with the phase4 mingw flags (see checkfile.sh) that blob starts at offset
-// 1012 == 0x3F4 -- the Itanium ABI folds it into CPane's four bytes of tail
-// padding -- and sizeof(CDockablePane) is 1144. So every retail field from
-// +0x3F8 (the first byte past the 1016-byte CPane sub-object) up to +0x473 has
-// real storage inside the object and can be used at its retail offset.
-//
-// +0x474 and above cannot: sizeof(CBaseTabbedPane) measures 1240 with its own
-// `_basetabbedpane_padding[96]` at offset 1140 == 0x474, so a write to +0x474
-// on a CTabbedPane lands in the derived class's blob, and +0x478 is one past
-// the end of the object. That is why m_ahSlideMode (+0x474), m_pAutoHideBar
-// (+0x480), m_arrButtons (+0x488) and everything above them stay unreachable.
-static_assert(sizeof(CPane) == 1016, "CPane layout changed; recheck the offsets below");
-static_assert(sizeof(CDockablePane) == 1144, "CDockablePane size changed; recheck the offsets below");
+// --- Retail prefix fields in the compact CDockablePane allocation ------------
+// afxmfc.h now names the retail members from +0x3f8 through +0x477. The first
+// field is alignas(8), which ensures MinGW does not reuse CPane's tail padding
+// and clang-cl/MSVC uses the same retail offsets. The 0x478-byte local object
+// still does not contain fields from +0x478 onward; those remain in side state.
+static_assert(sizeof(CPane) == 0x3f8, "CPane layout changed; recheck the offsets below");
+static_assert(sizeof(CDockablePane) == 0x478, "CDockablePane compact allocation changed");
 
 const size_t kOffPrepareToFloat = 0x408;   // bool   m_bPrepareToFloat
 const size_t kOffLastPercent    = 0x410;   // int    m_nLastPercent
@@ -336,28 +347,51 @@ const size_t kOffEnableAutoHideAll = 0x420; // BOOL  m_bEnableAutoHideAll
 const size_t kOffSlideDelta     = 0x454;   // int    m_nSlideDelta
 const size_t kOffRectRestored   = 0x458;   // CRect  m_rectRestored
 const size_t kOffCyGripper      = 0x40c;   // int    m_cyGripper
+const size_t kOffHasGripper     = 0x418;   // BOOL   m_bHasGripper
 const size_t kOffActive         = 0x41c;   // BOOL   m_bActive
+const size_t kOffPinState       = 0x438;   // BOOL   m_bPinState
 const size_t kOffAutoHideConditionTimerID = 0x440;  // UINT_PTR m_nAutoHideConditionTimerID
+const size_t kOffAHSlideMode    = 0x474;   // UINT   m_ahSlideMode
 const size_t kOffSlideTimer     = 0x448;   // UINT_PTR m_nSlideTimer
 const size_t kOffSlideStep      = 0x450;   // int    m_nSlideStep
 const size_t kOffIsSliding      = 0x468;   // BOOL   m_bIsSliding
 const size_t kOffIsResizing     = 0x46c;   // BOOL   m_bIsResizing
 const size_t kOffIsHiding       = 0x470;   // BOOL   m_bIsHiding
-const size_t kOffFirstUnusable  = 0x474;   // first retail offset with no storage here
+const size_t kOffFirstSideTable = 0x478;   // first retail member beyond local allocation
 
 static_assert(kOffPrepareToFloat >= sizeof(CPane), "field would alias the CPane sub-object");
 static_assert(kOffLastPercent >= sizeof(CPane), "field would alias the CPane sub-object");
 static_assert(kOffEnableAutoHideAll >= sizeof(CPane), "field would alias the CPane sub-object");
-static_assert(kOffRectRestored + 16 <= kOffFirstUnusable, "field runs past the usable window");
+static_assert(kOffRectRestored + sizeof(RECT) <= kOffFirstSideTable, "field runs past local storage");
 static_assert(kOffCyGripper >= sizeof(CPane), "field would alias the CPane sub-object");
-static_assert(kOffIsHiding + 4 <= kOffFirstUnusable, "field runs past the usable window");
-static_assert(kOffIsResizing + 4 <= kOffFirstUnusable, "field runs past the usable window");
-static_assert(kOffFirstUnusable + 4 <= sizeof(CDockablePane), "usable window computed wrongly");
+static_assert(kOffIsHiding + sizeof(BOOL) <= kOffFirstSideTable, "field runs past local storage");
+static_assert(kOffIsResizing + sizeof(BOOL) <= kOffFirstSideTable, "field runs past local storage");
+static_assert(kOffFirstSideTable == sizeof(CDockablePane), "side-table boundary changed");
 
 template <typename T>
 inline T& DockablePaneField(CDockablePane* pThis, size_t off) {
     return *reinterpret_cast<T*>(reinterpret_cast<char*>(pThis) + off);
 }
+
+// AFX_GLOBAL_DATA::GetGlobalData checks m_bInitialized, invokes Initialize,
+// then sets the flag. Retail's Slide and EnableGripper use an equivalent lazy
+// guard; serialize this TU's calls as well.
+inline void EnsureDockingGlobalDataInitialized() {
+    static std::mutex initializationMutex;
+    std::lock_guard<std::mutex> lock(initializationMutex);
+    int& initialized = *reinterpret_cast<int*>(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+    if (!initialized) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(impl__afxGlobalData__3UAFX_GLOBAL_DATA__A);
+        initialized = TRUE;
+    }
+}
+
+inline int DockingGlobalDataInt(size_t off) {
+    int value = 0;
+    std::memcpy(&value, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A + off, sizeof(value));
+    return value;
+}
+
 template <typename T>
 inline const T& DockablePaneField(const CDockablePane* pThis, size_t off) {
     return *reinterpret_cast<const T*>(reinterpret_cast<const char*>(pThis) + off);
@@ -433,6 +467,23 @@ inline void SetAutoHideButtonOf(const CDockablePane* pThis, void* p) {
 inline void EraseExtraOf(const CDockablePane* pThis) {
     std::lock_guard<std::mutex> lock(DockablePaneExtraMutex());
     DockablePaneExtras().erase(pThis);
+}
+inline CString& DockablePaneTipTextCache() {
+    static CString text;
+    return text;
+}
+inline std::mutex& DockablePaneTipTextMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+inline CToolTipCtrl* DockablePaneToolTipOf(const CDockablePane* pThis) {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+    auto it = g_paneCoreState_Mfccore.find(pThis);
+    return it != g_paneCoreState_Mfccore.end() ? it->second.toolTip : nullptr;
+}
+inline void SetDockablePaneToolTip(const CDockablePane* pThis, CToolTipCtrl* pToolTip) {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+    g_paneCoreState_Mfccore[pThis].toolTip = pToolTip;
 }
 }  // namespace
 
@@ -526,7 +577,31 @@ extern "C" void MS_ABI impl__ShowPane_CDockablePane__UEAAXHHH_Z(CDockablePane* p
     impl__ShowPane_CBasePane__UEAAXHHH_Z(reinterpret_cast<CBasePane*>(pThis), bShow, bDelay, bActivate);
 }
 CDockablePane::CDockablePane() {
-    memset(_dockablepane_padding, 0, sizeof(_dockablepane_padding));
+    static_assert(offsetof(CDockablePane, _dockablepane_padding) == 0x3f8, "CDockablePane storage view offset");
+    static_assert(offsetof(CDockablePane, m_rectCloseButton) == 0x3f8, "m_rectCloseButton offset");
+    static_assert(offsetof(CDockablePane, m_bPrepareToFloat) == 0x408, "m_bPrepareToFloat offset");
+    static_assert(offsetof(CDockablePane, m_bReadyToFloat) == 0x409, "m_bReadyToFloat offset");
+    static_assert(offsetof(CDockablePane, _dockablepane_pad40a) == 0x40a, "CDockablePane first pad offset");
+    static_assert(offsetof(CDockablePane, m_cyGripper) == 0x40c, "m_cyGripper offset");
+    static_assert(offsetof(CDockablePane, m_nLastPercent) == 0x410, "m_nLastPercent offset");
+    static_assert(offsetof(CDockablePane, m_nBorderSize) == 0x414, "m_nBorderSize offset");
+    static_assert(offsetof(CDockablePane, m_bHasGripper) == 0x418, "m_bHasGripper offset");
+    static_assert(offsetof(CDockablePane, m_bActive) == 0x41c, "m_bActive offset");
+    static_assert(offsetof(CDockablePane, m_bEnableAutoHideAll) == 0x420, "m_bEnableAutoHideAll offset");
+    static_assert(offsetof(CDockablePane, m_dwSCBStyle) == 0x424, "m_dwSCBStyle offset");
+    static_assert(offsetof(CDockablePane, m_rectRedraw) == 0x428, "m_rectRedraw offset");
+    static_assert(offsetof(CDockablePane, m_bPinState) == 0x438, "CDockablePane m_bPinState offset");
+    static_assert(offsetof(CDockablePane, _dockablepane_pad43c) == 0x43c, "CDockablePane second pad offset");
+    static_assert(offsetof(CDockablePane, m_nAutoHideConditionTimerID) == 0x440, "m_nAutoHideConditionTimerID offset");
+    static_assert(offsetof(CDockablePane, m_nSlideTimer) == 0x448, "m_nSlideTimer offset");
+    static_assert(offsetof(CDockablePane, m_nSlideStep) == 0x450, "m_nSlideStep offset");
+    static_assert(offsetof(CDockablePane, m_nSlideDelta) == 0x454, "m_nSlideDelta offset");
+    static_assert(offsetof(CDockablePane, m_rectRestored) == 0x458, "m_rectRestored offset");
+    static_assert(offsetof(CDockablePane, m_bIsSliding) == 0x468, "m_bIsSliding offset");
+    static_assert(offsetof(CDockablePane, m_bIsResizing) == 0x46c, "m_bIsResizing offset");
+    static_assert(offsetof(CDockablePane, m_bIsHiding) == 0x470, "m_bIsHiding offset");
+    static_assert(offsetof(CDockablePane, m_ahSlideMode) == 0x474, "m_ahSlideMode offset");
+    std::memset(reinterpret_cast<char*>(this) + 0x3f8, 0, 0x80);
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
     PaneCoreState& state = g_paneCoreState_Mfccore[this];
     state.canFloat = TRUE;
@@ -652,14 +727,14 @@ extern "C" void MS_ABI impl__AdjustPaneToPaneContainer_CDockablePane__MEAAXPEAVC
 }
 
 // STUB. Retail entry RVA 0x436e0 (mfc140u; 0x43530 in mfc140), ~1088 bytes,
-// the largest body in this class; not transcribed. It touches the
-// CDockablePane fields at +0x450 (m_nSlideStep), +0x4b0
-// (m_pTabbedControlBarRTC) and +0x4c0 (m_hDefaultSlider) and drives
-// CreateTabbedPane (below, itself blocked on +0x4b0), the CTabbedPane it would
-// create and the CPaneDivider ReplacePane/AddPane virtuals. Blocked: +0x4b0
-// has no storage (m_hDefaultSlider now lives in the file-private
-// DockablePaneExtra table, but the tabbed-pane creation it hinges on cannot
-// run without the runtime class held at +0x4b0).
+// the largest body in this class; not transcribed. It uses m_nSlideStep
+// (+0x450), the modeled m_pTabbedControlBarRTC side-state (+0x4b0), and the
+// modeled default-slider HWND, then creates/attaches a CTabbedPane and invokes
+// CPaneDivider ReplacePane/AddPane operations. The runtime-class field is now
+// available, but CreateTabbedPane below still cannot reproduce CTabbedPane's
+// retail Create dispatch/layout, and the divider attach/replace virtual slots
+// are not modeled; calling through the path would therefore fabricate docking
+// effects.
 // Signature corrected: the generated list dropped `this` and the first two
 // parameters; the export returns the CDockablePane* the caller was attached to.
 // Symbol: ?AttachToTabWnd@CDockablePane@@UEAAPEAV1@PEAV1@W4AFX_DOCK_METHOD@@HPEAPEAV1@@Z
@@ -818,11 +893,10 @@ extern "C" SIZE* MS_ABI impl__CalcFixedLayout_CDockablePane__UEAA_AVCSize__HH_Z(
 // (In each arm the width/height of rectResult is read BEFORE the assignment
 // that overwrites one of its edges -- e.g. 0x42bf4 `mov 0x8(%rdi),%eax ; sub
 // (%rdi),%eax ; add %ecx,%eax ; mov %eax,0x8(%rdi) ; mov %ecx,(%rdi)`.)
-// Both fields are inside the padding blob (see the offset note near the top) and
-// are read at their retail offsets. As with OffsetRectForSliding above, the
-// sibling CBasePane::GetCurrentAlignment thunk is still a stub returning 0, so
-// today no case matches and the caller's rects are left alone -- retail's own
-// behaviour for an alignment of 0.
+// Both fields are inside the modeled CDockablePane layout and are read at
+// their retail offsets. The sibling CBasePane::GetCurrentAlignment body is
+// implemented from its retail three-instruction body, so the alignment cases
+// below are reachable when m_dwStyle carries CBRS_ALIGN_* bits.
 // Signature corrected to carry `this`.
 // Symbol: ?CalcRectForSliding@CDockablePane@@IEAAXAEAVCRect@@0H@Z
 extern "C" void MS_ABI impl__CalcRectForSliding_CDockablePane__IEAAXAEAVCRect__0H_Z(
@@ -950,14 +1024,13 @@ extern "C" int MS_ABI impl__CanAcceptMiniFrame_CDockablePane__UEBAHPEAVCPaneFram
 // CMFCAutoHideButton layout mirror in detail/CMFCAutoHideButtonSupport.h
 // (RECT m_rect at +0x1c), duplicated here as a local offset because that
 // header is not included by this unit.
-// Deviations: (1) the tooltip test is dropped -- m_pToolTip has no storage
-// here and OnCreate cannot create one, so it is never visible; (2) NULL checks
-// on `this`, the button and the bar (retail dereferences both unchecked; note
-// OpenMFC's CMFCAutoHideButton::CreateObject still returns NULL, so today the
-// button is NULL and this returns FALSE at that check); (3) ::GetWindowRect on
-// a NULL m_hDefaultSlider is skipped, leaving rectSlider empty -- the API
-// fails and leaves the zeroed rect untouched in retail too, so the union is
-// the same.
+// Deviations: NULL checks on `this`, the button and the bar (retail
+// dereferences them unchecked; note OpenMFC's CMFCAutoHideButton::CreateObject
+// still returns NULL, so today the button is NULL and this returns FALSE at
+// that check); ::GetWindowRect on a NULL m_hDefaultSlider is skipped, leaving
+// rectSlider empty -- the API fails and leaves the zeroed rect untouched in
+// retail too, so the union is the same. The tooltip visibility test uses the
+// PaneCoreState pointer rather than retail's in-object +0x4b8 member.
 // Signature corrected to carry `this` (OnTimer below calls it).
 // Symbol: ?CheckAutoHideCondition@CDockablePane@@MEAAHXZ
 extern "C" int MS_ABI impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(CDockablePane* pThis) {
@@ -966,7 +1039,9 @@ extern "C" int MS_ABI impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(CDocka
     if (DockablePaneField<int>(pThis, kOffIsResizing)) return FALSE;
     if (!pThis->IsAutoHideMode()) return FALSE;
     if (impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA != nullptr) return FALSE;
-    // m_pToolTip visibility test dropped -- see above.
+    CToolTipCtrl* pToolTip = DockablePaneToolTipOf(pThis);
+    if (pToolTip != nullptr && pToolTip->m_hWnd != nullptr &&
+        ::IsWindowVisible(pToolTip->m_hWnd)) return FALSE;
 
     const DockablePaneExtra extra = ExtraOf(pThis);
     CWnd* pBar = static_cast<CWnd*>(static_cast<CBasePane*>(AutoHideBarOf(pThis)));
@@ -1004,20 +1079,84 @@ extern "C" int MS_ABI impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(CDocka
     return TRUE;
 }
 
-// STUB. Retail entry RVA 0x42720 (mfc140u; 0x42570 in mfc140). Its body touches
-// CDockablePane fields at +0x458..+0x464 (m_rectRestored), +0x474
-// (m_ahSlideMode, compared against AFX_AHSM_MOVE == 1 in every alignment arm)
-// and +0x480 (m_pAutoHideBar, whose GetParentDockSite -- bar vtable slot
-// 0x350 -- supplies the dock-site rect every arm compares against).
-// Blocked: m_rectRestored is reachable and m_pAutoHideBar is in the side table,
-// but m_ahSlideMode (+0x474) is not -- +0x474 is where a derived
-// CBaseTabbedPane's own padding blob starts here -- and every arm branches on it.
+// CDockablePane::CheckStopSlideCondition -- transcribed from function entry
+// RVA 0x42720 (mfc140u). The body first returns TRUE when IsAutoHideMode() is
+// FALSE. Otherwise it converts the pane and its auto-hide bar's parent dock-site
+// rectangles to GetDockSiteFrameWnd() client coordinates, obtains WS_EX_LAYOUTRTL
+// from that frame, and branches on GetCurrentAlignment() and
+// m_ahSlideMode (+0x474). For slide mode 1 the four alignment arms compare the
+// pane edges against the corresponding dock-site edge (left/right arms also
+// branch on RTL); other slide modes test pane width/height against
+// m_rectRestored (+0x458), except the top-alignment arm which returns FALSE.
+// GetWindowRect is the call through IAT slot 0x1802c6c08, resolved by iatu.py
+// as USER32!GetWindowRect. The dock-site pointer is the auto-hide bar's
+// CBasePane::m_pParentDockBar (+0x128).
+// Deviation: retail's GetDockSiteFrameWnd/GetCurrentAlignment virtual calls
+// and its CWnd::ScreenToClient/GetExStyle calls are routed through stock thunks
+// here, so pane/frame subclass overrides do not run. The bar pointer and frame
+// are dereferenced without NULL checks, as retail does on this path. The bar
+// member itself is held in PaneCoreState rather than at retail +0x480.
 // Signature corrected to carry `this` (OnTimer below calls it).
 // Symbol: ?CheckStopSlideCondition@CDockablePane@@MEAAHH@Z
 extern "C" int MS_ABI impl__CheckStopSlideCondition_CDockablePane__MEAAHH_Z(CDockablePane* pThis, int bDirection) {
-    (void)pThis;
-    (void)bDirection;
-    return 0;
+    // Retail's getter reads +0x438; this build's getter reads the corresponding
+    // PaneCoreState value because SetAutoHideMode stores it there.
+    if (!pThis->IsAutoHideMode()) return TRUE;
+
+    RECT rectPane = {0, 0, 0, 0};
+    ::GetWindowRect(pThis->m_hWnd, &rectPane);
+    CWnd* pFrame = impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(
+        static_cast<const CBasePane*>(pThis));
+    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pFrame, &rectPane);
+    const BOOL bRTL = (impl__GetExStyle_CWnd__QEBAKXZ(pFrame) & WS_EX_LAYOUTRTL) != 0;
+
+    CBasePane* pAutoHideBar = static_cast<CBasePane*>(AutoHideBarOf(pThis));
+    CWnd* pDockSite = reinterpret_cast<CWnd*>(pAutoHideBar->m_pParentDockBar);
+    RECT rectDockSite = {0, 0, 0, 0};
+    ::GetWindowRect(pDockSite->m_hWnd, &rectDockSite);
+    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pFrame, &rectDockSite);
+
+    const unsigned long alignment =
+        impl__GetCurrentAlignment_CBasePane__UEBAKXZ(static_cast<const CBasePane*>(pThis));
+    if (DockablePaneField<UINT>(pThis, kOffAHSlideMode) == 1) {
+        switch (alignment) {
+        case kAlignLeft:
+            if (bRTL) return bDirection ? rectPane.right <= rectDockSite.left
+                                        : rectPane.right >= rectDockSite.left;
+            return bDirection ? rectPane.left >= rectDockSite.right
+                              : rectPane.right <= rectDockSite.right;
+        case kAlignTop:
+            return bDirection ? rectPane.top >= rectDockSite.bottom
+                              : rectPane.bottom <= rectDockSite.bottom;
+        case kAlignRight:
+            if (bRTL) return bDirection ? rectPane.left >= rectDockSite.right
+                                        : rectPane.right <= rectDockSite.right;
+            return bDirection ? rectPane.right <= rectDockSite.left
+                              : rectPane.left >= rectDockSite.left;
+        case kAlignBottom:
+            return bDirection ? rectPane.bottom <= rectDockSite.top
+                              : rectPane.top >= rectDockSite.top;
+        default:
+            return FALSE;
+        }
+    }
+
+    const int paneWidth = rectPane.right - rectPane.left;
+    const int paneHeight = rectPane.bottom - rectPane.top;
+    const RECT& rectRestored = DockablePaneField<RECT>(pThis, kOffRectRestored);
+    switch (alignment) {
+    case kAlignLeft:
+    case kAlignRight:
+        return bDirection ? paneWidth >= rectRestored.right - rectRestored.left
+                          : paneWidth <= 0;
+    case kAlignTop:
+        return FALSE;
+    case kAlignBottom:
+        return bDirection ? paneHeight >= rectRestored.bottom - rectRestored.top
+                          : paneHeight <= 0;
+    default:
+        return FALSE;
+    }
 }
 
 // STUB. Retail mfc140.dll ANSI-twin entry RVA 0x46590 (mfc140u RVA 0x46740):
@@ -1053,12 +1192,10 @@ extern "C" void MS_ABI impl__ConvertToTabbedDocument_CDockablePane__UEAAXH_Z(CDo
 // (`mov 0x474(%rcx),%eax`) and 0x12e10 (`mov 0x420(%rcx),%eax`), verified with
 // vt.py on the CDockablePane vftable at RVA 0x2e3068, so both reduce to a plain
 // field read on the source pane.
-// PARTIAL, and the one deviation is deliberate: m_ahSlideMode lives at +0x474,
-// which is exactly where a derived CBaseTabbedPane's own padding blob starts
-// here (see the offset note near the top), so that field has no storage and is
-// NOT copied. The other three are inside the reachable window and are copied at
-// their retail offsets. m_rectRestored is not dead weight -- CalcRectForSliding
-// and (indirectly) OffsetRectForSliding below read it back.
+// PARTIAL: the retail m_ahSlideMode at +0x474 is now named and asserted in
+// afxmfc.h, but this existing body has not yet copied it. m_rectRestored and the
+// other copied fields are represented in the named prefix. m_rectRestored is
+// not dead weight -- CalcRectForSliding and OffsetRectForSliding read it back.
 // The base call goes to the sibling CPane::CopyState thunk
 // (phase4/src/featurepack/docking/CPane.cpp:131), which is itself still an empty
 // stub, so today it contributes nothing.
@@ -1070,7 +1207,7 @@ extern "C" void MS_ABI impl__CopyState_CDockablePane__UEAAXPEAV1__Z(
     impl__CopyState_CPane__UEAAXPEAV1__Z(static_cast<CPane*>(pThis), static_cast<CPane*>(pOrgBar));
     DockablePaneField<RECT>(pThis, kOffRectRestored) =
         DockablePaneField<RECT>(pOrgBar, kOffRectRestored);
-    // m_ahSlideMode (+0x474) is skipped -- no storage here.
+    // m_ahSlideMode (+0x474) remains omitted by this partial body.
     DockablePaneField<int>(pThis, kOffLastPercent) =
         DockablePaneField<int>(pOrgBar, kOffLastPercent);
     DockablePaneField<int>(pThis, kOffEnableAutoHideAll) =
@@ -1095,16 +1232,15 @@ extern "C" void MS_ABI impl__CopyState_CDockablePane__UEAAXPEAV1__Z(
 //     }
 //     pSlider->SetPaneAlignment(dwAlignment);           // vtable slot 0x3d0: `andl $0xffff0fff,0x104 ; or %edx`
 //     return pSlider;
-// Blocked: OpenMFC's CPaneDivider (include/openmfc/afxmfc.h:1748) derives from
-// CObject, not CBasePane, so it has no window, no vtable slots 0x560/0x3d0
-// and no m_dwStyle at +0x104. The two exports the body needs DO exist in the
-// tree but cannot carry it: ?CreateEx@CPaneDivider@@ is the generated stub at
-// docking/CPaneDivider.cpp:170 (returns 0, parameter list omits `this`), so
-// the creation would always take the `delete; return NULL` arm, and
-// ?m_pSliderRTC@CPaneDivider@@ (core/runtime/StaticData.cpp:62) is a NULL
-// pointer that nothing initialises, so the default arm would call
-// CreateObject through NULL. Neither the creation nor the alignment store can
-// be reproduced.
+// Blocked: OpenMFC's CPaneDivider declaration (include/openmfc/afxmfc.h:1748)
+// is a compact CObject, not the retail CBasePane-derived 0x218-byte window
+// object. Its CreateEx thunk (docking/CPaneDivider.cpp:824) returns FALSE for
+// such compact factory objects before touching CWnd storage; the +0x1c4
+// default-divider write in this retail body would already overrun that object.
+// The class also has no local vtable slots 0x560/0x3d0 or m_dwStyle at +0x104.
+// The default arm additionally depends on ?m_pSliderRTC@CPaneDivider@@, which
+// is NULL in core/runtime/StaticData.cpp:62. Neither divider creation path nor
+// the alignment store can be reproduced safely.
 // Symbol: ?CreateDefaultPaneDivider@CDockablePane@@SAPEAVCPaneDivider@@KPEAVCWnd@@PEAUCRuntimeClass@@@Z
 extern "C" void* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
     unsigned long dwAlignment, CWnd* pParent, CRuntimeClass* pSliderRTC) {
@@ -1114,19 +1250,14 @@ extern "C" void* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPan
     return nullptr;
 }
 
-// STUB. Retail entry RVA 0x43be0 (mfc140u; 0x43a30 in mfc140), decoded:
-//     CRect rect; ::GetWindowRect(m_hWnd, &rect);
-//     CWnd::FromHandle(::GetParent(m_hWnd))->ScreenToClient(&rect);   // RVA 0x2a11f0
-//     CTabbedPane* p = (CTabbedPane*)m_pTabbedControlBarRTC->CreateObject();   // +0x4b0, RVA 0x233380
-//     p->{+0x4e0} = 1;                                    // the new pane's first own field
-//     DWORD dwStyle = GetStyle() | 0x40 /*CBRS_FLOAT_MULTI, afxres.h*/;   // RVA 0x2a75a0
-//     if (!p->Create(L"" /*RVA 0x33ac36*/, CWnd::FromHandle(::GetParent(m_hWnd)), rect, TRUE,
-//                    (UINT)-1, dwStyle, 0x20, 0xf, NULL))    // vtable slot 0x658
-//         return NULL;
-//     p->{+0x370} = {+0x370}; p->{+0x308} = {+0x308}; p->{+0x2c0} = {+0x2c0};   // three 16-byte copies
-//     return p;
-// Blocked: +0x4b0 (m_pTabbedControlBarRTC) is past the end of OpenMFC's
-// 1144-byte CDockablePane, and nothing in this build writes it.
+// STUB. Transcribed from function entry RVA 0x43be0 (mfc140u): retail gets
+// this pane's window rectangle, converts it to the parent's client coordinates,
+// creates a CTabbedPane through m_pTabbedControlBarRTC, sets the new pane's
+// field at +0x4e0, calls Create with CBRS_FLOAT_MULTI and the retail style
+// arguments, then copies 16-byte regions from this+0x370, +0x308 and +0x2c0.
+// The +0x4b0 runtime-class pointer is now represented in PaneCoreState, but
+// the retail-shaped CTabbedPane Create dispatch and its +0x4e0/+0x2c0/+0x308/
+// +0x370 layout are not modeled, so the object cannot be safely constructed.
 // Signature corrected to carry `this`.
 // Symbol: ?CreateTabbedPane@CDockablePane@@UEAAPEAVCTabbedPane@@XZ
 extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPane__XZ(CDockablePane* pThis) {
@@ -1148,19 +1279,15 @@ extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPan
 //     CPaneDivider* pSlider = GetDefaultPaneDivider();                // RVA 0x45cd0
 //     if (pSlider == NULL) return FALSE;                              // (after lst's dtor, RVA 0x83d0)
 //     return pSlider->AddPaneContainer(this, barContainerManager, dwAlignment);   // divider slot 0x520
-// Left a stub. The CObList walk itself is NOT the blocker: GetHeadPosition /
-// GetNext are inline in retail (no export), but OpenMFC defines them as real
-// C++ methods through the list-wrapper macro in detail/FilecoreSupport.h
-// (toolbar/CMFCToolBar.cpp:2089 calls them directly), so this unit could link
-// them -- checkfile.sh's link audit would merely flag them as new `_Z`
-// undefineds. What blocks it is the terminals: CBasePane::InsertPane
-// (docking/CBasePane.cpp:1018) and
-// ?AddPaneContainer@CPaneDivider@@UEAAHPEAVCDockablePane@@AEAVCPaneContainerManager@@K@Z
-// (docking/CPaneDivider.cpp:152) are both generated stubs returning 0, and
-// GetDefaultPaneDivider() above cannot return a divider in this build, so a
-// transcription would run the per-pane SetDefaultPaneDivider / SetPaneAlignment
-// side effects and then always return FALSE. m_hDefaultSlider itself is
-// available (file-private DockablePaneExtra table).
+// Left a stub. The CObList walk itself is not the blocker: AddPanesToList is
+// implemented over the docking manager's side-state graph, and this unit can
+// traverse the list. The terminal CBasePane::InsertPane export is still a stub;
+// CPaneDivider::AddPaneContainer has a side-state body, but its downstream
+// CPaneContainerManager::AddPaneContainerManager export is still a placeholder.
+// In addition, GetDefaultPaneDivider() cannot return this build's compact
+// CPaneDivider object, so the final divider operation is unavailable. A partial
+// list walk would still perform per-pane divider/alignment side effects without
+// completing the container dock; m_hDefaultSlider itself is in DockablePaneExtra.
 // Signature corrected: the generated 16-parameter list was garbage.
 // Symbol: ?DockPaneContainer@CDockablePane@@UEAAHAEAVCPaneContainerManager@@KW4AFX_DOCK_METHOD@@@Z
 extern "C" int MS_ABI impl__DockPaneContainer_CDockablePane__UEAAHAEAVCPaneContainerManager__KW4AFX_DOCK_METHOD___Z(
@@ -1216,10 +1343,10 @@ extern "C" void* MS_ABI impl__DockPaneStandard_CDockablePane__UEAAPEAVCPane__AEA
 // CWnd map, so it is read as a CWnd for its m_hWnd even though OpenMFC's
 // CPaneDivider class is not declared as one.
 // Deviations: every virtual dispatches statically to the exports named above
-// (UndockPane, EnableGripper and both InsertPane bodies are still stubs -- the
-// CPaneDivider one returns 0, so today this returns FALSE right after
-// RemoveFromMiniframe; GetDefaultPaneDivider also returns NULL in this build,
-// so in practice the first arm is what runs); NULL checks on `this` and
+// (UndockPane is still a stub; the CPaneDivider InsertPane uses its side-state
+// manager and may return 0 when that manager is unavailable; GetDefaultPaneDivider
+// returns NULL for the compact divider objects in this build, so its first arm
+// normally runs); NULL checks on `this` and
 // pTargetWindow (retail dereferences pTargetWindow).
 // Signature corrected: the generated list dropped `this` and two parameters.
 // Symbol: ?DockToWindow@CDockablePane@@UEAAHPEAV1@KPEBUtagRECT@@@Z
@@ -1258,12 +1385,11 @@ extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT_
 }
 
 // STUB. Retail entry RVA 0x446a0 (mfc140u; 0x444f0 in mfc140). Its body
-// touches the CDockablePane fields at +0x41c (m_bActive) and +0x490/+0x498
-// (m_arrButtons.m_pData / m_nSize) and paints through the visual manager.
-// Blocked: OpenMFC's CDockablePane has no m_arrButtons (+0x488 is past the end
-// of the 1144-byte object) and its CMFCCaptionButton
-// (include/openmfc/afxmfc.h:1458) is a 16-byte-padded CObject with no retail
-// layout, so there are no caption buttons to draw.
+// touches m_bActive (+0x41c) and the button array (+0x490/+0x498), then paints
+// through the visual manager. PaneCoreState now has semantic button records,
+// but there is no raw retail m_arrButtons/CMFCCaptionButton object layout in
+// this compact allocation; the public CMFCCaptionButton declaration is a
+// padded CObject. The visual-manager drawing path is also not modeled.
 // Signature corrected: the 16-byte CRect is passed by value in retail, i.e. by
 // address under the MS x64 ABI (`mov 0x8(%r8),%rbx` reads its right/bottom).
 // Symbol: ?DrawCaption@CDockablePane@@MEAAXPEAVCDC@@VCRect@@@Z
@@ -1274,41 +1400,55 @@ extern "C" void MS_ABI impl__DrawCaption_CDockablePane__MEAAXPEAVCDC__VCRect___Z
     (void)pRectCaption;
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45260 (mfc140u RVA 0x45410), fully decoded:
-//     CMFCCaptionButton* p = FindButtonByHit(nHit);   // RVA 0x45210
-//     if (p != NULL) p->{+0x14} = bEnable;            // CMFCCaptionButton field
-// Blocked: FindButtonByHit walks m_arrButtons at this+0x488, which OpenMFC's
-// CDockablePane does not have.
-// Signature corrected to carry `this`.
+// CDockablePane::EnableButton -- transcribed from entry RVA 0x45410 (mfc140u):
+// it calls FindButtonByHit(nHit), and when that returns non-NULL writes bEnable
+// to the button's +0x14 m_bEnabled field. The semantic PaneCoreState array now
+// carries each standard button's ID/enabled state, so this body updates that
+// record directly. It does not make the semantic record a raw CMFCCaptionButton
+// pointer; FindButtonByHit remains blocked on that ABI-compatible representation.
 // Symbol: ?EnableButton@CDockablePane@@IEAAXIH@Z
 extern "C" void MS_ABI impl__EnableButton_CDockablePane__IEAAXIH_Z(CDockablePane* pThis, unsigned int nHit, int bEnable) {
-    (void)pThis;
-    (void)nHit;
-    (void)bEnable;
+    if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+    auto it = g_paneCoreState_Mfccore.find(pThis);
+    if (it == g_paneCoreState_Mfccore.end() || it->second.captionButtons == nullptr) return;
+    for (INT_PTR i = 0; i < it->second.captionButtonCount; ++i) {
+        auto& button = it->second.captionButtons[i];
+        if (button.id == nHit) {
+            button.enabled = bEnable ? TRUE : FALSE;
+            return;
+        }
+    }
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x40160 (mfc140u RVA 0x40310), fully decoded:
-//     m_cyGripper = (bEnable && m_bHasGripper)                 // +0x40c, +0x418
-//         ? afxGlobalData<+0x2a8 at RVA 0x3ba628> + 5 : 0;     // after a lazy
-//           AFX_GLOBAL_DATA::Initialize (RVA 0x6a5c0) guarded by the flag at
-//           RVA 0x3ba380
-//     SetWindowPos(NULL, 0,0,0,0, 0x37);   // vtable slot 0x480; 0x37 ==
-//           SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_FRAMECHANGED
-// Left a stub. m_cyGripper (+0x40c) and m_bHasGripper (+0x418) are both inside
-// the reachable window, but the value the gripper height is derived from is not:
-// 0x3ba628 is afxGlobalData + 0x2a8 (the horizontal text height, the field
-// toolbar/CMFCToolBar.cpp names kGlobalDataTextHeightHorz), and OpenMFC's
-// afxGlobalData (phase4/src/featurepack/CMFC_misc_stubs.cpp:3652) is a
-// 720-byte all-zero blob whose exported ?Initialize@AFX_GLOBAL_DATA@@QEAAXXZ
-// (core/runtime/AFX_GLOBAL_DATA.cpp:97) is an empty stub that fills nothing
-// in, so the transcription would store a fabricated 0 + 5 == 5. Retail
-// also only ever sets m_bHasGripper from CDockablePane::Create, and this file's
-// Create keeps that flag in its side table instead, so the flag would read 0
-// forever and the "enable" branch could never be taken.
+// CDockablePane::EnableGripper -- transcribed from entry RVA 0x40310 (mfc140u).
+// When bEnable and m_bHasGripper are both true, retail lazily initializes
+// AFX_GLOBAL_DATA and stores m_nTextHeightHorz (+0x2a8) + 5 in m_cyGripper
+// (+0x40c); otherwise it stores zero. It then calls SetWindowPos with flags
+// 0x37 to recalculate the nonclient frame. The global-data initializer is a
+// real body at core/runtime/AFX_GLOBAL_DATA.cpp:675 and UpdateTextMetrics writes
+// +0x2a8; it is not an empty stub. CDockablePane::Create records hasGripper in
+// PaneCoreState, so that side-state value is used here instead of the local
+// member that Create does not populate. SetWindowPos dispatches statically.
+// Deviation: a NULL `this` is ignored; retail dereferences it.
 // Symbol: ?EnableGripper@CDockablePane@@UEAAXH@Z
 extern "C" void MS_ABI impl__EnableGripper_CDockablePane__UEAAXH_Z(CDockablePane* pThis, int bEnable) {
-    (void)pThis;
-    (void)bEnable;
+    if (pThis == nullptr) return;
+
+    BOOL hasGripper = DockablePaneField<BOOL>(pThis, kOffHasGripper);
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto it = g_paneCoreState_Mfccore.find(pThis);
+        if (it != g_paneCoreState_Mfccore.end()) hasGripper = it->second.hasGripper;
+    }
+    if (bEnable && hasGripper) {
+        EnsureDockingGlobalDataInitialized();
+        DockablePaneField<int>(pThis, kOffCyGripper) = DockingGlobalDataInt(0x2a8) + 5;
+    } else {
+        DockablePaneField<int>(pThis, kOffCyGripper) = 0;
+    }
+    impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+        static_cast<CBasePane*>(pThis), nullptr, 0, 0, 0, 0, 0x37, nullptr);
 }
 
 // CDockablePane::EnterDragMode -- transcribed from retail entry RVA 0x41e20,
@@ -1330,7 +1470,9 @@ extern "C" void MS_ABI impl__EnterDragMode_CDockablePane__MEAAXH_Z(
 
 // STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45110 (mfc140u RVA 0x452c0). It scans m_arrButtons (m_pData at
 // this+0x490, m_nSize at this+0x498) to find the button under `point`.
-// Blocked: OpenMFC's CDockablePane has no m_arrButtons.
+// PaneCoreState now stores semantic button rectangles, but this export returns
+// a CMFCCaptionButton* which consumers use as a raw retail-layout object; that
+// pointer representation and its GetRect virtual are not modeled.
 // Signature corrected to carry `this`; the by-value CPoint occupies one register.
 // Symbol: ?FindButton@CDockablePane@@IEBAPEAVCMFCCaptionButton@@VCPoint@@@Z
 extern "C" void* MS_ABI impl__FindButton_CDockablePane__IEBAPEAVCMFCCaptionButton__VCPoint___Z(
@@ -1346,7 +1488,10 @@ extern "C" void* MS_ABI impl__FindButton_CDockablePane__IEBAPEAVCMFCCaptionButto
 //             return m_arrButtons.m_pData[i];
 //     return NULL;
 // (out-of-range indices call AfxThrowInvalidArgException, RVA 0x225b80.)
-// Blocked: OpenMFC's CDockablePane has no m_arrButtons.
+// PaneCoreState has semantic IDs, but this export returns a pointer to a
+// retail-layout button (consumers read fields at +0x14/+0x20); returning a
+// CaptionButtonState* would violate that ABI. The layout-compatible pointer
+// array is a headerRequest.
 // Signature corrected to carry `this`.
 // Symbol: ?FindButtonByHit@CDockablePane@@IEBAPEAVCMFCCaptionButton@@I@Z
 extern "C" void* MS_ABI impl__FindButtonByHit_CDockablePane__IEBAPEAVCMFCCaptionButton__I_Z(
@@ -1375,8 +1520,8 @@ extern "C" void* MS_ABI impl__FindButtonByHit_CDockablePane__IEBAPEAVCMFCCaption
 // such virtual, so that term is folded to 0 here; only a user-derived visual
 // manager overriding it in retail would differ.
 // m_cyGripper is inside the reachable window and is read at its retail offset.
-// Note nothing in this DLL writes it yet (EnableGripper above is still a stub),
-// so today this returns 0 on the third test.
+// EnableGripper now populates it from AFX_GLOBAL_DATA when a gripper is enabled;
+// it remains zero until that handler has established a height.
 // Deviation: the two self-virtuals dispatch statically to this file's IsDocked
 // and the CBasePane::IsMDITabbed export.
 // Symbol: ?GetCaptionHeight@CDockablePane@@UEBAHXZ
@@ -1519,13 +1664,13 @@ extern "C" int MS_ABI impl__GetDockingStatus_CDockablePane__UEAA_AW4AFX_CS_STATU
 // indirect-call trampoline every virtual call in this DLL goes through (iat.py
 // reports it is not an import slot), not a call target of its own.
 //
-// Deviations, both forced: the caption-button scan is dropped -- m_arrButtons
-// lives at +0x488, past the usable window (see the offset note near the top) --
-// and the docking-manager lookup that gates that scan goes with it. So this
-// never reports a caption-button hit code. The remaining four outcomes
-// (HTNOWHERE / HTCLIENT / HTCAPTION / HTERROR) are retail's. Note the caption
-// strip is empty in practice today because the sibling GetCaptionHeight thunk
-// is still a stub returning 0.
+// Deviations, both forced: the caption-button scan is dropped because the
+// semantic side records cannot be returned as ABI-compatible CMFCCaptionButton*
+// objects, and the docking-manager lookup that gates that scan is not modeled.
+// So this never reports a caption-button hit code. The remaining four outcomes
+// (HTNOWHERE / HTCLIENT / HTCAPTION / HTERROR) are retail's. GetCaptionHeight
+// is implemented and uses m_cyGripper; EnableGripper initializes the necessary
+// AFX_GLOBAL_DATA metric when it is first needed.
 // Signature corrected: the generated stub dropped `this` and folded the CPoint
 // into the first slot. The by-value CPoint occupies one register (retail passes
 // it straight on to ::PtInRect as a POINT), so it is taken as an opaque 8-byte
@@ -1556,16 +1701,22 @@ extern "C" int MS_ABI impl__HitTest_CDockablePane__UEAAHVCPoint__H_Z(
     return HTERROR;
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45280 (mfc140u RVA 0x45430), fully decoded:
-//     CMFCCaptionButton* p = FindButtonByHit(nHit);   // RVA 0x45210
-//     return (p != NULL) ? p->{+0x14} : 0;
-// Blocked for the same reason as FindButtonByHit: no m_arrButtons.
-// Signature corrected to carry `this`.
+// CDockablePane::IsButtonEnabled -- transcribed from entry RVA 0x45430
+// (mfc140u): it calls FindButtonByHit(nHit) and returns the button's +0x14
+// m_bEnabled, or FALSE when no button matches. This reads the corresponding
+// semantic state field; it does not depend on exposing a raw caption-button
+// pointer.
 // Symbol: ?IsButtonEnabled@CDockablePane@@IEBAHI@Z
 extern "C" int MS_ABI impl__IsButtonEnabled_CDockablePane__IEBAHI_Z(const CDockablePane* pThis, unsigned int nHit) {
-    (void)pThis;
-    (void)nHit;
-    return 0;
+    if (pThis == nullptr) return FALSE;   // deviation: retail has no NULL check
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+    auto it = g_paneCoreState_Mfccore.find(pThis);
+    if (it == g_paneCoreState_Mfccore.end() || it->second.captionButtons == nullptr) return FALSE;
+    for (INT_PTR i = 0; i < it->second.captionButtonCount; ++i) {
+        const auto& button = it->second.captionButtons[i];
+        if (button.id == nHit) return button.enabled;
+    }
+    return FALSE;
 }
 
 // STUB. Retail entry RVA 0x41050 (mfc140; 0x41200 in mfc140u), fully decoded:
@@ -1859,10 +2010,10 @@ extern "C" void MS_ABI impl__OnClose_CDockablePane__IEAAXXZ(CDockablePane* pThis
 //     CPane::OnContextMenu(pWnd, point);                    // RVA 0xa21b0
 // m_bPrepareToFloat is inside the padding blob and is honoured here;
 // EnterDragMode above sets it.
-// Deviation: the m_bCaptionButtonsCaptured branch is dropped -- +0x4d8 is past
-// the end of the 1144-byte object (see the offset note near the top). That
-// costs nothing observable today because this file's
-// StopCaptionButtonsTracking is itself a stub, but a real one would not run.
+// m_bCaptionButtonsCaptured (+0x4d8) is read from PaneCoreState, and the
+// StopCaptionButtonsTracking call is made when set. That helper updates the
+// modeled pressed/hot state but omits RedrawButton because semantic button
+// records are not ABI-compatible CMFCCaptionButton objects.
 // Signature corrected to carry `this`; the by-value CPoint occupies one
 // register and is forwarded to CPane::OnContextMenu unexamined, as in retail.
 // Symbol: ?OnContextMenu@CDockablePane@@IEAAXPEAVCWnd@@VCPoint@@@Z
@@ -1870,33 +2021,45 @@ extern "C" void MS_ABI impl__OnContextMenu_CDockablePane__IEAAXPEAVCWnd__VCPoint
     CDockablePane* pThis, CWnd* pWnd, void* point) {
     if (pThis == nullptr) return;
     if (DockablePaneField<bool>(pThis, kOffPrepareToFloat)) return;
+    BOOL buttonsCaptured = FALSE;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto it = g_paneCoreState_Mfccore.find(pThis);
+        if (it != g_paneCoreState_Mfccore.end()) buttonsCaptured = it->second.captionButtonsCaptured;
+    }
+    if (buttonsCaptured) impl__StopCaptionButtonsTracking_CDockablePane__MEAAXXZ(pThis);
     impl__OnContextMenu_CPane__IEAAXPEAVCWnd__VCPoint___Z(
         static_cast<CPane*>(pThis), pWnd, point);
 }
 
-// STUB. The RVA map has no entry for the UNICODE mangling, but the ANSI twin
-// the disassembler reads has ?OnCreate@CDockablePane@@IEAAHPEAUtagCREATESTRUCTA@@@Z
-// at RVA 0x401f0 (mfc140.dll, ANSI); the Unicode entry is RVA 0x403a0 (mfc140u):
-//     if (Default() == -1) return -1;                      // 0x180289090
-//     SetCaptionButtons();                                 // vtable slot 0x730
-//     if (CTooltipManager::CreateToolTip(m_pToolTip, this, 16))   // +0x4b8,
-//                                                          // RVA 0x1808e0
-//         for (int i = 1; i < 4; i++) {
-//             CRect rc; ::SetRectEmpty(&rc);               // 0x1802c5368
-//             m_pToolTip->AddTool(this, (LPCTSTR)-1, &rc, i);
-//         }                                                // RVA 0x273c00
-//     return 0;
-// (Argument order read off the call at 0x18004027c: %rcx = m_pToolTip,
-// %rdx = this, %r8 = -1 (LPSTR_TEXTCALLBACK, the lpszText slot), %r9 = &rc and
-// [%rsp+0x20] = i, i.e. AddTool(CWnd*, LPCTSTR, LPCRECT, UINT_PTR).)
-// Blocked: m_pToolTip lives at +0x4b8, past the end of the 1144-byte object,
-// and the two tooltip helpers above are not implemented here either.
-// Signature corrected to carry `this`. lpCreateStruct is never read by retail.
+// CDockablePane::OnCreate -- transcribed from function entry RVA 0x403a0
+// (mfc140u). Retail returns -1 when Default() returns -1; otherwise it calls
+// SetCaptionButtons, asks CTooltipManager to create a type-16 tooltip, adds
+// callback-text tools with IDs 1..3 and empty rectangles only on successful
+// creation, then returns 0. The tooltip pointer is stored in PaneCoreState, not
+// in the compact CDockablePane allocation. lpCreateStruct is never read.
+// Deviations: a NULL `this` returns -1 instead of faulting; a successful
+// CreateToolTip with a NULL/invalid tooltip is guarded before AddTool.
 // Symbol: ?OnCreate@CDockablePane@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CDockablePane__IEAAHPEAUtagCREATESTRUCTW___Z(
     CDockablePane* pThis, CREATESTRUCTW* lpCreateStruct) {
-    (void)pThis;
     (void)lpCreateStruct;
+    if (pThis == nullptr) return -1;   // deviation: retail dereferences `this`
+    if (impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis)) == -1) return -1;
+
+    impl__SetCaptionButtons_CDockablePane__MEAAXXZ(pThis);
+    CToolTipCtrl* pToolTip = DockablePaneToolTipOf(pThis);
+    const int bCreated = impl__CreateToolTip_CTooltipManager__SAHAEAPEAVCToolTipCtrl__PEAVCWnd__I_Z(
+        &pToolTip, static_cast<CWnd*>(pThis), 16);
+    SetDockablePaneToolTip(pThis, pToolTip);
+    if (bCreated && pToolTip != nullptr && pToolTip->m_hWnd != nullptr) {
+        RECT rect = {0, 0, 0, 0};
+        const wchar_t* callbackText = reinterpret_cast<const wchar_t*>(static_cast<ULONG_PTR>(-1));
+        for (unsigned int id = 1; id < 4; ++id) {
+            impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(
+                pToolTip, static_cast<CWnd*>(pThis), callbackText, &rect, id);
+        }
+    }
     return 0;
 }
 
@@ -1921,12 +2084,11 @@ extern "C" int MS_ABI impl__OnCreate_CDockablePane__IEAAHPEAUtagCREATESTRUCTW___
 //     CPane::OnDestroy();                                  // tail jmp RVA 0xa1d40
 // Slots 0x620 / 0x490 / 0x2f8 / 0x348 / 0x460 were read off the CDockablePane
 // vftable (mfc140 RVA 0x2e3068) with vt.py; the IAT slots with iat.py.
-// Deviations: (1) the DeleteToolTip call is dropped -- m_pToolTip (+0x4b8) has
-// no storage here and this file's OnCreate cannot create one, so there is never
-// a tooltip to delete; (2) the five self-virtuals dispatch statically
-// (RemoveCaptionButtons and UndockPane to this file's own thunks, both still
-// stubs); (3) OpenMFC's RemoveHiddenMDITabbedBar tolerates a NULL manager,
-// which retail would fault on.
+// Deviations: the tooltip pointer is retrieved from PaneCoreState rather than
+// from retail's in-object +0x4b8 field; the five self-virtuals dispatch
+// statically (RemoveCaptionButtons and UndockPane to this file's thunks); and
+// OpenMFC's RemoveHiddenMDITabbedBar tolerates a NULL manager, which retail
+// would fault on.
 // Signature corrected to carry `this`.
 // Symbol: ?OnDestroy@CDockablePane@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CDockablePane__IEAAXXZ(CDockablePane* pThis) {
@@ -1952,7 +2114,9 @@ extern "C" void MS_ABI impl__OnDestroy_CDockablePane__IEAAXXZ(CDockablePane* pTh
             ::PostMessage(pParent->m_hWnd, WM_CLOSE, 0, 0);
         }
     }
-    // CTooltipManager::DeleteToolTip(m_pToolTip) skipped -- no m_pToolTip here.
+    CToolTipCtrl* pToolTip = DockablePaneToolTipOf(pThis);
+    impl__DeleteToolTip_CTooltipManager__SAXAEAPEAVCToolTipCtrl___Z(&pToolTip);
+    SetDockablePaneToolTip(pThis, nullptr);
     impl__OnDestroy_CPane__IEAAXXZ(static_cast<CPane*>(pThis));
 }
 
@@ -2047,10 +2211,12 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CDockablePane__IEAAXIVCPoint___Z(
 // (GW_CHILD == 5 and GW_HWNDNEXT == 2 are the two `mov $N,%edx` before the
 // GetWindow calls; slots read with vt.py off the CDockablePane vftable at
 // mfc140 RVA 0x2e3068.)
-// Deviation, forced: the caption-button arm (m_nHot != 0) is dropped -- m_nHot,
-// m_nHit (+0x4d0/+0x4d4) and m_arrButtons (+0x488) have no storage here, and
-// with no m_arrButtons no caption button can ever be hot, so the m_nHot == 0
-// arm is the only one this build can reach. m_bPrepareToFloat is inside the
+// Deviation, forced: the caption-button arm (m_nHot != 0) is dropped. The
+// hot/hit IDs now have semantic PaneCoreState fields, but there is no
+// ABI-compatible CMFCCaptionButton object to pass through the retail lookup and
+// action sequence; SetCaptionButtons creates only semantic records and
+// OnTrackCaptionButtons remains a stub. This body therefore follows the no-hot
+// arm. m_bPrepareToFloat is inside the
 // padding window and is set at its retail offset (OnMouseMove / OnContextMenu /
 // OnNcMouseMove / OnCancelMode read and clear it). The three self-virtuals
 // dispatch statically; CPane::OnLButtonDown is still a generated stub as of
@@ -2087,9 +2253,10 @@ extern "C" void MS_ABI impl__OnLButtonDown_CDockablePane__IEAAXIVCPoint___Z(
 // not transcribed. Its body touches the CDockablePane fields at +0x408
 // (m_bPrepareToFloat), +0x438 (m_bPinState), +0x480 (m_pAutoHideBar), +0x4d0
 // (m_nHot) and +0x4d4 (m_nHit) and dispatches the caption-button release
-// (close / pin / maximize) through m_arrButtons. Blocked: m_nHot, m_nHit and
-// m_arrButtons have no storage here and no caption button can exist in this
-// build (see DrawCaption), so the release logic has nothing to act on.
+// (close / pin / maximize) through m_arrButtons. The hot/hit IDs are now
+// represented in PaneCoreState, but its semantic button records are not
+// ABI-compatible CMFCCaptionButton objects, so the release/virtual-action path
+// cannot be transcribed faithfully.
 // Signature corrected to carry `this`.
 // Symbol: ?OnLButtonUp@CDockablePane@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonUp_CDockablePane__IEAAXIVCPoint___Z(
@@ -2106,9 +2273,9 @@ extern "C" void MS_ABI impl__OnLButtonUp_CDockablePane__IEAAXIVCPoint___Z(
 // CGlobalUtils::GetDockingManager/ForceAdjustLayout, RVA 0x6ccc0 / 0x6d800),
 // the DT_STANDARD arm moves the drag frame (CMFCDragFrameImpl::MoveDragFrame,
 // RVA 0x55450). Blocked: it reads and writes m_bPrepareToFloat (+0x408),
-// m_bReadyToFloat (+0x409) and m_bCaptionButtonsCaptured (+0x4d8) -- the last
-// is past the end of the object -- plus a drag anchor point at +0x240, which
-// falls inside the 128-byte m_dragFrameImpl blob this repo models opaquely.
+// m_bReadyToFloat (+0x409) and m_bCaptionButtonsCaptured (+0x4d8, represented
+// in PaneCoreState), plus a drag anchor point at +0x240, which falls inside the
+// 128-byte m_dragFrameImpl blob this repo models opaquely.
 // Signature corrected to carry `this`.
 // Symbol: ?OnMouseMove@CDockablePane@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CDockablePane__IEAAXIVCPoint___Z(
@@ -2127,7 +2294,9 @@ extern "C" void MS_ABI impl__OnMouseMove_CDockablePane__IEAAXIVCPoint___Z(
 //         // reserves the caption strip: GetCaptionHeight() (slot 0x358),
 //         // ::CopyRect of lpncsp->rgrc[0] (0x1802c5240) and m_nBorderSize
 //         // (+0x414); the rest of that arm was not transcribed.
-// Blocked: m_arrButtons is at +0x488, past the end of the 1144-byte object.
+// The semantic button list is modeled, but not the retail m_arrButtons pointer
+// array or pointer-compatible button objects; the nonclient layout also depends
+// on button virtuals and visual-manager behavior that are not reproduced here.
 // Signature corrected to carry `this`.
 // Symbol: ?OnNcCalcSize@CDockablePane@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
 extern "C" void MS_ABI impl__OnNcCalcSize_CDockablePane__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(
@@ -2215,36 +2384,65 @@ extern "C" void MS_ABI impl__OnNcPaint_CDockablePane__IEAAXXZ(CDockablePane* pTh
     (void)pThis;
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x46120, fully decoded:
-//     if (pNMHDR == NULL || m_pToolTip == NULL ||       // m_pToolTip at +0x4b8
-//         m_pToolTip->m_hWnd == NULL || pNMHDR->hwndFrom != m_pToolTip->m_hWnd)
-//         return FALSE;
-//     switch (pNMHDR->idFrom) {
-//     case 1:  nID = 0x3ea0; break;                     // close button
-//     case 2:  nID = 0x3ea1;                            // pin button
-//              if (::GetAsyncKeyState(VK_CONTROL) < 0)  // 0x1802c4c08, key 0x11
-//                  nID += IsAutohideAllEnabled() ? 3 : 0;   // vtable slot 0x690
-//              break;                                    // (`neg %eax ; sbb %ecx,%ecx
-//                                                        //   ; and $0x3,%ecx`)
-//     case 3:  nID = 0x428e; break;
-//     default: return FALSE;
-//     }
-//     HINSTANCE h = AfxFindStringResourceHandle(nID);   // RVA 0x2accf0
-//     if (h == NULL || !<the module-level CString at RVA 0x3ba308>.LoadString(h, nID))
-//         return FALSE;                                 // RVA 0xdc00
-//     ((TOOLTIPTEXT*)pNMHDR)->lpszText = that string;   // pNMHDR+0x18
-//     return TRUE;
-// Blocked: m_pToolTip is at +0x4b8, past the end of the 1144-byte object, so
-// the guard that gates the whole body cannot be evaluated.
-// Signature corrected to carry `this`.
+// CDockablePane::OnNeedTipText -- transcribed from the ANSI-twin function
+// entry RVA 0x46120 (mfc140.dll). A NULL pNMHDR throws via
+// AfxThrowInvalidArgException (entry RVA 0x225b80); otherwise the handler checks
+// the tooltip HWND and pNMHDR->hwndFrom, selects resource IDs 0x3ea0 (close),
+// 0x3ea1 (pin), or 0x428e (maximize), and returns FALSE for other IDs or failed
+// resource lookup/loading. For the pin ID, VK_CONTROL plus the +0x420
+// IsAutohideAllEnabled field adds 3 to the resource ID. `id` and `pResult` are
+// unused. The ANSI-twin IAT slot 0x1802c4c08 resolves to USER32!GetAsyncKeyState.
+// Successful text is loaded into a file-static CString cache and its pointer is
+// written at pNMHDR+0x18, matching the lifetime of retail's module CString at
+// static RVA 0x3ba308 (mfc140); cache storage differs but remains valid after
+// return. AfxFindStringResourceHandle and CString::LoadString are existing
+// thunks. Deviations: `this` is NULL-checked after the retail NULL-NMHDR throw.
 // Symbol: ?OnNeedTipText@CDockablePane@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
 extern "C" int MS_ABI impl__OnNeedTipText_CDockablePane__IEAAHIPEAUtagNMHDR__PEA_J_Z(
     CDockablePane* pThis, unsigned int id, NMHDR* pNMHDR, __int64* pResult) {
-    (void)pThis;
     (void)id;
-    (void)pNMHDR;
     (void)pResult;
-    return 0;
+    if (pNMHDR == nullptr) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return FALSE;
+    }
+    if (pThis == nullptr) return FALSE;
+
+    CToolTipCtrl* pToolTip = DockablePaneToolTipOf(pThis);
+    if (pToolTip == nullptr || pToolTip->m_hWnd == nullptr ||
+        pNMHDR->hwndFrom != pToolTip->m_hWnd) return FALSE;
+
+    unsigned int resourceID = 0;
+    switch (pNMHDR->idFrom) {
+    case 1:
+        resourceID = 0x3ea0;
+        break;
+    case 2:
+        resourceID = 0x3ea1;
+        if (::GetAsyncKeyState(VK_CONTROL) < 0 &&
+            DockablePaneField<BOOL>(pThis, kOffEnableAutoHideAll)) {
+            resourceID += 3;
+        }
+        break;
+    case 3:
+        resourceID = 0x428e;
+        break;
+    default:
+        return FALSE;
+    }
+
+    HINSTANCE hInstance = static_cast<HINSTANCE>(
+        impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(resourceID));
+    if (hInstance == nullptr) return FALSE;
+
+    std::lock_guard<std::mutex> lock(DockablePaneTipTextMutex());
+    CString& text = DockablePaneTipTextCache();
+    if (!impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(
+            &text, hInstance, resourceID)) {
+        return FALSE;
+    }
+    reinterpret_cast<NMTTDISPINFOW*>(pNMHDR)->lpszText = const_cast<LPWSTR>(text.GetString());
+    return TRUE;
 }
 
 // CDockablePane::OnPaint -- transcribed from retail. This export is absent from
@@ -2490,11 +2688,10 @@ extern "C" int MS_ABI impl__OnSetText_CDockablePane__IEAAHPEB_W_Z(CDockablePane*
 //     }
 // Slot 0x3f0 of the CDockablePane vftable (mfc140 RVA 0x2e3068) holds
 // ?EnableGripper@CDockablePane@@UEAAXH@Z (RVA 0x40160), which this file
-// exports, so the virtual call is a direct call to its own thunk (still a stub
-// -- see `stubbed`). m_cyGripper is inside the reachable window and is read and
-// cleared at its retail offset. Note nothing here writes a non-zero
-// m_cyGripper yet (EnableGripper is that stub), so today the branch is not
-// taken. The CBasePane::OnSettingChange sibling is itself a stub whose
+// exports, so the virtual call is statically routed to its thunk. m_cyGripper is
+// inside the reachable window and is read and cleared at its retail offset;
+// EnableGripper then recalculates its height from AFX_GLOBAL_DATA. The
+// CBasePane::OnSettingChange sibling is itself a stub whose
 // parameter list omits `this`; it reads no argument, so the extra register
 // argument is harmless under the MS x64 ABI.
 // Deviation: NULL check on `this`.
@@ -2510,35 +2707,63 @@ extern "C" void MS_ABI impl__OnSettingChange_CDockablePane__IEAAXIPEB_W_Z(
     }
 }
 
-// STUB. Retail entry RVA 0x42950 (mfc140u; 0x427a0 in mfc140), decoded but
-// not transcribed:
-//     if (!IsAutoHideMode() && !::IsWindow(m_hDefaultSlider)) return;   // slot 0x3c8; +0x4c0
-//     DWORD dwExStyle = GetDockSiteFrameWnd()->GetExStyle();            // slot 0x348; RVA 0x2a75d0
-//     m_nSlideStep++;                                                   // +0x450
-//     CRect rectWnd;    ::GetWindowRect(m_hWnd, &rectWnd);             GetDockSiteFrameWnd()->ScreenToClient(&rectWnd);
-//     CRect rectSlider; ::GetWindowRect(m_hDefaultSlider, &rectSlider); GetDockSiteFrameWnd()->ScreenToClient(&rectSlider);
-//     if (m_ahSlideMode == AFX_AHSM_MOVE /*1*/) {                       // +0x474
-//         BOOL bRTL = dwExStyle & WS_EX_LAYOUTRTL /*0x400000*/;
-//         OffsetRectForSliding(rectWnd, bSlideOut, bRTL);               // RVA 0x429a0
-//         OffsetRectForSliding(rectSlider, bSlideOut, bRTL);
-//         if (bSlideOut) {
-//             CPoint pt = CalcCorrectOffset(rectWnd, bRTL);             // RVA 0x42c10
-//             ::OffsetRect(&rectWnd, pt.x, pt.y); ::OffsetRect(&rectSlider, pt.x, pt.y);
-//         }
-//     } else {
-//         CalcRectForSliding(rectWnd, rectSlider, bSlideOut);           // RVA 0x42a70
-//     }
-//     SetWindowPos(NULL, rectWnd.left, rectWnd.top, rectWnd.Width(), rectWnd.Height(),
-//                  SWP_NOZORDER | SWP_NOACTIVATE /*0x14*/, NULL);      // slot 0x480
-//     ::SetWindowPos(m_hDefaultSlider, NULL, rectSlider.left, rectSlider.top,
-//                    rectSlider.Width(), rectSlider.Height(), 0x14);   // IAT 0x1802c4d10
-// Blocked: every arm branches on m_ahSlideMode (+0x474), which has no storage
-// in the 1144-byte object (it is where a derived CBaseTabbedPane's own padding
-// blob begins), and the slide geometry it drives (Slide below) is blocked too.
+// CDockablePane::OnSlide -- transcribed from the ANSI-twin function entry RVA
+// 0x427a0 (mfc140.dll). Retail returns when IsAutoHideMode() is false and the
+// default-slider HWND is not a window. Otherwise it gets the dock-site
+// frame's extended style, increments m_nSlideStep (+0x450), obtains the pane
+// and slider window rectangles in frame-client coordinates, then either calls
+// OffsetRectForSliding on both rectangles (m_ahSlideMode == 1, +0x474) and
+// applies CalcCorrectOffset when sliding out, or calls CalcRectForSliding for
+// other modes. It finally positions both windows with SWP_NOZORDER |
+// SWP_NOACTIVATE. ANSI-twin IAT slots resolved by iat.py are USER32!IsWindow
+// (0x1802c5390), GetWindowRect (0x1802c5370), SetWindowPos (0x1802c4d10), and
+// OffsetRect (0x1802c5318).
+// Deviations: auto-hide mode comes from PaneCoreState via the local C++ getter;
+// the default-slider HWND is read from DockablePaneExtra rather than retail
+// +0x4c0. GetDockSiteFrameWnd and pane SetWindowPos dispatch use stock thunks,
+// so subclass overrides do not run. As in retail, frame and HWNDs are not
+// checked before the downstream calls.
 // Symbol: ?OnSlide@CDockablePane@@MEAAXH@Z
 extern "C" void MS_ABI impl__OnSlide_CDockablePane__MEAAXH_Z(CDockablePane* pThis, int bSlideOut) {
-    (void)pThis;
-    (void)bSlideOut;
+    const HWND hSlider = ExtraOf(pThis).hDefaultSlider;
+    if (!pThis->IsAutoHideMode() && !::IsWindow(hSlider)) return;
+
+    CWnd* pFrame = impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(
+        static_cast<const CBasePane*>(pThis));
+    const unsigned long dwExStyle = impl__GetExStyle_CWnd__QEBAKXZ(pFrame);
+    ++DockablePaneField<int>(pThis, kOffSlideStep);
+
+    CRect rectPane(0, 0, 0, 0);
+    ::GetWindowRect(pThis->m_hWnd, rectPane);
+    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pFrame, rectPane);
+    CRect rectSlider(0, 0, 0, 0);
+    ::GetWindowRect(hSlider, rectSlider);
+    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pFrame, rectSlider);
+
+    if (DockablePaneField<UINT>(pThis, kOffAHSlideMode) == 1) {
+        const int bRTL = static_cast<int>(dwExStyle & WS_EX_LAYOUTRTL);
+        impl__OffsetRectForSliding_CDockablePane__IEAAXAEAVCRect__HH_Z(
+            pThis, rectPane, bSlideOut, bRTL);
+        impl__OffsetRectForSliding_CDockablePane__IEAAXAEAVCRect__HH_Z(
+            pThis, rectSlider, bSlideOut, bRTL);
+        if (bSlideOut) {
+            POINT correction = {0, 0};
+            impl__CalcCorrectOffset_CDockablePane__IEAA_AVCPoint__VCRect__H_Z(
+                pThis, &correction, rectPane, bRTL);
+            ::OffsetRect(rectPane, correction.x, correction.y);
+            ::OffsetRect(rectSlider, correction.x, correction.y);
+        }
+    } else {
+        impl__CalcRectForSliding_CDockablePane__IEAAXAEAVCRect__0H_Z(
+            pThis, rectPane, rectSlider, bSlideOut);
+    }
+
+    const unsigned int flags = SWP_NOZORDER | SWP_NOACTIVATE;
+    impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
+        static_cast<CBasePane*>(pThis), nullptr, rectPane.left, rectPane.top,
+        rectPane.Width(), rectPane.Height(), flags, nullptr);
+    ::SetWindowPos(hSlider, nullptr, rectSlider.left, rectSlider.top,
+                   rectSlider.Width(), rectSlider.Height(), flags);
 }
 
 // CDockablePane::OnTimer -- transcribed from retail entry RVA 0x42400 (mfc140u;
@@ -2580,18 +2805,15 @@ extern "C" void MS_ABI impl__OnSlide_CDockablePane__MEAAXH_Z(CDockablePane* pThi
 //     }
 // 0x585 == RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN|RDW_UPDATENOW|RDW_FRAME.
 // Slots 0x738/0x740/0x748 of the CDockablePane vftable (mfc140 RVA 0x2e3068)
-// hold CheckAutoHideCondition / CheckStopSlideCondition / OnSlide (RVAs
-// 0x423c0 / 0x42570 / 0x427a0), all exported by this file, so the three
-// virtual calls go to its own thunks -- all three of which are still stubs
-// returning 0 / doing nothing (see `stubbed`), so today the slide timers never
-// stop through this path and the auto-hide-condition timer is never killed.
+// hold CheckAutoHideCondition / CheckStopSlideCondition / OnSlide (entries
+// 0x423c0 / 0x42570 / 0x427a0 in mfc140). All three handlers are implemented
+// from their retail bodies; the slide path reads the default-slider HWND from
+// DockablePaneExtra and statically dispatches stock helper thunks as noted above.
 // The five timer/flag fields are inside the reachable padding window and are
 // used at their retail offsets; m_hDefaultSlider comes from the file-private
-// DockablePaneExtra table. NOTE: retail's .data initialises
-// ?m_nTimeOutBeforeAutoHide@CDockablePane@@2HA to 700 (read at mfc140 RVA
-// 0x3aaac4), but OpenMFC's definition (docking/StaticData.cpp:38) starts at 0,
-// so until that file is corrected the SetTimer below asks for a 0 ms period
-// (USER32 clamps it to USER_TIMER_MINIMUM) -- reported as a headerRequest.
+// DockablePaneExtra table. Both the retail .data value (mfc140 RVA 0x3aaac4)
+// and OpenMFC's current docking/StaticData.cpp definition initialize
+// m_nTimeOutBeforeAutoHide to 700, so the timer period matches retail.
 // Deviations: NULL check on `this`; the divider is only hidden / redrawn when
 // GetDefaultPaneDivider() / the stored HWND is non-NULL (retail would call
 // CWnd::ShowWindow on a NULL object and ::RedrawWindow(NULL, ...), which
@@ -2644,8 +2866,14 @@ extern "C" void MS_ABI impl__OnTimer_CDockablePane__IEAAX_K_Z(CDockablePane* pTh
     (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x44f00; not transcribed -- it tracks the caption
-// buttons held in m_arrButtons (+0x488), which is past the usable window.
+// STUB. Retail ANSI-twin function entry RVA 0x44f00 (mfc140.dll): it returns
+// when an active popup menu exists; otherwise it calls FindButton(point),
+// changes m_nHot and the button's +0x0c state, redraws changed buttons, and
+// updates capture / m_bCaptionButtonsCaptured. PaneCoreState now has semantic
+// button records and hot/hit IDs, but FindButton returns a retail-layout
+// CMFCCaptionButton* and the tracking body accesses that object's fields. The
+// semantic records are not ABI-compatible button objects, so this action path
+// remains blocked.
 // Signature corrected to carry `this` (OnNcMouseMove above calls it).
 // Symbol: ?OnTrackCaptionButtons@CDockablePane@@MEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnTrackCaptionButtons_CDockablePane__MEAAXVCPoint___Z(
@@ -2692,31 +2920,39 @@ extern "C" void MS_ABI impl__OnUpdateCmdUI_CDockablePane__UEAAXPEAVCFrameWnd__H_
     }
 }
 
-// STUB. Retail entry RVA 0x46630 (mfc140u; 0x46480 in mfc140), fully decoded
-// (lParam is never read):
-//     if (wParam & 0x10) {                                          // `test %dl,%r8b`
-//         CTooltipManager::CreateToolTip(m_pToolTip, this, 0x10);   // +0x4b8; RVA 0x1808e0
-//         for (int i = 1; i < 4; i++) {
-//             CRect rc; ::SetRectEmpty(&rc);                        // IAT 0x1802c5368
-//             m_pToolTip->AddTool(this, LPSTR_TEXTCALLBACK, &rc, i);   // RVA 0x273c00, unchecked NULL
-//         }
-//         UpdateTooltips();                                         // RVA 0x40440
-//     }
-//     return 0;
-// Blocked, as OnCreate above: m_pToolTip (+0x4b8) has no storage here.
-// Signature corrected to carry `this`.
+// CDockablePane::OnUpdateToolTips -- transcribed from the ANSI-twin entry
+// RVA 0x46480 (mfc140.dll; the Unicode export was not resolved by the RVA map).
+// If wParam contains 0x10, retail creates a type-16 tooltip, adds three
+// LPSTR_TEXTCALLBACK tools with empty rectangles and IDs 1..3, then calls
+// UpdateTooltips; lParam is unused. The tooltip pointer is held in PaneCoreState.
+// Deviations: a NULL `this` and a NULL/invalid tooltip are guarded before calls.
 // Symbol: ?OnUpdateToolTips@CDockablePane@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CDockablePane__IEAA_J_K_J_Z(
     CDockablePane* pThis, unsigned __int64 wParam, __int64 lParam) {
-    (void)pThis;
-    (void)wParam;
     (void)lParam;
+    if (pThis == nullptr) return 0;   // deviation: retail has no NULL check
+    if ((wParam & 0x10u) != 0) {
+        CToolTipCtrl* pToolTip = DockablePaneToolTipOf(pThis);
+        (void)impl__CreateToolTip_CTooltipManager__SAHAEAPEAVCToolTipCtrl__PEAVCWnd__I_Z(
+            &pToolTip, static_cast<CWnd*>(pThis), 0x10);
+        SetDockablePaneToolTip(pThis, pToolTip);
+        if (pToolTip != nullptr && pToolTip->m_hWnd != nullptr) {
+            RECT rect = {0, 0, 0, 0};
+            const wchar_t* callbackText = reinterpret_cast<const wchar_t*>(static_cast<ULONG_PTR>(-1));
+            for (unsigned int id = 1; id < 4; ++id) {
+                impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(
+                    pToolTip, static_cast<CWnd*>(pThis), callbackText, &rect, id);
+            }
+            impl__UpdateTooltips_CDockablePane__IEAAXXZ(pThis);
+        }
+    }
     return 0;
 }
 
-// CDockablePane::PreTranslateMessage -- PARTIAL transcription of retail entry
-// RVA 0x45550 (mfc140u; 0x453a0 in mfc140). The message-id decode is the
-// `sub`/`je` chain at 0x453b5..0x45409; the rest reads:
+// CDockablePane::PreTranslateMessage -- PARTIAL transcription of the ANSI-twin
+// entry RVA 0x453a0 (mfc140.dll; the Unicode export was not resolved by the RVA
+// map). The message-id decode is the `sub`/`je` chain at instruction addresses
+// 0x453b5..0x45409 inside that entry; the rest reads:
 //     switch (pMsg->message) {
 //     case WM_NCLBUTTONDOWN: case WM_NCLBUTTONUP: case WM_NCRBUTTONDOWN:
 //     case WM_NCRBUTTONUP: case WM_NCMBUTTONDOWN: case WM_NCMBUTTONUP:
@@ -2725,11 +2961,13 @@ extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CDockablePane__IEAA_J_K_J_Z(
 //     case WM_MBUTTONUP:
 //         if (m_pToolTip != NULL && m_pToolTip->m_hWnd != NULL)          // +0x4b8
 //             ::SendMessage(m_pToolTip->m_hWnd, TTM_RELAYEVENT /*0x407*/, 0, (LPARAM)pMsg);
+//                 // mfc140 IAT slot 0x1802c5378 = USER32!SendMessageA; the
+//                 // mfc140u equivalent is SendMessageW.
 //     }
 //     if (pMsg->message == WM_KEYDOWN) {
 //         if ((GetDockingMode() & DT_STANDARD /*`test $2,%al`*/) &&      // vtable slot 0x380
 //             m_bPrepareToFloat && pMsg->wParam == VK_ESCAPE) {           // +0x408
-//             ::PostMessage(m_hWnd, WM_CANCELMODE, 0, 0);                 // IAT 0x1802c52d8
+//             ::PostMessage(m_hWnd, WM_CANCELMODE, 0, 0);                 // IAT 0x1802c52d8 = USER32!PostMessageA; Unicode twin: PostMessageW
 //             return TRUE;
 //         }
 //         if (IsTabbed() && pMsg->wParam == VK_ESCAPE) {                  // vtable slot 0x2e8
@@ -2748,9 +2986,9 @@ extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CDockablePane__IEAA_J_K_J_Z(
 //                 CWnd::FromHandle(::GetParent(m_hWnd)));                 // RVA 0x6ccc0
 //             CSmartDockingManager* pSD = pMgr ? pMgr->{+0x308} : NULL;
 //             if (pSD != NULL && pSD->{+0xc} && pSD->{+0x8}) {           // created && started
-//                 CWnd* pParent = CWnd::FromHandle(::GetParent(m_hWnd));
+//                 CWnd* pParent = CWnd::FromHandle(::GetParent(m_hWnd)); // IAT 0x1802c5300 = USER32!GetParent
 //                 if (pParent != NULL && pParent->IsKindOf(<RTC 0x3aa418 "CPaneFrameWnd">) &&
-//                     CWnd::FromHandle(::GetCapture()) == pParent) {      // IAT 0x1802c4c38
+//                     CWnd::FromHandle(::GetCapture()) == pParent) {      // IAT 0x1802c4c38 = USER32!GetCapture
 //                     ::PostMessage(pParent->m_hWnd, WM_CANCELMODE, 0, 0);
 //                     return TRUE;
 //                 }
@@ -2758,17 +2996,12 @@ extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CDockablePane__IEAA_J_K_J_Z(
 //         }
 //     }
 //     return CBasePane::PreTranslateMessage(pMsg);                        // RVA 0xcbb0
-// Reproduced: the DT_STANDARD escape arm, the tabbed-pane escape arm and the
-// base-class tail. Dropped, each because the state it reads has no storage in
-// this build: (1) the tooltip relay -- m_pToolTip (+0x4b8) is past the end of
-// the 1144-byte object and this file's OnCreate cannot create one, so there is
-// never a tooltip to relay to; (2) the mini-frame's dragging byte (+0x10d) --
-// OpenMFC keeps it in a side table private to docking/CPaneFrameWnd.cpp, so
-// that half of the tabbed-pane condition reads as FALSE and only the tabbed
-// pane's own m_bPrepareToFloat (inside its reachable padding window) is
-// honoured; (3) the DT_SMART arm -- OpenMFC's CDockingManager has no
-// smart-docking-manager member at +0x308 and no CSmartDockingManager, so the
-// condition cannot be evaluated and the arm is skipped.
+// Reproduced: the tooltip relay, DT_STANDARD escape arm, tabbed-pane escape
+// arm and base-class tail. Dropped: (1) the mini-frame dragging byte (+0x10d) is
+// held in a side table private to docking/CPaneFrameWnd.cpp, so only the
+// tabbed pane's own m_bPrepareToFloat state is tested; (2) the DT_SMART arm
+// needs a CDockingManager smart-docking-manager member at +0x308 and a
+// CSmartDockingManager, neither available in this build.
 // Other deviations: NULL check on `this` and pMsg; the self-virtuals dispatch
 // statically; CBasePane::PreTranslateMessage (docking/CBasePane.cpp:1423) is
 // still a stub returning 0 whose parameter list omits `this`.
@@ -2777,7 +3010,24 @@ extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CDockablePane__IEAA_J_K_J_Z(
 extern "C" int MS_ABI impl__PreTranslateMessage_CDockablePane__UEAAHPEAUtagMSG___Z(CDockablePane* pThis, MSG* pMsg) {
     if (pThis == nullptr || pMsg == nullptr) return FALSE;   // deviation: retail has no NULL check
 
-    // Tooltip relay (TTM_RELAYEVENT) dropped -- no m_pToolTip here, see above.
+    bool relayTooltip = false;
+    switch (pMsg->message) {
+    case WM_NCLBUTTONDOWN: case WM_NCLBUTTONUP:
+    case WM_NCRBUTTONDOWN: case WM_NCRBUTTONUP:
+    case WM_NCMBUTTONDOWN: case WM_NCMBUTTONUP:
+    case WM_KEYDOWN: case WM_SYSKEYDOWN:
+    case WM_MOUSEMOVE: case WM_LBUTTONDOWN: case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN: case WM_RBUTTONUP: case WM_MBUTTONDOWN: case WM_MBUTTONUP:
+        relayTooltip = true;
+        break;
+    default:
+        break;
+    }
+    CToolTipCtrl* pToolTip = DockablePaneToolTipOf(pThis);
+    if (relayTooltip && pToolTip != nullptr && pToolTip->m_hWnd != nullptr) {
+        ::SendMessage(pToolTip->m_hWnd, 0x0407 /* TTM_RELAYEVENT */, 0,
+                      reinterpret_cast<LPARAM>(pMsg));
+    }
 
     if (pMsg->message == WM_KEYDOWN) {
         if ((impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(static_cast<const CBasePane*>(pThis)) & kDockTypeStandard) &&
@@ -2810,8 +3060,9 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CDockablePane__UEAAHPEAUtagMSG__
 //     ::SendMessage(m_hWnd, WM_NCPAINT /*0x85*/, 0, 0);    // IAT 0x1802c5378
 //     ::SetRectEmpty(&m_rectRedraw);                       // IAT 0x1802c5368
 //     ::UpdateWindow(m_hWnd);                              // IAT 0x1802c5328
-// Blocked: no caption button can exist in this build (see DrawCaption above)
-// and the OnNcPaint that would consume m_rectRedraw is itself a stub.
+// Blocked: the model has semantic button records but no ABI-compatible
+// CMFCCaptionButton object whose enabled flag/GetRect can be read here, and the
+// OnNcPaint that would consume m_rectRedraw is itself a stub.
 // Signature corrected to carry `this`.
 // Symbol: ?RedrawButton@CDockablePane@@IEAAXPEBVCMFCCaptionButton@@@Z
 extern "C" void MS_ABI impl__RedrawButton_CDockablePane__IEAAXPEBVCMFCCaptionButton___Z(
@@ -2820,18 +3071,28 @@ extern "C" void MS_ABI impl__RedrawButton_CDockablePane__IEAAXPEBVCMFCCaptionBut
     (void)pButton;
 }
 
-// STUB. Retail entry RVA 0x46210 (mfc140u; 0x46060 in mfc140), fully decoded:
-//     for (i = 0; i < m_arrButtons.m_nSize; i++)          // +0x498
-//         if (m_arrButtons.m_pData[i] != NULL)            // +0x490
-//             delete m_arrButtons.m_pData[i];             // vtable slot 1, flag 1
-//     m_arrButtons.RemoveAll();                           // +0x488
-// Blocked: OpenMFC's CDockablePane has no m_arrButtons (+0x488 is past the end
-// of the 1144-byte object). Harmless as a no-op: nothing here can populate the
-// array either (SetCaptionButtons below).
-// Signature corrected to carry `this` (OnDestroy above calls it).
+// CDockablePane::RemoveCaptionButtons -- transcribed from entry RVA 0x46060
+// (mfc140.dll ANSI twin; the Unicode export was not resolved by the RVA map).
+// Retail deletes each non-NULL array element and removes all entries. The
+// modeled PaneCoreState array contains trivial semantic records rather than
+// CMFCCaptionButton objects, so this clears and frees that array instead.
+// Deviation: NULL `this` is ignored; retail dereferences it.
 // Symbol: ?RemoveCaptionButtons@CDockablePane@@IEAAXXZ
 extern "C" void MS_ABI impl__RemoveCaptionButtons_CDockablePane__IEAAXXZ(CDockablePane* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    openmfc::docking_state::CaptionButtonState* buttons = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto it = g_paneCoreState_Mfccore.find(pThis);
+        if (it == g_paneCoreState_Mfccore.end()) return;
+        auto& state = it->second;
+        buttons = state.captionButtons;
+        state.captionButtons = nullptr;
+        state.captionButtonCount = 0;
+        state.captionButtonCapacity = 0;
+        state.captionButtonGrowBy = 0;
+    }
+    if (buttons != nullptr) ::HeapFree(::GetProcessHeap(), 0, buttons);
 }
 
 // CDockablePane::RemoveFromDefaultPaneDivider -- transcribed from retail entry
@@ -2871,12 +3132,12 @@ extern "C" void MS_ABI impl__RemoveFromDefaultPaneDivider_CDockablePane__QEAAXXZ
 // vftable (0x2ee738); slot 0x508 of the CPaneDivider vftable (0x2f4d28) holds
 // ?ReplacePane@CPaneDivider@@UEAAHPEAVCDockablePane@@0@Z (RVA 0xaca00).
 // Deviations: the two virtuals dispatch statically -- the mini-frame one
-// through an IsKindOf(CMultiPaneFrameWnd) test that selects between the two
-// exports named above (the CMultiPaneFrameWnd export is still a generated stub
-// whose parameter list omits `this`; it reads nothing), the divider one to the
-// CPaneDivider export (also still a stub returning 0, so the divider path
-// returns FALSE today). RemovePaneFromDockManager is likewise a stub. A NULL
-// check on `this` is added.
+// through an IsKindOf(CMultiPaneFrameWnd) test selecting the CPaneFrameWnd or
+// CMultiPaneFrameWnd side-state body; the divider one to CPaneDivider's
+// side-state ReplacePane body. The latter cannot currently be reached for
+// OpenMFC-created compact dividers because GetDefaultPaneDivider returns NULL.
+// RemovePaneFromDockManager remains a stub, so its follow-up cleanup is omitted.
+// A NULL check on `this` is added.
 // Signature corrected: the generated list dropped `this` and two parameters.
 // Symbol: ?ReplacePane@CDockablePane@@QEAAHPEAV1@W4AFX_DOCK_METHOD@@H@Z
 extern "C" int MS_ABI impl__ReplacePane_CDockablePane__QEAAHPEAV1_W4AFX_DOCK_METHOD__H_Z(
@@ -2950,14 +3211,9 @@ extern "C" int MS_ABI impl__SaveState_CDockablePane__UEAAHPEB_WHI_Z(
 //                                    // (RVA 0x1cfb90) when fewer than 4 bytes fit, 4-byte store;
 //                                    // throws writeOnly (2) if the archive were loading
 //     }
-// The two rects inside CRecentDockSiteInfo are the ones CPane::LoadState (see
-// docking/CPane.cpp:925) reads from the registry as "RectRecentFloat"
-// (m_recentDockInfo + 8, i.e. this+0x2c0) and "RectRecentDocked"
-// (m_recentDockInfo + 0x50, this+0x308). OpenMFC's CRecentDockSiteInfo is an
-// opaque 288-byte block, but it is a real member at the retail offset +0x2b8
-// (include/openmfc/afxmfc.h:453), so the two rects are addressed through its
-// storage; m_rectSavedDockedRect and m_bRecentFloatingState are named CPane
-// members. The two inline stream operators are reproduced with Read/Write of
+// CRecentDockSiteInfo's named POD mirror in afxmfc.h exposes the float rect at
+// +0x08 and the slider docked rect at +0x50; CPane::LoadState reads those retail
+// locations. The containing member remains at CPane +0x2b8. The two inline stream operators are reproduced with Read/Write of
 // 4 bytes plus the same endOfFile throw the inline path raises through
 // FillBuffer; the readOnly/writeOnly checks are unreachable on their branches.
 // Deviations: NULL check on `this`; IsFloating dispatches statically to this
@@ -2973,8 +3229,9 @@ extern "C" void MS_ABI impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(CDoc
     static_assert(offsetof(CPane, m_recentDockInfo) == 0x2b8, "CRecentDockSiteInfo moved");
     static_assert(offsetof(CPane, m_rectSavedDockedRect) == 0x3d8, "m_rectSavedDockedRect moved");
     static_assert(offsetof(CPane, m_bRecentFloatingState) == 0x3e8, "m_bRecentFloatingState moved");
-    char* pRecentFloat  = pThis->m_recentDockInfo._storage + kOffRecentFloatRect;
-    char* pRecentDocked = pThis->m_recentDockInfo._storage + kOffRecentDockedRect;
+    char* pRecentInfo = reinterpret_cast<char*>(&pThis->m_recentDockInfo);
+    char* pRecentFloat = pRecentInfo + kOffRecentFloatRect;
+    char* pRecentDocked = pRecentInfo + kOffRecentDockedRect;
     if (ar.IsLoading()) {
         if (impl__Read_CArchive__QEAAIPEAXI_Z(&ar, pRecentFloat, sizeof(RECT)) != sizeof(RECT)) {
             impl__AfxThrowArchiveException__YAXHPEB_W_Z(3 /*CArchiveException::endOfFile*/, nullptr);
@@ -3028,18 +3285,40 @@ extern "C" void MS_ABI impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAuto
     SetAutoHideButtonOf(pThis, pAutoHideButton);
 }
 
-// STUB. Retail entry RVA 0x460e0 (mfc140u; 0x45f30 in mfc140): it calls
-// RemoveCaptionButtons (RVA 0x46060), then `operator new`s (RVA 0x2840)
-// 0x38-byte CMFCCaptionButton objects with the constructor inlined (vftable
-// mfc140 RVA 0x2ddd78 at +0, hit id 0x13 / 9 / ... at +0x20, +0x14 = 1,
-// +0x24 = -1) and appends each with CPtrArray::SetAtGrow(m_arrButtons.m_nSize,
-// p) (RVA 0x1d28a0 on this+0x488). Blocked: OpenMFC's CMFCCaptionButton is a
-// 16-byte-padded CObject with no retail layout or vtable and this class has
-// no m_arrButtons.
-// Signature corrected to carry `this`.
+// CDockablePane::SetCaptionButtons -- transcribed from entry RVA 0x45f30
+// (mfc140.dll ANSI twin; the Unicode export was not resolved by the RVA map).
+// Retail first removes old entries, then appends three enabled, initially
+// unhidden CMFCCaptionButton objects with IDs 0x13, 9 and 8. This stores those
+// defaults in the modeled semantic CaptionButtonState array; it does not create
+// raw 0x38-byte CMFCCaptionButton objects, whose pointer-compatible layout is
+// still needed by FindButton / FindButtonByHit and drawing consumers.
+// Deviation: NULL `this` is ignored; retail dereferences it.
 // Symbol: ?SetCaptionButtons@CDockablePane@@MEAAXXZ
 extern "C" void MS_ABI impl__SetCaptionButtons_CDockablePane__MEAAXXZ(CDockablePane* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    constexpr UINT ids[] = {0x13, 0x9, 0x8};
+    auto* buttons = static_cast<openmfc::docking_state::CaptionButtonState*>(
+        ::HeapAlloc(::GetProcessHeap(), HEAP_ZERO_MEMORY,
+                    sizeof(openmfc::docking_state::CaptionButtonState) * 3));
+    if (buttons != nullptr) {
+        for (std::size_t i = 0; i < 3; ++i) {
+            ::new (static_cast<void*>(&buttons[i])) openmfc::docking_state::CaptionButtonState{};
+            buttons[i].id = ids[i];
+            buttons[i].visible = TRUE;
+            buttons[i].enabled = TRUE;
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[pThis];
+        if (state.captionButtons != nullptr) {
+            ::HeapFree(::GetProcessHeap(), 0, state.captionButtons);
+        }
+        state.captionButtons = buttons;
+        state.captionButtonCount = buttons != nullptr ? 3 : 0;
+        state.captionButtonCapacity = state.captionButtonCount;
+        state.captionButtonGrowBy = 0;
+    }
 }
 
 // CDockablePane::SetDefaultPaneDivider -- transcribed from retail entry RVA
@@ -3081,72 +3360,165 @@ extern "C" void MS_ABI impl__SetResizeMode_CDockablePane__QEAAXH_Z(CDockablePane
     DockablePaneField<int>(pThis, kOffIsResizing) = bResize;
 }
 
-// STUB. Retail entry RVA 0x42ee0 (mfc140u; 0x42d30 in mfc140), ~950 bytes,
-// not transcribed. Its control flow was read (all RVAs below mfc140):
-//     if (!IsAutoHideMode()) return;                              // slot 0x3c8
-//     if (m_nSlideTimer) ::KillTimer(m_hWnd, m_nSlideTimer);      // +0x448
-//     if (m_nAutoHideConditionTimerID) { ::KillTimer(..); m_nAutoHideConditionTimerID = 0; }  // +0x440
-//     CRect rectWnd; ::GetWindowRect(m_hWnd, &rectWnd);
-//     if (!bUseTimer || CDockablePane::m_bDisableAnimation /*RVA 0x3b6f4c*/ ||
-//         <afxGlobalData+0x25c> != 0)   // read after the lazy AFX_GLOBAL_DATA::Initialize
-//                                       // (RVA 0x6a5c0) gated by the flag at 0x3ba380
-//         m_nSlideDelta = IsHorizontal() ? rectWnd.Height() : rectWnd.Width();   // +0x454; slot 0x2d8
-//                       // (slot 0x2d8, RVA 0x88e0, is `GetCurrentAlignment() & 0xa000`, i.e. TOP|BOTTOM)
-//     if (!bUseTimer) {                                            // immediate arm
-//         m_rectRestored = rectWnd;                                // +0x458
-//         OnSlide(FALSE);                                          // slot 0x748
-//         ShowWindow(SW_HIDE); ::ShowWindow(m_hDefaultSlider, SW_HIDE);   // +0x4c0
-//         return;
-//     }
-//     CDockingManager* pMgr = afxGlobalUtils.GetDockingManager(GetDockSiteFrameWnd());   // RVA 0x6ccc0
-//     if (bSlideOut) {
-//         pMgr->HideAutoHidePanes(this, FALSE);                    // RVA 0x487c0
-//         pMgr->AlignAutoHidePane(GetDefaultPaneDivider(), FALSE); // RVA 0x48840
-//         ShowWindow(SW_SHOW); ::ShowWindow(m_hDefaultSlider, SW_SHOW);
-//     }
-//     ::BringWindowToTop(m_hWnd); ::BringWindowToTop(m_hDefaultSlider);   // IAT 0x1802c5290
-//     if (m_ahSlideMode == 1) pMgr->BringBarsToTop(0, TRUE);      // +0x474; RVA 0x495b0
-//     m_nSlideTimer = ::SetTimer(m_hWnd, 0xEC01 + (bSlideOut ? 1 : 0),
-//                                CDockablePane::m_nSlideDefaultTimeOut /*0x3aaac0*/, NULL);
-//     if (!m_bDisableAnimation && <afxGlobalData+0x25c> == 0) {   // animated: split the travel
-//         if (m_ahSlideMode == 1)      m_nSlideDelta = max(1, <extent of rectWnd in the dock-site's
-//                                          client space> / CDockablePane::m_nSlideSteps /*0x3aaabc*/);
-//         else if (m_ahSlideMode == 2) { if (!bSlideOut && !m_bIsSliding) m_rectRestored = rectWnd
-//                                          (dock-site client space);
-//                                        m_nSlideDelta = max(1, <extent of m_rectRestored> / m_nSlideSteps); }
-//     }
-//     m_nSlideStep = 0; m_bIsSliding = TRUE;                       // +0x450, +0x468
-// (Extent == height when GetCurrentAlignment() & 0xa000 (TOP|BOTTOM), else width.)
-// So the afxGlobalData flag at +0x25c does not choose between a timer and an
-// immediate show/hide -- only bUseTimer does that -- it is a no-animation
-// flag: when it is NONZERO (or m_bDisableAnimation is set) the timer-driven
-// slide moves in one step (m_nSlideDelta = the full extent), when ZERO it
-// moves in m_nSlideSteps steps.
-// Blocked: OpenMFC's afxGlobalData is an all-zero blob whose exported
-// Initialize (core/runtime/AFX_GLOBAL_DATA.cpp:97) is an empty stub (see
-// EnableGripper above), so the +0x25c flag always reads 0 and every timer
-// slide would be animated even in a session where retail suppresses it;
-// worse, OpenMFC's ?m_nSlideSteps@CDockablePane@@2HA (docking/StaticData.cpp:36)
-// is initialised to 0 where retail's .data holds 12, so the `idiv` that splits
-// the travel would fault. m_ahSlideMode (+0x474) has no storage, and the three
-// CDockingManager bodies it drives (docking/CDockingManager.cpp:401, :89,
-// :130) are side-table approximations, not retail transcriptions.
-// Signature corrected to carry `this` (CheckAutoHideCondition above calls it).
+// CDockablePane::Slide -- transcribed from the ANSI-twin entry RVA 0x42d30
+// (mfc140.dll). It cancels old timers, derives the full-slide delta, handles the
+// immediate (no-timer) path, and otherwise coordinates the auto-hide manager,
+// window visibility/z-order, timer, and animated delta. m_ahSlideMode (+0x474),
+// m_rectRestored (+0x458), slide fields, and the 700-ms/1-ms/12-step statics are
+// available. The remote-session flag is AFX_GLOBAL_DATA +0x25c; its real
+// Initialize thunk is called lazily here, and UpdateTextMetrics populates the
+// horizontal text height at +0x2a8 used by EnableGripper.
+// Deviations: `this` is NULL-checked; pane/global helpers and manager methods
+// dispatch statically. DockingManager operations use the existing side-state
+// implementations, and a missing manager/default divider is tolerated rather
+// than dereferenced. If the frame is absent, coordinate conversion is skipped
+// and the available screen-coordinate extent is used. Auto-hide mode is read
+// from PaneCoreState.
 // Symbol: ?Slide@CDockablePane@@UEAAXHH@Z
 extern "C" void MS_ABI impl__Slide_CDockablePane__UEAAXHH_Z(CDockablePane* pThis, int bSlideOut, int bUseTimer) {
-    (void)pThis;
-    (void)bSlideOut;
-    (void)bUseTimer;
+    if (pThis == nullptr || !pThis->IsAutoHideMode()) return;
+
+    UINT_PTR& slideTimer = DockablePaneField<UINT_PTR>(pThis, kOffSlideTimer);
+    UINT_PTR& conditionTimer = DockablePaneField<UINT_PTR>(pThis, kOffAutoHideConditionTimerID);
+    if (slideTimer != 0) ::KillTimer(pThis->m_hWnd, slideTimer);
+    if (conditionTimer != 0) {
+        ::KillTimer(pThis->m_hWnd, conditionTimer);
+        conditionTimer = 0;
+    }
+
+    RECT rectWindow = {0, 0, 0, 0};
+    ::GetWindowRect(pThis->m_hWnd, &rectWindow);
+    const unsigned long alignment =
+        impl__GetCurrentAlignment_CBasePane__UEBAKXZ(static_cast<const CBasePane*>(pThis));
+    const auto fullExtent = [&]() {
+        return (alignment & 0xa000UL) != 0
+            ? rectWindow.bottom - rectWindow.top
+            : rectWindow.right - rectWindow.left;
+    };
+
+    const int disableAnimation = impl__m_bDisableAnimation_CDockablePane__2HA;
+    int remoteSession = 0;
+    if (bUseTimer && !disableAnimation) {
+        EnsureDockingGlobalDataInitialized();
+        remoteSession = DockingGlobalDataInt(0x25c);
+    }
+    if (!bUseTimer || disableAnimation || remoteSession) {
+        DockablePaneField<int>(pThis, kOffSlideDelta) = fullExtent();
+    }
+
+    if (!bUseTimer) {
+        DockablePaneField<RECT>(pThis, kOffRectRestored) = rectWindow;
+        impl__OnSlide_CDockablePane__MEAAXH_Z(pThis, FALSE);
+        impl__ShowWindow_CWnd__QEAAHH_Z(static_cast<CWnd*>(pThis), SW_HIDE);
+        ::ShowWindow(ExtraOf(pThis).hDefaultSlider, SW_HIDE);
+        return;
+    }
+
+    CWnd* pFrame = impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(
+        static_cast<const CBasePane*>(pThis));
+    CDockingManager* pManager = impl__GetDockingManager_CGlobalUtils__QEAAPEAVCDockingManager__PEAVCWnd___Z(
+        reinterpret_cast<CGlobalUtils*>(impl__afxGlobalUtils__3VCGlobalUtils__A), pFrame);
+    const HWND hSlider = ExtraOf(pThis).hDefaultSlider;
+    if (bSlideOut) {
+        if (pManager != nullptr) {
+            impl__HideAutoHidePanes_CDockingManager__QEAAXPEAVCDockablePane__H_Z(
+                pManager, pThis, FALSE);
+            impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
+                pManager, impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pThis), FALSE);
+        }
+        impl__ShowWindow_CWnd__QEAAHH_Z(static_cast<CWnd*>(pThis), SW_SHOW);
+        ::ShowWindow(hSlider, SW_SHOW);
+    }
+    ::BringWindowToTop(pThis->m_hWnd);
+    ::BringWindowToTop(hSlider);
+    if (DockablePaneField<UINT>(pThis, kOffAHSlideMode) == 1 && pManager != nullptr) {
+        impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(pManager, 0, TRUE);
+    }
+
+    slideTimer = ::SetTimer(pThis->m_hWnd,
+        static_cast<UINT_PTR>(kTimerAutoHideSlideIn + (bSlideOut ? 1 : 0)),
+        static_cast<UINT>(impl__m_nSlideDefaultTimeOut_CDockablePane__1HA), nullptr);
+
+    if (!disableAnimation && !remoteSession) {
+        const UINT slideMode = DockablePaneField<UINT>(pThis, kOffAHSlideMode);
+        if (slideMode == 1) {
+            RECT rectClient = rectWindow;
+            if (pFrame != nullptr) {
+                impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pFrame, &rectClient);
+            }
+            const int extent = (alignment & 0xa000UL) != 0
+                ? rectClient.bottom - rectClient.top
+                : rectClient.right - rectClient.left;
+            const int steps = impl__m_nSlideSteps_CDockablePane__2HA;
+            if (steps > 0) {
+                const int delta = extent / steps;
+                DockablePaneField<int>(pThis, kOffSlideDelta) = delta > 1 ? delta : 1;
+            }
+        } else if (slideMode == 2) {
+            if (!bSlideOut && DockablePaneField<int>(pThis, kOffIsSliding) == FALSE) {
+                DockablePaneField<RECT>(pThis, kOffRectRestored) = rectWindow;
+                if (pFrame != nullptr) {
+                    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(
+                        pFrame, &DockablePaneField<RECT>(pThis, kOffRectRestored));
+                }
+            }
+            const RECT& restored = DockablePaneField<RECT>(pThis, kOffRectRestored);
+            const int extent = (alignment & 0xa000UL) != 0
+                ? restored.bottom - restored.top
+                : restored.right - restored.left;
+            const int steps = impl__m_nSlideSteps_CDockablePane__2HA;
+            if (steps > 0) {
+                const int delta = extent / steps;
+                DockablePaneField<int>(pThis, kOffSlideDelta) = delta > 1 ? delta : 1;
+            }
+        }
+    }
+    DockablePaneField<int>(pThis, kOffSlideStep) = 0;
+    DockablePaneField<int>(pThis, kOffIsSliding) = TRUE;
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x45030. It walks m_arrButtons (this+0x488, m_pData
-// at +0x490 / m_nSize at +0x498) clearing each caption button's pressed/hot
-// state and repainting. OpenMFC's CDockablePane has no m_arrButtons -- offsets
-// from +0x478 up are past the end of the 1144-byte object -- so there is
-// nothing to walk. Signature corrected to carry `this` (it is called above).
+// CDockablePane::StopCaptionButtonsTracking -- transcribed from the ANSI-twin
+// entry RVA 0x45030 (mfc140.dll; the Unicode export was not resolved by the RVA
+// map). Retail clears the hit ID and releases capture when m_nHit is nonzero,
+// clears that button's pushed state, then does the same for m_nHot and its
+// focused state; finally it clears m_bCaptionButtonsCaptured. The equivalent
+// IDs/flags are updated in PaneCoreState. RedrawButton is omitted because these
+// records are not ABI-compatible CMFCCaptionButton pointers. The side-state's
+// UINT_MAX initial value is treated as an unset ID rather than releasing capture
+// for a nonexistent button.
+// Deviations: NULL `this` is ignored; retail dereferences it.
 // Symbol: ?StopCaptionButtonsTracking@CDockablePane@@MEAAXXZ
 extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CDockablePane__MEAAXXZ(CDockablePane* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    UINT hitID = 0;
+    UINT hotID = 0;
+    bool hadHit = false;
+    bool hadHot = false;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto it = g_paneCoreState_Mfccore.find(pThis);
+        if (it == g_paneCoreState_Mfccore.end()) return;
+        hitID = it->second.hitCaptionButtonID;
+        hotID = it->second.hotCaptionButtonID;
+        hadHit = hitID != 0 && hitID != static_cast<UINT>(-1);
+        hadHot = hotID != 0 && hotID != static_cast<UINT>(-1);
+        it->second.hitCaptionButtonID = 0;
+        it->second.hotCaptionButtonID = 0;
+    }
+    if (hadHit) ::ReleaseCapture();
+    if (hadHot) ::ReleaseCapture();
+
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+    auto it = g_paneCoreState_Mfccore.find(pThis);
+    if (it == g_paneCoreState_Mfccore.end()) return;
+    if (it->second.captionButtons != nullptr) {
+        for (INT_PTR i = 0; i < it->second.captionButtonCount; ++i) {
+            auto& button = it->second.captionButtons[i];
+            if (button.id == hitID && hadHit) button.pressed = FALSE;
+            if (button.id == hotID && hadHot) button.hot = FALSE;
+        }
+    }
+    it->second.captionButtonsCaptured = FALSE;
 }
 
 // CDockablePane::StoreRecentDockSiteInfo -- transcribed from retail entry RVA
@@ -3175,12 +3547,13 @@ extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CDockablePane__MEAAXXZ(C
 // ?StoreRecentDockSiteInfo@CPaneContainerManager@@UEAAXPEAVCDockablePane@@@Z
 // (RVA 0xa8bc0).
 // Deviations, all forced: (1) the mini-frame virtual is dispatched through an
-// IsKindOf(CMultiPaneFrameWnd) test -- the CPaneFrameWnd body is empty, so
-// only the CMultiPaneFrameWnd export (docking/CMultiPaneFrameWnd.cpp:180, still
-// a stub whose parameter list omits `this`) is called; (2) the divider arm is
-// dropped: OpenMFC's CPaneDivider is a CObject with a side table and no
-// container-manager member, and GetDefaultPaneDivider() above cannot return a
-// non-NULL divider in this build anyway, so the arm is unreachable here;
+// IsKindOf(CMultiPaneFrameWnd) test -- the CPaneFrameWnd slot is an empty ret;
+// the CMultiPaneFrameWnd side-state body performs the manager lookup, but its
+// downstream CRecentDockSiteInfo::StoreDockInfo export is still a placeholder;
+// (2) the divider arm is dropped: OpenMFC's CPaneDivider is a CObject with a
+// side table and no in-object container-manager member, and GetDefaultPaneDivider()
+// above cannot return a non-NULL divider for local compact objects anyway, so
+// the arm is unreachable here;
 // (3) NULL checks on `this` and on pBar before GetDefaultPaneDivider (retail
 // would fault on a tabbed pane whose tab control's parent is not a
 // CDockablePane).
@@ -3312,11 +3685,43 @@ extern "C" void MS_ABI impl__UnSetAutoHideMode_CDockablePane__UEAAXPEAV1__Z(
     (void)pFirstBarInGroup;
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x40440 reads m_pToolTip at
-// +0x4b8 and, when it has a window, repositions per-caption-button tools by
-// iterating m_arrButtons at +0x488. Neither member has storage in this
-// CDockablePane object, so the retail body cannot be reproduced here.
+// CDockablePane::UpdateTooltips -- transcribed from the ANSI-twin entry
+// RVA 0x40440 (mfc140.dll; the Unicode export was not resolved by the RVA map).
+// Retail returns without a tooltip window, otherwise obtains the pane rectangle,
+// limits its button loop by TTM_GETTOOLCOUNT, offsets each button's GetRect()
+// result by the pane client origin and calls CToolTipCtrl::SetToolRect with IDs
+// 1..N. This port uses PaneCoreState's semantic button rectangles and copies at
+// most the three standard records. No current caption-layout path populates those
+// rectangles (SetCaptionButtons initializes them empty), so this only updates
+// non-empty geometry if another owned path has supplied it; custom raw button
+// objects and their layout remain unsupported.
 // Symbol: ?UpdateTooltips@CDockablePane@@IEAAXXZ
 extern "C" void MS_ABI impl__UpdateTooltips_CDockablePane__IEAAXXZ(CDockablePane* pThis) {
-    (void)pThis;
+    if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    CToolTipCtrl* pToolTip = DockablePaneToolTipOf(pThis);
+    if (pToolTip == nullptr || pToolTip->m_hWnd == nullptr) return;
+
+    openmfc::docking_state::CaptionButtonState buttons[3]{};
+    std::size_t count = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto it = g_paneCoreState_Mfccore.find(pThis);
+        if (it == g_paneCoreState_Mfccore.end() || it->second.captionButtons == nullptr) return;
+        const INT_PTR modeledCount = it->second.captionButtonCount;
+        count = modeledCount > 0 ? (modeledCount < 3 ? static_cast<std::size_t>(modeledCount) : 3) : 0;
+        for (std::size_t i = 0; i < count; ++i) buttons[i] = it->second.captionButtons[i];
+    }
+
+    RECT rectWindow = {0, 0, 0, 0};
+    ::GetWindowRect(pThis->m_hWnd, &rectWindow);
+    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(static_cast<const CWnd*>(pThis), &rectWindow);
+    const LRESULT toolCount = ::SendMessage(pToolTip->m_hWnd, 0x040d /* TTM_GETTOOLCOUNT */, 0, 0);
+    if (toolCount <= 0) return;
+    if (count > static_cast<std::size_t>(toolCount)) count = static_cast<std::size_t>(toolCount);
+    for (std::size_t i = 0; i < count; ++i) {
+        RECT rect = buttons[i].rect;
+        ::OffsetRect(&rect, rectWindow.left, rectWindow.top);
+        impl__SetToolRect_CToolTipCtrl__QEAAXPEAVCWnd___KPEBUtagRECT___Z(
+            pToolTip, static_cast<CWnd*>(pThis), static_cast<unsigned __int64>(i + 1), &rect);
+    }
 }

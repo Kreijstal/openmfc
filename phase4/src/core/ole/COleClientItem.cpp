@@ -33,6 +33,58 @@ extern "C" HICON MS_ABI impl__GetIconFromRegistry_COleClientItem__SAPEAUHICON___
         GUID& clsid);
 extern "C" int MS_ABI impl__CanPaste_COleClientItem__SAHXZ();
 extern "C" int MS_ABI impl__CanPasteLink_COleClientItem__SAHXZ();
+extern "C" void MS_ABI impl__GetItemStorageCompound_COleClientItem__QEAAXXZ(
+        COleClientItem* pThis);
+extern "C" void MS_ABI impl__GetItemStorageFlat_COleClientItem__QEAAXXZ(
+        COleClientItem* pThis);
+extern "C" void MS_ABI impl__OnGetClipRect_COleClientItem__MEAAXAEAVCRect___Z(
+        COleClientItem* pThis, CRect& rClipRect);
+extern "C" void MS_ABI impl__OnChange_COleClientItem__UEAAXW4OLE_NOTIFICATION__K_Z(
+        COleClientItem* pThis, OLE_NOTIFICATION nCode, unsigned long dwParam);
+extern "C" CSplitterWnd* MS_ABI impl__GetParentSplitter_CView__SAPEAVCSplitterWnd__PEBVCWnd__H_Z(
+        const CWnd* pWnd, int bAnyState);
+extern "C" int MS_ABI impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z(
+        CSplitterWnd* pThis, CView* pView, long long sizeExtent, int bDoScroll);
+extern "C" int MS_ABI impl__OnScrollBy_CView__UEAAHVCSize__H_Z(
+        CView* pThis, long long sizeExtent, int bDoScroll);
+extern "C" void MS_ABI impl__OnShowItem_COleClientItem__MEAAXXZ(
+        COleClientItem* pThis);
+extern "C" int MS_ABI impl__CanActivate_COleClientItem__MEAAHXZ(
+        COleClientItem* pThis);
+extern "C" void MS_ABI impl__OnActivate_COleClientItem__UEAAXXZ(
+        COleClientItem* pThis);
+extern "C" void MS_ABI impl__OnDeactivate_COleClientItem__UEAAXXZ(
+        COleClientItem* pThis);
+extern "C" void MS_ABI impl__OnDeactivateAndUndo_COleClientItem__MEAAXXZ(
+        COleClientItem* pThis);
+extern "C" void MS_ABI impl__OnDiscardUndoState_COleClientItem__MEAAXXZ(
+        COleClientItem* pThis);
+extern "C" int MS_ABI impl__OnChangeItemPosition_COleClientItem__MEAAHAEBVCRect___Z(
+        COleClientItem* pThis, const CRect* pRect);
+
+namespace {
+void FormatClientItemName(wchar_t* buffer, unsigned int cchBuffer, DWORD itemNumber) {
+    if (!buffer || cchBuffer == 0) return;
+
+    static const wchar_t prefix[] = L"Embedding ";
+    unsigned int written = 0;
+    while (prefix[written] != L'\0' && written + 1 < cchBuffer) {
+        buffer[written] = prefix[written];
+        ++written;
+    }
+
+    wchar_t digits[10];
+    unsigned int digitCount = 0;
+    do {
+        digits[digitCount++] = static_cast<wchar_t>(L'0' + itemNumber % 10);
+        itemNumber /= 10;
+    } while (itemNumber != 0 && digitCount < sizeof(digits) / sizeof(digits[0]));
+    while (digitCount != 0 && written + 1 < cchBuffer) {
+        buffer[written++] = digits[--digitCount];
+    }
+    buffer[written] = L'\0';
+}
+}
 
 //=============================================================================
 // Wave 2: COleClientItem methods (30 exports).
@@ -46,10 +98,10 @@ extern "C" int MS_ABI impl__CanPasteLink_COleClientItem__SAHXZ();
 // Layout caveat: include/openmfc/afxole.h declares CDocItem as CObject-derived,
 // whereas the retail afxole.h declares CDocItem as CCmdTarget-derived; the
 // COleClientItem state model and member order also differ from retail. In
-// particular, do not treat the public
-// member names here as proof that a field is at its retail offset. Retail-only
-// state (view object, item number, storage, advise cookie, item state, view and
-// frame hooks) is not modeled; layout-dependent methods remain conservative.
+// particular, do not treat the public member names here as proof that a field
+// is at its retail offset. Retail-only state that collides with live members is
+// kept in pThis-keyed ClientItemState; non-conflicting tail state is named in
+// afxole.h. Several methods remain conservative or stubbed despite that model.
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -114,10 +166,9 @@ extern "C" int MS_ABI impl__CanPasteLink_COleClientItem__SAHXZ();
 // COleClientItem layout in include/openmfc/afxole.h is not the retail layout:
 // it omits multiple retail fields and places its declared members differently.
 // The retail offsets below come from the disassemblies, not from that header.
-// COleServerDoc declares only m_bEmbedded@0x230; the retail in-place state
-// (m_pInPlaceFrame@0x230, m_pInPlaceDocFrame@0x250, m_rectPos/m_rectClip,
-// m_pDocObjectServer@0x268, ...) is NOT modeled, so COleServerDoc methods that
-// need it are implemented conservatively (safe defaults + TODO(clean-room)).
+// COleServerDoc's retail tail (+0x234..+0x293) is now named in afxole.h and
+// pinned in CDocObjectServer.cpp. Its interface-part vtables remain storage
+// only, so methods requiring those callbacks are still conservative.
 //
 // Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass drops the
 // generated stubs for these symbols.
@@ -371,9 +422,9 @@ extern "C" int MS_ABI impl__CreateStaticFromData_COleClientItem__QEAAHPEAVCOleDa
     return impl__FinishCreate_COleClientItem__MEAAHJ_Z(pThis, hr);
 }
 // Symbol: ?CreateCloneFrom@COleClientItem@@QEAAHPEBV1@@Z
-// TODO(clean-room): transcribed partially.  Retail clones the source item's
-// storage via its IStorage; OpenMFC has no declared IStorage member, so we
-// cannot produce a faithful clone.  Conservative: fail.
+// TODO(clean-room): transcribed partially. Retail clones the source item's
+// storage via IStorage; storage state now exists in ClientItemState but this
+// body has not yet been connected to that state. Conservative: fail.
 extern "C" int MS_ABI impl__CreateCloneFrom_COleClientItem__QEAAHPEBV1__Z(
         COleClientItem* pThis, const COleClientItem* pSrcItem) {
     (void)pSrcItem;
@@ -571,10 +622,10 @@ extern "C" void MS_ABI impl__AddCachedData_COleClientItem__IEAAXPEAVCOleDataSour
     pData->Release();
 }
 // Symbol: ?GetEmbeddedItemData@COleClientItem@@IEAAXPEAUtagSTGMEDIUM@@@Z
-// TODO(clean-room): transcribed partially.  Retail creates a compound-doc
-// storage (StgCreateDocfile) containing the embedded object and returns a
-// TYMED_ISTORAGE medium.  OpenMFC has no declared IStorage member to back
-// this, so the medium is left empty.
+// TODO(clean-room): transcribed partially. Retail creates a compound-doc
+// storage containing the embedded object and returns a TYMED_ISTORAGE medium.
+// IStorage state is represented in ClientItemState but is not wired into this
+// body, so the medium is left empty.
 extern "C" void MS_ABI impl__GetEmbeddedItemData_COleClientItem__IEAAXPEAUtagSTGMEDIUM___Z(
         COleClientItem* pThis, STGMEDIUM* lpMedium) {
     if (!pThis || !lpMedium) return;
@@ -613,8 +664,9 @@ extern "C" void MS_ABI impl__GetClassID_COleClientItem__QEBAXPEAU_GUID___Z(
 }
 // Symbol: ?GetCachedExtent@COleClientItem@@QEAAHPEAUtagSIZE@@W4tagDVASPECT@@@Z
 // Retail uses IViewObject2::GetExtent on its cached view for the default
-// aspect. That cached view is not modeled here: this approximation resolves the
-// stored aspect and calls IOleObject::GetExtent directly, which is not identical.
+// aspect. The cached IViewObject2 pointer is represented in ClientItemState,
+// but this approximation still calls IOleObject::GetExtent directly, which is
+// not identical.
 extern "C" int MS_ABI impl__GetCachedExtent_COleClientItem__QEAAHPEAUtagSIZE__W4tagDVASPECT___Z(
         COleClientItem* pThis, tagSIZE* lpSize, DVASPECT nDrawAspect) {
     if (!pThis || !lpSize) return FALSE;
@@ -661,8 +713,9 @@ extern "C" HICON MS_ABI impl__GetIconFromRegistry_COleClientItem__SAPEAUHICON___
     return nullptr;
 }
 // Symbol: ?GetInPlaceWindow@COleClientItem@@QEAAPEAVCWnd@@XZ
-// TODO(clean-room): transcribed partially.  Retail returns the in-place
-// frame window when the item is open; the frame window is not modeled.
+// TODO(clean-room): transcribed partially. Retail returns the in-place frame
+// window when the item is open; the frame hook/window are now represented by
+// the item tail and ClientItemState, but this body remains a stub.
 extern "C" CWnd* MS_ABI impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(
         COleClientItem* pThis) {
     if (!pThis) return nullptr;
@@ -670,28 +723,29 @@ extern "C" CWnd* MS_ABI impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(
     return nullptr;
 }
 // Symbol: ?GetItemName@COleClientItem@@QEBAXPEA_W@Z
-// TODO(clean-room): transcribed partially. Retail reads the item number at
-// +0x58 and formats it with "Embedding %lu" (GetItemName entries at RVA
-// 0x244770 and 0x244790 (mfc140u)). OpenMFC does not model that member, so the
-// current body writes an empty name instead.
+// Retail reads the item number at +0x58 and sends it with "Embedding %lu" to
+// the common formatter (entries RVA 0x244770 and 0x244790 (mfc140u)). The
+// offset-colliding number is kept in ClientItemState; the no-length overload
+// uses retail's fixed 0x15-character capacity. The local formatter emits the
+// same text with bounded, null-terminated output.
 extern "C" void MS_ABI impl__GetItemName_COleClientItem__QEBAXPEA_W_Z(
         const COleClientItem* pThis, wchar_t* lpszBuffer) {
     if (!pThis || !lpszBuffer) return;
-    lpszBuffer[0] = L'\0';
+    const ClientItemState* state = FindClientItemState(pThis);
+    FormatClientItemName(lpszBuffer, 0x15, state ? state->itemNumber : 0);
 }
 // Symbol: ?GetItemName@COleClientItem@@QEBAXPEA_WI@Z
-// Same layout limitation as the one-argument overload; for a nonzero-sized
-// buffer the current body only writes an empty string, without formatting the
-// retail item number.
+// The sized retail overload passes nMaxLen to the same formatter.
 extern "C" void MS_ABI impl__GetItemName_COleClientItem__QEBAXPEA_WI_Z(
         const COleClientItem* pThis, wchar_t* lpszBuffer, unsigned int nMaxLen) {
     if (!pThis || !lpszBuffer || nMaxLen == 0) return;
-    lpszBuffer[0] = L'\0';
+    const ClientItemState* state = FindClientItemState(pThis);
+    FormatClientItemName(lpszBuffer, nMaxLen, state ? state->itemNumber : 0);
 }
 // Symbol: ?CommitItem@COleClientItem@@UEAAXH@Z
-// TODO(clean-room): transcribed partially.  Retail commits the item's
-// IStorage (0x88) after checking the modified flag (0x7F); neither member is
-// modeled in OpenMFC, so this is a no-op.
+// TODO(clean-room): transcribed partially. Retail commits the item's storage
+// after checking its modified flag. Both values are represented in
+// ClientItemState, but this body has not yet been connected to that state.
 extern "C" void MS_ABI impl__CommitItem_COleClientItem__UEAAXH_Z(
         COleClientItem* pThis, int bSuccess) {
     (void)bSuccess;
@@ -699,13 +753,17 @@ extern "C" void MS_ABI impl__CommitItem_COleClientItem__UEAAXH_Z(
     // TODO(clean-room): commit IStorage when storage is modeled.
 }
 // Symbol: ?GetItemStorage@COleClientItem@@UEAAXXZ
-// TODO(clean-room): transcribed partially.  Retail saves the item into the
-// container document's storage based on the document's compound-file flag;
-// OpenMFC defers storage management.
+// Retail is a two-way dispatcher on the container document's compound-file
+// flag (entry RVA 0x246060 (mfc140u)). The compound target remains a stub;
+// the flat target now creates and tracks the in-memory storage pair.
 extern "C" void MS_ABI impl__GetItemStorage_COleClientItem__UEAAXXZ(
         COleClientItem* pThis) {
-    if (!pThis) return;
-    // TODO(clean-room): implement item storage save/load.
+    if (!pThis || !pThis->m_pContainerDoc) return;
+    if (pThis->m_pContainerDoc->m_bCompoundFile) {
+        impl__GetItemStorageCompound_COleClientItem__QEAAXXZ(pThis);
+    } else {
+        impl__GetItemStorageFlat_COleClientItem__QEAAXXZ(pThis);
+    }
 }
 // Symbol: ?Delete@COleClientItem@@QEAAXH@Z
 // Removes the item from its container document, releases the OLE object
@@ -839,8 +897,9 @@ extern "C" void MS_ABI impl__SetDrawAspect_COleClientItem__UEAAXW4tagDVASPECT___
 //         }
 //     }
 //     return FALSE;
-// The retail OnGetClipRect virtual obtains the active view's client rectangle;
-// OpenMFC does not model that view, so this body uses its local fallback below.
+// The retail OnGetClipRect virtual obtains the active view's client rectangle.
+// The tail overlay now models m_pView, so the local fallback below dispatches
+// through that implementation rather than reusing the position rectangle.
 // Symbol: ?SetItemRects@COleClientItem@@QEAAHPEBUtagRECT@@0@Z
 extern "C" int MS_ABI impl__SetItemRects_COleClientItem__QEAAHPEBUtagRECT__0_Z(
     COleClientItem* pThis, const RECT* lpPosRect, const RECT* lpClipRect)
@@ -862,10 +921,7 @@ extern "C" int MS_ABI impl__SetItemRects_COleClientItem__QEAAHPEBUtagRECT__0_Z(
     if (lpClipRect) {
         rcClip = *lpClipRect;
     } else {
-        // Retail dispatches OnGetClipRect (vtable slot 0x120), which obtains
-        // GetClientRect from the retail m_pView HWND. OpenMFC has no m_pView;
-        // this approximation reuses the position rectangle instead.
-        rcClip = rcPos;
+        impl__OnGetClipRect_COleClientItem__MEAAXAEAVCRect___Z(pThis, rcClip);
     }
     HRESULT hr = pInPlace->SetObjectRects(rcPos, rcClip);
     pThis->m_nStatus = (OLE_STATUS)hr;
@@ -898,11 +954,10 @@ extern "C" void MS_ABI impl__SetLinkUpdateOptions_COleClientItem__QEAAXW4tagOLEU
     // OpenMFC header.
     (void)hr;
 }
-// COleClientItem::SetPrintDevice(const DVTARGETDEVICE*) — retail (0x24acd0).
-// The retail body wraps the target device in an IStream (helper 0x246c90) and
-// hands it to the item's storage / IOleItemContainer machinery so the object
-// can render for printing. That state is not modeled, so a conservative
-// failure is emitted (safe, type-correct).
+// COleClientItem::SetPrintDevice(const DVTARGETDEVICE*) — retail entry RVA
+// 0x24acd0 (mfc140u). The body wraps the target device in an IStream and hands
+// it to the item's storage / IOleItemContainer machinery. Target-device and
+// storage state are modeled, but this body remains a conservative failure.
 // Symbol: ?SetPrintDevice@COleClientItem@@QEAAHPEBUtagDVTARGETDEVICE@@@Z
 extern "C" int MS_ABI impl__SetPrintDevice_COleClientItem__QEAAHPEBUtagDVTARGETDEVICE___Z(
     COleClientItem* pThis, const tagDVTARGETDEVICE* ptd)
@@ -919,8 +974,9 @@ extern "C" int MS_ABI impl__SetPrintDevice_COleClientItem__QEAAHPEBUtagDVTARGETD
 //     bResult = SetPrintDevice(ptd);
 //     if (ptd) CoTaskMemFree(ptd);
 //     return bResult;
-// Both the DVTARGETDEVICE builder and the ptd overload are unimplementable
-// without the unmodeled print/stream state, so the wrapper fails too.
+// The DVTARGETDEVICE builder and stream/IOleItemContainer path remain
+// unimplemented even though document target-device and item-storage state
+// are represented.
 // Symbol: ?SetPrintDevice@COleClientItem@@QEAAHPEBUtagPDW@@@Z
 extern "C" int MS_ABI impl__SetPrintDevice_COleClientItem__QEAAHPEBUtagPDW___Z(
     COleClientItem* pThis, const tagPDW* pPD)
@@ -938,15 +994,16 @@ extern "C" int MS_ABI impl__SetPrintDevice_COleClientItem__QEAAHPEBUtagPDW___Z(
 //     else if (SUCCEEDED(m_lpObject->GetMiscStatus(DVASPECT_CONTENT, &status)) &&
 //              !(status & OLEMISC_STATIC)) m_nItemType = 2;
 //     else m_nItemType = 3;
-// OpenMFC does not model m_nItemType, so no state can be updated.
+// m_nItemType is now named at retail +0x94; this body remains a stub and does
+// not update that state.
 // Symbol: ?UpdateItemType@COleClientItem@@QEAAXXZ
 extern "C" void MS_ABI impl__UpdateItemType_COleClientItem__QEAAXXZ(
     COleClientItem* pThis)
 {
     if (!pThis) return;
-    // TODO(clean-room): transcribed partially. Retail sets m_nItemType@0x94 to
-    // otLink(1) / otEmbedded(2) / otStatic(3) after querying the object for
-    // IOleLink and OLEMISC_STATIC; the member is not modeled in OpenMFC.
+    // TODO(clean-room): retail sets the modeled m_nItemType (+0x94) to
+    // otLink(1) / otEmbedded(2) / otStatic(3) after querying IOleLink and
+    // OLEMISC_STATIC; that state write remains unimplemented.
 }
 // COleClientItem::WriteItem(CArchive&) — retail (0x2460a0) dispatches on the
 // container document's compound-file flag:
@@ -965,30 +1022,30 @@ extern "C" void MS_ABI impl__WriteItem_COleClientItem__UEAAXAEAVCArchive___Z(
 }
 // COleClientItem::WriteItemCompound(CArchive&) — retail (0x245e60). The retail
 // body saves the item into a sub-storage of the archive's compound file using
-// the item's unmodeled storage state (retail offsets 0x68/0x70) and the
-// archive's IStorage; it also forwards to WriteItemFlat. OpenMFC models neither
-// the storage members nor the archive storage, so this is a no-op.
+// item storage state (retail offsets 0x68/0x70) and the archive's IStorage; it
+// also forwards to WriteItemFlat. Item storage is represented in
+// ClientItemState, but CArchive's storage state remains unmodeled.
 // Symbol: ?WriteItemCompound@COleClientItem@@QEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__WriteItemCompound_COleClientItem__QEAAXAEAVCArchive___Z(
     COleClientItem* pThis, CArchive& /*ar*/)
 {
     if (!pThis) return;
-    // TODO(clean-room): transcribed partially. Retail writes the item into a
-    // compound-document sub-storage (item storage members at retail 0x68/0x70
-    // and CArchive's IStorage are not modeled in OpenMFC).
+    // TODO(clean-room): retail writes the item into a compound-document
+    // sub-storage using the modeled ClientItemState storage pointers; CArchive's
+    // IStorage is still not represented.
 }
 // COleClientItem::WriteItemFlat(CArchive&) — retail (0x245910). The retail
 // body writes the item's CLSID (via IPersist::GetClassID) and its lock-object
-// / storage state through the unmodeled members at retail offsets 0x68/0x70
-// and CArchive internals. Not reproducible in OpenMFC, so a no-op is emitted.
+// / storage state through item offsets 0x68/0x70 and CArchive internals. Item
+// state is represented in ClientItemState; archive internals remain missing.
 // Symbol: ?WriteItemFlat@COleClientItem@@QEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__WriteItemFlat_COleClientItem__QEAAXAEAVCArchive___Z(
     COleClientItem* pThis, CArchive& /*ar*/)
 {
     if (!pThis) return;
-    // TODO(clean-room): transcribed partially. Retail queries the object for
-    // IPersist, writes the class id and the item's storage/stream state into
-    // the archive; those members and the archive internals are not modeled.
+    // TODO(clean-room): retail queries the object for IPersist, writes the
+    // class id and modeled item storage/stream state into the archive; the
+    // necessary CArchive internal storage/stream access is still absent.
 }
 // Symbol: ??0COleClientItem@@QEAA@PEAVCOleDocument@@@Z
 // COleClientItem::COleClientItem(COleDocument* pContainerDoc)
@@ -1515,15 +1572,14 @@ extern "C" void MS_ABI impl__ReadItemFlat_COleClientItem__QEAAXAEAVCArchive___Z(
 //   +0xe0  XAdviseSink    sub-object  (OnSave       0x246046: lea -0xe0(%rcx))
 //   +0xe8  XOleIPSite     sub-object  (OnUIActivate 0x248216: lea -0xe8(%rcx))
 //
-// OpenMFC's COleClientItem (include/openmfc/afxole.h) declares only
-// m_pContainerDoc, m_lpObject, m_lpLink, m_lpInPlaceObject, m_nStatus,
-// m_nDrawAspect, m_pControlSite, m_lpFrame, m_lpDocFrame and m_bInPlaceActive,
-// in a different order and at different offsets; there is no shadow struct for
-// it under phase4/src/detail.  Every retail member above that OpenMFC does not
-// declare — m_lpViewObject, the item number, m_scLast, m_lpStorage,
-// m_lpLockBytes, the advise cookie, the item state, m_pView and the two
-// in-place frame hooks — is unreachable from here, so the functions that need
-// one are left as documented stubs.
+// OpenMFC's COleClientItem (include/openmfc/afxole.h) declares its public
+// members in a different order and at different offsets from retail. The
+// retail-only item number, storage pointers, view/frame state, and interface
+// part offsets are recorded in RetailCOleClientItemLayout and the public tail
+// overlay; fields that cannot safely overlay the compact public members are
+// represented in the pThis-keyed ClientItemState. The archive's internal
+// storage/buffer state and the nested COM interface maps are still unavailable,
+// so methods depending on those facilities remain documented stubs.
 //
 // The COleClientItem primary vftable is at .rdata rva 0x329c48.  It was located
 // by searching the image for the address of OnActivateUI (0x246bc0), which the
@@ -1581,34 +1637,99 @@ extern "C" void MS_ABI impl__ReadItemFlat_COleClientItem__QEAAXAEAVCArchive___Z(
 // where retail calls it, and that deviation is noted at each site.
 //=============================================================================
 
+// The retail-only fields that do not collide with OpenMFC's existing public
+// members overlay its former tail padding. The object-size assertion is portable;
+// the client-item tail-offset assertions are compiled only outside the GNU ABI
+// build, where clang-cl is authoritative for the retail layout.
+static_assert(sizeof(COleClientItem) == 0xf0, "COleClientItem size remains 0xf0");
+#ifndef __GNUC__
+#define ASSERT_CLIENTITEM_TAIL(member, offset) \
+    static_assert(offsetof(COleClientItem, m_retailTail) + \
+                      offsetof(COleClientItem::RetailTailStorage, member) == (offset), \
+                  "COleClientItem::RetailTailStorage::" #member)
+static_assert(offsetof(COleClientItem, m_retailTail) == 0x8c,
+              "COleClientItem retail tail begins at +0x8c");
+ASSERT_CLIENTITEM_TAIL(m_reserved_8c, 0x8c);
+ASSERT_CLIENTITEM_TAIL(m_nItemState, 0x90);
+ASSERT_CLIENTITEM_TAIL(m_nItemType, 0x94);
+ASSERT_CLIENTITEM_TAIL(m_pView, 0x98);
+ASSERT_CLIENTITEM_TAIL(m_dwContainerStyle, 0xa0);
+ASSERT_CLIENTITEM_TAIL(m_reserved_a4, 0xa4);
+ASSERT_CLIENTITEM_TAIL(m_pInPlaceFrame, 0xa8);
+ASSERT_CLIENTITEM_TAIL(m_pInPlaceDoc, 0xb0);
+ASSERT_CLIENTITEM_TAIL(m_hWndServer, 0xb8);
+ASSERT_CLIENTITEM_TAIL(m_dwFrameMenuBarVisibility, 0xc0);
+ASSERT_CLIENTITEM_TAIL(m_reserved_c4, 0xc4);
+ASSERT_CLIENTITEM_TAIL(m_ClassesAllowedInStorage, 0xc8);
+ASSERT_CLIENTITEM_TAIL(m_nClassesAllowedInStorage, 0xd0);
+ASSERT_CLIENTITEM_TAIL(m_reserved_d4, 0xd4);
+ASSERT_CLIENTITEM_TAIL(m_xOleClientSiteVftable, 0xd8);
+ASSERT_CLIENTITEM_TAIL(m_xAdviseSinkVftable, 0xe0);
+ASSERT_CLIENTITEM_TAIL(m_xOleIPSiteVftable, 0xe8);
+#undef ASSERT_CLIENTITEM_TAIL
+#endif
+
+#define ASSERT_DOCUMENT_TAIL(member, offset) \
+    static_assert(offsetof(COleDocument, m_retailTail) + \
+                      offsetof(COleDocument::RetailTailStorage, member) == (offset), \
+                  "COleDocument::RetailTailStorage::" #member)
+static_assert(sizeof(COleDocument) == 0x1e8, "COleDocument size remains 0x1e8");
+static_assert(offsetof(COleDocument, m_retailTail) == 0x188,
+              "COleDocument retail tail begins at +0x188");
+ASSERT_DOCUMENT_TAIL(m_reserved_188, 0x188);
+ASSERT_DOCUMENT_TAIL(m_lpRootStg, 0x1c8);
+ASSERT_DOCUMENT_TAIL(m_bSameAsLoad, 0x1d0);
+ASSERT_DOCUMENT_TAIL(m_bRememberRetail, 0x1d4);
+ASSERT_DOCUMENT_TAIL(m_strStorageNameStorage, 0x1d8);
+ASSERT_DOCUMENT_TAIL(m_ptd, 0x1e0);
+#undef ASSERT_DOCUMENT_TAIL
+
 // Symbol: ?GetItemStorageCompound@COleClientItem@@QEAAXXZ
-// Retail entry: RVA 0x245aa0 (mfc140u). It obtains the document from item+0x40,
-// initializes the document's root storage if absent, formats "Embedding %lu"
-// using the item number at +0x58, and creates a sub-storage with flags 0x11012
-// into item+0x68. A missing document or failed initialization/storage call
-// follows the corresponding MFC exception path. OpenMFC has no matching item
-// number/storage members or document root-storage layout, so this stays stubbed.
+// Retail entry: RVA 0x245aa0 (mfc140u). It initializes the document's root
+// storage if absent, formats "Embedding %lu" from item+0x58, and creates an
+// item sub-storage with flags 0x11012 at item+0x68. The item/document state
+// carries these values, but COleDocument's working root-storage association is
+// kept in a separate private OleDocExtra table and has no accessor in this TU;
+// when the root storage is absent, retail also virtual-dispatches the document's
+// initializer. Without that shared storage accessor/dispatch, leave this stubbed.
 extern "C" void MS_ABI impl__GetItemStorageCompound_COleClientItem__QEAAXXZ(
         COleClientItem* pThis) {
     (void)pThis;
 }
 
 // Symbol: ?GetItemStorageFlat@COleClientItem@@QEAAXXZ
-// COleClientItem::GetItemStorageFlat() — retail 0x243cd0:
-//     HRESULT hr = CreateILockBytesOnHGlobal(NULL, TRUE,
-//                                            &[this+0x70] /*m_lpLockBytes*/);
-//     if (FAILED(hr)) AfxThrowOleException(hr);               // 0x243cf3
-//     hr = StgCreateDocfileOnILockBytes([this+0x70], 0x1012, 0,
-//                                       &[this+0x68] /*m_lpStorage*/);
-//         // 0x1012 = STGM_READWRITE|STGM_SHARE_EXCLUSIVE|STGM_CREATE without
-//         // STGM_TRANSACTED
-//     if (FAILED(hr)) { [this+0x70]->Release(); [this+0x70] = NULL;
-//                       AfxThrowOleException(hr); }            // 0x243d23
-// Left as generated: OpenMFC's COleClientItem declares neither the ILockBytes
-// nor the IStorage member, which are the only two things this function writes.
+// Retail entry: RVA 0x2456b0 (mfc140u). CreateILockBytesOnHGlobal(NULL, TRUE)
+// writes item+0x70; StgCreateDocfileOnILockBytes then creates item+0x68 with
+// flags 0x1012 (STGM_READWRITE|STGM_SHARE_EXCLUSIVE|STGM_CREATE). On the first
+// failure retail throws the OLE exception; on the second it releases and clears
+// the lock-bytes pointer before throwing. The state table owns these COM refs.
+// Deviation: null this/missing side-state are guarded and return, rather than
+// retail's unchecked writes, because the local object does not hold these refs.
 extern "C" void MS_ABI impl__GetItemStorageFlat_COleClientItem__QEAAXXZ(
         COleClientItem* pThis) {
-    (void)pThis;
+    if (!pThis) return;
+    ClientItemState* state = GetClientItemState(pThis, true);
+    if (!state) return;
+
+    ILockBytes* lockBytes = nullptr;
+    HRESULT hr = ::CreateILockBytesOnHGlobal(nullptr, TRUE, &lockBytes);
+    if (FAILED(hr)) {
+        AfxThrowOleException(hr);
+        return;
+    }
+    state->lockBytes = lockBytes;
+
+    IStorage* storage = nullptr;
+    hr = ::StgCreateDocfileOnILockBytes(
+        lockBytes, STGM_READWRITE | STGM_SHARE_EXCLUSIVE | STGM_CREATE,
+        0, &storage);
+    if (FAILED(hr)) {
+        lockBytes->Release();
+        state->lockBytes = nullptr;
+        AfxThrowOleException(hr);
+        return;
+    }
+    state->storage = storage;
 }
 
 // Symbol: ?GetLinkSourceData@COleClientItem@@IEAAHPEAUtagSTGMEDIUM@@@Z
@@ -1616,9 +1737,9 @@ extern "C" void MS_ABI impl__GetItemStorageFlat_COleClientItem__QEAAXXZ(
 // moniker, or asks GetClientSite()->GetMoniker when the object is not linked;
 // it serializes the moniker and object's CLSID into an IStream and returns it
 // in a TYMED_ISTREAM medium. This body preserves that operation for linked
-// objects, but remains incomplete: OpenMFC's GetClientSite thunk returns null,
-// and the class declaration does not model the retail member offsets. Added
-// null guards also avoid retail's unchecked dereferences.
+// objects, but remains incomplete: GetClientSite still returns null, and
+// colliding base members retain their compact OpenMFC offsets. Added null
+// guards also avoid retail's unchecked dereferences.
 extern "C" int MS_ABI impl__GetLinkSourceData_COleClientItem__IEAAHPEAUtagSTGMEDIUM___Z(
         COleClientItem* pThis, STGMEDIUM* lpMedium) {
     if (!pThis || !lpMedium) return FALSE;
@@ -1709,11 +1830,12 @@ extern "C" int MS_ABI impl__GetLinkUpdateOptions_COleClientItem__QEAA_AW4tagOLEU
 }
 
 // Symbol: ?GetNewItemNumber@COleClientItem@@QEAAKXZ
-// Retail entry: RVA 0x244700 (mfc140u). It reads the document at item+0x40 and
-// its next-number seed at document+0x1b8, scans the document's COleClientItems
-// for a matching item number at item+0x58, then stores the next unused number
-// back into the seed and returns the selected number. OpenMFC models neither
-// that item number nor the document collection/seed, so this stays stubbed.
+// Retail entry: RVA 0x244700 (mfc140u). It reads document+0x1b8, scans the
+// document item list for collisions with item+0x58, then updates and returns
+// the next unused number. DocumentState::nextItemNumber and ClientItemState's
+// itemNumber are modeled, but accessing GetDocumentState from this TU adds a
+// new undefined C++ helper that checkfile.sh rejects; no C-linkage accessor or
+// impl__ thunk for that state currently exists, so this remains stubbed.
 extern "C" unsigned long MS_ABI impl__GetNewItemNumber_COleClientItem__QEAAKXZ(
         COleClientItem* pThis) {
     (void)pThis;
@@ -1863,9 +1985,9 @@ extern "C" void MS_ABI impl__GetUserType_COleClientItem__QEAAXW4tagUSERCLASSTYPE
 // for the frame windows, updates the main-frame menu state when available,
 // changes the private item state to 4 with an OnChange notification, saves
 // and modifies the active view's style, obtains the OLE object's in-place
-// window, and updates the in-place frame hooks. The item-state, view, saved
-// style, window and hook fields are not modeled at their retail offsets here;
-// this remains a stub rather than writing into unrelated OpenMFC members.
+// window, and updates the in-place frame hooks. Item state, view, saved style,
+// server window and hook state are now modeled, but this remains a stub pending
+// faithful virtual and interface dispatch.
 extern "C" void MS_ABI impl__OnActivateUI_COleClientItem__UEAAXXZ(
         COleClientItem* pThis) {
     (void)pThis;
@@ -1917,9 +2039,9 @@ extern "C" void MS_ABI impl__OnDeactivateAndUndo_COleClientItem__MEAAXXZ(
 //         if (pDocFrame) { pDocFrame->[frame+0x1d0] |= 2; ... }  // 0x247031
 //     }
 //     bUndoable is not read anywhere in the body.
-// Left as generated: the item state, the saved view style, m_pView and the
-// frame-window bookkeeping are all retail-only members, and OpenMFC's
-// OLE_* macros do not use retail's item-state numbering (see OnActivateUI).
+// Left as generated: item state, saved style, m_pView and frame-hook pointers
+// now have retail-tail storage, but the frame/view virtual dispatch is not
+// compatible here; OpenMFC's OLE_* macros also use different state numbering.
 extern "C" void MS_ABI impl__OnDeactivateUI_COleClientItem__UEAAXH_Z(
         COleClientItem* pThis, int bUndoable) {
     (void)pThis; (void)bUndoable;
@@ -1960,19 +2082,19 @@ extern "C" COleDataSource* MS_ABI impl__OnGetClipboardData_COleClientItem__UEAAP
 //     jmp *GetClientRect       ; GetClientRect(hWnd, &rClipRect)
 // (the RVA map names 0x244b70 after COleDocObjectItem::OnGetItemPosition,
 // which the linker folded with it; the name carries no meaning here.)
-// Deviation: OpenMFC's COleClientItem has no m_pView, so retail's window can
-// not be reached.  The window used instead is the item's own — the control
-// site's, falling back to the in-place object's — which is the same pair, in
-// the same order, that this file's COleClientItem::OnGetItemPosition (line
-// ~1206) uses; and with neither available the rectangle is emptied rather than
-// left untouched, which retail (an unconditional GetClientRect) never does.
+// Deviation: the retail m_pView pointer is now represented at +0x98 and is
+// tried first. If it is unset, this implementation falls back to the item's
+// control-site window and then its in-place object's window; with neither
+// available it empties the rectangle instead of making retail's unchecked
+// GetClientRect call.
 extern "C" void MS_ABI impl__OnGetClipRect_COleClientItem__MEAAXAEAVCRect___Z(
         COleClientItem* pThis, CRect& rClipRect) {
     rClipRect.SetRectEmpty();
     if (!pThis) return;
 
-    HWND hWnd = nullptr;
-    if (pThis->m_pControlSite) {
+    const auto* retail = reinterpret_cast<const openmfc::detail::olecore::RetailCOleClientItemLayout*>(pThis);
+    HWND hWnd = retail->m_pView ? retail->m_pView->GetSafeHwnd() : nullptr;
+    if (!hWnd && pThis->m_pControlSite) {
         CWnd* pSiteWnd = pThis->m_pControlSite->GetWindow();
         if (pSiteWnd) hWnd = pSiteWnd->GetSafeHwnd();
     }
@@ -1983,13 +2105,12 @@ extern "C" void MS_ABI impl__OnGetClipRect_COleClientItem__MEAAXAEAVCRect___Z(
 }
 
 // Symbol: ?OnGetWindowContext@COleClientItem@@MEAAHPEAPEAVCFrameWnd@@0PEAUtagOIFI@@@Z
-// Retail entry: RVA 0x246dd0 (mfc140.dll, ANSI twin; --u lookup unresolved).
-// It rejects null frame out-parameters with E_POINTER, gets top-level and
-// parent frames from the item's active view, optionally fills frame info from
-// the document template's accelerator table, and returns TRUE. OpenMFC does
-// not model the retail m_pView/template state, so this remains a stub; it also
-// avoids returning E_POINTER through this BOOL-typed result, which would be
-// nonzero to callers that test it as a Boolean.
+// Retail entry RVA 0x248970 (mfc140u; ordinal-resolved). It rejects null frame
+// out-parameters with E_POINTER, gets top-level and parent frames from the
+// modeled m_pView, optionally fills frame info from the document template's
+// accelerator table, and returns TRUE. CDocTemplate accelerator state remains
+// unmodeled, so this stays a stub; it also avoids returning E_POINTER through
+// this BOOL-typed result, which would be nonzero to Boolean callers.
 extern "C" int MS_ABI impl__OnGetWindowContext_COleClientItem__MEAAHPEAPEAVCFrameWnd__0PEAUtagOIFI___Z(
         COleClientItem* pThis, CFrameWnd** ppMainFrame, CFrameWnd** ppDocFrame,
         void* lpFrameInfo) {
@@ -2046,13 +2167,23 @@ extern "C" void MS_ABI impl__OnRemoveMenus_COleClientItem__UEAAXPEAVCMenu___Z(
 //                                                              // 0x246ec2
 //     return m_pView->vftable[0x2e8](sizeExtent, TRUE);        // 0x246eeb
 // i.e. it scrolls through the splitter when the view is in one and otherwise
-// asks the view itself, in both cases with bDoScroll = TRUE.
-// Left as generated: m_pView is a retail-only member, so neither branch has an
-// object to work on.
+// asks the view itself, in both cases with bDoScroll = TRUE. m_pView is now
+// available in the checked retail tail overlay; the calls below use the local
+// splitter/view thunks rather than retail's incompatible vtable byte offsets.
 extern "C" int MS_ABI impl__OnScrollBy_COleClientItem__MEAAHVCSize___Z(
         COleClientItem* pThis, long long sizeExtent) {
-    (void)pThis; (void)sizeExtent;
-    return FALSE;
+    if (!pThis) return FALSE;
+    const auto* retail = reinterpret_cast<const openmfc::detail::olecore::RetailCOleClientItemLayout*>(pThis);
+    CView* pView = retail->m_pView;
+    if (!pView) return FALSE;
+
+    CSplitterWnd* pSplitter =
+        impl__GetParentSplitter_CView__SAPEAVCSplitterWnd__PEBVCWnd__H_Z(pView, FALSE);
+    if (pSplitter) {
+        return impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z(
+            pSplitter, pView, sizeExtent, TRUE);
+    }
+    return impl__OnScrollBy_CView__UEAAHVCSize__H_Z(pView, sizeExtent, TRUE);
 }
 
 // Symbol: ?OnSetMenu@COleClientItem@@UEAAXPEAVCMenu@@PEAXPEAUHWND__@@@Z
@@ -2068,9 +2199,10 @@ extern "C" int MS_ABI impl__OnScrollBy_COleClientItem__MEAAHVCSize___Z(
 //     if ([this+0xb0] != NULL)
 //         OleSetMenuDescriptor(hOleMenu, [this+0xb0]->[hook+0x40]->m_hWnd,
 //                              hwndActiveObject, NULL, NULL);  // 0x24745e
-// Left as generated: both COleFrameHook members (retail item+0xa8 and +0xb0)
-// are unmodelled by OpenMFC, and the body dereferences the first of them
-// (0x2473c6/0x2473d6, before any null test) on every path.
+// The retail hook pointers are now named at item+0xa8 and +0xb0, but OpenMFC
+// does not construct compatible COleFrameHook interface parts in this object;
+// the retail body dereferences the first hook before any null test, so this
+// implementation still cannot reproduce its dispatch safely.
 extern "C" void MS_ABI impl__OnSetMenu_COleClientItem__UEAAXPEAVCMenu__PEAXPEAUHWND_____Z(
         COleClientItem* pThis, CMenu* pMenuShared, void* hOleMenu, HWND hwndActiveObject) {
     (void)pThis; (void)pMenuShared; (void)hOleMenu; (void)hwndActiveObject;
@@ -2211,12 +2343,13 @@ extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
 // subobject offset and establish module state; some methods (for example
 // GetContainer and ContextSensitiveHelp) have no such prologue.
 //
-// OpenMFC's COleClientItem declaration has no corresponding interface-part
-// members or interface map, and GetClientSite currently returns null. A nested
-// interface `this` therefore cannot safely be converted to an OpenMFC item.
-// Methods below either preserve a verified constant/result path or remain
-// partial stubs with the skipped owner callback documented; no retail-derived
-// subtraction is performed against an object that does not contain the part.
+// OpenMFC now reserves raw pointer-sized storage at the same three offsets,
+// but it does not install compatible nested-interface vtables or expose an
+// interface map; GetClientSite also currently returns null. Given a valid
+// nested-interface pointer, the outer item address is recoverable by the
+// documented offset subtraction. Most callbacks still remain conservative
+// because their retail module-state prologue reads CCmdTarget state absent from
+// OpenMFC's CObject-derived CDocItem, and the raw slots are not active COM parts.
 // The legacy vftable addresses 0x329b80 and 0x329e20 and associated body RVAs
 // discussed below belong to mfc140.dll (ANSI twin), not mfc140u.dll.
 //=============================================================================
@@ -2224,13 +2357,17 @@ extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
 // Symbol: ?CanInPlaceActivate@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x249d20 (mfc140u). After the module-state prologue it
 // dispatches CanActivate through vtable byte offset 0x128, returning S_OK when
-// that callback is true and S_FALSE otherwise. The owner cannot be recovered
-// because OpenMFC has no XOleIPSite subobject; this conservative constant S_OK
-// omits the callback and is not equivalent for an inactive item.
+// true and S_FALSE otherwise. The owner offset is represented and the callback
+// is dispatched through its impl__ thunk; deviation: no retail module-state
+// switch is made, and this raw part has no installed interface vtable.
 extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
-    return 0;   // retail: S_OK when COleClientItem::CanActivate() returns TRUE
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    return impl__CanActivate_COleClientItem__MEAAHXZ(item) ? S_OK : S_FALSE;
 }
 
 // Symbol: ?ContextSensitiveHelp@XOleIPSite@COleClientItem@@UEAAJH@Z
@@ -2241,9 +2378,10 @@ extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleClientItem__UEAAJ
 //     return (pFrame + 0x80)->vftable[0x20](fEnterMode);
 //         // a tail jump into the frame hook's own embedded interface,
 //         // IOleWindow::ContextSensitiveHelp at slot 4
-// Left as generated: the item is unrecoverable and OpenMFC models no
-// COleFrameHook member, which is the null case retail answers with
-// E_UNEXPECTED — that is what is returned.
+// The outer item can be recovered from the represented +0xe8 part offset, and
+// its frame-hook pointer is named at +0xa8. This conservative result covers
+// the null-hook case; dispatch for a non-null hook is unavailable because no
+// compatible COleFrameHook interface part is installed.
 extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleIPSite_COleClientItem__UEAAJH_Z(
         void* pThisItf, int fEnterMode) {
     (void)pThisItf; (void)fEnterMode;
@@ -2253,22 +2391,32 @@ extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleIPSite_COleClientItem__UEA
 // Symbol: ?DeactivateAndUndo@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x24a210 (mfc140u). It dispatches the item's
 // OnDeactivateAndUndo virtual at vtable byte offset 0x108, then returns S_OK.
-// OpenMFC has no XOleIPSite subobject from which to recover the owner, so this
-// constant S_OK stub skips that callback.
+// The +0xe8 owner offset is represented; the local OnDeactivateAndUndo thunk
+// is called, omitting retail's unavailable module-state prologue.
 extern "C" long MS_ABI impl__DeactivateAndUndo_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
-    return S_OK;   // retail: S_OK after COleClientItem::OnDeactivateAndUndo()
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    impl__OnDeactivateAndUndo_COleClientItem__MEAAXXZ(item);
+    return S_OK;
 }
 
 // Symbol: ?DiscardUndoState@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x24a1b0 (mfc140u). It dispatches OnDiscardUndoState at
-// vtable byte offset 0x100 and then returns S_OK. The owner cannot be recovered
-// without the missing XOleIPSite subobject; this constant S_OK stub omits the
-// callback (including any derived-class override).
+// vtable byte offset 0x100 and then returns S_OK. The +0xe8 owner offset is
+// represented and the local callback thunk is used; retail module-state setup
+// is omitted and this raw part has no installed interface vtable.
 extern "C" long MS_ABI impl__DiscardUndoState_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    impl__OnDiscardUndoState_COleClientItem__MEAAXXZ(item);
     return S_OK;
 }
 
@@ -2280,12 +2428,11 @@ extern "C" long MS_ABI impl__DiscardUndoState_XOleIPSite_COleClientItem__UEAAJXZ
 //     if (pDoc == NULL) return E_UNEXPECTED;                  // 0x245df1
 //     *ppContainer = pDoc->vftable[0x278]();                  // 0x245dfb
 //     return *ppContainer ? S_OK : E_NOINTERFACE;             // 0x245e12
-// The E_POINTER test is the first thing the body does and is reproduced.  The
-// document cannot be reached (the item is unrecoverable from the sub-object
-// pointer), which is observationally the same as retail's null-document case,
-// so that path's E_UNEXPECTED is returned.  Deviation: the out-parameter is
-// nulled first, which retail does not do on this path, so the caller is not
-// handed an uninitialised pointer.
+// The E_POINTER test is reproduced and the outer item offset is represented,
+// but this conservative body does not dispatch through the document. Its
+// E_UNEXPECTED result matches retail's null-document path only; with a non-null
+// document that returns no container retail would return E_NOINTERFACE.
+// Deviation: the out-parameter is nulled first.
 extern "C" long MS_ABI impl__GetContainer_XOleClientSite_COleClientItem__UEAAJPEAPEAUIOleContainer___Z(
         void* pThisItf, IOleContainer** ppContainer) {
     (void)pThisItf;
@@ -2298,9 +2445,9 @@ extern "C" long MS_ABI impl__GetContainer_XOleClientSite_COleClientItem__UEAAJPE
 // Retail entry: RVA 0x247710 (mfc140u). It rejects a null output pointer,
 // clears the output, and selects container, relative-item, or composed full
 // monikers based on dwWhichMoniker; a produced moniker yields S_OK, otherwise
-// E_FAIL. The branches require the owner/document/item name, but OpenMFC has no
-// XOleClientSite subobject to recover the owner. This stub preserves the pointer
-// validation and empty-output E_FAIL path, not the valid moniker cases.
+// E_FAIL. The outer item offset is represented, but the raw interface slot is
+// not installed and the valid moniker composition path is unavailable. This
+// stub preserves pointer validation and the empty-output E_FAIL path.
 extern "C" long MS_ABI impl__GetMoniker_XOleClientSite_COleClientItem__UEAAJKKPEAPEAUIMoniker___Z(
         void* pThisItf, unsigned long dwAssign, unsigned long dwWhichMoniker,
         IMoniker** ppmk) {
@@ -2311,20 +2458,22 @@ extern "C" long MS_ABI impl__GetMoniker_XOleClientSite_COleClientItem__UEAAJKKPE
 }
 
 // Symbol: ?GetWindow@XOleIPSite@COleClientItem@@UEAAJPEAPEAUHWND__@@@Z
-// COleClientItem::XOleIPSite::GetWindow(HWND*) — retail 0x248100, no
-// module-state prologue, the whole body:
-//     if (phwnd == NULL) return E_POINTER;                    // 0x248105
-//     CView* pView = pThis->m_pView;   // mov -0x50(%rcx),%rax
-//     *phwnd = pView ? pView->m_hWnd : NULL;                  // 0x248114
-//     return *phwnd ? S_OK : E_FAIL;                          // 0x248122
-// Reproduced for the reachable half: m_pView is a retail-only member, so this
-// takes exactly retail's null-view path — write NULL, report E_FAIL.
+// COleClientItem::XOleIPSite::GetWindow(HWND*) — retail entry RVA 0x248100
+// (mfc140.dll, ANSI twin). With no module-state prologue, it checks phwnd,
+// reads m_pView from outer item+0x98, writes that view's HWND (or NULL), and
+// returns S_OK for a non-null HWND or E_FAIL otherwise. Both offsets are
+// pinned in RetailCOleClientItemLayout; the local tail view pointer is used.
 extern "C" long MS_ABI impl__GetWindow_XOleIPSite_COleClientItem__UEAAJPEAPEAUHWND_____Z(
         void* pThisItf, HWND* phwnd) {
-    (void)pThisItf;
     if (!phwnd) return E_POINTER;
     *phwnd = nullptr;
-    return E_FAIL;
+    if (!pThisItf) return E_FAIL;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    const auto* item = reinterpret_cast<const openmfc::detail::olecore::RetailCOleClientItemLayout*>(
+        part - offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    CView* pView = item->m_pView;
+    *phwnd = pView ? pView->GetSafeHwnd() : nullptr;
+    return *phwnd ? S_OK : E_FAIL;
 }
 
 // Symbol: ?GetWindowContext@XOleIPSite@COleClientItem@@UEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagRECT@@2PEAUtagOIFI@@@Z
@@ -2343,10 +2492,10 @@ extern "C" long MS_ABI impl__GetWindow_XOleIPSite_COleClientItem__UEAAJPEAPEAUHW
 //     ... then publishes the two frame windows' IOleInPlaceFrame /
 //     IOleInPlaceUIWindow interfaces through the COleFrameHook objects at
 //     item+0xa8 / item+0xb0, creating them if needed.
-// Left as generated: the item is unrecoverable from the sub-object pointer, and
-// even with it the frame hooks and m_pView that the tail of this function needs
-// are not modelled by OpenMFC.  The two interface out-parameters are nulled and
-// E_UNEXPECTED reported so the caller is not handed uninitialised pointers.
+// The owner, m_pView and frame-hook storage are now represented, but the nested
+// part and compatible COleFrameHook interface vtables are not installed. The
+// two interface out-parameters are nulled and E_UNEXPECTED reported so the
+// caller is not handed uninitialised pointers.
 extern "C" long MS_ABI impl__GetWindowContext_XOleIPSite_COleClientItem__UEAAJPEAPEAUIOleInPlaceFrame__PEAPEAUIOleInPlaceUIWindow__PEAUtagRECT__2PEAUtagOIFI___Z(
         void* pThisItf, void** ppFrame, void** ppDoc, RECT* lprcPosRect,
         RECT* lprcClipRect, void* lpFrameInfo) {
@@ -2359,11 +2508,17 @@ extern "C" long MS_ABI impl__GetWindowContext_XOleIPSite_COleClientItem__UEAAJPE
 
 // Symbol: ?OnClose@XAdviseSink@COleClientItem@@UEAAXXZ
 // Retail entry: RVA 0x247c30 (mfc140u). After the module-state prologue it
-// dispatches OnChange(2, 0). OpenMFC has no XAdviseSink subobject to recover the
-// owner, so the notification is omitted in this stub.
+// dispatches OnChange(2, 0). The +0xe0 part offset is represented, but its
+// vtable is not installed and retail module state has no compatible backing.
 extern "C" void MS_ABI impl__OnClose_XAdviseSink_COleClientItem__UEAAXXZ(
         void* pThisItf) {
-    (void)pThisItf;
+    if (!pThisItf) return;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xAdviseSinkVftable));
+    impl__OnChange_COleClientItem__UEAAXW4OLE_NOTIFICATION__K_Z(
+        item, static_cast<OLE_NOTIFICATION>(2), 0);
 }
 
 // Symbol: ?OnDataChange@XAdviseSink@COleClientItem@@UEAAXPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
@@ -2371,8 +2526,8 @@ extern "C" void MS_ABI impl__OnClose_XAdviseSink_COleClientItem__UEAAXXZ(
 // 0x245f70, after the module-state prologue, is one call:
 //     pThis->OnDataChange(lpFormatEtc, lpStgMedium);   // vftable 0x1a8
 // For the base class that virtual is 0x002820 (`ret`), so nothing happens; a
-// derived override is what is lost here, since the item cannot be recovered
-// from the sub-object pointer.
+// derived override is lost because this raw interface part is not installed as
+// a usable callback, and its module-state prologue cannot be reproduced.
 extern "C" void MS_ABI impl__OnDataChange_XAdviseSink_COleClientItem__UEAAXPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
         void* pThisItf, FORMATETC* lpFormatEtc, STGMEDIUM* lpMedium) {
     (void)pThisItf; (void)lpFormatEtc; (void)lpMedium;
@@ -2381,23 +2536,33 @@ extern "C" void MS_ABI impl__OnDataChange_XAdviseSink_COleClientItem__UEAAXPEAUt
 // Symbol: ?OnInPlaceActivate@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x2481b0 (mfc140.dll, ANSI twin; --u lookup unresolved).
 // It dispatches OnActivate at vtable byte offset 0x130 and then returns S_OK.
-// Without the XOleIPSite subobject OpenMFC cannot recover the owner; this
-// constant S_OK stub omits the callback.
+// The owner offset is represented, but the interface part is not installed and
+// its retail module-state prologue has no compatible backing.
 extern "C" long MS_ABI impl__OnInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
-    return S_OK;   // retail: S_OK after COleClientItem::OnActivate()
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    impl__OnActivate_COleClientItem__UEAAXXZ(item);
+    return S_OK;
 }
 
 // Symbol: ?OnInPlaceDeactivate@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x248590 (mfc140.dll, ANSI twin; --u lookup unresolved).
 // It dispatches OnDeactivate at vtable byte offset 0x140 and then returns S_OK.
-// The owner cannot be recovered without OpenMFC's missing XOleIPSite subobject;
-// this constant S_OK stub omits the callback.
+// The owner offset is represented, but the interface part is not installed and
+// its retail module-state prologue has no compatible backing.
 extern "C" long MS_ABI impl__OnInPlaceDeactivate_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
-    return S_OK;   // retail: S_OK after COleClientItem::OnDeactivate()
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    impl__OnDeactivate_COleClientItem__UEAAXXZ(item);
+    return S_OK;
 }
 
 // Symbol: ?OnPosRectChange@XOleIPSite@COleClientItem@@UEAAJPEBUtagRECT@@@Z
@@ -2406,12 +2571,20 @@ extern "C" long MS_ABI impl__OnInPlaceDeactivate_XOleIPSite_COleClientItem__UEAA
 //     CRect rect(0,0,0,0); CopyRect(&rect, lprcPosRect);       // 0x2486fa
 //     pThis->OnChangeItemPosition(rect);   // vftable byte 0x150 (0x2472c0)
 //     return S_OK;                         // xor %eax,%eax at 0x248718
-// (the BOOL the virtual returns is discarded.)  Left as generated: the item
-// cannot be recovered from the sub-object pointer.
+// (the BOOL the virtual returns is discarded.) The wrapper calls the local
+// OnChangeItemPosition thunk and returns S_OK; it omits retail module-state
+// setup, and the raw interface part is not installed.
 extern "C" long MS_ABI impl__OnPosRectChange_XOleIPSite_COleClientItem__UEAAJPEBUtagRECT___Z(
         void* pThisItf, const RECT* lprcPosRect) {
-    (void)pThisItf; (void)lprcPosRect;
-    return S_OK;   // retail: unconditional S_OK
+    if (!pThisItf) return E_UNEXPECTED;
+    if (!lprcPosRect) return E_POINTER;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    CRect rect = *lprcPosRect;
+    impl__OnChangeItemPosition_COleClientItem__MEAAHAEBVCRect___Z(item, &rect);
+    return S_OK;
 }
 
 // Symbol: ?OnRename@XAdviseSink@COleClientItem@@UEAAXPEAUIMoniker@@@Z
@@ -2430,34 +2603,60 @@ extern "C" void MS_ABI impl__OnRename_XAdviseSink_COleClientItem__UEAAXPEAUIMoni
 
 // Symbol: ?OnSave@XAdviseSink@COleClientItem@@UEAAXXZ
 // Retail entry: RVA 0x246040 (mfc140.dll, ANSI twin; --u lookup unresolved).
-// It dispatches OnChange(1, 0). Without OpenMFC's XAdviseSink subobject the
-// owner cannot be recovered, so this stub omits the notification.
+// It dispatches OnChange(1, 0). The +0xe0 owner offset is represented, but the
+// interface part and retail module-state backing are not installed.
 extern "C" void MS_ABI impl__OnSave_XAdviseSink_COleClientItem__UEAAXXZ(
         void* pThisItf) {
-    (void)pThisItf;
+    if (!pThisItf) return;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xAdviseSinkVftable));
+    impl__OnChange_COleClientItem__UEAAXW4OLE_NOTIFICATION__K_Z(
+        item, static_cast<OLE_NOTIFICATION>(1), 0);
 }
 
 // Symbol: ?OnShowWindow@XOleClientSite@COleClientItem@@UEAAJH@Z
 // Retail entry: RVA 0x245e70 (mfc140.dll, ANSI twin; --u lookup unresolved).
-// Unless the private item state at +0x90 is 3 or 4, it sets state to 2 when
-// fShow is true or 1 otherwise, sends OnChange(4, newState) when that changes,
-// and returns S_OK. The missing XOleClientSite subobject and state field prevent
-// reproducing the transition; this constant S_OK stub skips it.
+// Unless item state at +0x90 is 3 or 4, it sets state to 2 when fShow is true
+// or 1 otherwise, sends OnChange(4, newState) when the value changes, and
+// returns S_OK. The tail overlay now models both the part offset and state.
+// Deviation: the local CObject-derived base has no retail module-state field,
+// so this performs the callback without retail's module-state prologue.
 extern "C" long MS_ABI impl__OnShowWindow_XOleClientSite_COleClientItem__UEAAJH_Z(
         void* pThisItf, int fShow) {
-    (void)pThisItf; (void)fShow;
-    return S_OK;   // retail: unconditional S_OK
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<openmfc::detail::olecore::RetailCOleClientItemLayout*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleClientSiteVftable));
+    const int oldState = item->m_nItemState;
+    if (oldState == 3 || oldState == 4) return S_OK;
+
+    const int newState = fShow ? 2 : 1;
+    if (newState != oldState) {
+        impl__OnChange_COleClientItem__UEAAXW4OLE_NOTIFICATION__K_Z(
+            reinterpret_cast<COleClientItem*>(item),
+            static_cast<OLE_NOTIFICATION>(4), static_cast<unsigned long>(newState));
+        item->m_nItemState = newState;
+    }
+    return S_OK;
 }
 
 // Symbol: ?OnUIActivate@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x248210 (mfc140.dll, ANSI twin; --u lookup unresolved).
 // It dispatches OnActivateUI at vtable byte offset 0x138 and then returns S_OK.
-// The missing XOleIPSite part prevents recovering the owner; this stub skips
-// the callback.
+// The owner offset is represented, but the nested interface part and retail
+// module-state backing are not installed.
 extern "C" long MS_ABI impl__OnUIActivate_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
-    return S_OK;   // retail: S_OK after COleClientItem::OnActivateUI()
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    impl__OnActivateUI_COleClientItem__UEAAXXZ(item);
+    return S_OK;
 }
 
 // Symbol: ?OnUIDeactivate@XOleIPSite@COleClientItem@@UEAAJH@Z
@@ -2465,11 +2664,18 @@ extern "C" long MS_ABI impl__OnUIActivate_XOleIPSite_COleClientItem__UEAAJXZ(
 // 0x248520, after the module-state prologue:
 //     pThis->OnDeactivateUI(fUndoable);   // vftable byte 0x110 (0x246f10)
 //     return S_OK;                        // xor %eax,%eax at 0x24855f
-// Left as generated: the item cannot be recovered from the sub-object pointer.
+// The wrapper dispatches OnDeactivateUI through the local thunk and returns
+// S_OK. Retail module-state setup is omitted, and the raw interface part is not
+// installed.
 extern "C" long MS_ABI impl__OnUIDeactivate_XOleIPSite_COleClientItem__UEAAJH_Z(
         void* pThisItf, int fUndoable) {
-    (void)pThisItf; (void)fUndoable;
-    return S_OK;   // retail: S_OK after COleClientItem::OnDeactivateUI()
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    impl__OnDeactivateUI_COleClientItem__UEAAXH_Z(item, fUndoable);
+    return S_OK;
 }
 
 // Symbol: ?OnViewChange@XAdviseSink@COleClientItem@@UEAAXKJ@Z
@@ -2477,11 +2683,19 @@ extern "C" long MS_ABI impl__OnUIDeactivate_XOleIPSite_COleClientItem__UEAAJH_Z(
 // retail 0x245fe0, after the module-state prologue, is one call:
 //     pThis->OnChange(OLE_CHANGED /*0*/, aspect);  // vftable 0x0e8,
 //                                                  // edx=0, r8d=aspect
-// lindex is not read.  Left as generated: the item cannot be recovered from the
-// sub-object pointer, so the notification cannot be delivered.
+// lindex is not read. The wrapper dispatches OnChange(0, aspect) through its
+// local thunk; retail module-state setup is omitted and the raw part is not
+// installed as a usable interface.
 extern "C" void MS_ABI impl__OnViewChange_XAdviseSink_COleClientItem__UEAAXKJ_Z(
         void* pThisItf, unsigned long aspect, long lindex) {
-    (void)pThisItf; (void)aspect; (void)lindex;
+    (void)lindex;
+    if (!pThisItf) return;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xAdviseSinkVftable));
+    impl__OnChange_COleClientItem__UEAAXW4OLE_NOTIFICATION__K_Z(
+        item, static_cast<OLE_NOTIFICATION>(0), aspect);
 }
 
 // Symbol: ?RequestNewObjectLayout@XOleClientSite@COleClientItem@@UEAAJXZ
@@ -2497,38 +2711,66 @@ extern "C" long MS_ABI impl__RequestNewObjectLayout_XOleClientSite_COleClientIte
 }
 
 // Symbol: ?SaveObject@XOleClientSite@COleClientItem@@UEAAJXZ
-// Stub: mfc140.dll (ANSI twin) RVA 0x245a90 performs persistence work, including
-// OleSave (the ANSI IAT slot resolves to ole32!OleSave). It needs the owning
-// item and retail m_lpStorage at item+0x68; OpenMFC has no XOleClientSite
-// subobject/interface-map backing or m_lpStorage field. The --u lookup did not
-// resolve this symbol, so the cited entry is for the ANSI twin only.
+// Retail mfc140.dll (ANSI twin) entry RVA 0x245a90 obtains IPersistStorage,
+// checks IsDirty, calls ole32!OleSave(persist, item storage, TRUE) when dirty,
+// then SaveCompleted(NULL) on success and notifies the document. The storage
+// pointer is backed by ClientItemState. Deviation: the document's retail virtual
+// notification and module-state prologue are unavailable here. The --u lookup
+// did not resolve this symbol; the OleSave IAT slot was verified with iat.py.
 extern "C" long MS_ABI impl__SaveObject_XOleClientSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
-    return 0;
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* pThis = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleClientSiteVftable));
+    if (!pThis->m_lpObject) return E_UNEXPECTED;
+
+    IPersistStorage* pPersist = nullptr;
+    HRESULT hr = pThis->m_lpObject->QueryInterface(
+        IID_IPersistStorage, reinterpret_cast<void**>(&pPersist));
+    if (FAILED(hr) || !pPersist) return FAILED(hr) ? hr : E_NOINTERFACE;
+
+    hr = S_OK;
+    if (pPersist->IsDirty() == S_OK) {
+        ClientItemState* state = GetClientItemState(pThis, false);
+        hr = ::OleSave(pPersist, state ? state->storage : nullptr, TRUE);
+        if (SUCCEEDED(hr)) hr = pPersist->SaveCompleted(nullptr);
+    }
+    pPersist->Release();
+    return hr;
 }
 
 // Symbol: ?Scroll@XOleIPSite@COleClientItem@@UEAAJUtagSIZE@@@Z
-// Stub: mfc140.dll (ANSI twin) RVA 0x2484a0 recovers the item from the
-// XOleIPSite at item+0xe8, calls vtable byte offset 0xf8 (slot 31,
-// OnScrollBy(CSize)), and returns TRUE iff that callback returns FALSE.
-// OpenMFC has no XOleIPSite subobject/interface-map backing; its OnScrollBy
-// implementation also lacks retail m_pView at item+0x98. The --u lookup did
-// not resolve this symbol, so the cited entry is for the ANSI twin only.
+// Retail mfc140.dll (ANSI twin) entry RVA 0x2484a0 recovers the item from its
+// +0xe8 part, calls OnScrollBy(CSize), and returns TRUE iff that callback
+// returns FALSE. m_pView and the local OnScrollBy thunk are now modeled. The
+// local callback omits the retail module-state prologue; the raw interface slot
+// is not installed. The --u lookup did not resolve this symbol.
 extern "C" long MS_ABI impl__Scroll_XOleIPSite_COleClientItem__UEAAJUtagSIZE___Z(
         void* pThisItf, long long sizeExtent) {
-    (void)pThisItf; (void)sizeExtent;
-    return 0;
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    const int bScrolled = impl__OnScrollBy_COleClientItem__MEAAHVCSize___Z(item, sizeExtent);
+    return bScrolled ? 0 : 1;
 }
 
 // Symbol: ?ShowObject@XOleClientSite@COleClientItem@@UEAAJXZ
-// Stub: mfc140.dll (ANSI twin) RVA 0x245e20 recovers the item from the
-// XOleClientSite at item+0xd8, calls vtable byte offset 0x118 (slot 35,
-// OnShowItem), and returns S_OK. OpenMFC has no XOleClientSite subobject or
-// interface-map backing, so the callback cannot be dispatched. The --u lookup
-// did not resolve this symbol, so the cited entry is for the ANSI twin only.
+// Retail mfc140.dll (ANSI twin) entry RVA 0x245e20 recovers the item from its
+// +0xd8 part, dispatches OnShowItem, and returns S_OK. The local callback is
+// wired through its impl__ thunk; this omits the unavailable retail module-state
+// prologue, and the raw interface slot is not installed. The --u lookup did not
+// resolve this symbol.
 extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
-    (void)pThisItf;
-    return 0;
+    if (!pThisItf) return E_UNEXPECTED;
+    const auto* part = static_cast<const unsigned char*>(pThisItf);
+    auto* item = reinterpret_cast<COleClientItem*>(
+        const_cast<unsigned char*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleClientSiteVftable));
+    impl__OnShowItem_COleClientItem__MEAAXXZ(item);
+    return S_OK;
 }
