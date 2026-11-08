@@ -21,7 +21,7 @@ SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/runtime/CThreadLocalObject.cpp phase4/src/core/runtime/CThreadSlotData.cpp phase4/src/detail/CThreadLocalObjectSupport.cpp phase4/src/detail/CThreadSlotDataSupport.cpp phase4/src/core/collections/CPlex.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/core/gdi/CGdiObject.cpp phase4/src/detail/GdiObjectHandleMapSupport.cpp
-    phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp phase4/src/core/ole/CConnectionPoint.cpp phase4/src/core/ole/CEnumConnections.cpp phase4/src/core/ole/CEnumArrayInterfaces.cpp
+    phase4/src/detail/CollectionStateSupport.cpp phase4/src/core/collections/CObList.cpp phase4/src/core/collections/CPtrArrayStorage.cpp phase4/src/core/ole/COleConnPtContainer.cpp phase4/src/core/ole/CConnectionPoint.cpp phase4/src/core/ole/CEnumConnections.cpp phase4/src/core/ole/CEnumArrayInterfaces.cpp phase4/src/core/runtime/AFX_MAINTAIN_STATE2.cpp
     phase4/src/core/d2d/CD2DResource.cpp phase4/src/core/d2d/RuntimeClasses.cpp
     phase4/src/core/app/ThreadQuit.cpp
     phase4/src/core/window/CWndConstruction.cpp phase4/src/core/window/CWndLifetime.cpp phase4/src/detail/WindowHandleMapSupport.cpp phase4/src/core/collections/CHandleMap.cpp phase4/src/detail/CHandleMapSupport.cpp phase4/src/detail/CFixedAllocSupport.cpp

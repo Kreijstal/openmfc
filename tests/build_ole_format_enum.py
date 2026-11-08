@@ -64,7 +64,6 @@ def sources():
     return [s for s in window_sources() if s != 'tests/test_window_handles.cpp'] + [
         'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp',
         'phase4/src/core/controls/CToolTipCtrlLifetime.cpp',
-        'phase4/src/core/runtime/AFX_MAINTAIN_STATE2.cpp',
         'phase4/src/core/ole/CEnumFormatEtc.cpp',
         'tests/test_ole_format_enum.cpp']
 
