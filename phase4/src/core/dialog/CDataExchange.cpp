@@ -13,6 +13,7 @@
 // here as a call to this file's PrepareEditCtrl thunk.
 
 #include "detail/CDataExchangeSupport.h"
+#include "detail/Numeric128.h"
 #include <commctrl.h>
 #include <oleauto.h>
 #include <cmath>
@@ -1035,8 +1036,8 @@ extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDBTIME___Z(
 //     if (p == end) *--p = '0';
 //     if (value.sign == 0) *--p = '-';
 //     AfxSetWindowText(hWndCtrl, p);
-// The 128-bit multiply/divide loops are written with unsigned __int128, which
-// wraps modulo 2^128 exactly like retail's carry chains.  The load buffer is
+// Four-limb arithmetic wraps modulo 2^128 like retail's carry chains and
+// retains all 128 bits on MSVC. The load buffer is
 // 320 wide characters (scale is a BYTE, so at most 256 digits plus '.', '-'
 // and the terminator); retail's is smaller.
 extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDB_NUMERIC___Z(void* pDX, int nIDC, void* pValue)
@@ -1078,19 +1079,13 @@ extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDB_NUMERIC_
         }
         value->precision = static_cast<BYTE>(static_cast<BYTE>(cDig) + (nPwr10 > 0 ? static_cast<BYTE>(nPwr10) : 0));
         value->sign = static_cast<BYTE>(((np.dwOutFlags >> 16) & 1u) ^ 1u);
-        unsigned __int128 acc = 0;
-        for (int i = 0; i < cDig; ++i) acc = acc * 10u + digits[i];
-        for (int i = 0; i < nPwr10; ++i) acc = acc * 10u;
-        unsigned long long lo = static_cast<unsigned long long>(acc);
-        unsigned long long hi = static_cast<unsigned long long>(acc >> 64);
-        std::memcpy(value->val, &lo, 8);
-        std::memcpy(value->val + 8, &hi, 8);
+        openmfc::detail::Numeric128 acc;
+        for (int i = 0; i < cDig; ++i) acc.AppendDigit(digits[i]);
+        for (int i = 0; i < nPwr10; ++i) acc.AppendDigit(0);
+        acc.Store(value->val);
         std::free(heapDigits);
     } else {
-        unsigned long long lo = 0, hi = 0;
-        std::memcpy(&lo, value->val, 8);
-        std::memcpy(&hi, value->val + 8, 8);
-        unsigned __int128 v = (static_cast<unsigned __int128>(hi) << 64) | lo;
+        openmfc::detail::Numeric128 v(value->val);
         wchar_t buf[320];
         wchar_t* const end = buf + 319;
         wchar_t* p = end;
@@ -1098,10 +1093,9 @@ extern "C" void MS_ABI impl__DDX_Text__YAXPEAVCDataExchange__HAEAUtagDB_NUMERIC_
         unsigned nDigits = 0;
         const unsigned nScale = value->scale;
         for (;;) {
-            if (v == 0 && nDigits > nScale) break;
+            if (v.IsZero() && nDigits > nScale) break;
             if (nDigits == nScale && nDigits != 0) *--p = L'.';
-            *--p = static_cast<wchar_t>(L'0' + static_cast<unsigned>(v % 10u));
-            v /= 10u;
+            *--p = static_cast<wchar_t>(L'0' + v.RemoveDigit());
             ++nDigits;
         }
         if (p == end) *--p = L'0';

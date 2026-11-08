@@ -7,15 +7,15 @@
 #include "detail/MfccoreSupport.h"
 
 // Symbol: ?m_arTabsAutoColors@CTabbedPane@@1V?$CArray@KK@@A
-extern "C" __attribute__((used)) void* impl__m_arTabsAutoColors_CTabbedPane__1V__CArray_KK__A = nullptr;
+extern "C" void* impl__m_arTabsAutoColors_CTabbedPane__1V__CArray_KK__A = nullptr;
 // Symbol: ?m_bIsTabsAutoColor@CTabbedPane@@1HA
-extern "C" __attribute__((used)) int impl__m_bIsTabsAutoColor_CTabbedPane__1HA = FALSE;
+extern "C" int impl__m_bIsTabsAutoColor_CTabbedPane__1HA = FALSE;
 // Symbol: ?m_bTabsAlwaysTop@CTabbedPane@@2HA
-extern "C" __attribute__((used)) int impl__m_bTabsAlwaysTop_CTabbedPane__2HA = FALSE;
+extern "C" int impl__m_bTabsAlwaysTop_CTabbedPane__2HA = FALSE;
 // Symbol: ?m_lstTabbedControlBars@CTabbedPane@@1V?$CList@PEAUHWND__@@PEAU1@@@A
-extern "C" __attribute__((used)) void* impl__m_lstTabbedControlBars_CTabbedPane__1V__CList_PEAUHWND____PEAU1___A = nullptr;
+extern "C" void* impl__m_lstTabbedControlBars_CTabbedPane__1V__CList_PEAUHWND____PEAU1___A = nullptr;
 // Symbol: ?m_StyleTabWnd@CTabbedPane@@2W4Style@CMFCTabCtrl@@A
-extern "C" __attribute__((used)) int impl__m_StyleTabWnd_CTabbedPane__2W4Style_CMFCTabCtrl__A = 0;
+extern "C" int impl__m_StyleTabWnd_CTabbedPane__2W4Style_CMFCTabCtrl__A = 0;
 // Neither the mfc140.dll nor mfc140u.dll lookup resolves this export to an RVA;
 // keep the behavior as a placeholder rather than infer it without the function body.
 // Symbol: ?CheckTabbedBarAlignment@CTabbedPane@@MEAAHXZ

@@ -5,6 +5,7 @@
 
 #include "detail/CollectionsStringsSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/RegcoreSupport.h"
 
 #include <uxtheme.h>
 
@@ -617,12 +618,10 @@ extern "C" void* MS_ABI impl__GetHandCursor_AFX_GLOBAL_DATA__QEAAPEAUHICON____XZ
 // Retail mfc140 0x6b7e0: AfxGetModuleState() (0x1345b0), then the pointer at
 // state+8 -- which is handed on as `this` to CWinApp::GetITaskbarList (0x1ce2f0), so it
 // is m_pCurrentWinApp -- and NULL is returned when it is null.
-// OpenMFC's module state is a plain 3-pointer struct with no vftable
-// (detail/ManualSmallStubImplementationsSupport.h:632 / detail/RegcoreSupport.h:124),
-// so m_pCurrentWinApp sits at +0x10 there; it is reached by name, not by offset.
+// Use the actual module state, whose application field is pinned at +8.
 extern "C" void* MS_ABI impl__GetITaskbarList_AFX_GLOBAL_DATA__QEAAPEAUITaskbarList__XZ(void* pThis) {
     (void)pThis;
-    LocalAFX_MODULE_STATE* pState = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+    auto* pState = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
     if (pState == nullptr || pState->m_pCurrentWinApp == nullptr) return nullptr;
     return impl__GetITaskbarList_CWinApp__QEAAPEAUITaskbarList__XZ(pState->m_pCurrentWinApp);
 }
@@ -632,7 +631,7 @@ extern "C" void* MS_ABI impl__GetITaskbarList_AFX_GLOBAL_DATA__QEAAPEAUITaskbarL
 // which goes to CWinApp::GetITaskbarList3 (0x1ce370).
 extern "C" void* MS_ABI impl__GetITaskbarList3_AFX_GLOBAL_DATA__QEAAPEAUITaskbarList3__XZ(void* pThis) {
     (void)pThis;
-    LocalAFX_MODULE_STATE* pState = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+    auto* pState = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
     if (pState == nullptr || pState->m_pCurrentWinApp == nullptr) return nullptr;
     return impl__GetITaskbarList3_CWinApp__QEAAPEAUITaskbarList3__XZ(pState->m_pCurrentWinApp);
 }

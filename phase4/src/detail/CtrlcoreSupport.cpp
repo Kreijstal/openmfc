@@ -430,6 +430,8 @@ extern "C" int MS_ABI impl__Create_CTabCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
 }
 } } }  // namespace openmfc::detail::ctrlcore
 
+// MSVC binds these implementation names through the generated .def file.
+#if defined(__GNUC__)
 // MSVC symbol aliases for exports implemented in this unit. The .set
 // directive resolves at assembly time, so an alias must be emitted in the
 // same translation unit as its target; lld rejects a cross-unit .set that
@@ -494,3 +496,5 @@ asm(".globl \"?Create@CTabCtrl@@UEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
 // Symbol: ?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z
 asm(".globl \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\"\n"
     ".set \"?Create@CTreeCtrl@@QEAAHKAEBUtagRECT@@PEAVCWnd@@I@Z\", impl__Create_CTreeCtrl__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z\n");
+
+#endif

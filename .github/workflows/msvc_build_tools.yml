@@ -3,6 +3,14 @@ on:
   push:
     paths:
       - 'phase4/scripts/build_msvc.py'
+      - 'phase4/scripts/build_phase4.sh'
+      - 'phase4/src/detail/Numeric128.h'
+      - 'phase4/src/core/view/DHtmlThunk.asm'
+      - 'phase4/src/core/view/CDHtmlControlSink.cpp'
+      - 'phase4/src/core/dialog/CDataExchange.cpp'
+      - 'phase4/src/core/runtime/CrtMemory.cpp'
+      - 'tests/build_native_runtime.py'
+      - 'tests/test_native_runtime.cpp'
       - 'tools/gen_weak_stubs.py'
       - 'mfc_complete_ordinal_mapping.json'
       - 'tests/abi_safety/test_msvc_exports.py'
@@ -10,6 +18,14 @@ on:
   pull_request:
     paths:
       - 'phase4/scripts/build_msvc.py'
+      - 'phase4/scripts/build_phase4.sh'
+      - 'phase4/src/detail/Numeric128.h'
+      - 'phase4/src/core/view/DHtmlThunk.asm'
+      - 'phase4/src/core/view/CDHtmlControlSink.cpp'
+      - 'phase4/src/core/dialog/CDataExchange.cpp'
+      - 'phase4/src/core/runtime/CrtMemory.cpp'
+      - 'tests/build_native_runtime.py'
+      - 'tests/test_native_runtime.cpp'
       - 'tools/gen_weak_stubs.py'
       - 'mfc_complete_ordinal_mapping.json'
       - 'tests/abi_safety/test_msvc_exports.py'
@@ -26,3 +42,22 @@ jobs:
       - name: Verify COFF providers, native data and linked DLL ordinals
         shell: cmd
         run: python -m unittest discover -s tests/abi_safety -p test_msvc_exports.py
+  runtime:
+    name: Native runtime (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify 128-bit numeric coefficients and native DHTML thunk dispatch
+        shell: cmd
+        run: python tests/build_native_runtime.py --build "%RUNNER_TEMP%/native-runtime" ${{ matrix.flags }}

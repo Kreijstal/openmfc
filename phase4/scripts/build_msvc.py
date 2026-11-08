@@ -179,10 +179,23 @@ def object_key(source, compiler, flags, headers):
     return hashlib.sha256(payload).hexdigest()
 
 
+def default_assembler(compiler):
+    executable = shutil.which(compiler)
+    if executable:
+        sibling = Path(executable).with_name('ml64.exe' if os.name == 'nt' else 'ml64')
+        if sibling.is_file():
+            return str(sibling)
+    return 'ml64' if os.name == 'nt' else 'llvm-ml'
+
+
+def assembler_flags(assembler):
+    return (['--m64'] if Path(assembler).name.lower().startswith('llvm-ml') else []) + ['/nologo', '/c']
+
+
 def sources():
     # OpenMfcExports is an application helper. ManualThunks is an obsolete
     # generated default-return file, never a production implementation.
-    return sorted(path for path in (ROOT / 'phase4/src').rglob('*.cpp')
+    return sorted(path for path in (ROOT / 'phase4/src').rglob('*') if path.suffix in {'.cpp', '.asm'}
                   if path.relative_to(ROOT / 'phase4/src').as_posix() not in {
                       'core/runtime/OpenMfcExports.cpp', 'core/runtime/ManualThunks.cpp'})
 
@@ -191,6 +204,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--build', required=True, type=Path)
     parser.add_argument('--compiler', default='cl' if os.name == 'nt' else 'clang-cl')
+    parser.add_argument('--assembler', help='x64 MASM-compatible assembler (ml64 or llvm-ml)')
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--jobs', type=int, default=4)
     parser.add_argument('--compile-only', action='store_true')
@@ -199,6 +213,9 @@ def main():
         parser.error('--jobs must be positive')
     if not re.fullmatch(r'(cl|clang-cl(?:-\d+)?)(\.exe)?', Path(args.compiler).name, re.I):
         parser.error('use cl or clang-cl for the Windows/MSVC C++ ABI')
+    assembler = args.assembler or default_assembler(args.compiler)
+    if not re.fullmatch(r'(ml64|llvm-ml(?:-\d+)?)(\.exe)?', Path(assembler).name, re.I):
+        parser.error('use ml64 or llvm-ml for x64 MASM sources')
     out = args.build.resolve()
     out.mkdir(parents=True, exist_ok=True)
     flags, libraries = compile_flags(args.sdk.resolve() if args.sdk else None)
@@ -214,7 +231,9 @@ def main():
         obj = out / 'obj' / relative.with_suffix('.obj')
         obj.parent.mkdir(parents=True, exist_ok=True)
         metadata = obj.with_suffix('.build.json')
-        key = object_key(source, args.compiler, flags, headers)
+        tool = assembler if source.suffix == '.asm' else args.compiler
+        tool_flags = assembler_flags(assembler) if source.suffix == '.asm' else flags
+        key = object_key(source, tool, tool_flags, headers)
         result = {'source': relative.as_posix(), 'object': str(obj), 'log': str(obj.with_suffix('.log'))}
         if obj.is_file() and metadata.is_file():
             try:
@@ -226,7 +245,9 @@ def main():
                 return result
         metadata.unlink(missing_ok=True)
         with Path(result['log']).open('w') as log:
-            process = subprocess.run([args.compiler, *flags, '/c', str(source), '/Fo' + str(obj)],
+            process = subprocess.run([tool, *tool_flags, str(source), '/Fo' + str(obj)]
+                                     if source.suffix == '.asm' else
+                                     [tool, *tool_flags, '/c', str(source), '/Fo' + str(obj)],
                                      cwd=out, env=env, stdout=log, stderr=subprocess.STDOUT)
         result.update(exit_code=process.returncode, cached=False)
         if process.returncode == 0:

@@ -101,6 +101,15 @@ class NativeExportTests(unittest.TestCase):
             self.assertEqual(2, process.returncode)
             self.assertIn('use cl or clang-cl', process.stderr)
 
+    @unittest.skipIf(os.name=='nt','POSIX compatibility launcher')
+    def test_compatibility_launcher_also_rejects_mingw(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env=dict(os.environ,CXX='x86_64-w64-mingw32-g++',BUILD=directory,PYTHON=sys.executable)
+            process=subprocess.run(['bash',str(ROOT/'phase4/scripts/build_phase4.sh'),'--compile-only'],
+                                   capture_output=True,text=True,env=env)
+            self.assertEqual(2,process.returncode)
+            self.assertIn('use cl or clang-cl',process.stderr)
+
     def test_cache_invalidates_for_source_flags_headers_and_environment(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / 'input.cpp'

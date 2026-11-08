@@ -85,7 +85,7 @@ const CStringMapStringState* FindCStringMapStringStorage(const CMapStringToStrin
     return FindCollectionState<CMapStringToString, CStringMapStringState>(self);
 }
 static CRuntimeClass* AFXAPI _openmfc_gb_g_classCWordArray() { return &CObject::classCObject; }
-__attribute__((used)) CRuntimeClass g_classCWordArray = {
+CRuntimeClass g_classCWordArray = {
     "CWordArray", sizeof(CWordArray), 0xFFFF, nullptr, &_openmfc_gb_g_classCWordArray, nullptr, nullptr
 };
 extern "C" void MS_ABI impl__FreeNode_CStringList__IEAAXPEAUCNode_1__Z(CStringList* pThis, void* pNode) { impl__FreeNode_CStringList__IEAAXPEAUCNode_1___Z(pThis, pNode); }

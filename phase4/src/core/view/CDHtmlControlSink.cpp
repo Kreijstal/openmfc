@@ -89,15 +89,8 @@ static_assert(sizeof(DHCS_ATL_FUNC_INFO) == 0x18, "_ATL_FUNC_INFO size");
 // 0x2b82c0 (mfc140u)): `mov %rcx,%rax; mov 8(%rcx),%rcx; jmp *0x10(%rax)`.  It is reached as
 // vtable slot 0 of a DHCS_StdCallThunk through DispCallFunc, with the thunk as `this`, and
 // swaps in the real handler pointer before tail-jumping to the event function with every
-// other argument register and the stack untouched -- which only assembly can do.  The label
-// is file-local (no .globl).  COFF gas has no .pushsection; checked with -S that GCC emits
-// this block first and issues its own .section directive before the next function.
-asm(".text\n"
-    ".p2align 4\n"
-    "openmfc_DHCS_StdCallThunkHelper:\n"
-    "    movq %rcx, %rax\n"
-    "    movq 8(%rcx), %rcx\n"
-    "    jmp *16(%rax)\n");
+// other argument register and the stack untouched. DHtmlThunk.asm supplies the
+// native x64 leaf; it has no prologue, extra call frame or argument conversion.
 extern "C" void openmfc_DHCS_StdCallThunkHelper();
 
 namespace {

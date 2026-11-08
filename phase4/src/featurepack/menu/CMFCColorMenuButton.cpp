@@ -252,7 +252,7 @@ impl__OnDrawOnCustomizeList_CMFCToolBarMenuButton__UEAAHPEAVCDC__AEBVCRect__H_Z(
 // deliberately NULL because OpenMFC has no vtable for this specialization.
 // Symbol: ?m_ColorsByID@CMFCColorMenuButton@@1V?$CMap@IIKK@@A
 extern "C" {
-__attribute__((used)) alignas(8) unsigned char
+alignas(8) unsigned char
     impl__m_ColorsByID_CMFCColorMenuButton__1V__CMap_IIKK__A[56] = {
         // vfptr and m_pHashTable are NULL; m_nHashTableSize defaults to 17.
         0, 0, 0, 0, 0, 0, 0, 0,

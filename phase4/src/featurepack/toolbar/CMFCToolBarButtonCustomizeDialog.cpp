@@ -884,7 +884,7 @@ extern "C" void MS_ABI impl__OnOK_CMFCToolBarButtonCustomizeDialog__MEAAXXZ(void
     impl__SetImage_CMFCToolBarButton__UEAAXH_Z(pButton, iImage);
     pButton->m_strText = d->m_strButtonText;
     if (!d->m_strAccel.IsEmpty()) {
-        pButton->m_strText += L'\t';
+        pButton->m_strText += L"\t";
         pButton->m_strText += d->m_strAccel;
     }
     impl__OnOK_CDialog__MEAAXXZ(static_cast<CDialog*>(pThis));

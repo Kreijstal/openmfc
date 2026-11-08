@@ -211,14 +211,16 @@ inline RetailIPFrameTail* Tail(void* pThis) {
     return reinterpret_cast<RetailIPFrameTail*>(static_cast<unsigned char*>(pThis) + kOff_IPFrameTail);
 }
 
-// ---- retail CFrameWnd members inside OpenMFC's CFrameWnd padding ----------
+// ---- retail CFrameWnd members, now named in the public layout ------------
 constexpr size_t kOff_CFrameWnd_m_bHelpMode       = 0x104;   // OnContextHelp `cmpl $0x1,0x104(%rcx)`
 constexpr size_t kOff_CFrameWnd_m_nIDHelp         = 0x164;   // LoadFrame `mov %ebx,0x164(%rcx)`
 constexpr size_t kOff_CFrameWnd_m_nIDTracking     = 0x168;   // OnSetMessageString `mov %ebp,0x168(%rsi)`
 constexpr size_t kOff_CFrameWnd_m_nIDLastMessage  = 0x16c;   // OnSetMessageString `mov 0x16c(%rsi),%eax`
-static_assert(offsetof(CFrameWnd, m_nIDHelp) + sizeof(UINT) <= kOff_CFrameWnd_m_bHelpMode &&
-              kOff_CFrameWnd_m_nIDLastMessage + sizeof(UINT) <= sizeof(CFrameWnd),
-              "retail CFrameWnd slots +0x104..+0x170 must lie inside OpenMFC's _framewnd_padding");
+static_assert(offsetof(CFrameWnd,m_retailMiddle)+offsetof(CFrameWnd::RetailMiddleStorage,m_bHelpMode)==kOff_CFrameWnd_m_bHelpMode &&
+              offsetof(CFrameWnd,m_nIDHelp)==kOff_CFrameWnd_m_nIDHelp &&
+              offsetof(CFrameWnd,m_nIDTracking)==kOff_CFrameWnd_m_nIDTracking &&
+              offsetof(CFrameWnd,m_nIDLastMessage)==kOff_CFrameWnd_m_nIDLastMessage,
+              "native frame help and command-tracking fields");
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd @0x40, where every retail body here reads it");
 
 // ---- retail COleServerDoc member read by RecalcLayout ----------------------
