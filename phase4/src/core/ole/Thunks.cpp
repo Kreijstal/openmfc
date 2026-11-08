@@ -1113,11 +1113,6 @@
 
 // Generated 1074 thunks
 // Errors (could not parse): 0
-// Symbol: ??0CEnumFormatEtc@@QEAA@XZ
-// Constructor: CEnumFormatEtc::CEnumFormatEtc
-extern "C" void* MS_ABI impl___0CEnumFormatEtc__QEAA_XZ(void* pThis) {
-    return new(pThis) CEnumFormatEtc();
-}
 // Symbol: ??0COleControl@@QEAA@XZ
 // Constructor: COleControl::COleControl
 extern "C" void* MS_ABI impl___0COleControl__QEAA_XZ(void* pThis) {
@@ -1172,11 +1167,6 @@ extern "C" void* MS_ABI impl___0COleServerDoc__QEAA_XZ(void* pThis) {
 // Constructor: COleTemplateServer::COleTemplateServer
 extern "C" void* MS_ABI impl___0COleTemplateServer__QEAA_XZ(void* pThis) {
     return new(pThis) COleTemplateServer();
-}
-// Symbol: ??1CEnumFormatEtc@@UEAA@XZ
-// Destructor: CEnumFormatEtc::~CEnumFormatEtc
-extern "C" void MS_ABI impl___1CEnumFormatEtc__UEAA_XZ(void* pThis) {
-    ((CEnumFormatEtc*)pThis)->~CEnumFormatEtc();
 }
 // Symbol: ??1CEnumOleVerb@@UEAA@XZ
 // Destructor: CEnumOleVerb::~CEnumOleVerb

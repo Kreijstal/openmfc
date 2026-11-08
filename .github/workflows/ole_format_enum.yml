@@ -1,0 +1,47 @@
+name: OLE FORMATETC enumeration ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_ole_format_enum.cpp'
+      - 'tests/build_ole_format_enum.py'
+      - 'tests/build_window_handles.py'
+      - 'tests/run_rendertarget_drawing.sh'
+      - 'tests/d2d_test_support.h'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/ole_format_enum.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_ole_format_enum.cpp'
+      - 'tests/build_ole_format_enum.py'
+      - 'tests/build_window_handles.py'
+      - 'tests/run_rendertarget_drawing.sh'
+      - 'tests/d2d_test_support.h'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/ole_format_enum.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: OLE FORMATETC enumeration ABI (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify format enumeration, target-device ownership, cloning and cleanup
+        shell: cmd
+        run: python tests/build_ole_format_enum.py --build "%RUNNER_TEMP%/ole-format-enum" ${{ matrix.flags }}

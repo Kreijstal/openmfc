@@ -731,22 +731,11 @@ extern "C" long MS_ABI impl__EnumDAdvise_XDataObject_COleDataSource__UEAAJPEAPEA
 //     }
 //     *ppenumFormatEtc = (LPENUMFORMATETC)&pList->m_xEnumVOID;   // +0x68
 //     return S_OK;                // a CATCH_ALL returns E_OUTOFMEMORY instead
-// OpenMFC: its CEnumFormatEtc is a different, self-contained class (an
-// IEnumFORMATETC itself, released by `delete this`). Its constructor thunk
-// (core/ole/Thunks.cpp) works, but its AddFormat thunk (core/ole/
-// CEnumFormatEtc.cpp) is a no-op. The C++ CEnumFormatEtc::AddFormat IS defined
-// (core/ole/CEnumFormatEtc.cpp) and DataSourceDataObject calls it, but this
-// unit follows the thunk-only rule for cross-unit C++ calls, which the per-file
-// link audit enforces. So the populated list here is built by the data
-// source's own IDataObject (the DataSourceDataObject that GetInterface
-// returns); its EnumFormatEtc(DATADIR_GET) lists every side-table entry. Since every
-// OpenMFC entry is DATADIR_GET (header comment), that is exactly the set
-// retail's loop selects whenever dwDirection has the DATADIR_GET bit, so that
-// case is forwarded there. Without the bit, retail's loop selects nothing (no
-// DATADIR_SET entries exist here) and returns an empty list with S_OK; that is
-// built directly: operator new + the constructor thunk, no AddFormat.
-// Stated deviation: the populated enumerator is OpenMFC's, which hands out
-// FORMATETCs with ptd == NULL instead of a copied target device.
+// CEnumFormatEtc now has its native CEnumArray base and embedded interface
+// at +0x68. The data source still uses the old directionless side cache:
+// DATADIR_GET delegates to its adapter, while other directions return an empty
+// enumerator. Restoring this source's cache model must supply DATADIR_SET
+// records and the native per-direction traversal.
 // Symbol: ?EnumFormatEtc@XDataObject@COleDataSource@@UEAAJKPEAPEAUIEnumFORMATETC@@@Z
 extern "C" long MS_ABI impl__EnumFormatEtc_XDataObject_COleDataSource__UEAAJKPEAPEAUIEnumFORMATETC___Z(
     void* pThis, unsigned long dwDirection, IEnumFORMATETC** ppenumFormatEtc) {
@@ -758,7 +747,7 @@ extern "C" long MS_ABI impl__EnumFormatEtc_XDataObject_COleDataSource__UEAAJKPEA
     }
     CEnumFormatEtc* pList = static_cast<CEnumFormatEtc*>(
         impl___0CEnumFormatEtc__QEAA_XZ(::operator new(sizeof(CEnumFormatEtc))));
-    *ppenumFormatEtc = pList;
+    *ppenumFormatEtc = pList->Interface();
     return S_OK;
 }
 

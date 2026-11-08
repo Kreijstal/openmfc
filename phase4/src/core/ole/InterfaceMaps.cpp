@@ -15,10 +15,6 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_CDocObjectServer
 // Symbol: ?GetThisInterfaceMap@CEnumConnections@@KAPEBUAFX_INTERFACEMAP@@XZ
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetInterfaceMap@CEnumConnections@@MEBAPEBUAFX_INTERFACEMAP@@XZ
-// Symbol: ?GetThisInterfaceMap@CEnumFormatEtc@@KAPEBUAFX_INTERFACEMAP@@XZ
-extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CEnumFormatEtc__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_CEnumFormatEtc; }
-// Symbol: ?GetInterfaceMap@CEnumFormatEtc@@MEBAPEBUAFX_INTERFACEMAP@@XZ
-extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_CEnumFormatEtc__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_CEnumFormatEtc; }
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetThisInterfaceMap@CEnumUnknown@@KAPEBUAFX_INTERFACEMAP@@XZ
 // Implemented in manual_small_stub_implementations.cpp; this unit had a second, unlinked copy.

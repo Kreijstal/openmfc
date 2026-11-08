@@ -1684,32 +1684,69 @@ static_assert(sizeof(CEnumOleVerb)==0x70,"native verb enumerator size");
 //=============================================================================
 // CEnumFormatEtc - FORMATETC Enumerator
 //=============================================================================
-class CEnumFormatEtc : public IEnumFORMATETC {
+struct IEnumVOID : IUnknown {
+    virtual HRESULT STDMETHODCALLTYPE Next(ULONG,void*,ULONG*)=0;
+    virtual HRESULT STDMETHODCALLTYPE Skip(ULONG)=0;
+    virtual HRESULT STDMETHODCALLTYPE Reset()=0;
+    virtual HRESULT STDMETHODCALLTYPE Clone(IEnumVOID**)=0;
+};
+class CEnumArray : public CCmdTarget {
+public:
+    CEnumArray(size_t,const void*,UINT,BOOL);
+    ~CEnumArray() override;
+protected:
+    virtual BOOL OnNext(void*);
+    virtual BOOL OnSkip();
+    virtual void OnReset();
+    virtual CEnumArray* OnClone();
+public:
+    size_t m_nSizeElem;
+    CEnumArray* m_pClonedFrom;
+    const void* m_pvEnum;
+    UINT m_nCurPos,m_nSize;
+    BOOL m_bNeedFree;
+    class XEnumVOID : public IEnumVOID {
+    public:
+        STDMETHOD(QueryInterface)(REFIID,void**);
+        STDMETHOD_(ULONG,AddRef)();
+        STDMETHOD_(ULONG,Release)();
+        STDMETHOD(Next)(ULONG,void*,ULONG*);
+        STDMETHOD(Skip)(ULONG);
+        STDMETHOD(Reset)();
+        STDMETHOD(Clone)(IEnumVOID**);
+    } m_xEnumVOID;
+};
+static_assert(sizeof(CEnumArray)==0x70 && offsetof(CEnumArray,m_nSizeElem)==0x40 &&
+              offsetof(CEnumArray,m_pClonedFrom)==0x48 && offsetof(CEnumArray,m_pvEnum)==0x50 &&
+              offsetof(CEnumArray,m_nCurPos)==0x58 && offsetof(CEnumArray,m_nSize)==0x5c &&
+              offsetof(CEnumArray,m_bNeedFree)==0x60 && offsetof(CEnumArray,m_xEnumVOID)==0x68,
+              "native CEnumArray layout");
+namespace openmfc { namespace detail { struct EnumFormatAccess; } }
+class CEnumFormatEtc : public CEnumArray {
+    friend struct openmfc::detail::EnumFormatAccess;
 public:
     CEnumFormatEtc();
-    virtual ~CEnumFormatEtc();
-
-    // IUnknown
-    STDMETHOD(QueryInterface)(REFIID riid, void** ppv) override;
-    STDMETHOD_(ULONG, AddRef)() override;
-    STDMETHOD_(ULONG, Release)() override;
-
-    // IEnumFORMATETC
-    STDMETHOD(Next)(ULONG celt, FORMATETC* rgelt, ULONG* pceltFetched) override;
-    STDMETHOD(Skip)(ULONG celt) override;
-    STDMETHOD(Reset)() override;
-    STDMETHOD(Clone)(IEnumFORMATETC** ppEnum) override;
-
-    void AddFormat(const FORMATETC& formatEtc);
-
-private:
-    ULONG m_refCount;
-    FORMATETC* m_formats;
-    ULONG m_count;
-    ULONG m_capacity;
-    ULONG m_position;
-    char _cenumformatetc_padding[16];
+    ~CEnumFormatEtc() override;
+protected:
+    BOOL OnNext(void*) override;
+public:
+    void AddFormat(const FORMATETC*);
+    void AddFormat(const FORMATETC& format){AddFormat(&format);}
+    IEnumFORMATETC* Interface(){return reinterpret_cast<IEnumFORMATETC*>(&m_xEnumVOID);}
+    HRESULT QueryInterface(REFIID iid,void** out){return m_xEnumVOID.QueryInterface(iid,out);}
+    ULONG AddRef(){return m_xEnumVOID.AddRef();}
+    ULONG Release(){return m_xEnumVOID.Release();}
+    HRESULT Next(ULONG count,FORMATETC* out,ULONG* fetched){return m_xEnumVOID.Next(count,out,fetched);}
+    HRESULT Skip(ULONG count){return m_xEnumVOID.Skip(count);}
+    HRESULT Reset(){return m_xEnumVOID.Reset();}
+    HRESULT Clone(IEnumFORMATETC** out){return m_xEnumVOID.Clone(reinterpret_cast<IEnumVOID**>(out));}
+    UINT m_nMaxSize;
+protected:
+    static const AFX_INTERFACEMAP* AFXAPI GetThisInterfaceMap();
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 };
+static_assert(sizeof(CEnumFormatEtc)==0x78 && offsetof(CEnumFormatEtc,m_nMaxSize)==0x70,
+              "native FORMATETC enumerator layout");
 
 //=============================================================================
 // COleControlSiteOrWnd - OLE Control Site or Window wrapper

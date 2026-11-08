@@ -1,4 +1,5 @@
 #include "OlecoreSupport.h"
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 IMPLEMENT_DYNAMIC(CControlBar, CWnd)
 IMPLEMENT_DYNAMIC(CDocItem, CObject)
@@ -66,9 +67,15 @@ HRESULT DataSourceDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** 
 
     CEnumFormatEtc* enumerator = new CEnumFormatEtc();
     for (const DataCacheEntry& entry : m_state->entries) {
-        enumerator->AddFormat(entry.format);
+        FORMATETC format=entry.format;
+        if(format.ptd){
+            auto* copy=static_cast<DVTARGETDEVICE*>(::CoTaskMemAlloc(format.ptd->tdSize));
+            if(!copy)impl__AfxThrowMemoryException__YAXXZ();
+            std::memcpy(copy,format.ptd,format.ptd->tdSize);format.ptd=copy;
+        }
+        enumerator->AddFormat(format);
     }
-    *ppenumFormatEtc = enumerator;
+    *ppenumFormatEtc = enumerator->Interface();
     return S_OK;
 }
 extern "C" {
@@ -1589,11 +1596,6 @@ ControlSiteAdapter* GetControlSiteAdapter(COleControlSite* pSite, bool create) {
     return it->second.adapter;
 }
 } } }
-STDMETHODIMP_(ULONG) CEnumFormatEtc::AddRef() { return ++m_refCount; }
-STDMETHODIMP_(ULONG) CEnumFormatEtc::Release() {
-    ULONG ref = --m_refCount;
-    if (ref == 0) delete this;
-    return ref;
-}
+
 namespace openmfc { namespace detail { namespace olecore {
 } } }  // namespace openmfc::detail::olecore

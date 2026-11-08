@@ -1,123 +1,59 @@
-// CEnumFormatEtc — OpenMFC implementation.
-// Sources: global_ctor_quickwins.cpp, olecore.cpp
-
+// Native FORMATETC enumerator with owned target-device records.
 #define OPENMFC_APPCORE_IMPL
-
-#include "detail/OlecoreSupport.h"
-
-// Hand-written real implementations for header-defined classes that were one
-// export short of complete. Constructors placement-new into the caller-provided
-// storage so the openmfc C++ constructor establishes the validated member
-// layout. Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass (scan of
-// `// Symbol:` comments) removes the weak/typed stubs for these ordinals
-// automatically.
-
-#include "openmfc/afxwin.h"
-#include "openmfc/afxinet.h"
-#include "openmfc/afxdisp.h"
 #include "openmfc/afxole.h"
-
-#include <cstdio>
-#include <new>
-#include <cstdlib>
+#include "detail/InterfaceMapsSupport.h"
 #include <cstring>
-
-#ifdef __GNUC__
-  #define MS_ABI __attribute__((ms_abi))
-#else
-  #define MS_ABI
-#endif
-
-// Runtime-class descriptors used by COleException::Process, defined alongside
-// the exception RTTI tables (ole_oleexception_rtti.cpp,
-// global_simple_exceptions_rtti.cpp).
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CNotSupportedException__SAPEAUCRuntimeClass__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInvalidArgException__SAPEAUCRuntimeClass__XZ();
-
-extern "C" void MS_ABI impl__CommonInit_CFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
-    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM);
-extern "C" void MS_ABI impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(
-    void* pThis, FILE* pStream, void* pTM);
-extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
-    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// CEnumFormatEtc::OnNext(void*) — fetch one element through the OpenMFC
-// IEnumFORMATETC::Next implementation. That local Next advances m_position
-// and clears ptd rather than copying a DVTARGETDEVICE. The retail OnNext
-// symbol has no resolved RVA in the supplied map, so no retail-body claim is
-// made here.
+#include <new>
+extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(size_t);
+extern "C" void MS_ABI impl___3_YAXPEAX_Z(void*);
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
+namespace {
+const AFX_INTERFACEMAP_ENTRY entries[]={{&IID_IEnumFORMATETC,0x68},{nullptr,SIZE_MAX}};
+}
+namespace openmfc { namespace detail { namespace interfacemaps {
+const AFX_INTERFACEMAP* AFXAPI gib_CEnumFormatEtc(){return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ();}
+const AFX_INTERFACEMAP g_imap_CEnumFormatEtc={gib_CEnumFormatEtc,entries};
+}}}
+namespace openmfc { namespace detail { struct EnumFormatAccess {
+    static BOOL Next(CEnumFormatEtc* self,void* out){return self->CEnumFormatEtc::OnNext(out);}
+};}}
+CEnumFormatEtc::CEnumFormatEtc():CEnumArray(sizeof(FORMATETC),nullptr,0,TRUE),m_nMaxSize(0){}
+CEnumFormatEtc::~CEnumFormatEtc(){
+    if(!m_pClonedFrom){auto* values=static_cast<const FORMATETC*>(m_pvEnum);for(UINT i=0;i<m_nSize;++i)::CoTaskMemFree(values[i].ptd);}
+}
+BOOL CEnumFormatEtc::OnNext(void* out){
+    if(!CEnumArray::OnNext(out))return FALSE;
+    auto* result=static_cast<FORMATETC*>(out);
+    if(auto* original=result->ptd){
+        result->ptd=static_cast<DVTARGETDEVICE*>(::CoTaskMemAlloc(original->tdSize));
+        if(result->ptd && original->tdSize)std::memcpy(result->ptd,original,original->tdSize);
+        if(!result->ptd)impl__AfxThrowMemoryException__YAXXZ();
+    }
+    return TRUE;
+}
+void CEnumFormatEtc::AddFormat(const FORMATETC* value){
+    if(m_nSize==m_nMaxSize){
+        auto* copy=static_cast<FORMATETC*>(impl___2_YAPEAX_K_Z(size_t(UINT(m_nSize+10))*sizeof(FORMATETC)));
+        m_nMaxSize+=10;
+        size_t bytes=size_t(m_nSize)*sizeof(FORMATETC);
+        if(bytes && memcpy_s(copy,size_t(UINT(m_nSize+10))*sizeof(FORMATETC),m_pvEnum,bytes))impl__AfxThrowInvalidArgException__YAXXZ();
+        impl___3_YAXPEAX_Z(const_cast<void*>(m_pvEnum));m_pvEnum=copy;
+    }
+    auto& target=const_cast<FORMATETC*>(static_cast<const FORMATETC*>(m_pvEnum))[m_nSize];
+    target.cfFormat=value->cfFormat;target.ptd=value->ptd;target.dwAspect=value->dwAspect;target.lindex=value->lindex;target.tymed=value->tymed;++m_nSize;
+}
+const AFX_INTERFACEMAP* AFXAPI CEnumFormatEtc::GetThisInterfaceMap(){return &openmfc::detail::interfacemaps::g_imap_CEnumFormatEtc;}
+const AFX_INTERFACEMAP* CEnumFormatEtc::GetInterfaceMap() const{return GetThisInterfaceMap();}
+// Symbol: ??0CEnumFormatEtc@@QEAA@XZ
+extern "C" void* MS_ABI impl___0CEnumFormatEtc__QEAA_XZ(void* self){return new(self)CEnumFormatEtc();}
+// Symbol: ??1CEnumFormatEtc@@UEAA@XZ
+extern "C" void MS_ABI impl___1CEnumFormatEtc__UEAA_XZ(void* self){static_cast<CEnumFormatEtc*>(self)->CEnumFormatEtc::~CEnumFormatEtc();}
 // Symbol: ?OnNext@CEnumFormatEtc@@MEAAHPEAX@Z
-extern "C" int MS_ABI impl__OnNext_CEnumFormatEtc__MEAAHPEAX_Z(CEnumFormatEtc* pThis, void* pv)
-{
-    if (!pThis || !pv) return FALSE;
-    ULONG fetched = 0;
-    HRESULT hr = pThis->Next(1, static_cast<FORMATETC*>(pv), &fetched);
-    return (hr == S_OK && fetched == 1) ? TRUE : FALSE;
-}
-CEnumFormatEtc::CEnumFormatEtc() : m_refCount(1), m_formats(nullptr), m_count(0), m_capacity(0), m_position(0) { memset(_cenumformatetc_padding, 0, sizeof(_cenumformatetc_padding)); }
-CEnumFormatEtc::~CEnumFormatEtc() { if (m_formats) free(m_formats); }
-STDMETHODIMP CEnumFormatEtc::QueryInterface(REFIID riid, void** ppv) {
-    if (riid == IID_IUnknown || riid == IID_IEnumFORMATETC) { *ppv = this; AddRef(); return S_OK; }
-    *ppv = nullptr; return E_NOINTERFACE;
-}
-STDMETHODIMP CEnumFormatEtc::Next(ULONG celt, FORMATETC* rgelt, ULONG* pceltFetched) {
-    ULONG fetched = 0;
-    while (m_position < m_count && fetched < celt) {
-        rgelt[fetched] = m_formats[m_position];
-        if (rgelt[fetched].ptd) rgelt[fetched].ptd = nullptr; // Don't copy DVTARGETDEVICE
-        m_position++;
-        fetched++;
-    }
-    if (pceltFetched) *pceltFetched = fetched;
-    return (fetched == celt) ? S_OK : S_FALSE;
-}
-STDMETHODIMP CEnumFormatEtc::Skip(ULONG celt) {
-    if (m_position + celt > m_count) { m_position = m_count; return S_FALSE; }
-    m_position += celt;
-    return S_OK;
-}
-STDMETHODIMP CEnumFormatEtc::Reset() { m_position = 0; return S_OK; }
-STDMETHODIMP CEnumFormatEtc::Clone(IEnumFORMATETC** ppEnum) {
-    if (!ppEnum) return E_POINTER;
-    CEnumFormatEtc* clone = new CEnumFormatEtc();
-    for (ULONG i = 0; i < m_count; ++i) {
-        clone->AddFormat(m_formats[i]);
-    }
-    clone->m_position = m_position;
-    *ppEnum = clone;
-    return S_OK;
-}
-void CEnumFormatEtc::AddFormat(const FORMATETC& formatEtc) {
-    if (m_count >= m_capacity) {
-        m_capacity = m_capacity ? m_capacity * 2 : 8;
-        m_formats = (FORMATETC*)realloc(m_formats, m_capacity * sizeof(FORMATETC));
-    }
-    if (m_formats) m_formats[m_count++] = formatEtc;
-}
-
-// === Moved from ManualThunks.cpp ===
-// Retail AddFormat (RVA 0x253880, mfc140u) uses the format array, count, and
-// capacity at +0x50, +0x5c, and +0x70. OpenMFC's class has a different layout,
-// so route through its local method rather than applying retail offsets; that
-// method uses the declared fields and a different capacity-growth policy.
+extern "C" BOOL MS_ABI impl__OnNext_CEnumFormatEtc__MEAAHPEAX_Z(CEnumFormatEtc* self,void* out){return openmfc::detail::EnumFormatAccess::Next(self,out);}
 // Symbol: ?AddFormat@CEnumFormatEtc@@QEAAXPEBUtagFORMATETC@@@Z
-extern "C" void MS_ABI impl__AddFormat_CEnumFormatEtc__QEAAXPEBUtagFORMATETC___Z(CEnumFormatEtc* pThis, const FORMATETC* pFormatEtc) {
-    pThis->AddFormat(*pFormatEtc);
-}
-
+extern "C" void MS_ABI impl__AddFormat_CEnumFormatEtc__QEAAXPEBUtagFORMATETC___Z(CEnumFormatEtc* self,const FORMATETC* value){self->AddFormat(value);}
+// Symbol: ?GetThisInterfaceMap@CEnumFormatEtc@@KAPEBUAFX_INTERFACEMAP@@XZ
+extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CEnumFormatEtc__KAPEBUAFX_INTERFACEMAP__XZ(){return &openmfc::detail::interfacemaps::g_imap_CEnumFormatEtc;}
+// Symbol: ?GetInterfaceMap@CEnumFormatEtc@@MEBAPEBUAFX_INTERFACEMAP@@XZ
+extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_CEnumFormatEtc__MEBAPEBUAFX_INTERFACEMAP__XZ(const void*){return &openmfc::detail::interfacemaps::g_imap_CEnumFormatEtc;}
