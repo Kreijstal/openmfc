@@ -979,19 +979,40 @@ public:
     CFrameWnd();
     virtual ~CFrameWnd();
 
-    // Construction
-    virtual int LoadFrame(unsigned int nIDResource, DWORD dwDefaultStyle = 0,
-                          CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
+    // Release x64 CFrameWnd virtual slots 91..113. Base overrides below keep
+    // their CWnd slots; declarations here follow the native SDK order.
     virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
-                       DWORD dwStyle = 0, const struct tagRECT& rect = {},
-                       CWnd* pParentWnd = nullptr, const wchar_t* lpszMenuName = nullptr,
-                       DWORD dwExStyle = 0, CCreateContext* pContext = nullptr);
+                        DWORD dwStyle = 0, const RECT& rect = {},
+                        CWnd* pParentWnd = nullptr, const wchar_t* lpszMenuName = nullptr,
+                        DWORD dwExStyle = 0, CCreateContext* pContext = nullptr);
+    virtual BOOL LoadFrame(UINT nIDResource, DWORD dwDefaultStyle = 0,
+                           CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
+    virtual CDocument* GetActiveDocument();
+    virtual CFrameWnd* GetActiveFrame();
+    virtual void GetMessageString(UINT nID, CString& rMessage) const;
+    virtual void RecalcLayout(BOOL bNotify = TRUE);
+    virtual void ActivateFrame(int nCmdShow = -1);
+    virtual UINT GetTrackingID() { return m_nIDTracking; }
+    virtual void SetMenuBarVisibility(DWORD dwStyle);
+    virtual DWORD GetMenuBarVisibility() const;
+    virtual BOOL SetMenuBarState(DWORD dwState);
+    virtual DWORD GetMenuBarState() const;
+    virtual void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState);
+    virtual CWnd* GetMessageBar();
+    virtual BOOL NegotiateBorderSpace(UINT nBorderCmd, RECT* lpRectBorder);
+    virtual BOOL OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext);
+    virtual void OnUpdateFrameTitle(BOOL bAddToTitle);
+    virtual void OnUpdateFrameMenu(HMENU hMenuAlt);
+    virtual HACCEL GetDefaultAccelerator();
+    virtual void DelayUpdateFrameMenu(HMENU hMenuAlt);
+    virtual void ExitHelpMode();
+    virtual void OnShowMenuBar();
+    virtual void OnHideMenuBar();
+
+    // Construction
     virtual int PreCreateWindow(CREATESTRUCTW& cs) override;
-    virtual int OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext);
 
     // Operations
-    virtual void ActivateFrame(int nCmdShow = -1);
-    virtual void RecalcLayout(int bNotify = 1);
     void InitialUpdateFrame(CDocument* pDoc, int bMakeVisible);
     CWnd* CreateView(CCreateContext* pContext, unsigned int nID);
 
@@ -999,8 +1020,7 @@ public:
     void AddFrameWnd();
     void RemoveFrameWnd();
     int CanEnterHelpMode();
-    void ExitHelpMode();
-    virtual void OnContextHelp();
+    void OnContextHelp();
     void BringToTop(int nCmdShow);
     int IsTracking();
 
@@ -1019,32 +1039,19 @@ public:
     void SetDockState(const CDockState& state);
 
     // Menu and command handling
-    virtual CMenu* GetMenu() const;
-    virtual int SetMenu(CMenu* pMenu);
-    virtual void OnUpdateFrameMenu(HMENU hMenuAlt);
-    virtual void OnUpdateFrameTitle(int bAddToTitle);
-    virtual void DelayUpdateFrameMenu(HMENU hMenuAlt);
+    CMenu* GetMenu() const override;
+    BOOL SetMenu(CMenu* pMenu) override;
     void OnUpdateControlBarMenu(CCmdUI* pCmdUI);
     int GetMenuBarInfo(long id, long lParam, MENUBARINFO* pmbi) const;
-    virtual DWORD GetMenuBarState() const;
-    virtual int SetMenuBarState(DWORD dwState);
-    virtual DWORD GetMenuBarVisibility() const;
-    virtual void SetMenuBarVisibility(DWORD dwStyle);
-    void OnHideMenuBar();
-    void OnShowMenuBar();
     BOOL LoadAccelTable(const wchar_t* lpszAccelTable);
 
     // View management
-    virtual CView* GetActiveView() const;
+    CView* GetActiveView() const;
     void SetActiveView(CView* pViewNew, int bNotify = 1);
     void SetActivePreviewView(CView* pViewNew);
-    virtual CDocument* GetActiveDocument();
-    virtual CFrameWnd* GetActiveFrame();
 
     // Control bar
     CControlBar* GetControlBar(unsigned int nID);
-    virtual CWnd* GetMessageBar();
-    virtual HACCEL GetDefaultAccelerator();
 
     // Help
     int OnBarCheck(unsigned int nID);
@@ -1062,22 +1069,19 @@ public:
     // Message text
     void SetMessageText(unsigned int nStringID);
     void SetMessageText(const wchar_t* lpszText);
-    virtual void GetMessageString(unsigned int nID, CString& rMessage) const;
 
     // State persistence
     void LoadBarState(const wchar_t* lpszProfileName);
     void SaveBarState(const wchar_t* lpszProfileName) const;
 
     // Modal state
-    virtual void BeginModalState();
-    virtual void EndModalState();
+    void BeginModalState() override;
+    void EndModalState() override;
 
     // Window state
     void ShowOwnedWindows(int bShow);
-    virtual int IsFrameWnd() const;
+    BOOL IsFrameWnd() const override;
     void NotifyFloatingWindows(DWORD dwFlags);
-    virtual void OnSetPreviewMode(int bPreview, CPrintPreviewState* pState);
-    virtual int NegotiateBorderSpace(unsigned int nBorderCmd, RECT* lpRectBorder);
 
     // Message handlers
     void OnClose();
@@ -1120,10 +1124,10 @@ public:
     void OnUpdateKeyIndicator(CCmdUI* pCmdUI);
 
     // PreTranslate
-    virtual int PreTranslateMessage(MSG* pMsg);
+    BOOL PreTranslateMessage(MSG* pMsg) override;
 
     // Implementation helpers
-    virtual int OnCreate(void* lpCreateStruct);
+    int OnCreate(CREATESTRUCTW* lpCreateStruct);
     int OnCreateHelper(CREATESTRUCTW* lpcs, CCreateContext* pContext);
     const wchar_t* GetIconWndClass(DWORD dwDefaultStyle, unsigned int nIDResource);
     void UpdateFrameTitleForDocument(const wchar_t* lpszDocName);
@@ -1158,7 +1162,8 @@ public:
         char _frame_middle[100];               // +0x100..+0x163
     };
     UINT m_nIDHelp;                            // +0x164
-    char _frame_tracking[8];                   // +0x168..+0x16f
+    UINT m_nIDTracking;                        // +0x168
+    UINT m_nIDLastMessage;                     // +0x16c
     CWnd* m_pViewActive;                       // +0x170
     struct RetailTailStorage {
         BYTE m_reserved_178[0x58];

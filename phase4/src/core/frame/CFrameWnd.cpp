@@ -304,8 +304,7 @@ void CFrameWnd::RecalcLayout(int bNotify) {
         ::SendMessageW(m_hWnd, WM_SIZE, 0, 0);
     }
 }
-int CFrameWnd::OnCreate(void* lpCreateStruct) {
-    CREATESTRUCTW* lpcs = reinterpret_cast<CREATESTRUCTW*>(lpCreateStruct);
+int CFrameWnd::OnCreate(CREATESTRUCTW* lpcs) {
     if (!m_hWnd) {
         return -1;
     }
@@ -661,12 +660,6 @@ void CFrameWnd::InitialUpdateFrame(CDocument* pDoc, int bMakeVisible) {
     }
 }
 int CFrameWnd::IsFrameWnd() const { return 1; }
-int CFrameWnd::IsTracking() {
-    if (!m_hWnd) {
-        return FALSE;
-    }
-    return (::GetCapture() == m_hWnd) ? TRUE : FALSE;
-}
 BOOL CFrameWnd::LoadAccelTable(const wchar_t* lpszAccelTable) {
     m_hAccelTable = nullptr;
     if (!lpszAccelTable) {
@@ -966,21 +959,7 @@ __int64 CFrameWnd::OnHelpPromptAddr(unsigned __int64 wParam, __int64 lParam) {
     }
     return 0;
 }
-void CFrameWnd::OnHideMenuBar() {
-    if (!m_hWnd) {
-        return;
-    }
 
-    auto& state = GetFrameRuntimeState(this);
-    if (state.menuBarVisibility == 0) {
-        return;
-    }
-
-    state.hiddenMenu = ::GetMenu(m_hWnd);
-    ::SetMenu(m_hWnd, nullptr);
-    state.menuBarVisibility = 0;
-    ::DrawMenuBar(m_hWnd);
-}
 void CFrameWnd::OnHScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* pScrollBar) {
     if (pScrollBar && pScrollBar->m_hWnd) {
         ::SendMessageW(pScrollBar->m_hWnd, WM_HSCROLL, MAKELONG(nPos, nSBCode), 0);
@@ -1109,36 +1088,7 @@ void CFrameWnd::OnSetPreviewMode(int bPreview, CPrintPreviewState* pState) {
         }
     }
 }
-void CFrameWnd::OnShowMenuBar() {
-    if (!m_hWnd) {
-        return;
-    }
 
-    auto& state = GetFrameRuntimeState(this);
-    if (state.menuBarVisibility != 0) {
-        return;
-    }
-
-    HMENU hMenuToShow = state.hiddenMenu;
-    if (!hMenuToShow && state.menuResourceId) {
-        HINSTANCE hInst = AfxGetInstanceHandle();
-        hMenuToShow = ::LoadMenuW(hInst ? hInst : ::GetModuleHandleW(nullptr),
-                                  MAKEINTRESOURCEW(state.menuResourceId));
-        // Track ownership so a previously loaded menu is not leaked when a fresh
-        // one is loaded here.
-        if (state.ownedMenu && state.ownedMenu != hMenuToShow) {
-            ::DestroyMenu(state.ownedMenu);
-        }
-        state.ownedMenu = hMenuToShow;
-    }
-
-    if (hMenuToShow) {
-        ::SetMenu(m_hWnd, hMenuToShow);
-        ::DrawMenuBar(m_hWnd);
-    }
-
-    state.menuBarVisibility = 1;
-}
 void CFrameWnd::OnSize(unsigned int nType, int cx, int cy) {
     (void)nType;
     if (!m_hWnd) {

@@ -23,10 +23,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinThread__SAPEAUCRuntimeCl
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWinThread__UEBAPEAUCRuntimeClass__XZ(const CWinThread*) {
     return &CWinThread::classCWinThread;
 }
-// Symbol: ?ProcessMessageFilter@CWinThread@@UEAAHHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread* pThis, int, MSG* msg) {
-    return (pThis && msg && pThis->PreTranslateMessage(msg)) ? TRUE : FALSE;
-}
 BOOL CWinThread::PrePumpMessage() {
     return TRUE;
 }

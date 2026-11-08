@@ -5,6 +5,7 @@ on:
       - 'include/openmfc/**'
       - 'phase4/src/core/app/**'
       - 'phase4/src/core/window/**'
+      - 'phase4/src/core/frame/CFrameWnd*.cpp'
       - 'phase4/src/core/collections/**'
       - 'phase4/src/core/runtime/**'
       - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
@@ -13,12 +14,15 @@ on:
       - 'tests/build_thread_message_routing.py'
       - 'tests/test_thread_idle.cpp'
       - 'tests/build_thread_idle.py'
+      - 'tests/test_thread_message_filter.cpp'
+      - 'tests/build_thread_message_filter.py'
       - '.github/workflows/thread_message_routing.yml'
   pull_request:
     paths:
       - 'include/openmfc/**'
       - 'phase4/src/core/app/**'
       - 'phase4/src/core/window/**'
+      - 'phase4/src/core/frame/CFrameWnd*.cpp'
       - 'phase4/src/core/collections/**'
       - 'phase4/src/core/runtime/**'
       - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
@@ -27,6 +31,8 @@ on:
       - 'tests/build_thread_message_routing.py'
       - 'tests/test_thread_idle.cpp'
       - 'tests/build_thread_idle.py'
+      - 'tests/test_thread_message_filter.cpp'
+      - 'tests/build_thread_message_filter.py'
       - '.github/workflows/thread_message_routing.yml'
   workflow_dispatch:
 jobs:
@@ -48,3 +54,6 @@ jobs:
       - name: Verify idle processing with production TLS, maps and window dispatch
         shell: cmd
         run: python tests/build_thread_idle.py --build "%RUNNER_TEMP%/thread-idle" ${{ matrix.flags }}
+      - name: Verify dialog/menu filtering and frame virtual ABI
+        shell: cmd
+        run: python tests/build_thread_message_filter.py --build "%RUNNER_TEMP%/message-filter" ${{ matrix.flags }}

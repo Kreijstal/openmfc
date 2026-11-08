@@ -1286,7 +1286,7 @@ extern "C" void MS_ABI impl__EndModalState_CFrameWnd__UEAAXXZ(CFrameWnd* pThis) 
 // Symbol: ?ExitHelpMode@CFrameWnd@@UEAAXXZ
 // CFrameWnd::ExitHelpMode
 extern "C" void MS_ABI impl__ExitHelpMode_CFrameWnd__UEAAXXZ(CFrameWnd* pThis) {
-    pThis->ExitHelpMode();
+    pThis->CFrameWnd::ExitHelpMode();
 }
 // Symbol: ?FloatControlBar@CFrameWnd@@QEAAXPEAVCControlBar@@VCPoint@@K@Z
 // CFrameWnd::FloatControlBar
@@ -1372,11 +1372,6 @@ extern "C" void MS_ABI impl__InitialUpdateFrame_CFrameWnd__QEAAXPEAVCDocument__H
 // CFrameWnd::IsFrameWnd
 extern "C" int MS_ABI impl__IsFrameWnd_CFrameWnd__UEBAHXZ(const CFrameWnd* pThis) {
     return (int)pThis->IsFrameWnd();
-}
-// Symbol: ?IsTracking@CFrameWnd@@QEAAHXZ
-// CFrameWnd::IsTracking
-extern "C" int MS_ABI impl__IsTracking_CFrameWnd__QEAAHXZ(CFrameWnd* pThis) {
-    return (int)pThis->IsTracking();
 }
 // Symbol: ?LoadAccelTable@CFrameWnd@@QEAAHPEB_W@Z
 // CFrameWnd::LoadAccelTable
@@ -1518,11 +1513,6 @@ extern "C" __int64 MS_ABI impl__OnHelpHitTest_CFrameWnd__IEAA_J_K_J_Z(CFrameWnd*
 extern "C" __int64 MS_ABI impl__OnHelpPromptAddr_CFrameWnd__IEAA_J_K_J_Z(CFrameWnd* pThis, unsigned __int64 p0, __int64 p1) {
     return (__int64)pThis->OnHelpPromptAddr(p0, p1);
 }
-// Symbol: ?OnHideMenuBar@CFrameWnd@@MEAAXXZ
-// CFrameWnd::OnHideMenuBar
-extern "C" void MS_ABI impl__OnHideMenuBar_CFrameWnd__MEAAXXZ(CFrameWnd* pThis) {
-    pThis->OnHideMenuBar();
-}
 // Symbol: ?OnHScroll@CFrameWnd@@IEAAXIIPEAVCScrollBar@@@Z
 // CFrameWnd::OnHScroll
 extern "C" void MS_ABI impl__OnHScroll_CFrameWnd__IEAAXIIPEAVCScrollBar___Z(CFrameWnd* pThis, unsigned int p0, unsigned int p1, CScrollBar* p2) {
@@ -1602,11 +1592,6 @@ extern "C" __int64 MS_ABI impl__OnSetMessageString_CFrameWnd__IEAA_J_K_J_Z(CFram
 // CFrameWnd::OnSetPreviewMode
 extern "C" void MS_ABI impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(CFrameWnd* pThis, int p0, CPrintPreviewState* p1) {
     pThis->OnSetPreviewMode(p0, p1);
-}
-// Symbol: ?OnShowMenuBar@CFrameWnd@@MEAAXXZ
-// CFrameWnd::OnShowMenuBar
-extern "C" void MS_ABI impl__OnShowMenuBar_CFrameWnd__MEAAXXZ(CFrameWnd* pThis) {
-    pThis->OnShowMenuBar();
 }
 // Symbol: ?OnSize@CFrameWnd@@IEAAXIHH@Z
 // CFrameWnd::OnSize
