@@ -551,7 +551,7 @@ extern "C" int MS_ABI impl__CanPasteLink_COleClientItem__SAHXZ() {
 extern "C" int MS_ABI impl__CanCreateFromData_COleClientItem__SAHPEBVCOleDataObject___Z(
         const COleDataObject* pDataObject) {
     if (!pDataObject) return FALSE;
-    if (pDataObject->m_bAutoRelease) {
+    if (pDataObject->m_bClipboard) {
         return impl__CanPaste_COleClientItem__SAHXZ();
     }
     LPDATAOBJECT pData = pDataObject->m_lpDataObject;
@@ -565,7 +565,7 @@ extern "C" int MS_ABI impl__CanCreateFromData_COleClientItem__SAHPEBVCOleDataObj
 extern "C" int MS_ABI impl__CanCreateLinkFromData_COleClientItem__SAHPEBVCOleDataObject___Z(
         const COleDataObject* pDataObject) {
     if (!pDataObject) return FALSE;
-    if (pDataObject->m_bAutoRelease) {
+    if (pDataObject->m_bClipboard) {
         return impl__CanPasteLink_COleClientItem__SAHXZ();
     }
     LPDATAOBJECT pData = pDataObject->m_lpDataObject;

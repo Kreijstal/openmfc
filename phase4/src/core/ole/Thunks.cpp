@@ -1143,11 +1143,6 @@ extern "C" void* MS_ABI impl___0COleDataSource__QEAA_XZ(void* pThis) {
 extern "C" void* MS_ABI impl___0COleDocument__QEAA_XZ(void* pThis) {
     return new(pThis) COleDocument();
 }
-// Symbol: ??0COleDropTarget@@QEAA@XZ
-// Constructor: COleDropTarget::COleDropTarget
-extern "C" void* MS_ABI impl___0COleDropTarget__QEAA_XZ(void* pThis) {
-    return new(pThis) COleDropTarget();
-}
 // Symbol: ??0COleIPFrameWnd@@QEAA@XZ
 // Constructor: COleIPFrameWnd::COleIPFrameWnd
 extern "C" void* MS_ABI impl___0COleIPFrameWnd__QEAA_XZ(void* pThis) {
@@ -1242,11 +1237,6 @@ extern "C" void MS_ABI impl___1COleDocObjectItem__UEAA_XZ(void* pThis) {
 // Destructor: COleDocument::~COleDocument
 extern "C" void MS_ABI impl___1COleDocument__UEAA_XZ(void* pThis) {
     ((COleDocument*)pThis)->~COleDocument();
-}
-// Symbol: ??1COleDropTarget@@UEAA@XZ
-// Destructor: COleDropTarget::~COleDropTarget
-extern "C" void MS_ABI impl___1COleDropTarget__UEAA_XZ(void* pThis) {
-    ((COleDropTarget*)pThis)->~COleDropTarget();
 }
 // Symbol: ??1COleFrameHook@@UEAA@XZ
 // Destructor: COleFrameHook::~COleFrameHook
@@ -1944,26 +1934,6 @@ extern "C" void MS_ABI impl__OnDiscardUndoState_COleClientItem__MEAAXXZ(COleClie
 extern "C" int MS_ABI impl__OnDocActivate_COleFrameHook__UEAAHH_Z(COleFrameHook* pThis, int p0) {
     return (int)pThis->OnDocActivate(p0);
 }
-// Symbol: ?OnDragEnter@COleDropTarget@@UEAAKPEAVCWnd@@PEAVCOleDataObject@@KVCPoint@@@Z
-// COleDropTarget::OnDragEnter
-extern "C" unsigned long MS_ABI impl__OnDragEnter_COleDropTarget__UEAAKPEAVCWnd__PEAVCOleDataObject__KVCPoint___Z(COleDropTarget* pThis, CWnd* p0, COleDataObject* p1, unsigned long p2, CPoint p3) {
-    return (unsigned long)pThis->OnDragEnter(p0, p1, p2, p3);
-}
-// Symbol: ?OnDragLeave@COleDropTarget@@UEAAXPEAVCWnd@@@Z
-// COleDropTarget::OnDragLeave
-extern "C" void MS_ABI impl__OnDragLeave_COleDropTarget__UEAAXPEAVCWnd___Z(COleDropTarget* pThis, CWnd* p0) {
-    pThis->OnDragLeave(p0);
-}
-// Symbol: ?OnDragOver@COleDropTarget@@UEAAKPEAVCWnd@@PEAVCOleDataObject@@KVCPoint@@@Z
-// COleDropTarget::OnDragOver
-extern "C" unsigned long MS_ABI impl__OnDragOver_COleDropTarget__UEAAKPEAVCWnd__PEAVCOleDataObject__KVCPoint___Z(COleDropTarget* pThis, CWnd* p0, COleDataObject* p1, unsigned long p2, CPoint p3) {
-    return (unsigned long)pThis->OnDragOver(p0, p1, p2, p3);
-}
-// Symbol: ?OnDragScroll@COleDropTarget@@UEAAKPEAVCWnd@@KVCPoint@@@Z
-// COleDropTarget::OnDragScroll
-extern "C" unsigned long MS_ABI impl__OnDragScroll_COleDropTarget__UEAAKPEAVCWnd__KVCPoint___Z(COleDropTarget* pThis, CWnd* p0, unsigned long p1, CPoint p2) {
-    return (unsigned long)pThis->OnDragScroll(p0, p1, p2);
-}
 // Symbol: ?OnDraw@COleControl@@UEAAXPEAVCDC@@AEBVCRect@@1@Z
 // COleControl::OnDraw
 extern "C" void MS_ABI impl__OnDraw_COleControl__UEAAXPEAVCDC__AEBVCRect__1_Z(COleControl* pThis, CDC* p0, const CRect* p1, const CRect* p2) {
@@ -1973,16 +1943,6 @@ extern "C" void MS_ABI impl__OnDraw_COleControl__UEAAXPEAVCDC__AEBVCRect__1_Z(CO
 // COleServerItem::OnDrawEx
 extern "C" int MS_ABI impl__OnDrawEx_COleServerItem__UEAAHPEAVCDC__W4tagDVASPECT__AEAVCSize___Z(COleServerItem* pThis, CDC* p0, tagDVASPECT p1, CSize* p2) {
     return (int)pThis->OnDrawEx(p0, p1, (*p2));
-}
-// Symbol: ?OnDrop@COleDropTarget@@UEAAHPEAVCWnd@@PEAVCOleDataObject@@KVCPoint@@@Z
-// COleDropTarget::OnDrop
-extern "C" int MS_ABI impl__OnDrop_COleDropTarget__UEAAHPEAVCWnd__PEAVCOleDataObject__KVCPoint___Z(COleDropTarget* pThis, CWnd* p0, COleDataObject* p1, unsigned long p2, CPoint p3) {
-    return (int)pThis->OnDrop(p0, p1, p2, p3);
-}
-// Symbol: ?OnDropEx@COleDropTarget@@UEAAKPEAVCWnd@@PEAVCOleDataObject@@KKVCPoint@@@Z
-// COleDropTarget::OnDropEx
-extern "C" unsigned long MS_ABI impl__OnDropEx_COleDropTarget__UEAAKPEAVCWnd__PEAVCOleDataObject__KKVCPoint___Z(COleDropTarget* pThis, CWnd* p0, COleDataObject* p1, unsigned long p2, unsigned long p3, CPoint p4) {
-    return (unsigned long)pThis->OnDropEx(p0, p1, p2, p3, p4);
 }
 // Symbol: ?OnEditLinks@COleDocument@@IEAAXXZ
 // COleDocument::OnEditLinks
@@ -2104,11 +2064,6 @@ extern "C" void MS_ABI impl__PreInitDialog_COleChangeSourceDialog__UEAAXXZ(COleC
 extern "C" unsigned int MS_ABI impl__Read_COleStreamFile__UEAAIPEAXI_Z(COleStreamFile* pThis, void* p0, unsigned int p1) {
     return (unsigned int)pThis->Read(p0, p1);
 }
-// Symbol: ?Register@COleDropTarget@@QEAAHPEAVCWnd@@@Z
-// COleDropTarget::Register
-extern "C" int MS_ABI impl__Register_COleDropTarget__QEAAHPEAVCWnd___Z(COleDropTarget* pThis, CWnd* p0) {
-    return (int)pThis->Register(p0);
-}
 // Symbol: ?Register@COleMessageFilter@@QEAAHXZ
 // COleMessageFilter::Register
 extern "C" int MS_ABI impl__Register_COleMessageFilter__QEAAHXZ(COleMessageFilter* pThis) {
@@ -2148,11 +2103,6 @@ extern "C" int MS_ABI impl__ReleaseCapture_COleControl__QEAAHXZ(COleControl* pTh
 // COleClientItem::Reload
 extern "C" int MS_ABI impl__Reload_COleClientItem__QEAAHXZ(COleClientItem* pThis) {
     return (int)pThis->Reload();
-}
-// Symbol: ?Revoke@COleDropTarget@@UEAAXXZ
-// COleDropTarget::Revoke
-extern "C" void MS_ABI impl__Revoke_COleDropTarget__UEAAXXZ(COleDropTarget* pThis) {
-    pThis->Revoke();
 }
 // Symbol: ?Revoke@COleLinkingDoc@@QEAAXXZ
 // COleLinkingDoc::Revoke

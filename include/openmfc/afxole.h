@@ -608,7 +608,9 @@ public:
 //=============================================================================
 // COleDataObject - OLE Data Object wrapper
 //=============================================================================
+namespace openmfc { namespace detail { struct OleDataObjectAccess; } }
 class COleDataObject {
+    friend struct openmfc::detail::OleDataObjectAccess;
 public:
     COleDataObject();
     ~COleDataObject();
@@ -630,16 +632,20 @@ public:
     CFile* GetFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc = nullptr);
 
     // IDataObject access
-    LPDATAOBJECT GetIDataObject(BOOL bAddRef = FALSE) const;
+    LPDATAOBJECT GetIDataObject(BOOL bAddRef = FALSE);
 
 public:
     LPDATAOBJECT m_lpDataObject;
-    IEnumFORMATETC* m_lpEnumFmtEtc;
-    BOOL m_bAutoRelease;
-
+    union {IEnumFORMATETC* m_lpEnumerator;IEnumFORMATETC* m_lpEnumFmtEtc;};
+    BOOL m_bClipboard;
 protected:
-    char _oledataobject_padding[32];
+    BOOL m_bAutoRelease;
+private:
+    COleDataObject(const COleDataObject&)=delete;
+    COleDataObject& operator=(const COleDataObject&)=delete;
 };
+static_assert(sizeof(COleDataObject)==24 && offsetof(COleDataObject,m_lpEnumerator)==8 &&
+              offsetof(COleDataObject,m_bClipboard)==16,"native data wrapper layout");
 
 //=============================================================================
 // COleDataSource - OLE Data Source
@@ -683,56 +689,46 @@ protected:
 //=============================================================================
 // COleDropTarget - OLE Drag and Drop Target
 //=============================================================================
+namespace openmfc { namespace detail { struct OleDropTargetAccess; } }
 class COleDropTarget : public CCmdTarget {
-    DECLARE_DYNAMIC(COleDropTarget)
+    friend struct openmfc::detail::OleDropTargetAccess;
 public:
     COleDropTarget();
-    virtual ~COleDropTarget();
-
-    BOOL Register(CWnd* pWnd);
-    void Revoke();
-
-    // Drop target callbacks
-    virtual DROPEFFECT OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject,
-                                   DWORD dwKeyState, CPoint point);
-    virtual DROPEFFECT OnDragOver(CWnd* pWnd, COleDataObject* pDataObject,
-                                  DWORD dwKeyState, CPoint point);
-    virtual void OnDragLeave(CWnd* pWnd);
-    virtual BOOL OnDrop(CWnd* pWnd, COleDataObject* pDataObject,
-                        DROPEFFECT dropEffect, CPoint point);
-    virtual DROPEFFECT OnDropEx(CWnd* pWnd, COleDataObject* pDataObject,
-                                DROPEFFECT dropDefault, DROPEFFECT dropList, CPoint point);
-    virtual DROPEFFECT OnDragScroll(CWnd* pWnd, DWORD dwKeyState, CPoint point);
-
+    ~COleDropTarget() override;
+    BOOL Register(CWnd*);
+    virtual void Revoke();
+    virtual DROPEFFECT OnDragEnter(CWnd*,COleDataObject*,DWORD,CPoint);
+    virtual DROPEFFECT OnDragOver(CWnd*,COleDataObject*,DWORD,CPoint);
+    virtual BOOL OnDrop(CWnd*,COleDataObject*,DROPEFFECT,CPoint);
+    virtual DROPEFFECT OnDropEx(CWnd*,COleDataObject*,DROPEFFECT,DROPEFFECT,CPoint);
+    virtual void OnDragLeave(CWnd*);
+    virtual DROPEFFECT OnDragScroll(CWnd*,DWORD,CPoint);
+protected:
+    HWND m_hWnd;
+    IDataObject* m_lpDataObject;
+    UINT m_nTimerID;
+    DWORD m_dwLastTick;
+    UINT m_nScrollDelay;
+    static AFX_DATA UINT nScrollDelay;
+    static AFX_DATA int nScrollInset;
+    static AFX_DATA UINT nScrollInterval;
 public:
-    ULONG m_lRefCount;
-    CWnd* m_pWnd;
-    BOOL m_bRegistered;
-
-    // Nested COM drop target (implements IDropTarget) — mirrors XMessageFilter precedent
     class XDropTarget : public IDropTarget {
     public:
-        XDropTarget() : m_pDropTarget(nullptr), m_refCount(0) {}
-        // IUnknown
-        STDMETHOD(QueryInterface)(REFIID riid, void** ppv);
-        STDMETHOD_(ULONG, AddRef)();
-        STDMETHOD_(ULONG, Release)();
-        // IDropTarget
-        STDMETHOD(DragEnter)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
-        STDMETHOD(DragOver)(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
+        STDMETHOD(QueryInterface)(REFIID,void**);
+        STDMETHOD_(ULONG,AddRef)();
+        STDMETHOD_(ULONG,Release)();
+        STDMETHOD(DragEnter)(IDataObject*,DWORD,POINTL,DWORD*);
+        STDMETHOD(DragOver)(DWORD,POINTL,DWORD*);
         STDMETHOD(DragLeave)();
-        STDMETHOD(Drop)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect);
-        COleDropTarget* m_pDropTarget;
-        LONG m_refCount;
-    };
-    friend class XDropTarget;
-    XDropTarget m_xDropTarget;
+        STDMETHOD(Drop)(IDataObject*,DWORD,POINTL,DWORD*);
+    } m_xDropTarget;
 protected:
-    static UINT nScrollDelay;     // 200 ms
-    static int nScrollInset;      // 1 px
-    static UINT nScrollInterval;  // 50 ms
-    char _oledroptarget_padding[24];
+    static const AFX_INTERFACEMAP* AFXAPI GetThisInterfaceMap();
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 };
+static_assert(sizeof(COleDropTarget)==0x68 && sizeof(COleDropTarget::XDropTarget)==8 &&
+              offsetof(COleDropTarget,m_xDropTarget)==0x60,"native drop target and interface layout");
 
 //=============================================================================
 // COleDropSource - OLE Drag and Drop Source

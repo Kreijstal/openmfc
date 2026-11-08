@@ -791,52 +791,6 @@ struct DataCacheState {
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
-class DropTargetAdapter : public IDropTarget {
-public:
-    explicit DropTargetAdapter(COleDropTarget* target) : m_refCount(1), m_target(target) {}
-    virtual ~DropTargetAdapter() {}
-
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
-        if (!ppvObject) return E_POINTER;
-        if (riid == IID_IUnknown || riid == IID_IDropTarget) {
-            *ppvObject = static_cast<IDropTarget*>(this);
-            AddRef();
-            return S_OK;
-        }
-        *ppvObject = nullptr;
-        return E_NOINTERFACE;
-    }
-
-    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
-
-    ULONG STDMETHODCALLTYPE Release() override {
-        ULONG ref = InterlockedDecrement(&m_refCount);
-        if (ref == 0) delete this;
-        return ref;
-    }
-
-    HRESULT STDMETHODCALLTYPE DragEnter(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) override;
-    HRESULT STDMETHODCALLTYPE DragOver(DWORD keyState, POINTL point, DWORD* effect) override;
-    HRESULT STDMETHODCALLTYPE DragLeave() override;
-    HRESULT STDMETHODCALLTYPE Drop(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) override;
-
-private:
-    CPoint MakePoint(POINTL point) const { return CPoint(static_cast<int>(point.x), static_cast<int>(point.y)); }
-
-    LONG m_refCount;
-    COleDropTarget* m_target;
-    COleDataObject m_dataObject;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-struct DropTargetState {
-    COleDropTarget* target = nullptr;
-    DropTargetAdapter* adapter = nullptr;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
 // Retail-only shadows. These are layout references, not castable views of
 // OpenMFC's compact public declarations; offsets are pinned below and traced
 // to the retail constructors/field users plus the installed MFC headers.
@@ -1295,7 +1249,6 @@ struct OleControlState {
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
-extern std::vector<DropTargetState> g_dropTargetStates;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern std::vector<DocumentState> g_documentStates;
@@ -1332,11 +1285,9 @@ BSTR AllocateLicenseBstr(const CString& value);
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
-DropTargetState* GetDropTargetState(COleDropTarget* target, bool create);
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
-void RemoveDropTargetState(COleDropTarget* target);
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {

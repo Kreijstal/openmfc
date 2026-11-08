@@ -71,46 +71,6 @@ HRESULT DataSourceDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** 
     *ppenumFormatEtc = enumerator;
     return S_OK;
 }
-HRESULT DropTargetAdapter::DragEnter(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) {
-    if (!effect) return E_POINTER;
-    *effect = DROPEFFECT_NONE;
-    if (!m_target) return S_OK;
-
-    m_dataObject.Release();
-    if (dataObject) m_dataObject.Attach(dataObject, FALSE);
-    *effect = m_target->OnDragEnter(m_target->m_pWnd, &m_dataObject, keyState, MakePoint(point));
-    return S_OK;
-}
-HRESULT DropTargetAdapter::DragOver(DWORD keyState, POINTL point, DWORD* effect) {
-    if (!effect) return E_POINTER;
-    *effect = m_target ? m_target->OnDragOver(m_target->m_pWnd, &m_dataObject, keyState, MakePoint(point)) : DROPEFFECT_NONE;
-    return S_OK;
-}
-HRESULT DropTargetAdapter::DragLeave() {
-    if (m_target) m_target->OnDragLeave(m_target->m_pWnd);
-    m_dataObject.Release();
-    return S_OK;
-}
-HRESULT DropTargetAdapter::Drop(IDataObject* dataObject, DWORD keyState, POINTL point, DWORD* effect) {
-    if (!effect) return E_POINTER;
-    DROPEFFECT requested = *effect;
-    *effect = DROPEFFECT_NONE;
-    if (!m_target) return S_OK;
-
-    COleDataObject dropData;
-    COleDataObject* data = &m_dataObject;
-    if (dataObject) {
-        dropData.Attach(dataObject, FALSE);
-        data = &dropData;
-    }
-
-    if (m_target->OnDrop(m_target->m_pWnd, data, requested, MakePoint(point))) {
-        *effect = requested;
-    }
-    m_dataObject.Release();
-    (void)keyState;
-    return S_OK;
-}
 extern "C" {
 MS_ABI void impl__AfxOleInit() {
     if (!g_bOleInitialized) {
@@ -153,7 +113,6 @@ MS_ABI int impl__AfxOleGetMessageFilter() {
 }
 }
 IMPLEMENT_DYNAMIC(COleDataSource, CCmdTarget)
-IMPLEMENT_DYNAMIC(COleDropTarget, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleMessageFilter, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleFrameHook, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleResizeBar, CControlBar)
@@ -1215,7 +1174,6 @@ extern "C" void MS_ABI impl__GetProperty_COleDispatchDriver__QEBAXJGPEAX_Z(
 
 
 
-std::vector<DropTargetState> g_dropTargetStates;
 std::vector<DocumentState> g_documentStates;
 std::vector<ClientItemState> g_clientItemStates;
 std::vector<FrameHookState> g_frameHookStates;
@@ -1244,21 +1202,6 @@ CString FindFactoryLicense(REFCLSID clsid, const CString& fallbackProgId) {
 }
 BSTR AllocateLicenseBstr(const CString& value) {
     return value.IsEmpty() ? nullptr : ::SysAllocString(value.GetString());
-}
-DropTargetState* GetDropTargetState(COleDropTarget* target, bool create) {
-    if (!target) return nullptr;
-    for (DropTargetState& state : g_dropTargetStates) {
-        if (state.target == target) return &state;
-    }
-    if (!create) return nullptr;
-    g_dropTargetStates.push_back(DropTargetState{target, nullptr});
-    return &g_dropTargetStates.back();
-}
-void RemoveDropTargetState(COleDropTarget* target) {
-    g_dropTargetStates.erase(
-        std::remove_if(g_dropTargetStates.begin(), g_dropTargetStates.end(),
-                       [target](const DropTargetState& state) { return state.target == target; }),
-        g_dropTargetStates.end());
 }
 DocumentState* GetDocumentState(COleDocument* document, bool create) {
     if (!document) return nullptr;
@@ -1499,14 +1442,6 @@ DataCacheEntry* FindCacheEntry(DataCacheState* state, const FORMATETC& format) {
 thread_local OleMessageFilterAdapter* g_messageFilterAdapter = nullptr;
 thread_local IMessageFilter* g_previousMessageFilter = nullptr;
 } } }
-STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::AddRef() {
-    return InterlockedIncrement(&m_refCount);
-}
-STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::Release() {
-    ULONG ref = InterlockedDecrement(&m_refCount);
-    if (ref == 0) m_refCount = 1;
-    return ref;
-}
 STDMETHODIMP_(ULONG) COleMessageFilter::XMessageFilter::AddRef() {
     return InterlockedIncrement(&m_refCount);
 }

@@ -5,34 +5,8 @@
 
 #include "detail/OlecoreSupport.h"
 
-COleDataObject::COleDataObject()
-    : m_lpDataObject(nullptr), m_lpEnumFmtEtc(nullptr), m_bAutoRelease(TRUE) {
-    memset(_oledataobject_padding, 0, sizeof(_oledataobject_padding));
-}
-COleDataObject::~COleDataObject() {
-    Release();
-}
-void COleDataObject::Attach(LPDATAOBJECT lpDataObject, BOOL bAutoRelease) {
-    Release();
-    m_lpDataObject = lpDataObject;
-    m_bAutoRelease = bAutoRelease;
-}
-LPDATAOBJECT COleDataObject::Detach() {
-    LPDATAOBJECT lp = m_lpDataObject;
-    m_lpDataObject = nullptr;
-    return lp;
-}
-void COleDataObject::Release() {
-    if (m_lpEnumFmtEtc) {
-        m_lpEnumFmtEtc->Release();
-        m_lpEnumFmtEtc = nullptr;
-    }
-    if (m_lpDataObject && m_bAutoRelease) {
-        m_lpDataObject->Release();
-    }
-    m_lpDataObject = nullptr;
-}
 void COleDataObject::BeginEnumFormats() {
+    EnsureClipboardObject();
     if (m_lpEnumFmtEtc) {
         m_lpEnumFmtEtc->Release();
         m_lpEnumFmtEtc = nullptr;
@@ -46,20 +20,8 @@ BOOL COleDataObject::GetNextFormat(FORMATETC* lpFormatEtc) {
     ULONG fetched = 0;
     return m_lpEnumFmtEtc->Next(1, lpFormatEtc, &fetched) == S_OK && fetched == 1;
 }
-BOOL COleDataObject::IsDataAvailable(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
-    if (!m_lpDataObject) return FALSE;
-    FORMATETC fmt;
-    if (!lpFormatEtc) {
-        fmt.cfFormat = cfFormat;
-        fmt.ptd = nullptr;
-        fmt.dwAspect = DVASPECT_CONTENT;
-        fmt.lindex = -1;
-        fmt.tymed = TYMED_HGLOBAL;
-        lpFormatEtc = &fmt;
-    }
-    return m_lpDataObject->QueryGetData(lpFormatEtc) == S_OK;
-}
 HGLOBAL COleDataObject::GetGlobalData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
+    EnsureClipboardObject();
     if (!m_lpDataObject) return nullptr;
     FORMATETC fmt;
     if (!lpFormatEtc) {
@@ -77,6 +39,7 @@ HGLOBAL COleDataObject::GetGlobalData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEt
     return nullptr;
 }
 BOOL COleDataObject::GetData(CLIPFORMAT cfFormat, STGMEDIUM* lpStorageMedium, FORMATETC* lpFormatEtc) {
+    EnsureClipboardObject();
     if (!m_lpDataObject) return FALSE;
     FORMATETC fmt;
     if (!lpFormatEtc) {
@@ -88,26 +51,6 @@ BOOL COleDataObject::GetData(CLIPFORMAT cfFormat, STGMEDIUM* lpStorageMedium, FO
         lpFormatEtc = &fmt;
     }
     return m_lpDataObject->GetData(lpFormatEtc, lpStorageMedium) == S_OK;
-}
-LPDATAOBJECT COleDataObject::GetIDataObject(BOOL bAddRef) const {
-    if (m_lpDataObject && bAddRef) {
-        m_lpDataObject->AddRef();
-    }
-    return m_lpDataObject;
-}
-BOOL COleDataObject::AttachClipboard() {
-    EnsureClipboardObject();
-    return m_lpDataObject != nullptr;
-}
-void COleDataObject::EnsureClipboardObject() {
-    if (m_lpDataObject) {
-        return;
-    }
-
-    LPDATAOBJECT lpDataObject = nullptr;
-    if (SUCCEEDED(OleGetClipboard(&lpDataObject)) && lpDataObject) {
-        Attach(lpDataObject, TRUE);
-    }
 }
 CFile* COleDataObject::GetFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc) {
     EnsureClipboardObject();

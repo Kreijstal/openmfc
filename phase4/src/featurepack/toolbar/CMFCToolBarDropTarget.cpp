@@ -18,8 +18,8 @@
 // OnDrop, 0x7b0 (246) OnDragEnter, 0x7b8 (247) OnDragLeave, 0x7c0 (248)
 // OnDragOver -- names read from the CMFCToolBar vftable 0x1803157c8
 // (mfc140u).  A CMFCToolBar built by OpenMFC (??0CMFCToolBar@@QEAA@XZ is a
-// placement-new in featurepack/toolbar/Thunks.cpp) carries a GCC-generated
-// vtable in which those byte offsets name unrelated functions, so the owner
+// placement-new in featurepack/toolbar/Thunks.cpp) still has an incomplete
+// virtual layout at these native indices, so the owner
 // is called through the CMFCToolBar impl__ thunks instead, non-virtually.
 // Consequence: an override of these four in a class derived from CMFCToolBar
 // is NOT reached from here; retail would reach it.  Among mfc140u's own
@@ -32,8 +32,8 @@
 // everything from m_bLocked (0x10b8) onward, which includes m_DropTarget
 // (0x1230), and never runs ??0CMFCToolBarDropTarget on it.  A toolbar built
 // by OpenMFC therefore holds an unconstructed drop target with a NULL vptr.
-// Register below would hand that object to COleDropTarget::Register, whose
-// OLE adapter later dispatches virtually through the NULL vptr.  Nothing in
+// The restored COleDropTarget base uses its actual embedded COM interface;
+// registration on that unconstructed object still cannot work. Nothing in
 // OpenMFC calls Register today: CMFCToolBar::OnCreate, where retail calls
 // m_DropTarget.Register(this), is still a stub.
 
@@ -52,7 +52,7 @@ static_assert(sizeof(CMFCToolBarDropTarget) == 0x70,
 static_assert(sizeof(COleDropTarget) == 0x68,
               "OpenMFC COleDropTarget must fit below m_pOwner (+0x68)");
 // CPoint arrives by value in one register under the MS x64 ABI (8-byte
-// aggregate); the parameter type below is only ABI-correct if GCC agrees.
+// aggregate); pin that representation for the native MSVC build.
 static_assert(sizeof(CPoint) == 8 && std::is_trivially_copyable<CPoint>::value,
               "CPoint must be an 8-byte trivially-copyable aggregate");
 

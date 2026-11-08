@@ -4,7 +4,6 @@
 extern "C" void MS_ABI impl__OnDrawThumbnail_CDocument__UEAAXAEAVCDC__PEAUtagRECT___Z(CDocument*, CDC* dc, RECT* rect);
 
 IMPLEMENT_DYNCREATE(CDocument, CCmdTarget)
-IMPLEMENT_DYNAMIC(CView, CWnd)
 IMPLEMENT_DYNCREATE(CScrollView, CView)
 IMPLEMENT_DYNCREATE(CFormView, CScrollView)
 IMPLEMENT_DYNCREATE(CEditView, CView)
