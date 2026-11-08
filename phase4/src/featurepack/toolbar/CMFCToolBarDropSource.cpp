@@ -23,23 +23,17 @@
 // include/openmfc, so pThis is a void* and the members are addressed through
 // the accessors below.
 //
-// Retail's GiveFeedback also reads COleDropSource::m_bDragStarted at +0x58
-// (the retail COleDropSource::GiveFeedback, RVA 0x25a440 mfc140u, is exactly
-// that read).  OpenMFC's C++ COleDropSource (include/openmfc/afxole.h) does not
-// have that member at +0x58 -- its layout differs from retail below +0x68 --
-// so the base-class state is left to the COleDropSource impl__ thunks rather
-// than read by offset here (see GiveFeedback).
+// COleDropSource now has its native 104-byte layout and drag-start state at
+// +0x58. Its export bridges perform properly qualified base calls.
 //
 // Base-class calls and the vptr -- same scheme as CMFCToolBarDropTarget.cpp.
 // OpenMFC has no CMFCToolBarDropSource vftable.  The ctor runs the
 // ??0COleDropSource thunk, which placement-constructs OpenMFC's C++
-// COleDropSource and so installs its (GCC) vptr; the object keeps that vptr.
+// COleDropSource and so installs its MSVC vptr; the object keeps that vptr.
 // The COleDropSource thunks called below (core/ole/Thunks.cpp,
 // core/ole/COleDropSource.cpp) dispatch virtually through the object's vptr,
-// so with that vptr they land on COleDropSource's own C++ methods.
+// and now explicitly call the COleDropSource base implementations.
 // Known hazards, not fixed here:
-//   * An object whose vptr is an MSVC vftable (a client class derived from
-//     CMFCToolBarDropSource) would be dispatched at GCC slot indices.
 //   * ?m_DropSource@CMFCToolBar@@ (CMFCToolBar.cpp) is a 144-byte blob whose
 //     vptr is NULL (the ctor never runs on it); calling the base-forwarding
 //     members below on it would fault in the base thunk.  Nothing in OpenMFC
@@ -50,7 +44,7 @@
 //     (detail/OlecoreSupport.h), whose IDropSource::QueryContinueDrag /
 //     GiveFeedback call m_source->QueryContinueDrag / ->GiveFeedback
 //     virtually, i.e. COleDropSource's own methods; it never calls
-//     OnBeginDrag at all.  These bodies run only when their exports are
+//     OnBeginDrag at all. These derived bodies run only when their exports are
 //     called directly.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
@@ -147,12 +141,10 @@ extern "C" void* MS_ABI impl___0CMFCToolBarDropSource__QEAA_XZ(void* pThis) {
 // Retail really calls GDI32!DeleteObject on the HCURSORs (not DestroyCursor);
 // that is transcribed as-is.  The handles are not cleared.  mfc140u exports
 // no ??1COleDropSource, and this body tail-jumps straight to CCmdTarget's.
-// The ??1CCmdTarget thunk runs `p->~CCmdTarget()`, which dispatches through
-// the object's vptr; retail's vptr reset is reproduced with the only vptr
-// OpenMFC has for this object -- the COleDropSource one recorded by the ctor --
-// so that dispatch reaches OpenMFC's ~COleDropSource (which only zeroes its
-// m_lRefCount) and then ~CCmdTarget.  If the ctor never ran in this process
-// the store is skipped.
+// The CCmdTarget bridge now performs qualified base destruction. The derived
+// root is still missing: this owner restores the recorded base root instead
+// of constructing a real CMFCToolBarDropSource vtable. If its constructor has
+// never run, that store is skipped.
 // Symbol: ??1CMFCToolBarDropSource@@UEAA@XZ
 extern "C" void MS_ABI impl___1CMFCToolBarDropSource__UEAA_XZ(void* pThis) {
     if (g_oleDropSourceVptr != nullptr) *static_cast<void**>(pThis) = g_oleDropSourceVptr;
@@ -173,15 +165,10 @@ extern "C" void MS_ABI impl___1CMFCToolBarDropSource__UEAA_XZ(void* pThis) {
 //         return COleDropSource::m_bDragStarted ? DRAGDROP_S_USEDEFAULTCURSORS : S_OK;
 //     ::SetCursor(h);                            // IAT 0x1802c71e0 (mfc140u)
 //     return S_OK;
-// Deviation: the NULL-cursor return is retail's inlined copy of
+// The NULL-cursor return is retail's inlined copy of
 // COleDropSource::GiveFeedback (byte-identical to that export, RVA 0x25a440
-// mfc140u: `mov 0x58(%rcx),%eax; neg; sbb; and $0x40102`).  OpenMFC's
-// COleDropSource keeps no m_bDragStarted at +0x58 (see file header), so this
-// calls the base thunk instead of reading +0x58.  The result is NOT always
-// retail's: OpenMFC's COleDropSource::GiveFeedback (core/ole/COleDropSource.cpp)
-// unconditionally returns DRAGDROP_S_USEDEFAULTCURSORS, while retail returns
-// S_OK when the base m_bDragStarted is FALSE.  They agree once a drag has
-// started (retail's base OnBeginDrag leaves m_bDragStarted TRUE on success).
+// mfc140u: `mov 0x58(%rcx),%eax; neg; sbb; and $0x40102`). The restored base
+// bridge returns that same state-dependent result without virtual dispatch.
 // Symbol: ?GiveFeedback@CMFCToolBarDropSource@@UEAAJK@Z
 extern "C" long MS_ABI impl__GiveFeedback_CMFCToolBarDropSource__UEAAJK_Z(void* pThis, unsigned long dropEffect) {
     HCURSOR h;

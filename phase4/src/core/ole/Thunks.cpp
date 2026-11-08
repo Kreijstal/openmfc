@@ -1143,11 +1143,6 @@ extern "C" void* MS_ABI impl___0COleDataSource__QEAA_XZ(void* pThis) {
 extern "C" void* MS_ABI impl___0COleDocument__QEAA_XZ(void* pThis) {
     return new(pThis) COleDocument();
 }
-// Symbol: ??0COleDropSource@@QEAA@XZ
-// Constructor: COleDropSource::COleDropSource
-extern "C" void* MS_ABI impl___0COleDropSource__QEAA_XZ(void* pThis) {
-    return new(pThis) COleDropSource();
-}
 // Symbol: ??0COleDropTarget@@QEAA@XZ
 // Constructor: COleDropTarget::COleDropTarget
 extern "C" void* MS_ABI impl___0COleDropTarget__QEAA_XZ(void* pThis) {
@@ -1829,11 +1824,6 @@ extern "C" unsigned long MS_ABI impl__GetStyle_COleControlSiteOrWnd__QEBAKXZ(con
 extern "C" wchar_t* MS_ABI impl__GetText_COleControl__QEAAPEA_WXZ(COleControl* pThis) {
     return (wchar_t*)pThis->GetText();
 }
-// Symbol: ?GiveFeedback@COleDropSource@@UEAAJK@Z
-// COleDropSource::GiveFeedback
-extern "C" long MS_ABI impl__GiveFeedback_COleDropSource__UEAAJK_Z(COleDropSource* pThis, unsigned long p0) {
-    return (long)pThis->GiveFeedback(p0);
-}
 // Symbol: ?HasBlankItems@COleDocument@@QEBAHXZ
 // COleDocument::HasBlankItems
 extern "C" int MS_ABI impl__HasBlankItems_COleDocument__QEBAHXZ(const COleDocument* pThis) {
@@ -2108,11 +2098,6 @@ extern "C" void MS_ABI impl__OnShowViews_COleDocument__UEAAXH_Z(COleDocument* pT
 // COleChangeSourceDialog::PreInitDialog
 extern "C" void MS_ABI impl__PreInitDialog_COleChangeSourceDialog__UEAAXXZ(COleChangeSourceDialog* pThis) {
     pThis->PreInitDialog();
-}
-// Symbol: ?QueryContinueDrag@COleDropSource@@UEAAJHK@Z
-// COleDropSource::QueryContinueDrag
-extern "C" long MS_ABI impl__QueryContinueDrag_COleDropSource__UEAAJHK_Z(COleDropSource* pThis, int p0, unsigned long p1) {
-    return (long)pThis->QueryContinueDrag(p0, p1);
 }
 // Symbol: ?Read@COleStreamFile@@UEAAIPEAXI@Z
 // COleStreamFile::Read

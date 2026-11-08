@@ -737,26 +737,20 @@ protected:
 //=============================================================================
 // COleDropSource - OLE Drag and Drop Source
 //=============================================================================
+namespace openmfc { namespace detail { struct OleDropSourceAccess; } }
 class COleDropSource : public CCmdTarget {
-    DECLARE_DYNAMIC(COleDropSource)
+    friend struct openmfc::detail::OleDropSourceAccess;
+    friend class COleDataSource;
 public:
     COleDropSource();
-    virtual ~COleDropSource();
 
     virtual SCODE QueryContinueDrag(BOOL bEscapePressed, DWORD dwKeyState);
     virtual SCODE GiveFeedback(DROPEFFECT dropEffect);
     virtual BOOL OnBeginDrag(CWnd* pWnd);
 
-    static UINT nDragDelay;
-    static UINT nDragMinDist;
-
-public:
-    ULONG m_lRefCount;
-
-    // Nested COM drop source (implements IDropSource) — mirrors XDropTarget
+    // The interface is a single vptr; ownership comes from its enclosing target.
     class XDropSource : public IDropSource {
     public:
-        XDropSource() : m_pDropSource(nullptr), m_refCount(0) {}
         // IUnknown
         STDMETHOD(QueryInterface)(REFIID riid, void** ppv);
         STDMETHOD_(ULONG, AddRef)();
@@ -764,15 +758,21 @@ public:
         // IDropSource
         STDMETHOD(QueryContinueDrag)(BOOL fEscapePressed, DWORD grfKeyState);
         STDMETHOD(GiveFeedback)(DWORD dwEffect);
-        COleDropSource* m_pDropSource;
-        LONG m_refCount;
     };
     friend class XDropSource;
     XDropSource m_xDropSource;
-
 protected:
-    char _oledropsource_padding[40];
+    CRect m_rectStartDrag;
+    BOOL m_bDragStarted;
+    DWORD m_dwButtonCancel;
+    DWORD m_dwButtonDrop;
+    static AFX_DATA UINT nDragDelay;
+    static AFX_DATA UINT nDragMinDist;
+    static const AFX_INTERFACEMAP* AFXAPI GetThisInterfaceMap();
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 };
+static_assert(sizeof(COleDropSource)==0x68 && sizeof(COleDropSource::XDropSource)==8,"native drag source and interface sizes");
+static_assert(offsetof(COleDropSource,m_xDropSource)==0x40,"native drag source interface offset");
 
 //=============================================================================
 // COleMessageFilter - OLE Message Filter

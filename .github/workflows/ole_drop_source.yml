@@ -1,0 +1,47 @@
+name: OLE drag source ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_ole_drop_source.cpp'
+      - 'tests/build_ole_drop_source.py'
+      - 'tests/build_window_handles.py'
+      - 'tests/run_rendertarget_drawing.sh'
+      - 'tests/d2d_test_support.h'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/ole_drop_source.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_ole_drop_source.cpp'
+      - 'tests/build_ole_drop_source.py'
+      - 'tests/build_window_handles.py'
+      - 'tests/run_rendertarget_drawing.sh'
+      - 'tests/d2d_test_support.h'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/ole_drop_source.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: OLE drag source ABI (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify source layout, COM identity, capture and drag-start input
+        shell: cmd
+        run: python tests/build_ole_drop_source.py --build "%RUNNER_TEMP%/ole-drop-source" ${{ matrix.flags }}

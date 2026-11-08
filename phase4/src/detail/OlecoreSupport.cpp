@@ -154,7 +154,6 @@ MS_ABI int impl__AfxOleGetMessageFilter() {
 }
 IMPLEMENT_DYNAMIC(COleDataSource, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleDropTarget, CCmdTarget)
-IMPLEMENT_DYNAMIC(COleDropSource, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleMessageFilter, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleFrameHook, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleResizeBar, CControlBar)
@@ -1504,14 +1503,6 @@ STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::AddRef() {
     return InterlockedIncrement(&m_refCount);
 }
 STDMETHODIMP_(ULONG) COleDropTarget::XDropTarget::Release() {
-    ULONG ref = InterlockedDecrement(&m_refCount);
-    if (ref == 0) m_refCount = 1;
-    return ref;
-}
-STDMETHODIMP_(ULONG) COleDropSource::XDropSource::AddRef() {
-    return InterlockedIncrement(&m_refCount);
-}
-STDMETHODIMP_(ULONG) COleDropSource::XDropSource::Release() {
     ULONG ref = InterlockedDecrement(&m_refCount);
     if (ref == 0) m_refCount = 1;
     return ref;

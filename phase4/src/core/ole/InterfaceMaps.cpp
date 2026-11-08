@@ -51,10 +51,6 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleDataSource__
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleDocObjectItem__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleDocObjectItem; }
 // Symbol: ?GetInterfaceMap@COleDocObjectItem@@MEBAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleDocObjectItem__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleDocObjectItem; }
-// Symbol: ?GetThisInterfaceMap@COleDropSource@@KAPEBUAFX_INTERFACEMAP@@XZ
-extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleDropSource__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleDropSource; }
-// Symbol: ?GetInterfaceMap@COleDropSource@@MEBAPEBUAFX_INTERFACEMAP@@XZ
-extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleDropSource__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleDropSource; }
 // Symbol: ?GetThisInterfaceMap@COleDropTarget@@KAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleDropTarget__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleDropTarget; }
 // Symbol: ?GetInterfaceMap@COleDropTarget@@MEBAPEBUAFX_INTERFACEMAP@@XZ
