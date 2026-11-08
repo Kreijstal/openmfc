@@ -143,8 +143,7 @@ CWnd* OpenMfcAttachCWnd(HWND hWnd);
 // Delete all temporary wrappers in the current module/thread HWND map.
 void OpenMfcCleanupTempWrappers();
 
-// Global app pointer (defined in appcore.cpp)
-extern CWinApp* g_pApp;
+// Current module/thread lookup.
 extern CWinThread* AfxGetThread();
 namespace openmfc { namespace detail { namespace wincore {
 void CWnd_PreSubclassWindowCompat(CWnd* pThis);

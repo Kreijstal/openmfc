@@ -1708,32 +1708,33 @@ extern AFX_MODULE_STATE* AFXAPI AfxGetAppModuleState();
 extern _AFX_THREAD_STATE* AFXAPI AfxGetThreadState();
 extern HINSTANCE AFXAPI AfxGetInstanceHandleHelper();
 
-// AfxGetApp is typically inline in real MFC, casting AfxGetThread result
-inline CWinApp* AFXAPI AfxGetApp() { return static_cast<CWinApp*>(AfxGetThread()); }
+// Application registration belongs to the current module, independently of
+// the current worker thread. AFX_MODULE_STATE is opaque in this public header.
+inline CWinApp* AFXAPI AfxGetApp() {
+    return *reinterpret_cast<CWinApp**>(reinterpret_cast<BYTE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ())+8);
+}
 
 // These functions are not all exported MFC symbols in the ordinal mapping.
 // Consumers keep lightweight inline helpers while the DLL implementation uses
 // source-backed state internally.
 #ifndef OPENMFC_APPCORE_IMPL
 inline HINSTANCE AFXAPI AfxGetInstanceHandle() {
-    CWinApp* pApp = AfxGetApp();
-    return pApp ? pApp->m_hInstance : nullptr;
+    return *reinterpret_cast<HINSTANCE*>(reinterpret_cast<BYTE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ())+0x10);
 }
 inline HINSTANCE AFXAPI AfxGetResourceHandle() {
-    CWinApp* pApp = AfxGetApp();
-    return pApp ? pApp->m_hInstance : nullptr;
+    return *reinterpret_cast<HINSTANCE*>(reinterpret_cast<BYTE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ())+0x18);
 }
-inline void AFXAPI AfxSetResourceHandle(HINSTANCE hResource) {
-    CWinApp* pApp = AfxGetApp();
-    if (pApp != nullptr) {
-        pApp->m_hInstance = hResource;
-    }
+inline void AFXAPI AfxSetResourceHandle(HINSTANCE resource) {
+    *reinterpret_cast<HINSTANCE*>(reinterpret_cast<BYTE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ())+0x18)=resource;
 }
 inline CWnd* AFXAPI AfxGetMainWnd() {
-    CWinApp* pApp = AfxGetApp();
-    return pApp ? pApp->m_pMainWnd : nullptr;
+    auto* thread=AfxGetThread();
+    return thread ? thread->GetMainWnd() : nullptr;
 }
 inline int AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int nCmdShow) {
+    auto* module=reinterpret_cast<BYTE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ());
+    *reinterpret_cast<HINSTANCE*>(module+0x10)=hInstance;
+    *reinterpret_cast<HINSTANCE*>(module+0x18)=hInstance;
     CWinApp* pApp = AfxGetApp();
     if (pApp != nullptr) {
         pApp->m_hInstance = hInstance;

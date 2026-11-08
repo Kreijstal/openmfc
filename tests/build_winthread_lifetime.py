@@ -12,12 +12,31 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def sources():
-    return ['phase4/src/core/runtime/CCmdTargetLifetime.cpp',
+def sources(real_state=False):
+    backend = [
+        'phase4/src/core/runtime/ModuleStateAccessors.cpp',
+        'phase4/src/detail/RegcoreSupport.cpp',
+        'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp',
+        'phase4/src/core/collections/CHandleMap.cpp',
+        'phase4/src/detail/CHandleMapSupport.cpp',
+        'phase4/src/detail/MemcoreSupport.cpp',
+        'phase4/src/core/collections/CMapPtrToPtrStorage.cpp',
+        'phase4/src/detail/CPtrListSupport.cpp',
+        'phase4/src/core/controls/CToolTipCtrlLifetime.cpp',
+        'phase4/src/detail/CFixedAllocSupport.cpp',
+        'phase4/src/core/collections/CPlex.cpp',
+        'phase4/src/core/runtime/CThreadLocalObject.cpp',
+        'phase4/src/core/runtime/CThreadSlotData.cpp',
+        'phase4/src/detail/CThreadLocalObjectSupport.cpp',
+        'phase4/src/detail/CThreadSlotDataSupport.cpp',
+        'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'] if real_state else []
+    return backend + ['phase4/src/core/runtime/CCmdTargetLifetime.cpp',
             'phase4/src/core/app/CWinThreadLifetime.cpp',
             'phase4/src/core/app/CWinThreadMessageLoop.cpp',
             'phase4/src/core/app/CurrentMessage.cpp',
             'phase4/src/core/app/CWinAppLifetime.cpp',
+            'phase4/src/core/app/CurrentApplication.cpp',
+            'phase4/src/core/runtime/GlobalMemoryFree.cpp',
             'tests/test_winthread_lifetime.cpp']
 
 
@@ -27,6 +46,7 @@ def main():
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--optimize', action='store_true')
+    parser.add_argument('--real-state', action='store_true', help='Link production module/thread and TLS storage')
     parser.add_argument('--jobs', type=int, default=4)
     args = parser.parse_args()
     out = args.build.resolve()
@@ -38,6 +58,8 @@ def main():
     link = ['/nologo', '/SUBSYSTEM:CONSOLE', '/OPT:REF', '/OUT:' + str(out / 'test_winthread_lifetime.exe')]
     if args.optimize:
         flags.append('/O2')
+    if args.real_state:
+        flags.append('/DOPENMFC_TEST_REAL_THREAD_STATE')
     if args.sdk:
         versions = lambda path: sorted(path.iterdir(), key=lambda p: [int(n) for n in p.name.split('.')])[-1]
         vc = versions(args.sdk / 'VC/Tools/MSVC')
@@ -57,12 +79,15 @@ def main():
         return obj
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        objects = list(pool.map(compile_one, sources()))
+        objects = list(pool.map(compile_one, sources(args.real_state)))
     sys.path.insert(0, str(ROOT / 'tools'))
     import gen_weak_stubs
     count = 0
-    for relative in ('core/app/CWinThreadLifetime.cpp', 'core/app/CWinThreadMessageLoop.cpp',
-                     'core/app/CurrentMessage.cpp', 'core/app/CWinAppLifetime.cpp'):
+    alias_owners = ['core/runtime/ModuleStateAccessors.cpp'] if args.real_state else []
+    alias_owners += ['core/app/CWinThreadLifetime.cpp', 'core/app/CWinThreadMessageLoop.cpp',
+                     'core/app/CurrentMessage.cpp', 'core/app/CWinAppLifetime.cpp',
+                     'core/app/CurrentApplication.cpp','core/runtime/GlobalMemoryFree.cpp']
+    for relative in alias_owners:
         source = 'phase4/src/' + relative
         obj = out / (source.removesuffix('.cpp').replace('/', '_') + '.obj')
         if os.name == 'nt':
@@ -75,10 +100,10 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == 16, count
-    print('All 16 thread/application lifetime export aliases match the DLL generator', flush=True)
+    assert count == (20 if args.real_state else 18), count
+    print(f'All {count} thread/application lifetime export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
-    link.extend(['kernel32.lib', 'user32.lib'])
+    link.extend(['kernel32.lib', 'user32.lib','ole32.lib'])
     response = out / 'link.rsp'
     response.write_text('\n'.join('"' + part + '"' for part in link))
     subprocess.run(['link' if os.name == 'nt' else 'lld-link', '@' + str(response)], check=True, cwd=out, env=env)

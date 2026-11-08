@@ -238,7 +238,6 @@ asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
 
 // CWinApp methods are defined inline in afxwin.h
 // Source-backed defaults are provided here for _AFXDLL consumers.
-extern CWinApp* g_pApp;
 
 
 
@@ -246,14 +245,12 @@ extern CWinApp* g_pApp;
 
 
 
-// Global application pointer (exported via openmfc_exports.cpp)
-extern CWinApp* g_pApp;
 
 // Thread-local storage for current thread (used by worker threads)
 // This is set by AfxBeginThread in synccore.cpp for worker threads
 extern thread_local CWinThread* g_pCurrentThread;
 
-// AfxGetThread - returns current thread (or app for main thread)
+// AfxGetThread reads the current module/thread registration.
 // C++ implementation for internal use
 CWinThread* AfxGetThread();
 
@@ -266,13 +263,6 @@ CWinThread* AfxGetThread();
 
 
 
-// Additional global state needed for AfxGetInstanceHandle, etc.
-namespace openmfc { namespace detail { namespace cwinapp {
-extern HINSTANCE g_hInstance;
-} } }
-namespace openmfc { namespace detail { namespace cwinapp {
-extern HINSTANCE g_hResource;
-} } }
 constexpr size_t kOpaqueStateWordCount = 32;
 namespace openmfc { namespace detail { namespace cwinapp {
 extern void* g_appModuleStateStorage[kOpaqueStateWordCount];

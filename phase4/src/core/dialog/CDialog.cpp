@@ -25,7 +25,6 @@ extern "C" void MS_ABI impl__DoEnableModeless_CWinApp__SAXH_Z(int bEnable);     
 // AfxGetApp()/impl__AfxGetApp are NOT used for it: in this build they return
 // AfxGetThread(), which on a thread with its own CWinThread is that thread object,
 // not the application.
-extern CWinApp* g_pApp;
 
 
 namespace {
@@ -278,7 +277,7 @@ extern "C" int MS_ABI impl__OnCmdMsg_CDialog__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO_
 // (Slot 52 is WinHelpInternal: see kVs_WinApp_WinHelpInternal at the top of
 // the file -- the slot's entry is that export's own RVA.)
 // m_nIDHelp is read by its OpenMFC name (see the layout note at the top of the
-// file); g_pApp stands in for m_pCurrentWinApp; the application object is a
+// file); the application is resolved from the current module and is a
 // client object and so carries an MSVC vftable (no CWinApp is constructed
 // inside this DLL).  The NULL-`this` guard is OpenMFC's.
 // Symbol: ?OnCommandHelp@CDialog@@IEAA_J_K_J@Z
@@ -290,7 +289,7 @@ extern "C" intptr_t MS_ABI impl__OnCommandHelp_CDialog__IEAA_J_K_J_Z(
         lParam = static_cast<LPARAM>(static_cast<DWORD>(pThis->m_nIDHelp + 0x20000u /* HID_BASE_RESOURCE */));
         if (lParam == 0) return 0;
     }
-    CWinApp* pApp = g_pApp;
+    CWinApp* pApp = AfxGetApp();
     if (pApp != nullptr) {
         VSlot<WinHelpInternalFn>(pApp, kVs_WinApp_WinHelpInternal)(
             pApp, static_cast<unsigned long long>(lParam), HELP_CONTEXT);
@@ -341,7 +340,7 @@ extern "C" void MS_ABI impl__PostModal_CDialog__IEAAXXZ(CDialog* pThis) {
         ::EnableWindow(t->m_hWndTop, TRUE);
     }
     t->m_hWndTop = nullptr;
-    if (g_pApp != nullptr) {
+    if (AfxGetApp() != nullptr) {
         impl__DoEnableModeless_CWinApp__SAXH_Z(TRUE);
     }
 }

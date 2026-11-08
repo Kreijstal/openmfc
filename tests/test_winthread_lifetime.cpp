@@ -2,6 +2,8 @@
 // command/OLE virtuals are aborting boundaries; native comparison is optional.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/ModuleThreadStateSupport.h"
+#include "detail/RegcoreSupport.h"
+#include "detail/AppDocumentManagerState.h"
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -36,25 +38,48 @@ struct alignas(16) Storage {
     CWinThread* object() {return reinterpret_cast<CWinThread*>(bytes+16);}
     void reset() {std::memset(bytes,0xa5,sizeof(bytes));}
 };
+#ifndef OPENMFC_TEST_REAL_THREAD_STATE
 alignas(16) static thread_local BYTE threadBytes[sizeof(_AFX_THREAD_STATE)]{};
 alignas(16) static thread_local BYTE moduleBytes[sizeof(AFX_MODULE_THREAD_STATE)]{};
 static _AFX_THREAD_STATE* threadState() {return reinterpret_cast<_AFX_THREAD_STATE*>(threadBytes);}
 static AFX_MODULE_THREAD_STATE* moduleThreadState() {return reinterpret_cast<AFX_MODULE_THREAD_STATE*>(moduleBytes);}
-static auto* const moduleToken = reinterpret_cast<AFX_MODULE_STATE*>(UINT_PTR(0x12345000));
-static int moduleGets,threadGets;
+#endif
+#ifndef OPENMFC_TEST_REAL_THREAD_STATE
+alignas(16) static BYTE moduleStorage[0x108]{};
+static auto* const moduleToken = reinterpret_cast<AFX_MODULE_STATE*>(moduleStorage);
 static bool throwModule;
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
-    ++moduleGets;if(throwModule)throw 37;return moduleToken;
+    if(throwModule)throw 37;return moduleToken;
 }
-_AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {++threadGets;return threadState();}
+_AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {return threadState();}
 extern "C" AFX_MODULE_THREAD_STATE* MS_ABI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
     return moduleThreadState();
 }
 
+#else
+static auto* const moduleToken=&openmfc::detail::regcore::g_moduleStateStatic;
+static AFX_MODULE_THREAD_STATE* moduleThreadState() {
+    return impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+}
+#endif
 // These siblings are outside this fixture; never return invented behavior.
 IMPLEMENT_DYNAMIC(CWinThread,CCmdTarget)
 IMPLEMENT_DYNAMIC(CWinApp,CWinThread)
-CWinApp* g_pApp=nullptr;
+#ifndef OPENMFC_TEST_REAL_THREAD_STATE
+namespace openmfc { namespace detail { namespace modulethreadstate {
+AFX_MODULE_THREAD_STATE* ForModule(AFX_MODULE_STATE* module) {
+    check(module==moduleToken,"application registers in its captured module");return moduleThreadState();
+}
+} } }
+#else
+LRESULT CALLBACK AfxWndProc(HWND,UINT,WPARAM,LPARAM) {std::abort();}
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {throw 91;}
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long value) {throw value;}
+#endif
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {throw 19;}
+extern "C" CWinThread* MS_ABI impl__AfxGetThread__YAPEAVCWinThread__XZ();
+extern "C" void MS_ABI impl__AfxGlobalFree__YAXPEAX_Z(void*);
+
 CRuntimeClass CCmdTarget::classCCmdTarget{};
 int CCmdTarget::OnCmdMsg(UINT,int,void*,AFX_CMDHANDLERINFO*) {std::abort();}
 void CCmdTarget::OnFinalRelease() {std::abort();}
@@ -100,6 +125,12 @@ struct API {
     _AFX_THREAD_STATE* (AFXAPI* thread)();
     AFX_MODULE_THREAD_STATE* (AFXAPI* state)();
     AFX_MODULE_STATE* (AFXAPI* module)();
+    decltype(&impl___0CWinApp__QEAA_PEB_W_Z) appConstruct;
+    decltype(&impl___1CWinApp__UEAA_XZ) appDestroy;
+    decltype(&impl__AfxGetThread__YAPEAVCWinThread__XZ) current;
+    decltype(&impl__AfxGlobalFree__YAXPEAX_Z) globalFree;
+    void** staticManager;
+    void** staticTemplates;
 };
 static const API* active;
 static void* watched;
@@ -215,9 +246,314 @@ static void destruction(const API& api) {
     }
     api.state()->m_pCurrentWinThread=nullptr;
 }
+static const API* appAPI;
+static CWinApp* appObject;
+static DWORD versionMajor,versionMinor;
+static BOOL WINAPI appVersion(OSVERSIONINFOW* version) {
+    check(version->dwOSVersionInfoSize==sizeof(OSVERSIONINFOW),"application queries the native version structure");
+    check(appAPI->current()==appObject && appAPI->module()->m_pCurrentWinApp==appObject,
+        "both application registrations precede version callbacks");
+    check(field<BOOL>(appObject,0x154)==TRUE && field<DWORD>(appObject,0x15c)==0xa5a5a5a5,
+        "restart defaults precede the version callback and COM state follows it");
+    version->dwMajorVersion=versionMajor;version->dwMinorVersion=versionMinor;return TRUE;
+}
+static AFX_MODULE_STATE* replacementConstructionModule;
+static DWORD (WINAPI* originalThreadId)();
+static DWORD WINAPI changeConstructionModule() {
+    check(appAPI->current()==appObject && appObject->m_hThread==GetCurrentThread(),
+        "current-thread registration and pseudo handle precede the thread-ID callback");
+    appObject->m_pModuleState=replacementConstructionModule;
+    return originalThreadId();
+}
+static wchar_t* AFXAPI failNameDuplication(const wchar_t*) {return nullptr;}
+static void applications(const API& api,HMODULE image,bool source) {
+    appAPI=&api;
+    auto* module=api.module();auto* state=api.state();
+    auto* oldApp=module->m_pCurrentWinApp;auto* oldName=module->m_lpszCurrentAppName;
+    auto* oldThread=state->m_pCurrentWinThread;
+    auto* oldManager=*api.staticManager;auto* oldTemplates=*api.staticTemplates;
+    *api.staticManager=nullptr;*api.staticTemplates=nullptr;
+    Patch version(image,"GetVersionExW",reinterpret_cast<void*>(&appVersion));
+    for(unsigned pass=0;pass<5;++pass) {
+        alignas(16) BYTE storage[sizeof(CWinApp)],expected[sizeof(CWinApp)];
+        std::memset(storage,0xa5,sizeof(storage));std::memset(expected,0xa5,sizeof(expected));
+        appObject=reinterpret_cast<CWinApp*>(storage);
+        wchar_t name[]=L"native application \x03a9";
+        versionMajor=pass<3 ? 6 : (pass==3 ? 5:10);versionMinor=pass<3 ? pass:9;
+        api.thread()->m_msgCur.wParam=WPARAM(0xfedcba9876543210ull);
+        check(api.appConstruct(appObject,pass==0 ? nullptr:name)==appObject,"application constructor returns its storage");
+        if(pass) {
+            check(appObject->m_pszAppName!=name && !std::wcscmp(appObject->m_pszAppName,name),
+                "application owns a duplicate of the caller's name");
+            name[0]=L'X';check(appObject->m_pszAppName[0]==L'n',"caller name changes do not affect the application");
+        }else check(!appObject->m_pszAppName,"null application names remain null");
+        check(api.thread()->m_msgCur.wParam==WPARAM(0xfedcba9876543210ull),"startup preserves non-message-number thread state");
+        for(size_t offset : {0x40,0x48,0x68,0x70,0x78,0x80,0x88,0x90,0xa8,0xb0,0xb8,0xc8,0xd0,0xd8,
+                            0xe8,0xf0,0x100,0x110,0x118,0x120,0x128,0x130,0x140,0x168,0x170})
+            field<UINT_PTR>(expected,offset)=0;
+        field<BOOL>(expected,0x50)=TRUE;
+        field<HANDLE>(expected,0x58)=GetCurrentThread();field<DWORD>(expected,0x60)=GetCurrentThreadId();
+        field<const wchar_t*>(expected,0xa0)=appObject->m_pszAppName;
+        for(size_t offset : {0xc0,0xe0,0x108,0x14c,0x15c})field<DWORD>(expected,offset)=0;
+        field<UINT_PTR>(expected,0x138)=0x200;field<DWORD>(expected,0x150)=300000;
+        field<BOOL>(expected,0x154)=TRUE;field<BOOL>(expected,0x160)=TRUE;
+        field<BOOL>(expected,0x158)=versionMajor>6 || (versionMajor==6 && versionMinor>=1);
+        check(!std::memcmp(storage+0x40,expected+0x40,sizeof(storage)-0x40),
+            "application defaults and untouched bytes match the native object layout");
+        check(appObject->m_pModuleState==module && api.current()==appObject && module->m_pCurrentWinApp==appObject,
+            "application construction installs the captured module and current thread");
+        auto* other=reinterpret_cast<CWinApp*>(UINT_PTR(0x12340000));
+        state->m_pCurrentWinThread=other;
+        check(api.current()==other,"current-thread lookup does not fall back to the registered application");
+        if(source) {
+            check(AfxGetApp()==appObject,"public application lookup remains independent of the current worker thread");
+            auto instance=module->m_hCurrentInstanceHandle,resource=module->m_hCurrentResourceHandle;
+            module->m_hCurrentInstanceHandle=reinterpret_cast<HINSTANCE>(UINT_PTR(0x34560000));
+            module->m_hCurrentResourceHandle=nullptr;
+            check(AfxGetInstanceHandle()==module->m_hCurrentInstanceHandle &&
+                  !AfxGetResourceHandle(),
+                "module handles do not depend on application fields or resource fallback");
+            AfxSetResourceHandle(reinterpret_cast<HINSTANCE>(UINT_PTR(0x789a0000)));
+            check(module->m_hCurrentResourceHandle==reinterpret_cast<HINSTANCE>(UINT_PTR(0x789a0000)) && !appObject->m_hInstance,
+                "setting the resource module does not overwrite the application instance");
+            module->m_hCurrentInstanceHandle=instance;module->m_hCurrentResourceHandle=resource;
+        }
+        if(pass&1) {module->m_pCurrentWinApp=other;module->m_lpszCurrentAppName=L"retained module name";}
+        else {state->m_pCurrentWinThread=appObject;module->m_lpszCurrentAppName=appObject->m_pszAppName;}
+        watched=appObject;closes=0;
+        {
+            Patch close(image,"CloseHandle",reinterpret_cast<void*>(&closeHandle));
+            field<void*>(appObject,0)=reinterpret_cast<void*>(UINT_PTR(0xdeadbeef));
+            api.appDestroy(appObject);
+        }
+        check(closes==0,"application teardown relinquishes its pseudo handle before base cleanup");
+        check(state->m_pCurrentWinThread==((pass&1) ? other:nullptr),"application teardown preserves replacement thread registration");
+        check(module->m_pCurrentWinApp==((pass&1) ? other:nullptr),"application teardown preserves replacement module registration");
+        check((pass&1) ? module->m_lpszCurrentAppName!=nullptr : module->m_lpszCurrentAppName==nullptr,
+            "application teardown clears only its matching module name");
+    }
+    {
+        alignas(16) BYTE storage[sizeof(CWinApp)],replacementModule[0x108]{};
+        std::memset(storage,0xa5,sizeof(storage));appObject=reinterpret_cast<CWinApp*>(storage);
+        replacementConstructionModule=reinterpret_cast<AFX_MODULE_STATE*>(replacementModule);
+        {
+            Patch id(image,"GetCurrentThreadId",reinterpret_cast<void*>(&changeConstructionModule));
+            originalThreadId=reinterpret_cast<decltype(originalThreadId)>(id.old);
+            api.appConstruct(appObject,L"captured module");
+        }
+        check(module->m_pCurrentWinApp==appObject && !replacementConstructionModule->m_pCurrentWinApp &&
+              appObject->m_pModuleState==replacementConstructionModule,
+            "constructor retains its captured module across callbacks that change the object's module pointer");
+        appObject->m_pModuleState=module;api.appDestroy(appObject);
+        std::memset(storage,0xa5,sizeof(storage));
+        {
+            Patch duplicate(image,"_wcsdup",reinterpret_cast<void*>(&failNameDuplication));
+            api.appConstruct(appObject,L"allocation fails");
+        }
+        check(!appObject->m_pszAppName && api.current()==appObject && module->m_pCurrentWinApp==appObject,
+            "native name-allocation failure preserves successful application registration");
+        api.appDestroy(appObject);
+    }
+    module->m_pCurrentWinApp=oldApp;module->m_lpszCurrentAppName=oldName;state->m_pCurrentWinThread=oldThread;
+    *api.staticManager=oldManager;*api.staticTemplates=oldTemplates;
+}
+
+static std::vector<int> resourceEvents;
+struct Resource {void** table;int id;};
+static void resourceEvent(int id) {resourceEvents.push_back(id);}
+static void* AFXAPI appResourceDelete(void* self,unsigned flags) {
+    auto id=static_cast<Resource*>(self)->id;
+    check(flags==1,"application invokes owning virtual deletion with flag one");
+    check(field<BOOL>(appObject,0x154)==FALSE && !field<BOOL>(appObject,0x15c) &&
+          !field<void*>(appObject,0x168) && !field<void*>(appObject,0x170),
+          "COM and restart services are released before application objects");
+    check(appAPI->current()==appObject && appAPI->module()->m_pCurrentWinApp==appObject,
+        "application objects are disposed before application unregistration");
+    if(id==8)check(!*appAPI->staticManager,"static document manager is cleared before template-list deletion");
+    resourceEvent(id);return self;
+}
+static ULONG AFXAPI appRelease(IUnknown* self) {
+    auto* resource=reinterpret_cast<Resource*>(self);resourceEvent(resource->id);
+    check(!field<BOOL>(appObject,0x154),"restart support is disabled before COM interface release");
+    check(field<void*>(appObject,resource->id==1 ? 0x168:0x170)==self,
+        "COM interface remains installed during its Release callback");
+    return 17;
+}
+static void WINAPI appCoUninitialize() {
+    check(field<BOOL>(appObject,0x15c)!=FALSE && !field<void*>(appObject,0x168) && !field<void*>(appObject,0x170),
+        "COM interfaces are cleared before uninitialization and the flag is cleared afterward");
+    resourceEvent(3);
+}
+static UINT WINAPI appGlobalFlags(HGLOBAL memory) {
+    if(memory==reinterpret_cast<HGLOBAL>(UINT_PTR(0x11110000))) {resourceEvent(9);return 2;}
+    check(memory==reinterpret_cast<HGLOBAL>(UINT_PTR(0x22220000)),"second application global allocation");
+    resourceEvent(12);return 0;
+}
+static BOOL WINAPI appGlobalUnlock(HGLOBAL memory) {
+    check(memory==reinterpret_cast<HGLOBAL>(UINT_PTR(0x11110000)),"only the locked global allocation is unlocked");
+    resourceEvent(10);return FALSE;
+}
+static HGLOBAL WINAPI appGlobalFree(HGLOBAL memory) {
+    resourceEvent(memory==reinterpret_cast<HGLOBAL>(UINT_PTR(0x11110000)) ? 11:13);return memory;
+}
+static ATOM WINAPI appDeleteAtom(ATOM atom) {
+    check(atom==0xc123 || atom==0xc456,"application frees both stored shell atoms");
+    resourceEvent(atom==0xc123 ? 14:15);return atom;
+}
+static void* ownedStrings[5];
+static wchar_t* replacementRegistry;
+static void (AFXAPI* realAppFree)(void*);
+static void AFXAPI appFree(void* memory) {
+    for(unsigned i=0;i<5;++i)if(memory==ownedStrings[i]) {
+        check(!appAPI->module()->m_pCurrentWinApp && !appAPI->module()->m_lpszCurrentAppName,
+            "application module pointers are cleared before freeing owned strings");
+        check(appAPI->current()==appObject && appObject->m_hThread==GetCurrentThread(),
+            "base thread cleanup follows application string disposal");
+        resourceEvent(17+i);
+        if(i==0 && replacementRegistry) {
+            auto* previous=const_cast<wchar_t*>(appObject->m_pszRegistryKey);
+            appObject->m_pszRegistryKey=replacementRegistry;
+            ownedStrings[1]=replacementRegistry;replacementRegistry=nullptr;
+            realAppFree(previous);
+        }
+        break;
+    }
+    realAppFree(memory);
+}
+static void applicationResources(const API& api,HMODULE image) {
+    appAPI=&api;
+    auto* module=api.module();auto* state=api.state();
+    auto* oldApp=module->m_pCurrentWinApp;auto* oldName=module->m_lpszCurrentAppName;
+    auto* oldThread=state->m_pCurrentWinThread;auto oldDLL=module->m_bDLL;
+    auto* oldManager=*api.staticManager;auto* oldTemplates=*api.staticTemplates;
+    void* deletingTable[8]{},*releaseTable[3]{};
+    deletingTable[1]=deletingTable[7]=reinterpret_cast<void*>(&appResourceDelete);
+    releaseTable[2]=reinterpret_cast<void*>(&appRelease);
+    resourceEvents.reserve(64);
+    for(bool dll : {false,true}) {
+        alignas(16) BYTE storage[sizeof(CWinApp)];std::memset(storage,0xa5,sizeof(storage));
+        appObject=api.appConstruct(reinterpret_cast<CWinApp*>(storage),L"resource owner");
+        Resource objects[]={{releaseTable,1},{releaseTable,2},{deletingTable,4},{deletingTable,5},
+            {deletingTable,6},{deletingTable,7},{deletingTable,8},{deletingTable,16}};
+        field<void*>(appObject,0x168)=&objects[0];field<void*>(appObject,0x170)=&objects[1];
+        field<BOOL>(appObject,0x15c)=TRUE;appObject->m_pDocManager=&objects[2];
+        field<void*>(appObject,0x118)=&objects[3];field<void*>(appObject,0x120)=&objects[4];
+        *api.staticManager=&objects[5];*api.staticTemplates=&objects[6];
+        field<void*>(appObject,0x128)=&objects[7];
+        field<HGLOBAL>(appObject,0xe8)=reinterpret_cast<HGLOBAL>(UINT_PTR(0x11110000));
+        field<HGLOBAL>(appObject,0xf0)=reinterpret_cast<HGLOBAL>(UINT_PTR(0x22220000));
+        field<ATOM>(appObject,0x130)=0xc123;field<ATOM>(appObject,0x132)=0xc456;
+        replacementRegistry=::_wcsdup(L"registry replaced by an allocator callback");
+        appObject->m_pszRegistryKey=::_wcsdup(L"registry");appObject->m_pszExeName=::_wcsdup(L"executable");
+        appObject->m_pszHelpFilePath=::_wcsdup(L"help");appObject->m_pszProfileName=::_wcsdup(L"profile");
+        unsigned index=0;
+        for(auto text : {appObject->m_pszAppName,appObject->m_pszRegistryKey,appObject->m_pszExeName,
+                        appObject->m_pszHelpFilePath,appObject->m_pszProfileName})
+            ownedStrings[index++]=const_cast<wchar_t*>(text);
+        appObject->m_pszAppID=L"borrowed application ID";
+        module->m_lpszCurrentAppName=appObject->m_pszAppName;module->m_bDLL=dll;
+        resourceEvents.clear();watched=appObject;closes=0;
+        {
+            Patch releaseCOM(image,"CoUninitialize",reinterpret_cast<void*>(&appCoUninitialize));
+            Patch flags(image,"GlobalFlags",reinterpret_cast<void*>(&appGlobalFlags));
+            Patch unlock(image,"GlobalUnlock",reinterpret_cast<void*>(&appGlobalUnlock));
+            Patch globalFree(image,"GlobalFree",reinterpret_cast<void*>(&appGlobalFree));
+            Patch atom(image,"GlobalDeleteAtom",reinterpret_cast<void*>(&appDeleteAtom));
+            Patch free(image,"free",reinterpret_cast<void*>(&appFree));
+            realAppFree=reinterpret_cast<decltype(realAppFree)>(free.old);
+            Patch close(image,"CloseHandle",reinterpret_cast<void*>(&closeHandle));
+            api.appDestroy(appObject);
+        }
+        std::vector<int> expected{1,2,3,4,5,6};
+        if(!dll) {expected.push_back(7);expected.push_back(8);}
+        for(int event : {9,10,10,11,12,13,14,15,16,17,18,19,20,21})expected.push_back(event);
+        check(resourceEvents==expected,"native application cleanup order, global lock counts and virtual destructor slots");
+        check(closes==0 && !state->m_pCurrentWinThread && !module->m_pCurrentWinApp,
+            "all application cleanup precedes non-owning thread-handle teardown");
+        check(dll ? (*api.staticManager==&objects[5] && *api.staticTemplates==&objects[6]) :
+                    (!*api.staticManager && !*api.staticTemplates),
+            "DLL application teardown preserves the process document-manager objects");
+        check(!std::wcscmp(appObject->m_pszAppID,L"borrowed application ID"),
+            "application ID storage is not among the owned destructor strings");
+    }
+    module->m_pCurrentWinApp=oldApp;module->m_lpszCurrentAppName=oldName;module->m_bDLL=oldDLL;
+    state->m_pCurrentWinThread=oldThread;*api.staticManager=oldManager;*api.staticTemplates=oldTemplates;
+    HGLOBAL memory=GlobalAlloc(GMEM_MOVEABLE,64);
+    check(memory!=nullptr,"allocate global-memory helper fixture");
+    if(memory) {
+        GlobalLock(memory);GlobalLock(memory);api.globalFree(memory);
+        check(!GlobalSize(memory),"global-memory helper releases and frees a real multiply locked block");
+    }
+    api.globalFree(nullptr);
+}
+
+#ifdef OPENMFC_TEST_REAL_THREAD_STATE
+struct RegistrationWork {AFX_MODULE_STATE* module;CWinApp* app;};
+static DWORD WINAPI registrationWorker(void* opaque) {
+    auto* work=static_cast<RegistrationWork*>(opaque);
+    auto* previous=impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(work->module);
+    check(!AfxGetThread() && AfxGetApp()==work->app,
+        "a new OS thread shares the module application and starts without a current framework thread");
+    {
+        CWinThread worker;
+        auto* state=impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+        state->m_pCurrentWinThread=&worker;
+        check(AfxGetThread()==&worker && AfxGetApp()==work->app,
+            "production TLS keeps worker registration independent of module application registration");
+    }
+    check(!AfxGetThread() && AfxGetApp()==work->app,"worker destruction clears only that OS thread's registration");
+    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(previous);
+    return 0;
+}
+static void applicationModuleIntegration() {
+    AFX_MODULE_STATE modules[2];
+    auto* previous=impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(&modules[0]);
+    alignas(16) BYTE storage[2][sizeof(CWinApp)];
+    auto* a=impl___0CWinApp__QEAA_PEB_W_Z(reinterpret_cast<CWinApp*>(storage[0]),L"module A");
+    auto* stateA=impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(&modules[1]);
+    auto* b=impl___0CWinApp__QEAA_PEB_W_Z(reinterpret_cast<CWinApp*>(storage[1]),L"module B");
+    auto* stateB=impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
+    check(stateA!=stateB && AfxGetApp()==b && AfxGetThread()==b,
+        "two applications occupy distinct real cached module/thread states");
+    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(&modules[0]);
+    check(AfxGetApp()==a && AfxGetThread()==a,"module switching selects the registered application and thread");
+    RegistrationWork work{&modules[0],a};
+    HANDLE worker=CreateThread(nullptr,0,registrationWorker,&work,0,nullptr);
+    check(worker!=nullptr,"create thread for production TLS registration integration");
+    if(worker) {
+        check(WaitForSingleObject(worker,30000)==WAIT_OBJECT_0,"worker registration integration completes");
+        CloseHandle(worker);
+    }
+    check(AfxGetApp()==a && AfxGetThread()==a && stateA->m_pCurrentWinThread==a,
+        "worker registration and destruction preserve the application's original OS thread state");
+    modules[0].m_lpszCurrentAppName=a->m_pszAppName;
+    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(&modules[1]);
+    impl___1CWinApp__UEAA_XZ(a);
+    check(!modules[0].m_pCurrentWinApp && !modules[0].m_lpszCurrentAppName && AfxGetApp()==b && AfxGetThread()==b,
+        "application cleanup uses its captured module and preserves another ambient application");
+    check(stateA->m_pCurrentWinThread==a,"native base teardown checks the ambient module's thread registration");
+    stateA->m_pCurrentWinThread=nullptr;
+    impl___1CWinApp__UEAA_XZ(b);
+    check(!AfxGetApp() && !AfxGetThread(),"application destruction clears real module and thread registrations");
+    impl__AfxSetModuleState__YAPEAVAFX_MODULE_STATE__PEAV1__Z(previous);
+}
+#endif
+
+static CWnd* AFXAPI mainWindowOverride(CWinThread*) {return reinterpret_cast<CWnd*>(UINT_PTR(0x13570000));}
+static void applicationHelpers() {
+    auto* state=moduleThreadState();auto* oldThread=state->m_pCurrentWinThread;
+    state->m_pCurrentWinThread=nullptr;
+    check(!AfxGetMainWnd(),"main-window helpers return null without a current framework thread");
+    void* table[32]{};table[31]=reinterpret_cast<void*>(&mainWindowOverride);
+    alignas(16) BYTE worker[sizeof(CWinThread)]{};field<void*>(worker,0)=table;
+    state->m_pCurrentWinThread=reinterpret_cast<CWinThread*>(worker);
+    check(AfxGetMainWnd()==reinterpret_cast<CWnd*>(UINT_PTR(0x13570000)),
+        "main-window lookup honors the current thread's virtual GetMainWnd override");
+    state->m_pCurrentWinThread=oldThread;
+}
 static void applicationBaseOwnership() {
-    // The existing application constructor is still partial. This integration
-    // check guards the handle-ownership change introduced by the real base dtor.
+    // Both public C++ and exported construction share real application ownership.
     for(int exported=0;exported!=2;++exported) {
         alignas(16) BYTE storage[sizeof(CWinApp)];std::memset(storage,0xa5,sizeof(storage));
         auto* application=exported ? impl___0CWinApp__QEAA_PEB_W_Z(reinterpret_cast<CWinApp*>(storage),L"thread ownership integration")
@@ -231,7 +567,7 @@ static void applicationBaseOwnership() {
             field<void*>(application,0)=reinterpret_cast<void*>(UINT_PTR(0xdeadbeef));
             impl___1CWinApp__UEAA_XZ(application);
         }else application->CWinApp::~CWinApp();
-        check(closes==0 && !moduleThreadState()->m_pCurrentWinThread && !g_pApp,
+        check(closes==0 && !moduleThreadState()->m_pCurrentWinThread && !moduleToken->m_pCurrentWinApp,
             "application teardown relinquishes its pseudo handle before owned base cleanup");
     }
 }
@@ -351,14 +687,22 @@ int main(int argc,char** argv) {
         impl__InitInstance_CWinThread__UEAAHXZ,impl__ExitInstance_CWinThread__UEAAHXZ,impl__Run_CWinThread__UEAAHXZ,
         impl__AfxInternalPumpMessage__YAHXZ,impl__AfxInternalIsIdleMessage__YAHPEAUtagMSG___Z,
         impl__AfxIsIdleMessage__YAHPEAUtagMSG___Z,impl__AfxGetCurrentMessage__YAPEAUtagMSG__XZ,
-        AfxGetThreadState,impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ,impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ};
+        AfxGetThreadState,impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ,impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ,
+        impl___0CWinApp__QEAA_PEB_W_Z,impl___1CWinApp__UEAA_XZ,impl__AfxGetThread__YAPEAVCWinThread__XZ,
+        impl__AfxGlobalFree__YAXPEAX_Z,&openmfc::detail::docmanager::staticDocumentManager,
+        &openmfc::detail::docmanager::staticTemplateList};
     if(argc>1 && !std::strcmp(argv[1],"--source-close"))terminationChild(source,GetModuleHandleW(nullptr),true);
     if(argc>1 && !std::strcmp(argv[1],"--source-dispatch"))terminationChild(source,GetModuleHandleW(nullptr),false);
     construction(source);destruction(source);applicationBaseOwnership();
+    applications(source,GetModuleHandleW(nullptr),true);
+    applicationResources(source,GetModuleHandleW(nullptr));
+    applicationHelpers();
     loops(source,GetModuleHandleW(nullptr));idleMessages(source);pumping(source,GetModuleHandleW(nullptr));
+#ifndef OPENMFC_TEST_REAL_THREAD_STATE
     Storage failed,before;failed.reset();before.reset();throwModule=true;bool caught=false;
     try {source.construct(failed.object());}catch(int e) {caught=e==37;}
     throwModule=false;check(caught && !std::memcmp(failed.bytes,before.bytes,sizeof(failed.bytes)),"base module lookup failure preserves unconstructed storage");
+#endif
     if(argc==1) {terminationParent(L"--source-close");terminationParent(L"--source-dispatch");}
     if(const char* path=std::getenv("OPENMFC_NATIVE_WINTHREAD_DLL")) {
         HMODULE image=LoadLibraryA(path);check(image!=nullptr,"load native thread oracle");
@@ -373,17 +717,26 @@ int main(int argc,char** argv) {
                 NATIVE(dispose,0x274360);NATIVE(init,0x71e0);NATIVE(exit,0x274480);NATIVE(run,0x274390);
                 NATIVE(pump,0x273ae0);NATIVE(idle,0x273cf0);NATIVE(globalIdle,0x273d70);NATIVE(message,0x273ac0);
                 NATIVE(thread,0x1332a0);NATIVE(state,0x133a20);NATIVE(module,0x133930);
+                NATIVE(appConstruct,0x1cb720);NATIVE(appDestroy,0x1cc530);NATIVE(current,0x273aa0);NATIVE(globalFree,0x2ae660);
+                native.staticManager=reinterpret_cast<void**>(b+0x3be3f0);
+                native.staticTemplates=reinterpret_cast<void**>(b+0x3be3f8);
 #undef NATIVE
                 if(argc>1 && !std::strcmp(argv[1],"--native-close"))terminationChild(native,image,true);
                 if(argc>1 && !std::strcmp(argv[1],"--native-dispatch"))terminationChild(native,image,false);
                 {Patch p(image,"GetCursorPos",reinterpret_cast<void*>(&cursor));construction(native);}
                 {Patch p(image,"CloseHandle",reinterpret_cast<void*>(&closeHandle));destruction(native);}
+                applications(native,image,false);
+                applicationResources(native,image);
                 loops(native,image);idleMessages(native);pumping(native,image);
                 if(argc==1) {terminationParent(L"--native-close");terminationParent(L"--native-dispatch");}
             }
             FreeLibrary(image);
         }
     }
+#ifdef OPENMFC_TEST_REAL_THREAD_STATE
+    applicationModuleIntegration();
+    impl___1CThreadLocalObject__QEAA_XZ(&moduleToken->m_moduleThreadState);
+#endif
     std::printf("Thread lifetime and message loop: %d failures\n",failures);
     return failures ? 1:0;
 }

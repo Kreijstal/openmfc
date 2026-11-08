@@ -1599,10 +1599,6 @@ extern "C" void MS_ABI impl__AfxGetRoot__YAXPEB_WAEAV__CStringT__WV__StrTraitMFC
         pStrRoot->Empty();
     }
 }
-// Symbol: ?AfxGlobalFree@@YAXPEAX@Z
-extern "C" void MS_ABI impl__AfxGlobalFree__YAXPEAX_Z(void* p0) {
-    ::GlobalFree(p0);
-}
 // Symbol: ?AfxGlobalsAddRef@@YAXXZ
 // Real MFC increments a process-wide refcount shared with AfxGlobalsRelease,
 // gating first-time global-data construction on the 0->1 transition.
@@ -3215,8 +3211,7 @@ extern "C" void MS_ABI impl__AfxWinTerm__YAXXZ() {
     // ran (the temp maps are empty, the class atom is still zero), so calling
     // AfxWinTerm twice is harmless.
     //
-    // Deliberately NOT cleared here: detail/CWinAppSupport.h's g_hInstance /
-    // g_hResource. Real MFC leaves the module state's instance and resource
+    // Real MFC leaves the module state's instance and resource
     // handles to AfxTermLocalData (exported separately, implemented above),
     // and nulling them from here would break AfxGetResourceHandle for any
     // module that terminates one thread and keeps running.

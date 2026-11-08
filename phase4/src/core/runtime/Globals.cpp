@@ -500,21 +500,3 @@ extern "C" const wchar_t* MS_ABI impl__AfxRegisterWndClass__YAPEB_WIPEAUHICON___
 
     return className;
 }
-// Symbol: ?AfxGetModuleState@@YAPEAVAFX_MODULE_STATE@@XZ
-// Ordinal: 2212
-// Return the current thread's module state; keep it synchronized with the
-// process-wide app/module handles.
-extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
-    AFX_MODULE_STATE* pState = ResolveCurrentModuleState();
-    if (pState == &g_moduleStateStatic) {
-        RefreshStaticModuleState();
-    }
-    return pState;
-}
-// Native module switching lives with the thread state in _AFX_THREAD_STATE.cpp.
-// Symbol: ?AfxGetStaticModuleState@@YAPEAUAFX_MODULE_STATE@@XZ
-// Ordinal: 2211
-extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetStaticModuleState__YAPEAUAFX_MODULE_STATE__XZ() {
-    RefreshStaticModuleState();
-    return &g_moduleStateStatic;
-}

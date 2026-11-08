@@ -5,6 +5,16 @@ on:
       - 'include/openmfc/**'
       - 'phase4/src/core/app/CWinThread*.cpp'
       - 'phase4/src/core/app/CurrentMessage.cpp'
+      - 'phase4/src/core/app/CurrentApplication.cpp'
+      - 'phase4/src/core/runtime/GlobalMemoryFree.cpp'
+      - 'phase4/src/core/runtime/ModuleStateAccessors.cpp'
+      - 'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/CThread*.cpp'
+      - 'phase4/src/core/collections/**'
+      - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
+      - 'phase4/src/detail/*Support.*'
+      - 'phase4/src/detail/AppDocumentManagerState.h'
       - 'phase4/src/core/app/CWinAppLifetime.cpp'
       - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/detail/ModuleThreadStateSupport.h'
@@ -16,6 +26,16 @@ on:
       - 'include/openmfc/**'
       - 'phase4/src/core/app/CWinThread*.cpp'
       - 'phase4/src/core/app/CurrentMessage.cpp'
+      - 'phase4/src/core/app/CurrentApplication.cpp'
+      - 'phase4/src/core/runtime/GlobalMemoryFree.cpp'
+      - 'phase4/src/core/runtime/ModuleStateAccessors.cpp'
+      - 'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/CThread*.cpp'
+      - 'phase4/src/core/collections/**'
+      - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
+      - 'phase4/src/detail/*Support.*'
+      - 'phase4/src/detail/AppDocumentManagerState.h'
       - 'phase4/src/core/app/CWinAppLifetime.cpp'
       - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/detail/ModuleThreadStateSupport.h'
@@ -25,11 +45,13 @@ on:
   workflow_dispatch:
 jobs:
   windows:
-    name: Thread lifetime (${{ matrix.name }})
+    name: Thread lifetime (${{ matrix.name }}, ${{ matrix.state == '' && 'boundary state' || 'production TLS' }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
+        name: [default, optimized]
+        state: ['', '--real-state']
         include:
           - name: default
             flags: ''
@@ -42,4 +64,4 @@ jobs:
           arch: x64
       - name: Build and verify thread lifetime and message loop
         shell: cmd
-        run: python tests/build_winthread_lifetime.py --build "%RUNNER_TEMP%/thread-lifetime" ${{ matrix.flags }}
+        run: python tests/build_winthread_lifetime.py --build "%RUNNER_TEMP%/thread-lifetime" ${{ matrix.flags }} ${{ matrix.state }}

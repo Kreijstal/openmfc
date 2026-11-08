@@ -131,7 +131,7 @@ public:
     HINSTANCE m_hCurrentResourceHandle{};
     // Preserve the native x64 prefix through the callbacks used by windows.
     // The intervening module services are not modeled by this shadow yet.
-    BYTE m_reservedModuleFlags[8]{};
+    const wchar_t* m_lpszCurrentAppName{};
     BYTE m_bDLL=FALSE;
     BYTE m_reservedToWindowProcedure[0x70-0x29]{};
     WNDPROC m_pfnAfxWndProc=&AfxWndProc;
@@ -144,6 +144,7 @@ public:
     ~AFX_MODULE_STATE() override { impl___1CThreadLocalObject__QEAA_XZ(&m_moduleThreadState); }
 };
 static_assert(offsetof(AFX_MODULE_STATE,m_pCurrentWinApp)==8,"native module application prefix");
+static_assert(offsetof(AFX_MODULE_STATE,m_lpszCurrentAppName)==0x20,"native module application name");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnAfxWndProc)==0x70,"native framework window procedure");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnFilterToolTipMessage)==0x80,"native tooltip filter");
 static_assert(offsetof(AFX_MODULE_STATE,m_pOccManager)==0xa0,"native OLE manager");
@@ -155,8 +156,4 @@ extern AFX_MODULE_STATE g_moduleStateStatic;
 
 namespace openmfc { namespace detail { namespace regcore {
 AFX_MODULE_STATE* ResolveCurrentModuleState();
-} } }
-
-namespace openmfc { namespace detail { namespace regcore {
-void RefreshStaticModuleState();
 } } }

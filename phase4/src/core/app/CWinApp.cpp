@@ -313,7 +313,7 @@ extern "C" void MS_ABI impl__DevModeChange_CWinApp__QEAAXPEA_W_Z(CWinApp* pThis,
 }
 // Symbol: ?DoEnableModeless@CWinApp@@SAXH@Z
 extern "C" void MS_ABI impl__DoEnableModeless_CWinApp__SAXH_Z(int enable) {
-    if (g_pApp) g_appRuntimeStates[g_pApp].modelessEnabled = enable != FALSE;
+    if (auto* app=AfxGetApp()) g_appRuntimeStates[app].modelessEnabled = enable != FALSE;
 }
 // Symbol: ?ShowAppMessageBox@CWinApp@@SAHPEAV1@PEB_WII@Z
 extern "C" int MS_ABI impl__ShowAppMessageBox_CWinApp__SAHPEAV1_PEB_WII_Z(

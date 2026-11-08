@@ -9,7 +9,6 @@
 // but which are NOT part of the real mfc140u.dll exports.
 //
 // These include:
-// - g_pApp global variable
 // - Virtual method implementations for base classes
 // - Static CRuntimeClass members from IMPLEMENT_DYNAMIC
 //
@@ -29,17 +28,6 @@
 #else
   #define MS_ABI
 #endif
-
-// =============================================================================
-// g_pApp Export
-// MSVC symbol: ?g_pApp@@3PEAVCWinApp@@EA
-// =============================================================================
-
-// The actual g_pApp is defined in appcore.cpp as: CWinApp* g_pApp = nullptr;
-// GCC doesn't mangle global variables, so the symbol is just "g_pApp".
-// The .def file maps: ?g_pApp@@3PEAVCWinApp@@EA=g_pApp DATA
-// This exports the GCC symbol with the MSVC-mangled name.
-extern CWinApp* g_pApp;
 
 // =============================================================================
 // CObject::Serialize Export

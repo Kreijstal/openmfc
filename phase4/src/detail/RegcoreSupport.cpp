@@ -1,6 +1,6 @@
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxstat_.h"
 #include "RegcoreSupport.h"
-extern CWinApp* g_pApp;
 
 thread_local wchar_t g_wndClassNames[kWndClassNameSlots][kWndClassNameLen];
 namespace openmfc { namespace detail { namespace regcore {
@@ -65,10 +65,5 @@ AFX_MODULE_STATE g_moduleStateStatic;
 AFX_MODULE_STATE* ResolveCurrentModuleState() {
     AFX_MODULE_STATE* state=AfxGetThreadState()->m_pModuleState;
     return state ? state : &g_moduleStateStatic;
-}
-void RefreshStaticModuleState() {
-    g_moduleStateStatic.m_hCurrentInstanceHandle = AfxGetInstanceHandle();
-    g_moduleStateStatic.m_hCurrentResourceHandle = AfxGetResourceHandle();
-    g_moduleStateStatic.m_pCurrentWinApp = g_pApp;
 }
 } } }  // namespace openmfc::detail::regcore

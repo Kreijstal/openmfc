@@ -7,25 +7,7 @@ IMPLEMENT_DYNAMIC(CFileException, CException)
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
 IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)
 IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
-CWinApp* g_pApp = nullptr;
 thread_local CWinThread* g_pCurrentThread = nullptr;
-CWinThread* AfxGetThread() {
-    // For worker threads, return the thread-local pointer
-    if (g_pCurrentThread != nullptr) {
-        return g_pCurrentThread;
-    }
-    // For main thread, return the app
-    return static_cast<CWinThread*>(g_pApp);
-}
-HINSTANCE AFXAPI AfxGetInstanceHandle() {
-    return g_hInstance;
-}
-HINSTANCE AFXAPI AfxGetResourceHandle() {
-    return g_hResource ? g_hResource : g_hInstance;
-}
-void AFXAPI AfxSetResourceHandle(HINSTANCE hInstResource) {
-    g_hResource = hInstResource;
-}
 namespace openmfc { namespace detail { namespace cwinapp {
 CRuntimeClass* const g_coreRuntimeClasses[] = {
     &CObject::classCObject,
@@ -94,8 +76,6 @@ int OpenMfcRunExportedMessageLoop(CWinThread* pThis) {
         DispatchMessageW(&msg);
     }
 }
-HINSTANCE g_hInstance = nullptr;
-HINSTANCE g_hResource = nullptr;
 void* g_appModuleStateStorage[kOpaqueStateWordCount] = {};
 thread_local ThreadBookkeeping g_threadBookkeeping;
 extern "C" HINSTANCE MS_ABI impl__AfxGetInstanceHandleHelper__YAPEAUHINSTANCE____XZ() {
@@ -112,6 +92,7 @@ extern "C" int MS_ABI impl__AfxWinInit__YAHPEAUHINSTANCE____0PEA_WH_Z(
 {
     return AfxWinInit(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 }
+// Symbol: ?AfxGetMainWnd@@YAPEAVCWnd@@XZ
 extern "C" CWnd* MS_ABI impl__AfxGetMainWnd__YAPEAVCWnd__XZ() {
     return AfxGetMainWnd();
 }
