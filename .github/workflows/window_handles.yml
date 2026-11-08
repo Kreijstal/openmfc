@@ -43,6 +43,6 @@ jobs:
       - name: Build and verify window handles, callbacks and destruction
         shell: cmd
         run: python tests/build_window_handles.py --build "%RUNNER_TEMP%/window-lifetime" ${{ matrix.flags }}
-      - name: Verify frame construction, module registration, cleanup and menu state
+      - name: Verify frame lifetime, menu state, view activation and accelerators
         shell: cmd
         run: python tests/build_frame_lifetime.py --build "%RUNNER_TEMP%/frame-lifetime" ${{ matrix.flags }}

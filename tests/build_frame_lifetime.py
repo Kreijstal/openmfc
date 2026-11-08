@@ -21,6 +21,7 @@ def sources():
         'phase4/src/core/frame/CFrameWndLifetime.cpp',
         'phase4/src/core/frame/CFrameWndTracking.cpp',
         'phase4/src/core/frame/CFrameWndMenuBar.cpp',
+        'phase4/src/core/frame/CFrameWndViews.cpp',
         'tests/test_frame_lifetime.cpp']
 
 
@@ -64,7 +65,8 @@ def main():
     sys.path.insert(0, str(ROOT / 'tools'))
     import gen_weak_stubs
     count = 0
-    for relative in ('core/frame/CFrameWndLifetime.cpp','core/frame/CFrameWndMenuBar.cpp'):
+    for relative in ('core/frame/CFrameWndLifetime.cpp','core/frame/CFrameWndMenuBar.cpp',
+                     'core/frame/CFrameWndViews.cpp'):
         source = 'phase4/src/' + relative
         obj = out / (source.removesuffix('.cpp').replace('/', '_') + '.obj')
         if os.name == 'nt':
@@ -77,8 +79,8 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == 9, count
-    print('All nine frame lifetime/menu export aliases match the DLL generator', flush=True)
+    assert count == 16, count
+    print('All 16 frame lifetime/menu/view export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
     link.extend(['crypt32.lib', 'odbc32.lib', 'comctl32.lib', 'kernel32.lib', 'user32.lib',
                  'gdi32.lib', 'ole32.lib', 'oleacc.lib', 'oleaut32.lib', 'uuid.lib',

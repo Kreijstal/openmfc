@@ -1240,11 +1240,6 @@ extern "C" CWnd* MS_ABI impl__CreateView_CFrameWnd__QEAAPEAVCWnd__PEAUCCreateCon
 extern "C" int MS_ABI impl__CreateView_CSplitterWnd__UEAAHHHPEAUCRuntimeClass__UtagSIZE__PEAUCCreateContext___Z(CSplitterWnd* pThis, int p0, int p1, CRuntimeClass* p2, SIZE p3, CCreateContext* p4) {
     return (int)pThis->CSplitterWnd::CreateView(p0, p1, p2, p3, p4);
 }
-// Symbol: ?DelayUpdateFrameMenu@CFrameWnd@@UEAAXPEAUHMENU__@@@Z
-// CFrameWnd::DelayUpdateFrameMenu
-extern "C" void MS_ABI impl__DelayUpdateFrameMenu_CFrameWnd__UEAAXPEAUHMENU_____Z(CFrameWnd* pThis, HMENU__* p0) {
-    pThis->DelayUpdateFrameMenu(p0);
-}
 // Symbol: ?DestroyDockBars@CFrameWnd@@QEAAXXZ
 // CFrameWnd::DestroyDockBars
 extern "C" void MS_ABI impl__DestroyDockBars_CFrameWnd__QEAAXXZ(CFrameWnd* pThis) {
@@ -1290,30 +1285,10 @@ extern "C" void MS_ABI impl__ExitHelpMode_CFrameWnd__UEAAXXZ(CFrameWnd* pThis) {
 extern "C" void MS_ABI impl__FloatControlBar_CFrameWnd__QEAAXPEAVCControlBar__VCPoint__K_Z(CFrameWnd* pThis, CControlBar* p0, CPoint p1, unsigned long p2) {
     pThis->FloatControlBar(p0, p1, p2);
 }
-// Symbol: ?GetActiveDocument@CFrameWnd@@UEAAPEAVCDocument@@XZ
-// CFrameWnd::GetActiveDocument
-extern "C" CDocument* MS_ABI impl__GetActiveDocument_CFrameWnd__UEAAPEAVCDocument__XZ(CFrameWnd* pThis) {
-    return (CDocument*)pThis->GetActiveDocument();
-}
-// Symbol: ?GetActiveFrame@CFrameWnd@@UEAAPEAV1@XZ
-// CFrameWnd::GetActiveFrame
-extern "C" void* MS_ABI impl__GetActiveFrame_CFrameWnd__UEAAPEAV1_XZ(CFrameWnd* pThis) {
-    return (void*)pThis->GetActiveFrame();
-}
-// Symbol: ?GetActiveView@CFrameWnd@@QEBAPEAVCView@@XZ
-// CFrameWnd::GetActiveView
-extern "C" CView* MS_ABI impl__GetActiveView_CFrameWnd__QEBAPEAVCView__XZ(const CFrameWnd* pThis) {
-    return (CView*)pThis->GetActiveView();
-}
 // Symbol: ?GetControlBar@CFrameWnd@@QEAAPEAVCControlBar@@I@Z
 // CFrameWnd::GetControlBar
 extern "C" CControlBar* MS_ABI impl__GetControlBar_CFrameWnd__QEAAPEAVCControlBar__I_Z(CFrameWnd* pThis, unsigned int p0) {
     return (CControlBar*)pThis->GetControlBar(p0);
-}
-// Symbol: ?GetDefaultAccelerator@CFrameWnd@@UEAAPEAUHACCEL__@@XZ
-// CFrameWnd::GetDefaultAccelerator
-extern "C" HACCEL__* MS_ABI impl__GetDefaultAccelerator_CFrameWnd__UEAAPEAUHACCEL____XZ(CFrameWnd* pThis) {
-    return (HACCEL__*)pThis->GetDefaultAccelerator();
 }
 // Symbol: ?GetDockState@CFrameWnd@@QEBAXAEAVCDockState@@@Z
 // CFrameWnd::GetDockState
@@ -1659,16 +1634,6 @@ extern "C" void MS_ABI impl__SaveBarState_CFrameWnd__QEBAXPEB_W_Z(const CFrameWn
 // CSplitterWnd::SetActivePane
 extern "C" void MS_ABI impl__SetActivePane_CSplitterWnd__UEAAXHHPEAVCWnd___Z(CSplitterWnd* pThis, int p0, int p1, CWnd* p2) {
     pThis->CSplitterWnd::SetActivePane(p0, p1, p2);
-}
-// Symbol: ?SetActivePreviewView@CFrameWnd@@QEAAXPEAVCView@@@Z
-// CFrameWnd::SetActivePreviewView
-extern "C" void MS_ABI impl__SetActivePreviewView_CFrameWnd__QEAAXPEAVCView___Z(CFrameWnd* pThis, CView* p0) {
-    pThis->SetActivePreviewView(p0);
-}
-// Symbol: ?SetActiveView@CFrameWnd@@QEAAXPEAVCView@@H@Z
-// CFrameWnd::SetActiveView
-extern "C" void MS_ABI impl__SetActiveView_CFrameWnd__QEAAXPEAVCView__H_Z(CFrameWnd* pThis, CView* p0, int p1) {
-    pThis->SetActiveView(p0, p1);
 }
 // Symbol: ?SetDockState@CFrameWnd@@QEAAXAEBVCDockState@@@Z
 // CFrameWnd::SetDockState

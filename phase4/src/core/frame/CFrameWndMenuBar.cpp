@@ -2,6 +2,10 @@
 #define OPENMFC_APPCORE_IMPL
 #include "detail/WindowMessageSupport.h"
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+void CFrameWnd::DelayUpdateFrameMenu(HMENU menu) {
+    m_retailTail.m_dwBorderFlags|=1;
+    m_retailTail.m_hMenuAlt=menu;
+}
 DWORD CFrameWnd::GetMenuBarVisibility() const {return m_retailTail.m_dwMenuBarVisibility;}
 DWORD CFrameWnd::GetMenuBarState() const {return m_retailTail.m_dwMenuBarState;}
 void CFrameWnd::SetMenuBarVisibility(DWORD style) {
@@ -35,3 +39,5 @@ extern "C" DWORD MS_ABI impl__GetMenuBarState_CFrameWnd__UEBAKXZ(const CFrameWnd
 extern "C" void MS_ABI impl__SetMenuBarVisibility_CFrameWnd__UEAAXK_Z(CFrameWnd* self,DWORD style) {self->CFrameWnd::SetMenuBarVisibility(style);}
 // Symbol: ?SetMenuBarState@CFrameWnd@@UEAAHK@Z
 extern "C" BOOL MS_ABI impl__SetMenuBarState_CFrameWnd__UEAAHK_Z(CFrameWnd* self,DWORD state) {return self->CFrameWnd::SetMenuBarState(state);}
+// Symbol: ?DelayUpdateFrameMenu@CFrameWnd@@UEAAXPEAUHMENU__@@@Z
+extern "C" void MS_ABI impl__DelayUpdateFrameMenu_CFrameWnd__UEAAXPEAUHMENU_____Z(CFrameWnd* self,HMENU menu) {self->CFrameWnd::DelayUpdateFrameMenu(menu);}

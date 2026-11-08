@@ -20,8 +20,6 @@
 // layout behavior for native frame semantics.
 BOOL CFrameWnd::Create(const wchar_t*,const wchar_t*,DWORD,const RECT&,CWnd*,const wchar_t*,DWORD,CCreateContext*) {std::abort();}
 BOOL CFrameWnd::LoadFrame(UINT,DWORD,CWnd*,CCreateContext*) {std::abort();}
-CDocument* CFrameWnd::GetActiveDocument() {std::abort();}
-CFrameWnd* CFrameWnd::GetActiveFrame() {std::abort();}
 void CFrameWnd::GetMessageString(UINT,CString&) const {std::abort();}
 void CFrameWnd::RecalcLayout(BOOL) {std::abort();}
 void CFrameWnd::ActivateFrame(int) {std::abort();}
@@ -31,8 +29,6 @@ BOOL CFrameWnd::NegotiateBorderSpace(UINT,RECT*) {std::abort();}
 BOOL CFrameWnd::OnCreateClient(CREATESTRUCTW*,CCreateContext*) {std::abort();}
 void CFrameWnd::OnUpdateFrameTitle(BOOL) {std::abort();}
 void CFrameWnd::OnUpdateFrameMenu(HMENU) {std::abort();}
-HACCEL CFrameWnd::GetDefaultAccelerator() {std::abort();}
-void CFrameWnd::DelayUpdateFrameMenu(HMENU) {std::abort();}
 void CFrameWnd::ExitHelpMode() {std::abort();}
 CMenu* CFrameWnd::GetMenu() const {std::abort();}
 BOOL CFrameWnd::SetMenu(CMenu*) {std::abort();}
@@ -52,6 +48,13 @@ void MS_ABI impl__SetMenuBarVisibility_CFrameWnd__UEAAXK_Z(CFrameWnd*,DWORD);
 BOOL MS_ABI impl__SetMenuBarState_CFrameWnd__UEAAHK_Z(CFrameWnd*,DWORD);
 DWORD MS_ABI impl__GetMenuBarVisibility_CFrameWnd__UEBAKXZ(const CFrameWnd*);
 DWORD MS_ABI impl__GetMenuBarState_CFrameWnd__UEBAKXZ(const CFrameWnd*);
+CView* MS_ABI impl__GetActiveView_CFrameWnd__QEBAPEAVCView__XZ(const CFrameWnd*);
+CDocument* MS_ABI impl__GetActiveDocument_CFrameWnd__UEAAPEAVCDocument__XZ(CFrameWnd*);
+CFrameWnd* MS_ABI impl__GetActiveFrame_CFrameWnd__UEAAPEAV1_XZ(CFrameWnd*);
+void MS_ABI impl__SetActivePreviewView_CFrameWnd__QEAAXPEAVCView___Z(CFrameWnd*,CView*);
+void MS_ABI impl__SetActiveView_CFrameWnd__QEAAXPEAVCView__H_Z(CFrameWnd*,CView*,BOOL);
+HACCEL MS_ABI impl__GetDefaultAccelerator_CFrameWnd__UEAAPEAUHACCEL____XZ(CFrameWnd*);
+void MS_ABI impl__DelayUpdateFrameMenu_CFrameWnd__UEAAXPEAUHMENU_____Z(CFrameWnd*,HMENU);
 void MS_ABI impl___1CThreadLocalObject__QEAA_XZ(S_Cthreadlocalobject*);
 }
 namespace {
@@ -72,6 +75,13 @@ struct API {
     decltype(&impl__SetMenuBarState_CFrameWnd__UEAAHK_Z) setMenuState;
     decltype(&impl__GetMenuBarVisibility_CFrameWnd__UEBAKXZ) visibility;
     decltype(&impl__GetMenuBarState_CFrameWnd__UEBAKXZ) menuState;
+    decltype(&impl__GetActiveView_CFrameWnd__QEBAPEAVCView__XZ) view;
+    decltype(&impl__GetActiveDocument_CFrameWnd__UEAAPEAVCDocument__XZ) document;
+    decltype(&impl__GetActiveFrame_CFrameWnd__UEAAPEAV1_XZ) frame;
+    decltype(&impl__SetActivePreviewView_CFrameWnd__QEAAXPEAVCView___Z) preview;
+    decltype(&impl__SetActiveView_CFrameWnd__QEAAXPEAVCView__H_Z) activate;
+    decltype(&impl__GetDefaultAccelerator_CFrameWnd__UEAAPEAUHACCEL____XZ) accelerator;
+    decltype(&impl__DelayUpdateFrameMenu_CFrameWnd__UEAAXPEAUHMENU_____Z) delayMenu;
 };
 struct alignas(16) Object {
     BYTE bytes[0x1f8];
@@ -327,6 +337,143 @@ void menuPolicies(const API& api) {
     SetMenu(windows[0],nullptr);SetMenu(windows[1],nullptr);
     for(auto h:windows)DestroyWindow(h);for(auto menu:menus)DestroyMenu(menu);
 }
+
+const API* viewAPI;
+CFrameWnd* viewFrame;
+CView *previousView,*requestedView,*alternativeView;
+enum ViewMutation {Normal,SelectOther,SelectRequested,Recursive,ThrowOld,ThrowNew,SwapTable,ClearNew};
+ViewMutation viewMutation;
+void* changedViewTable[111];
+void AFXAPI activateView(CView* self,BOOL activate,CView* selected,CView* previous) {
+    if(self==alternativeView) {
+        events.push_back(82);
+        check(activate==TRUE && selected==self && previous==nullptr && viewFrame->m_pViewActive==self,
+              "nested activation observes the cleared frame and selects its own view");
+        return;
+    }
+    if(!activate) {
+        events.push_back(80);
+        check(self==previousView && selected==requestedView && previous==previousView && !viewFrame->m_pViewActive,
+              "deactivation receives the requested and previous views after the frame clears its active pointer");
+        if(viewMutation==SelectOther)viewAPI->preview(viewFrame,alternativeView);
+        if(viewMutation==SelectRequested)viewAPI->preview(viewFrame,requestedView);
+        if(viewMutation==Recursive)viewAPI->activate(viewFrame,alternativeView,TRUE);
+        if(viewMutation==ThrowOld)throw 77;
+        if(viewMutation==SwapTable && requestedView)*reinterpret_cast<void***>(requestedView)=changedViewTable;
+    } else {
+        events.push_back(81);
+        check(activate==TRUE && self==requestedView && selected==self && previous==previousView && viewFrame->m_pViewActive==self,
+              "activation observes the installed view and retains the original previous-view argument");
+        if(viewMutation==ThrowNew)throw 78;
+        if(viewMutation==ClearNew)viewAPI->preview(viewFrame,nullptr);
+    }
+}
+void AFXAPI changedActivation(CView* self,BOOL activate,CView* selected,CView* previous) {
+    events.push_back(83);
+    check(activate==TRUE && self==requestedView && selected==self && previous==previousView && viewFrame->m_pViewActive==self,
+          "activation reloads a view's virtual table after deactivation callbacks");
+}
+void AFXAPI unexpectedFrameVirtual() {std::abort();}
+bool sameExcept(const Object& object,std::array<BYTE,sizeof(CFrameWnd)> before,size_t offset,size_t length) {
+    auto* after=object.bytes+16;std::memcpy(before.data()+offset,after+offset,length);
+    return !std::memcmp(before.data(),after,before.size());
+}
+void viewPolicies(const API& api) {
+    viewAPI=&api;Object object;auto* self=object.get();viewFrame=self;
+    alignas(16) BYTE viewStorage[3][sizeof(CView)];
+    CView* views[3];void* viewTable[111]{};viewTable[102]=reinterpret_cast<void*>(&activateView);
+    std::memcpy(changedViewTable,viewTable,sizeof(viewTable));changedViewTable[102]=reinterpret_cast<void*>(&changedActivation);
+    for(unsigned i=0;i<3;++i)views[i]=reinterpret_cast<CView*>(viewStorage[i]);
+    void* frameTable[114]{};
+    for(unsigned slot:{93u,94u,108u,109u,110u})frameTable[slot]=reinterpret_cast<void*>(&unexpectedFrameVirtual);
+    object.poison();field<void*>(self,0)=frameTable;
+    std::memset(viewStorage,0xa5,sizeof(viewStorage));
+    for(unsigned i=0;i<3;++i)views[i]->m_pDocument=i==2 ? nullptr:reinterpret_cast<CDocument*>(UINT_PTR(0x1000+i*16));
+    for(auto* view:{static_cast<CView*>(nullptr),views[0],views[1],views[2]}) {
+        self->m_pViewActive=view;std::array<BYTE,sizeof(CFrameWnd)> before;std::memcpy(before.data(),self,before.size());
+        check(api.view(self)==view && api.document(self)==(view ? view->m_pDocument:nullptr) && api.frame(self)==self,
+              "base view, document and frame getters read native fields without RTTI, child lookup or virtual redispatch");
+        check(!std::memcmp(before.data(),self,before.size()),"active-view queries preserve every frame byte");
+    }
+    self->m_pViewActive=reinterpret_cast<CWnd*>(UINT_PTR(1));
+    check(api.view(self)==reinterpret_cast<CView*>(UINT_PTR(1)),"active-view lookup returns the stored pointer without inspecting the view");
+    check(api.frame(reinterpret_cast<CFrameWnd*>(UINT_PTR(1)))==reinterpret_cast<CFrameWnd*>(UINT_PTR(1)),
+          "the base active-frame getter returns its this pointer without reading it");
+    for(auto* view:{static_cast<CView*>(nullptr),views[0],reinterpret_cast<CView*>(UINT_PTR(1))}) {
+        std::array<BYTE,sizeof(CFrameWnd)> before;std::memcpy(before.data(),self,before.size());events.clear();
+        api.preview(self,view);
+        check(api.view(self)==view && events.empty() && sameExcept(object,before,0x170,sizeof(void*)),
+              "preview-view selection is only a pointer assignment, with no activation or focus callbacks");
+    }
+    struct Case {int oldView,newView;BOOL notify;ViewMutation mutation;std::vector<int> calls;int finalView,error;};
+    const Case cases[]={
+        {-1,-1,TRUE,Normal,{},-1,0}, {-1,1,TRUE,Normal,{81},1,0},
+        {-1,1,FALSE,Normal,{},1,0}, {0,0,TRUE,ThrowOld,{},0,0},
+        {0,-1,TRUE,Normal,{80},-1,0}, {0,1,FALSE,Normal,{80},1,0},
+        {0,1,-1,Normal,{80,81},1,0}, {0,1,TRUE,SelectOther,{80},2,0},
+        {0,1,TRUE,SelectRequested,{80},1,0}, {0,-1,TRUE,SelectRequested,{80},-1,0},
+        {0,1,TRUE,Recursive,{80,82},2,0}, {0,1,TRUE,ThrowOld,{80},-1,77},
+        {-1,1,TRUE,ThrowNew,{81},1,78}, {0,1,TRUE,ThrowNew,{80,81},1,78},
+        {0,1,TRUE,SwapTable,{80,83},1,0}, {0,1,TRUE,ClearNew,{80,81},-1,0},
+        {0,-1,FALSE,ThrowOld,{80},-1,77}};
+    HWND windows[2];for(auto& window:windows)window=CreateWindowExW(0,L"STATIC",L"view focus",WS_OVERLAPPEDWINDOW,0,0,100,100,nullptr,nullptr,nullptr,nullptr);
+    check(windows[0] && windows[1],"create view-activation focus fixtures");
+    for(const auto& item:cases) {
+        object.poison();field<void*>(self,0)=frameTable;
+        for(auto* view:views) {std::memset(view,0xa5,sizeof(CView));field<void*>(view,0)=viewTable;view->m_hWnd=windows[1];}
+        previousView=item.oldView<0 ? nullptr:views[item.oldView];requestedView=item.newView<0 ? nullptr:views[item.newView];alternativeView=views[2];
+        self->m_pViewActive=previousView;viewMutation=item.mutation;events.clear();
+        SetFocus(windows[0]);HWND oldFocus=GetFocus();int caught=0;
+        std::array<BYTE,sizeof(CFrameWnd)> before;std::memcpy(before.data(),self,before.size());
+        try {api.activate(self,requestedView,item.notify);}catch(int error) {caught=error;}
+        check(caught==item.error && events==item.calls && self->m_pViewActive==(item.finalView<0 ? nullptr:views[item.finalView]),
+              "view transitions preserve native notification, reentrancy and throwing-callback semantics");
+        check(sameExcept(object,before,0x170,sizeof(void*)) && GetFocus()==oldFocus,
+              "frame activation changes only the active pointer and does not add its own focus operation");
+    }
+    for(auto window:windows)DestroyWindow(window);
+    for(DWORD flags:{0u,1u,2u,0x80000000u,UINT_MAX})for(UINT_PTR menu:{UINT_PTR(0),UINT_PTR(0x1234)}) {
+        object.poison();field<void*>(self,0)=frameTable;self->m_retailTail.m_dwBorderFlags=flags;
+        std::array<BYTE,sizeof(CFrameWnd)> before;std::memcpy(before.data(),self,before.size());
+        api.delayMenu(self,reinterpret_cast<HMENU>(menu));
+        std::memcpy(before.data()+0x190,reinterpret_cast<BYTE*>(self)+0x190,sizeof(HMENU));
+        check(self->m_retailTail.m_hMenuAlt==reinterpret_cast<HMENU>(menu) && self->m_retailTail.m_dwBorderFlags==(flags|1) &&
+              sameExcept(object,before,0x1d0,sizeof(DWORD)),"delayed menu updates record the requested menu and idle bit without synchronous callbacks");
+    }
+}
+
+CDocument* selectedDocument;
+HACCEL documentAccelerator;
+int acceleratorMutation;
+CDocument* AFXAPI activeDocument(CFrameWnd* self) {
+    events.push_back(90);self->m_hAccelTable=reinterpret_cast<HACCEL>(UINT_PTR(0x2222));
+    if(acceleratorMutation==1)throw 76;
+    return selectedDocument;
+}
+HACCEL AFXAPI getDocumentAccelerator(CDocument* self) {
+    events.push_back(91);check(self==selectedDocument,"accelerator lookup uses the document returned by the frame override");
+    viewFrame->m_hAccelTable=reinterpret_cast<HACCEL>(UINT_PTR(0x3333));
+    if(acceleratorMutation==2)throw 77;
+    return documentAccelerator;
+}
+void acceleratorPolicies(const API& api) {
+    Object object;object.poison();auto* self=object.get();viewFrame=self;
+    void* frameTable[114]{};frameTable[93]=reinterpret_cast<void*>(&activeDocument);frameTable[109]=reinterpret_cast<void*>(&unexpectedFrameVirtual);
+    void* documentTable[63]{};documentTable[62]=reinterpret_cast<void*>(&getDocumentAccelerator);void** document=documentTable;
+    field<void*>(self,0)=frameTable;
+    for(bool hasDocument:{false,true})for(UINT_PTR accelerator:{UINT_PTR(0),UINT_PTR(0x4444)})for(int mutation:{0,1,2}) {
+        self->m_hAccelTable=reinterpret_cast<HACCEL>(UINT_PTR(0x1111));
+        selectedDocument=hasDocument ? reinterpret_cast<CDocument*>(&document):nullptr;
+        documentAccelerator=reinterpret_cast<HACCEL>(accelerator);acceleratorMutation=mutation;events.clear();int caught=0;HACCEL result=nullptr;
+        try {result=api.accelerator(self);}catch(int error) {caught=error;}
+        check(caught==(mutation==1 ? 76:hasDocument && mutation==2 ? 77:0),"accelerator callbacks propagate their exceptions");
+        check(events==(hasDocument && mutation!=1 ? std::vector<int>{90,91}:std::vector<int>{90}),
+              "base accelerator selection invokes virtual frame slot 93 and document slot 62 exactly once");
+        if(!caught)check(result==reinterpret_cast<HACCEL>(hasDocument && accelerator ? accelerator:UINT_PTR(0x1111)),
+                         "the document accelerator takes precedence, otherwise the pre-callback frame accelerator is retained");
+    }
+}
+
 void baseline(const API& api) {
     Object objects[3];select(0);
     for(unsigned i=0;i<3;++i) {
@@ -370,6 +517,18 @@ void run(const API& api) {
     active=&api;auto* old=api.thread()->m_pModuleState;
     for(unsigned i=0;i<2;++i) {select(i);states[i]=api.state();}
     std::puts(api.image ? "Native baseline":"Source baseline");baseline(api);registration(api);ownership(api);constructionCallbacks(api);menuPolicies(api);
+    viewPolicies(api);acceleratorPolicies(api);
+    if(!api.image) {
+        API cpp=api;
+        cpp.view=[](const CFrameWnd* self) {return self->GetActiveView();};
+        cpp.document=[](CFrameWnd* self) {return self->CFrameWnd::GetActiveDocument();};
+        cpp.frame=[](CFrameWnd* self) {return self->CFrameWnd::GetActiveFrame();};
+        cpp.preview=[](CFrameWnd* self,CView* view) {self->SetActivePreviewView(view);};
+        cpp.activate=[](CFrameWnd* self,CView* view,BOOL notify) {self->SetActiveView(view,notify);};
+        cpp.accelerator=[](CFrameWnd* self) {return self->CFrameWnd::GetDefaultAccelerator();};
+        cpp.delayMenu=[](CFrameWnd* self,HMENU menu) {self->CFrameWnd::DelayUpdateFrameMenu(menu);};
+        viewPolicies(cpp);acceleratorPolicies(cpp);
+    }
     api.thread()->m_pModuleState=old;
     for(auto& m:modules)api.destroyLocal(reinterpret_cast<S_Cthreadlocalobject*>(m+0xf8));
     std::memset(modules,0,sizeof(modules));std::printf("%s frame lifetime completed\n",api.image ? "Native":"Source");
@@ -382,7 +541,11 @@ int main() {
         AfxGetThreadState,impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ,
         impl___1CThreadLocalObject__QEAA_XZ,nullptr,GetNilStringData(),
         impl__SetMenuBarVisibility_CFrameWnd__UEAAXK_Z,impl__SetMenuBarState_CFrameWnd__UEAAHK_Z,
-        impl__GetMenuBarVisibility_CFrameWnd__UEBAKXZ,impl__GetMenuBarState_CFrameWnd__UEBAKXZ};
+        impl__GetMenuBarVisibility_CFrameWnd__UEBAKXZ,impl__GetMenuBarState_CFrameWnd__UEBAKXZ,
+        impl__GetActiveView_CFrameWnd__QEBAPEAVCView__XZ,impl__GetActiveDocument_CFrameWnd__UEAAPEAVCDocument__XZ,
+        impl__GetActiveFrame_CFrameWnd__UEAAPEAV1_XZ,impl__SetActivePreviewView_CFrameWnd__QEAAXPEAVCView___Z,
+        impl__SetActiveView_CFrameWnd__QEAAXPEAVCView__H_Z,impl__GetDefaultAccelerator_CFrameWnd__UEAAPEAUHACCEL____XZ,
+        impl__DelayUpdateFrameMenu_CFrameWnd__UEAAXPEAUHMENU_____Z};
     run(source);
     if(const char* path=std::getenv("OPENMFC_NATIVE_FRAME_DLL")) {
         HMODULE image=LoadLibraryA(path);check(image!=nullptr,"load native frame oracle");
@@ -396,6 +559,8 @@ int main() {
                 RVA(construct,0x29cae0);RVA(destroy,0x29cc60);RVA(add,0x29cd80);RVA(remove,0x29cdd0);
                 RVA(setVisibility,0x2a0f00);RVA(setMenuState,0x2a0f70);RVA(visibility,0x2a0f60);RVA(menuState,0x2a1000);
                 RVA(isFrame,0x3a60);RVA(thread,0x1332a0);RVA(state,0x133a20);RVA(destroyLocal,0x14d0d0);
+                RVA(view,0x29ed10);RVA(document,0x29ede0);RVA(frame,0x10130);RVA(preview,0x29edb0);
+                RVA(activate,0x29ed20);RVA(accelerator,0x29ce60);RVA(delayMenu,0x2a0130);
 #undef RVA
                 run(native);
             }

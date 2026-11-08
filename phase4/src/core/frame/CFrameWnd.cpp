@@ -399,9 +399,6 @@ CWnd* CFrameWnd::CreateView(CCreateContext* pContext, unsigned int nID) {
     HWND hWndView = ::GetDlgItem(m_hWnd, static_cast<int>(nID));
     return hWndView ? CWnd::FromHandle(hWndView) : nullptr;
 }
-void CFrameWnd::DelayUpdateFrameMenu(HMENU hMenuAlt) {
-    OnUpdateFrameMenu(hMenuAlt);
-}
 void CFrameWnd::DestroyDockBars() {
     auto& state = GetFrameRuntimeState(this);
     for (CControlBar* pBar : state.controlBars) {
@@ -486,26 +483,6 @@ void CFrameWnd::FloatControlBar(CControlBar* pBar, CPoint pt, DWORD dwStyle) {
                    pt.x, pt.y, width, height,
                    SWP_NOZORDER | SWP_NOACTIVATE);
 }
-CDocument* CFrameWnd::GetActiveDocument() {
-    CView* pView = GetActiveView();
-    return pView ? pView->GetDocument() : nullptr;
-}
-CFrameWnd* CFrameWnd::GetActiveFrame() { return this; }
-CView* CFrameWnd::GetActiveView() const {
-    if (m_pViewActive) {
-        return dynamic_cast<CView*>(m_pViewActive);
-    }
-
-    if (!m_hWnd) {
-        return nullptr;
-    }
-
-    HWND hWndView = ::GetDlgItem(m_hWnd, AFX_IDW_PANE_FIRST);
-    if (!hWndView) {
-        return nullptr;
-    }
-    return dynamic_cast<CView*>(CWnd::FromHandle(hWndView));
-}
 void CFrameWnd::GetDockState(CDockState& state) const {
     if (!m_hWnd) {
         return;
@@ -556,7 +533,6 @@ CControlBar* CFrameWnd::GetControlBar(unsigned int nID) {
     }
     return dynamic_cast<CControlBar*>(pWnd);
 }
-HACCEL CFrameWnd::GetDefaultAccelerator() { return m_hAccelTable; }
 CMenu* CFrameWnd::GetMenu() const {
     if (!m_hWnd) {
         return nullptr;
@@ -1250,26 +1226,6 @@ void CFrameWnd::SaveBarState(const wchar_t* lpszProfileName) const {
     }
     std::lock_guard<std::mutex> lk(g_wndStateMutex);
     g_barStateStore[lpszProfileName] = std::move(vis);
-}
-void CFrameWnd::SetActivePreviewView(CView* pViewNew) { SetActiveView(pViewNew, TRUE); }
-void CFrameWnd::SetActiveView(CView* pViewNew, int bNotify) {
-    CView* pOldView = dynamic_cast<CView*>(m_pViewActive);
-    if (pOldView == pViewNew) {
-        return;
-    }
-
-    if (bNotify && pOldView) {
-        pOldView->OnActivateView(FALSE, pViewNew, pOldView);
-    }
-
-    m_pViewActive = pViewNew;
-
-    if (bNotify && pViewNew) {
-        pViewNew->OnActivateView(TRUE, pViewNew, pOldView);
-        if (pViewNew->m_hWnd) {
-            ::SetFocus(pViewNew->m_hWnd);
-        }
-    }
 }
 void CFrameWnd::SetDockState(const CDockState& state) {
     std::vector<DockBarSnapshot> snapshot;
