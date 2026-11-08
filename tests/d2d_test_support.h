@@ -51,6 +51,7 @@ static void AFXAPI TestConstructWindow(CObject* self) {impl___0CWnd__QEAA_XZ(sel
 static void AFXAPI TestDestructWindow(CObject* self) {impl___1CWnd__UEAA_XZ(static_cast<CWnd*>(self));}
 static int AFXAPI TestAllocationFailure(size_t) {throw std::bad_alloc();}
 thread_local AFX_MODULE_THREAD_STATE* (*g_windowModuleThreadStateHook)()=nullptr;
+#ifndef OPENMFC_TEST_REAL_MODULE_THREAD_STATE
 extern "C" AFX_MODULE_THREAD_STATE* AFXAPI impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ() {
     if(g_windowModuleThreadStateHook)return g_windowModuleThreadStateHook();
     struct Fixture {
@@ -66,6 +67,7 @@ impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(AFX_MODULE_THREAD_STATE::NewHandler 
     auto* state=impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ();
     auto previous=state->m_pfnNewHandler;state->m_pfnNewHandler=handler;return previous;
 }
+#endif
 
 // Property getter allocation/type failures use the framework exception sibling.
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long result) {

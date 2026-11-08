@@ -975,6 +975,7 @@ static_assert(sizeof(CWnd) == 232, "CWnd must be 232 bytes");
 
 class CFrameWnd : public CWnd {
     DECLARE_DYNCREATE(CFrameWnd)
+    friend struct OpenMfcCFrameWndAccess;
 public:
     CFrameWnd();
     virtual ~CFrameWnd();
@@ -1000,14 +1001,18 @@ public:
     virtual void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState);
     virtual CWnd* GetMessageBar();
     virtual BOOL NegotiateBorderSpace(UINT nBorderCmd, RECT* lpRectBorder);
+protected:
     virtual BOOL OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext);
+public:
     virtual void OnUpdateFrameTitle(BOOL bAddToTitle);
     virtual void OnUpdateFrameMenu(HMENU hMenuAlt);
     virtual HACCEL GetDefaultAccelerator();
     virtual void DelayUpdateFrameMenu(HMENU hMenuAlt);
     virtual void ExitHelpMode();
+protected:
     virtual void OnShowMenuBar();
     virtual void OnHideMenuBar();
+public:
 
     // Construction
     virtual int PreCreateWindow(CREATESTRUCTW& cs) override;
@@ -1017,8 +1022,10 @@ public:
     CWnd* CreateView(CCreateContext* pContext, unsigned int nID);
 
     // Frame window management
+protected:
     void AddFrameWnd();
     void RemoveFrameWnd();
+public:
     int CanEnterHelpMode();
     void OnContextHelp();
     void BringToTop(int nCmdShow);
@@ -1127,8 +1134,10 @@ public:
     BOOL PreTranslateMessage(MSG* pMsg) override;
 
     // Implementation helpers
+protected:
     int OnCreate(CREATESTRUCTW* lpCreateStruct);
     int OnCreateHelper(CREATESTRUCTW* lpcs, CCreateContext* pContext);
+public:
     const wchar_t* GetIconWndClass(DWORD dwDefaultStyle, unsigned int nIDResource);
     void UpdateFrameTitleForDocument(const wchar_t* lpszDocName);
 
@@ -1138,7 +1147,8 @@ public:
 public:
     static const CRect rectDefault;
     struct RetailPrefixStorage {
-        BYTE m_reserved_e8[8];
+        BOOL m_bAutoMenuEnable;                // +0xe8
+        int m_nWindow;                        // +0xec
         HMENU m_hMenuDefault;                  // retail +0xf0; GetHelpMenu RVA 0x255ea0 (mfc140u)
     };
     union {
@@ -1148,7 +1158,7 @@ public:
     HACCEL m_hAccelTable;                      // +0xf8
 #pragma pack(push, 4)
     struct RetailMiddleStorage {
-        BYTE m_reserved_100[4];
+        DWORD m_dwPromptContext;              // +0x100
         BOOL m_bHelpMode;                      // retail +0x104; ContextSensitiveHelp RVA 0x2494d0 (mfc140u)
         CFrameWnd* m_pNextFrameWnd;            // retail +0x108; per-module frame list
         RECT m_rectBorder;                     // retail +0x110; GetBorder RVA 0x2495c0 (mfc140u)
@@ -1166,7 +1176,22 @@ public:
     UINT m_nIDLastMessage;                     // +0x16c
     CWnd* m_pViewActive;                       // +0x170
     struct RetailTailStorage {
-        BYTE m_reserved_178[0x58];
+        void* m_lpfnCloseProc;                 // +0x178
+        UINT m_cModalStack;                    // +0x180
+        DWORD m_reserved_184;
+        HWND* m_phWndDisable;                 // +0x188
+        HMENU m_hMenuAlt;                      // +0x190
+        alignas(CString) BYTE m_titleStorage[sizeof(CString)]; // +0x198
+        BOOL m_bInRecalcLayout;                // +0x1a0
+        DWORD m_reserved_1a4;
+        CRuntimeClass* m_pFloatingFrameClass;   // +0x1a8
+        DWORD m_dwMenuBarVisibility;           // +0x1b0
+        DWORD m_dwMenuBarState;                // +0x1b4
+        HMENU m_hMenu;                         // +0x1b8
+        BOOL m_bTempShowMenu;                  // +0x1c0
+        BOOL m_bMouseHitMenu;                  // +0x1c4
+        int m_nProgressBarRangeMin;            // +0x1c8
+        int m_nProgressBarRangeMax;            // +0x1cc
         DWORD m_dwBorderFlags;                 // retail +0x1d0; OnDocActivate RVA 0x247f70 (mfc140u)
         DWORD m_reserved_1d4;
     };

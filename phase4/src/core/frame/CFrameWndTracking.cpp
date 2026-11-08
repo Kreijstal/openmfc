@@ -1,6 +1,7 @@
 // Release x64 menu tracking and base menu-visibility notifications.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/WindowMessageSupport.h"
+#include "detail/FrameAccessSupport.h"
 
 int CFrameWnd::IsTracking() {
     const UINT id = GetTrackingID();
@@ -20,9 +21,9 @@ void CFrameWnd::OnShowMenuBar() {}
 void CFrameWnd::OnHideMenuBar() {}
 // Symbol: ?OnShowMenuBar@CFrameWnd@@MEAAXXZ
 extern "C" void MS_ABI impl__OnShowMenuBar_CFrameWnd__MEAAXXZ(CFrameWnd* self) {
-    self->CFrameWnd::OnShowMenuBar();
+    OpenMfcCFrameWndAccess::Show(self);
 }
 // Symbol: ?OnHideMenuBar@CFrameWnd@@MEAAXXZ
 extern "C" void MS_ABI impl__OnHideMenuBar_CFrameWnd__MEAAXXZ(CFrameWnd* self) {
-    self->CFrameWnd::OnHideMenuBar();
+    OpenMfcCFrameWndAccess::Hide(self);
 }

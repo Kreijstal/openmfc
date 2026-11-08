@@ -126,7 +126,7 @@ def main():
         objects = list(pool.map(compile_one, sources()))
     # Inspect this real owner's vtable without linking its still-incomplete
     # construction/window-creation dependencies into the filter fixture.
-    verify_frame_vtable(compile_one('phase4/src/core/frame/CFrameWnd.cpp'))
+    verify_frame_vtable(compile_one('phase4/src/core/frame/CFrameWndLifetime.cpp'))
     sys.path.insert(0, str(ROOT / 'tools'))
     import gen_weak_stubs
     count = 0

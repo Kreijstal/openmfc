@@ -309,8 +309,8 @@ ASSERT_FRAMEWND_FIELD(m_hAccelTable, 0xf8);
 ASSERT_FRAMEWND_FIELD(m_nIDHelp, 0x164);
 ASSERT_FRAMEWND_FIELD(m_pViewActive, 0x170);
 static_assert(offsetof(CFrameWnd, m_retailPrefix) +
-                  offsetof(CFrameWnd::RetailPrefixStorage, m_reserved_e8) == 0xe8,
-              "CFrameWnd retail prefix pad");
+                  offsetof(CFrameWnd::RetailPrefixStorage, m_bAutoMenuEnable) == 0xe8,
+              "CFrameWnd retail menu enable flag");
 static_assert(offsetof(CFrameWnd, m_retailPrefix) +
                   offsetof(CFrameWnd::RetailPrefixStorage, m_hMenuDefault) == 0xf0,
               "CFrameWnd retail default menu");

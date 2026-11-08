@@ -264,6 +264,11 @@ void probe(R (CFrameWnd::*method)(Args...) const,Values&&... values) {
     slotCalls=0;(slotObject->*method)(std::forward<Values>(values)...);
     check(slotCalls==1,"const frame declarations use their native virtual positions");frameTable[Index]=old;
 }
+struct ProtectedFrame:CFrameWnd {
+    using CFrameWnd::OnCreateClient;
+    using CFrameWnd::OnShowMenuBar;
+    using CFrameWnd::OnHideMenuBar;
+};
 void frameABI() {
     MSG message;reset(message);slotObject=objects[0].get();
     RECT rect{};alignas(CString) BYTE stringBytes[sizeof(CString)]{};auto& string=*reinterpret_cast<CString*>(stringBytes);
@@ -275,10 +280,10 @@ void frameABI() {
     probe<99>(&CFrameWnd::SetMenuBarVisibility,DWORD(0));probe<100>(&CFrameWnd::GetMenuBarVisibility);
     probe<101>(&CFrameWnd::SetMenuBarState,DWORD(0));probe<102>(&CFrameWnd::GetMenuBarState);
     probe<103>(&CFrameWnd::OnSetPreviewMode,FALSE,nullptr);probe<104>(&CFrameWnd::GetMessageBar);
-    probe<105>(&CFrameWnd::NegotiateBorderSpace,UINT(0),&rect);probe<106>(&CFrameWnd::OnCreateClient,nullptr,nullptr);
+    probe<105>(&CFrameWnd::NegotiateBorderSpace,UINT(0),&rect);probe<106>(&ProtectedFrame::OnCreateClient,nullptr,nullptr);
     probe<107>(&CFrameWnd::OnUpdateFrameTitle,FALSE);probe<108>(&CFrameWnd::OnUpdateFrameMenu,nullptr);
     probe<109>(&CFrameWnd::GetDefaultAccelerator);probe<110>(&CFrameWnd::DelayUpdateFrameMenu,nullptr);
-    probe<111>(&CFrameWnd::ExitHelpMode);probe<112>(&CFrameWnd::OnShowMenuBar);probe<113>(&CFrameWnd::OnHideMenuBar);
+    probe<111>(&CFrameWnd::ExitHelpMode);probe<112>(&ProtectedFrame::OnShowMenuBar);probe<113>(&ProtectedFrame::OnHideMenuBar);
     for(UINT id : {0u,1u,0xdfffu,0xe000u,0xe001u,0xe002u,0xe003u,0xffffu,0x10000u,0x80000000u,UINT_MAX}) {
         reset(message);trackingID=id;objects[0].get()->m_nIDTracking=id;
         check(active->trackingID(objects[0].get())==id,"the base tracking identifier uses the native 0x168 field");

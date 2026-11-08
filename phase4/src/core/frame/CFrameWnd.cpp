@@ -46,32 +46,6 @@ extern "C" const CRect MS_ABI impl__rectDefault_CFrameWnd__2VCRect__B = {
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ() {
     return &CFrameWnd::classCFrameWnd;
 }
-// Symbol: ??0CFrameWnd@@QEAA@XZ
-// CFrameWnd constructor
-// Ordinal: 502
-extern "C" CFrameWnd* MS_ABI impl___0CFrameWnd__QEAA_XZ(CFrameWnd* pThis) {
-    if (!pThis) {
-        return nullptr;
-    }
-
-    // Do NOT memset the full object: MSVC may set the vptr in the caller thunk
-    // before invoking this imported constructor. Wiping the vptr breaks all
-    // subsequent virtual calls and crashes immediately (Hello World test).
-    void* savedVptr = *reinterpret_cast<void**>(pThis);
-    std::memset(reinterpret_cast<unsigned char*>(pThis) + sizeof(void*), 0, sizeof(CFrameWnd) - sizeof(void*));
-    *reinterpret_cast<void**>(pThis) = savedVptr;
-    return pThis;
-}
-// Symbol: ??1CFrameWnd@@UEAA@XZ
-// CFrameWnd destructor
-// Ordinal: 1129
-extern "C" void MS_ABI impl___1CFrameWnd__UEAA_XZ(CFrameWnd* pThis) {
-    if (pThis && pThis->m_hWnd) {
-        HWND handle=pThis->m_hWnd;
-        pThis->Detach();
-        ::DestroyWindow(handle);
-    }
-}
 // Symbol: ?Create@CFrameWnd@@UEAAHPEB_W0KAEBUtagRECT@@PEAVCWnd@@0KPEAUCCreateContext@@@Z
 // CFrameWnd::Create
 // Ordinal: 3091
@@ -271,12 +245,7 @@ extern "C" void MS_ABI impl__GetMessageString_CFrameWnd__UEBAXIAEAV__CStringT__W
         pThis->GetMessageString(nID, *rMessage);
     }
 }
-CFrameWnd::CFrameWnd() {
-    impl___0CFrameWnd__QEAA_XZ(this);
-}
-CFrameWnd::~CFrameWnd() {
-    impl___1CFrameWnd__UEAA_XZ(this);
-}
+
 int CFrameWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                       DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
                       const wchar_t* lpszMenuName, DWORD dwExStyle, CCreateContext* pContext) {
@@ -317,14 +286,7 @@ int CFrameWnd::OnCreate(CREATESTRUCTW* lpcs) {
     return OnCreateHelper(lpcs, pContext) ? 0 : -1;
 }
 const CRect CFrameWnd::rectDefault = {};
-void CFrameWnd::AddFrameWnd() {
-    auto& state = GetFrameRuntimeState(this);
-    state.menuBarState = 0;
-    state.menuBarVisibility = 1;
-    state.progressMin = 0;
-    state.progressMax = 100;
-    state.progressPos = 0;
-}
+
 void CFrameWnd::BeginModalState() {
     auto& state = GetFrameRuntimeState(this);
     CWnd* owner=GetTopLevelOwner();
@@ -608,8 +570,7 @@ int CFrameWnd::GetMenuBarInfo(long id, long lParam, MENUBARINFO* pmbi) const {
     pmbi->cbSize = sizeof(*pmbi);
     return ::GetMenuBarInfo(m_hWnd, id, lParam, pmbi) ? TRUE : FALSE;
 }
-DWORD CFrameWnd::GetMenuBarState() const { return GetFrameRuntimeState(const_cast<CFrameWnd*>(this)).menuBarState; }
-DWORD CFrameWnd::GetMenuBarVisibility() const { return GetFrameRuntimeState(const_cast<CFrameWnd*>(this)).menuBarVisibility; }
+
 CWnd* CFrameWnd::GetMessageBar() {
     if (!m_hWnd) {
         return nullptr;
@@ -659,7 +620,7 @@ void CFrameWnd::InitialUpdateFrame(CDocument* pDoc, int bMakeVisible) {
         }
     }
 }
-int CFrameWnd::IsFrameWnd() const { return 1; }
+
 BOOL CFrameWnd::LoadAccelTable(const wchar_t* lpszAccelTable) {
     m_hAccelTable = nullptr;
     if (!lpszAccelTable) {
@@ -1276,9 +1237,7 @@ void CFrameWnd::RemoveControlBar(CControlBar* pBar) {
         ::ShowWindow(pBar->m_hWnd, SW_HIDE);
     }
 }
-void CFrameWnd::RemoveFrameWnd() {
-    g_frameWndRuntimeStates.erase(this);
-}
+
 void CFrameWnd::SaveBarState(const wchar_t* lpszProfileName) const {
     if (!m_hWnd || !lpszProfileName) {
         return;
@@ -1386,22 +1345,7 @@ int CFrameWnd::SetMenu(CMenu* pMenu) {
     ::DrawMenuBar(m_hWnd);
     return TRUE;
 }
-int CFrameWnd::SetMenuBarState(DWORD dwState) {
-    auto& state = GetFrameRuntimeState(this);
-    DWORD oldState = state.menuBarState;
-    state.menuBarState = dwState;
-    return static_cast<int>(oldState);
-}
-void CFrameWnd::SetMenuBarVisibility(DWORD dwStyle) {
-    // Do NOT assign state.menuBarVisibility here: OnHideMenuBar/OnShowMenuBar
-    // early-return when the recorded visibility already matches, so writing the
-    // new value first would make them no-ops. Let the handlers update the state.
-    if (dwStyle == 0) {
-        OnHideMenuBar();
-    } else {
-        OnShowMenuBar();
-    }
-}
+
 void CFrameWnd::SetMessageText(unsigned int nStringID) {
     CString message;
     GetMessageString(nStringID, message);

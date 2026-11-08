@@ -614,6 +614,7 @@ public:
 private:
     wchar_t* m_pszData;
     friend class CDatabase;
+    friend class CFrameWnd;
     struct OwnedData {};
     CString(CStringData* data,OwnedData) : m_pszData(data->data()) {}
     static CString FromOwnedData(CStringData* data) {return CString(data,OwnedData{});}

@@ -13,7 +13,6 @@ extern "C" void OpenMfcResetDockState(void* pState) {
     g_dockStateSnapshots.erase(static_cast<const CDockState*>(pState));
 }
 IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
-IMPLEMENT_DYNCREATE(CFrameWnd, CWnd)
 ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex = {};
