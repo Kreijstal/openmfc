@@ -12,6 +12,7 @@ using namespace openmfc::detail::regcore;
 #include "openmfc/afxwin.h"
 #include "openmfc/afxstat_.h"
 #include "CThreadLocalObjectSupport.h"
+#include "openmfc/afxtls_.h"
 #include <windows.h>
 #include <cstring>
 
@@ -137,7 +138,8 @@ public:
     WNDPROC m_pfnAfxWndProc=&AfxWndProc;
     BYTE m_reservedToToolTip[8]{};
     void (AFXAPI* m_pfnFilterToolTipMessage)(MSG*,CWnd*)=nullptr;
-    BYTE m_reservedToOccManager[0xa0-0x88]{};
+    CSimpleList m_libraryList{0x78};
+    BYTE m_reservedToOccManager[8]{};
     void* m_pOccManager{};
     BYTE m_reservedToModuleThreadSlot[0xf8-0xa8]{};
     S_Cthreadlocalobject m_moduleThreadState{};
@@ -148,6 +150,7 @@ static_assert(offsetof(AFX_MODULE_STATE,m_lpszCurrentAppName)==0x20,"native modu
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnAfxWndProc)==0x70,"native framework window procedure");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnFilterToolTipMessage)==0x80,"native tooltip filter");
 static_assert(offsetof(AFX_MODULE_STATE,m_pOccManager)==0xa0,"native OLE manager");
+static_assert(offsetof(AFX_MODULE_STATE,m_libraryList)==0x88,"native extension library list");
 static_assert(offsetof(AFX_MODULE_STATE,m_moduleThreadState)==0xf8,"native module thread slot");
 
 namespace openmfc { namespace detail { namespace regcore {

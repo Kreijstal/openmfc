@@ -4,6 +4,12 @@
 #include <cstddef>
 
 #include "../phase4/src/core/collections/CSimpleList.cpp"
+#include "../phase4/src/detail/CSimpleListSupport.cpp"
+#include "../phase4/src/core/runtime/CObjectTypeChecks.cpp"
+
+// Exception allocation/type is outside this list fixture. Retain the actual
+// production argument-check bridge and observe its framework throw boundary.
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {throw 19;}
 
 static int g_fail = 0;
 #define CHECK(cond, msg) do { \
@@ -109,6 +115,19 @@ int main() {
     // Absent removal on now-empty list.
     CHECK(impl__Remove_CSimpleList__QEAAHPEAX_Z(&list, &big[0]) == 0,
           "Remove on empty large list returns 0");
+
+    CTypedSimpleList<Node*> typed(kOff);
+    typed.AddHead(&a);typed.AddHead(&b);
+    CHECK(typed.GetHead()==&b && typed.GetNext(&b)==&a && typed.GetNext(&a)==nullptr,
+          "public typed list traverses the production natural-method bridges");
+    Node* head=typed;
+    CHECK(head==&b && typed.GetNextPtr(&b)==&b.next,
+          "typed conversion and pointer-to-link API match the SDK");
+    *typed.GetNextPtr(&b)=nullptr;
+    CHECK(typed.GetCount()==1,"pointer-to-link permits direct intrusive-chain updates");
+    int caught=0;
+    try {typed.GetNextPtr(nullptr);}catch(int value){caught=value;}
+    CHECK(caught==19 && typed.GetHead()==&b,"null link access uses the framework invalid-argument boundary");
 
     if (g_fail) { printf("RESULT: FAILED\n"); return 1; }
     printf("RESULT: ALL PASSED\n");

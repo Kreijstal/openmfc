@@ -1,0 +1,61 @@
+name: Extension library lifetime ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_dynlink_library.cpp'
+      - 'tests/test_csimplelist_logic.cpp'
+      - 'tests/build_dynlink_library.py'
+      - 'tests/build_window_handles.py'
+      - 'tests/run_rendertarget_drawing.sh'
+      - 'tests/d2d_test_support.h'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/dynlink_library.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_dynlink_library.cpp'
+      - 'tests/test_csimplelist_logic.cpp'
+      - 'tests/build_dynlink_library.py'
+      - 'tests/build_window_handles.py'
+      - 'tests/run_rendertarget_drawing.sh'
+      - 'tests/d2d_test_support.h'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/dynlink_library.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Extension library lifetime (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+            compile_flags: ''
+          - name: optimized
+            flags: '--optimize'
+            compile_flags: '/O2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify library registration, module capture, locking and base lifetime
+        shell: cmd
+        run: python tests/build_dynlink_library.py --build "%RUNNER_TEMP%/dynlink-library" ${{ matrix.flags }}
+      - name: Verify public intrusive lists and natural-method bridges
+        shell: cmd
+        working-directory: ${{ runner.temp }}
+        run: |
+          cl /nologo /EHs /MD /std:c++17 /Gy /Gw /W0 /DUNICODE /D_UNICODE /DNOMINMAX /D_WIN32_WINNT=0x0601 /FIwinsock2.h /FIobjbase.h /FIcommdlg.h /FIshellapi.h ${{ matrix.compile_flags }} /I"%GITHUB_WORKSPACE%/include" /I"%GITHUB_WORKSPACE%/phase4/src" /c "%GITHUB_WORKSPACE%/tests/test_csimplelist_logic.cpp" /Folist.obj
+          if errorlevel 1 exit /b %errorlevel%
+          link /nologo /SUBSYSTEM:CONSOLE /OPT:REF /OUT:test_csimplelist_logic.exe list.obj kernel32.lib user32.lib
+          if errorlevel 1 exit /b %errorlevel%
+          test_csimplelist_logic.exe
+          if errorlevel 1 exit /b %errorlevel%

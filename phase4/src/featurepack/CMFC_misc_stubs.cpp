@@ -681,23 +681,6 @@ int g_bPerUserRegistration = 0;
 // Reference count for AfxGlobalsAddRef/Release.
 LONG g_afxGlobalsRefCount = 0;
 
-// Backing store for AfxLockGlobals/AfxUnlockGlobals: an array of
-// CRITICAL_SECTIONs indexed by nLockType (MFC's CRIT_* constants; the
-// highest real one is around 12, so 16 slots leaves headroom). Lazily
-// initialized via a function-local static, which C++11 guarantees is
-// thread-safely constructed exactly once ("magic statics"), so no separate
-// call_once/init-guard object is needed.
-constexpr int kAfxLockGlobalsCount = 16;
-CRITICAL_SECTION* GetGlobalLock(int nLockType) {
-    static CRITICAL_SECTION s_cs[kAfxLockGlobalsCount];
-    static bool s_inited = [] {
-        for (auto& cs : s_cs) ::InitializeCriticalSection(&cs);
-        return true;
-    }();
-    (void)s_inited;
-    if (nLockType < 0 || nLockType >= kAfxLockGlobalsCount) return nullptr;
-    return &s_cs[nLockType];
-}
 }
 // Symbol: ?AFXGetParentFrame@@YAPEAVCFrameWnd@@PEBVCWnd@@@Z
 extern "C" CFrameWnd* MS_ABI impl__AFXGetParentFrame__YAPEAVCFrameWnd__PEBVCWnd___Z(const CWnd* pWnd) {
@@ -1801,15 +1784,6 @@ extern "C" void* MS_ABI impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTA
                                         reinterpret_cast<BITMAPINFO*>(pHeader), DIB_RGB_COLORS);
     ::ReleaseDC(nullptr, hDC);
     return hBitmap;
-}
-// Symbol: ?AfxLockGlobals@@YAXH@Z
-// Enters the CRITICAL_SECTION for nLockType (MFC's CRIT_* constants) from
-// the GetGlobalLock array declared near the top of this file. An
-// out-of-range nLockType is ignored rather than crashing.
-extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int p0) {
-    if (CRITICAL_SECTION* pcs = GetGlobalLock(p0)) {
-        ::EnterCriticalSection(pcs);
-    }
 }
 // Symbol: ?AfxMergeMenus@@YAPEAUHMENU__@@PEAU1@0PEAJHH@Z
 // OLE in-place menu merging: insert hMenuSource's top-level popup items into
@@ -2974,14 +2948,6 @@ extern "C" int MS_ABI impl__AfxUnRegisterPreviewHandler__YAHPEB_W_Z(const wchar_
     lr = ::RegDeleteValueW(hKey, pszCLSID);
     ::RegCloseKey(hKey);
     return (lr == ERROR_SUCCESS) ? 1 : 0;
-}
-// Symbol: ?AfxUnlockGlobals@@YAXH@Z
-// Leaves the same per-nLockType critical section AfxLockGlobals (above)
-// enters; see that function's comment for the shared array this pair uses.
-extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int p0) {
-    if (CRITICAL_SECTION* pcs = GetGlobalLock(p0)) {
-        ::LeaveCriticalSection(pcs);
-    }
 }
 // Symbol: ?AfxUnmergeMenus@@YAXPEAUHMENU__@@00@Z
 // Undoes AfxMergeMenus above: AfxMergeMenus attaches hMenuSource's existing

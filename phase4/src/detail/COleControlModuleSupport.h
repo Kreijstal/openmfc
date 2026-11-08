@@ -28,6 +28,7 @@ using namespace openmfc::detail::colecontrolmodule;
 
 #include "openmfc/afxwin.h"   // CCmdTarget/CWinApp/CDialog/CObject + CRuntimeClass
 #include "openmfc/afxole.h"   // COleControlModule class definition
+#include "openmfc/afxdll_.h"
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -45,7 +46,6 @@ using namespace openmfc::detail::colecontrolmodule;
 OR_DESC(CDHtmlDialog,          664, 0xFFFF,     &CDialog::classCDialog);          // DECLARE_DYNAMIC
 OR_DESC(CMultiPageDHtmlDialog, 672, 0xFFFF,     &classCDHtmlDialog);              // DECLARE_DYNAMIC
 OR_DESC(CDocObjectServer,      144, 0xFFFF,     &CCmdTarget::classCCmdTarget);    // DECLARE_DYNAMIC
-OR_DESC(CDynLinkLibrary,       128, 0xFFFF,     &CCmdTarget::classCCmdTarget);    // DECLARE_DYNAMIC
 OR_DESC(COleControlModule,     376, 0xFFFF,     &CWinApp::classCWinApp);          // DECLARE_DYNAMIC
 OR_DESC(CSettingsStore,        56,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNCREATE
 OR_DESC(CMouseManager,         176, 0x00000001, &CObject::classCObject);          // DECLARE_SERIAL, schema 1
@@ -57,35 +57,6 @@ OR_DESC(CUserTool,             56,  0x80000001, &CObject::classCObject);        
 #define OR_GETTERS(Cls, GetThisSym, GetRtSym) \
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
-
-
-
-//=============================================================================
-// CDynLinkLibrary - MFC dynamic-link library registration
-// Object size: 128 bytes (OR_DESC above). OpenMFC's AFX_MODULE_STATE has no
-// library list, so constructors only store handles; dtor is a no-op.
-//=============================================================================
-
-// Real MFC afxext.h: AFX_EXTENSION_MODULE (BOOL + 3 ptrs = 32 bytes on x64)
-struct AFX_EXTENSION_MODULE {
-    int   bInitialized;       // BOOL
-    HINSTANCE hModule;
-    HINSTANCE hResource;
-    CRuntimeClass* pFirstSharedClass;
-    void*  pFirstSharedFactory; // COleObjectFactory* (opaque)
-};
-
-class CDynLinkLibrary : public CCmdTarget {
-public:
-    CDynLinkLibrary(AFX_EXTENSION_MODULE& state, int bSystem);
-    CDynLinkLibrary(HINSTANCE hModule, HINSTANCE hResource);
-    virtual ~CDynLinkLibrary();
-    HINSTANCE m_hModule;
-    HINSTANCE m_hResource;
-    CDynLinkLibrary* m_pNextDLL;
-protected:
-    char _dll_padding[72];    // pad CCmdTarget(32)+24 members to 128
-};
 
 
 

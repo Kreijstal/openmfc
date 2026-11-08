@@ -7,6 +7,8 @@
 // same static descriptor as GetThisClass (no self-dispatch recursion), the null
 // m_pfnGetBaseClass/m_pNextClass shape, and that the base-class link chains to the right
 // base, including a CMultiPageDHtmlDialog IsDerivedFrom walk onto CDialog.
+// CDynLinkLibrary now uses its real production class and is covered, including
+// runtime metadata, by test_dynlink_library.cpp rather than these old mirrors.
 
 #include "../phase4/src/core/app/RuntimeClasses.cpp"
 #include "../phase4/src/core/ole/COleControlModule.cpp"
@@ -52,9 +54,6 @@ int main() {
         { impl__GetThisClass_CDocObjectServer__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_CDocObjectServer__UEBAPEAUCRuntimeClass__XZ,
           "CDocObjectServer", 144, 0xFFFF, &CCmdTarget::classCCmdTarget },
-        { impl__GetThisClass_CDynLinkLibrary__SAPEAUCRuntimeClass__XZ,
-          impl__GetRuntimeClass_CDynLinkLibrary__UEBAPEAUCRuntimeClass__XZ,
-          "CDynLinkLibrary", 128, 0xFFFF, &CCmdTarget::classCCmdTarget },
         { impl__GetThisClass_COleControlModule__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_COleControlModule__UEBAPEAUCRuntimeClass__XZ,
           "COleControlModule", 376, 0xFFFF, &CWinApp::classCWinApp },

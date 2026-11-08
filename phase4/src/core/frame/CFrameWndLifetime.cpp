@@ -79,7 +79,7 @@ CFrameWnd::~CFrameWnd() {
 }
 void CFrameWnd::AddFrameWnd() {
     auto& list=openmfc::detail::modulethreadstate::ForModule(m_pModuleState)->m_frameList;
-    list.GetNextPtr(this)=list.m_pHead;list.m_pHead=this;
+    *list.GetNextPtr(this)=list.m_pHead;list.m_pHead=this;
 }
 void CFrameWnd::RemoveFrameWnd() {
     auto& list=openmfc::detail::modulethreadstate::ForModule(m_pModuleState)->m_frameList;
