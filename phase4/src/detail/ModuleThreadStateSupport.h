@@ -1,6 +1,7 @@
 #pragma once
 #include "openmfc/afxstat_.h"
 #include "detail/CPtrListSupport.h"
+#include "detail/CSimpleListSupport.h"
 class CHandleMap;
 class CToolTipCtrl;
 
@@ -11,8 +12,7 @@ class AFX_MODULE_THREAD_STATE : public CNoTrackObject {
     AFX_MODULE_THREAD_STATE();
     ~AFX_MODULE_THREAD_STATE() override;
     CWinThread* m_pCurrentWinThread; // 0x08
-    void* m_pReserved10;
-    size_t m_nSafetyPoolSize; // 0x18
+    CSimpleList m_frameList; // 0x10; frames are linked at CFrameWnd + 0x108
     int m_nTempMapLock;       // 0x20
     CHandleMap* m_pmapHWND;   // 0x28
     CHandleMap* m_pmapHMENU;

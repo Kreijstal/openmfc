@@ -1142,14 +1142,17 @@ public:
         char _frame_prefix[16];                // +0xe8..+0xf7
     };
     HACCEL m_hAccelTable;                      // +0xf8
+#pragma pack(push, 4)
     struct RetailMiddleStorage {
         BYTE m_reserved_100[4];
         BOOL m_bHelpMode;                      // retail +0x104; ContextSensitiveHelp RVA 0x2494d0 (mfc140u)
-        BYTE m_reserved_108[8];
+        CFrameWnd* m_pNextFrameWnd;            // retail +0x108; per-module frame list
         RECT m_rectBorder;                     // retail +0x110; GetBorder RVA 0x2495c0 (mfc140u)
         BYTE m_pNotifyHook[sizeof(void*)];     // retail +0x120; COleFrameHook ctor RVA 0x247d90 (mfc140u)
-        BYTE m_reserved_128[0x3c];
+        BYTE m_reserved_128[0x38];
+        int m_nShowDelay;                      // retail +0x160; pending SW_ command
     };
+#pragma pack(pop)
     union {
         RetailMiddleStorage m_retailMiddle;
         char _frame_middle[100];               // +0x100..+0x163
@@ -2488,7 +2491,11 @@ inline CWnd::~CWnd() { OpenMfcDestroyCWndMembers(this); }
 inline BOOL CWnd::DestroyWindow() { return impl__DestroyWindow_CWnd__UEAAHXZ(this); }
 
 inline int CWnd::ShowWindow(int nCmdShow) {
-    return m_hWnd ? ::ShowWindow(m_hWnd, nCmdShow) : 0;
+    if (m_pCtrlSite) {
+        using Show = int (AFXAPI*)(void*, int);
+        return reinterpret_cast<Show>((*reinterpret_cast<void***>(m_pCtrlSite))[42])(m_pCtrlSite, nCmdShow);
+    }
+    return ::ShowWindow(m_hWnd, nCmdShow);
 }
 
 inline int CWnd::UpdateWindow() {

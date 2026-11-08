@@ -1118,9 +1118,3 @@
 extern "C" int MS_ABI impl__InitApplication_CWinApp__UEAAHXZ(CWinApp* pThis) {
     return (int)pThis->InitApplication();
 }
-
-// Symbol: ?OnIdle@CWinThread@@UEAAHJ@Z
-// CWinThread::OnIdle
-extern "C" int MS_ABI impl__OnIdle_CWinThread__UEAAHJ_Z(CWinThread* pThis, long p0) {
-    return (int)pThis->OnIdle(p0);
-}

@@ -65,8 +65,9 @@ static void messages() {
         "window exception boundaries delete owned framework errors and restore message context");
     outer.throwFramework=false;outer.throwOther=true;bool caught=false;
     try { impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(&outer,nullptr,WM_APP+4,0,0); }catch(int value) { caught=value==73; }
-    check(caught && !memcmp(&state->m_lastSentMsg,&previous,sizeof(MSG)),
-        "non-framework exceptions propagate while sent-message storage unwinds");
+    check(caught && state->m_lastSentMsg.message==WM_APP+4,
+        "non-framework exceptions propagate and retain the interrupted sent message");
+    state->m_lastSentMsg=previous;
     outer.throwOther=false;g_wndExceptionHandler=nullptr;
     const MSG* current=impl__GetCurrentMessage_CWnd__KAPEBUtagMSG__XZ();DWORD position=GetMessagePos();
     check(current==&state->m_lastSentMsg && current->message==previous.message && current->lParam==previous.lParam &&

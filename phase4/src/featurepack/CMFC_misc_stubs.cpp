@@ -662,11 +662,6 @@ extern "C" CWinApp* G6_MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ();
 #endif
 
 extern "C" LRESULT MS_ABI impl__WindowProc_CWnd__MEAA_JI_K_J_Z(CWnd* pThis, UINT message, WPARAM wParam, LPARAM lParam);
-extern "C" intptr_t MS_ABI impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(
-    CWinThread* pThis, CException* exception, const MSG* msg);
-extern "C" intptr_t MS_ABI impl__ProcessWndProcException_CWinApp__UEAA_JPEAVCException__PEBUtagMSG___Z(
-    CWinApp* pThis, CException* exception, const MSG* msg);
-
 // Internal method thunks. This DLL defines its C++ methods ONLY as extern "C"
 // impl__ thunks -- the class declarations in the public headers exist so client
 // code compiles, but there is no C++ method symbol to link against from inside
@@ -1681,18 +1676,6 @@ extern "C" int MS_ABI impl__AfxInitRichEdit__YAHXZ() {
     }
     return s_hMod ? TRUE : FALSE;
 }
-// Symbol: ?AfxInternalProcessWndProcException@@YA_JPEAVCException@@PEBUtagMSG@@@Z
-extern "C" __int64 MS_ABI impl__AfxInternalProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(void* /*class*/* p0, const void* /*struct*/* p1) {
-    CWinThread* pThread = AfxGetThread();
-    if (!pThread) return 0;
-    CException* pException = reinterpret_cast<CException*>(p0);
-    const MSG* pMsg = reinterpret_cast<const MSG*>(p1);
-    if (auto* pApp = dynamic_cast<CWinApp*>(pThread)) {
-        return impl__ProcessWndProcException_CWinApp__UEAA_JPEAVCException__PEBUtagMSG___Z(pApp, pException, pMsg);
-    }
-    return impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(pThread, pException, pMsg);
-}
-
 // Symbol: ?AfxInternetStatusCallback@@YAXPEAX_KK0K@Z
 // Mangled param order (PEAX, _K, K, 0=PEAX, K) matches the real WinInet
 // INTERNET_STATUS_CALLBACK signature exactly: (HINTERNET hInternet,
@@ -2582,17 +2565,6 @@ extern "C" int MS_ABI impl__AfxParseURLEx__YAHPEB_WAEAKAEAV__CStringT__WV__StrTr
     return 1;
 }
 
-// Symbol: ?AfxProcessWndProcException@@YA_JPEAVCException@@PEBUtagMSG@@@Z
-extern "C" __int64 MS_ABI impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(void* /*class*/* p0, const void* /*struct*/* p1) {
-    CWinThread* pThread = AfxGetThread();
-    if (!pThread) return 0;
-    CException* pException = reinterpret_cast<CException*>(p0);
-    const MSG* pMsg = reinterpret_cast<const MSG*>(p1);
-    if (auto* pApp = dynamic_cast<CWinApp*>(pThread)) {
-        return impl__ProcessWndProcException_CWinApp__UEAA_JPEAVCException__PEBUtagMSG___Z(pApp, pException, pMsg);
-    }
-    return impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(pThread, pException, pMsg);
-}
 // Symbol: ?AfxPropPageCallback@@YAIPEAUHWND__@@IPEAU_PROPSHEETPAGEW@@@Z
 extern "C" unsigned int MS_ABI impl__AfxPropPageCallback__YAIPEAUHWND____IPEAU_PROPSHEETPAGEW___Z(void* /*struct*/* p0, unsigned int p1, void* /*struct*/* p2) {
     // This repo has no CPropertyPage/CPropertySheet housekeeping hooked up

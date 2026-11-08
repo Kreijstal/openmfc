@@ -691,7 +691,7 @@ DWORD WINAPI worker(void* value) {
         auto* state = w.api->get();
         w.states[i] = state;
         w.correct = w.correct && state->m_pfnNewHandler == w.api->defaultHandler &&
-                    state->m_nTempMapLock == 0 && state->m_nSafetyPoolSize == 0x108;
+                    state->m_nTempMapLock == 0 && state->m_frameList.IsEmpty() && state->m_frameList.m_nNextOffset == 0x108;
         state->m_nTempMapLock = w.number + i;
         w.api->setHandler(i ? nullptr : &handler);
         w.correct = w.correct && w.api->get() == state && state->m_nTempMapLock == w.number + i &&

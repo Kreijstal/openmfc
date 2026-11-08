@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def sources():
     return ['phase4/src/core/app/CWinThreadMessageDispatch.cpp',
             'phase4/src/core/app/ThreadPreTranslation.cpp',
+            'phase4/src/core/app/ThreadWindowExceptions.cpp',
             'phase4/src/core/window/CWndPreTranslateTree.cpp',
             'phase4/src/core/collections/CHandleMap.cpp',
             'phase4/src/detail/CHandleMapSupport.cpp',
@@ -65,7 +66,7 @@ def main():
     import gen_weak_stubs
     count = 0
     for relative in ('core/app/CWinThreadMessageDispatch.cpp', 'core/app/ThreadPreTranslation.cpp',
-                     'core/window/CWndPreTranslateTree.cpp'):
+                     'core/window/CWndPreTranslateTree.cpp', 'core/app/ThreadWindowExceptions.cpp'):
         source = 'phase4/src/' + relative
         obj = out / (source.removesuffix('.cpp').replace('/', '_') + '.obj')
         if os.name == 'nt':
@@ -78,8 +79,8 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == 6, count
-    print('All six message-routing export aliases match the DLL generator', flush=True)
+    assert count == 9, count
+    print('All nine message-routing export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
     link.extend(['kernel32.lib', 'user32.lib'])
     response = out / 'link.rsp'

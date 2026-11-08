@@ -1,4 +1,4 @@
-name: Thread messages and pretranslation ABI
+name: Thread messages, idle and exception ABI
 on:
   push:
     paths:
@@ -6,12 +6,13 @@ on:
       - 'phase4/src/core/app/**'
       - 'phase4/src/core/window/**'
       - 'phase4/src/core/collections/**'
-      - 'phase4/src/detail/CHandleMapSupport.*'
-      - 'phase4/src/detail/CFixedAllocSupport.*'
-      - 'phase4/src/detail/ModuleThreadStateSupport.h'
-      - 'phase4/src/detail/WindowMessageSupport.h'
+      - 'phase4/src/core/runtime/**'
+      - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
+      - 'phase4/src/detail/*Support.*'
       - 'tests/test_thread_message_routing.cpp'
       - 'tests/build_thread_message_routing.py'
+      - 'tests/test_thread_idle.cpp'
+      - 'tests/build_thread_idle.py'
       - '.github/workflows/thread_message_routing.yml'
   pull_request:
     paths:
@@ -19,12 +20,13 @@ on:
       - 'phase4/src/core/app/**'
       - 'phase4/src/core/window/**'
       - 'phase4/src/core/collections/**'
-      - 'phase4/src/detail/CHandleMapSupport.*'
-      - 'phase4/src/detail/CFixedAllocSupport.*'
-      - 'phase4/src/detail/ModuleThreadStateSupport.h'
-      - 'phase4/src/detail/WindowMessageSupport.h'
+      - 'phase4/src/core/runtime/**'
+      - 'phase4/src/core/controls/CToolTipCtrlLifetime.cpp'
+      - 'phase4/src/detail/*Support.*'
       - 'tests/test_thread_message_routing.cpp'
       - 'tests/build_thread_message_routing.py'
+      - 'tests/test_thread_idle.cpp'
+      - 'tests/build_thread_idle.py'
       - '.github/workflows/thread_message_routing.yml'
   workflow_dispatch:
 jobs:
@@ -43,3 +45,6 @@ jobs:
       - name: Verify thread messages and window parent routing
         shell: cmd
         run: python tests/build_thread_message_routing.py --build "%RUNNER_TEMP%/message-routing" ${{ matrix.flags }}
+      - name: Verify idle processing with production TLS, maps and window dispatch
+        shell: cmd
+        run: python tests/build_thread_idle.py --build "%RUNNER_TEMP%/thread-idle" ${{ matrix.flags }}

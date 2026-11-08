@@ -222,6 +222,7 @@ on:
       - 'phase4/src/core/collections/CMapWordToOb.cpp'
       - 'phase4/src/featurepack/controls/CMFCControlContainer.cpp'
       - 'phase4/src/core/window/CWndDlgInit.cpp'
+      - 'phase4/src/core/window/CWndDescendants.cpp'
       - 'phase4/src/core/dialog/CDialogLifetime.cpp'
       - 'phase4/src/core/dialog/CDialogInitialization.cpp'
       - 'phase4/src/core/dialog/CDialogVirtuals.cpp'
@@ -519,6 +520,7 @@ on:
       - 'phase4/src/core/collections/CMapWordToOb.cpp'
       - 'phase4/src/featurepack/controls/CMFCControlContainer.cpp'
       - 'phase4/src/core/window/CWndDlgInit.cpp'
+      - 'phase4/src/core/window/CWndDescendants.cpp'
       - 'phase4/src/core/dialog/CDialogLifetime.cpp'
       - 'phase4/src/core/dialog/CDialogInitialization.cpp'
       - 'phase4/src/core/dialog/CDialogVirtuals.cpp'
@@ -663,6 +665,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapWordToOb.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/controls/CMFCControlContainer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndDlgInit.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndDescendants.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogInitialization.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
@@ -902,6 +905,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapWordToOb.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/controls/CMFCControlContainer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndDlgInit.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndDescendants.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogInitialization.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"

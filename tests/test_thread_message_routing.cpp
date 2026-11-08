@@ -15,6 +15,9 @@ BOOL MS_ABI impl__WalkPreTranslateTree_CWnd__SAHPEAUHWND____PEAUtagMSG___Z(HWND,
 BOOL MS_ABI impl__AfxInternalPreTranslateMessage__YAHPEAUtagMSG___Z(MSG*);
 BOOL MS_ABI impl__AfxPreTranslateMessage__YAHPEAUtagMSG___Z(MSG*);
 BOOL MS_ABI impl__PreTranslateMessage_CWinThread__UEAAHPEAUtagMSG___Z(CWinThread*,MSG*);
+LRESULT MS_ABI impl__AfxInternalProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(CException*,const MSG*);
+LRESULT MS_ABI impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(CException*,const MSG*);
+LRESULT MS_ABI impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z(CWinThread*,CException*,const MSG*);
 }
 namespace {
 int failures;
@@ -31,6 +34,9 @@ struct API {
     AFX_MODULE_THREAD_STATE* (MS_ABI* state)();
     _AFX_THREAD_STATE* (MS_ABI* threadState)();
     bool native;
+    decltype(&impl__AfxInternalProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z) exceptionInternal;
+    decltype(&impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z) exceptionPublic;
+    decltype(&impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z) exceptionBase;
 };
 struct Event {
     int kind;UINT_PTR a,b;
@@ -106,6 +112,17 @@ CWnd* AFXAPI getMain(CWinThread* thread) {
     event(thread==threadA.as<CWinThread>() ? 30:31);return mainWindow;
 }
 BOOL AFXAPI preThread(CWinThread*,MSG*) {event(40);return threadResult;}
+LRESULT exceptionResult;
+CException* expectedException;
+const MSG* expectedExceptionMessage;
+LRESULT AFXAPI threadException(CWinThread* thread,CException* error,const MSG* message) {
+    check(thread==threadA.as<CWinThread>(),"exception dispatch uses the registered thread");
+    check(error==expectedException && message==expectedExceptionMessage,
+          "exception dispatch preserves both original arguments");
+    event(50);
+    return exceptionResult;
+}
+
 CRuntimeClass windowClass{"RoutingFixtureWindow",sizeof(CWnd),0xffff,nullptr,nullptr,nullptr,nullptr};
 void AFXAPI unexpectedConstruction(CObject*) {std::abort();}
 void AFXAPI unexpectedDestruction(CObject*) {std::abort();}
@@ -264,13 +281,64 @@ void pretranslation(const API& api) {
     throwAt=0;
 }
 
+void exceptionRouting(const API& api) {
+    // These release handlers never inspect or own the exception. A poisoned
+    // pointer also detects accidental diagnostic/deletion calls.
+    auto* error=reinterpret_cast<CException*>(UINT_PTR(1));
+    MSG message{};message.hwnd=handles[0];message.wParam=UINT_PTR(0xfedcba9876543210ull);
+    message.lParam=LPARAM(0xabcdef0123456789ull);
+    for(bool registered : {false,true}) {
+        for(int route=0;route<3;++route) {
+            for(UINT id : {UINT(WM_CREATE),UINT(WM_PAINT),UINT(WM_NCCREATE),UINT(WM_APP+7),UINT(-1)}) {
+                reset(api);routingState->m_pCurrentWinThread=registered ? threadA.as<CWinThread>() : nullptr;
+                message.message=id;MSG before=message;
+                // Paint failures must consume the update region; other
+                // failures must leave it for the normal message path.
+                ShowWindow(handles[0],SW_SHOWNOACTIVATE);
+                ValidateRect(handles[0],nullptr);
+                RECT dirty{1,1,8,8};InvalidateRect(handles[0],&dirty,FALSE);
+                check(GetUpdateRect(handles[0],nullptr,FALSE)!=FALSE,"prepare exception paint region");
+                sourceStateGets=0;
+                LRESULT result=0;
+                if(route==0)result=api.exceptionInternal(error,&message);
+                else if(route==1)result=api.exceptionBase(reinterpret_cast<CWinThread*>(UINT_PTR(1)),error,&message);
+                else {
+                    // The no-thread branch of the public export uses the
+                    // same internal behavior. Registered overrides are below.
+                    routingState->m_pCurrentWinThread=nullptr;
+                    result=api.exceptionPublic(error,&message);
+                }
+                check(result==(id==WM_CREATE ? -1:0),"release exception result follows the message kind");
+                check((GetUpdateRect(handles[0],nullptr,FALSE)==FALSE)==(id==WM_PAINT),
+                      "only a paint exception validates the update region");
+                check(events.empty(),"internal and base exception handling bypass thread overrides");
+                check(!std::memcmp(&before,&message,sizeof(message)),"exception handling preserves the input message");
+                if(!api.native)check(sourceStateGets==unsigned(route==2),
+                    "only the public exception export consults module thread state");
+                ValidateRect(handles[0],nullptr);
+            }
+        }
+    }
+    reset(api);routingState->m_pCurrentWinThread=threadA.as<CWinThread>();
+    expectedException=error;expectedExceptionMessage=&message;
+    for(LRESULT result : {LRESULT(0),LRESULT(69),LRESULT(-17),LRESULT(0xfedcba9876543210ull)}) {
+        events.clear();exceptionResult=result;message.message=WM_CREATE;
+        check(api.exceptionPublic(error,&message)==result,"public exception dispatch preserves a full-width virtual result");
+        expected({50},"the public export invokes the current thread's exception slot exactly once");
+    }
+    events.clear();throwAt=50;bool caught=false;
+    try {api.exceptionPublic(error,&message);}catch(int value) {caught=value==50;}
+    check(caught,"exceptions from the thread override propagate");
+    throwAt=0;
+}
+
 void run(const API& api) {
     CHandleMap map(&windowClass,unexpectedConstruction,unexpectedDestruction,64,1);
     auto* state=api.state();auto* oldMap=state->m_pmapHWND;auto* oldThread=state->m_pCurrentWinThread;
     state->m_pmapHWND=&map;
     reset(api);
     for(unsigned i=0;i<5;++i)map.m_permanentMap[handles[i]]=windows[i].as<CWnd>();
-    threadMaps(api);windowWalk(api,map);pretranslation(api);
+    threadMaps(api);windowWalk(api,map);pretranslation(api);exceptionRouting(api);
     check(map.m_temporaryMap.m_nCount==0,"routing never materializes unnecessary temporary windows");
     state->m_pmapHWND=oldMap;state->m_pCurrentWinThread=oldThread;
 }
@@ -305,6 +373,7 @@ extern "C" AFX_MODULE_THREAD_STATE::NewHandler MS_ABI impl__AfxSetNewHandler__YA
 
 int main() {
     threadTable[12]=reinterpret_cast<void*>(&getMap);threadTable[24]=reinterpret_cast<void*>(&preThread);
+    threadTable[29]=reinterpret_cast<void*>(&threadException);
     threadTable[31]=reinterpret_cast<void*>(&getMain);windowTable[69]=reinterpret_cast<void*>(&preWindow);
     handles[0]=CreateWindowExW(0,L"STATIC",L"routing root",WS_OVERLAPPEDWINDOW,0,0,100,100,nullptr,nullptr,nullptr,nullptr);
     handles[1]=CreateWindowExW(0,L"STATIC",L"routing child",WS_CHILD,0,0,50,50,handles[0],nullptr,nullptr,nullptr);
@@ -317,7 +386,10 @@ int main() {
         impl__WalkPreTranslateTree_CWnd__SAHPEAUHWND____PEAUtagMSG___Z,
         impl__AfxInternalPreTranslateMessage__YAHPEAUtagMSG___Z,impl__AfxPreTranslateMessage__YAHPEAUtagMSG___Z,
         impl__PreTranslateMessage_CWinThread__UEAAHPEAUtagMSG___Z,
-        impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ,sourceThreadState,false};
+        impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ,sourceThreadState,false,
+        impl__AfxInternalProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z,
+        impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z,
+        impl__ProcessWndProcException_CWinThread__UEAA_JPEAVCException__PEBUtagMSG___Z};
     if(!failures)run(source);
     if(const char* path=std::getenv("OPENMFC_NATIVE_MESSAGE_ROUTING_DLL")) {
         HMODULE image=LoadLibraryA(path);check(image!=nullptr,"load native message-routing oracle");
@@ -330,7 +402,8 @@ int main() {
 #define RVA(member,offset) native.member=reinterpret_cast<decltype(native.member)>(b+offset)
                 RVA(dispatch,0x274640);RVA(dispatchVoid,0x274630);RVA(walk,0x28ef00);
                 RVA(internal,0x273c00);RVA(pre,0x273cb0);RVA(base,0x274700);RVA(state,0x133a20);
-                RVA(threadState,0x1332a0);
+                RVA(threadState,0x1332a0);RVA(exceptionInternal,0x273b80);RVA(exceptionPublic,0x273bb0);
+                RVA(exceptionBase,0x274710);
 #undef RVA
                 run(native);
             }

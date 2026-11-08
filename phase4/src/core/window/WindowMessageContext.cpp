@@ -1,6 +1,5 @@
 #define OPENMFC_APPCORE_IMPL
 #include "detail/WindowMessageSupport.h"
-#include "detail/OleExceptionTranslationSupport.h"
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" LRESULT MS_ABI impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(CException*,const MSG*);
 extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd*,CWnd*);
@@ -31,13 +30,6 @@ int CWnd::SendChildNotifyLastMsg(LONGLONG* result) {
 extern "C" BOOL MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* self,LONGLONG* result) {return self->SendChildNotifyLastMsg(result);}
 // Symbol: ?GetCurrentMessage@CWnd@@KAPEBUtagMSG@@XZ
 extern "C" const MSG* MS_ABI impl__GetCurrentMessage_CWnd__KAPEBUtagMSG__XZ() { return CWnd::GetCurrentMessage(); }
-namespace {
-struct SentScope {
-    MSG& current;MSG previous;
-    explicit SentScope(MSG& message) : current(message),previous(message) {}
-    ~SentScope() { current=previous; }
-};
-}
 namespace openmfc { namespace detail {
 void PostInitializeWindow(CWnd* window,const RECT& before,DWORD originalStyle) {
     if(originalStyle&WS_VISIBLE || window->GetStyle()&(WS_VISIBLE|WS_CHILD))return;
@@ -57,23 +49,28 @@ extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_
     CWnd* window,HWND hwnd,UINT message,WPARAM wparam,LPARAM lparam) {
     auto* state=AfxGetThreadState();
     if(!state) { impl__AfxThrowInvalidArgException__YAXXZ();return 0; }
-    SentScope scope(state->m_lastSentMsg);
-    openmfc::detail::SetSentMessage(scope.current,hwnd,message,wparam,lparam,false);
+    MSG& current=state->m_lastSentMsg;
+    const MSG previous=current;
+    openmfc::detail::SetSentMessage(current,hwnd,message,wparam,lparam,false);
     if(message==WM_DESTROY && window->m_pCtrlCont) {
         using Cleanup=void (MS_ABI*)(void*,BOOL);
         openmfc::detail::WindowSlot<Cleanup>(window->m_pCtrlCont,26)(window->m_pCtrlCont,FALSE);
     }
     RECT before{};DWORD originalStyle=0;
+    LRESULT result;
     try {
         if(message==WM_INITDIALOG) { GetWindowRect(window->m_hWnd,&before);originalStyle=window->GetStyle(); }
         using Procedure=LRESULT (MS_ABI*)(void*,UINT,WPARAM,LPARAM);
-        LRESULT result=openmfc::detail::WindowSlot<Procedure>(window,71)(window,message,wparam,lparam);
+        result=openmfc::detail::WindowSlot<Procedure>(window,71)(window,message,wparam,lparam);
         if(message==WM_INITDIALOG)openmfc::detail::PostInitializeWindow(window,before,originalStyle);
-        return result;
     } catch(CException* error) {
-        openmfc::detail::FrameworkExceptionCleanup cleanup{error};
-        return impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(error,&scope.current);
+        result=impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(error,&current);
+        if(error)error->Delete();
     }
+    // Native restores after a normal return or a handled framework exception.
+    // An escaping exception leaves the interrupted sent message in TLS.
+    current=previous;
+    return result;
 }
 
 LONGLONG CWnd::Default() {

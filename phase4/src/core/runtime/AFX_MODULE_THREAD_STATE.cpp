@@ -20,7 +20,7 @@ int MS_ABI DefaultAllocationFailure(size_t) {
 } // namespace detail
 } // namespace openmfc
 AFX_MODULE_THREAD_STATE::AFX_MODULE_THREAD_STATE()
-    : m_pReserved10(nullptr), m_nSafetyPoolSize(0x108),
+    : m_frameList(0x108),
       m_pfnNewHandler(&openmfc::detail::modulethreadstate::DefaultAllocationFailure),
       m_mapSocketHandle(10), m_mapDeadSockets(10), m_listSocketNotifications(10),
       m_nLastHit(UINT_PTR(-1)), m_pLastInfo(nullptr), m_nLastHitMessage(UINT_PTR(-1)) {
@@ -85,6 +85,7 @@ impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(AFX_MODULE_THREAD_STATE::NewHandler 
 }
 static_assert(sizeof(AFX_MODULE_THREAD_STATE) == 0x138, "native module thread size");
 static_assert(offsetof(AFX_MODULE_THREAD_STATE, m_pCurrentWinThread) == 8 &&
+                  offsetof(AFX_MODULE_THREAD_STATE, m_frameList) == 0x10 &&
                   offsetof(AFX_MODULE_THREAD_STATE, m_nTempMapLock) == 0x20 &&
                   offsetof(AFX_MODULE_THREAD_STATE, m_pfnNewHandler) == 0x50 &&
                   offsetof(AFX_MODULE_THREAD_STATE, m_mapSocketHandle) == 0x60 &&

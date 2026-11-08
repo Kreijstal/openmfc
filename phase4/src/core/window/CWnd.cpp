@@ -458,10 +458,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWnd__UEBAPEAUCRuntimeCla
 }
 // Symbol: ?ShowWindow@CWnd@@QEAAHH@Z
 extern "C" int MS_ABI impl__ShowWindow_CWnd__QEAAHH_Z(CWnd* pThis, int nCmdShow) {
-    if (!pThis || !pThis->m_hWnd) {
-        return FALSE;
-    }
-    return ::ShowWindow(pThis->m_hWnd, nCmdShow);
+    return pThis->ShowWindow(nCmdShow);
 }
 // CWnd::EnableWindow
 // Symbol: ?PreCreateWindow@CWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z
