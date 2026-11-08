@@ -202,12 +202,8 @@ struct CRuntimeClass {
     const void* m_pClassInit;         // AFX_CLASSINIT for IMPLEMENT_SERIAL (offset 40)
 
     // Helper methods
-    CObject* CreateObject() const {
-        if (m_pfnCreateObject != nullptr) {
-            return m_pfnCreateObject();
-        }
-        return nullptr;
-    }
+    CObject* CreateObject();
+    CObject* CreateObject() const { return const_cast<CRuntimeClass*>(this)->CreateObject(); }
 
     // Convenience accessor for the base link. Returns nullptr at a root descriptor.
     // Prefer this over touching the slot directly: there is no data member holding the

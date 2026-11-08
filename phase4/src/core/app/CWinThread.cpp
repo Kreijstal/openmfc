@@ -23,19 +23,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinThread__SAPEAUCRuntimeCl
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CWinThread__UEBAPEAUCRuntimeClass__XZ(const CWinThread*) {
     return &CWinThread::classCWinThread;
 }
-// Symbol: ?CreateThread@CWinThread@@QEAAHKIPEAU_SECURITY_ATTRIBUTES@@@Z
-extern "C" int MS_ABI impl__CreateThread_CWinThread__QEAAHKIPEAU_SECURITY_ATTRIBUTES___Z(
-    CWinThread* pThis, unsigned long createFlags, unsigned int stackSize, SECURITY_ATTRIBUTES* securityAttributes) {
-    if (!pThis || pThis->m_hThread) return FALSE;
-    DWORD threadId = 0;
-    HANDLE thread = ::CreateThread(securityAttributes, stackSize, OpenMfcWinThreadEntry, pThis, createFlags, &threadId);
-    if (!thread) return FALSE;
-    pThis->m_hThread = thread;
-    pThis->m_nThreadID = threadId;
-    return TRUE;
-}
-
-
 // Symbol: ?ProcessMessageFilter@CWinThread@@UEAAHHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread* pThis, int, MSG* msg) {
     return (pThis && msg && pThis->PreTranslateMessage(msg)) ? TRUE : FALSE;

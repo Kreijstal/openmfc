@@ -1,6 +1,7 @@
 // Native release Unicode thread storage and cleanup (mfc140u 0x1331e0/0x133250).
 #define OPENMFC_APPCORE_IMPL
-#include "openmfc/afxstat_.h"
+#include "detail/ThreadStateSupport.h"
+#include "detail/CThreadLocalObjectSupport.h"
 #include <cstdlib>
 extern "C" void AFXAPI impl__AfxThrowMemoryException__YAXXZ();
 
@@ -32,17 +33,27 @@ extern "C" _AFX_THREAD_STATE* AFXAPI impl___0_AFX_THREAD_STATE__QEAA_XZ(_AFX_THR
 extern "C" void AFXAPI impl___1_AFX_THREAD_STATE__UEAA_XZ(_AFX_THREAD_STATE* state) {
     if(state)state->~_AFX_THREAD_STATE();
 }
+extern "C" void* MS_ABI impl__GetData_CThreadLocalObject__QEAAPEAVCNoTrackObject__P6APEAV2_XZ_Z(S_Cthreadlocalobject*,void*);
+extern "C" void* MS_ABI impl__GetDataNA_CThreadLocalObject__QEAAPEAVCNoTrackObject__XZ(S_Cthreadlocalobject*);
+extern "C" void AFXAPI impl__AfxThrowInvalidArgException__YAXXZ();
 namespace {
 struct ThreadStorage {
-    _AFX_THREAD_STATE* state=nullptr;
-    ~ThreadStorage() { delete state; }
-};
-thread_local ThreadStorage storage;
+    S_Cthreadlocalobject slot{};
+    ~ThreadStorage() {impl___1CThreadLocalObject__QEAA_XZ(&slot);}
+} storage;
+void* MS_ABI CreateThreadState() {return new _AFX_THREAD_STATE;}
+}
+_AFX_THREAD_STATE* openmfc::detail::threadstate::Existing() {
+    return static_cast<_AFX_THREAD_STATE*>(
+        impl__GetDataNA_CThreadLocalObject__QEAAPEAVCNoTrackObject__XZ(&storage.slot));
 }
 // Symbol: ?AfxGetThreadState@@YAPEAV_AFX_THREAD_STATE@@XZ
 _AFX_THREAD_STATE* AFXAPI AfxGetThreadState() {
-    if(!storage.state)storage.state=new _AFX_THREAD_STATE;
-    return storage.state;
+    auto* state=static_cast<_AFX_THREAD_STATE*>(
+        impl__GetData_CThreadLocalObject__QEAAPEAVCNoTrackObject__P6APEAV2_XZ_Z(
+            &storage.slot,reinterpret_cast<void*>(&CreateThreadState)));
+    if(!state)impl__AfxThrowInvalidArgException__YAXXZ();
+    return state;
 }
 extern "C" _AFX_THREAD_STATE* AFXAPI impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ() {
     return AfxGetThreadState();

@@ -6,6 +6,10 @@ on:
       - 'phase4/src/core/app/CWinThread*.cpp'
       - 'phase4/src/core/app/CurrentMessage.cpp'
       - 'phase4/src/core/app/CurrentApplication.cpp'
+      - 'phase4/src/core/app/ThreadBegin.cpp'
+      - 'phase4/src/core/app/ThreadLifecycle.cpp'
+      - 'phase4/src/core/runtime/TemporaryHandleMaps.cpp'
+      - 'phase4/src/core/runtime/RuntimeClassFactory.cpp'
       - 'phase4/src/core/runtime/GlobalMemoryFree.cpp'
       - 'phase4/src/core/runtime/ModuleStateAccessors.cpp'
       - 'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp'
@@ -19,6 +23,8 @@ on:
       - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/detail/ModuleThreadStateSupport.h'
       - 'tests/test_winthread_lifetime.cpp'
+      - 'tests/winthread_startup_tests.h'
+      - 'phase4/src/detail/ThreadStateSupport.h'
       - 'tests/build_winthread_lifetime.py'
       - '.github/workflows/winthread_lifetime.yml'
   pull_request:
@@ -27,6 +33,10 @@ on:
       - 'phase4/src/core/app/CWinThread*.cpp'
       - 'phase4/src/core/app/CurrentMessage.cpp'
       - 'phase4/src/core/app/CurrentApplication.cpp'
+      - 'phase4/src/core/app/ThreadBegin.cpp'
+      - 'phase4/src/core/app/ThreadLifecycle.cpp'
+      - 'phase4/src/core/runtime/TemporaryHandleMaps.cpp'
+      - 'phase4/src/core/runtime/RuntimeClassFactory.cpp'
       - 'phase4/src/core/runtime/GlobalMemoryFree.cpp'
       - 'phase4/src/core/runtime/ModuleStateAccessors.cpp'
       - 'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp'
@@ -40,18 +50,20 @@ on:
       - 'phase4/src/core/runtime/CCmdTargetLifetime.cpp'
       - 'phase4/src/detail/ModuleThreadStateSupport.h'
       - 'tests/test_winthread_lifetime.cpp'
+      - 'tests/winthread_startup_tests.h'
+      - 'phase4/src/detail/ThreadStateSupport.h'
       - 'tests/build_winthread_lifetime.py'
       - '.github/workflows/winthread_lifetime.yml'
   workflow_dispatch:
 jobs:
   windows:
-    name: Thread lifetime (${{ matrix.name }}, ${{ matrix.state == '' && 'boundary state' || 'production TLS' }})
+    name: Thread lifetime (${{ matrix.name }}, ${{ matrix.state == '--startup' && 'startup and termination' || matrix.state == '' && 'boundary state' || 'production TLS' }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         name: [default, optimized]
-        state: ['', '--real-state']
+        state: ['', '--real-state', '--startup']
         include:
           - name: default
             flags: ''

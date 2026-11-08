@@ -250,7 +250,7 @@ public:
     virtual void Dump() const override;
     virtual void AssertValid() const override;
     
-    void Delete() { if (m_bAutoDelete) delete this; }
+    void Delete() { if (m_bAutoDelete>0) delete this; }
 
 protected:
     int m_bAutoDelete;

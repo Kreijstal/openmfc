@@ -7,7 +7,6 @@ IMPLEMENT_DYNAMIC(CFileException, CException)
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
 IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)
 IMPLEMENT_DYNAMIC(CWinApp, CWinThread)
-thread_local CWinThread* g_pCurrentThread = nullptr;
 namespace openmfc { namespace detail { namespace cwinapp {
 CRuntimeClass* const g_coreRuntimeClasses[] = {
     &CObject::classCObject,
@@ -337,19 +336,4 @@ const AFX_MSGMAP g_emptyAppMessageMap = {
     nullptr,
     g_emptyAppMessageEntries
 };
-DWORD WINAPI OpenMfcWinThreadEntry(LPVOID param) {
-    CWinThread* thread = reinterpret_cast<CWinThread*>(param);
-    if (!thread) return 0;
-    g_pCurrentThread = thread;
-    UINT result = 0;
-    if (thread->InitInstance()) {
-        result = static_cast<UINT>(thread->Run());
-    }
-    result = static_cast<UINT>(thread->ExitInstance());
-    if (thread->m_bAutoDelete) {
-        delete thread;
-    }
-    g_pCurrentThread = nullptr;
-    return result;
-}
 } } }  // namespace openmfc::detail::cwinapp

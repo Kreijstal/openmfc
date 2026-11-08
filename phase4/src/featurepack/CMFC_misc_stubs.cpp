@@ -485,7 +485,8 @@ const wchar_t* const g2_rgCtlClsid[] = {
 //   phase4/src/core/d2d/_AFX_D2D_STATE.cpp       _AFX_D2D_STATE::ReleaseD2DRefs
 //   phase4/src/featurepack/toolbar/CMFCToolBarImages.cpp CMFCToolBarImages::CleanUp
 //   phase4/src/featurepack/visualmanager/CMFCVisualManager.cpp DestroyInstance
-// AfxTermThread / AfxUnregisterWndClasses are NOT declared here on purpose:
+extern "C" void MS_ABI impl__AfxTermThread__YAXPEAUHINSTANCE_____Z(HINSTANCE);
+// AfxUnregisterWndClasses is NOT declared here on purpose:
 // both are defined in this same file above AfxWinTerm (the file is ordered by
 // symbol name), so a prologue declaration would only add a second, separately
 // maintained copy of their parameter lists to keep in sync.
@@ -893,26 +894,6 @@ extern "C" void MS_ABI impl__AfxAutosaveTimerProc__YAXPEAUHWND____I_KK_Z(void* /
     // no-op stub), so there is no live subsystem for this proc to drive.
     (void)p0; (void)p1; (void)p2; (void)p3;
 }
-// Symbol: ?AfxBeginThread@@YAPEAVCWinThread@@P6AIPEAX@Z0HIKPEAU_SECURITY_ATTRIBUTES@@@Z
-extern "C" void* MS_ABI impl__AfxBeginThread__YAPEAVCWinThread__P6AIPEAX_Z0HIKPEAU_SECURITY_ATTRIBUTES___Z(void* /*fnptr*/ p0, void* /*fnptr*/ p1, int p2, unsigned int p3, unsigned long p4, void* /*struct*/* p5) {
-    return openmfc::detail::synccore::AfxBeginThread(
-        reinterpret_cast<AFX_THREADPROC>(p0),
-        reinterpret_cast<void*>(p1),
-        p2,
-        p3,
-        p4,
-        reinterpret_cast<LPSECURITY_ATTRIBUTES>(p5));
-}
-// Symbol: ?AfxBeginThread@@YAPEAVCWinThread@@PEAUCRuntimeClass@@HIKPEAU_SECURITY_ATTRIBUTES@@@Z
-extern "C" void* MS_ABI impl__AfxBeginThread__YAPEAVCWinThread__PEAUCRuntimeClass__HIKPEAU_SECURITY_ATTRIBUTES___Z(void* /*struct*/* p0, int p1, unsigned int p2, unsigned long p3, void* /*struct*/* p4) {
-    return openmfc::detail::synccore::AfxBeginThread(
-        reinterpret_cast<CRuntimeClass*>(p0),
-        p1,
-        p2,
-        p3,
-        reinterpret_cast<LPSECURITY_ATTRIBUTES>(p4));
-}
-// Native dispatch and sent-message context live in WindowMessageContext.cpp.
 // Symbol: ?AfxCancelModes@@YAXPEAUHWND__@@@Z
 extern "C" void MS_ABI impl__AfxCancelModes__YAXPEAUHWND_____Z(void* /*struct*/* p0) {
     HWND hWndRcvr = reinterpret_cast<HWND>(p0);
@@ -1299,10 +1280,6 @@ extern "C" int MS_ABI impl__AfxEndDeferRegisterClass__YAHJ_Z(long p0) {
         g_atomOpenMFCClass = RegisterOpenMFCClass(hInst);
     }
     return TRUE;
-}
-// Symbol: ?AfxEndThread@@YAXIH@Z
-extern "C" void MS_ABI impl__AfxEndThread__YAXIH_Z(unsigned int p0, int p1) {
-    AfxEndThread(p0, p1);
 }
 // Symbol: ?AfxEnumMetaFileProc@@YAHPEAUHDC__@@PEAUtagHANDLETABLE@@PEAUtagMETARECORD@@H_J@Z
 extern "C" int MS_ABI impl__AfxEnumMetaFileProc__YAHPEAUHDC____PEAUtagHANDLETABLE__PEAUtagMETARECORD__H_J_Z(void* /*struct*/* p0, void* /*struct*/* p1, void* /*struct*/* p2, int p3, __int64 p4) {
@@ -1704,19 +1681,6 @@ extern "C" int MS_ABI impl__AfxInitRichEdit__YAHXZ() {
     }
     return s_hMod ? TRUE : FALSE;
 }
-// Symbol: ?AfxInitThread@@YAXXZ
-extern "C" void MS_ABI impl__AfxInitThread__YAXXZ() {
-    // Resets this thread's AFX bookkeeping to defaults for a freshly
-    // attaching thread. _AFX_THREAD_STATE (detail/CWinAppSupport.h) is the
-    // canonical thread-local state, already shared process-wide via the
-    // publicly declared AfxGetThreadState().
-    if (_AFX_THREAD_STATE* pState = AfxGetThreadState()) {
-        g_threadBookkeeping.nTempMapLock = 0;
-        g_threadBookkeeping.nWndCreateLock = 0;
-    }
-}
-
-
 // Symbol: ?AfxInternalProcessWndProcException@@YA_JPEAVCException@@PEBUtagMSG@@@Z
 extern "C" __int64 MS_ABI impl__AfxInternalProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(void* /*class*/* p0, const void* /*struct*/* p1) {
     CWinThread* pThread = AfxGetThread();
@@ -1862,14 +1826,6 @@ extern "C" void* MS_ABI impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTA
 extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int p0) {
     if (CRITICAL_SECTION* pcs = GetGlobalLock(p0)) {
         ::EnterCriticalSection(pcs);
-    }
-}
-// Symbol: ?AfxLockTempMaps@@YAXXZ
-extern "C" void MS_ABI impl__AfxLockTempMaps__YAXXZ() {
-    // Shares _AFX_THREAD_STATE (detail/CWinAppSupport.h) with
-    // AfxUnlockTempMaps below via the publicly declared AfxGetThreadState().
-    if (_AFX_THREAD_STATE* pState = AfxGetThreadState()) {
-        g_threadBookkeeping.nTempMapLock++;
     }
 }
 // Symbol: ?AfxMergeMenus@@YAPEAUHMENU__@@PEAU1@0PEAJHH@Z
@@ -2985,21 +2941,6 @@ extern "C" void MS_ABI impl__AfxTermExtensionModule__YAXAEAUAFX_EXTENSION_MODULE
     pState->pFirstSharedClass = nullptr;
     pState->pFirstSharedFactory = nullptr;
 }
-// Symbol: ?AfxTermThread@@YAXPEAUHINSTANCE__@@@Z
-extern "C" void MS_ABI impl__AfxTermThread__YAXPEAUHINSTANCE_____Z(void* /*struct*/* p0) {
-    // OpenMFC keeps one global app/thread model rather than tracking state
-    // per attaching HINSTANCE, so the incoming module handle is advisory
-    // only: unconditionally flush this thread's temp object maps and reset
-    // its AFX bookkeeping, mirroring AfxInitThread's defaults.
-    (void)p0;
-    if (_AFX_THREAD_STATE* pState = AfxGetThreadState()) {
-        CWnd::DeleteTempMap();
-        impl__DeleteTempMap_CDC__SAXXZ();
-        impl__DeleteTempMap_CGdiObject__SAXXZ();
-        g_threadBookkeeping.nTempMapLock = 0;
-        g_threadBookkeeping.nWndCreateLock = 0;
-    }
-}
 // Symbol: ?AfxTimeToFileTime@@YAXAEBVCTime@ATL@@PEAU_FILETIME@@@Z
 extern "C" void MS_ABI impl__AfxTimeToFileTime__YAXAEBVCTime_ATL__PEAU_FILETIME___Z(const void* /*class*/* p0, void* /*struct*/* p1) {
     if (!p0 || !p1) return;
@@ -3069,26 +3010,6 @@ extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int p0) {
     if (CRITICAL_SECTION* pcs = GetGlobalLock(p0)) {
         ::LeaveCriticalSection(pcs);
     }
-}
-// Symbol: ?AfxUnlockTempMaps@@YAHH@Z
-extern "C" int MS_ABI impl__AfxUnlockTempMaps__YAHH_Z(int p0) {
-    // Shares _AFX_THREAD_STATE with AfxLockTempMaps above. bDeleteTemps
-    // (p0) forces an immediate flush even if the lock count hasn't reached
-    // zero yet, matching real MFC's bAll force-flag behavior; either way,
-    // reaching zero always flushes.
-    _AFX_THREAD_STATE* pState = AfxGetThreadState();
-    if (!pState) return FALSE;
-    if (g_threadBookkeeping.nTempMapLock > 0) {
-        g_threadBookkeeping.nTempMapLock--;
-    }
-    const BOOL bDeleteTemps = static_cast<BOOL>(p0);
-    if (g_threadBookkeeping.nTempMapLock == 0 || bDeleteTemps) {
-        CWnd::DeleteTempMap();
-        impl__DeleteTempMap_CDC__SAXXZ();
-        impl__DeleteTempMap_CGdiObject__SAXXZ();
-        return TRUE;
-    }
-    return FALSE;
 }
 // Symbol: ?AfxUnmergeMenus@@YAXPEAUHMENU__@@00@Z
 // Undoes AfxMergeMenus above: AfxMergeMenus attaches hMenuSource's existing

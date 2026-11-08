@@ -73,10 +73,22 @@ AFX_MODULE_THREAD_STATE* ForModule(AFX_MODULE_STATE* module) {
 } } }
 #else
 LRESULT CALLBACK AfxWndProc(HWND,UINT,WPARAM,LPARAM) {std::abort();}
-extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {throw 91;}
+extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
+#ifdef OPENMFC_TEST_THREAD_STARTUP
+    static CException error(FALSE);throw &error;
+#else
+    throw 91;
+#endif
+}
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long value) {throw value;}
 #endif
-extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {throw 19;}
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
+#ifdef OPENMFC_TEST_THREAD_STARTUP
+    static CException error(FALSE);throw &error;
+#else
+    throw 19;
+#endif
+}
 extern "C" CWinThread* MS_ABI impl__AfxGetThread__YAPEAVCWinThread__XZ();
 extern "C" void MS_ABI impl__AfxGlobalFree__YAXPEAX_Z(void*);
 
@@ -681,6 +693,9 @@ static void terminationParent(const wchar_t* argument) {
     check(wait==WAIT_OBJECT_0 && code==86,"destructor callback failure terminates at the native cleanup boundary");
     CloseHandle(child.hThread);CloseHandle(child.hProcess);
 }
+#ifdef OPENMFC_TEST_THREAD_STARTUP
+#include "winthread_startup_tests.h"
+#endif
 int main(int argc,char** argv) {
     API source{impl___0CWinThread__QEAA_XZ,impl___0CWinThread__QEAA_P6AIPEAX_Z0_Z,impl___1CWinThread__UEAA_XZ,
         impl__CommonConstruct_CWinThread__QEAAXXZ,impl__Delete_CWinThread__UEAAXXZ,
@@ -697,6 +712,9 @@ int main(int argc,char** argv) {
     applications(source,GetModuleHandleW(nullptr),true);
     applicationResources(source,GetModuleHandleW(nullptr));
     applicationHelpers();
+#ifdef OPENMFC_TEST_THREAD_STARTUP
+    if(argc==1)winthreadStartupTests(source,GetModuleHandleW(nullptr),false);
+#endif
     loops(source,GetModuleHandleW(nullptr));idleMessages(source);pumping(source,GetModuleHandleW(nullptr));
 #ifndef OPENMFC_TEST_REAL_THREAD_STATE
     Storage failed,before;failed.reset();before.reset();throwModule=true;bool caught=false;
@@ -728,6 +746,9 @@ int main(int argc,char** argv) {
                 applications(native,image,false);
                 applicationResources(native,image);
                 loops(native,image);idleMessages(native);pumping(native,image);
+#ifdef OPENMFC_TEST_THREAD_STARTUP
+                if(argc==1)winthreadStartupTests(native,image,true);
+#endif
                 if(argc==1) {terminationParent(L"--native-close");terminationParent(L"--native-dispatch");}
             }
             FreeLibrary(image);

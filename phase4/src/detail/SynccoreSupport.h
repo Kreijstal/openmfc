@@ -120,34 +120,6 @@ extern "C" void* MS_ABI impl___0CSyncObject__QEAA_PEB_W_Z(void* pThis, const wch
 // Thread functions
 //=============================================================================
 
-// Thread-local storage for current CWinThread (defined in appcore.cpp)
-extern thread_local CWinThread* g_pCurrentThread;
-
-// Internal thread start routine
-struct AfxThreadParams {
-    AFX_THREADPROC pfnThreadProc;
-    void* pParam;
-    CWinThread* pThread;
-};
-
-namespace openmfc { namespace detail { namespace synccore {
-unsigned int __stdcall AfxThreadEntry(void* pParam);
-} } }
-
-namespace openmfc { namespace detail { namespace synccore {
-CWinThread* AfxBeginThread(AFX_THREADPROC pfnThreadProc, void* pParam,
-                           int nPriority, UINT nStackSize,
-                           DWORD dwCreateFlags,
-                           LPSECURITY_ATTRIBUTES lpSecurityAttrs);
-} } }
-
-namespace openmfc { namespace detail { namespace synccore {
-CWinThread* AfxBeginThread(CRuntimeClass* pThreadClass,
-                           int nPriority, UINT nStackSize,
-                           DWORD dwCreateFlags,
-                           LPSECURITY_ATTRIBUTES lpSecurityAttrs);
-} } }
-
 void AfxEndThread(UINT nExitCode, BOOL bDelete);
 
 // Note: AfxGetThread() is implemented in appcore.cpp

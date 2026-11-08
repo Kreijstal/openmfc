@@ -7,8 +7,7 @@
 #include "detail/CRuntimeClassSupport.h"
 
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
-// Symbol: ?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ
-// Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
+// Instance factory creation lives in RuntimeClassFactory.cpp.
 // Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEBD@Z
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
 // Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z
@@ -21,15 +20,6 @@
 // Symbol: ?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
 // Symbol: ?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z
-// Symbol: ?CreateObject@CRuntimeClass@@QEAAPEAVCObject@@XZ
-extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(
-    CRuntimeClass* pThis  // RCX = this (CRuntimeClass*)
-) {
-    if (!pThis || !pThis->m_pfnCreateObject) {
-        return nullptr;
-    }
-    return pThis->m_pfnCreateObject();
-}
 // Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z
 extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_W_Z(
     const wchar_t* lpszClassName  // RCX = class name (wide)

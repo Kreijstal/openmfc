@@ -37,6 +37,8 @@ on:
       - 'include/openmfc/afxpriv.h'
       - 'phase4/src/core/runtime/CommandRouting.cpp'
       - 'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/RuntimeClassFactory.cpp'
+      - 'phase4/src/detail/ThreadStateSupport.h'
       - 'phase4/src/detail/CommandRoutingSupport.h'
       - 'tests/command_routing_tests.h'
       - 'phase4/src/core/window/CWndVirtuals.cpp'
@@ -332,6 +334,8 @@ on:
       - 'include/openmfc/afxpriv.h'
       - 'phase4/src/core/runtime/CommandRouting.cpp'
       - 'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'
+      - 'phase4/src/core/runtime/RuntimeClassFactory.cpp'
+      - 'phase4/src/detail/ThreadStateSupport.h'
       - 'phase4/src/detail/CommandRoutingSupport.h'
       - 'tests/command_routing_tests.h'
       - 'phase4/src/core/window/CWndVirtuals.cpp'
@@ -770,6 +774,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CHandleMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CHandleMapSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CFixedAllocSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/RuntimeClassFactory.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetDispatch.cpp"
@@ -1007,6 +1012,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CHandleMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CHandleMapSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CFixedAllocSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/RuntimeClassFactory.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CCmdTargetDispatch.cpp"

@@ -12,7 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def sources(real_state=False):
+def sources(real_state=False,startup=False):
     backend = [
         'phase4/src/core/runtime/ModuleStateAccessors.cpp',
         'phase4/src/detail/RegcoreSupport.cpp',
@@ -30,6 +30,12 @@ def sources(real_state=False):
         'phase4/src/detail/CThreadLocalObjectSupport.cpp',
         'phase4/src/detail/CThreadSlotDataSupport.cpp',
         'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp'] if real_state else []
+    if startup:
+        backend += ['phase4/src/core/runtime/TemporaryHandleMaps.cpp',
+                    'phase4/src/core/app/ThreadLifecycle.cpp',
+                    'phase4/src/core/app/CWinThreadStartup.cpp',
+                    'phase4/src/core/app/ThreadBegin.cpp',
+                    'phase4/src/core/runtime/RuntimeClassFactory.cpp']
     return backend + ['phase4/src/core/runtime/CCmdTargetLifetime.cpp',
             'phase4/src/core/app/CWinThreadLifetime.cpp',
             'phase4/src/core/app/CWinThreadMessageLoop.cpp',
@@ -47,8 +53,10 @@ def main():
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--optimize', action='store_true')
     parser.add_argument('--real-state', action='store_true', help='Link production module/thread and TLS storage')
+    parser.add_argument('--startup', action='store_true', help='Verify worker creation and termination with production TLS')
     parser.add_argument('--jobs', type=int, default=4)
     args = parser.parse_args()
+    args.real_state = args.real_state or args.startup
     out = args.build.resolve()
     out.mkdir(parents=True, exist_ok=True)
     flags = ['/nologo', '/EHs', '/MD', '/std:c++17', '/Gy', '/Gw', '/W0',
@@ -60,6 +68,8 @@ def main():
         flags.append('/O2')
     if args.real_state:
         flags.append('/DOPENMFC_TEST_REAL_THREAD_STATE')
+    if args.startup:
+        flags.append('/DOPENMFC_TEST_THREAD_STARTUP')
     if args.sdk:
         versions = lambda path: sorted(path.iterdir(), key=lambda p: [int(n) for n in p.name.split('.')])[-1]
         vc = versions(args.sdk / 'VC/Tools/MSVC')
@@ -79,7 +89,7 @@ def main():
         return obj
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        objects = list(pool.map(compile_one, sources(args.real_state)))
+        objects = list(pool.map(compile_one, sources(args.real_state,args.startup)))
     sys.path.insert(0, str(ROOT / 'tools'))
     import gen_weak_stubs
     count = 0
@@ -87,6 +97,9 @@ def main():
     alias_owners += ['core/app/CWinThreadLifetime.cpp', 'core/app/CWinThreadMessageLoop.cpp',
                      'core/app/CurrentMessage.cpp', 'core/app/CWinAppLifetime.cpp',
                      'core/app/CurrentApplication.cpp','core/runtime/GlobalMemoryFree.cpp']
+    if args.startup:
+        alias_owners += ['core/runtime/TemporaryHandleMaps.cpp','core/app/ThreadLifecycle.cpp',
+                         'core/app/CWinThreadStartup.cpp','core/app/ThreadBegin.cpp','core/runtime/RuntimeClassFactory.cpp']
     for relative in alias_owners:
         source = 'phase4/src/' + relative
         obj = out / (source.removesuffix('.cpp').replace('/', '_') + '.obj')
@@ -100,7 +113,7 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == (20 if args.real_state else 18), count
+    assert count == (29 if args.startup else 20 if args.real_state else 18), count
     print(f'All {count} thread/application lifetime export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
     link.extend(['kernel32.lib', 'user32.lib','ole32.lib'])

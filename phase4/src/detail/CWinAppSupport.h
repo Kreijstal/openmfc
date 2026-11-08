@@ -246,10 +246,6 @@ asm(".globl \"?classCWinApp@CWinApp@@2UCRuntimeClass@@A\"\n"
 
 
 
-// Thread-local storage for current thread (used by worker threads)
-// This is set by AfxBeginThread in synccore.cpp for worker threads
-extern thread_local CWinThread* g_pCurrentThread;
-
 // AfxGetThread reads the current module/thread registration.
 // C++ implementation for internal use
 CWinThread* AfxGetThread();
@@ -270,7 +266,7 @@ extern void* g_appModuleStateStorage[kOpaqueStateWordCount];
 #include "openmfc/afxstat_.h"
 // These legacy counters are bookkeeping, not native _AFX_THREAD_STATE fields.
 namespace openmfc { namespace detail { namespace cwinapp {
-struct ThreadBookkeeping { int nTempMapLock=0,nWndCreateLock=0; };
+struct ThreadBookkeeping { int nWndCreateLock=0; };
 extern thread_local ThreadBookkeeping g_threadBookkeeping;
 } } }
 
@@ -581,7 +577,6 @@ extern const AFX_MSGMAP g_emptyAppMessageMap;
 } } }
 
 namespace openmfc { namespace detail { namespace cwinapp {
-DWORD WINAPI OpenMfcWinThreadEntry(LPVOID param);
 } } }
 
 

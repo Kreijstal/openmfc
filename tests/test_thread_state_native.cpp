@@ -893,6 +893,10 @@ int main() {
                &impl__AfxTlsRelease__YAXXZ,
                &openmfc::detail::cthreadlocalobject::tlsReferences};
     source.thread();
+    // The real thread-state object now occupies the shared TLS backend.
+    // Preserve its embedded storage when import tracing reconstructs that
+    // same process-lifetime buffer with synthetic handles.
+    source.embedded=reinterpret_cast<BYTE*>(*source.global);
     API oracle = source;
     HMODULE native = nullptr;
     wchar_t path[1024];
