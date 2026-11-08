@@ -1054,27 +1054,7 @@ int CWnd::ReflectLastMsg(HWND p0, LONGLONG* p1)
     }
     return pWnd->SendChildNotifyLastMsg(p1);
 }
-int CWnd::WalkPreTranslateTree(HWND p0, MSG* p1)
-{
-    if (!p0 || !p1) {
-        return FALSE;
-    }
 
-    for (HWND hChild = ::GetWindow(p0, GW_CHILD); hChild; hChild = ::GetWindow(hChild, GW_HWNDNEXT)) {
-        if (!::IsWindow(hChild)) {
-            continue;
-        }
-
-        CWnd* pChild = CWnd::FromHandle(hChild);
-        if (pChild && CWnd_PreTranslateMessageCompat(pChild, p1)) {
-            return TRUE;
-        }
-        if (WalkPreTranslateTree(hChild, p1)) {
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
 void CWnd::ActivateTopParent()
 {
     if (!m_hWnd) {

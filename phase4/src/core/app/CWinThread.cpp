@@ -34,19 +34,8 @@ extern "C" int MS_ABI impl__CreateThread_CWinThread__QEAAHKIPEAU_SECURITY_ATTRIB
     pThis->m_nThreadID = threadId;
     return TRUE;
 }
-// Symbol: ?DispatchThreadMessageEx@CWinThread@@IEAAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__DispatchThreadMessageEx_CWinThread__IEAAHPEAUtagMSG___Z(CWinThread* pThis, MSG* msg) {
-    if (!pThis || !msg) return FALSE;
-    AfxGetThreadState()->m_msgCur = *msg;
-    if (pThis->PreTranslateMessage(msg)) return TRUE;
-    ::TranslateMessage(msg);
-    ::DispatchMessageW(msg);
-    return TRUE;
-}
-// Symbol: ?DispatchThreadMessage@CWinThread@@IEAAXPEAUtagMSG@@@Z
-extern "C" void MS_ABI impl__DispatchThreadMessage_CWinThread__IEAAXPEAUtagMSG___Z(CWinThread* pThis, MSG* msg) {
-    (void)impl__DispatchThreadMessageEx_CWinThread__IEAAHPEAUtagMSG___Z(pThis, msg);
-}
+
+
 // Symbol: ?ProcessMessageFilter@CWinThread@@UEAAHHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__ProcessMessageFilter_CWinThread__UEAAHHPEAUtagMSG___Z(CWinThread* pThis, int, MSG* msg) {
     return (pThis && msg && pThis->PreTranslateMessage(msg)) ? TRUE : FALSE;
@@ -58,10 +47,7 @@ extern "C" intptr_t MS_ABI impl__ProcessWndProcException_CWinThread__UEAA_JPEAVC
     return 0;
 }
 
-BOOL CWinThread::PreTranslateMessage(MSG* pMsg) {
-    (void)pMsg;
-    return FALSE;
-}
+
 BOOL CWinThread::OnIdle(LONG lCount) {
     if (lCount == 0) {
         // First idle pass - cleanup temporary CWnd wrappers for destroyed windows

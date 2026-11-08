@@ -1,0 +1,45 @@
+name: Thread messages and pretranslation ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/app/**'
+      - 'phase4/src/core/window/**'
+      - 'phase4/src/core/collections/**'
+      - 'phase4/src/detail/CHandleMapSupport.*'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'phase4/src/detail/WindowMessageSupport.h'
+      - 'tests/test_thread_message_routing.cpp'
+      - 'tests/build_thread_message_routing.py'
+      - '.github/workflows/thread_message_routing.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/app/**'
+      - 'phase4/src/core/window/**'
+      - 'phase4/src/core/collections/**'
+      - 'phase4/src/detail/CHandleMapSupport.*'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'phase4/src/detail/WindowMessageSupport.h'
+      - 'tests/test_thread_message_routing.cpp'
+      - 'tests/build_thread_message_routing.py'
+      - '.github/workflows/thread_message_routing.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Message routing (${{ matrix.flags == '' && 'default' || 'optimized' }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flags: ['', '--optimize']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify thread messages and window parent routing
+        shell: cmd
+        run: python tests/build_thread_message_routing.py --build "%RUNNER_TEMP%/message-routing" ${{ matrix.flags }}

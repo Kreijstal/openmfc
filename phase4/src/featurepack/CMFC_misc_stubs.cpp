@@ -1720,11 +1720,7 @@ extern "C" void MS_ABI impl__AfxInitThread__YAXXZ() {
     }
 }
 
-// Symbol: ?AfxInternalPreTranslateMessage@@YAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__AfxInternalPreTranslateMessage__YAHPEAUtagMSG___Z(void* /*struct*/* p0) {
-    auto* pThread = AfxGetThread();
-    return pThread ? pThread->PreTranslateMessage(reinterpret_cast<MSG*>(p0)) : FALSE;
-}
+
 // Symbol: ?AfxInternalProcessWndProcException@@YA_JPEAVCException@@PEBUtagMSG@@@Z
 extern "C" __int64 MS_ABI impl__AfxInternalProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(void* /*class*/* p0, const void* /*struct*/* p1) {
     CWinThread* pThread = AfxGetThread();
@@ -2633,11 +2629,7 @@ extern "C" int MS_ABI impl__AfxParseURLEx__YAHPEB_WAEAKAEAV__CStringT__WV__StrTr
     if (pStrPassword) *pStrPassword = pass;
     return 1;
 }
-// Symbol: ?AfxPreTranslateMessage@@YAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__AfxPreTranslateMessage__YAHPEAUtagMSG___Z(void* /*struct*/* p0) {
-    auto* pThread = AfxGetThread();
-    return pThread ? pThread->PreTranslateMessage(reinterpret_cast<MSG*>(p0)) : FALSE;
-}
+
 // Symbol: ?AfxProcessWndProcException@@YA_JPEAVCException@@PEBUtagMSG@@@Z
 extern "C" __int64 MS_ABI impl__AfxProcessWndProcException__YA_JPEAVCException__PEBUtagMSG___Z(void* /*class*/* p0, const void* /*struct*/* p1) {
     CWinThread* pThread = AfxGetThread();

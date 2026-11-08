@@ -1124,8 +1124,3 @@ extern "C" int MS_ABI impl__InitApplication_CWinApp__UEAAHXZ(CWinApp* pThis) {
 extern "C" int MS_ABI impl__OnIdle_CWinThread__UEAAHJ_Z(CWinThread* pThis, long p0) {
     return (int)pThis->OnIdle(p0);
 }
-// Symbol: ?PreTranslateMessage@CWinThread@@UEAAHPEAUtagMSG@@@Z
-// CWinThread::PreTranslateMessage
-extern "C" int MS_ABI impl__PreTranslateMessage_CWinThread__UEAAHPEAUtagMSG___Z(CWinThread* pThis, MSG* p0) {
-    return (int)pThis->PreTranslateMessage(p0);
-}

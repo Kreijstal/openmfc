@@ -1566,8 +1566,3 @@ extern "C" HWND__* MS_ABI impl__UnsubclassWindow_CWnd__QEAAPEAUHWND____XZ(CWnd* 
 extern "C" void MS_ABI impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(CWnd* pThis, CCmdTarget* p0, int p1) {
     pThis->UpdateDialogControls(p0, p1);
 }
-// Symbol: ?WalkPreTranslateTree@CWnd@@SAHPEAUHWND__@@PEAUtagMSG@@@Z
-// Static: CWnd::WalkPreTranslateTree
-extern "C" int MS_ABI impl__WalkPreTranslateTree_CWnd__SAHPEAUHWND____PEAUtagMSG___Z(HWND__* p0, MSG* p1) {
-    return (int)CWnd::WalkPreTranslateTree(p0, p1);
-}

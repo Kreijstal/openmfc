@@ -225,6 +225,7 @@ on:
       - 'phase4/src/core/dialog/CDialogVirtuals.cpp'
       - 'phase4/src/core/dialog/AfxHelpEnabled.cpp'
       - 'phase4/src/core/app/CWinThreadVirtualDispatch.cpp'
+      - 'phase4/src/core/window/CWndPreTranslateTree.cpp'
       - 'phase4/src/detail/NativeCollectionArchive.h'
       - 'include/openmfc/afxctrlcontainer.h'
       - 'tests/dlginit_tests.h'
@@ -519,6 +520,7 @@ on:
       - 'phase4/src/core/dialog/CDialogVirtuals.cpp'
       - 'phase4/src/core/dialog/AfxHelpEnabled.cpp'
       - 'phase4/src/core/app/CWinThreadVirtualDispatch.cpp'
+      - 'phase4/src/core/window/CWndPreTranslateTree.cpp'
       - 'phase4/src/detail/NativeCollectionArchive.h'
       - 'include/openmfc/afxctrlcontainer.h'
       - 'tests/dlginit_tests.h'
@@ -662,6 +664,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndPreTranslateTree.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
 
@@ -899,6 +902,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/CDialogVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/dialog/AfxHelpEnabled.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinThreadVirtualDispatch.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndPreTranslateTree.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtrStorage.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CMapPtrToPtr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
