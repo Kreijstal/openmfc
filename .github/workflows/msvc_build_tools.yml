@@ -1,0 +1,28 @@
+name: Native MSVC build tools
+on:
+  push:
+    paths:
+      - 'phase4/scripts/build_msvc.py'
+      - 'tools/gen_weak_stubs.py'
+      - 'mfc_complete_ordinal_mapping.json'
+      - 'tests/abi_safety/test_msvc_exports.py'
+      - '.github/workflows/msvc_build_tools.yml'
+  pull_request:
+    paths:
+      - 'phase4/scripts/build_msvc.py'
+      - 'tools/gen_weak_stubs.py'
+      - 'mfc_complete_ordinal_mapping.json'
+      - 'tests/abi_safety/test_msvc_exports.py'
+      - '.github/workflows/msvc_build_tools.yml'
+  workflow_dispatch:
+jobs:
+  exports:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify COFF providers, native data and linked DLL ordinals
+        shell: cmd
+        run: python -m unittest discover -s tests/abi_safety -p test_msvc_exports.py

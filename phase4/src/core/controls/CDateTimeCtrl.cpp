@@ -25,7 +25,7 @@ struct CTime_atl {
     __time64_t m_time;
 };
 
-bool StToDate(const SYSTEMTIME* st, DATE* out) {
+bool StToDate(SYSTEMTIME* st, DATE* out) {
     return ::SystemTimeToVariantTime(st, out) != 0;
 }
 bool DateToSt(DATE d, SYSTEMTIME* out) {
