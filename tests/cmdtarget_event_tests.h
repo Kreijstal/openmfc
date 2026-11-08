@@ -48,7 +48,8 @@ static BOOL invoke(Target& target,UINT id,AFX_EVENT& event,void* info=nullptr) {
     return impl__OnEvent_CCmdTarget__QEAAHIPEAUAFX_EVENT__PEAUAFX_CMDHANDLERINFO___Z(&target,id,&event,info);
 }
 static void events() {
-    unsigned char ownerBytes[8]{},callerBytes[8]{};
+    // Module lookups read the native prefix, including the application at +8.
+    alignas(8) unsigned char ownerBytes[0x108]{},callerBytes[0x108]{};
     auto* owner=reinterpret_cast<AFX_MODULE_STATE*>(ownerBytes);
     auto* caller=reinterpret_cast<AFX_MODULE_STATE*>(callerBytes);
     g_cmdTestCurrentModule=owner;Target target;g_cmdTestCurrentModule=caller;

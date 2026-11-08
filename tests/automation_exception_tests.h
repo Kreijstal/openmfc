@@ -78,7 +78,8 @@ static void exceptions() {
     impl___1COleDispatchException__UEAA_XZ(constructed);
     COleDispatchException noCode;
     check(noCode.m_scError==E_UNEXPECTED && noCode.m_dwHelpContext==0,"zero-code dispatch exceptions initialize E_UNEXPECTED");
-    unsigned char ownerBytes[8]{},callerBytes[8]{};
+    // Module lookups read the native prefix, including the application at +8.
+    alignas(8) unsigned char ownerBytes[0x108]{},callerBytes[0x108]{};
     auto* owner=reinterpret_cast<AFX_MODULE_STATE*>(ownerBytes);
     auto* caller=reinterpret_cast<AFX_MODULE_STATE*>(callerBytes);
     g_cmdTestCurrentModule=owner;Target target;

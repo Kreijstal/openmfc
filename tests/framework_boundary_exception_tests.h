@@ -173,7 +173,8 @@ static void snapshots(AFX_MODULE_STATE* owner,AFX_MODULE_STATE* caller) {
 }
 }
 static void frameworkBoundaryExceptions() {
-    unsigned char ownerBytes[8]{},callerBytes[8]{};
+    // Module lookups read the native prefix, including the application at +8.
+    alignas(8) unsigned char ownerBytes[0x108]{},callerBytes[0x108]{};
     auto* owner=reinterpret_cast<AFX_MODULE_STATE*>(ownerBytes);
     auto* caller=reinterpret_cast<AFX_MODULE_STATE*>(callerBytes);
     framework_boundary_exception_tests::events(owner,caller);

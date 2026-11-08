@@ -82,7 +82,8 @@ static void constructor(Sink& first,Sink& second) {
         "exported enumerator destruction releases adopted sinks and preserves the allocation boundary");
 }
 static void enumeration() {
-    unsigned char ownerBytes[8]{},callerBytes[8]{};
+    // Module lookups read the native prefix, including the application at +8.
+    alignas(8) unsigned char ownerBytes[0x108]{},callerBytes[0x108]{};
     auto* owner=reinterpret_cast<AFX_MODULE_STATE*>(ownerBytes);
     auto* caller=reinterpret_cast<AFX_MODULE_STATE*>(callerBytes);
     Sink first,second,third;

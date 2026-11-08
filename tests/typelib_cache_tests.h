@@ -163,7 +163,8 @@ static void embeddedLookup(AFX_MODULE_STATE* owner,AFX_MODULE_STATE* caller) {
 }
 static void typeLibCache() {
     typelib_cache_tests::cacheStorage();
-    unsigned char ownerBytes[8]{},callerBytes[8]{};
+    // Module lookups read the native prefix, including the application at +8.
+    alignas(8) unsigned char ownerBytes[0x108]{},callerBytes[0x108]{};
     auto* owner=reinterpret_cast<AFX_MODULE_STATE*>(ownerBytes);auto* caller=reinterpret_cast<AFX_MODULE_STATE*>(callerBytes);
     typelib_cache_tests::targetLookup(owner,caller);typelib_cache_tests::embeddedLookup(owner,caller);
     g_cmdTestCurrentModule=nullptr;
