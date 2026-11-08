@@ -20,22 +20,13 @@ void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 IMPLEMENT_DYNAMIC(CGdiObject, CObject)
 
-// The standalone fixture calls the same C++ destructor used by temporary-map cleanup.
-namespace {
-bool inspectDestructorVptr;
-bool destructorVptrWasValid;
-}
-int CGdiObject::DeleteObject() {
-    if (inspectDestructorVptr)
-        destructorVptrWasValid = GetRuntimeClass() == &CGdiObject::classCGdiObject;
-    return impl__DeleteObject_CGdiObject__QEAAHXZ(this);
-}
-
 namespace {
 int failures;
 thread_local unsigned activeModule;
 alignas(16) thread_local BYTE moduleStates[2][sizeof(AFX_MODULE_THREAD_STATE)]{};
 thread_local void (*nextGetterCallback)();
+CGdiObject* destructorObject;
+bool destructorVptrWasValid;
 
 void check(bool ok, const char* label) {
     std::printf("%s: %s\n", ok ? "PASS" : "FAIL", label);
@@ -97,10 +88,15 @@ void objectVptrLifecycle() {
     std::memcpy(&constructedVptr, storage.bytes, sizeof(constructedVptr));
     check(constructedVptr != nullptr && object->GetRuntimeClass() == &CGdiObject::classCGdiObject,
           "CGdiObject constructor installs its runtime-class vptr");
-    inspectDestructorVptr = true;
+    // A non-null handle forces the production destructor through Detach's
+    // module lookup, where this boundary callback can observe its active vptr.
+    object->m_hObject = reinterpret_cast<HGDIOBJ>(UINT_PTR(0x1234));
+    destructorObject = object;
     destructorVptrWasValid = false;
+    nextGetterCallback = [] {
+        destructorVptrWasValid = destructorObject->GetRuntimeClass() == &CGdiObject::classCGdiObject;
+    };
     storage.destroy();
-    inspectDestructorVptr = false;
     check(destructorVptrWasValid,
           "CGdiObject destructor body observes its class vptr before DeleteObject");
 }
@@ -376,6 +372,15 @@ int main() {
     basicOperations(source, true);
     reattachment(source);
     getterBoundaries(source);
+    // Exercise the public C++ API as well as the exported aliases. Its bodies
+    // must come from production sources rather than fixture definitions.
+    const API cpp{
+        [](HGDIOBJ h) { return CGdiObject::FromHandle(h); },
+        [](CGdiObject* p,HGDIOBJ h) { return p->Attach(h); },
+        [](CGdiObject* p) { return p->Detach(); },
+        [](CGdiObject* p) { return p->DeleteObject(); },
+        [] { CGdiObject::DeleteTempMap(); },true};
+    basicOperations(cpp,true);
     isolation(source);
     cleanupSourceMaps();
 

@@ -12,6 +12,7 @@ namespace openmfc { namespace detail { CHandleMap* GetMenuHandleMap(bool create)
 
 extern "C" {
 CMenu* MS_ABI impl___0CMenu__QEAA_XZ(CMenu*);
+void MS_ABI impl___1CMenu__UEAA_XZ(CMenu*);
 int MS_ABI impl__CreateMenu_CMenu__QEAAHXZ(CMenu*);
 int MS_ABI impl__CreatePopupMenu_CMenu__QEAAHXZ(CMenu*);
 int MS_ABI impl__LoadMenuW_CMenu__QEAAHI_Z(CMenu*, UINT);
@@ -66,7 +67,7 @@ void MS_ABI callNativeDestructor(CMenu* menu) {
     nativeDestructor(menu, 0);
 }
 void MS_ABI callSourceDestructor(CMenu* menu) {
-    menu->CMenu::~CMenu();
+    impl___1CMenu__UEAA_XZ(menu);
 }
 
 struct API {
@@ -173,6 +174,7 @@ void wrapperAndOwnership(const API& api) {
     Object ownedWrapper;
     constructObject(api, ownedWrapper);
     api.attach(ownedWrapper.get(), owned);
+    *reinterpret_cast<void**>(ownedWrapper.get()) = reinterpret_cast<void*>(UINT_PTR(0xdeadbeef));
     api.destroy(ownedWrapper.get());
     check(ownedWrapper.get()->m_hMenu == nullptr && !::IsMenu(owned),
           "CMenu destruction owns and destroys an attached HMENU");

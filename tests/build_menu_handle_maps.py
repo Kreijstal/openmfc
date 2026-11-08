@@ -35,6 +35,7 @@ def main() -> None:
     parser.add_argument('--native-dll', type=Path,
                         default=Path('/home/kreijstal/msvc/VC/Redist/MSVC/14.51.36231/x64/Microsoft.VC145.MFC/mfc140u.dll'))
     parser.add_argument('--no-native', action='store_true', help='run source golden checks only')
+    parser.add_argument('--optimize', action='store_true')
     args = parser.parse_args()
 
     out = args.build.resolve()
@@ -47,6 +48,8 @@ def main() -> None:
              '/DUNICODE', '/D_UNICODE', '/DNOMINMAX', '/DOPENMFC_EXPORTS',
              '/D_WIN32_WINNT=0x0601', '/FIwinsock2.h', '/FIobjbase.h', '/FIcommdlg.h',
              '/FIshellapi.h', '/I' + str(ROOT / 'include'), '/I' + str(ROOT / 'phase4/src')]
+    if args.optimize:
+        flags.append('/O2')
     if sdk:
         if clang:
             for include in (vc / 'include', kit / 'ucrt', kit / 'um', kit / 'shared'):

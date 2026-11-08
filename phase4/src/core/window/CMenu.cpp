@@ -103,7 +103,7 @@ extern "C" int MS_ABI impl__GetMenuStringW_CMenu__QEBAHIAEAV_CString_I_Z(const C
     return (copied >= 0) ? copied : 0;
 }
 CMenu::~CMenu() {
-    impl___1CMenu__UEAA_XZ(this);
+    if (m_hMenu) ::DestroyMenu(impl__Detach_CMenu__QEAAPEAUHMENU____XZ(this));
 }
 int CMenu::CreateMenu() {
     return impl__CreateMenu_CMenu__QEAAHXZ(this);

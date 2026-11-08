@@ -49,3 +49,10 @@ extern "C" HGDIOBJ MS_ABI impl__Detach_CGdiObject__QEAAPEAXXZ(CGdiObject* pThis)
     pThis->m_hObject = nullptr;
     return h;
 }
+
+// C++ consumers and destructors share the same maps as imported ABI calls.
+int CGdiObject::DeleteObject() { return impl__DeleteObject_CGdiObject__QEAAHXZ(this); }
+int CGdiObject::Attach(HGDIOBJ handle) { return impl__Attach_CGdiObject__QEAAHPEAX_Z(this,handle); }
+HGDIOBJ CGdiObject::Detach() { return impl__Detach_CGdiObject__QEAAPEAXXZ(this); }
+CGdiObject* CGdiObject::FromHandle(HGDIOBJ handle) { return impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(handle); }
+void CGdiObject::DeleteTempMap() { impl__DeleteTempMap_CGdiObject__SAXXZ(); }

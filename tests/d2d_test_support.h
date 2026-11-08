@@ -4,9 +4,6 @@
 #include "detail/WindowHandleMapSupport.h"
 #include <cstdlib>
 
-// Unused GDI siblings in the shared support TU still need link definitions.
-// Abort if a drawing path unexpectedly reaches one of these test doubles.
-BOOL CGdiObject::DeleteObject() { std::abort(); }
 HINSTANCE g_d2dTestResourceModule = nullptr;
 #define g_cmdTestCurrentModule (AfxGetThreadState()->m_pModuleState)
 HINSTANCE g_typeCacheInstance=nullptr;
@@ -277,9 +274,6 @@ extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU h
     if(!handle)return nullptr;
     if(g_messageMenu && g_messageMenu->m_hMenu==handle)return g_messageMenu;
     std::abort();
-}
-extern "C" CGdiObject* MS_ABI impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(HGDIOBJ handle) {
-    return GetTempGdiObject(handle);
 }
 
 // Toolbar get/set siblings are peripheral to CToolCmdUI's state translation.

@@ -589,12 +589,12 @@ public:
 
 protected:
     // The retail prefix through m_ahSlideMode fits in the existing 0x80-byte
-    // tail. alignas(8) prevents MinGW from reusing CPane's four-byte base tail
-    // padding; MSVC already places this at +0x3f8. The byte array is retained
+    // tail. The explicit alignment keeps this storage on the native eight-byte
+    // boundary at +0x3f8. The byte array is retained
     // only as a source-compatibility view for the old constructor's memset; the
     // primary model is the named POD field struct. Later retail members live
     // in the pThis-keyed docking_state::PaneCoreState, not in a grown object.
-    alignas(8) union {
+    union alignas(8) {
         struct {
             RECT m_rectCloseButton;             // +0x3f8, ctor entry 0x3fe60 (mfc140u)
             bool m_bPrepareToFloat;             // +0x408, ctor entry 0x3fe60 (mfc140u)

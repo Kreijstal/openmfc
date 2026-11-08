@@ -67,10 +67,7 @@ extern "C" CMenu* MS_ABI impl___0CMenu__QEAA_XZ(CMenu* pThis) {
     return ::new (static_cast<void*>(pThis)) CMenu();
 }
 extern "C" void MS_ABI impl___1CMenu__UEAA_XZ(CMenu* pThis) {
-    if (pThis && pThis->m_hMenu) {
-        HMENU handle = impl__Detach_CMenu__QEAAPEAUHMENU____XZ(pThis);
-        ::DestroyMenu(handle);
-    }
+    if (pThis) pThis->CMenu::~CMenu();
 }
 extern "C" int MS_ABI impl__CreateMenu_CMenu__QEAAHXZ(CMenu* pThis) {
     if (!pThis) return FALSE;

@@ -278,6 +278,8 @@ on:
       - 'phase4/src/detail/InterfaceMapsSupport.*'
       - 'phase4/src/detail/CCmdTargetVirtualsSupport.h'
       - 'phase4/src/detail/GdicoreSupport.*'
+      - 'phase4/src/core/gdi/CGdiObject.cpp'
+      - 'phase4/src/detail/GdiObjectHandleMapSupport.*'
       - 'phase4/src/detail/FilecoreSupport.*'
       - 'phase4/src/detail/CollectionStateSupport.cpp'
       - 'phase4/src/core/collections/CObList.cpp'
@@ -570,6 +572,8 @@ on:
       - 'phase4/src/detail/InterfaceMapsSupport.*'
       - 'phase4/src/detail/CCmdTargetVirtualsSupport.h'
       - 'phase4/src/detail/GdicoreSupport.*'
+      - 'phase4/src/core/gdi/CGdiObject.cpp'
+      - 'phase4/src/detail/GdiObjectHandleMapSupport.*'
       - 'phase4/src/detail/FilecoreSupport.*'
       - 'phase4/src/detail/CollectionStateSupport.cpp'
       - 'phase4/src/core/collections/CObList.cpp'
@@ -625,6 +629,8 @@ jobs:
             echo /Fe:test_rendertarget_drawing.exe
             echo "%GITHUB_WORKSPACE%/tests/test_rendertarget_drawing.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/GdicoreSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CGdiObject.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/GdiObjectHandleMapSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CollectionStateSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CObList.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPtrArrayStorage.cpp"
@@ -861,6 +867,8 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DTextFormat.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CD2DTextLayout.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/GdicoreSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/gdi/CGdiObject.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/detail/GdiObjectHandleMapSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CollectionStateSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CObList.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CPtrArrayStorage.cpp"

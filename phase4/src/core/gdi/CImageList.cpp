@@ -11,6 +11,9 @@
 extern "C" void* AFXAPI impl___2_YAPEAX_K_Z(size_t);
 extern "C" CImageList* MS_ABI impl___0CImageList__QEAA_XZ(CImageList*);
 extern "C" void MS_ABI impl___1CImageList__UEAA_XZ(CImageList*);
+extern "C" int MS_ABI impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(CImageList*,HIMAGELIST);
+extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
+    const wchar_t*,const wchar_t*);
 
 namespace {
 void MS_ABI ConstructImageList(CObject* object) {
@@ -47,65 +50,39 @@ CHandleMap* GetImageListHandleMap(bool create) {
 // Create(cx, cy, flags, cInitial, cGrow)
 extern "C" int MS_ABI impl__Create_CImageList__QEAAHHHIHH_Z(
     CImageList* pThis, int cx, int cy, unsigned int nFlags, int nInitial, int nGrow) {
-    if (!pThis) return FALSE;
-    if (pThis->m_hImageList) {
-        ::ImageList_Destroy(pThis->m_hImageList);
-    }
-    pThis->m_hImageList = ::ImageList_Create(cx, cy, nFlags, nInitial, nGrow);
-    return pThis->m_hImageList != nullptr;
+    return impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(
+        pThis,::ImageList_Create(cx,cy,nFlags,nInitial,nGrow));
 }
 // Symbol: ?Create@CImageList@@QEAAHIHHK@Z
 // Create(nBitmapID, cx, nGrow, crMask) - load from resource ID
 extern "C" int MS_ABI impl__Create_CImageList__QEAAHIHHK_Z(
     CImageList* pThis, unsigned int nBitmapID, int cx, int nGrow, unsigned long crMask) {
-    if (!pThis) return FALSE;
-    if (pThis->m_hImageList) {
-        ::ImageList_Destroy(pThis->m_hImageList);
-    }
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    pThis->m_hImageList = ::ImageList_LoadImageW(
-        hInst, MAKEINTRESOURCEW(nBitmapID), cx, nGrow, crMask, IMAGE_BITMAP, LR_DEFAULTCOLOR);
-    return pThis->m_hImageList != nullptr;
+    const auto* name=MAKEINTRESOURCEW(nBitmapID);
+    HINSTANCE hInst=impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name,RT_BITMAP);
+    return impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(
+        pThis,::ImageList_LoadImageW(hInst,name,cx,nGrow,crMask,IMAGE_BITMAP,0));
 }
 // Symbol: ?Create@CImageList@@QEAAHPEB_WHHK@Z
 // Create(lpszBitmapID, cx, nGrow, crMask) - load from resource name
 extern "C" int MS_ABI impl__Create_CImageList__QEAAHPEB_WHHK_Z(
     CImageList* pThis, const wchar_t* lpszBitmapID, int cx, int nGrow, unsigned long crMask) {
-    if (!pThis || !lpszBitmapID) return FALSE;
-    if (pThis->m_hImageList) {
-        ::ImageList_Destroy(pThis->m_hImageList);
-    }
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    pThis->m_hImageList = ::ImageList_LoadImageW(
-        hInst, lpszBitmapID, cx, nGrow, crMask, IMAGE_BITMAP, LR_DEFAULTCOLOR);
-    return pThis->m_hImageList != nullptr;
+    HINSTANCE hInst=impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(lpszBitmapID,RT_BITMAP);
+    return impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(
+        pThis,::ImageList_LoadImageW(hInst,lpszBitmapID,cx,nGrow,crMask,IMAGE_BITMAP,0));
 }
 // Symbol: ?Create@CImageList@@QEAAHPEAV1@@Z
 // Create(pImageList) - copy constructor
 extern "C" int MS_ABI impl__Create_CImageList__QEAAHPEAV1__Z(CImageList* pThis, CImageList* pImageList) {
-    if (!pThis || !pImageList || !pImageList->m_hImageList) return FALSE;
-    if (pThis->m_hImageList) {
-        ::ImageList_Destroy(pThis->m_hImageList);
-    }
-    // Duplicate the image list
-    pThis->m_hImageList = ::ImageList_Duplicate(pImageList->m_hImageList);
-    return pThis->m_hImageList != nullptr;
+    return impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(
+        pThis,::ImageList_Duplicate(pImageList->m_hImageList));
 }
 // Symbol: ?Create@CImageList@@QEAAHAEAV1@H0HHH@Z
 // Create(imagelist&, ...) - merge/create combined
 extern "C" int MS_ABI impl__Create_CImageList__QEAAHAEAV1_H0HHH_Z(
     CImageList* pThis, CImageList* pImageList1, int nImage1, CImageList* pImageList2,
     int nImage2, int dx, int dy) {
-    if (!pThis) return FALSE;
-    if (pThis->m_hImageList) {
-        ::ImageList_Destroy(pThis->m_hImageList);
-        pThis->m_hImageList = nullptr;
-    }
-    HIMAGELIST h1 = pImageList1 ? pImageList1->m_hImageList : nullptr;
-    HIMAGELIST h2 = pImageList2 ? pImageList2->m_hImageList : nullptr;
-    if (!h1 && !h2) return FALSE;
-    pThis->m_hImageList = ::ImageList_Merge(h1, nImage1, h2, nImage2, dx, dy);
-    return pThis->m_hImageList != nullptr;
+    return impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(pThis,::ImageList_Merge(
+        pImageList1->m_hImageList,nImage1,pImageList2->m_hImageList,nImage2,dx,dy));
 }
 // Symbol: ?Attach@CImageList@@QEAAHPEAU_IMAGELIST@@@Z
 extern "C" int MS_ABI impl__Attach_CImageList__QEAAHPEAU_IMAGELIST___Z(

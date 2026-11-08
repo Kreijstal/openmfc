@@ -19,6 +19,9 @@ void MS_ABI impl__DeleteTempMap_CImageList__SAXXZ();
 void* AFXAPI impl___2_YAPEAX_K_Z(size_t);
 void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
+int MS_ABI impl__Create_CImageList__QEAAHHHIHH_Z(CImageList*,int,int,UINT,int,int);
+int MS_ABI impl__Create_CImageList__QEAAHPEAV1__Z(CImageList*,CImageList*);
+int MS_ABI impl__Create_CImageList__QEAAHPEB_WHHK_Z(CImageList*,const wchar_t*,int,int,COLORREF);
 }
 
 IMPLEMENT_DYNCREATE(CImageList, CObject)
@@ -45,6 +48,9 @@ struct API {
     CImageList* (MS_ABI* permanent)(HIMAGELIST);
     void (MS_ABI* clear)();
     const char* label;
+    decltype(&impl__Create_CImageList__QEAAHHHIHH_Z) create;
+    decltype(&impl__Create_CImageList__QEAAHPEAV1__Z) duplicate;
+    decltype(&impl__Create_CImageList__QEAAHPEB_WHHK_Z) load;
 };
 struct Object {
     alignas(16) BYTE bytes[sizeof(CImageList)];
@@ -127,6 +133,28 @@ static void sourceGetterMutation(const API& api) {
     api.destroy(self);
 }
 
+static void creators(const API& api) {
+    Object owner,copy,cleanup;
+    auto* self=api.construct(owner.get());
+    auto* other=api.construct(copy.get());
+    auto* stale=api.construct(cleanup.get());
+    check(api.create(self,7,9,ILC_COLOR32,1,1)!=FALSE,"Create succeeds and attaches its image list");
+    HIMAGELIST first=self->m_hImageList;
+    check(api.permanent(first)==self && api.from(first)==self,"Create publishes the permanent wrapper");
+    check(api.duplicate(other,self)!=FALSE && other->m_hImageList!=first &&
+          api.permanent(other->m_hImageList)==other,"duplicate Create publishes a separate permanent wrapper");
+    check(!api.load(self,L"OpenMFC_missing_bitmap_5e88ba31",7,1,CLR_NONE) &&
+          self->m_hImageList==first && api.permanent(first)==self,
+          "failed bitmap loading preserves the existing handle and permanent registration");
+    check(api.create(self,11,13,ILC_COLOR32,1,1)!=FALSE,"Create can overwrite an existing attachment");
+    int cx=0,cy=0;
+    check(api.permanent(first)==self && api.permanent(self->m_hImageList)==self &&
+          ImageList_GetIconSize(first,&cx,&cy) && cx==7 && cy==9,
+          "repeated Create preserves the previous handle and old permanent key");
+    api.attach(stale,first);api.detach(stale);ImageList_Destroy(first);
+    api.destroy(self);api.destroy(other);api.destroy(stale);
+}
+
 static void cleanupSourceMaps();
 static void sourceIsolation(const API& api) {
     moduleIndex = 0;
@@ -180,6 +208,11 @@ extern "C" AFX_MODULE_THREAD_STATE::NewHandler MS_ABI
 impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(AFX_MODULE_THREAD_STATE::NewHandler) { return nullptr; }
 
 HINSTANCE AFXAPI AfxGetInstanceHandle() { return nullptr; }
+extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
+    const wchar_t*,const wchar_t* type) {
+    check(type==RT_BITMAP,"image-list resource loading requests RT_BITMAP");
+    return GetModuleHandleW(nullptr);
+}
 _AFX_THREAD_STATE* AFXAPI AfxGetThreadState() { return nullptr; }
 CArchive& CArchive::operator>>(void*&) { return *this; }
 CArchive& CArchive::operator>>(int&) { return *this; }
@@ -197,8 +230,12 @@ int main() {
                      impl__DeleteImageList_CImageList__QEAAHXZ,
                      impl__FromHandle_CImageList__SAPEAV1_PEAU_IMAGELIST___Z,
                      impl__FromHandlePermanent_CImageList__SAPEAV1_PEAU_IMAGELIST___Z,
-                     impl__DeleteTempMap_CImageList__SAXXZ, "OpenMFC"};
+                     impl__DeleteTempMap_CImageList__SAXXZ, "OpenMFC",
+                     impl__Create_CImageList__QEAAHHHIHH_Z,
+                     impl__Create_CImageList__QEAAHPEAV1__Z,
+                     impl__Create_CImageList__QEAAHPEB_WHHK_Z};
     exercise(source, true);
+    creators(source);
     sourceGetterMutation(source);
     sourceIsolation(source);
     cleanupSourceMaps();
@@ -217,11 +254,14 @@ int main() {
                     RVA(decltype(source.construct), 0x296bc0), RVA(decltype(source.destroy), 0x296be0),
                     RVA(decltype(source.attach), 0x296e60), RVA(decltype(source.detach), 0x296c30),
                     RVA(decltype(source.remove), 0x296c80), RVA(decltype(source.from), 0x296cb0),
-                    RVA(decltype(source.permanent), 0x296ce0), RVA(decltype(source.clear), 0x2a6230), "native MFC"};
+                    RVA(decltype(source.permanent), 0x296ce0), RVA(decltype(source.clear), 0x2a6230), "native MFC",
+                    RVA(decltype(source.create),0x296d10),RVA(decltype(source.duplicate),0x29c910),
+                    RVA(decltype(source.load),0x296db0)};
 #undef RVA
                 // Native AFX module state is initialized by DLL startup. Its own
                 // per-thread maps are exercised independently from the source fixture.
                 exercise(native, true);
+                creators(native);
             }
             FreeLibrary(image);
         }

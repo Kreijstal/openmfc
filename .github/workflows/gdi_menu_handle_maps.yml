@@ -1,0 +1,46 @@
+name: GDI, menu and image-list handle maps
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/gdi/**'
+      - 'phase4/src/core/window/CMenu.cpp'
+      - 'phase4/src/core/collections/**'
+      - 'phase4/src/detail/CMenuSupport.*'
+      - 'phase4/src/detail/GdiObjectHandleMapSupport.*'
+      - 'phase4/src/detail/CHandleMapSupport.*'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'tests/*handle_map*'
+      - '.github/workflows/gdi_menu_handle_maps.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/gdi/**'
+      - 'phase4/src/core/window/CMenu.cpp'
+      - 'phase4/src/core/collections/**'
+      - 'phase4/src/detail/CMenuSupport.*'
+      - 'phase4/src/detail/GdiObjectHandleMapSupport.*'
+      - 'phase4/src/detail/CHandleMapSupport.*'
+      - 'phase4/src/detail/CFixedAllocSupport.*'
+      - 'phase4/src/detail/ModuleThreadStateSupport.h'
+      - 'tests/*handle_map*'
+      - '.github/workflows/gdi_menu_handle_maps.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: ${{ matrix.kind }} (${{ matrix.flags == '' && 'default' || 'optimized' }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [gdi, menu, imagelist]
+        flags: ['', '--optimize']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Build and verify production handle maps
+        shell: cmd
+        run: python tests/build_${{ matrix.kind }}_handle_maps.py --build "%RUNNER_TEMP%/${{ matrix.kind }}-handles" ${{ matrix.flags }}
