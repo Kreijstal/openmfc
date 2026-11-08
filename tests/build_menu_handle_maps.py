@@ -10,6 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = [
     'phase4/src/core/window/CMenu.cpp',
+    'phase4/src/core/runtime/RuntimeClassFactory.cpp',
     'phase4/src/detail/CMenuSupport.cpp',
     'phase4/src/core/collections/CHandleMap.cpp',
     'phase4/src/detail/CHandleMapSupport.cpp',

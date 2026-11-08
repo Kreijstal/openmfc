@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'include/openmfc/**'
+      - 'phase4/src/core/runtime/RuntimeClassFactory.cpp'
       - 'phase4/src/core/gdi/**'
       - 'phase4/src/core/window/CMenu.cpp'
       - 'phase4/src/core/collections/**'
@@ -16,6 +17,7 @@ on:
   pull_request:
     paths:
       - 'include/openmfc/**'
+      - 'phase4/src/core/runtime/RuntimeClassFactory.cpp'
       - 'phase4/src/core/gdi/**'
       - 'phase4/src/core/window/CMenu.cpp'
       - 'phase4/src/core/collections/**'
