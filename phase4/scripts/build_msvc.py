@@ -192,6 +192,12 @@ def assembler_flags(assembler):
     return (['--m64'] if Path(assembler).name.lower().startswith('llvm-ml') else []) + ['/nologo', '/c']
 
 
+def compile_command(source, obj, tool, flags):
+    # ML64 applies /Fo to subsequent source files. Keep the output option
+    # before the input for both compiler families.
+    return [tool, *flags, *(['/c'] if source.suffix == '.cpp' else []), '/Fo' + str(obj), str(source)]
+
+
 def sources():
     # OpenMfcExports is an application helper. ManualThunks is an obsolete
     # generated default-return file, never a production implementation.
@@ -245,9 +251,7 @@ def main():
                 return result
         metadata.unlink(missing_ok=True)
         with Path(result['log']).open('w') as log:
-            process = subprocess.run([tool, *tool_flags, str(source), '/Fo' + str(obj)]
-                                     if source.suffix == '.asm' else
-                                     [tool, *tool_flags, '/c', str(source), '/Fo' + str(obj)],
+            process = subprocess.run(compile_command(source, obj, tool, tool_flags),
                                      cwd=out, env=env, stdout=log, stderr=subprocess.STDOUT)
         result.update(exit_code=process.returncode, cached=False)
         if process.returncode == 0:

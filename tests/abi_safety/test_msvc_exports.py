@@ -152,6 +152,21 @@ class NativeExportTests(unittest.TestCase):
                            check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             self.assertEqual({entry['symbol']: entry['ordinal'] for entry in entries}, build_msvc.pe_exports(dll))
 
+    def test_real_assembler_writes_the_requested_object_path(self):
+        compiler=os.environ.get('OPENMFC_TEST_MSVC_COMPILER') or shutil.which('cl' if os.name=='nt' else 'clang-cl')
+        assembler=build_msvc.default_assembler(compiler) if compiler else None
+        if not assembler or not shutil.which(assembler):
+            self.skipTest('requires an x64 MASM-compatible assembler')
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);(out/'src').mkdir();(out/'objects').mkdir()
+            source=out/'src/input.asm';obj=out/'objects/selected.obj'
+            source.write_text('PUBLIC helper\n.code\nhelper PROC\nret\nhelper ENDP\nEND\n')
+            subprocess.run(build_msvc.compile_command(source,obj,assembler,build_msvc.assembler_flags(assembler)),
+                           cwd=out,env=dict(os.environ,WINEDEBUG='-all'),check=True,
+                           stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            self.assertIn('helper',build_msvc.defined_symbols(obj))
+            self.assertFalse((out/'input.obj').exists())
+
 
 if __name__ == '__main__':
     unittest.main()
