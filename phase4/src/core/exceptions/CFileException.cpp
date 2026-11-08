@@ -105,17 +105,9 @@ int CFileException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pn
 extern "C" int MS_ABI impl__ErrnoToException_CFileException__SAHH_Z(int nErrno) {
     return FileExceptionFromErrno(nErrno);
 }
-// Symbol: ?OsErrorToException@CFileException@@SAHJ@Z
-extern "C" int MS_ABI impl__OsErrorToException_CFileException__SAHJ_Z(long lOsError) {
-    return FileExceptionFromOsError(lOsError);
-}
 // Symbol: ?ThrowErrno@CFileException@@SAXHPEB_W@Z
 extern "C" void MS_ABI impl__ThrowErrno_CFileException__SAXHPEB_W_Z(int nErrno, const wchar_t* lpszFileName) {
     impl__AfxThrowFileException__YAXHJPEB_W_Z(FileExceptionFromErrno(nErrno), static_cast<long>(nErrno), lpszFileName);
-}
-// Symbol: ?ThrowOsError@CFileException@@SAXJPEB_W@Z
-extern "C" void MS_ABI impl__ThrowOsError_CFileException__SAXJPEB_W_Z(long lOsError, const wchar_t* lpszFileName) {
-    impl__AfxThrowFileException__YAXHJPEB_W_Z(FileExceptionFromOsError(lOsError), lOsError, lpszFileName);
 }
 // Symbol: ?GetRuntimeClass@CFileException@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFileException__UEBAPEAUCRuntimeClass__XZ(const void* pThis) {

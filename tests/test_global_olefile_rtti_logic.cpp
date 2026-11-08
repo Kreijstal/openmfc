@@ -1,27 +1,20 @@
-// Behavioral test for the OLE file/stream RTTI getters (global_olefile_rtti.cpp).
-//
-// Includes the impl .cpp directly and drives the exported impl_ thunks. Verifies
-// each descriptor's name / object size / schema (all DECLARE_DYNAMIC -> 0xFFFF, no
-// factory), that GetRuntimeClass returns the same static descriptor as GetThisClass
-// (no self-dispatch recursion), and that the base-class link chains correctly down to the
-// CFile::classCFile root, including a CCachedDataPathProperty IsDerivedFrom walk.
-
-#include "../phase4/src/core/ole/RuntimeClasses.cpp"
-
+// Verify the actual production OLE file runtime-class providers and ancestry.
+#include "openmfc/afxole.h"
 #include <cstdio>
 #include <cstring>
-
-// Base CRuntimeClass statics referenced by the impl's chains and dragged in by
-// afxole.h's class graph; defined here only so the standalone test TU links.
-// CFile::classCFile is the new descriptor the companion CFile fix added.
-CRuntimeClass CCmdTarget::classCCmdTarget{};
-CRuntimeClass CWinThread::classCWinThread{};
-CRuntimeClass CWinApp::classCWinApp{};
-CRuntimeClass CWnd::classCWnd{};
-CRuntimeClass CFile::classCFile = {
-    "CFile", 40, 0xFFFF, nullptr, nullptr, &CObject::classCObject, nullptr
-};
-
+#ifndef MS_ABI
+#define MS_ABI
+#endif
+extern "C" CRuntimeClass* impl__GetThisClass_COleStreamFile__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* impl__GetRuntimeClass_COleStreamFile__UEBAPEAUCRuntimeClass__XZ(const void*);
+extern "C" CRuntimeClass* impl__GetThisClass_CMonikerFile__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* impl__GetRuntimeClass_CMonikerFile__UEBAPEAUCRuntimeClass__XZ(const void*);
+extern "C" CRuntimeClass* impl__GetThisClass_CAsyncMonikerFile__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* impl__GetRuntimeClass_CAsyncMonikerFile__UEBAPEAUCRuntimeClass__XZ(const void*);
+extern "C" CRuntimeClass* impl__GetThisClass_CDataPathProperty__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* impl__GetRuntimeClass_CDataPathProperty__UEBAPEAUCRuntimeClass__XZ(const void*);
+extern "C" CRuntimeClass* impl__GetThisClass_CCachedDataPathProperty__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* impl__GetRuntimeClass_CCachedDataPathProperty__UEBAPEAUCRuntimeClass__XZ(const void*);
 static int g_fail = 0;
 static void check(bool c, const char* what) {
     std::printf("%s: %s\n", c ? "PASS" : "FAIL", what);
@@ -36,7 +29,7 @@ struct Case {
     CRuntimeClass* base;
 };
 
-int main() {
+int VerifyOleFileRuntimeClasses() {
     Case cases[] = {
         { impl__GetThisClass_COleStreamFile__SAPEAUCRuntimeClass__XZ,
           impl__GetRuntimeClass_COleStreamFile__UEBAPEAUCRuntimeClass__XZ,
@@ -67,8 +60,8 @@ int main() {
         check(rc->m_nObjectSize == c.size, buf);
         std::snprintf(buf, sizeof(buf), "%s: schema 0xFFFF, no factory", c.name);
         check(rc->m_wSchema == 0xFFFF && rc->m_pfnCreateObject == nullptr, buf);
-        std::snprintf(buf, sizeof(buf), "%s: m_pfnGetBaseClass and m_pNextClass null", c.name);
-        check(rc->m_pfnGetBaseClass == nullptr && rc->m_pNextClass == nullptr, buf);
+        std::snprintf(buf, sizeof(buf), "%s: DLL base getter is present, list/init links are null", c.name);
+        check(rc->m_pfnGetBaseClass != nullptr && rc->m_pNextClass == nullptr && rc->m_pClassInit == nullptr, buf);
         std::snprintf(buf, sizeof(buf), "%s: GetRuntimeClass == GetThisClass", c.name);
         check(c.getRC(nullptr) == rc, buf);
         std::snprintf(buf, sizeof(buf), "%s: the base-class link chains correctly", c.name);
@@ -91,3 +84,7 @@ int main() {
     std::printf("RESULT: %s (%d failures)\n", g_fail == 0 ? "ALL PASS" : "FAILED", g_fail);
     return g_fail == 0 ? 0 : 1;
 }
+
+#ifndef OPENMFC_TEST_OLEFILE_RTTI_HELPER
+int main() { return VerifyOleFileRuntimeClasses(); }
+#endif

@@ -1,7 +1,7 @@
 // CFile uses a CObject root and the native 40-byte file state.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
-#include <shlwapi.h>
+#include "detail/FileStatusSupport.h"
 #include <algorithm>
 
 extern "C" void impl__AfxThrowFileException__YAXHJPEB_W_Z(int,long,const wchar_t*);
@@ -9,53 +9,11 @@ extern "C" int impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t*,UINT,UINT);
 extern "C" void impl__ThrowOsError_CFileException__SAXJPEB_W_Z(long,const wchar_t*);
 extern "C" int impl__OsErrorToException_CFileException__SAHJ_Z(long);
 
+using namespace openmfc::detail::files;
 namespace {
 void ThrowLastFileError(const CFile* file) {
     const wchar_t* name = file->m_strFileName.GetString();
     impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
-}
-void FillFileError(CFileException* error, const wchar_t* name) {
-    if (!error) return;
-    error->m_lOsError = GetLastError();
-    error->m_cause = impl__OsErrorToException_CFileException__SAHJ_Z(error->m_lOsError);
-    error->m_strFileName = name;
-}
-void BadFilePath(CFileException* error, const wchar_t* name) {
-    if (!error) return;
-    error->m_cause = CFileException::badPath;
-    if (name) error->m_strFileName = name;
-}
-BOOL FullFilePath(wchar_t* output, const wchar_t* name, CFileException* error) {
-    wchar_t* leaf;
-    DWORD size = GetFullPathNameW(name,MAX_PATH,output,&leaf);
-    if (!size) {
-        wcsncpy_s(output,MAX_PATH,name,_TRUNCATE);
-        FillFileError(error,name);
-        return FALSE;
-    }
-    if (size >= MAX_PATH) { BadFilePath(error,name); return FALSE; }
-    wchar_t root[MAX_PATH];
-    wcscpy_s(root,output);
-    PathStripToRootW(root);
-    if (!PathIsUNCW(root)) {
-        DWORD maxComponent, flags;
-        if (!GetVolumeInformationW(root,nullptr,0,nullptr,&maxComponent,&flags,nullptr,0)) {
-            FillFileError(error,name);
-            return FALSE;
-        }
-        if (!(flags & FILE_CASE_PRESERVED_NAMES)) CharUpperW(output);
-        if (!(flags & FILE_UNICODE_ON_DISK)) {
-            WIN32_FIND_DATAW data;
-            HANDLE found = FindFirstFileW(name,&data);
-            if (found != INVALID_HANDLE_VALUE) {
-                FindClose(found);
-                if (!leaf || leaf <= output) { FillFileError(error,name); return FALSE; }
-                if (leaf-output+wcslen(data.cFileName) >= MAX_PATH) { BadFilePath(error,name); return FALSE; }
-                wcscpy_s(leaf,MAX_PATH-(leaf-output),data.cFileName);
-            }
-        }
-    }
-    return TRUE;
 }
 // ATL's transaction manager is an external ABI type: handle then fallback BOOL.
 // Read its documented native fields without constructing an unrelated adapter.
@@ -73,16 +31,6 @@ HANDLE TransactionFile(ATL::CAtlTransactionManager* manager,const wchar_t* name,
     auto call = reinterpret_cast<CreateTransacted>(GetProcAddress(module,"CreateFileTransactedW"));
     return call ? call(name,access,share,security,create,flags,nullptr,transaction,nullptr,nullptr) : INVALID_HANDLE_VALUE;
 }
-void ReportFileDestructor(CException* error) {
-    wchar_t text[512];
-    CString message;
-    const wchar_t* file = L"D:\\\\a\\\\_work\\\\1\\\\s\\\\src\\\\vctools\\\\VC7Libs\\\\Ship\\\\ATLMFC\\\\Src\\\\MFC\\\\filecore.cpp";
-    if (error->GetErrorMessage(text,512,nullptr))
-        message.Format(L"%ls (%ls:%d)\n%ls",L"Exception thrown in destructor",file,137,text);
-    else message.Format(L"%ls (%ls:%d)",L"Exception thrown in destructor",file,137);
-    impl__AfxMessageBox__YAHPEB_WII_Z(message,0,0);
-    delete error;
-}
 }
 
 const HANDLE CFile::hFileNull = INVALID_HANDLE_VALUE;
@@ -93,7 +41,7 @@ CFile::CFile(const wchar_t* name, UINT flags) { CommonInit(name,flags,nullptr); 
 CFile::CFile(const wchar_t* name, UINT flags, ATL::CAtlTransactionManager* manager) { CommonInit(name,flags,manager); }
 CFile::~CFile() {
     try { if (m_hFile != hFileNull && m_bCloseOnDelete) CFile::Close(); }
-    catch (CException* error) { ReportFileDestructor(error); }
+    catch (CException* error) { ReportDestructor(error,L"D:\\a\\_work\\1\\s\\src\\vctools\\VC7Libs\\Ship\\ATLMFC\\Src\\MFC\\filecore.cpp",137); }
 }
 void CFile::CommonBaseInit(HANDLE handle, ATL::CAtlTransactionManager* manager) {
     m_hFile = handle;

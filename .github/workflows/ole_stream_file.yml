@@ -1,0 +1,55 @@
+name: OLE stream file ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/file/**'
+      - 'phase4/src/core/exceptions/CFileOsError.cpp'
+      - 'phase4/src/detail/*File*'
+      - 'phase4/src/core/ole/COleStreamFile.cpp'
+      - 'phase4/src/core/ole/RuntimeClasses.cpp'
+      - 'phase4/src/core/ole/OleFileRuntimeClasses.cpp'
+      - 'phase4/src/core/ole/Thunks.cpp'
+      - 'tests/test_colestreamfile_logic.cpp'
+      - 'tests/test_global_olefile_rtti_logic.cpp'
+      - 'tests/build_ole_stream_file.py'
+      - 'tests/build_memory_files.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/ole_stream_file.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/file/**'
+      - 'phase4/src/core/exceptions/CFileOsError.cpp'
+      - 'phase4/src/detail/*File*'
+      - 'phase4/src/core/ole/COleStreamFile.cpp'
+      - 'phase4/src/core/ole/RuntimeClasses.cpp'
+      - 'phase4/src/core/ole/OleFileRuntimeClasses.cpp'
+      - 'phase4/src/core/ole/Thunks.cpp'
+      - 'tests/test_colestreamfile_logic.cpp'
+      - 'tests/test_global_olefile_rtti_logic.cpp'
+      - 'tests/build_ole_stream_file.py'
+      - 'tests/build_memory_files.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/ole_stream_file.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: OLE stream file ABI (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify stream ownership, COM callbacks, status and failure propagation
+        shell: cmd
+        run: python tests/build_ole_stream_file.py --build "%RUNNER_TEMP%/ole-stream-file" ${{ matrix.flags }}

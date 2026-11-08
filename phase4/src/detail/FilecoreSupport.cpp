@@ -101,23 +101,4 @@ int FileExceptionFromErrno(int nErrno) {
         default: return kGenericException;
     }
 }
-int FileExceptionFromOsError(long lOsError) {
-    enum FileCause {
-        kGenericException = 1,
-        kFileNotFound = 2,
-        kAccessDenied = 5,
-        kSharingViolation = 10,
-        kLockViolation = 11,
-        kDiskFull = 13
-    };
-    switch (lOsError) {
-        case ERROR_FILE_NOT_FOUND:
-        case ERROR_PATH_NOT_FOUND: return kFileNotFound;
-        case ERROR_ACCESS_DENIED: return kAccessDenied;
-        case ERROR_SHARING_VIOLATION: return kSharingViolation;
-        case ERROR_LOCK_VIOLATION: return kLockViolation;
-        case ERROR_DISK_FULL: return kDiskFull;
-        default: return kGenericException;
-    }
-}
 } } }  // namespace openmfc::detail::filecore

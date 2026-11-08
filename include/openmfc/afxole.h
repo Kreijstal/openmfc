@@ -916,28 +916,36 @@ protected:
 //=============================================================================
 class COleStreamFile : public CFile {
 public:
-    COleStreamFile(LPSTREAM lpStream = nullptr);
-    virtual ~COleStreamFile();
-
-    LPSTREAM GetStream() const;
-    BOOL OpenStream(LPSTORAGE lpStorage, const wchar_t* lpszStreamName, DWORD nOpenFlags = STGM_READWRITE | STGM_SHARE_EXCLUSIVE);
-    BOOL CreateStream(LPSTORAGE lpStorage, const wchar_t* lpszStreamName, DWORD nOpenFlags = STGM_READWRITE | STGM_SHARE_EXCLUSIVE | STGM_CREATE);
-    void Attach(LPSTREAM lpStream);
+    explicit COleStreamFile(LPSTREAM stream = nullptr);
+    ~COleStreamFile() override;
+    static AFX_DATA CRuntimeClass classCOleStreamFile;
+    static CRuntimeClass* GetThisClass() { return &classCOleStreamFile; }
+    CRuntimeClass* GetRuntimeClass() const override { return GetThisClass(); }
+    BOOL OpenStream(LPSTORAGE, const wchar_t*, DWORD = modeReadWrite|shareExclusive, CFileException* = nullptr);
+    BOOL CreateStream(LPSTORAGE, const wchar_t*, DWORD = modeReadWrite|shareExclusive|modeCreate, CFileException* = nullptr);
+    BOOL CreateMemoryStream(CFileException* = nullptr);
+    void Attach(LPSTREAM);
     LPSTREAM Detach();
-
-    // Override CFile
-    virtual UINT Read(void* lpBuf, UINT nCount) override;
-    virtual void Write(const void* lpBuf, UINT nCount) override;
-    virtual ULONGLONG Seek(LONGLONG lOff, UINT nFrom) override;
-    void LockRange(ULONGLONG dwPos, ULONGLONG dwCount);
-    void UnlockRange(ULONGLONG dwPos, ULONGLONG dwCount);
-
-public:
+    LPSTREAM GetStream() const;
+    int GetStatus(CFileStatus&) const;
+    ULONGLONG GetPosition() const override;
+    virtual const CString GetStorageName() const;
+    CFile* Duplicate() const override;
+    ULONGLONG Seek(LONGLONG, UINT) override;
+    void SetLength(ULONGLONG) override;
+    ULONGLONG GetLength() const override;
+    UINT Read(void*, UINT) override;
+    void Write(const void*, UINT) override;
+    void LockRange(ULONGLONG, ULONGLONG) override;
+    void UnlockRange(ULONGLONG, ULONGLONG) override;
+    void Abort() override;
+    void Flush() override;
+    void Close() override;
     LPSTREAM m_lpStream;
-
 protected:
     CString m_strStorageName;
 };
+static_assert(sizeof(COleStreamFile)==56 && offsetof(COleStreamFile,m_lpStream)==40, "native stream file model");
 
 //=============================================================================
 // COlePropertyPage - OLE Property Page

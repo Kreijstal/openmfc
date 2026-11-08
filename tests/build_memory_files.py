@@ -18,6 +18,8 @@ def sources():
             'phase4/src/core/file/CMemFile.cpp',
             'phase4/src/core/file/CSharedFile.cpp',
             'phase4/src/detail/CSharedFileSupport.cpp',
+            'phase4/src/detail/FileStatusSupport.cpp',
+            'phase4/src/core/exceptions/CFileOsError.cpp',
             'tests/test_memory_files.cpp']
 
 
@@ -60,11 +62,16 @@ def verify_vtables(path, cls, slots):
                    'Open', 'Open', 'Duplicate', 'Seek', 'SetLength', 'GetLength', 'Read', 'Write',
                    'LockRange', 'UnlockRange', 'Abort', 'Flush', 'Close', 'GetBufferPtr',
                    'Alloc', 'Realloc', 'Memcpy', 'Free', 'GrowFile']
+        if cls == 'COleStreamFile':
+            methods = methods[:24]+['GetStorageName']
         expected = {i: '?' + method + '@' for i, method in enumerate(methods[:slots]) if method}
         assert 'PEAVCAtlTransactionManager@ATL@@' in targets[10], targets[10]
         assert 'TransactionManager' not in targets[11], targets[11]
         for slot, prefix in expected.items():
             assert targets[slot].startswith(prefix), (slot, targets[slot], prefix)
+        if cls == 'COleStreamFile':
+            for slot in [0,5,12,13,14,15,16,17,18,19,20,21,22,24]:
+                assert targets[slot].startswith('?' + methods[slot] + '@COleStreamFile@@'), (slot, targets[slot])
     print(f'{cls}: all {slots} compiler-generated virtual slots match native order', flush=True)
 
 def main():
@@ -106,7 +113,7 @@ def main():
         objects = list(pool.map(compile_one, sources()))
     sys.path.insert(0, str(ROOT / 'phase4/scripts'))
     import build_msvc
-    checked=sources()[:3]
+    checked=sources()[:3]+['phase4/src/core/exceptions/CFileOsError.cpp']
     defined,names=set(),set()
     for source in checked:
         obj=out / (source.removesuffix('.cpp').replace('/','_')+'.obj')
@@ -114,7 +121,7 @@ def main():
         names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==69, (len(entries), len(names))
+    assert len(entries)==len(names)==71, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
         for name in re.findall(r'^// Symbol: (.+)$', path.read_text(), re.M):
@@ -123,7 +130,7 @@ def main():
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 69 file-family exports have actual providers',flush=True)
+    print('All 71 file-family exports have actual providers',flush=True)
     for relative, cls, slots in [(sources()[0], 'CFile', 24), (sources()[1], 'CMemFile', 29),
                                  (sources()[3], 'CSharedFile', 29)]:
         verify_vtables(out / (relative.removesuffix('.cpp').replace('/', '_') + '.obj'), cls, slots)

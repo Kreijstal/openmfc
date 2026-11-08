@@ -1283,11 +1283,6 @@ extern "C" void MS_ABI impl___1COleServerDoc__UEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl___1COleServerItem__UEAA_XZ(void* pThis) {
     ((COleServerItem*)pThis)->~COleServerItem();
 }
-// Symbol: ??1COleStreamFile@@UEAA@XZ
-// Destructor: COleStreamFile::~COleStreamFile
-extern "C" void MS_ABI impl___1COleStreamFile__UEAA_XZ(void* pThis) {
-    ((COleStreamFile*)pThis)->~COleStreamFile();
-}
 // Symbol: ??1COleUpdateDialog@@UEAA@XZ
 // Destructor: COleUpdateDialog::~COleUpdateDialog
 extern "C" void MS_ABI impl___1COleUpdateDialog__UEAA_XZ(void* pThis) {
@@ -1372,11 +1367,6 @@ extern "C" int MS_ABI impl__AmbientUserMode_COleControl__QEAAHXZ(COleControl* pT
 // COleDataObject::Attach
 extern "C" void MS_ABI impl__Attach_COleDataObject__QEAAXPEAUIDataObject__H_Z(COleDataObject* pThis, IDataObject* p0, int p1) {
     pThis->Attach(p0, p1);
-}
-// Symbol: ?Attach@COleStreamFile@@QEAAXPEAUIStream@@@Z
-// COleStreamFile::Attach
-extern "C" void MS_ABI impl__Attach_COleStreamFile__QEAAXPEAUIStream___Z(COleStreamFile* pThis, IStream* p0) {
-    pThis->Attach(p0);
 }
 // Symbol: ?AttachClipboard@COleDataObject@@QEAAHXZ
 // COleDataObject::AttachClipboard
@@ -1522,11 +1512,6 @@ extern "C" int MS_ABI impl__DestroyControl_COleControlSite__UEAAHXZ(COleControlS
 // COleDataObject::Detach
 extern "C" IDataObject* MS_ABI impl__Detach_COleDataObject__QEAAPEAUIDataObject__XZ(COleDataObject* pThis) {
     return (IDataObject*)pThis->Detach();
-}
-// Symbol: ?Detach@COleStreamFile@@QEAAPEAUIStream@@XZ
-// COleStreamFile::Detach
-extern "C" IStream* MS_ABI impl__Detach_COleStreamFile__QEAAPEAUIStream__XZ(COleStreamFile* pThis) {
-    return (IStream*)pThis->Detach();
 }
 // Symbol: ?DoChangeIcon@COleChangeIconDialog@@QEAAHPEAVCOleClientItem@@@Z
 // COleChangeIconDialog::DoChangeIcon
@@ -1789,11 +1774,6 @@ extern "C" unsigned int MS_ABI impl__GetSelectionType_COlePasteSpecialDialog__QE
 extern "C" void* MS_ABI impl__GetStartPosition_COleDocument__UEBAPEAU__POSITION__XZ(const COleDocument* pThis) {
     return (void*)pThis->GetStartPosition();
 }
-// Symbol: ?GetStream@COleStreamFile@@QEBAPEAUIStream@@XZ
-// COleStreamFile::GetStream
-extern "C" IStream* MS_ABI impl__GetStream_COleStreamFile__QEBAPEAUIStream__XZ(const COleStreamFile* pThis) {
-    return (IStream*)pThis->GetStream();
-}
 // Symbol: ?GetStyle@COleControlSiteOrWnd@@QEBAKXZ
 // COleControlSiteOrWnd::GetStyle
 extern "C" unsigned long MS_ABI impl__GetStyle_COleControlSiteOrWnd__QEBAKXZ(const COleControlSiteOrWnd* pThis) {
@@ -1843,11 +1823,6 @@ extern "C" int MS_ABI impl__IsModified_COleClientItem__QEBAHXZ(const COleClientI
 // COleControl::IsSubclassedControl
 extern "C" int MS_ABI impl__IsSubclassedControl_COleControl__UEAAHXZ(COleControl* pThis) {
     return (int)pThis->IsSubclassedControl();
-}
-// Symbol: ?LockRange@COleStreamFile@@UEAAX_K0@Z
-// COleStreamFile::LockRange
-extern "C" void MS_ABI impl__LockRange_COleStreamFile__UEAAX_K0_Z(COleStreamFile* pThis, unsigned __int64 p0, unsigned __int64 p1) {
-    pThis->LockRange(p0, p1);
 }
 // Symbol: ?MapResult@COleDialog@@QEAAHI@Z
 // COleDialog::MapResult
@@ -2049,11 +2024,6 @@ extern "C" void MS_ABI impl__OnShowViews_COleDocument__UEAAXH_Z(COleDocument* pT
 extern "C" void MS_ABI impl__PreInitDialog_COleChangeSourceDialog__UEAAXXZ(COleChangeSourceDialog* pThis) {
     pThis->PreInitDialog();
 }
-// Symbol: ?Read@COleStreamFile@@UEAAIPEAXI@Z
-// COleStreamFile::Read
-extern "C" unsigned int MS_ABI impl__Read_COleStreamFile__UEAAIPEAXI_Z(COleStreamFile* pThis, void* p0, unsigned int p1) {
-    return (unsigned int)pThis->Read(p0, p1);
-}
 // Symbol: ?Register@COleMessageFilter@@QEAAHXZ
 // COleMessageFilter::Register
 extern "C" int MS_ABI impl__Register_COleMessageFilter__QEAAHXZ(COleMessageFilter* pThis) {
@@ -2118,11 +2088,6 @@ extern "C" void MS_ABI impl__RevokeAll_COleObjectFactory__SAXXZ() {
 // COleServerDoc::SaveEmbedding
 extern "C" void MS_ABI impl__SaveEmbedding_COleServerDoc__QEAAXXZ(COleServerDoc* pThis) {
     pThis->SaveEmbedding();
-}
-// Symbol: ?Seek@COleStreamFile@@UEAA_K_JI@Z
-// COleStreamFile::Seek
-extern "C" unsigned __int64 MS_ABI impl__Seek_COleStreamFile__UEAA_K_JI_Z(COleStreamFile* pThis, __int64 p0, unsigned int p1) {
-    return (unsigned __int64)pThis->Seek(p0, p1);
 }
 // Symbol: ?Serialize@COleClientItem@@UEAAXAEAVCArchive@@@Z
 // COleClientItem::Serialize
@@ -2239,11 +2204,6 @@ extern "C" void MS_ABI impl__SetText_COleControl__QEAAXPEB_W_Z(COleControl* pThi
 extern "C" void MS_ABI impl__UnaccessData_COleSafeArray__QEAAXXZ(COleSafeArray* pThis) {
     pThis->UnaccessData();
 }
-// Symbol: ?UnlockRange@COleStreamFile@@UEAAX_K0@Z
-// COleStreamFile::UnlockRange
-extern "C" void MS_ABI impl__UnlockRange_COleStreamFile__UEAAX_K0_Z(COleStreamFile* pThis, unsigned __int64 p0, unsigned __int64 p1) {
-    pThis->UnlockRange(p0, p1);
-}
 // Symbol: ?Unregister@COleObjectFactory@@QEAAHXZ
 // COleObjectFactory::Unregister
 extern "C" int MS_ABI impl__Unregister_COleObjectFactory__QEAAHXZ(COleObjectFactory* pThis) {
@@ -2288,9 +2248,4 @@ extern "C" int MS_ABI impl__VerifyLicenseKey_COleObjectFactory__MEAAHPEA_W_Z(COl
 // COleObjectFactory::VerifyUserLicense
 extern "C" int MS_ABI impl__VerifyUserLicense_COleObjectFactory__MEAAHXZ(COleObjectFactory* pThis) {
     return (int)pThis->VerifyUserLicense();
-}
-// Symbol: ?Write@COleStreamFile@@UEAAXPEBXI@Z
-// COleStreamFile::Write
-extern "C" void MS_ABI impl__Write_COleStreamFile__UEAAXPEBXI_Z(COleStreamFile* pThis, const void* p0, unsigned int p1) {
-    pThis->Write(p0, p1);
 }

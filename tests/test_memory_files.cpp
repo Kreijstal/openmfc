@@ -22,14 +22,11 @@ void CFileException::Dump() const { std::abort(); }
 void CFileException::AssertValid() const { std::abort(); }
 extern "C" int impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t*,UINT,UINT) { std::abort(); }
 struct BoundaryError { int kind; long os; };
+extern "C" void impl__AfxThrowOleException__YAXJ_Z(long code) { throw BoundaryError{6,code}; }
 void AFXAPI AfxThrowMemoryException() { throw BoundaryError{1,0}; }
 void AFXAPI AfxThrowInvalidArgException() { throw BoundaryError{2,0}; }
 extern "C" void impl__AfxThrowNotSupportedException__YAXXZ() { throw BoundaryError{3,0}; }
 extern "C" void impl__AfxThrowFileException__YAXHJPEB_W_Z(int cause,long os,const wchar_t*) { throw BoundaryError{cause==9?4:5,os}; }
-extern "C" int impl__OsErrorToException_CFileException__SAHJ_Z(long error) {
-    return error==ERROR_FILE_NOT_FOUND ? CFileException::fileNotFound : CFileException::genericException;
-}
-extern "C" void impl__ThrowOsError_CFileException__SAXJPEB_W_Z(long error,const wchar_t* name) { impl__AfxThrowFileException__YAXHJPEB_W_Z(1,error,name); }
 
 #define FILE_API(X) \
  X(ctor,impl___0CMemFile__QEAA_I_Z,"??0CMemFile@@QEAA@I@Z",0x22ae70,CMemFile*,(void*,UINT)) \

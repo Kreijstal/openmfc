@@ -4,6 +4,7 @@ on:
     paths:
       - 'include/openmfc/**'
       - 'phase4/src/core/file/**'
+      - 'phase4/src/core/exceptions/CFileOsError.cpp'
       - 'phase4/src/detail/*File*'
       - 'tests/test_memory_files.cpp'
       - 'tests/build_memory_files.py'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'include/openmfc/**'
       - 'phase4/src/core/file/**'
+      - 'phase4/src/core/exceptions/CFileOsError.cpp'
       - 'phase4/src/detail/*File*'
       - 'tests/test_memory_files.cpp'
       - 'tests/build_memory_files.py'
