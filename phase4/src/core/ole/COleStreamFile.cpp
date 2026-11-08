@@ -215,7 +215,7 @@ extern "C" COleStreamFile* MS_ABI impl___0COleStreamFile__QEAA_PEAUIStream___Z(C
 }
 COleStreamFile::COleStreamFile(LPSTREAM lpStream)
     : CFile(), m_lpStream(lpStream) {
-    memset(_olestreamfile_padding, 0, sizeof(_olestreamfile_padding));
+
 }
 COleStreamFile::~COleStreamFile() {
     if (m_lpStream) {

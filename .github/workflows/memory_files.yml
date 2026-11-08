@@ -1,0 +1,41 @@
+name: Memory and shared file ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/file/**'
+      - 'phase4/src/detail/*File*'
+      - 'tests/test_memory_files.cpp'
+      - 'tests/build_memory_files.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/memory_files.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/file/**'
+      - 'phase4/src/detail/*File*'
+      - 'tests/test_memory_files.cpp'
+      - 'tests/build_memory_files.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/memory_files.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Memory and shared file ABI (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify file layouts, allocator callbacks and shared handle ownership
+        shell: cmd
+        run: python tests/build_memory_files.py --build "%RUNNER_TEMP%/memory-files" ${{ matrix.flags }}

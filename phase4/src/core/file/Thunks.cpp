@@ -1113,35 +1113,10 @@
 
 // Generated 1074 thunks
 // Errors (could not parse): 0
-// Symbol: ??0CFile@@QEAA@PEAX@Z
-// Constructor: CFile::CFile
-extern "C" void* MS_ABI impl___0CFile__QEAA_PEAX_Z(void* pThis, void* p0) {
-    return new(pThis) CFile(p0);
-}
-// Symbol: ??0CFile@@QEAA@PEB_WI@Z
-// Constructor: CFile::CFile
-extern "C" void* MS_ABI impl___0CFile__QEAA_PEB_WI_Z(void* pThis, const wchar_t* p0, unsigned int p1) {
-    return new(pThis) CFile(p0, p1);
-}
-// Symbol: ??0CFile@@QEAA@XZ
-// Constructor: CFile::CFile
-extern "C" void* MS_ABI impl___0CFile__QEAA_XZ(void* pThis) {
-    return new(pThis) CFile();
-}
 // Symbol: ??0CFileFind@@QEAA@XZ
 // Constructor: CFileFind::CFileFind
 extern "C" void* MS_ABI impl___0CFileFind__QEAA_XZ(void* pThis) {
     return new(pThis) CFileFind();
-}
-// Symbol: ??0CMemFile@@QEAA@I@Z
-// Constructor: CMemFile::CMemFile
-extern "C" void* MS_ABI impl___0CMemFile__QEAA_I_Z(void* pThis, unsigned int p0) {
-    return new(pThis) CMemFile(p0);
-}
-// Symbol: ??0CMemFile@@QEAA@PEAEII@Z
-// Constructor: CMemFile::CMemFile
-extern "C" void* MS_ABI impl___0CMemFile__QEAA_PEAEII_Z(void* pThis, unsigned char* p0, unsigned int p1, unsigned int p2) {
-    return new(pThis) CMemFile(p0, p1, p2);
 }
 // Symbol: ??0CStdioFile@@QEAA@PEB_WI@Z
 // Constructor: CStdioFile::CStdioFile
@@ -1153,30 +1128,15 @@ extern "C" void* MS_ABI impl___0CStdioFile__QEAA_PEB_WI_Z(void* pThis, const wch
 extern "C" void* MS_ABI impl___0CStdioFile__QEAA_XZ(void* pThis) {
     return new(pThis) CStdioFile();
 }
-// Symbol: ??1CFile@@UEAA@XZ
-// Destructor: CFile::~CFile
-extern "C" void MS_ABI impl___1CFile__UEAA_XZ(void* pThis) {
-    ((CFile*)pThis)->~CFile();
-}
 // Symbol: ??1CFileFind@@UEAA@XZ
 // Destructor: CFileFind::~CFileFind
 extern "C" void MS_ABI impl___1CFileFind__UEAA_XZ(void* pThis) {
     ((CFileFind*)pThis)->~CFileFind();
 }
-// Symbol: ??1CMemFile@@UEAA@XZ
-// Destructor: CMemFile::~CMemFile
-extern "C" void MS_ABI impl___1CMemFile__UEAA_XZ(void* pThis) {
-    ((CMemFile*)pThis)->~CMemFile();
-}
 // Symbol: ??1CStdioFile@@UEAA@XZ
 // Destructor: CStdioFile::~CStdioFile
 extern "C" void MS_ABI impl___1CStdioFile__UEAA_XZ(void* pThis) {
     ((CStdioFile*)pThis)->~CStdioFile();
-}
-// Symbol: ?Attach@CMemFile@@QEAAXPEAEII@Z
-// CMemFile::Attach
-extern "C" void MS_ABI impl__Attach_CMemFile__QEAAXPEAEII_Z(CMemFile* pThis, unsigned char* p0, unsigned int p1, unsigned int p2) {
-    pThis->Attach(p0, p1, p2);
 }
 // Symbol: ?Close@CFileFind@@QEAAXXZ
 // CFileFind::Close
@@ -1188,20 +1148,10 @@ extern "C" void MS_ABI impl__Close_CFileFind__QEAAXXZ(CFileFind* pThis) {
 extern "C" void MS_ABI impl__Close_CStdioFile__UEAAXXZ(CStdioFile* pThis) {
     pThis->Close();
 }
-// Symbol: ?Detach@CMemFile@@QEAAPEAEXZ
-// CMemFile::Detach
-extern "C" unsigned char* MS_ABI impl__Detach_CMemFile__QEAAPEAEXZ(CMemFile* pThis) {
-    return (unsigned char*)pThis->Detach();
-}
 // Symbol: ?FindFile@CFileFind@@UEAAHPEB_WK@Z
 // CFileFind::FindFile
 extern "C" int MS_ABI impl__FindFile_CFileFind__UEAAHPEB_WK_Z(CFileFind* pThis, const wchar_t* p0, unsigned long p1) {
     return (int)pThis->FindFile(p0, p1);
-}
-// Symbol: ?Flush@CMemFile@@UEAAXXZ
-// CMemFile::Flush
-extern "C" void MS_ABI impl__Flush_CMemFile__UEAAXXZ(CMemFile* pThis) {
-    pThis->Flush();
 }
 // Symbol: ?Flush@CStdioFile@@UEAAXXZ
 // CStdioFile::Flush
@@ -1228,16 +1178,6 @@ extern "C" int MS_ABI impl__GetLastWriteTime_CFileFind__UEBAHPEAU_FILETIME___Z(c
 extern "C" unsigned __int64 MS_ABI impl__GetLength_CFileFind__QEBA_KXZ(const CFileFind* pThis) {
     return (unsigned __int64)pThis->GetLength();
 }
-// Symbol: ?GetLength@CMemFile@@UEBA_KXZ
-// CMemFile::GetLength
-extern "C" unsigned __int64 MS_ABI impl__GetLength_CMemFile__UEBA_KXZ(const CMemFile* pThis) {
-    return (unsigned __int64)pThis->GetLength();
-}
-// Symbol: ?GetStatus@CFile@@QEBAHAEAUCFileStatus@@@Z
-// CFile::GetStatus
-extern "C" int MS_ABI impl__GetStatus_CFile__QEBAHAEAUCFileStatus___Z(const CFile* pThis, CFileStatus* p0) {
-    return (int)pThis->GetStatus((*p0));
-}
 // Symbol: ?IsDots@CFileFind@@UEBAHXZ
 // CFileFind::IsDots
 extern "C" int MS_ABI impl__IsDots_CFileFind__UEBAHXZ(const CFileFind* pThis) {
@@ -1247,11 +1187,6 @@ extern "C" int MS_ABI impl__IsDots_CFileFind__UEBAHXZ(const CFileFind* pThis) {
 // CFileFind::MatchesMask
 extern "C" int MS_ABI impl__MatchesMask_CFileFind__UEBAHK_Z(const CFileFind* pThis, unsigned long p0) {
     return (int)pThis->MatchesMask(p0);
-}
-// Symbol: ?Read@CMemFile@@UEAAIPEAXI@Z
-// CMemFile::Read
-extern "C" unsigned int MS_ABI impl__Read_CMemFile__UEAAIPEAXI_Z(CMemFile* pThis, void* p0, unsigned int p1) {
-    return (unsigned int)pThis->Read(p0, p1);
 }
 // Symbol: ?Read@CStdioFile@@UEAAIPEAXI@Z
 // CStdioFile::Read
@@ -1263,30 +1198,10 @@ extern "C" unsigned int MS_ABI impl__Read_CStdioFile__UEAAIPEAXI_Z(CStdioFile* p
 extern "C" wchar_t* MS_ABI impl__ReadString_CStdioFile__UEAAPEA_WPEA_WI_Z(CStdioFile* pThis, wchar_t* p0, unsigned int p1) {
     return (wchar_t*)pThis->ReadString(p0, p1);
 }
-// Symbol: ?Seek@CMemFile@@UEAA_K_JI@Z
-// CMemFile::Seek
-extern "C" unsigned __int64 MS_ABI impl__Seek_CMemFile__UEAA_K_JI_Z(CMemFile* pThis, __int64 p0, unsigned int p1) {
-    return (unsigned __int64)pThis->Seek(p0, p1);
-}
 // Symbol: ?Seek@CStdioFile@@UEAA_K_JI@Z
 // CStdioFile::Seek
 extern "C" unsigned __int64 MS_ABI impl__Seek_CStdioFile__UEAA_K_JI_Z(CStdioFile* pThis, __int64 p0, unsigned int p1) {
     return (unsigned __int64)pThis->Seek(p0, p1);
-}
-// Symbol: ?SetLength@CFile@@UEAAX_K@Z
-// CFile::SetLength
-extern "C" void MS_ABI impl__SetLength_CFile__UEAAX_K_Z(CFile* pThis, unsigned __int64 p0) {
-    pThis->SetLength(p0);
-}
-// Symbol: ?SetLength@CMemFile@@UEAAX_K@Z
-// CMemFile::SetLength
-extern "C" void MS_ABI impl__SetLength_CMemFile__UEAAX_K_Z(CMemFile* pThis, unsigned __int64 p0) {
-    pThis->SetLength(p0);
-}
-// Symbol: ?Write@CMemFile@@UEAAXPEBXI@Z
-// CMemFile::Write
-extern "C" void MS_ABI impl__Write_CMemFile__UEAAXPEBXI_Z(CMemFile* pThis, const void* p0, unsigned int p1) {
-    pThis->Write(p0, p1);
 }
 // Symbol: ?Write@CStdioFile@@UEAAXPEBXI@Z
 // CStdioFile::Write

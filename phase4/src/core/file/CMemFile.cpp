@@ -1,229 +1,241 @@
-// CMemFile — OpenMFC implementation.
-// Sources: filecore.cpp
-
+// CMemFile storage and dispatch use the Windows/MSVC object model.
 #define OPENMFC_APPCORE_IMPL
+#include "openmfc/afxwin.h"
+#include <algorithm>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
 
-#include "detail/FilecoreSupport.h"
+extern "C" void impl__AfxThrowFileException__YAXHJPEB_W_Z(int,long,const wchar_t*);
+extern "C" void impl__AfxThrowNotSupportedException__YAXXZ();
 
-// Symbol: ?GetPosition@CMemFile@@UEBA_KXZ
-extern "C" unsigned long long MS_ABI impl__GetPosition_CMemFile__UEBA_KXZ(const CMemFile* pThis) {
-    return pThis ? CMemFileAccessor::Position(pThis) : 0;
-}
-// Symbol: ?Abort@CMemFile@@UEAAXXZ
-extern "C" void MS_ABI impl__Abort_CMemFile__UEAAXXZ(CMemFile* pThis) {
-    if (!pThis) return;
-    CMemFileAccessor::Position(pThis) = 0;
-}
-// Symbol: ?Close@CMemFile@@UEAAXXZ
-extern "C" void MS_ABI impl__Close_CMemFile__UEAAXXZ(CMemFile* pThis) {
-    if (!pThis) return;
-    CMemFileAccessor::Position(pThis) = 0;
-}
-// Symbol: ?Duplicate@CMemFile@@UEBAPEAVCFile@@XZ
-extern "C" CFile* MS_ABI impl__Duplicate_CMemFile__UEBAPEAVCFile__XZ(const CMemFile* pThis) {
-    if (!pThis) return nullptr;
-    CMemFile* pDup = new CMemFile(CMemFileAccessor::GrowBytes(pThis));
-    ULONGLONG len = pThis->GetLength();
-    if (len > 0) {
-        pDup->SetLength(len);
-        memcpy(CMemFileAccessor::Buffer(pDup), CMemFileAccessor::Buffer(pThis), static_cast<size_t>(len));
-    }
-    CMemFileAccessor::Position(pDup) = CMemFileAccessor::Position(pThis);
-    return pDup;
-}
-// Symbol: ?GetBufferPtr@CMemFile@@UEAAIIIPEAPEAX0@Z
-extern "C" unsigned int MS_ABI impl__GetBufferPtr_CMemFile__UEAAIIIPEAPEAX0_Z(
-    CMemFile* pThis, unsigned int /*nCommand*/, unsigned int nCount, void** ppBufStart, void** ppBufMax) {
-    if (!pThis) return 0;
-    if (ppBufStart) {
-        BYTE* buf = CMemFileAccessor::Buffer(pThis);
-        UINT pos = CMemFileAccessor::Position(pThis);
-        UINT size = CMemFileAccessor::BufferSize(pThis);
-        *ppBufStart = (buf && pos < size) ? (void*)(buf + pos) : nullptr;
-    }
-    if (ppBufMax) {
-        BYTE* buf = CMemFileAccessor::Buffer(pThis);
-        *ppBufMax = buf ? (void*)(buf + CMemFileAccessor::BufferSize(pThis)) : nullptr;
-    }
-    UINT pos = CMemFileAccessor::Position(pThis);
-    UINT size = CMemFileAccessor::BufferSize(pThis);
-    UINT nAvail = (pos < size) ? (size - pos) : 0;
-    return (nCount < nAvail) ? nCount : nAvail;
-}
-// Symbol: ?GetStatus@CMemFile@@QEBAHAEAUCFileStatus@@@Z
-extern "C" int MS_ABI impl__GetStatus_CMemFile__QEBAHAEAUCFileStatus___Z(const CMemFile* pThis, CFileStatus& rStatus) {
-    if (!pThis) return 0;
-    memset(&rStatus, 0, sizeof(rStatus));
-    rStatus.m_size = pThis->GetLength();
-    return 1;
-}
-// Symbol: ?Alloc@CMemFile@@MEAAPEAE_K@Z
-extern "C" unsigned char* MS_ABI impl__Alloc_CMemFile__MEAAPEAE_K_Z(CMemFile* /*pThis*/, unsigned long long nBytes) {
-    return static_cast<unsigned char*>(malloc(static_cast<size_t>(nBytes)));
-}
-// Symbol: ?Realloc@CMemFile@@MEAAPEAEPEAE_K@Z
-extern "C" unsigned char* MS_ABI impl__Realloc_CMemFile__MEAAPEAEPEAE_K_Z(
-    CMemFile* /*pThis*/, unsigned char* pMem, unsigned long long nBytes) {
-    return static_cast<unsigned char*>(realloc(pMem, static_cast<size_t>(nBytes)));
-}
-// Symbol: ?Free@CMemFile@@MEAAXPEAE@Z
-extern "C" void MS_ABI impl__Free_CMemFile__MEAAXPEAE_Z(CMemFile* /*pThis*/, unsigned char* pMem) {
-    free(pMem);
-}
-// Symbol: ?Memcpy@CMemFile@@MEAAPEAEPEAEPEBE_K@Z
-extern "C" unsigned char* MS_ABI impl__Memcpy_CMemFile__MEAAPEAEPEAEPEBE_K_Z(
-    CMemFile* /*pThis*/, unsigned char* pDest, unsigned char* pOrigDest, const unsigned char* pSrc, unsigned long long nBytes) {
-    // pOrigDest is part of the exported ABI signature.
-    (void)pOrigDest;
-    if (!pDest || !pSrc) return pDest;
-    return static_cast<unsigned char*>(memcpy(pDest, pSrc, static_cast<size_t>(nBytes)));
-}
-// Symbol: ?GrowFile@CMemFile@@MEAAX_K@Z
-extern "C" void MS_ABI impl__GrowFile_CMemFile__MEAAX_K_Z(CMemFile* pThis, unsigned long long dwNewLen) {
-    if (!pThis) return;
-    pThis->SetLength(dwNewLen);
-}
-// Symbol: ?LockRange@CMemFile@@UEAAX_K0@Z
-extern "C" void MS_ABI impl__LockRange_CMemFile__UEAAX_K0_Z(CMemFile* pThis, unsigned long long dwPos, unsigned long long dwCount) {
-    if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
-    auto& state = EnsureCollectionState<CMemFile, CMemFileLockState>(pThis);
-    AddMemFileRange(state, dwPos, dwCount);
-}
-// Symbol: ?UnlockRange@CMemFile@@UEAAX_K0@Z
-extern "C" void MS_ABI impl__UnlockRange_CMemFile__UEAAX_K0_Z(CMemFile* pThis, unsigned long long dwPos, unsigned long long dwCount) {
-    if (!pThis) return;
-    std::lock_guard<std::mutex> lock(g_collectionStateMutex);
-    auto* state = FindCollectionState<CMemFile, CMemFileLockState>(pThis);
-    if (!state) return;
-    RemoveMemFileRange(*state, dwPos, dwCount);
-    if (state->ranges.empty()) {
-        RemoveCollectionState<CMemFile, CMemFileLockState>(pThis);
-    }
-}
-// Symbol: ?GetThisClass@CMemFile@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemFile__SAPEAUCRuntimeClass__XZ() {
-    return &CMemFile::classCMemFile;
-}
-// Symbol: ?GetRuntimeClass@CMemFile@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMemFile__UEBAPEAUCRuntimeClass__XZ(const CMemFile* pThis) {
-    (void)pThis;
-    return &CMemFile::classCMemFile;
-}
-CMemFile::CMemFile(UINT nGrowBytes)
-    : m_lpBuffer(nullptr), m_nBufferSize(0), m_nFileSize(0),
-      m_nGrowBytes(nGrowBytes), m_nPosition(0), m_bAutoDelete(true)
-{
-    m_hFile = INVALID_HANDLE_VALUE;
-}
-CMemFile::CMemFile(BYTE* lpBuffer, UINT nBufferSize, UINT nGrowBytes)
-    : m_lpBuffer(lpBuffer), m_nBufferSize(nBufferSize), m_nFileSize(nBufferSize),
-      m_nGrowBytes(nGrowBytes), m_nPosition(0), m_bAutoDelete(false)
-{
-    m_hFile = INVALID_HANDLE_VALUE;
+CMemFile::CMemFile(UINT grow)
+    : m_nGrowBytes(grow), m_nPosition(0), m_nBufferSize(0), m_nFileSize(0),
+      m_lpBuffer(nullptr), m_bAutoDelete(TRUE) {}
+CMemFile::CMemFile(BYTE* buffer, UINT capacity, UINT grow) {
+    Attach(buffer, capacity, grow);
 }
 CMemFile::~CMemFile() {
-    if (m_bAutoDelete && m_lpBuffer) {
-        free(m_lpBuffer);
-    }
+    if (m_lpBuffer) CMemFile::Close();
+    m_nGrowBytes = m_nPosition = m_nBufferSize = m_nFileSize = 0;
 }
-UINT CMemFile::Read(void* lpBuf, UINT nCount) {
-    if (!lpBuf || nCount == 0) return 0;
-
-    UINT nAvail = (m_nPosition < m_nFileSize) ? (m_nFileSize - m_nPosition) : 0;
-    UINT nRead = (nCount < nAvail) ? nCount : nAvail;
-
-    if (nRead > 0 && m_lpBuffer) {
-        memcpy(lpBuf, m_lpBuffer + m_nPosition, nRead);
-        m_nPosition += nRead;
-    }
-
-    return nRead;
-}
-void CMemFile::Write(const void* lpBuf, UINT nCount) {
-    if (!lpBuf || nCount == 0) return;
-
-    // Grow buffer if needed
-    UINT nNewSize = m_nPosition + nCount;
-    if (nNewSize > m_nBufferSize) {
-        UINT nGrow = (m_nGrowBytes > 0) ? m_nGrowBytes : 1024;
-        UINT nNewBufSize = ((nNewSize + nGrow - 1) / nGrow) * nGrow;
-
-        BYTE* pNewBuf = (BYTE*)realloc(m_lpBuffer, nNewBufSize);
-        if (!pNewBuf) return;
-
-        m_lpBuffer = pNewBuf;
-        m_nBufferSize = nNewBufSize;
-        m_bAutoDelete = true;
-    }
-
-    memcpy(m_lpBuffer + m_nPosition, lpBuf, nCount);
-    m_nPosition += nCount;
-
-    if (m_nPosition > m_nFileSize) {
-        m_nFileSize = m_nPosition;
-    }
-}
-ULONGLONG CMemFile::Seek(LONGLONG lOff, UINT nFrom) {
-    LONGLONG lNewPos;
-    switch (nFrom) {
-        case begin:   lNewPos = lOff; break;
-        case current: lNewPos = m_nPosition + lOff; break;
-        case end:     lNewPos = m_nFileSize + lOff; break;
-        default:      lNewPos = lOff; break;
-    }
-
-    if (lNewPos < 0) lNewPos = 0;
-    m_nPosition = (UINT)lNewPos;
-    return m_nPosition;
-}
-void CMemFile::SetLength(ULONGLONG dwNewLen) {
-    UINT nNewLen = (UINT)dwNewLen;
-
-    if (nNewLen > m_nBufferSize) {
-        UINT nGrow = (m_nGrowBytes > 0) ? m_nGrowBytes : 1024;
-        UINT nNewBufSize = ((nNewLen + nGrow - 1) / nGrow) * nGrow;
-
-        BYTE* pNewBuf = (BYTE*)realloc(m_lpBuffer, nNewBufSize);
-        if (!pNewBuf) return;
-
-        m_lpBuffer = pNewBuf;
-        m_nBufferSize = nNewBufSize;
-        m_bAutoDelete = true;
-    }
-
-    m_nFileSize = nNewLen;
-    if (m_nPosition > m_nFileSize) {
-        m_nPosition = m_nFileSize;
-    }
-}
-ULONGLONG CMemFile::GetLength() const {
-    return m_nFileSize;
-}
-void CMemFile::Flush() {
-    // Nothing to flush for memory file
+void CMemFile::Attach(BYTE* buffer, UINT capacity, UINT grow) {
+    if (!buffer && capacity) AfxThrowInvalidArgException();
+    m_nGrowBytes = grow;
+    m_nPosition = 0;
+    m_nBufferSize = capacity;
+    m_nFileSize = grow ? 0 : capacity;
+    m_lpBuffer = buffer;
+    m_bAutoDelete = FALSE;
 }
 BYTE* CMemFile::Detach() {
-    BYTE* lpBuffer = m_lpBuffer;
+    BYTE* result = m_lpBuffer;
     m_lpBuffer = nullptr;
-    m_nBufferSize = 0;
-    m_nFileSize = 0;
-    m_nPosition = 0;
-    m_bAutoDelete = true;
-    return lpBuffer;
+    m_nPosition = m_nBufferSize = m_nFileSize = 0;
+    return result;
 }
-void CMemFile::Attach(BYTE* lpBuffer, UINT nBufferSize, UINT nGrowBytes) {
-    if (m_bAutoDelete && m_lpBuffer) {
-        free(m_lpBuffer);
+BYTE* CMemFile::Alloc(SIZE_T bytes) { return static_cast<BYTE*>(malloc(bytes)); }
+BYTE* CMemFile::Realloc(BYTE* buffer, SIZE_T bytes) { return static_cast<BYTE*>(realloc(buffer, bytes)); }
+void CMemFile::Free(BYTE* buffer) { free(buffer); }
+BYTE* CMemFile::Memcpy(BYTE* dest, const BYTE* src, SIZE_T bytes) {
+    if (bytes) {
+        if (!dest || !src) {
+            if (dest) memset(dest, 0, bytes);
+            errno = EINVAL;
+            _invalid_parameter_noinfo();
+            AfxThrowInvalidArgException();
+        }
+        memcpy(dest, src, bytes);
     }
-    m_lpBuffer = lpBuffer;
-    m_nBufferSize = nBufferSize;
-    m_nFileSize = nBufferSize;
-    m_nGrowBytes = nGrowBytes;
-    m_nPosition = 0;
-    m_bAutoDelete = false;
+    return dest;
 }
-static CRuntimeClass* AFXAPI _openmfc_gb_classCMemFile() { return &CFile::classCFile; }
-CRuntimeClass CMemFile::classCMemFile = {
-    "CMemFile", 88, 0xFFFF, nullptr, &_openmfc_gb_classCMemFile, nullptr, nullptr
+void CMemFile::GrowFile(SIZE_T requested) {
+    SIZE_T capacity = m_nBufferSize;
+    if (requested <= capacity) return;
+    if (!m_nGrowBytes) AfxThrowMemoryException();
+    do { capacity += m_nGrowBytes; } while (capacity < requested);
+    BYTE* buffer = m_lpBuffer ? Realloc(m_lpBuffer, capacity) : Alloc(capacity);
+    if (!buffer) AfxThrowMemoryException();
+    m_lpBuffer = buffer;
+    m_nBufferSize = capacity;
+}
+ULONGLONG CMemFile::GetPosition() const { return m_nPosition; }
+ULONGLONG CMemFile::GetLength() const { return m_nFileSize; }
+void CMemFile::SetLength(ULONGLONG length) {
+    if (length > UINT_MAX) AfxThrowMemoryException();
+    if (length > m_nBufferSize) GrowFile(static_cast<SIZE_T>(length));
+    if (length < m_nPosition) m_nPosition = length;
+    m_nFileSize = length;
+}
+UINT CMemFile::Read(void* output, UINT count) {
+    if (!count) return 0;
+    if (!output) AfxThrowInvalidArgException();
+    if (m_nPosition > m_nFileSize) return 0;
+    ULONGLONG end = m_nPosition + count;
+    if (end < m_nPosition || end > m_nFileSize)
+        count = static_cast<UINT>(m_nFileSize) - static_cast<UINT>(m_nPosition);
+    Memcpy(static_cast<BYTE*>(output), m_lpBuffer + m_nPosition, count);
+    m_nPosition += count;
+    return count;
+}
+void CMemFile::Write(const void* input, UINT count) {
+    if (!count) return;
+    if (!input) AfxThrowInvalidArgException();
+    ULONGLONG end = m_nPosition + count;
+    if (end < m_nPosition) AfxThrowInvalidArgException();
+    if (end > m_nBufferSize) GrowFile(static_cast<SIZE_T>(end));
+    if (m_nPosition + count > m_nBufferSize) AfxThrowInvalidArgException();
+    Memcpy(m_lpBuffer + m_nPosition, static_cast<const BYTE*>(input), count);
+    m_nPosition += count;
+    if (m_nPosition > m_nFileSize) m_nFileSize = m_nPosition;
+}
+ULONGLONG CMemFile::Seek(LONGLONG offset, UINT origin) {
+    ULONGLONG position;
+    switch (origin) {
+    case begin: position = static_cast<ULONGLONG>(offset); break;
+    case current: position = m_nPosition + offset; break;
+    case end:
+        if (offset > 0) impl__AfxThrowFileException__YAXHJPEB_W_Z(CFileException::badSeek, -1, nullptr);
+        position = m_nFileSize + offset;
+        break;
+    default: return m_nPosition;
+    }
+    if (static_cast<LONGLONG>(position) < 0)
+        impl__AfxThrowFileException__YAXHJPEB_W_Z(CFileException::badSeek, -1, nullptr);
+    // This DWORD comparison is observable even though the stored position is 64 bit.
+    if (static_cast<UINT>(position) > m_nFileSize) GrowFile(static_cast<SIZE_T>(position));
+    m_nPosition = position;
+    return position;
+}
+void CMemFile::Close() {
+    BYTE* buffer = m_lpBuffer;
+    m_nGrowBytes = m_nPosition = m_nBufferSize = m_nFileSize = 0;
+    if (buffer && m_bAutoDelete) Free(buffer);
+    m_lpBuffer = nullptr;
+}
+void CMemFile::Abort() { Close(); }
+void CMemFile::Flush() {}
+CFile* CMemFile::Duplicate() const { impl__AfxThrowNotSupportedException__YAXXZ(); return nullptr; }
+void CMemFile::LockRange(ULONGLONG, ULONGLONG) { impl__AfxThrowNotSupportedException__YAXXZ(); }
+void CMemFile::UnlockRange(ULONGLONG, ULONGLONG) { impl__AfxThrowNotSupportedException__YAXXZ(); }
+UINT CMemFile::GetBufferPtr(UINT command, UINT count, void** start, void** end) {
+    if (command == bufferCheck) return m_nGrowBytes ? bufferDirect : 0;
+    if (command == bufferCommit) {
+        m_nPosition += count;
+        if (m_nPosition > m_nFileSize) m_nFileSize = m_nPosition;
+        return 0;
+    }
+    if (!start || !end) return 0;
+    if (command == bufferWrite) {
+        ULONGLONG requested = m_nPosition + count;
+        if (requested < m_nPosition || requested < count) AfxThrowInvalidArgException();
+        if (requested > m_nBufferSize) GrowFile(static_cast<SIZE_T>(requested));
+    }
+    *start = m_lpBuffer + m_nPosition;
+    if (command == bufferWrite) {
+        *end = m_lpBuffer + (std::min)(static_cast<ULONGLONG>(m_nBufferSize), m_nPosition + count);
+    } else {
+        if (count == UINT_MAX) count = static_cast<UINT>(m_nBufferSize) - static_cast<UINT>(m_nPosition);
+        *end = m_lpBuffer + (std::min)(m_nFileSize, m_nPosition + count);
+        m_nPosition += reinterpret_cast<UINT_PTR>(*end) - reinterpret_cast<UINT_PTR>(*start);
+    }
+    return static_cast<UINT>(reinterpret_cast<UINT_PTR>(*end) - reinterpret_cast<UINT_PTR>(*start));
+}
+int CMemFile::GetStatus(CFileStatus& status) const {
+    status.m_ctime = status.m_mtime = status.m_atime = 0;
+    status.m_size = m_nFileSize;
+    status.m_attribute = 0;
+    status.m_szFullName[0] = 0;
+    return TRUE;
+}
+static CRuntimeClass* AFXAPI MemFileBase() { return CFile::GetThisClass(); }
+CRuntimeClass CMemFile::classCMemFile = {"CMemFile", sizeof(CMemFile), 0xffff, nullptr, MemFileBase, nullptr, nullptr};
+
+// Exported implementations are qualified calls; client overrides are used only
+// by the virtual callback sites inside the methods above.
+struct CMemFileExports {
+    static BYTE* Alloc(CMemFile* p, SIZE_T n) { return p->CMemFile::Alloc(n); }
+    static BYTE* Realloc(CMemFile* p, BYTE* b, SIZE_T n) { return p->CMemFile::Realloc(b,n); }
+    static BYTE* Memcpy(CMemFile* p, BYTE* d, const BYTE* s, SIZE_T n) { return p->CMemFile::Memcpy(d,s,n); }
+    static void Free(CMemFile* p, BYTE* b) { p->CMemFile::Free(b); }
+    static void GrowFile(CMemFile* p, SIZE_T n) { p->CMemFile::GrowFile(n); }
 };
+
+// Symbol: ?Write@CMemFile@@UEAAXPEBXI@Z
+extern "C" void impl__Write_CMemFile__UEAAXPEBXI_Z(CMemFile* p, const void* b, UINT n) { p->CMemFile::Write(b,n); }
+
+// Symbol: ?UnlockRange@CMemFile@@UEAAX_K0@Z
+extern "C" void impl__UnlockRange_CMemFile__UEAAX_K0_Z(CMemFile* p, ULONGLONG o, ULONGLONG n) { p->CMemFile::UnlockRange(o,n); }
+
+// Symbol: ?SetLength@CMemFile@@UEAAX_K@Z
+extern "C" void impl__SetLength_CMemFile__UEAAX_K_Z(CMemFile* p, ULONGLONG n) { p->CMemFile::SetLength(n); }
+
+// Symbol: ?Seek@CMemFile@@UEAA_K_JI@Z
+extern "C" ULONGLONG impl__Seek_CMemFile__UEAA_K_JI_Z(CMemFile* p, LONGLONG o, UINT f) { return p->CMemFile::Seek(o,f); }
+
+// Symbol: ?Realloc@CMemFile@@MEAAPEAEPEAE_K@Z
+extern "C" BYTE* impl__Realloc_CMemFile__MEAAPEAEPEAE_K_Z(CMemFile* p, BYTE* b, SIZE_T n) { return CMemFileExports::Realloc(p,b,n); }
+
+// Symbol: ?Read@CMemFile@@UEAAIPEAXI@Z
+extern "C" UINT impl__Read_CMemFile__UEAAIPEAXI_Z(CMemFile* p, void* b, UINT n) { return p->CMemFile::Read(b,n); }
+
+// Symbol: ?Memcpy@CMemFile@@MEAAPEAEPEAEPEBE_K@Z
+extern "C" BYTE* impl__Memcpy_CMemFile__MEAAPEAEPEAEPEBE_K_Z(CMemFile* p, BYTE* d, const BYTE* b, SIZE_T n) { return CMemFileExports::Memcpy(p,d,b,n); }
+
+// Symbol: ?LockRange@CMemFile@@UEAAX_K0@Z
+extern "C" void impl__LockRange_CMemFile__UEAAX_K0_Z(CMemFile* p, ULONGLONG o, ULONGLONG n) { p->CMemFile::LockRange(o,n); }
+
+// Symbol: ?GrowFile@CMemFile@@MEAAX_K@Z
+extern "C" void impl__GrowFile_CMemFile__MEAAX_K_Z(CMemFile* p, SIZE_T n) { CMemFileExports::GrowFile(p,n); }
+
+// Symbol: ?GetThisClass@CMemFile@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetThisClass_CMemFile__SAPEAUCRuntimeClass__XZ() { return CMemFile::GetThisClass(); }
+
+// Symbol: ?GetStatus@CMemFile@@QEBAHAEAUCFileStatus@@@Z
+extern "C" int impl__GetStatus_CMemFile__QEBAHAEAUCFileStatus___Z(const CMemFile* p, CFileStatus& s) { return p->CMemFile::GetStatus(s); }
+
+// Symbol: ?GetRuntimeClass@CMemFile@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetRuntimeClass_CMemFile__UEBAPEAUCRuntimeClass__XZ(const CMemFile* p) { return p->CMemFile::GetRuntimeClass(); }
+
+// Symbol: ?GetPosition@CMemFile@@UEBA_KXZ
+extern "C" ULONGLONG impl__GetPosition_CMemFile__UEBA_KXZ(const CMemFile* p) { return p->CMemFile::GetPosition(); }
+
+// Symbol: ?GetLength@CMemFile@@UEBA_KXZ
+extern "C" ULONGLONG impl__GetLength_CMemFile__UEBA_KXZ(const CMemFile* p) { return p->CMemFile::GetLength(); }
+
+// Symbol: ?GetBufferPtr@CMemFile@@UEAAIIIPEAPEAX0@Z
+extern "C" UINT impl__GetBufferPtr_CMemFile__UEAAIIIPEAPEAX0_Z(CMemFile* p, UINT c, UINT n, void** b, void** e) { return p->CMemFile::GetBufferPtr(c,n,b,e); }
+
+// Symbol: ?Free@CMemFile@@MEAAXPEAE@Z
+extern "C" void impl__Free_CMemFile__MEAAXPEAE_Z(CMemFile* p, BYTE* b) { CMemFileExports::Free(p,b); }
+
+// Symbol: ?Flush@CMemFile@@UEAAXXZ
+extern "C" void impl__Flush_CMemFile__UEAAXXZ(CMemFile* p) { p->CMemFile::Flush(); }
+
+// Symbol: ?Duplicate@CMemFile@@UEBAPEAVCFile@@XZ
+extern "C" CFile* impl__Duplicate_CMemFile__UEBAPEAVCFile__XZ(const CMemFile* p) { return p->CMemFile::Duplicate(); }
+
+// Symbol: ?Detach@CMemFile@@QEAAPEAEXZ
+extern "C" BYTE* impl__Detach_CMemFile__QEAAPEAEXZ(CMemFile* p) { return p->Detach(); }
+
+// Symbol: ?Close@CMemFile@@UEAAXXZ
+extern "C" void impl__Close_CMemFile__UEAAXXZ(CMemFile* p) { p->CMemFile::Close(); }
+
+// Symbol: ?Attach@CMemFile@@QEAAXPEAEII@Z
+extern "C" void impl__Attach_CMemFile__QEAAXPEAEII_Z(CMemFile* p, BYTE* b, UINT n, UINT g) { p->Attach(b,n,g); }
+
+// Symbol: ?Alloc@CMemFile@@MEAAPEAE_K@Z
+extern "C" BYTE* impl__Alloc_CMemFile__MEAAPEAE_K_Z(CMemFile* p, SIZE_T n) { return CMemFileExports::Alloc(p,n); }
+
+// Symbol: ?Abort@CMemFile@@UEAAXXZ
+extern "C" void impl__Abort_CMemFile__UEAAXXZ(CMemFile* p) { p->CMemFile::Abort(); }
+
+// Symbol: ??1CMemFile@@UEAA@XZ
+extern "C" void impl___1CMemFile__UEAA_XZ(CMemFile* p) { p->CMemFile::~CMemFile(); }
+
+// Symbol: ??0CMemFile@@QEAA@PEAEII@Z
+extern "C" CMemFile* impl___0CMemFile__QEAA_PEAEII_Z(void* p, BYTE* b, UINT n, UINT g) { return new(p) CMemFile(b,n,g); }
+
+// Symbol: ??0CMemFile@@QEAA@I@Z
+extern "C" CMemFile* impl___0CMemFile__QEAA_I_Z(void* p, UINT n) { return new(p) CMemFile(n); }

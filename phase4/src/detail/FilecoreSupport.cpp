@@ -1,7 +1,5 @@
 #include "FilecoreSupport.h"
 
-extern "C" void* impl__hFileNull_CFile__2QEAXEA = (void*)INVALID_HANDLE_VALUE;
-
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1___Z(CMapPtrToWord* /*pThis*/, void* pAssoc);
 extern "C" void MS_ABI impl__FreeAssoc_CMapStringToOb__IEAAXPEAUCAssoc_1___Z(CMapStringToOb* /*pThis*/, void* pAssoc);
@@ -28,48 +26,6 @@ OPENMFC_DEFINE_MAP_METHODS(CMapWordToPtr, WORD, WORD, void*, void*)
 #undef OPENMFC_DEFINE_MAP_METHODS
 #undef OPENMFC_DEFINE_ARRAY_METHODS
 namespace openmfc { namespace detail { namespace filecore {
-unsigned long long EndOffset(unsigned long long pos, unsigned long long count) {
-    if (count == 0) return std::numeric_limits<unsigned long long>::max();
-    if (pos > std::numeric_limits<unsigned long long>::max() - count) return std::numeric_limits<unsigned long long>::max();
-    return pos + count - 1;
-}
-bool RangesOverlap(const std::pair<unsigned long long, unsigned long long>& lhs,
-                         const std::pair<unsigned long long, unsigned long long>& rhs) {
-    return !(lhs.second < rhs.first || rhs.second < lhs.first);
-}
-void AddMemFileRange(CMemFileLockState& state, unsigned long long pos, unsigned long long count) {
-    std::pair<unsigned long long, unsigned long long> merged{pos, EndOffset(pos, count)};
-    for (auto it = state.ranges.begin(); it != state.ranges.end();) {
-        if (!RangesOverlap(*it, merged)) {
-            ++it;
-            continue;
-        }
-        merged.first = std::min(merged.first, it->first);
-        merged.second = std::max(merged.second, it->second);
-        it = state.ranges.erase(it);
-    }
-    state.ranges.push_back(merged);
-}
-void RemoveMemFileRange(CMemFileLockState& state, unsigned long long pos, unsigned long long count) {
-    const std::pair<unsigned long long, unsigned long long> target{pos, EndOffset(pos, count)};
-    for (auto it = state.ranges.begin(); it != state.ranges.end();) {
-        if (!RangesOverlap(*it, target)) {
-            ++it;
-            continue;
-        }
-
-        std::pair<unsigned long long, unsigned long long> current = *it;
-        it = state.ranges.erase(it);
-
-        if (current.first < target.first) {
-            state.ranges.emplace_back(current.first, target.first - 1);
-        }
-        if (current.second > target.second && target.second != std::numeric_limits<unsigned long long>::max()) {
-            state.ranges.emplace_back(target.second + 1, current.second);
-        }
-    }
-}
-
 UINT HashCStringKey(const CString& key) {
     UINT hash = 0;
     const wchar_t* p = static_cast<const wchar_t*>(key);

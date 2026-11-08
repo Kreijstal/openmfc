@@ -33,6 +33,9 @@
 #ifdef LoadString
 #undef LoadString
 #endif
+#ifdef GetFileTitle
+#undef GetFileTitle
+#endif
 
 // Calling convention macros
 // Note: Most MFC global functions use __cdecl, not __stdcall
@@ -177,10 +180,10 @@ struct CFileStatus {
     ULONGLONG m_mtime;      // Last modification time (simplified)
     ULONGLONG m_atime;      // Last access time (simplified)
     ULONGLONG m_size;       // File size
-    BYTE m_attribute;       // File attribute
-    BYTE m_padding;         // Padding
+    DWORD m_attribute;      // Native file attributes
     wchar_t m_szFullName[_MAX_PATH];  // Absolute path name
 };
+static_assert(sizeof(CFileStatus)==560 && offsetof(CFileStatus,m_szFullName)==36, "native file status model");
 
 // CRuntimeClass - runtime type information structure
 // This structure is used for MFC's own RTTI system (separate from C++ RTTI)
@@ -461,7 +464,11 @@ protected:
 };
 
 // CFile - base file class
-class CFile {
+namespace ATL { class CAtlTransactionManager; }
+struct CFileExports;
+struct CMemFileExports;
+class CFile : public CObject {
+    friend struct CFileExports;
 public:
     enum OpenFlags {
         modeRead = 0x0000,
@@ -476,86 +483,103 @@ public:
         modeCreate = 0x1000,
         modeNoTruncate = 0x2000,
         typeText = 0x4000,
-        typeBinary = 0x8000
+        typeBinary = 0x8000,
+        typeUnicode = 0x0400,
+        osNoBuffer = 0x10000,
+        osWriteThrough = 0x20000,
+        osRandomAccess = 0x40000,
+        osSequentialScan = 0x80000
     };
     
     enum SeekPosition { begin = 0, current = 1, end = 2 };
     
-    enum { hFileNull = -1 };
-    
+    static AFX_DATA const HANDLE hFileNull;
+
     CFile();
-    CFile(HANDLE hFile);
-    CFile(const wchar_t* lpszFileName, UINT nOpenFlags);
-    virtual ~CFile();
-
-    // RTTI: CFile is DECLARE_DYNAMIC in real MFC (base CObject, schema 0xFFFF).
-    // The descriptor lives in filecore.cpp; the exported GetThisClass/GetRuntimeClass
-    // thunks return &classCFile. Kept as an internal (non-exported) DLL symbol so the
-    // export set stays at the exact 14,109-symbol mfc140u match.
+    CFile(ATL::CAtlTransactionManager*);
+    CFile(HANDLE);
+    CFile(const wchar_t*,UINT);
+    CFile(const wchar_t*,UINT,ATL::CAtlTransactionManager*);
+    ~CFile() override;
     static AFX_DATA CRuntimeClass classCFile;
-    static CRuntimeClass* GetThisClass() { return &classCFile; }
-
-    // File operations
-    virtual UINT Read(void* lpBuf, UINT nCount);
-    virtual void Write(const void* lpBuf, UINT nCount);
-    virtual ULONGLONG Seek(LONGLONG lOff, UINT nFrom);
-    virtual void SetLength(ULONGLONG dwNewLen);
-    virtual ULONGLONG GetLength() const;
-    virtual void Flush();
-    virtual void Close();
-    
-    // Status
-    virtual void SetFilePath(const wchar_t* lpszNewName);
+    static CRuntimeClass* GetThisClass(){return &classCFile;}
+    CRuntimeClass* GetRuntimeClass() const override{return GetThisClass();}
+    virtual ULONGLONG GetPosition() const;
     virtual CString GetFileName() const;
     virtual CString GetFileTitle() const;
     virtual CString GetFilePath() const;
-    
-    // Static operations
-    static void Rename(const wchar_t* lpszOldName, const wchar_t* lpszNewName);
-    static void Remove(const wchar_t* lpszFileName);
-    int GetStatus(CFileStatus& rStatus) const;
-    static int GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus, void* pTM = nullptr);
-    static void SetStatus(const wchar_t* lpszFileName, const CFileStatus& status);
-    
-// Public for extern "C" thunk access (MSVC ABI cross-compilation)
-    void* m_hFile;  // Platform-specific file handle
+    virtual void SetFilePath(const wchar_t*);
+    virtual BOOL Open(const wchar_t*,UINT,CFileException* = nullptr);
+    virtual BOOL Open(const wchar_t*,UINT,ATL::CAtlTransactionManager*,CFileException*);
+    virtual CFile* Duplicate() const;
+    virtual ULONGLONG Seek(LONGLONG,UINT);
+    virtual void SetLength(ULONGLONG);
+    virtual ULONGLONG GetLength() const;
+    virtual UINT Read(void*,UINT);
+    virtual void Write(const void*,UINT);
+    virtual void LockRange(ULONGLONG,ULONGLONG);
+    virtual void UnlockRange(ULONGLONG,ULONGLONG);
+    virtual void Abort();
+    virtual void Flush();
+    virtual void Close();
+    enum BufferCommand {bufferRead,bufferWrite,bufferCommit,bufferCheck};
+    enum BufferFlags {bufferDirect=1,bufferBlocking=2};
+    virtual UINT GetBufferPtr(UINT,UINT=0,void** =nullptr,void** =nullptr);
+    static void Rename(const wchar_t*,const wchar_t*);
+    static void Remove(const wchar_t*);
+    int GetStatus(CFileStatus&) const;
+    static int GetStatus(const wchar_t*,CFileStatus&,void* = nullptr);
+    static void SetStatus(const wchar_t*,const CFileStatus&);
+    HANDLE m_hFile;
+    BOOL m_bCloseOnDelete;
     CString m_strFileName;
-
+    ATL::CAtlTransactionManager* m_pTM;
 protected:
-    void CommonInit(const wchar_t* lpszFileName, UINT nOpenFlags, void* pTM = nullptr);
+    void CommonBaseInit(HANDLE,ATL::CAtlTransactionManager*);
+    void CommonInit(const wchar_t*,UINT,void* = nullptr);
 };
+static_assert(sizeof(CFile)==40 && offsetof(CFile,m_hFile)==8 && offsetof(CFile,m_bCloseOnDelete)==16 &&
+              offsetof(CFile,m_strFileName)==24 && offsetof(CFile,m_pTM)==32,"native file model");
 
-// CMemFile - memory file
 class CMemFile : public CFile {
+    friend struct CMemFileExports;
 public:
-    CMemFile(UINT nGrowBytes = 1024);
-    CMemFile(BYTE* lpBuffer, UINT nBufferSize, UINT nGrowBytes = 0);
-    virtual ~CMemFile();
-
-    // RTTI: CMemFile is DECLARE_DYNAMIC in real MFC (base CFile, schema 0xFFFF).
-    // Descriptor lives in filecore.cpp; the exported getters return &classCMemFile.
-    // Internal (non-exported) symbol so the export set stays the 14,109 mfc140u match.
+    CMemFile(UINT nGrowBytes=1024);
+    CMemFile(BYTE*,UINT,UINT=0);
+    ~CMemFile() override;
     static AFX_DATA CRuntimeClass classCMemFile;
-    static CRuntimeClass* GetThisClass() { return &classCMemFile; }
-
-    virtual UINT Read(void* lpBuf, UINT nCount) override;
-    virtual void Write(const void* lpBuf, UINT nCount) override;
-    virtual ULONGLONG Seek(LONGLONG lOff, UINT nFrom) override;
-    virtual void SetLength(ULONGLONG dwNewLen) override;
-    virtual ULONGLONG GetLength() const override;
-    virtual void Flush() override;
-    
+    static CRuntimeClass* GetThisClass(){return &classCMemFile;}
+    CRuntimeClass* GetRuntimeClass() const override{return GetThisClass();}
+    ULONGLONG GetPosition() const override;
+    CFile* Duplicate() const override;
+    ULONGLONG Seek(LONGLONG,UINT) override;
+    void SetLength(ULONGLONG) override;
+    ULONGLONG GetLength() const override;
+    UINT Read(void*,UINT) override;
+    void Write(const void*,UINT) override;
+    void LockRange(ULONGLONG,ULONGLONG) override;
+    void UnlockRange(ULONGLONG,ULONGLONG) override;
+    void Abort() override;
+    void Flush() override;
+    void Close() override;
+    UINT GetBufferPtr(UINT,UINT=0,void** =nullptr,void** =nullptr) override;
+    int GetStatus(CFileStatus&) const;
     BYTE* Detach();
-    void Attach(BYTE* lpBuffer, UINT nBufferSize, UINT nGrowBytes = 0);
-    
+    void Attach(BYTE*,UINT,UINT=0);
 protected:
+    virtual BYTE* Alloc(SIZE_T);
+    virtual BYTE* Realloc(BYTE*,SIZE_T);
+    virtual BYTE* Memcpy(BYTE*,const BYTE*,SIZE_T);
+    virtual void Free(BYTE*);
+    virtual void GrowFile(SIZE_T);
+    SIZE_T m_nGrowBytes;
+    ULONGLONG m_nPosition;
+    SIZE_T m_nBufferSize;
+    ULONGLONG m_nFileSize;
     BYTE* m_lpBuffer;
-    UINT m_nBufferSize;
-    UINT m_nFileSize;
-    UINT m_nGrowBytes;
-    UINT m_nPosition;
-    bool m_bAutoDelete;
+    BOOL m_bAutoDelete;
 };
+static_assert(sizeof(CMemFile)==88,"native memory file model");
 
 // CStdioFile - stdio file
 class CStdioFile : public CFile {

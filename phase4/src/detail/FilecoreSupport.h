@@ -33,9 +33,8 @@ using namespace openmfc::detail::filecore;
   #define MS_ABI
 #endif
 
-// Internal polymorphic dispatch on CFile-family objects via their MSVC-layout
-// vtable (global_file_dispatch.cpp). Internal code must NOT use pFile->Method()
-// virtual syntax — mingw indexes the MSVC vtable with Itanium slots and mis-dispatches.
+// Shared file dispatch entry points. CFile-family virtuals are emitted by the
+// MSVC-ABI compiler in the same slot order as native client objects.
 extern "C" {
 
 unsigned int        MS_ABI OpenMFC_File_Read(CFile*, void*, unsigned int);
@@ -98,29 +97,6 @@ template<typename Wrapper, typename State>
 void RemoveCollectionState(const Wrapper* self) {
     GetCollectionStates<Wrapper, State>().erase(self);
 }
-} } }
-
-namespace openmfc { namespace detail { namespace filecore {
-struct CMemFileLockState {
-    std::vector<std::pair<unsigned long long, unsigned long long>> ranges;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace filecore {
-unsigned long long EndOffset(unsigned long long pos, unsigned long long count);
-} } }
-
-namespace openmfc { namespace detail { namespace filecore {
-bool RangesOverlap(const std::pair<unsigned long long, unsigned long long>& lhs,
-                         const std::pair<unsigned long long, unsigned long long>& rhs);
-} } }
-
-namespace openmfc { namespace detail { namespace filecore {
-void AddMemFileRange(CMemFileLockState& state, unsigned long long pos, unsigned long long count);
-} } }
-
-namespace openmfc { namespace detail { namespace filecore {
-void RemoveMemFileRange(CMemFileLockState& state, unsigned long long pos, unsigned long long count);
 } } }
 
 namespace openmfc { namespace detail { namespace filecore {
@@ -894,21 +870,6 @@ public:
 
 
 
-struct CFileAccessor : CFile {
-    static void InvokeCommonInit(CFile* pFile, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM) {
-        static_cast<CFileAccessor*>(pFile)->CommonInit(lpszFileName, nOpenFlags, pTM);
-    }
-};
-
-struct CMemFileAccessor : CMemFile {
-    static UINT& Position(CMemFile* pFile) { return static_cast<CMemFileAccessor*>(pFile)->m_nPosition; }
-    static UINT Position(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_nPosition; }
-    static UINT GrowBytes(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_nGrowBytes; }
-    static BYTE* Buffer(CMemFile* pFile) { return static_cast<CMemFileAccessor*>(pFile)->m_lpBuffer; }
-    static const BYTE* Buffer(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_lpBuffer; }
-    static UINT BufferSize(const CMemFile* pFile) { return static_cast<const CMemFileAccessor*>(pFile)->m_nBufferSize; }
-};
-
 struct CStdioFileAccessor : CStdioFile {
     static FILE*& Stream(CStdioFile* pFile) { return static_cast<CStdioFileAccessor*>(pFile)->m_pStream; }
     static FILE* Stream(const CStdioFile* pFile) { return static_cast<const CStdioFileAccessor*>(pFile)->m_pStream; }
@@ -936,7 +897,6 @@ struct CStdioFileAccessor : CStdioFile {
 
 
 
-extern "C" void* impl__hFileNull_CFile__2QEAXEA;
 
 
 

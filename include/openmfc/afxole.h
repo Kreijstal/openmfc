@@ -936,7 +936,7 @@ public:
     LPSTREAM m_lpStream;
 
 protected:
-    char _olestreamfile_padding[24];
+    CString m_strStorageName;
 };
 
 //=============================================================================
