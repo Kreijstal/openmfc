@@ -77,8 +77,8 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == 7, count
-    print('All seven extension library and global lock export aliases match the DLL generator', flush=True)
+    assert count == 9, count
+    print('All nine extension library and global lock export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
     link.extend(['crypt32.lib', 'odbc32.lib', 'comctl32.lib', 'kernel32.lib', 'user32.lib',
                  'gdi32.lib', 'ole32.lib', 'oleacc.lib', 'oleaut32.lib', 'uuid.lib',
