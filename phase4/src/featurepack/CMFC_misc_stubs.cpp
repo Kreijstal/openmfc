@@ -961,27 +961,11 @@ extern "C" void* MS_ABI impl__AfxCreateDC__YAPEAUHDC____PEAX0_Z(void* p0, void* 
     ::GlobalUnlock(hDevNames);
     return hdc;
 }
-// Symbol: ?AfxCriticalInit@@YAHXZ
-extern "C" int MS_ABI impl__AfxCriticalInit__YAHXZ() {
-    // Real MFC uses this to initialize the process-wide CRIT_* critical
-    // section array consumed by AfxLockGlobals/AfxUnlockGlobals; OpenMFC has
-    // no such shared array (see AfxLockGlobals below), so that part is
-    // honestly skipped. What we *can* do without extra shared state is
-    // install the MFC-style CRT new-handler so that operator-new failures
-    // raise a CMemoryException instead of returning null / std::bad_alloc,
-    // matching AfxCriticalNewHandler's contract below.
-    std::set_new_handler([]() { AfxThrowMemoryException(); });
-    return 1;
-}
 // Symbol: ?AfxCriticalNewHandler@@YAH_K@Z
 extern "C" int MS_ABI impl__AfxCriticalNewHandler__YAH_K_Z(unsigned __int64 p0) {
     (void)p0;
     AfxThrowMemoryException();
     return 0;
-}
-// Symbol: ?AfxCriticalTerm@@YAXXZ
-extern "C" void MS_ABI impl__AfxCriticalTerm__YAXXZ() {
-    std::set_new_handler(nullptr);
 }
 // Symbol: ?AfxCustomLogFont@@YAHIPEAUtagLOGFONTW@@@Z
 extern "C" int MS_ABI impl__AfxCustomLogFont__YAHIPEAUtagLOGFONTW___Z(unsigned int p0, void* /*struct*/* p1) {

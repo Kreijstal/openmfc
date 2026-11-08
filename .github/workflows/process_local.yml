@@ -1,0 +1,41 @@
+name: Process-local state ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_process_local.cpp'
+      - 'tests/build_process_local.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/process_local.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/**'
+      - 'phase4/src/detail/**'
+      - 'tests/test_process_local.cpp'
+      - 'tests/build_process_local.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/process_local.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Process-local state ABI (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify recursive critical sections, factories and process-local lifetime
+        shell: cmd
+        run: python tests/build_process_local.py --build "%RUNNER_TEMP%/process-local" ${{ matrix.flags }}
