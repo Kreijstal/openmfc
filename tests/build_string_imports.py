@@ -48,7 +48,7 @@ def pe_imports(path):
         while True:
             value=struct.unpack_from('<Q',data,at)[0]
             if not value:break
-            if not value>>63:names.add(string(value+2))
+            names.add(value&0xffff if value>>63 else string(value+2))
             at+=8
         result[string(name).lower()]=names;directory+=20
     return result
@@ -58,6 +58,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler',default='cl' if os.name=='nt' else 'clang-cl')
     parser.add_argument('--sdk',type=Path)
+    parser.add_argument('--linker',default='link' if os.name=='nt' else 'lld-link')
     parser.add_argument('--mfc-include',type=Path)
     parser.add_argument('--build',type=Path,required=True)
     parser.add_argument('--optimize',action='store_true')
@@ -100,9 +101,17 @@ def main():
     (out/'strings.def').write_text(definition.replace('LIBRARY openmfc','LIBRARY openmfc_string_types',1))
     resource=out/'strings.res'
     run([('rc' if os.name=='nt' else 'llvm-rc'),'/nologo','/fo',str(resource),str(ROOT/'tests/string_import_fixture.rc')])
-    link='link' if os.name=='nt' else 'lld-link'
+    link=args.linker
     def link_response(name,options):
-        rsp=out/(name+'.rsp');rsp.write_text('\n'.join('"'+str(p)+'"' for p in options));run([link,'@'+str(rsp)])
+        def argument(value):
+            text=str(value)
+            if os.name!='nt' and Path(link).name.lower() in ('link','link.exe'):
+                # Response-file contents bypass msvc-wine's argument path conversion.
+                if text.startswith('/') and not text.startswith(('/OUT:','/IMPLIB:','/DEF:','/LIBPATH:')):
+                    if Path(text).is_absolute() and Path(text).exists():text='Z:'+text
+                elif ':/' in text:text=text.replace(':/',':Z:/',1)
+            return '"'+text+'"'
+        rsp=out/(name+'.rsp');rsp.write_text('\n'.join(argument(p) for p in options));run([link,'@'+str(rsp)])
     link_response('dll',['/nologo','/DLL','/OPT:REF','/DEF:'+str(out/'strings.def'),
                          '/OUT:'+str(out/'openmfc_string_types.dll'),'/IMPLIB:'+str(out/'openmfc_string_types.lib'),
                          *libraries,*objects,resource,'kernel32.lib','user32.lib','oleaut32.lib'])
@@ -126,7 +135,10 @@ def main():
         command=[str(out/(name+'.exe'))] if os.name=='nt' else (['xvfb-run','-a'] if not env.get('DISPLAY') else [])+['wine',str(out/(name+'.exe'))]
         imports=pe_imports(out/(name+'.exe'))
         assert not any(dll.startswith('mfc') for dll in imports),imports
-        actual=imports['openmfc_string_types.dll']
+        raw=imports['openmfc_string_types.dll']
+        by_ordinal={ordinal:symbol for symbol,ordinal in exports.items()}
+        actual={by_ordinal[item] if isinstance(item,int) else item for item in raw}
+        print(f'{name}: {sum(isinstance(item,int) for item in raw)} ordinal imports, {sum(isinstance(item,str) for item in raw)} named imports',flush=True)
         for prefix in ('??0?$CStringT@D','??0?$CStringT@_W','?AfxGetStringManager@@'):
             assert any(symbol.startswith(prefix) for symbol in actual),(name,prefix,actual)
         assert not any(symbol.startswith(('??0CString@@','??0CStringA@@')) for symbol in actual),actual
