@@ -1,4 +1,4 @@
-name: Extension library lifetime ABI
+name: Extension library and resource ABI
 on:
   push:
     paths:
@@ -6,6 +6,7 @@ on:
       - 'phase4/src/core/**'
       - 'phase4/src/detail/**'
       - 'tests/test_dynlink_library.cpp'
+      - 'tests/resource_search_tests.h'
       - 'tests/test_csimplelist_logic.cpp'
       - 'tests/build_dynlink_library.py'
       - 'tests/build_window_handles.py'
@@ -20,6 +21,7 @@ on:
       - 'phase4/src/core/**'
       - 'phase4/src/detail/**'
       - 'tests/test_dynlink_library.cpp'
+      - 'tests/resource_search_tests.h'
       - 'tests/test_csimplelist_logic.cpp'
       - 'tests/build_dynlink_library.py'
       - 'tests/build_window_handles.py'
@@ -48,7 +50,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Verify library registration, module capture, locking and base lifetime
+      - name: Verify library registration, resource search, locking and base lifetime
         shell: cmd
         run: python tests/build_dynlink_library.py --build "%RUNNER_TEMP%/dynlink-library" ${{ matrix.flags }}
       - name: Verify public intrusive lists and natural-method bridges

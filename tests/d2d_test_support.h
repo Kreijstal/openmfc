@@ -3,6 +3,7 @@
 #include "openmfc/afxinet.h"
 #include "openmfc/afxstat_.h"
 #include "detail/WindowHandleMapSupport.h"
+#include "detail/RegcoreSupport.h"
 #include <cstdlib>
 
 HINSTANCE g_d2dTestResourceModule = nullptr;
@@ -39,7 +40,17 @@ CRuntimeClass CSplitterWnd::classCSplitterWnd{"CSplitterWnd",sizeof(CSplitterWnd
 // state so the command-target tests can verify capture and balanced restore.
 thread_local AFX_MODULE_STATE* (*g_windowModuleStateHook)()=nullptr;
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
-    return g_windowModuleStateHook ? g_windowModuleStateHook() : g_cmdTestCurrentModule;
+    if(g_windowModuleStateHook)return g_windowModuleStateHook();
+#ifndef OPENMFC_TEST_WINDOW_HANDLES
+    // Rendering resource tests use a real module prefix even without an app.
+    // Resource selection belongs to that state, as it does in the DLL.
+    if(!g_cmdTestCurrentModule) {
+        static AFX_MODULE_STATE resources;
+        resources.m_hCurrentResourceHandle=AfxGetResourceHandle();
+        return &resources;
+    }
+#endif
+    return g_cmdTestCurrentModule;
 }
 
 // Module/thread-state lookup is a boundary in the large rendering fixtures.
@@ -108,13 +119,17 @@ std::recursive_mutex g_messageCacheTestMutex;
 thread_local int g_messageCacheLockDepth=0;
 std::recursive_mutex g_databaseTestMutex;
 thread_local int g_databaseLockDepth=0;
+std::recursive_mutex g_resourceTestMutex;
+thread_local int g_resourceLockDepth=0;
 #ifndef OPENMFC_TEST_REAL_GLOBAL_LOCKS
 extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int id) {
+    if(id==0) {g_resourceTestMutex.lock();++g_resourceLockDepth;return;}
     if(id==7) { g_messageCacheTestMutex.lock();++g_messageCacheLockDepth;return; }
     if(id==15) {g_databaseTestMutex.lock();++g_databaseLockDepth;return;}
     if(id!=13)std::abort();g_typeCacheTestMutex.lock();++g_typeCacheLockDepth;
 }
 extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
+    if(id==0) {if(g_resourceLockDepth<=0)std::abort();--g_resourceLockDepth;g_resourceTestMutex.unlock();return;}
     if(id==7) { if(g_messageCacheLockDepth<=0)std::abort();--g_messageCacheLockDepth;g_messageCacheTestMutex.unlock();return; }
     if(id==15) {if(g_databaseLockDepth<=0)std::abort();--g_databaseLockDepth;g_databaseTestMutex.unlock();return;}
     if(id!=13 || g_typeCacheLockDepth<=0)std::abort();--g_typeCacheLockDepth;g_typeCacheTestMutex.unlock();

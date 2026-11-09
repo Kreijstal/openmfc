@@ -134,19 +134,23 @@ public:
     // The intervening module services are not modeled by this shadow yet.
     const wchar_t* m_lpszCurrentAppName{};
     BYTE m_bDLL=FALSE;
-    BYTE m_reservedToWindowProcedure[0x70-0x29]{};
+    BYTE m_bSystem=FALSE;
+    BYTE m_reservedToWindowProcedure[0x70-0x2a]{};
     WNDPROC m_pfnAfxWndProc=&AfxWndProc;
     BYTE m_reservedToToolTip[8]{};
     void (AFXAPI* m_pfnFilterToolTipMessage)(MSG*,CWnd*)=nullptr;
     CSimpleList m_libraryList{0x78};
-    BYTE m_reservedToOccManager[8]{};
+    HINSTANCE m_appLangDLL{};
     void* m_pOccManager{};
     BYTE m_reservedToModuleThreadSlot[0xf8-0xa8]{};
     S_Cthreadlocalobject m_moduleThreadState{};
     ~AFX_MODULE_STATE() override { impl___1CThreadLocalObject__QEAA_XZ(&m_moduleThreadState); }
 };
 static_assert(offsetof(AFX_MODULE_STATE,m_pCurrentWinApp)==8,"native module application prefix");
+static_assert(offsetof(AFX_MODULE_STATE,m_hCurrentResourceHandle)==0x18,"native current resource module");
 static_assert(offsetof(AFX_MODULE_STATE,m_lpszCurrentAppName)==0x20,"native module application name");
+static_assert(offsetof(AFX_MODULE_STATE,m_bSystem)==0x29,"native module resource search category");
+static_assert(offsetof(AFX_MODULE_STATE,m_appLangDLL)==0x98,"native language resource module");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnAfxWndProc)==0x70,"native framework window procedure");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnFilterToolTipMessage)==0x80,"native tooltip filter");
 static_assert(offsetof(AFX_MODULE_STATE,m_pOccManager)==0xa0,"native OLE manager");

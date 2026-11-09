@@ -20,6 +20,9 @@ CRuntimeClass* AFXAPI impl__GetThisClass_CDynLinkLibrary__SAPEAUCRuntimeClass__X
 CRuntimeClass* AFXAPI impl__GetRuntimeClass_CDynLinkLibrary__UEBAPEAUCRuntimeClass__XZ(const CDynLinkLibrary*);
 void AFXAPI impl__AfxLockGlobals__YAXH_Z(int);
 void AFXAPI impl__AfxUnlockGlobals__YAXH_Z(int);
+HINSTANCE AFXAPI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(const wchar_t*,const wchar_t*);
+void* AFXAPI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
+int AFXAPI impl__AfxLoadString__YAHIPEA_WI_Z(UINT,wchar_t*,UINT);
 }
 namespace {
 int failures;
@@ -33,6 +36,9 @@ struct API {
     _AFX_THREAD_STATE* (AFXAPI* thread)();
     decltype(&impl__AfxLockGlobals__YAXH_Z) lock;
     decltype(&impl__AfxUnlockGlobals__YAXH_Z) unlock;
+    decltype(&impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z) resource;
+    decltype(&impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z) string;
+    decltype(&impl__AfxLoadString__YAHIPEA_WI_Z) load;
     HMODULE image;
 };
 struct alignas(16) Object {
@@ -45,6 +51,8 @@ const API* api;
 CDynLinkLibrary* watched;
 std::vector<int> events;
 bool recording,constructing,inside,captureLock;
+bool resourceRecording;
+int resourceLockDepth;
 int mutation;
 HINSTANCE expectedModule,expectedResources;
 void *expectedClasses,*expectedFactories;
@@ -77,8 +85,10 @@ void WINAPI enter(CRITICAL_SECTION* lock) {
         if(mutation==3)throw 77;
     }
     realEnter(lock);if(recording && lock==libraryLock)inside=true;
+    if(resourceRecording && lock==libraryLock)++resourceLockDepth;
 }
 void WINAPI leave(CRITICAL_SECTION* lock) {
+    if(resourceRecording && lock==libraryLock)--resourceLockDepth;
     if(recording && lock==libraryLock) {
         events.push_back(2);check(inside && entered==lock,"library registration and removal balance the same recursive process lock");
         inside=false;
@@ -108,7 +118,8 @@ struct Patch {
     ~Patch(){*slot=previous;DWORD ignored;::VirtualProtect(slot,sizeof(void*),protection,&ignored);}
 };
 void clear() {
-    for(auto& module:modules){module.m_libraryList.RemoveAll();module.m_libraryList.Construct(0x78);}
+    for(auto& module:modules){module.m_libraryList.RemoveAll();module.m_libraryList.Construct(0x78);
+        module.m_bSystem=FALSE;module.m_hCurrentResourceHandle=nullptr;module.m_appLangDLL=nullptr;}
     select(0);inside=false;recording=false;events.clear();
 }
 std::vector<std::array<BYTE,160>> golden;
@@ -177,6 +188,7 @@ void lifetime() {
         check(modules[0].m_libraryList.IsEmpty(),"head and tail removal empty the module library list");
     }
 }
+#include "resource_search_tests.h"
 void run(const API& functions) {
     api=&functions;auto* old=api->thread()->m_pModuleState;clear();
     api->lock(0);api->unlock(0); // initialize the real lock before installing observers
@@ -187,7 +199,7 @@ void run(const API& functions) {
         realEnter=reinterpret_cast<decltype(realEnter)>(first.previous);realLeave=reinterpret_cast<decltype(realLeave)>(second.previous);
         captureLock=true;api->lock(0);captureLock=false;api->unlock(0);
         check(libraryLock!=nullptr,"observe the production library lock separately from TLS allocation locks");
-        constructors(api->image!=nullptr);lifetime();
+        constructors(api->image!=nullptr);lifetime();resourceSearch();
     }
     auto* type=api->descriptor();
     auto* parent=type ? type->BaseClass():nullptr;
@@ -205,7 +217,9 @@ int main() {
     static_assert(std::is_same<decltype(std::declval<CSimpleList>().GetNextPtr(nullptr)),void**>::value,"SDK list link API");
     API source{impl___0CDynLinkLibrary__QEAA_AEAUAFX_EXTENSION_MODULE__H_Z,impl___0CDynLinkLibrary__QEAA_PEAUHINSTANCE____0_Z,
         impl___1CDynLinkLibrary__UEAA_XZ,impl__GetThisClass_CDynLinkLibrary__SAPEAUCRuntimeClass__XZ,
-        impl__GetRuntimeClass_CDynLinkLibrary__UEBAPEAUCRuntimeClass__XZ,AfxGetThreadState,impl__AfxLockGlobals__YAXH_Z,impl__AfxUnlockGlobals__YAXH_Z,nullptr};
+        impl__GetRuntimeClass_CDynLinkLibrary__UEBAPEAUCRuntimeClass__XZ,AfxGetThreadState,impl__AfxLockGlobals__YAXH_Z,impl__AfxUnlockGlobals__YAXH_Z,
+        impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z,impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z,
+        impl__AfxLoadString__YAHIPEA_WI_Z,nullptr};
     run(source);
     if(const char* path=std::getenv("OPENMFC_NATIVE_DYNLINK_DLL")) {
         auto image=LoadLibraryA(path);check(image!=nullptr,"load native extension-library oracle");
@@ -219,6 +233,7 @@ int main() {
 #define RVA(member,value) native.member=reinterpret_cast<decltype(native.member)>(base+value)
                 RVA(extension,0x2ae800);RVA(handles,0x2ae900);RVA(destroy,0x2ae9a0);RVA(descriptor,0x2ae7f0);RVA(runtime,0x2ae7f0);
                 RVA(thread,0x1332a0);RVA(lock,0x33540);RVA(unlock,0x335e0);
+                RVA(resource,0x2aeb50);RVA(string,0x2aee00);RVA(load,0x2af0b0);
 #undef RVA
                 run(native);
             }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build extension library lifetime with the production window, module/TLS and map owners."""
+"""Build resource search and extension lifetime with the real module/TLS and library owners."""
 import argparse
 import concurrent.futures
 import os
@@ -64,7 +64,7 @@ def main():
     sys.path.insert(0, str(ROOT / 'tools'))
     import gen_weak_stubs
     count = 0
-    for relative in ('core/runtime/CDynLinkLibrary.cpp','core/runtime/GlobalLocks.cpp'):
+    for relative in ('core/runtime/CDynLinkLibrary.cpp','core/runtime/GlobalLocks.cpp','core/runtime/AfxFindResourceHandle.cpp'):
         source = 'phase4/src/' + relative
         obj = out / (source.removesuffix('.cpp').replace('/', '_') + '.obj')
         if os.name == 'nt':
@@ -77,8 +77,8 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == 9, count
-    print('All nine extension library and global lock export aliases match the DLL generator', flush=True)
+    assert count == 11, count
+    print('All 11 extension library, global lock and resource finder export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
     link.extend(['crypt32.lib', 'odbc32.lib', 'comctl32.lib', 'kernel32.lib', 'user32.lib',
                  'gdi32.lib', 'ole32.lib', 'oleacc.lib', 'oleaut32.lib', 'uuid.lib',
@@ -90,10 +90,10 @@ def main():
         command = [str(out / 'test_dynlink_library.exe')]
     else:
         if args.sdk:
-            for name in ('vcruntime140.dll', 'vcruntime140_1.dll'):
+            for name in ('vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll'):
                 for runtime in (args.sdk / 'VC/Redist/MSVC').glob('*/x64/Microsoft.VC*.CRT/' + name):
                     shutil.copy2(runtime, out / name)
-        env.setdefault('WINEDLLOVERRIDES', 'vcruntime140,vcruntime140_1=n')
+        env.setdefault('WINEDLLOVERRIDES', 'vcruntime140,vcruntime140_1,msvcp140=n')
         command = (['xvfb-run', '-a'] if not env.get('DISPLAY') else []) + ['wine', str(out / 'test_dynlink_library.exe')]
     subprocess.run(command, check=True, cwd=out, env=env, timeout=120)
 

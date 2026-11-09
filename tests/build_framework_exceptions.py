@@ -130,16 +130,8 @@ def main():
         env.setdefault('WINEDLLOVERRIDES', 'vcruntime140,vcruntime140_1,msvcp140=n')
         command = (['xvfb-run', '-a'] if not env.get('DISPLAY') else []) + ['wine', str(out / 'test_framework_exceptions.exe')]
     subprocess.run(command, check=True, cwd=out, env=env, timeout=120)
-    lookup_objects = [compile_one(source) for source in (
-        'phase4/src/core/runtime/AfxFindResourceHandle.cpp', 'tests/test_string_resource_lookup.cpp')]
-    lookup_objects.append(out/'phase4_src_core_runtime_AfxLoadString.obj')
-    lookup_link = [part for part in link if not part.endswith('.obj') and not part.startswith('/OUT:')]
-    lookup_link += ['/OUT:'+str(out/'test_string_resource_lookup.exe')] + [str(obj) for obj in lookup_objects]
-    lookup_response=out/'lookup-link.rsp'
-    lookup_response.write_text('\n'.join('"'+part+'"' for part in lookup_link))
-    subprocess.run(['link' if os.name=='nt' else 'lld-link','@'+str(lookup_response)],check=True,cwd=out,env=env)
-    command[-1]=str(out/'test_string_resource_lookup.exe')
-    subprocess.run(command,check=True,cwd=out,env=env,timeout=120)
+    # Actual finder/loader integration uses the real module and library owners
+    # in build_dynlink_library.py; this fixture isolates exception services.
 
 
 
