@@ -1133,45 +1133,15 @@ extern "C" void* MS_ABI impl___B__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT
     (void)self;
     return pThis;
 }
-// Symbol: ??1CArchive@@QEAA@XZ
-// Destructor: CArchive::~CArchive
-extern "C" void MS_ABI impl___1CArchive__QEAA_XZ(void* pThis) {
-    ((CArchive*)pThis)->~CArchive();
-}
-// Symbol: ?Abort@CArchive@@QEAAXXZ
-// CArchive::Abort
-extern "C" void MS_ABI impl__Abort_CArchive__QEAAXXZ(CArchive* pThis) {
-    pThis->Abort();
-}
-// Symbol: ?Close@CArchive@@QEAAXXZ
-// CArchive::Close
-extern "C" void MS_ABI impl__Close_CArchive__QEAAXXZ(CArchive* pThis) {
-    pThis->Close();
-}
-// Symbol: ?Flush@CArchive@@QEAAXXZ
-// CArchive::Flush
-extern "C" void MS_ABI impl__Flush_CArchive__QEAAXXZ(CArchive* pThis) {
-    pThis->Flush();
-}
 // Symbol: ?GetSuperWndProcAddr@CWnd@@MEAAPEAP6A_JPEAUHWND__@@I_K_J@ZXZ
 // CWnd::GetSuperWndProcAddr
 extern "C" void* /*fnptr*/* MS_ABI impl__GetSuperWndProcAddr_CWnd__MEAAPEAP6A_JPEAUHWND____I_K_J_ZXZ(CWnd* pThis) {
     return (void* /*fnptr*/*)pThis->GetSuperWndProcAddr();
 }
-// Symbol: ?Read@CArchive@@QEAAIPEAXI@Z
-// CArchive::Read
-extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* p0, unsigned int p1) {
-    return (unsigned int)pThis->Read(p0, p1);
-}
 // Symbol: ?ReadString@CArchive@@QEAAPEA_WPEA_WI@Z
 // CArchive::ReadString
 extern "C" wchar_t* MS_ABI impl__ReadString_CArchive__QEAAPEA_WPEA_WI_Z(CArchive* pThis, wchar_t* p0, unsigned int p1) {
     return (wchar_t*)pThis->ReadString(p0, p1);
-}
-// Symbol: ?Write@CArchive@@QEAAXPEBXI@Z
-// CArchive::Write
-extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* p0, unsigned int p1) {
-    pThis->Write(p0, p1);
 }
 // Symbol: ?WriteString@CArchive@@QEAAXPEB_W@Z
 // CArchive::WriteString

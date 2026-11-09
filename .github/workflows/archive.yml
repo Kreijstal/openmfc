@@ -1,0 +1,56 @@
+name: Archive storage and buffer ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/runtime/CArchive*.cpp'
+      - 'phase4/src/core/runtime/Thunks.cpp'
+      - 'phase4/src/core/collections/CString*.cpp'
+      - 'phase4/src/core/collections/CSimpleStringT.cpp'
+      - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
+      - 'phase4/src/core/collections/CPlex.cpp'
+      - 'phase4/src/core/file/CFile.cpp'
+      - 'phase4/src/core/file/CMemFile.cpp'
+      - 'phase4/src/core/exceptions/**'
+      - 'phase4/src/detail/CString*.h'
+      - 'tests/*archive*'
+      - 'tests/build_string_imports.py'
+      - '.github/workflows/archive.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/runtime/CArchive*.cpp'
+      - 'phase4/src/core/runtime/Thunks.cpp'
+      - 'phase4/src/core/collections/CString*.cpp'
+      - 'phase4/src/core/collections/CSimpleStringT.cpp'
+      - 'phase4/src/core/collections/CMapPtrToPtrStorage.cpp'
+      - 'phase4/src/core/collections/CPlex.cpp'
+      - 'phase4/src/core/file/CFile.cpp'
+      - 'phase4/src/core/file/CMemFile.cpp'
+      - 'phase4/src/core/exceptions/**'
+      - 'phase4/src/detail/CString*.h'
+      - 'tests/*archive*'
+      - 'tests/build_string_imports.py'
+      - '.github/workflows/archive.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Archive storage (${{ matrix.name }})
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify archive layout, file callbacks and independent SDK DLL clients
+        shell: cmd
+        run: python tests/build_archive.py --build "%RUNNER_TEMP%/archive" ${{ matrix.flags }}

@@ -393,20 +393,29 @@ static_assert(sizeof(CObject) == 8, "CObject must be 8 bytes (vptr only)");
 inline CObject::~CObject() = default;
 
 // CArchive - serialization archive class
+void AFXAPI AfxThrowArchiveException(int,const wchar_t*);
+class CDocument;
+class CPtrArray;
+class CMapPtrToPtr;
+#define OPENMFC_ARCHIVE_API OPENMFC_STRING_API
 class CArchive {
 public:
     enum Mode { store = 0, load = 1, bNoFlushOnDelete = 2, bNoByteSwap = 4 };
     
-    CArchive(CFile* pFile, UINT nMode, int nBufSize = 4096, void* lpBuf = nullptr);
-    virtual ~CArchive();
+    OPENMFC_ARCHIVE_API CArchive(CFile* pFile, UINT nMode, int nBufSize = 4096, void* lpBuf = nullptr);
+    OPENMFC_ARCHIVE_API ~CArchive();
     
     // Basic operations
-    bool IsLoading() const { return (m_nMode & load) != 0; }
-    bool IsStoring() const { return !IsLoading(); }
+    BOOL IsLoading() const { return (m_nMode & load) != 0; }
+    BOOL IsStoring() const { return !IsLoading(); }
     CFile* GetFile() const { return m_pFile; }
-    UINT GetObjectSchema() const { return m_nObjectSchema; }
+    OPENMFC_ARCHIVE_API UINT GetObjectSchema();
     void SetObjectSchema(UINT nSchema) { m_nObjectSchema = nSchema; }
     
+    BOOL IsByteSwapping() const {return FALSE;}
+    BOOL IsBufferEmpty() const {return m_lpBufCur==m_lpBufMax;}
+    CDocument* m_pDocument;
+
     // Reading operations
     CArchive& operator>>(bool& b);
     CArchive& operator>>(char& ch);
@@ -445,33 +454,50 @@ public:
     void WriteString(const wchar_t* lpsz);
     
     // Raw read/write
-    UINT Read(void* lpBuf, UINT nMax);
-    void Write(const void* lpBuf, UINT nMax);
+    OPENMFC_ARCHIVE_API UINT Read(void* lpBuf, UINT nMax);
+    OPENMFC_ARCHIVE_API void Write(const void* lpBuf, UINT nMax);
     
     // Flush buffer
-    void Flush();
+    OPENMFC_ARCHIVE_API void Flush();
     
     // Close archive
-    void Close();
+    OPENMFC_ARCHIVE_API void Close();
     
     // Exception handling
-    void Abort();
+    OPENMFC_ARCHIVE_API void Abort();
 
-protected:
-    CFile* m_pFile;
-    UINT m_nMode;
-    int m_nBufSize;
-    unsigned char* m_lpBufStart;
-    unsigned char* m_lpBufCur;
-    unsigned char* m_lpBufMax;
+    // Native public state used by clients and serialization callbacks.
+    BOOL m_bForceFlat;
+    BOOL m_bDirectBuffer;
+    BOOL m_bBlocking;
     UINT m_nObjectSchema;
-    bool m_bForceFlat;
-    bool m_bUserBuf;
-    
+    CString m_strFileName;
+    OPENMFC_ARCHIVE_API void FillBuffer(UINT additional);
+    void EnsureRead(void* output,UINT count) {if(Read(output,count)!=count)AfxThrowArchiveException(3,m_strFileName.GetString());}
+    OPENMFC_ARCHIVE_API ULONGLONG ReadCount();
+    OPENMFC_ARCHIVE_API void WriteCount(ULONGLONG count);
+    OPENMFC_ARCHIVE_API void CheckCount();
+    void SetStoreParams(UINT hashSize=2053,UINT blockSize=128) {m_nHashSize=hashSize;m_nGrowSize=blockSize;}
+    void SetLoadParams(UINT growBy=1024) {m_nGrowSize=growBy;}
+protected:
+    CArchive(const CArchive&);
+    void operator=(const CArchive&);
+    BOOL m_nMode;
+    BOOL m_bUserBuf;
+    int m_nBufSize;
+    CFile* m_pFile;
+    BYTE* m_lpBufCur;
+    BYTE* m_lpBufMax;
+    BYTE* m_lpBufStart;
+    UINT m_nMapCount;
+    union {CPtrArray* m_pLoadArray;CMapPtrToPtr* m_pStoreMap;};
+    CMapPtrToPtr* m_pSchemaMap;
+    UINT m_nGrowSize;
+    UINT m_nHashSize;
     friend class CArchiveAccess;
-    void FillBuffer(UINT nBytesNeeded);
-    void WriteBuffer();
 };
+static_assert(sizeof(CArchive)==112 && !std::is_polymorphic_v<CArchive>,"native archive representation");
+
 
 // CFile - base file class
 namespace ATL { class CAtlTransactionManager; }

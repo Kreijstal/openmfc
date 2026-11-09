@@ -70,14 +70,14 @@ static_assert(sizeof(S_ArchOleDate) == 0x10, "COleDateTime size");
 // comment above the value-type operators at the bottom of this file).  A load
 // from a storing archive throws CArchiveException::writeOnly, a store into a
 // loading archive throws ::readOnly -- exactly the causes retail passes.
-// Retail also passes m_strFileName, which OpenMFC's CArchive lacks: NULL here.
+// Archive mode errors carry the captured file name.
 void ArRequireLoading(CArchive* ar) {
     if (!ar->IsLoading())
-        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::writeOnly, nullptr);
+        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::writeOnly, ar->m_strFileName.GetString());
 }
 void ArRequireStoring(CArchive* ar) {
     if (ar->IsLoading())
-        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::readOnly, nullptr);
+        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::readOnly, ar->m_strFileName.GetString());
 }
 template <class T> void ArPut(CArchive* ar, T value) {
     ArRequireStoring(ar);
@@ -109,29 +109,6 @@ template <class T> T ArGet(CArchive* ar) {
 
 
 
-// Symbol: ?FillBuffer@CArchive@@QEAAXI@Z
-extern "C" void MS_ABI impl__FillBuffer_CArchive__QEAAXI_Z(CArchive* pThis, unsigned int nBytesNeeded) {
-    CArchiveAccess::InvokeFillBuffer(pThis, nBytesNeeded);
-}
-// Symbol: ?GetObjectSchema@CArchive@@QEAAIXZ
-extern "C" unsigned int MS_ABI impl__GetObjectSchema_CArchive__QEAAIXZ(CArchive* pThis) {
-    return pThis ? pThis->GetObjectSchema() : 0;
-}
-// Symbol: ?WriteCount@CArchive@@QEAAX_K@Z
-extern "C" void MS_ABI impl__WriteCount_CArchive__QEAAX_K_Z(CArchive* pThis, unsigned long long count) {
-    if (!pThis) return;
-    pThis->Write(&count, sizeof(count));
-}
-// Symbol: ?ReadCount@CArchive@@QEAA_KXZ
-extern "C" unsigned long long MS_ABI impl__ReadCount_CArchive__QEAA_KXZ(CArchive* pThis) {
-    unsigned long long count = 0;
-    if (pThis) pThis->Read(&count, sizeof(count));
-    return count;
-}
-// Symbol: ?CheckCount@CArchive@@QEAAXXZ
-extern "C" void MS_ABI impl__CheckCount_CArchive__QEAAXXZ(CArchive* pThis) {
-    if (pThis) pThis->Flush();
-}
 // Symbol: ?WriteClass@CArchive@@QEAAXPEBUCRuntimeClass@@@Z
 extern "C" void MS_ABI impl__WriteClass_CArchive__QEAAXPEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass* pClass) {
     if (pThis && pClass) impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(pClass, pThis);
@@ -165,178 +142,15 @@ extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTra
     return (pThis && stringOut) ? pThis->ReadString(*stringOut) : 0;
 }
 // Symbol: ?MapObject@CArchive@@QEAAXPEBVCObject@@@Z
-// STUB.  Retail body disassembled at RVA 0x1d08f0; it cannot be transcribed
-// onto OpenMFC's CArchive because every field it touches is missing here.
-// What retail does, from the disassembly:
-//   storing (m_nMode&load clear):
-//     if (this+0x58 /*m_pStoreMap*/ == NULL) {
-//         m_pStoreMap = new CMapPtrToPtr(0x38 bytes);      // operator new @0x2840
-//         m_pStoreMap->InitHashTable(*(DWORD*)(this+0x6c), TRUE);  // @0x231200
-//         (*m_pStoreMap)[NULL] = 0;                        // operator[] @0x231460
-//         *(UINT*)(this+0x50) /*m_nMapCount*/ = 1;
-//     }
-//     if (pOb) { if (m_nMapCount >= 0x3ffffffe)
-//                    AfxThrowArchiveException(5 /*badIndex*/,
-//                        m_strFileName.GetString());  // CString at this+0x18
-//                (*m_pStoreMap)[pOb] = m_nMapCount++; }
-//   loading:
-//     if (m_pLoadArray /*same slot, this+0x58*/ == NULL) {
-//         m_pLoadArray = new CPtrArray(0x28 bytes);
-//         m_pLoadArray->SetSize(1, *(DWORD*)(this+0x68));  // @0x1d2560
-//         (*m_pLoadArray)[0] = NULL;  m_nMapCount = 1;
-//     }
-//     if (this+0x60 /*m_pSchemaMap*/ == NULL) {
-//         EnsureSchemaMapExists(&pArray);                      // @0x1d03b0
-//         <seed entry 0 of the returned array>;                // @0x1d1218
-//     }
-//     if (pOb) { if (m_nMapCount >= 0x3ffffffe)
-//                    AfxThrowArchiveException(5 /*badIndex*/, m_strFileName);
-//                m_pLoadArray->InsertAt(m_nMapCount, pOb, 1);  // @0x1d28f0
-//                <record a schema entry in m_pSchemaMap>;  m_nMapCount++; }
-// OpenMFC's CArchive (include/openmfc/afx.h) has no m_nMapCount, no
-// m_pStoreMap/m_pLoadArray, no m_pSchemaMap and no m_nGrowSize, and its
-// operator<</operator>> for CObject* do not consult an object map at all, so
-// there is nothing for this to register into.  See headerRequests.
+// Remaining stub: register class/object identities and maintain the native load
+// array, store map and schema-type array. The fields now have their native
+// layout; object-graph serialization still needs the corresponding protocol.
 extern "C" void MS_ABI impl__MapObject_CArchive__QEAAXPEBVCObject___Z(CArchive*, const CObject*) {
 }
 // Symbol: ?EnsureSchemaMapExists@CArchive@@QEAAXPEAPEAV?$CArray@W4LoadArrayObjType@CArchive@@AEBW412@@@@Z
-// STUB.  Retail body disassembled at RVA 0x1d2420 (mfc140u); it works
-// exclusively on m_pSchemaMap at this+0x60:
-//     pMap = m_pSchemaMap;  pArray = NULL;
-//     if (pMap == NULL) {
-//         pMap = operator new(0x38);            ; ??2 at 0x27f0 (mfc140u)
-//         <inline CMapPtrToPtr ctor: vptr, m_pHashTable=0,
-//          m_nHashTableSize(+0x10)=17, +0x18/+0x20/+0x28=0, m_nBlockSize(+0x30)=10>
-//     }
-//     if (!pMap->Lookup((void*)1, (void*&)pArray)) {   ; Lookup at 0x232e10
-//         pArray = operator new(0x28);  <inline CArray ctor: vptr, +0x8..+0x20 = 0>
-//         <non-exported helper at 0x1d30b8>(pArray, 1, *(UINT*)(this+0x68));
-//                                                     ; SetSize(1, m_nGrowSize) shape
-//         (*pMap)[(void*)1] = pArray;               ; operator[] at 0x232e40
-//     }
-//     m_pSchemaMap = pMap;
-//     if (ppArray) *ppArray = pArray;
-// OpenMFC's CArchive has neither m_pSchemaMap nor m_nGrowSize, and nothing in
-// this tree produces or consumes a LoadArrayObjType array, so the function is
-// left inert rather than given an invented map.  See headerRequests.
+// Remaining stub: create the native schema map and its reserved type-array
+// entry, including allocation-failure ownership and caller-visible array state.
 extern "C" void MS_ABI impl__EnsureSchemaMapExists_CArchive__QEAAXPEAPEAV__CArray_W4LoadArrayObjType_CArchive__AEBW412____Z(CArchive*, void**) {
-}
-CArchive::CArchive(CFile* pFile, UINT nMode, int nBufSize, void* lpBuf)
-    : m_pFile(pFile), m_nMode(nMode), m_nBufSize(nBufSize),
-      m_nObjectSchema(0), m_bForceFlat(false)
-{
-    if (lpBuf) {
-        m_lpBufStart = static_cast<unsigned char*>(lpBuf);
-        m_bUserBuf = true;
-    } else {
-        m_lpBufStart = new unsigned char[nBufSize];
-        m_bUserBuf = false;
-    }
-
-    if (IsLoading()) {
-        m_lpBufCur = m_lpBufStart;
-        m_lpBufMax = m_lpBufStart;  // Empty buffer, will be filled on first read
-    } else {
-        m_lpBufCur = m_lpBufStart;
-        m_lpBufMax = m_lpBufStart + nBufSize;
-    }
-}
-CArchive::~CArchive() {
-    if (!(m_nMode & bNoFlushOnDelete)) {
-        Flush();
-    }
-    if (!m_bUserBuf) {
-        delete[] m_lpBufStart;
-    }
-}
-void CArchive::FillBuffer(UINT nBytesNeeded) {
-    if (!m_pFile || !m_lpBufStart || m_nBufSize <= 0) return;
-
-    // Move remaining data to start of buffer
-    UINT nRemaining = (UINT)(m_lpBufMax - m_lpBufCur);
-    if (nRemaining > 0 && m_lpBufCur != m_lpBufStart) {
-        memmove(m_lpBufStart, m_lpBufCur, nRemaining);
-    }
-    m_lpBufCur = m_lpBufStart;
-
-    if (nRemaining >= nBytesNeeded) {
-        m_lpBufMax = m_lpBufStart + nRemaining;
-        return;
-    }
-
-    UINT capacity = static_cast<UINT>(m_nBufSize);
-    UINT bytesToRead = capacity - nRemaining;
-
-    UINT nRead = OpenMFC_File_Read(m_pFile, m_lpBufStart + nRemaining, bytesToRead);
-    m_lpBufMax = m_lpBufStart + nRemaining + nRead;
-}
-void CArchive::WriteBuffer() {
-    if (!m_pFile) return;
-
-    UINT nBytes = (UINT)(m_lpBufCur - m_lpBufStart);
-    if (nBytes > 0) {
-        OpenMFC_File_Write(m_pFile, m_lpBufStart, nBytes);
-        m_lpBufCur = m_lpBufStart;
-    }
-}
-UINT CArchive::Read(void* lpBuf, UINT nMax) {
-    if (!IsLoading() || !lpBuf || nMax == 0) return 0;
-
-    UINT nRead = 0;
-    unsigned char* pDest = static_cast<unsigned char*>(lpBuf);
-
-    while (nRead < nMax) {
-        UINT nAvail = (UINT)(m_lpBufMax - m_lpBufCur);
-        if (nAvail == 0) {
-            FillBuffer(nMax - nRead);
-            nAvail = (UINT)(m_lpBufMax - m_lpBufCur);
-            if (nAvail == 0) break;  // EOF
-        }
-
-        UINT nCopy = (nMax - nRead < nAvail) ? (nMax - nRead) : nAvail;
-        memcpy(pDest + nRead, m_lpBufCur, nCopy);
-        m_lpBufCur += nCopy;
-        nRead += nCopy;
-    }
-
-    return nRead;
-}
-void CArchive::Write(const void* lpBuf, UINT nMax) {
-    if (!IsStoring() || !lpBuf || nMax == 0) return;
-
-    const unsigned char* pSrc = static_cast<const unsigned char*>(lpBuf);
-    UINT nWritten = 0;
-
-    while (nWritten < nMax) {
-        UINT nAvail = (UINT)(m_lpBufMax - m_lpBufCur);
-        if (nAvail == 0) {
-            WriteBuffer();
-            nAvail = (UINT)(m_lpBufMax - m_lpBufCur);
-        }
-
-        UINT nCopy = (nMax - nWritten < nAvail) ? (nMax - nWritten) : nAvail;
-        memcpy(m_lpBufCur, pSrc + nWritten, nCopy);
-        m_lpBufCur += nCopy;
-        nWritten += nCopy;
-    }
-}
-void CArchive::Flush() {
-    if (IsStoring()) {
-        WriteBuffer();
-    }
-    if (m_pFile) {
-        OpenMFC_File_Flush(m_pFile);
-    }
-}
-void CArchive::Close() {
-    Flush();
-}
-void CArchive::Abort() {
-    // Reset without flushing
-    m_lpBufCur = m_lpBufStart;
-    if (IsLoading()) {
-        m_lpBufMax = m_lpBufStart;
-    }
 }
 CArchive& CArchive::operator>>(bool& b) {
     char ch;
@@ -543,12 +357,6 @@ void CArchive::WriteString(const wchar_t* lpsz) {
     UINT nLen = (UINT)wcslen(lpsz);
     Write(lpsz, nLen * sizeof(wchar_t));
 }
-// Symbol: ??0CArchive@@QEAA@PEAVCFile@@IHPEAX@Z
-extern "C" void* MS_ABI impl___0CArchive__QEAA_PEAVCFile__IHPEAX_Z(
-        void* p, CFile* pFile, unsigned int nMode, int nBufSize, void* lpBuf) {
-    return new (p) CArchive(pFile, nMode, nBufSize, lpBuf);
-}
-
 // ---------------------------------------------------------------------------
 // IMPLEMENT_SERIAL extraction operators:  CArchive& operator>>(CArchive&, T*&)
 //
@@ -856,7 +664,7 @@ extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCComBSTR_ATL___Z(
         CArchive* ar, BSTR* pbstr) {
     if (ar == nullptr || pbstr == nullptr) return ar;
     if (!ar->IsLoading()) {
-        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::writeOnly, nullptr);
+        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::writeOnly, ar->m_strFileName.GetString());
         return ar;
     }
 
