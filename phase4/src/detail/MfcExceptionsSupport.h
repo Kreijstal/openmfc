@@ -11,10 +11,7 @@ using namespace openmfc::detail::mfcexceptions;
 //
 // Supported exception types:
 // - CMemoryException (Static instance)
-// - CNotSupportedException_MfcExceptions
-// - CResourceException_MfcExceptions
 // - CUserException_MfcExceptions
-// - CInvalidArgException_MfcExceptions
 // - CFileException
 // - CArchiveException
 // - COleException
@@ -135,24 +132,6 @@ void AFXAPI AfxThrowOleDispatchException(WORD wCode, const wchar_t* lpszDescript
 // =============================================================================
 // Missing Exception Class Definitions
 // =============================================================================
-
-// CNotSupportedException_MfcExceptions
-class CNotSupportedException_MfcExceptions : public CException {
-public:
-    CNotSupportedException_MfcExceptions() : CException(TRUE) {}
-};
-
-// CResourceException_MfcExceptions
-class CResourceException_MfcExceptions : public CException {
-public:
-    CResourceException_MfcExceptions() : CException(TRUE) {}
-};
-
-// CInvalidArgException_MfcExceptions
-class CInvalidArgException_MfcExceptions : public CException {
-public:
-    CInvalidArgException_MfcExceptions() : CException(TRUE) {}
-};
 
 // =============================================================================
 // MSVC Exception Structures (x64)
@@ -288,90 +267,7 @@ namespace openmfc { namespace detail { namespace mfcexceptions {
 extern CatchableType CT_CObject;
 } } }
 
-// Define all exception types
-// CMemoryException
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_CMemoryException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[28];
-};
-extern TD_CMemoryException_t TD_CMemoryException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_CMemoryException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_CMemoryException_t { uint32_t n; int32_t t[3]; };
-extern CTA_CMemoryException_t CTA_CMemoryException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_CMemoryException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CMemoryException g_MemoryException; // Static instance;
-} } }
-
-// CNotSupportedException_MfcExceptions
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_CNotSupportedException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[32];
-};
-extern TD_CNotSupportedException_t TD_CNotSupportedException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_CNotSupportedException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_CNotSupportedException_t { uint32_t n; int32_t t[3]; };
-extern CTA_CNotSupportedException_t CTA_CNotSupportedException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_CNotSupportedException;
-} } }
-
-// CResourceException_MfcExceptions
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_CResourceException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[28];
-};
-extern TD_CResourceException_t TD_CResourceException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_CResourceException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_CResourceException_t { uint32_t n; int32_t t[3]; };
-extern CTA_CResourceException_t CTA_CResourceException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_CResourceException;
-} } }
-
-// CInvalidArgException_MfcExceptions
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_CInvalidArgException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[32];
-};
-extern TD_CInvalidArgException_t TD_CInvalidArgException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_CInvalidArgException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_CInvalidArgException_t { uint32_t n; int32_t t[3]; };
-extern CTA_CInvalidArgException_t CTA_CInvalidArgException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_CInvalidArgException;
-} } }
-
+// Legacy metadata for the remaining exception families.
 // CFileException
 namespace openmfc { namespace detail { namespace mfcexceptions {
 struct TD_CFileException_t {
@@ -567,7 +463,6 @@ void InitAllRTTI();
 // Returns 'this' as MSVC destructors do; caller won't deallocate since
 // m_bAutoDelete is initialized to 0 for these objects.
 namespace openmfc { namespace detail { namespace mfcexceptions {
-extern "C" void* MS_ABI dtor_CMemoryException(void* pThis);
 } } }
 
 // Padding for the slot past ReportError. The harvested CException-family vtable
@@ -652,21 +547,14 @@ extern "C" int MS_ABI vtbl_GetErrorMessage(
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 
 namespace openmfc { namespace detail { namespace mfcexceptions {
-extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const CObject* pThis);
 } } }
 
 // CMemoryException has no per-instance state, so its message is constant.
 // Real MFC reports AFX_IDP_OUT_OF_MEMORY ("Out of memory.").
 namespace openmfc { namespace detail { namespace mfcexceptions {
-extern "C" int MS_ABI vtbl_CMemoryException_GetErrorMessage(
-    const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
-);
 } } }
 
 // CMemoryException vtable - used by g_ManualMemoryException (static, never deleted)
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern void* g_vtbl_CMemoryException[];
-} } }
 
 // CFileException vtable
 namespace openmfc { namespace detail { namespace mfcexceptions {
@@ -724,40 +612,6 @@ static void PatchVPtr(T* pObj, void** vtable) {
     (void)currentVptr; // For debugging: we're replacing this
     *reinterpret_cast<void***>(pObj) = vtable;
 }
-
-// =============================================================================
-// ManualCMemoryException - ABI-compatible static exception object
-// =============================================================================
-//
-// This struct mirrors CMemoryException's memory layout exactly so we can
-// pre-construct an exception object with our MSVC-compatible vtable.
-// This avoids issues with copy constructors potentially resetting the vptr.
-//
-// Layout assumptions (verified by static_assert):
-// - vptr at offset 0 (standard for polymorphic classes)
-// - m_bAutoDelete immediately after vptr
-// - CMemoryException adds no members beyond CException
-//
-struct ManualCMemoryException {
-    void* vptr;           // Offset 0: points to our MSVC-compatible vtable
-    int m_bAutoDelete;    // CException::m_bAutoDelete
-    // Note: CMemoryException doesn't add any members beyond CException
-};
-
-// Comprehensive ABI compatibility verification
-// These static_asserts catch layout drift at compile time
-// Note: offsetof on m_bAutoDelete can't be checked directly (protected member in non-POD class)
-// but our layout is correct because:
-// - vptr is at offset 0 (standard for polymorphic classes, same as CObject)
-// - m_bAutoDelete immediately follows (sizeof(void*) offset), same as CException
-// - CMemoryException adds no additional members
-
-// Pre-constructed exception with MSVC-compatible vtable
-// Note: g_vtbl_CMemoryException is intentionally cast to void* - this array serves
-// as the vtable pointer that MSVC code will use to resolve virtual method calls.
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ManualCMemoryException g_ManualMemoryException;
-} } }
 
 // =============================================================================
 // Helper functions to throw exceptions

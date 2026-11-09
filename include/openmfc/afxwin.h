@@ -239,30 +239,21 @@ extern "C" AFX_MODULE_STATE* __cdecl impl__AfxGetModuleState__YAPEAVAFX_MODULE_S
 // CException and derived classes
 //=============================================================================
 
-class CException : public CObject {
+class AFX_NOVTABLE CException : public CObject {
     DECLARE_DYNAMIC(CException)
 public:
     CException(int bAutoDelete = 1) : m_bAutoDelete(bAutoDelete) {}
-    virtual ~CException() = default;
+    virtual ~CException() = 0;
     virtual int GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext = nullptr) const;
     virtual int GetErrorMessage(wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext = nullptr);
     virtual int ReportError(UINT nType=MB_OK,UINT nMessageID=0);
-    virtual void Dump() const override;
-    virtual void AssertValid() const override;
-    
     void Delete() { if (m_bAutoDelete>0) delete this; }
 
-protected:
-    int m_bAutoDelete;
-    // MSVC lays CException out as 16 bytes (vfptr@0, m_bAutoDelete@8, +4 padding@12)
-    // and does NOT reuse that tail padding for derived members. The Itanium/mingw
-    // ABI DOES reuse it, which would place CFileException::m_cause@12 / m_lOsError@16
-    // instead of MSVC's @16 / @20 — so a real MSVC client reads m_lOsError from
-    // uninitialized memory. This explicit reserved word fills the slot so mingw has
-    // no tail padding to fold into, matching the real layout. See
-    // mingw-reuses-tail-padding. Never read by clients (sits in MSVC's pad slot).
-    int m_nReservedPad;
+public:
+    BOOL m_bAutoDelete;
 };
+inline CException::~CException() = default;
+static_assert(sizeof(CException)==16 && offsetof(CException,m_bAutoDelete)==8,"native exception base");
 
 // IMPLEMENT_DYNAMIC(CException, CObject) moved to appcore.cpp
 
@@ -284,23 +275,55 @@ protected:
 };
 static_assert(sizeof(CSimpleException)==288,"native Unicode CSimpleException layout");
 
+class CMemoryException : public CSimpleException {
+    DECLARE_DYNAMIC(CMemoryException)
+public:
+    CMemoryException();
+    explicit CMemoryException(BOOL);
+    CMemoryException(BOOL,UINT);
+    ~CMemoryException() override;
+};
+static_assert(sizeof(CMemoryException)==288,"native CMemoryException layout");
+
+class CNotSupportedException : public CSimpleException {
+    DECLARE_DYNAMIC(CNotSupportedException)
+public:
+    CNotSupportedException();
+    explicit CNotSupportedException(BOOL);
+    CNotSupportedException(BOOL,UINT);
+    ~CNotSupportedException() override;
+};
+static_assert(sizeof(CNotSupportedException)==288,"native CNotSupportedException layout");
+
+class CInvalidArgException : public CSimpleException {
+    DECLARE_DYNAMIC(CInvalidArgException)
+public:
+    CInvalidArgException();
+    explicit CInvalidArgException(BOOL);
+    CInvalidArgException(BOOL,UINT);
+    ~CInvalidArgException() override;
+};
+static_assert(sizeof(CInvalidArgException)==288,"native CInvalidArgException layout");
+
+class CResourceException : public CSimpleException {
+    DECLARE_DYNAMIC(CResourceException)
+public:
+    CResourceException();
+    explicit CResourceException(BOOL);
+    CResourceException(BOOL,UINT);
+    ~CResourceException() override;
+};
+static_assert(sizeof(CResourceException)==288,"native CResourceException layout");
+
 class CUserException : public CSimpleException {
     DECLARE_DYNAMIC(CUserException)
 public:
     CUserException();
-    explicit CUserException(BOOL bAutoDelete);
-    CUserException(BOOL bAutoDelete,UINT nResourceID);
+    explicit CUserException(BOOL);
+    CUserException(BOOL,UINT);
     ~CUserException() override;
 };
-void AFXAPI AfxThrowUserException();
-
-class CMemoryException : public CException {
-    DECLARE_DYNAMIC(CMemoryException)
-public:
-    CMemoryException() : CException(0) {} // Memory exceptions are not auto-deleted
-};
-
-// IMPLEMENT_DYNAMIC(CMemoryException, CException) moved to appcore.cpp
+static_assert(sizeof(CUserException)==288,"native CUserException layout");
 
 class CFileException : public CException {
     DECLARE_DYNAMIC(CFileException)

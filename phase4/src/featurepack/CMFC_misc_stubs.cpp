@@ -1660,10 +1660,6 @@ extern "C" void* MS_ABI impl__AfxLoadLangResourceDLL__YAPEAUHINSTANCE____PEB_W_Z
 extern "C" int MS_ABI impl__AfxLoadString__YAHIPEADI_Z(unsigned int nID, char* lpszBuf, unsigned int nMaxBuf) {
     return ::LoadStringA(AfxGetResourceHandle(), nID, lpszBuf, nMaxBuf);
 }
-// Symbol: ?AfxLoadString@@YAHIPEA_WI@Z
-extern "C" int MS_ABI impl__AfxLoadString__YAHIPEA_WI_Z(unsigned int nID, wchar_t* lpszBuf, unsigned int nMaxBuf) {
-    return ::LoadStringW(AfxGetResourceHandle(), nID, lpszBuf, nMaxBuf);
-}
 // Symbol: ?AfxLoadSysColorBitmap@@YAPEAUHBITMAP__@@PEAUHINSTANCE__@@PEAUHRSRC__@@H@Z
 extern "C" void* MS_ABI impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
     // Loads the DIB resource and remaps the standard MFC toolbar 4-entry

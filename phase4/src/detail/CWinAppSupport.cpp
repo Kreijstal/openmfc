@@ -2,7 +2,6 @@
 #include "openmfc/afxstat_.h"
 
 IMPLEMENT_DYNAMIC(CCmdTarget, CObject)
-IMPLEMENT_DYNAMIC(CMemoryException, CException)
 IMPLEMENT_DYNAMIC(CFileException, CException)
 IMPLEMENT_DYNAMIC(CArchiveException, CException)
 IMPLEMENT_DYNAMIC(CWinThread, CCmdTarget)

@@ -177,7 +177,7 @@ on:
       - 'phase4/src/detail/DatabaseFieldBuffer.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
-      - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
+      - 'phase4/src/core/exceptions/CException.cpp'
       - 'phase4/src/detail/DatabaseEnvironment.h'
       - 'phase4/src/detail/MfcExceptionsSupport.cpp'
       - 'phase4/src/featurepack/CMFC_misc_stubs.cpp'
@@ -206,6 +206,7 @@ on:
       - 'phase4/src/core/cmdui/CToolCmdUI.cpp'
       - 'tests/cmdui_tests.h'
       - 'phase4/src/core/exceptions/CExceptionVirtuals.cpp'
+      - 'phase4/src/core/runtime/AfxLoadString.cpp'
       - 'phase4/src/core/exceptions/CSimpleException.cpp'
       - 'phase4/src/core/exceptions/CUserException.cpp'
       - 'phase4/src/detail/CsimpleexceptionRttiSupport.cpp'
@@ -296,6 +297,7 @@ on:
       - 'tests/test_rendertarget_drawing.cpp'
       - 'tests/test_d2d_resources.cpp'
       - 'tests/d2d_test_support.h'
+      - 'tests/client_framework_exception.h'
       - 'tests/d2d_bitmap_gradient_tests.h'
       - 'tests/d2d_window_tests.h'
       - 'tests/run_rendertarget_drawing.sh'
@@ -476,7 +478,7 @@ on:
       - 'phase4/src/detail/DatabaseFieldBuffer.h'
       - 'tests/database_exception_fixture.rc'
       - 'phase4/src/core/exceptions/CDBException.cpp'
-      - 'phase4/src/core/exceptions/CtorDtorPlacement.cpp'
+      - 'phase4/src/core/exceptions/CException.cpp'
       - 'phase4/src/detail/DatabaseEnvironment.h'
       - 'phase4/src/detail/MfcExceptionsSupport.cpp'
       - 'phase4/src/featurepack/CMFC_misc_stubs.cpp'
@@ -505,6 +507,7 @@ on:
       - 'phase4/src/core/cmdui/CToolCmdUI.cpp'
       - 'tests/cmdui_tests.h'
       - 'phase4/src/core/exceptions/CExceptionVirtuals.cpp'
+      - 'phase4/src/core/runtime/AfxLoadString.cpp'
       - 'phase4/src/core/exceptions/CSimpleException.cpp'
       - 'phase4/src/core/exceptions/CUserException.cpp'
       - 'phase4/src/detail/CsimpleexceptionRttiSupport.cpp'
@@ -595,6 +598,7 @@ on:
       - 'tests/test_rendertarget_drawing.cpp'
       - 'tests/test_d2d_resources.cpp'
       - 'tests/d2d_test_support.h'
+      - 'tests/client_framework_exception.h'
       - 'tests/d2d_bitmap_gradient_tests.h'
       - 'tests/d2d_window_tests.h'
       - 'tests/run_rendertarget_drawing.sh'
@@ -655,6 +659,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndDynamicLayout.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndMessageMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CExceptionVirtuals.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxLoadString.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CSimpleException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CUserException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CsimpleexceptionRttiSupport.cpp"
@@ -896,6 +901,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndDynamicLayout.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndMessageMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CExceptionVirtuals.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxLoadString.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CSimpleException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CUserException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CsimpleexceptionRttiSupport.cpp"
@@ -1205,7 +1211,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabase.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDatabaseStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/db/CDataSourceControl.cpp"
-            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CtorDtorPlacement.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/MfcExceptionsSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/CMFC_misc_stubs.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CWinAppSupport.cpp"

@@ -1,3 +1,4 @@
+#include "client_framework_exception.h"
 #pragma once
 extern "C" void* MS_ABI impl___0CRecordset__QEAA_PEAVCDatabase___Z(void*,CDatabase*);
 namespace recordset_constructor_test {
@@ -14,7 +15,7 @@ static SQLRETURN SQL_API allocate(SQLHDBC database,SQLHSTMT* statement) {
     ++allocations;allocatedDatabase=database;allocationDepth=g_databaseLockDepth;
     if(throwAllocation==1)throw 73;
     if(throwAllocation==2)throw static_cast<CDBException*>(new AllocationException);
-    if(throwAllocation==3)throw static_cast<CException*>(new CException);
+    if(throwAllocation==3)throw static_cast<CException*>(new TestFrameworkException);
     *statement=emptyStatement?nullptr:reinterpret_cast<HSTMT>(0xbeef);
     return allocationResult;
 }

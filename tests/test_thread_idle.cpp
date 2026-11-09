@@ -356,5 +356,3 @@ CRuntimeClass CException::classCException{};
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const {std::abort();}
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) {std::abort();}
 int CException::ReportError(UINT,UINT) {std::abort();}
-void CException::Dump() const {std::abort();}
-void CException::AssertValid() const {std::abort();}

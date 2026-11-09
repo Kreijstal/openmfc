@@ -1,0 +1,45 @@
+name: Framework exception ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/exceptions/**'
+      - 'phase4/src/core/runtime/AfxLoadString.cpp'
+      - 'phase4/src/core/runtime/AfxFindResourceHandle.cpp'
+      - 'phase4/src/detail/CsimpleexceptionRttiSupport.*'
+      - 'tests/test_simple_exceptions_logic.cpp'
+      - 'tests/build_framework_exceptions.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/framework_exceptions.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/exceptions/**'
+      - 'phase4/src/core/runtime/AfxLoadString.cpp'
+      - 'phase4/src/core/runtime/AfxFindResourceHandle.cpp'
+      - 'phase4/src/detail/CsimpleexceptionRttiSupport.*'
+      - 'tests/test_simple_exceptions_logic.cpp'
+      - 'tests/build_framework_exceptions.py'
+      - 'tools/gen_weak_stubs.py'
+      - '.github/workflows/framework_exceptions.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Framework exception ABI (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Verify exception layouts, pointer catches, cached resources and ownership
+        shell: cmd
+        run: python tests/build_framework_exceptions.py --build "%RUNNER_TEMP%/framework-exceptions" ${{ matrix.flags }}

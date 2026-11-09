@@ -1123,11 +1123,6 @@ extern "C" void* MS_ABI impl___0CInternetException__QEAA_K_Z(void* pThis, unsign
 extern "C" void MS_ABI impl___1CInternetException__UEAA_XZ(void* pThis) {
     ((CInternetException*)pThis)->~CInternetException();
 }
-// Symbol: ?GetErrorMessage@CException@@UEAAHPEA_WIPEAI@Z
-// CException::GetErrorMessage
-extern "C" int MS_ABI impl__GetErrorMessage_CException__UEAAHPEA_WIPEAI_Z(CException* pThis, wchar_t* p0, unsigned int p1, unsigned int* p2) {
-    return (int)pThis->GetErrorMessage(p0, p1, p2);
-}
 // Symbol: ?GetErrorMessage@CInternetException@@UEBAHPEA_WIPEAI@Z
 // CInternetException::GetErrorMessage
 extern "C" int MS_ABI impl__GetErrorMessage_CInternetException__UEBAHPEA_WIPEAI_Z(const CInternetException* pThis, wchar_t* p0, unsigned int p1, unsigned int* p2) {

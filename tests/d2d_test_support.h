@@ -1,3 +1,4 @@
+#include "client_framework_exception.h"
 #pragma once
 #include "openmfc/afxinet.h"
 #include "openmfc/afxstat_.h"
@@ -86,7 +87,7 @@ CArchive& CArchive::operator>>(unsigned int&) { std::abort(); }
 // Connection-array allocation failures use the framework memory exception.
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
 #ifdef OPENMFC_TEST_WINDOW_HANDLES
-    static CException error(FALSE);throw &error;
+    static TestFrameworkException error(FALSE);throw &error;
 #else
     throw std::bad_alloc();
 #endif
@@ -95,11 +96,9 @@ extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
 // Exception diagnostics and application lookup are peripheral to automation.
 CRuntimeClass CException::classCException{"CException",sizeof(CException),0xffff,nullptr,&CObject::GetThisClass,nullptr,nullptr};
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const { std::abort(); }
-void CException::Dump() const { std::abort(); }
-void CException::AssertValid() const { std::abort(); }
 CWinThread* g_dialogHelpThread=nullptr;
 CWinThread* AFXAPI AfxGetThread() { return g_dialogHelpThread; }
-CRuntimeClass g_automationMemoryExceptionClass{"CMemoryException",sizeof(CException),0xffff,nullptr,nullptr,nullptr,nullptr};
+CRuntimeClass g_automationMemoryExceptionClass{"CMemoryException",sizeof(CMemoryException),0xffff,nullptr,&CSimpleException::GetThisClass,nullptr,nullptr};
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ() { return &g_automationMemoryExceptionClass; }
 
 // Model the recursive CRIT_TYPELIBCACHE lock used by the production lookup.
@@ -291,8 +290,11 @@ extern "C" void MS_ABI impl__SetButtonStyle_CToolBar__QEAAXHI_Z(void*,int index,
 int g_exchangeMessageBoxes=0;
 UINT g_exchangeMessageID=0,g_exchangeMessageFlags=0;
 extern "C" int MS_ABI impl__AfxMessageBox__YAHIII_Z(UINT id,UINT flags,UINT) { ++g_exchangeMessageBoxes;g_exchangeMessageID=id;g_exchangeMessageFlags=flags;return IDOK; }
-extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() { throw new CException; }
+#ifndef OPENMFC_TEST_REAL_NOTSUPPORTED_EXCEPTION
+extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() { throw new TestFrameworkException; }
+#endif
 extern "C" int MS_ABI impl__ReportError_CException__UEAAHII_Z(CException*,UINT,UINT) { std::abort(); }
+int CException::ReportError(UINT type,UINT message) {return impl__ReportError_CException__UEAAHII_Z(this,type,message);}
 
 // Array/map serialization is peripheral to the DLGINIT storage tests.
 UINT CArchive::Read(void*,UINT) {std::abort();}

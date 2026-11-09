@@ -6,7 +6,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CException__SAPEAUCRuntimeCl
 // Implementations this unit calls that are defined with their own class.
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 
-IMPLEMENT_DYNAMIC(CException, CObject)
 void AFXAPI AfxThrowOleException(LONG sc) {
     impl__AfxThrowOleException__YAXJ_Z(sc);
 }
@@ -15,21 +14,6 @@ void AFXAPI AfxThrowOleDispatchException(WORD wCode, UINT nDescriptionID, UINT n
 }
 void AFXAPI AfxThrowOleDispatchException(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID) {
     impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(wCode, lpszDescription, nHelpID);
-}
-static_assert(sizeof(ManualCMemoryException) == sizeof(CMemoryException),
-              "ManualCMemoryException must match CMemoryException size for ABI compatibility");
-static_assert(alignof(ManualCMemoryException) == alignof(CMemoryException),
-              "ManualCMemoryException must match CMemoryException alignment for ABI compatibility");
-static_assert(offsetof(ManualCMemoryException, vptr) == 0,
-              "ManualCMemoryException vptr must be at offset 0");
-static_assert(offsetof(ManualCMemoryException, m_bAutoDelete) == sizeof(void*),
-              "ManualCMemoryException m_bAutoDelete must immediately follow vptr");
-void AFXAPI AfxThrowMemoryException() {
-    impl__AfxThrowMemoryException__YAXXZ();
-}
-// Symbol: ?AfxThrowInvalidArgException@@YAXXZ
-extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
-    ThrowNew(new CInvalidArgException_MfcExceptions(), &TI_CInvalidArgException, nullptr);
 }
 // Symbol: ?AfxThrowFileException@@YAXHJPEB_W@Z
 extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
@@ -201,23 +185,6 @@ TD_CException_t TD_CException = { nullptr, nullptr, ".PEAVCException@@" };
 TD_CObject_t TD_CObject = { nullptr, nullptr, ".PEAVCObject@@" };
 CatchableType CT_CException = { 1, 0, 0, -1, 0, 8, 0 };
 CatchableType CT_CObject = { 1, 0, 0, -1, 0, 8, 0 };
-TD_CMemoryException_t TD_CMemoryException = { nullptr, nullptr, ".PEAVCMemoryException@@" };
-CatchableType CT_CMemoryException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_CMemoryException_t CTA_CMemoryException = { 3, {0,0,0} };
-ThrowInfo TI_CMemoryException = { 0, 0, 0, 0 };
-CMemoryException g_MemoryException; // Static instance
-TD_CNotSupportedException_t TD_CNotSupportedException = { nullptr, nullptr, ".PEAVCNotSupportedException@@" };
-CatchableType CT_CNotSupportedException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_CNotSupportedException_t CTA_CNotSupportedException = { 3, {0,0,0} };
-ThrowInfo TI_CNotSupportedException = { 0, 0, 0, 0 };
-TD_CResourceException_t TD_CResourceException = { nullptr, nullptr, ".PEAVCResourceException@@" };
-CatchableType CT_CResourceException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_CResourceException_t CTA_CResourceException = { 3, {0,0,0} };
-ThrowInfo TI_CResourceException = { 0, 0, 0, 0 };
-TD_CInvalidArgException_t TD_CInvalidArgException = { nullptr, nullptr, ".PEAVCInvalidArgException@@" };
-CatchableType CT_CInvalidArgException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_CInvalidArgException_t CTA_CInvalidArgException = { 3, {0,0,0} };
-ThrowInfo TI_CInvalidArgException = { 0, 0, 0, 0 };
 TD_CFileException_t TD_CFileException = { nullptr, nullptr, ".PEAVCFileException@@" };
 CatchableType CT_CFileException = { 1, 0, 0, -1, 0, 8, 0 };
 CTA_CFileException_t CTA_CFileException = { 3, {0,0,0} };
@@ -257,42 +224,6 @@ void InitAllRTTI() {
     TD_CObject.pVFTable = g_typeInfoVFT;
     CT_CException.pType = TO_RVA(&TD_CException);
     CT_CObject.pType = TO_RVA(&TD_CObject);
-
-    // CMemoryException
-    TD_CMemoryException.pVFTable = g_typeInfoVFT;
-    CT_CMemoryException.pType = TO_RVA(&TD_CMemoryException);
-    CTA_CMemoryException.t[0] = TO_RVA(&CT_CMemoryException);
-    CTA_CMemoryException.t[1] = TO_RVA(&CT_CException);
-    CTA_CMemoryException.t[2] = TO_RVA(&CT_CObject);
-    TI_CMemoryException.pmfnUnwind = 0; // No destructor needed for static object
-    TI_CMemoryException.pCatchableTypeArray = TO_RVA(&CTA_CMemoryException);
-
-    // CNotSupportedException_MfcExceptions
-    TD_CNotSupportedException.pVFTable = g_typeInfoVFT;
-    CT_CNotSupportedException.pType = TO_RVA(&TD_CNotSupportedException);
-    CTA_CNotSupportedException.t[0] = TO_RVA(&CT_CNotSupportedException);
-    CTA_CNotSupportedException.t[1] = TO_RVA(&CT_CException);
-    CTA_CNotSupportedException.t[2] = TO_RVA(&CT_CObject);
-    TI_CNotSupportedException.pmfnUnwind = 0; // We don't support unwinding on MinGW side easily
-    TI_CNotSupportedException.pCatchableTypeArray = TO_RVA(&CTA_CNotSupportedException);
-
-    // CResourceException_MfcExceptions
-    TD_CResourceException.pVFTable = g_typeInfoVFT;
-    CT_CResourceException.pType = TO_RVA(&TD_CResourceException);
-    CTA_CResourceException.t[0] = TO_RVA(&CT_CResourceException);
-    CTA_CResourceException.t[1] = TO_RVA(&CT_CException);
-    CTA_CResourceException.t[2] = TO_RVA(&CT_CObject);
-    TI_CResourceException.pmfnUnwind = 0;
-    TI_CResourceException.pCatchableTypeArray = TO_RVA(&CTA_CResourceException);
-
-    // CInvalidArgException_MfcExceptions
-    TD_CInvalidArgException.pVFTable = g_typeInfoVFT;
-    CT_CInvalidArgException.pType = TO_RVA(&TD_CInvalidArgException);
-    CTA_CInvalidArgException.t[0] = TO_RVA(&CT_CInvalidArgException);
-    CTA_CInvalidArgException.t[1] = TO_RVA(&CT_CException);
-    CTA_CInvalidArgException.t[2] = TO_RVA(&CT_CObject);
-    TI_CInvalidArgException.pmfnUnwind = 0;
-    TI_CInvalidArgException.pCatchableTypeArray = TO_RVA(&CTA_CInvalidArgException);
 
     // CFileException
     TD_CFileException.pVFTable = g_typeInfoVFT;
@@ -358,11 +289,6 @@ void InitAllRTTI() {
     TI_CDaoException.pCatchableTypeArray = TO_RVA(&CTA_CDaoException);
 
     g_rttiInitialized = true;
-}
-extern "C" void* MS_ABI dtor_CMemoryException(void* pThis) {
-    if (!pThis) return nullptr;
-    static_cast<CException*>(pThis)->Delete();
-    return pThis;
 }
 extern "C" int MS_ABI vtbl_ReportErrorPad(void* pThis) {
     if (!pThis) return 0;
@@ -471,30 +397,6 @@ extern "C" int MS_ABI vtbl_GetErrorMessage(
     }
     return pThis->CException::GetErrorMessage(lpszError, nMaxError, pnHelpContext);
 }
-extern "C" CRuntimeClass* MS_ABI vtbl_CMemoryException_GetRuntimeClass(const CObject* pThis) {
-    (void)pThis;
-    // Call our exported GetThisClass - this returns the exact address MSVC expects
-    return impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
-}
-extern "C" int MS_ABI vtbl_CMemoryException_GetErrorMessage(
-    const CException* pThis, wchar_t* lpszError, unsigned int nMaxError, unsigned int* pnHelpContext
-) {
-    (void)pThis;
-    if (pnHelpContext) *pnHelpContext = 0;
-    if (!lpszError || nMaxError == 0) return 0;
-    CopyErrorText(lpszError, nMaxError, L"Out of memory.");
-    return 1;
-}
-void* g_vtbl_CMemoryException[] = {
-    reinterpret_cast<void*>(vtbl_CMemoryException_GetRuntimeClass),  // [0] GetRuntimeClass
-    reinterpret_cast<void*>(dtor_CMemoryException),                    // [1] destructor (static instance)
-    reinterpret_cast<void*>(vtbl_Serialize),                          // [2] Serialize
-    reinterpret_cast<void*>(vtbl_AssertValid),                        // [3] AssertValid
-    reinterpret_cast<void*>(vtbl_Dump),                               // [4] Dump
-    reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage),   // [5] GetErrorMessage (GEM-first order)
-    reinterpret_cast<void*>(vtbl_CMemoryException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
-    reinterpret_cast<void*>(vtbl_ReportErrorPad)                       // [7] pad
-};
 extern "C" CRuntimeClass* MS_ABI vtbl_CFileException_GetRuntimeClass(const CObject* pThis) {
     (void)pThis;
     return &CFileException::classCFileException;
@@ -559,25 +461,6 @@ void* g_vtbl_CArchiveException[] = {
     reinterpret_cast<void*>(vtbl_CArchiveException_GetErrorMessage),   // [6] GetErrorMessage (ReportError-first order)
     reinterpret_cast<void*>(vtbl_ReportErrorPad)                        // [7] pad
 };
-ManualCMemoryException g_ManualMemoryException = {
-    static_cast<void*>(g_vtbl_CMemoryException),  // vptr: explicit cast to MSVC vtable
-    0                                              // m_bAutoDelete = 0 (static, not auto-deleted)
-};
-// Symbol: ?AfxThrowMemoryException@@YAXXZ
-extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
-    // Use the manually constructed exception with pre-set MSVC vtable
-    // This avoids any issues with MinGW vtable layout
-    CMemoryException* pEx = reinterpret_cast<CMemoryException*>(&g_ManualMemoryException);
-    ThrowStatic(pEx, &TI_CMemoryException, nullptr);  // vtable already set
-}
-// Symbol: ?AfxThrowNotSupportedException@@YAXXZ
-extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() {
-    ThrowNew(new CNotSupportedException_MfcExceptions(), &TI_CNotSupportedException, nullptr);
-}
-// Symbol: ?AfxThrowResourceException@@YAXXZ
-extern "C" void MS_ABI impl__AfxThrowResourceException__YAXXZ() {
-    ThrowNew(new CResourceException_MfcExceptions(), &TI_CResourceException, nullptr);
-}
 // Symbol: ?AfxThrowArchiveException@@YAXHPEB_W@Z
 extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(
     int cause, const wchar_t* lpszArchiveName

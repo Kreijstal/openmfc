@@ -131,8 +131,6 @@ CRuntimeClass CFileException::classCFileException{"CFileException",32,0xffff,nul
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const {std::puts("unexpected CException diagnostic");std::abort();}
 int CException::GetErrorMessage(wchar_t* p,UINT n,UINT* h){return static_cast<const CException*>(this)->GetErrorMessage(p,n,h);}
 int CException::ReportError(UINT,UINT){std::abort();}
-void CException::Dump() const {std::abort();}
-void CException::AssertValid() const {std::abort();}
 int CFileException::GetErrorMessage(wchar_t*,UINT,UINT*) const {std::puts("unexpected CFileException diagnostic");std::abort();}
 void CFileException::Dump() const {std::abort();}
 void CFileException::AssertValid() const {std::abort();}

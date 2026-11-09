@@ -1,6 +1,7 @@
 // Thread lifetime and loop checks use real production owners. Unrelated
 // command/OLE virtuals are aborting boundaries; native comparison is optional.
 #define OPENMFC_APPCORE_IMPL
+#include "client_framework_exception.h"
 #include "detail/ModuleThreadStateSupport.h"
 #include "detail/RegcoreSupport.h"
 #include "detail/AppDocumentManagerState.h"
@@ -75,7 +76,7 @@ AFX_MODULE_THREAD_STATE* ForModule(AFX_MODULE_STATE* module) {
 LRESULT CALLBACK AfxWndProc(HWND,UINT,WPARAM,LPARAM) {std::abort();}
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
 #ifdef OPENMFC_TEST_THREAD_STARTUP
-    static CException error(FALSE);throw &error;
+    static TestFrameworkException error(FALSE);throw &error;
 #else
     throw 91;
 #endif
@@ -84,7 +85,7 @@ extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long value) {throw val
 #endif
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
 #ifdef OPENMFC_TEST_THREAD_STARTUP
-    static CException error(FALSE);throw &error;
+    static TestFrameworkException error(FALSE);throw &error;
 #else
     throw 19;
 #endif

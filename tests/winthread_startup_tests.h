@@ -1,3 +1,4 @@
+#include "client_framework_exception.h"
 #pragma once
 // Window lifecycle is a boundary here; its production constructor/handle maps
 // have independent native window tests. Thread/TLS and map storage are real.
@@ -10,8 +11,6 @@ IMPLEMENT_DYNAMIC(CException,CObject)
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const {std::abort();}
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) {std::abort();}
 int CException::ReportError(UINT,UINT) {std::abort();}
-void CException::Dump() const {std::abort();}
-void CException::AssertValid() const {std::abort();}
 extern "C" CWnd* MS_ABI impl___0CWnd__QEAA_XZ(CWnd* window) {
     std::memset(window,0,sizeof(CWnd));window->m_pModuleState=impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();return window;
 }
@@ -152,7 +151,7 @@ static HHOOK realInstalledHook=reinterpret_cast<HHOOK>(UINT_PTR(0x56780000));
 static HHOOK WINAPI installRealHook(int code,HOOKPROC hook,HINSTANCE module,DWORD thread) {
     check(code==WH_MSGFILTER && hook==work->api->hook && !module && thread==GetCurrentThreadId(),"real child installs its own native message-filter hook");
     InterlockedIncrement(&work->hookCount);
-    if(scenario==6) {static CException error(FALSE);throw &error;}
+    if(scenario==6) {static TestFrameworkException error(FALSE);throw &error;}
     return realInstalledHook;
 }
 static BOOL WINAPI removeRealHook(HHOOK hook) {
@@ -383,7 +382,7 @@ static void AFXAPI factoryDelete(CWinThread*) {record(13);}
 static CObject* AFXAPI factory() {
     ++factoryCalls;
     if(factoryMode==1)return nullptr;
-    if(factoryMode==2) {static CException retained(-1);throw &retained;}
+    if(factoryMode==2) {static TestFrameworkException retained(-1);throw &retained;}
     if(factoryMode==3)throw 31;
     alignas(16) static BYTE storage[sizeof(CWinThread)];
     factoryObject=active->core->construct(reinterpret_cast<CWinThread*>(storage));
@@ -489,7 +488,7 @@ static int tipDestroys,tipDeletes,tipFailure;
 static BOOL AFXAPI termTipDestroy(CWnd*) {
     ++tipDestroys;
     int failure=tipFailure;tipFailure=0;
-    if(failure==1) {static CException retained(-1);throw &retained;}
+    if(failure==1) {static TestFrameworkException retained(-1);throw &retained;}
     if(failure==2)throw 31;
     return FALSE;
 }

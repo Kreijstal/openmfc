@@ -2,23 +2,27 @@
 #define OPENMFC_APPCORE_IMPL
 #include "detail/CsimpleexceptionRttiSupport.h"
 #include <cwchar>
-extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
+#include <cerrno>
+extern "C" int impl__AfxLoadString__YAHIPEA_WI_Z(UINT,wchar_t*,UINT);
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 void AFXAPI AfxThrowMemoryException() {impl__AfxThrowMemoryException__YAXXZ();}
-CSimpleException::CSimpleException() : CSimpleException(TRUE) {}
-CSimpleException::CSimpleException(BOOL autoDelete) : CException(autoDelete),m_bAutoDelete(autoDelete),m_bInitialized(FALSE),m_bLoaded(FALSE),m_szMessage{},m_nResourceID(0) {}
+CSimpleException::CSimpleException() : m_bInitialized(FALSE),m_bLoaded(FALSE) {}
+CSimpleException::CSimpleException(BOOL autoDelete) : CException(autoDelete),m_bInitialized(FALSE),m_bLoaded(FALSE) {}
 CSimpleException::~CSimpleException() = default;
 void CSimpleException::InitString() {
     m_bInitialized=TRUE;
-    auto module=static_cast<HINSTANCE>(impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(m_nResourceID));
-    m_bLoaded=module && ::LoadStringW(module,m_nResourceID,m_szMessage,128)!=0;
+    m_bLoaded=impl__AfxLoadString__YAHIPEA_WI_Z(m_nResourceID,m_szMessage,128)!=0;
 }
 int CSimpleException::GetErrorMessage(wchar_t* out,UINT capacity,UINT* help) const {
     if(!out || !capacity)return FALSE;
     if(help)*help=0;
     if(!m_bInitialized)const_cast<CSimpleException*>(this)->InitString();
     if(m_bLoaded) {
-        std::wcsncpy(out,m_szMessage,capacity-1);out[capacity-1]=L'\0';
+        int error=wcsncpy_s(out,capacity,m_szMessage,_TRUNCATE);
+        if (error && error!=STRUNCATE) {
+            if (error==ENOMEM) AfxThrowMemoryException();
+            AfxThrowInvalidArgException();
+        }
     } else out[0]=L'\0';
     return m_bLoaded;
 }

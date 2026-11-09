@@ -1,3 +1,4 @@
+#include "client_framework_exception.h"
 #pragma once
 #include <cstddef>
 extern "C" {
@@ -19,7 +20,7 @@ public:
             "UpdateData passes a native initialized exchange object to virtual slot 66");
         check(AfxGetThreadState()->m_hLockoutNotifyWindow==m_hWnd,"notification lockout names the current exchange window");
         if(mode==1)dx->Fail();
-        if(mode==2)throw new CException;
+        if(mode==2)throw new TestFrameworkException;
         if(mode==3)throw 77;
         if(mode==4) {
             Window nested;nested.m_hWnd=nestedWindow;nested.mode=1;

@@ -10,6 +10,7 @@ on:
       - 'tests/build_window_handles.py'
       - 'tests/run_rendertarget_drawing.sh'
       - 'tests/d2d_test_support.h'
+      - 'tests/client_framework_exception.h'
       - 'tools/gen_weak_stubs.py'
       - '.github/workflows/ole_format_enum.yml'
   pull_request:
@@ -22,6 +23,7 @@ on:
       - 'tests/build_window_handles.py'
       - 'tests/run_rendertarget_drawing.sh'
       - 'tests/d2d_test_support.h'
+      - 'tests/client_framework_exception.h'
       - 'tools/gen_weak_stubs.py'
       - '.github/workflows/ole_format_enum.yml'
   workflow_dispatch:
