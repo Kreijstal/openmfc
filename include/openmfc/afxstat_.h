@@ -8,7 +8,6 @@ public:
     static void operator delete(void* memory);
     virtual ~CNoTrackObject() = default;
 };
-struct AFX_EXCEPTION_LINK;
 struct AFX_EXCEPTION_CONTEXT { AFX_EXCEPTION_LINK* m_pLinkTop; };
 class CPushRoutingView;
 class CPushRoutingFrame;

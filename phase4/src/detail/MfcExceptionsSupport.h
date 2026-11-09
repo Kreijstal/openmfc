@@ -4,9 +4,8 @@
 // single instance across the classes this unit was split into.
 namespace openmfc { namespace detail { namespace mfcexceptions {} } }
 using namespace openmfc::detail::mfcexceptions;
-// Legacy internet and DAO exception support. Resource-critical
-// file/archive and OLE exceptions own their actual C++ classes, metadata and typed throws
-// in core/exceptions; this remaining manual EH implementation is still debt.
+// Legacy DAO exception support. Other exception families own their actual C++
+// classes, metadata and typed throws in core/exceptions.
 
 // Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
 #define OPENMFC_APPCORE_IMPL
@@ -229,46 +228,6 @@ extern CatchableType CT_CObject;
 } } }
 
 // Legacy metadata for the remaining exception families.
-// CInternetException
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_CInternetException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[28];
-};
-extern TD_CInternetException_t TD_CInternetException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_CInternetException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_CInternetException_t { uint32_t n; int32_t t[3]; };
-extern CTA_CInternetException_t CTA_CInternetException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_CInternetException;
-} } }
-
-// CDBException
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_CDBException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[24];
-};
-extern TD_CDBException_t TD_CDBException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_CDBException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_CDBException_t { uint32_t n; int32_t t[3]; };
-extern CTA_CDBException_t CTA_CDBException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_CDBException;
-} } }
-
 // CDaoException
 namespace openmfc { namespace detail { namespace mfcexceptions {
 struct TD_CDaoException_t {
@@ -370,13 +329,6 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
 
 
 
-// AfxThrowInternetException - void(DWORD dwContext, DWORD dwError)
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
-    DWORD dwContext, DWORD dwError
-);
-} } }
-
 // AfxThrowDBException - void(short nRetCode, CDatabase* pdb, void* hstmt)
 namespace openmfc { namespace detail { namespace mfcexceptions {
 extern "C" void MS_ABI impl__AfxThrowDBException__YAXFPEAVCDatabase__PEAX_Z(
@@ -390,11 +342,6 @@ namespace openmfc { namespace detail { namespace mfcexceptions {
 extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     int nAfxDaoError, SCODE scode
 );
-} } }
-
-// AfxThrowLastCleanup - internal MFC function
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern "C" void MS_ABI impl__AfxThrowLastCleanup__YAXXZ();
 } } }
 
 // AfxAbort - terminates the application

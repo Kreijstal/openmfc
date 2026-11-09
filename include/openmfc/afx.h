@@ -174,6 +174,16 @@ class CFile;
 class CException;
 class CFileException;
 
+void AFXAPI AfxTryCleanup();
+void AFXAPI AfxThrowLastCleanup();
+struct AFX_EXCEPTION_LINK {
+    AFX_EXCEPTION_LINK* m_pLinkPrev;
+    CException* m_pException;
+    AFX_EXCEPTION_LINK();
+    ~AFX_EXCEPTION_LINK() {AfxTryCleanup();}
+};
+static_assert(sizeof(AFX_EXCEPTION_LINK)==16,"native exception handler link");
+
 // CFileStatus - file status structure
 struct CFileStatus {
     LONGLONG m_ctime;       // Native CTime seconds since the Unix epoch

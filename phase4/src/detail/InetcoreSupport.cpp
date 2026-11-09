@@ -9,7 +9,6 @@ IMPLEMENT_DYNAMIC(CInternetSession, CObject)
 IMPLEMENT_DYNAMIC(CInternetConnection, CObject)
 IMPLEMENT_DYNAMIC(CHttpConnection, CInternetConnection)
 IMPLEMENT_DYNAMIC(CFtpConnection, CInternetConnection)
-IMPLEMENT_DYNAMIC(CInternetException, CException)
 IMPLEMENT_DYNAMIC(CFileFind, CObject)
 IMPLEMENT_DYNAMIC(CFtpFileFind, CFileFind)
 IMPLEMENT_DYNAMIC(GopherFileFind, CFtpFileFind)
@@ -138,9 +137,6 @@ CRuntimeClass* AFXAPI gb_CInternetFile() {
 }
 OPENMFC_INET_USED CRuntimeClass g_classCInternetFile = {
     "CInternetFile", 128, 0xFFFF, nullptr, gb_CInternetFile, nullptr, nullptr
-};
-OPENMFC_INET_USED CRuntimeClass g_classCInternetException = {
-    "CInternetException", sizeof(CInternetException), 0xFFFF, nullptr, nullptr, nullptr, nullptr
 };
 OPENMFC_INET_USED CRuntimeClass g_classCHttpFile = {
     "CHttpFile", sizeof(CHttpFile), 0xFFFF, nullptr, nullptr, nullptr, nullptr

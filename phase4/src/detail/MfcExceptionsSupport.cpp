@@ -68,14 +68,6 @@ TD_CException_t TD_CException = { nullptr, nullptr, ".PEAVCException@@" };
 TD_CObject_t TD_CObject = { nullptr, nullptr, ".PEAVCObject@@" };
 CatchableType CT_CException = { 1, 0, 0, -1, 0, 8, 0 };
 CatchableType CT_CObject = { 1, 0, 0, -1, 0, 8, 0 };
-TD_CInternetException_t TD_CInternetException = { nullptr, nullptr, ".PEAVCInternetException@@" };
-CatchableType CT_CInternetException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_CInternetException_t CTA_CInternetException = { 3, {0,0,0} };
-ThrowInfo TI_CInternetException = { 0, 0, 0, 0 };
-TD_CDBException_t TD_CDBException = { nullptr, nullptr, ".PEAVCDBException@@" };
-CatchableType CT_CDBException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_CDBException_t CTA_CDBException = { 3, {0,0,0} };
-ThrowInfo TI_CDBException = { 0, 0, 0, 0 };
 TD_CDaoException_t TD_CDaoException = { nullptr, nullptr, ".PEAVCDaoException@@" };
 CatchableType CT_CDaoException = { 1, 0, 0, -1, 0, 8, 0 };
 CTA_CDaoException_t CTA_CDaoException = { 3, {0,0,0} };
@@ -92,24 +84,6 @@ void InitAllRTTI() {
     CT_CException.pType = TO_RVA(&TD_CException);
     CT_CObject.pType = TO_RVA(&TD_CObject);
 
-    // CInternetException
-    TD_CInternetException.pVFTable = g_typeInfoVFT;
-    CT_CInternetException.pType = TO_RVA(&TD_CInternetException);
-    CTA_CInternetException.t[0] = TO_RVA(&CT_CInternetException);
-    CTA_CInternetException.t[1] = TO_RVA(&CT_CException);
-    CTA_CInternetException.t[2] = TO_RVA(&CT_CObject);
-    TI_CInternetException.pmfnUnwind = 0;
-    TI_CInternetException.pCatchableTypeArray = TO_RVA(&CTA_CInternetException);
-
-    // CDBException
-    TD_CDBException.pVFTable = g_typeInfoVFT;
-    CT_CDBException.pType = TO_RVA(&TD_CDBException);
-    CTA_CDBException.t[0] = TO_RVA(&CT_CDBException);
-    CTA_CDBException.t[1] = TO_RVA(&CT_CException);
-    CTA_CDBException.t[2] = TO_RVA(&CT_CObject);
-    TI_CDBException.pmfnUnwind = 0;
-    TI_CDBException.pCatchableTypeArray = TO_RVA(&CTA_CDBException);
-
     // CDaoException
     TD_CDaoException.pVFTable = g_typeInfoVFT;
     CT_CDaoException.pType = TO_RVA(&TD_CDaoException);
@@ -120,14 +94,6 @@ void InitAllRTTI() {
     TI_CDaoException.pCatchableTypeArray = TO_RVA(&CTA_CDaoException);
 
     g_rttiInitialized = true;
-}
-// Symbol: ?AfxThrowInternetException@@YAX_KK@Z
-extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
-    DWORD dwContext, DWORD dwError
-) {
-    CInternetException* pEx = new CInternetException(dwError);
-    pEx->m_dwContext = dwContext;
-    ThrowNew(pEx, &TI_CInternetException);
 }
 extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
     int nAfxDaoError, SCODE scode
@@ -145,11 +111,6 @@ extern "C" void MS_ABI impl__AfxThrowDaoException__YAXHJ_Z(
                                static_cast<long>(nAfxDaoError));
     }
     ThrowNew(pEx, &TI_CDaoException);
-}
-// Symbol: ?AfxThrowLastCleanup@@YAXXZ
-extern "C" void MS_ABI impl__AfxThrowLastCleanup__YAXXZ() {
-    // This is typically called to throw a generic exception during cleanup
-    impl__AfxThrowUserException__YAXXZ();
 }
 // Symbol: ?AfxAbort@@YAXXZ
 extern "C" void MS_ABI impl__AfxAbort__YAXXZ() {

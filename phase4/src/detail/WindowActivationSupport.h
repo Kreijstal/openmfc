@@ -1,8 +1,8 @@
 #pragma once
 #include <windows.h>
 namespace openmfc { namespace detail {
-// Private isolation-aware state. Window and class-info wrappers share the
-// module's cached activation context and preserve failed API last-error values.
+// Window, class-info and library wrappers share the module's cached activation
+// context and preserve failed API last-error values.
 struct WindowActivationState {
     BOOL cleanupStarted=FALSE;
     BOOL bypass=FALSE;
@@ -14,4 +14,5 @@ BOOL InitializeWindowActivation();
 BOOL ActivateWindowContext(ULONG_PTR*);
 HWND ContextCreateWindow(CREATESTRUCTW);
 BOOL ContextMenuClassInfo(WNDCLASSEXW*);
+HMODULE ContextLoadLibrary(const wchar_t*,HANDLE,DWORD);
 } }

@@ -150,10 +150,6 @@ extern CRuntimeClass g_classCInternetFile;
 } } }
 
 namespace openmfc { namespace detail { namespace inetcore {
-extern CRuntimeClass g_classCInternetException;
-} } }
-
-namespace openmfc { namespace detail { namespace inetcore {
 extern CRuntimeClass g_classCHttpFile;
 } } }
 

@@ -1113,18 +1113,3 @@
 
 // Generated 1074 thunks
 // Errors (could not parse): 0
-// Symbol: ??0CInternetException@@QEAA@K@Z
-// Constructor: CInternetException::CInternetException
-extern "C" void* MS_ABI impl___0CInternetException__QEAA_K_Z(void* pThis, unsigned long p0) {
-    return new(pThis) CInternetException(p0);
-}
-// Symbol: ??1CInternetException@@UEAA@XZ
-// Destructor: CInternetException::~CInternetException
-extern "C" void MS_ABI impl___1CInternetException__UEAA_XZ(void* pThis) {
-    ((CInternetException*)pThis)->~CInternetException();
-}
-// Symbol: ?GetErrorMessage@CInternetException@@UEBAHPEA_WIPEAI@Z
-// CInternetException::GetErrorMessage
-extern "C" int MS_ABI impl__GetErrorMessage_CInternetException__UEBAHPEA_WIPEAI_Z(const CInternetException* pThis, wchar_t* p0, unsigned int p1, unsigned int* p2) {
-    return (int)pThis->GetErrorMessage(p0, p1, p2);
-}

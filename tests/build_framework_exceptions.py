@@ -37,6 +37,11 @@ def sources():
         'phase4/src/core/collections/CStringBuffer.cpp',
         'phase4/src/core/collections/CStringResource.cpp',
         'phase4/src/core/runtime/AfxFormatStrings.cpp',
+        'phase4/src/core/exceptions/CInternetException.cpp',
+        'phase4/src/core/window/WindowActivation.cpp',
+        'phase4/src/core/exceptions/AFX_EXCEPTION_LINK.cpp',
+        'tests/test_exception_links.cpp',
+        'tests/test_internet_exceptions.cpp',
         'tests/test_file_archive_exceptions.cpp',
         'tests/test_ole_exception_rtti_logic.cpp',
         'tests/test_simple_exceptions_logic.cpp',
@@ -115,7 +120,7 @@ def main():
         names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(encoding='utf-8', errors='replace'),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==67, (len(entries), len(names))
+    assert len(entries)==len(names)==76, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
         for name in re.findall(r'^// Symbol: (.+)$', path.read_text(encoding='utf-8', errors='replace'), re.M):
@@ -124,14 +129,14 @@ def main():
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 67 framework/file/string exports have actual providers',flush=True)
+    print('All 76 framework/file/string exports have actual providers',flush=True)
     for relative in checked:
         name=Path(relative).stem
         if name.endswith("Lifetime"):name=name[:-8]
-        if ('Lifetime' in relative or name not in ('CFileException','CArchiveException')) and name in ('CMemoryException','CNotSupportedException','CInvalidArgException','CResourceException','CUserException','COleException','COleDispatchException','CFileException','CArchiveException'):
+        if ('Lifetime' in relative or name not in ('CFileException','CArchiveException')) and name in ('CMemoryException','CNotSupportedException','CInvalidArgException','CResourceException','CUserException','COleException','COleDispatchException','CFileException','CArchiveException','CInternetException'):
             verify_exception_vtable(out/(relative.removesuffix('.cpp').replace('/','_')+'.obj'),name)
     link.extend(str(obj) for obj in objects)
-    link.extend(['kernel32.lib', 'user32.lib', 'comdlg32.lib', 'shlwapi.lib', 'oleaut32.lib'])
+    link.extend(['kernel32.lib', 'user32.lib', 'comdlg32.lib', 'shlwapi.lib', 'oleaut32.lib', 'wininet.lib'])
     response = out / 'link.rsp'
     response.write_text('\n'.join('"' + part + '"' for part in link))
     subprocess.run(['link' if os.name == 'nt' else 'lld-link', '@' + str(response)], check=True, cwd=out, env=env)

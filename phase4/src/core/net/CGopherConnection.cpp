@@ -6,7 +6,7 @@
 #include "detail/InetcoreSupport.h"
 
 extern "C" void MS_ABI impl__AfxThrowInternetException__YAX_KK_Z(
-    DWORD dwContext, DWORD dwError);
+    DWORD_PTR dwContext, DWORD dwError);
 
 // Symbol: ?GetAttribute@CGopherConnection@@QEAAHAEAVCGopherLocator@@V?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAV34@@Z
 extern "C" int MS_ABI impl__GetAttribute_CGopherConnection__QEAAHAEAVCGopherLocator__V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAV34__Z(

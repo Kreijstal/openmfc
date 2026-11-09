@@ -5,7 +5,7 @@
 #ifndef OPENMFC_AFXINET_H
 #define OPENMFC_AFXINET_H
 
-#include "afx.h"
+#include "afxwin.h"
 #include <wininet.h>
 
 // Avoid Win32 UNICODE alias macros colliding with member function names.
@@ -29,6 +29,7 @@
 // Forward declarations
 //=============================================================================
 class CInternetSession;
+void AFXAPI AfxThrowInternetException(DWORD_PTR context,DWORD error = 0);
 class CInternetConnection;
 class CInternetFile;
 class CHttpConnection;
@@ -529,10 +530,7 @@ public:
 
 public:
     DWORD m_dwError;
-    DWORD m_dwContext;
-
-protected:
-    char _inetex_padding[32];
+    DWORD_PTR m_dwContext;
 };
 
 #endif // OPENMFC_AFXINET_H

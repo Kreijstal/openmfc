@@ -1,7 +1,7 @@
 #include "detail/WindowActivationSupport.h"
 
 // Release-x64 isolation-aware window helpers (mfc140u RVAs 0x1c294,
-// 0x1c45c, 0x2934d4 and 0x2935f0). Both wrappers share this module cache.
+// 0x1c45c, 0x2934d4, 0x2935f0 and 0xd74a4). The wrappers share this module cache.
 namespace openmfc { namespace detail {
 WindowActivationState windowActivation;
 BOOL InitializeWindowActivation() {
@@ -83,6 +83,14 @@ BOOL ContextMenuClassInfo(WNDCLASSEXW* info) {
     if(!windowActivation.bypass && !windowActivation.unavailable && !ActivateWindowContext(&cookie))return FALSE;
     __try {result=::GetClassInfoExW(nullptr,L"#32768",info);}
     __finally {FinishContext(cookie,!result);}
+    return result;
+}
+HMODULE ContextLoadLibrary(const wchar_t* name,HANDLE file,DWORD flags) {
+    ULONG_PTR cookie=0;
+    HMODULE result=nullptr;
+    if(!windowActivation.bypass && !windowActivation.unavailable && !ActivateWindowContext(&cookie))return nullptr;
+    __try {result=::LoadLibraryExW(name,file,flags);}
+    __finally {FinishContext(cookie,result==nullptr);}
     return result;
 }
 } }

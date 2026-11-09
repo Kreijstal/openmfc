@@ -2829,26 +2829,6 @@ extern "C" void MS_ABI impl__AfxTrackerTerm__YAXXZ() {
     // DeleteObject / LoadBitmap: no matches; its only brush is
     // GetStockObject(BLACK_BRUSH), which must not be deleted. Nothing to free.
 }
-// Symbol: ?AfxTryCleanup@@YAXXZ
-extern "C" void MS_ABI impl__AfxTryCleanup__YAXXZ() {
-    // STUB. Retail AfxTryCleanup (RVA 0x2274e0, mfc140u):
-    //     e = ::GetLastError();
-    //     pTS = _afxThreadState.GetData(<ctor>);        // CThreadLocalObject::GetData, call 0x14cf40
-    //     if (pTS == NULL) AfxThrowInvalidArgException();  // call 0x227720
-    //     ::SetLastError(e);
-    //     pLink = pTS->+0x20;                           // m_exceptionContext.m_pLinkTop
-    //     if (pLink != NULL) {
-    //         if (pLink->+0x08 != NULL)                 // m_pException
-    //             pLink->m_pException->Delete();        // CException::Delete, call 0x227370
-    //         pTS->+0x20 = pLink->+0x00;                // m_pLinkTop = m_pLinkPrev
-    //     }
-    // Not transcribable here: grepped include/ and phase4/src for
-    // AFX_EXCEPTION_CONTEXT, m_pLinkTop and m_exceptionContext -- none exist,
-    // and the exported AFX_EXCEPTION_LINK constructor
-    // (core/exceptions/AFX_EXCEPTION_LINK.cpp) returns pThis without linking
-    // the frame onto any chain. Since nothing is ever pushed, popping here
-    // would read memory no constructor wrote.
-}
 // Symbol: ?AfxUnRegisterPreviewHandler@@YAHPEB_W@Z
 // AfxUnRegisterPreviewHandler(LPCWSTR pszCLSID)
 extern "C" int MS_ABI impl__AfxUnRegisterPreviewHandler__YAHPEB_W_Z(const wchar_t* p0) {
