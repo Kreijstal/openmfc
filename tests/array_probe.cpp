@@ -16,6 +16,7 @@ namespace {
 ArrayReport* report;
 void* active;
 bool tracking;
+bool archiveActive,failAsInteger,allocationNull;
 int failAllocation,failConstructor,failAssignment;
 struct Block {unsigned char* data;size_t bytes;bool live;};
 Block blocks[1024];unsigned blockCount;
@@ -30,12 +31,14 @@ long long pointer(const void* p) {
 void event(long long kind,long long a=0,long long b=0,long long c=0) {
     if(!tracking)return;
     if(report->count==131072){++report->overflow;return;}
-    report->events[report->count++]={kind,a,b,c,field<INT_PTR>(active,16),field<INT_PTR>(active,24),field<INT_PTR>(active,32),pointer(field<void*>(active,8))};
+    if(archiveActive)report->events[report->count++]={kind,a,b,c,field<UINT>(active,80),pointer(field<void*>(active,88)),pointer(field<void*>(active,96)),field<UINT>(active,104)};
+    else report->events[report->count++]={kind,a,b,c,field<INT_PTR>(active,16),field<INT_PTR>(active,24),field<INT_PTR>(active,32),pointer(field<void*>(active,8))};
 }
+void __cdecl invalidParameter(const wchar_t*,const wchar_t*,const wchar_t*,unsigned,uintptr_t) {event(94);}
 void* allocate(size_t bytes) {
     if(!tracking)return malloc(bytes);
     event(1,bytes);
-    if(failAllocation>0&&!--failAllocation)AfxThrowMemoryException();
+    if(failAllocation>0&&!--failAllocation){if(allocationNull)return nullptr;if(failAsInteger)throw 73;AfxThrowMemoryException();}
     if(bytes>1024*1024)AfxThrowMemoryException();
     auto* p=static_cast<unsigned char*>(malloc(bytes+16));if(!p)AfxThrowMemoryException();
     memset(p,0xa5,bytes);memset(p+bytes,0xde,16);
@@ -300,13 +303,96 @@ void pointerArray(int scenario,int failure) {
     operation(a,70,[&]{CMemFile file;CArchive store(&file,CArchive::store,128);static_cast<CObject*>(&a)->Serialize(store);store.Close();event(71,file.GetLength());});
     active=&a;a.~CPtrArray();active=&b;b.~CPtrArray();active=nullptr;
 }
+struct ArchiveView:CArchive {
+    using CArchive::CArchive;
+    using Types=CArray<LoadArrayObjType,const LoadArrayObjType&>;
+    void seed(UINT n) {m_nMapCount=n;}
+    void** schemaSlot() {return reinterpret_cast<void**>(&m_pSchemaMap);}
+};
+void mapSnapshot(CMapPtrToPtr* map,bool schema) {
+    event(80,pointer(map));if(!map)return;
+    event(81,field<UINT>(map,16),field<INT_PTR>(map,24),field<INT_PTR>(map,48));
+    event(82,pointer(field<void*>(map,8)),pointer(field<void*>(map,32)),pointer(field<void*>(map,40)));
+    for(UINT_PTR key:{UINT_PTR(0),UINT_PTR(1),UINT_PTR(0x1234),UINT_PTR(0x5678)}) {
+        void* value=nullptr;BOOL found=map->Lookup(reinterpret_cast<void*>(key),value);
+        event(83,key,found,schema?pointer(value):reinterpret_cast<INT_PTR>(value));
+        if(schema&&key==1&&value) {
+            event(84,field<INT_PTR>(value,16),field<INT_PTR>(value,24),field<INT_PTR>(value,32));
+            auto* data=field<int*>(value,8);event(85,pointer(data));
+            for(INT_PTR i=0;i<field<INT_PTR>(value,16);++i)event(86,i,data[i]);
+        }
+    }
+}
+void archiveSnapshot(ArchiveView& ar) {
+    if(ar.IsStoring())mapSnapshot(field<CMapPtrToPtr*>(&ar,88),false);
+    else if(void* array=field<void*>(&ar,88)) {
+        event(87,field<INT_PTR>(array,16),field<INT_PTR>(array,24),field<INT_PTR>(array,32));
+        auto** data=field<void**>(array,8);event(88,pointer(data));
+        for(INT_PTR i=0;i<field<INT_PTR>(array,16);++i)event(89,i,reinterpret_cast<INT_PTR>(data[i]));
+    }
+    mapSnapshot(field<CMapPtrToPtr*>(&ar,96),true);
+}
+int guarded(void(*action)(void*),void* parameter) {
+    __try {action(parameter);return 0;}
+    __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {return 1;}
+}
+struct MappingCall {
+    ArchiveView* archive;int method;const CObject* object;ArchiveView::Types* output;
+    static void invoke(void* data) {
+        auto& c=*static_cast<MappingCall*>(data);
+        if(c.method==0)c.archive->EnsureSchemaMapExists(&c.output);
+        else if(c.method==1)c.archive->EnsureSchemaMapExists(nullptr);
+        else c.archive->MapObject(c.object);
+    }
+};
+void mapping(int scenario,int failure) {
+    allocationNull=scenario>=26;
+    if(allocationNull)scenario-=26;
+    tracking=false;CMemFile file;BYTE buffer[128];ArchiveView ar(&file,(scenario&1)?3:2,128,buffer);
+    ar.seed(0);ar.SetStoreParams(17,3);ar.SetLoadParams(3);
+    tracking=true;archiveActive=true;active=&ar;AllocationHook hook;
+    ArchiveView::Types* detached=nullptr;
+    if(scenario>=8&&scenario<20) {
+        tracking=false;
+        if(scenario<16) {
+            ar.MapObject(nullptr);
+            ar.seed(scenario<10?0:scenario<12?5:scenario<14?0x3ffffffe:0xffffffff);
+        } else {
+            ar.EnsureSchemaMapExists(&detached);
+            auto* map=field<CMapPtrToPtr*>(&ar,96);
+            if(scenario<18)(*map)[reinterpret_cast<void*>(UINT_PTR(1))]=nullptr;
+            else map->RemoveKey(reinterpret_cast<void*>(UINT_PTR(1)));
+        }
+        tracking=true;
+    }
+    if(scenario>=20) {ar.SetStoreParams(29,scenario<22?0:scenario<24?65:0xffffffff);ar.SetLoadParams(scenario<22?0:scenario<24?65:0xffffffff);}
+    failAllocation=failure;failAsInteger=scenario==6||scenario==7;
+    MappingCall call{&ar,0,nullptr,reinterpret_cast<ArchiveView::Types*>(UINT_PTR(9))};
+    for(int step=0;step<5;++step) {
+        if(scenario<2||scenario>=16)call.method=step<3?0:2;
+        else if(scenario<4)call.method=step==3?0:2;
+        else call.method=step<2?1:2;
+        call.object=step==0?nullptr:reinterpret_cast<CObject*>(UINT_PTR(step==2?0x5678:0x1234));
+        event(90,step,call.method);
+        try {int fault=guarded(&MappingCall::invoke,&call);event(91,fault,pointer(call.output));}
+        catch(CMemoryException* e){event(92,2,pointer(call.output));e->Delete();}
+        catch(CArchiveException* e){event(92,100+e->m_cause);e->Delete();}
+        catch(CException* e){event(92,3);if(e)e->Delete();}
+        catch(int code){event(92,code,pointer(call.output));}
+        archiveSnapshot(ar);
+    }
+    failAllocation=0;failAsInteger=allocationNull=false;ar.Abort();delete detached;event(93);active=nullptr;archiveActive=false;
+}
 }
 void* operator new[](size_t bytes) {return allocate(bytes);}
 void operator delete[](void* p) noexcept {release(p);}
 extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int failure,ArrayReport* output) {
+    auto previousInvalidParameter=_set_thread_local_invalid_parameter_handler(&invalidParameter);
     report=output;report->count=report->overflow=0;active=nullptr;blockCount=0;tracking=true;
     failAllocation=failConstructor=failAssignment=0;
-    if(kind==5)pointerArray(scenario,failure);
+    archiveActive=failAsInteger=allocationNull=false;
+    if(kind==6)mapping(scenario,failure);
+    else if(kind==5)pointerArray(scenario,failure);
     else if(kind==4)largeArithmetic(scenario);
     else if(kind==3) {
         serialization(scenario);
@@ -320,4 +406,5 @@ extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int 
     }
     tracking=false;
     for(unsigned i=0;i<blockCount;++i)free(blocks[i].data);
+    _set_thread_local_invalid_parameter_handler(previousInvalidParameter);
 }

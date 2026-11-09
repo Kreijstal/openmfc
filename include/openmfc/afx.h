@@ -405,8 +405,11 @@ void AFXAPI AfxThrowArchiveException(int,const wchar_t*);
 class CDocument;
 class CPtrArray;
 class CMapPtrToPtr;
+template<class TYPE,class ARG_TYPE> class CArray;
 #define OPENMFC_ARCHIVE_API OPENMFC_STRING_API
 class CArchive {
+protected:
+    enum LoadArrayObjType {typeUndefined=0,typeCRuntimeClass=1,typeCObject=2};
 public:
     enum Mode { store = 0, load = 1, bNoFlushOnDelete = 2, bNoByteSwap = 4 };
     
@@ -485,6 +488,8 @@ public:
     OPENMFC_ARCHIVE_API ULONGLONG ReadCount();
     OPENMFC_ARCHIVE_API void WriteCount(ULONGLONG count);
     OPENMFC_ARCHIVE_API void CheckCount();
+    OPENMFC_ARCHIVE_API void MapObject(const CObject* object);
+    OPENMFC_ARCHIVE_API void EnsureSchemaMapExists(CArray<LoadArrayObjType,const LoadArrayObjType&>** types=nullptr);
     void SetStoreParams(UINT hashSize=2053,UINT blockSize=128) {m_nHashSize=hashSize;m_nGrowSize=blockSize;}
     void SetLoadParams(UINT growBy=1024) {m_nGrowSize=growBy;}
 protected:

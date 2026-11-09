@@ -56,8 +56,8 @@
   #define MS_ABI
 #endif
 
-// Global scalar/array operator new[] and operator delete[].
-// MFC re-exports these; forward to the C++ runtime allocator.
+// Native array allocation/deletion operators live in NativeMemoryOperators.cpp;
+// the module new-handler implementation lives in MemcoreSupport.cpp.
 
 
 
@@ -207,9 +207,7 @@ extern "C" int MS_ABI impl__AfxIsDescendant__YAHPEAUHWND____0_Z(HWND hWndParent,
     return ::IsChild(hWndParent, hWndChild) ? 1 : 0;
 }
 // Native CNoTrackObject allocation lives in _AFX_THREAD_STATE.cpp.
-// Implemented in memcore.cpp; this unit had a second, unlinked copy.
-// Symbol: ??_U@YAPEAX_K@Z
-// Symbol: ??_V@YAXPEAX@Z
+// Array allocation/deletion exports live in NativeMemoryOperators.cpp.
 // Symbol: ??$HashKey@PEB_W@@YAIPEB_W@Z
 extern "C" unsigned int MS_ABI impl____HashKey_PEB_W__YAIPEB_W_Z(const wchar_t* key) {
     unsigned int nHash = 0;

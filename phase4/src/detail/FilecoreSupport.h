@@ -790,6 +790,10 @@ extern "C" void MS_ABI impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1__Z(CMapW
 
 class CArchiveAccess {
 public:
+    static void InvokeEnsureSchemaMapExists(CArchive* archive,void** output) {
+        using Types=CArray<CArchive::LoadArrayObjType,const CArchive::LoadArrayObjType&>;
+        archive->EnsureSchemaMapExists(reinterpret_cast<Types**>(output));
+    }
     static void InvokeFillBuffer(CArchive* pArchive, unsigned int nBytesNeeded) {
         if (pArchive) {
             pArchive->FillBuffer(nBytesNeeded);

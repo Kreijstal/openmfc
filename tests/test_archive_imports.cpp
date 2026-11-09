@@ -28,6 +28,7 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
  CMemFile file;
  {
   CArchive store(&file,CArchive::store,128);check(store.IsStoring()&&!store.IsLoading()&&!store.IsByteSwapping());
+  store.MapObject(nullptr);store.MapObject(&file);store.EnsureSchemaMapExists(nullptr);store.EnsureSchemaMapExists(nullptr);
   const char input[]="archive ABI";store.Write(input,sizeof(input));
   for(ULONGLONG n:{0ull,65535ull,0xffffffffull,0x123456789abcdef0ull})store.WriteCount(n);
   for(DWORD i=0;i<73;++i) {
@@ -43,6 +44,7 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
  file.Seek(0,CFile::begin);
  {
   CArchive load(&file,CArchive::load,128);char output[12]={};load.EnsureRead(output,sizeof(output));check(!strcmp(output,"archive ABI"));
+  load.MapObject(nullptr);load.MapObject(&file);load.EnsureSchemaMapExists(nullptr);
   for(ULONGLONG n:{0ull,65535ull,0xffffffffull,0x123456789abcdef0ull})check(load.ReadCount()==n);
   for(DWORD i=0;i<73;++i) {
    DWORD value=0;

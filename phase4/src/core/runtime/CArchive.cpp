@@ -141,17 +141,7 @@ extern "C" CObject* MS_ABI impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRunt
 extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CArchive* pThis, CString* stringOut) {
     return (pThis && stringOut) ? pThis->ReadString(*stringOut) : 0;
 }
-// Symbol: ?MapObject@CArchive@@QEAAXPEBVCObject@@@Z
-// Remaining stub: register class/object identities and maintain the native load
-// array, store map and schema-type array. The fields now have their native
-// layout; object-graph serialization still needs the corresponding protocol.
-extern "C" void MS_ABI impl__MapObject_CArchive__QEAAXPEBVCObject___Z(CArchive*, const CObject*) {
-}
-// Symbol: ?EnsureSchemaMapExists@CArchive@@QEAAXPEAPEAV?$CArray@W4LoadArrayObjType@CArchive@@AEBW412@@@@Z
-// Remaining stub: create the native schema map and its reserved type-array
-// entry, including allocation-failure ownership and caller-visible array state.
-extern "C" void MS_ABI impl__EnsureSchemaMapExists_CArchive__QEAAXPEAPEAV__CArray_W4LoadArrayObjType_CArchive__AEBW412____Z(CArchive*, void**) {
-}
+// Native object/schema index mapping lives in CArchiveMapping.cpp.
 CArchive& CArchive::operator>>(bool& b) {
     char ch;
     Read(&ch, sizeof(ch));
