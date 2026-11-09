@@ -84,6 +84,7 @@ def sources():
         'phase4/src/core/ole/COleStreamFile.cpp',
         'phase4/src/detail/FileStatusSupport.cpp',
         'phase4/src/core/exceptions/CFileOsError.cpp',
+        'phase4/src/core/exceptions/CFileExceptionLifetime.cpp',
         'tests/test_ole_data_source.cpp']
 
 def main():

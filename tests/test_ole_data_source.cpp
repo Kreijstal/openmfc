@@ -19,10 +19,7 @@
 #include <climits>
 // Unrelated exception descriptors/diagnostics and the file-exception factory
 // remain boundaries. All data-source, cache, COM, file and state owners are real.
-CRuntimeClass CFileException::classCFileException{"CFileException",sizeof(CFileException),0xffff,nullptr,&CException::GetThisClass,nullptr,nullptr};
 int CFileException::GetErrorMessage(wchar_t*,UINT,UINT*) const {std::abort();}
-void CFileException::Dump() const {std::abort();}
-void CFileException::AssertValid() const {std::abort();}
 extern "C" void impl__AfxThrowFileException__YAXHJPEB_W_Z(int cause,long os,const wchar_t* name){auto* e=new CFileException(cause,os);if(name)e->m_strFileName=name;throw e;}
 extern "C" HRESULT impl__SetData_XDataObject_COleDataSource__UEAAJPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(COleDataSource::XDataObject* p,FORMATETC* f,STGMEDIUM* v,BOOL r);
 extern "C" void impl__SetClipboard_COleDataSource__QEAAXXZ(COleDataSource* p);

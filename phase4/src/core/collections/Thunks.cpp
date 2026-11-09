@@ -993,11 +993,6 @@ extern "C" char* MS_ABI impl__LockBuffer___CSimpleStringT_D_00_ATL__QEAAPEADXZ(v
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
     return self->LockBuffer();
 }
-// Symbol: ?LockBuffer@?$CSimpleStringT@_W$00@ATL@@QEAAPEA_WXZ
-extern "C" wchar_t* MS_ABI impl__LockBuffer___CSimpleStringT__W_00_ATL__QEAAPEA_WXZ(void* pThis) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    return self->LockBuffer();
-}
 // Symbol: ?MakeLower@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@XZ
 extern "C" void* MS_ABI impl__MakeLower___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(void* pThis) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
@@ -1099,19 +1094,9 @@ extern "C" void MS_ABI impl__ReleaseBuffer___CSimpleStringT_D_00_ATL__QEAAXH_Z(v
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
     self->ReleaseBuffer(n);
 }
-// Symbol: ?ReleaseBuffer@?$CSimpleStringT@_W$00@ATL@@QEAAXH@Z
-extern "C" void MS_ABI impl__ReleaseBuffer___CSimpleStringT__W_00_ATL__QEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->ReleaseBuffer(n);
-}
 // Symbol: ?ReleaseBufferSetLength@?$CSimpleStringT@D$00@ATL@@QEAAXH@Z
 extern "C" void MS_ABI impl__ReleaseBufferSetLength___CSimpleStringT_D_00_ATL__QEAAXH_Z(void* pThis, int n) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    self->ReleaseBufferSetLength(n);
-}
-// Symbol: ?ReleaseBufferSetLength@?$CSimpleStringT@_W$00@ATL@@QEAAXH@Z
-extern "C" void MS_ABI impl__ReleaseBufferSetLength___CSimpleStringT__W_00_ATL__QEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
     self->ReleaseBufferSetLength(n);
 }
 // Symbol: ?Remove@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHD@Z
@@ -1351,10 +1336,5 @@ extern "C" void MS_ABI impl__Truncate___CSimpleStringT__W_00_ATL__QEAAXH_Z(void*
 // Symbol: ?UnlockBuffer@?$CSimpleStringT@D$00@ATL@@QEAAXXZ
 extern "C" void MS_ABI impl__UnlockBuffer___CSimpleStringT_D_00_ATL__QEAAXXZ(void* pThis) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    self->UnlockBuffer();
-}
-// Symbol: ?UnlockBuffer@?$CSimpleStringT@_W$00@ATL@@QEAAXXZ
-extern "C" void MS_ABI impl__UnlockBuffer___CSimpleStringT__W_00_ATL__QEAAXXZ(void* pThis) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
     self->UnlockBuffer();
 }

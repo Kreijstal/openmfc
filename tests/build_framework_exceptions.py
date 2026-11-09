@@ -29,6 +29,15 @@ def sources():
         'phase4/src/core/exceptions/COleDispatchException.cpp',
         'phase4/src/core/exceptions/OleExceptionProcess.cpp',
         'phase4/src/core/ole/OleExceptionTranslation.cpp',
+        'phase4/src/core/exceptions/CFileException.cpp',
+        'phase4/src/core/exceptions/CFileExceptionLifetime.cpp',
+        'phase4/src/core/exceptions/CArchiveException.cpp',
+        'phase4/src/core/exceptions/CArchiveExceptionLifetime.cpp',
+        'phase4/src/core/exceptions/CFileOsError.cpp',
+        'phase4/src/core/collections/CStringBuffer.cpp',
+        'phase4/src/core/collections/CStringResource.cpp',
+        'phase4/src/core/runtime/AfxFormatStrings.cpp',
+        'tests/test_file_archive_exceptions.cpp',
         'tests/test_ole_exception_rtti_logic.cpp',
         'tests/test_simple_exceptions_logic.cpp',
     ]
@@ -54,7 +63,7 @@ def verify_exception_vtable(path,cls):
     for at in range(relocations,relocations+total*10,10):
         address,symbol,_=struct.unpack_from('<IIH',data,at)
         if address>=value:targets[(address-value)//8]=names[symbol]
-    expected={0:'?GetRuntimeClass@'+cls+'@@',2:'?Serialize@CObject@@',3:'?AssertValid@CObject@@',4:'?Dump@CObject@@',5:'?GetErrorMessage@CException@@UEAA',6:'?GetErrorMessage@'+(cls if cls.startswith('COle') else 'CSimpleException')+'@@UEBA',7:'?ReportError@CException@@'}
+    expected={0:'?GetRuntimeClass@'+cls+'@@',2:'?Serialize@CObject@@',3:'?AssertValid@CObject@@',4:'?Dump@CObject@@',5:'?GetErrorMessage@CException@@UEAA',6:'?GetErrorMessage@'+('CSimpleException' if cls in ('CMemoryException','CNotSupportedException','CInvalidArgException','CResourceException','CUserException') else cls)+'@@UEBA',7:'?ReportError@CException@@'}
     for slot,prefix in expected.items():assert targets[slot].startswith(prefix),(cls,slot,targets[slot])
     print(cls+': all eight actual exception slots in native order',flush=True)
 
@@ -106,7 +115,7 @@ def main():
         names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(encoding='utf-8', errors='replace'),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==41, (len(entries), len(names))
+    assert len(entries)==len(names)==67, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
         for name in re.findall(r'^// Symbol: (.+)$', path.read_text(encoding='utf-8', errors='replace'), re.M):
@@ -115,10 +124,11 @@ def main():
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 41 framework/OLE exception exports have actual providers',flush=True)
+    print('All 67 framework/file/string exports have actual providers',flush=True)
     for relative in checked:
         name=Path(relative).stem
-        if name in ('CMemoryException','CNotSupportedException','CInvalidArgException','CResourceException','CUserException','COleException','COleDispatchException'):
+        if name.endswith("Lifetime"):name=name[:-8]
+        if ('Lifetime' in relative or name not in ('CFileException','CArchiveException')) and name in ('CMemoryException','CNotSupportedException','CInvalidArgException','CResourceException','CUserException','COleException','COleDispatchException','CFileException','CArchiveException'):
             verify_exception_vtable(out/(relative.removesuffix('.cpp').replace('/','_')+'.obj'),name)
     link.extend(str(obj) for obj in objects)
     link.extend(['kernel32.lib', 'user32.lib', 'comdlg32.lib', 'shlwapi.lib', 'oleaut32.lib'])

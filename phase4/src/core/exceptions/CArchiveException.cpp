@@ -1,127 +1,40 @@
-// CArchiveException — OpenMFC implementation.
-// Sources: appcore.cpp, docview.cpp, manual_small_stub_implementations.cpp, mfc_exceptions.cpp
-
+// Actual native archive exception, localized message resources and typed throws.
 #define OPENMFC_APPCORE_IMPL
+#include "openmfc/afxwin.h"
+#include <cerrno>
+#include <new>
+extern "C" void* impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
+extern "C" void* impl___2_YAPEAX_K_Z(size_t);
+extern "C" void impl___3_YAXPEAX_Z(void*);
+int CArchiveException::GetErrorMessage(wchar_t* output,UINT capacity,UINT* help) const {
+    if(!output)return FALSE;
+    try {
+    if(help)*help=UINT(m_cause)+0xf1b0;
+    CString message,filename(m_strFileName);
+    if(filename.IsEmpty()) {
+        if(!filename.LoadString(0xf006))AfxThrowInvalidArgException();
+    }
+    const wchar_t* argument=filename.GetString();
+    AfxFormatStrings(message,UINT(m_cause)+0xf1b0,&argument,1);
+    int result=wcsncpy_s(output,capacity,message.GetString(),_TRUNCATE);
+    if(result && result!=STRUNCATE) {
+        if(result==ENOMEM)AfxThrowMemoryException();
+        else AfxThrowInvalidArgException();
+    }
+    return TRUE;
+    } catch(CException* error) {error->Delete();return FALSE;}
+}
 
-#include "detail/CWinAppSupport.h"
-#include "detail/DocviewSupport.h"
-#include "detail/ManualSmallStubImplementationsSupport.h"
-#include "detail/MfcExceptionsSupport.h"
-
+void AFXAPI AfxThrowArchiveException(int cause,const wchar_t* name) {
+    void* storage=impl___2_YAPEAX_K_Z(sizeof(CArchiveException));
+    CArchiveException* error=nullptr;
+    if(storage) {
+        try {error=::new(storage) CArchiveException(cause,name);}
+        catch(...){impl___3_YAXPEAX_Z(storage);throw;}
+    }
+    throw error;
+}
 // Symbol: ?GetErrorMessage@CArchiveException@@UEBAHPEA_WIPEAI@Z
-extern "C" int MS_ABI impl__GetErrorMessage_CArchiveException__UEBAHPEA_WIPEAI_Z(
-    const CArchiveException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) {
-    return pThis->GetErrorMessage(lpszError, nMaxError, pnHelpContext);
-}
-// Symbol: ?GetThisClass@CArchiveException@@SAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CArchiveException__SAPEAUCRuntimeClass__XZ() {
-    return &CArchiveException::classCArchiveException;
-}
-CArchiveException::CArchiveException(int cause, const wchar_t* lpszArchiveName)
-    : m_cause(cause)
-{
-    if (lpszArchiveName)
-        m_strFileName = lpszArchiveName;
-}
-int CArchiveException::GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext) const {
-    if (pnHelpContext != nullptr) {
-        *pnHelpContext = 0;
-    }
-
-    if (lpszError == nullptr || nMaxError == 0) {
-        return 0;
-    }
-
-    const wchar_t* pszMessage = nullptr;
-
-    switch (m_cause) {
-    case none:
-        pszMessage = L"No error";
-        break;
-    case generic:
-        pszMessage = L"Archive error";
-        break;
-    case readOnly:
-        pszMessage = L"Cannot write to read-only archive";
-        break;
-    case endOfFile:
-        pszMessage = L"Unexpected end of file";
-        break;
-    case writeOnly:
-        pszMessage = L"Cannot read from write-only archive";
-        break;
-    case badIndex:
-        pszMessage = L"Invalid object index";
-        break;
-    case badClass:
-        pszMessage = L"Invalid class found in archive";
-        break;
-    case badSchema:
-        pszMessage = L"Schema mismatch in archive";
-        break;
-    case badFormat:
-        pszMessage = L"Bad archive format";
-        break;
-    default:
-        pszMessage = L"Unknown archive error";
-        break;
-    }
-
-    if (!pszMessage) {
-        lpszError[0] = L'\0';
-        return 0;
-    }
-
-    if (!m_strFileName.IsEmpty()) {
-        int written = _snwprintf(
-            lpszError, nMaxError, L"%ls: %ls", pszMessage, static_cast<const wchar_t*>(m_strFileName));
-        if (written < 0 || static_cast<UINT>(written) >= nMaxError) {
-            lpszError[nMaxError - 1] = L'\0';
-        }
-    } else {
-        wcsncpy(lpszError, pszMessage, nMaxError - 1);
-        lpszError[nMaxError - 1] = L'\0';
-    }
-    lpszError[nMaxError - 1] = L'\0';
-    return 1;  // TRUE - message provided
-}
-// Symbol: ?GetRuntimeClass@CArchiveException@@UEBAPEAUCRuntimeClass@@XZ
-extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CArchiveException__UEBAPEAUCRuntimeClass__XZ(const CArchiveException*) { return &CArchiveException::classCArchiveException; }
-// Implemented in docview.cpp; this unit had a second, unlinked copy.
-// Symbol: ?GetRuntimeClass@CArchiveException@@UEBAPEAUCRuntimeClass@@XZ
-// Symbol: ?Dump@CArchiveException@@UEBAXXZ
-extern "C" void MS_ABI impl__Dump_CArchiveException__UEBAXXZ(const CArchiveException* pThis) {
-    if (pThis) {
-        pThis->CArchiveException::Dump();
-    }
-}
-// Symbol: ?AssertValid@CArchiveException@@UEBAXXZ
-extern "C" void MS_ABI impl__AssertValid_CArchiveException__UEBAXXZ(const CArchiveException* pThis) {
-    if (pThis) {
-        pThis->CArchiveException::AssertValid();
-    }
-}
-void CArchiveException::Dump() const {
-    wchar_t buffer[512];
-    if (!m_strFileName.IsEmpty()) {
-        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
-                   L"CArchiveException[cause=%d, message=%ls, file=%ls, autoDelete=%d]\n",
-                   m_cause, ArchiveCauseText(m_cause), static_cast<const wchar_t*>(m_strFileName), m_bAutoDelete);
-    } else {
-        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
-                   L"CArchiveException[cause=%d, message=%ls, autoDelete=%d]\n",
-                   m_cause, ArchiveCauseText(m_cause), m_bAutoDelete);
-    }
-    buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
-    EmitDiagnosticText(buffer);
-}
-void CArchiveException::AssertValid() const {
-    CException::AssertValid();
-    if (m_cause < none || m_cause > badFormat) {
-        wchar_t buffer[104];
-        _snwprintf(buffer, sizeof(buffer) / sizeof(buffer[0]),
-                   L"CArchiveException::AssertValid unknown cause=%d\n", m_cause);
-        buffer[(sizeof(buffer) / sizeof(buffer[0])) - 1] = L'\0';
-        EmitDiagnosticText(buffer);
-    }
-}
+extern "C" int impl__GetErrorMessage_CArchiveException__UEBAHPEA_WIPEAI_Z(const CArchiveException* self,wchar_t* output,UINT capacity,UINT* help) {return self->CArchiveException::GetErrorMessage(output,capacity,help);}
+// Symbol: ?AfxThrowArchiveException@@YAXHPEB_W@Z
+extern "C" void impl__AfxThrowArchiveException__YAXHPEB_W_Z(int cause,const wchar_t* name) {AfxThrowArchiveException(cause,name);}

@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstdarg>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
@@ -37,6 +40,7 @@ typedef int BOOL;
 
 // MFC CStringT ABI-compatible implementation
 extern void AFXAPI AfxThrowMemoryException();
+extern void AFXAPI AfxThrowOleException(long);
 // 
 // Layout: CStringT contains a single pointer m_pszData pointing to character data.
 // A CStringData header is stored BEFORE the character buffer in memory:
@@ -211,37 +215,34 @@ public:
     wchar_t GetAt(int nIndex) const { return m_pszData[nIndex]; }
     wchar_t operator[](int nIndex) const { return m_pszData[nIndex]; }
 
-    // Get writable buffer (releases sharing)
-    wchar_t* GetBuffer(int nMinBufLength = -1) {
-        if (nMinBufLength < 0) {
-            nMinBufLength = GetData()->nDataLength;
-        }
-        CStringData* pData = GetData();
-        if (pData->IsShared() || nMinBufLength > pData->nAllocLength) {
-            // Need to copy
-            int nOldLen = pData->nDataLength;
-            int nNewLen = (nMinBufLength > nOldLen) ? nMinBufLength : nOldLen;
-            CStringData* pNewData = AllocData(nNewLen);
-            wmemcpy(pNewData->data(), m_pszData, nOldLen + 1);
-            pNewData->nDataLength = nOldLen;
-            if (pData->Release()) {
-                FreeBuffer(pData);
-            }
-            m_pszData = pNewData->data();
-        }
-        // Lock it to prevent sharing while exposed
-        GetData()->nRefs = -1;
+    // Preparing writable storage preserves existing lock state and logical length.
+    wchar_t* GetBuffer(int minimum = 0) {
+        if(minimum<0)AfxThrowOleException(static_cast<long>(0x80070057u));
+        PrepareCopy(minimum);
         return m_pszData;
     }
-
-    void ReleaseBuffer(int nNewLength = -1) {
-        CStringData* pData = GetData();
-        if (nNewLength < 0) {
-            nNewLength = static_cast<int>(wcslen(m_pszData));
-        }
-        pData->nDataLength = nNewLength;
-        m_pszData[nNewLength] = L'\0';
-        pData->nRefs = 1; // Unlock
+    int GetAllocLength() const {return GetData()->nAllocLength;}
+    wchar_t* GetBufferSetLength(int length) {
+        wchar_t* buffer=GetBuffer(length);
+        ReleaseBufferSetLength(length);
+        return buffer;
+    }
+    void ReleaseBufferSetLength(int length) {
+        if(length<0 || length>GetData()->nAllocLength)
+            AfxThrowOleException(static_cast<long>(0x80070057u));
+        GetData()->nDataLength=length;m_pszData[length]=0;
+    }
+    void ReleaseBuffer(int length = -1) {
+        if(length==-1)length=static_cast<int>(wcsnlen(m_pszData,GetData()->nAllocLength));
+        ReleaseBufferSetLength(length);
+    }
+    wchar_t* LockBuffer() {
+        GetBuffer();
+        if(--GetData()->nRefs==0)GetData()->nRefs=-1;
+        return m_pszData;
+    }
+    void UnlockBuffer() {
+        if(GetData()->nRefs<0 && ++GetData()->nRefs==0)GetData()->nRefs=1;
     }
 
     // Concatenation
@@ -609,7 +610,11 @@ public:
     #ifdef LoadString
     #undef LoadString
     #endif
-    int LoadString(UINT nID); // Returns length, 0 on failure
+    int LoadString(UINT nID);
+#ifdef _WIN32
+    int LoadString(HINSTANCE module,UINT id);
+    int LoadString(HINSTANCE module,UINT id,unsigned short language);
+#endif
 
 private:
     wchar_t* m_pszData;
@@ -679,7 +684,7 @@ private:
     }
 
     static void FreeBuffer(CStringData* pData) {
-        if (pData != GetNilStringData() && !pData->IsLocked()) {
+        if (pData != GetNilStringData()) {
             pData->pStringMgr->Free(pData);
         }
     }

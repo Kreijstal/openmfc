@@ -46,9 +46,16 @@ int FileExceptionFromOsError(long error) {
 } } }
 // Symbol: ?OsErrorToException@CFileException@@SAHJ@Z
 extern "C" int impl__OsErrorToException_CFileException__SAHJ_Z(long error) {
-    return openmfc::detail::filecore::FileExceptionFromOsError(error);
+    return CFileException::OsErrorToException(error);
 }
 // Symbol: ?ThrowOsError@CFileException@@SAXJPEB_W@Z
 extern "C" void impl__ThrowOsError_CFileException__SAXJPEB_W_Z(long error,const wchar_t* name) {
-    if (error) impl__AfxThrowFileException__YAXHJPEB_W_Z(openmfc::detail::filecore::FileExceptionFromOsError(error),error,name);
+    CFileException::ThrowOsError(error,name);
+}
+
+int PASCAL CFileException::OsErrorToException(LONG error) {
+    return openmfc::detail::filecore::FileExceptionFromOsError(error);
+}
+void PASCAL CFileException::ThrowOsError(LONG error,const wchar_t* name) {
+    if(error)impl__AfxThrowFileException__YAXHJPEB_W_Z(OsErrorToException(error),error,name);
 }

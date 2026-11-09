@@ -25,7 +25,7 @@ HINSTANCE GetResourceHandle();
 } } }
 
 namespace openmfc { namespace detail { namespace strcore {
-int CStringLoadStringImpl(CString* pThis, HINSTANCE hInst, UINT nID);
+
 } } }
 
 
@@ -35,7 +35,7 @@ int CStringLoadStringImpl(CString* pThis, HINSTANCE hInst, UINT nID);
 
 
 namespace openmfc { namespace detail { namespace strcore {
-void AfxFormatStringsCore(CString* rString, const wchar_t* lpszFormat, const wchar_t* const* rglpsz, int nString);
+
 } } }
 
 

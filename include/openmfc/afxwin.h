@@ -346,12 +346,14 @@ public:
         endOfFile
     };
 
-    CFileException(int cause = none, long lOsError = -1)
-        : m_cause(cause), m_lOsError(lOsError) {}
+    explicit CFileException(int cause = none,LONG osError = -1,const wchar_t* name = nullptr);
+    ~CFileException() override;
+    static int PASCAL OsErrorToException(LONG);
+    static int PASCAL ErrnoToException(int);
+    static void PASCAL ThrowOsError(LONG,const wchar_t* =nullptr);
+    static void PASCAL ThrowErrno(int,const wchar_t* =nullptr);
 
     virtual int GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext = nullptr) const override;
-    virtual void Dump() const override;
-    virtual void AssertValid() const override;
 
     int m_cause;
     long m_lOsError;
@@ -375,16 +377,19 @@ public:
     };
     
     CArchiveException(int cause = CArchiveException::none, const wchar_t* lpszArchiveName = nullptr);
+    ~CArchiveException() override;
     
     virtual int GetErrorMessage(wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext = nullptr) const override;
-    virtual void Dump() const override;
-    virtual void AssertValid() const override;
     
     int m_cause;
     CString m_strFileName;
 };
 
-// IMPLEMENT_DYNAMIC(CFileException, CException) moved to appcore.cpp
+void AFXAPI AfxThrowArchiveException(int,const wchar_t* =nullptr);
+void AFXAPI AfxFormatString1(CString&,UINT,const wchar_t*);
+void AFXAPI AfxFormatString2(CString&,UINT,const wchar_t*,const wchar_t*);
+void AFXAPI AfxFormatStrings(CString&,UINT,const wchar_t* const*,int);
+void AFXAPI AfxFormatStrings(CString&,const wchar_t*,const wchar_t* const*,int);
 
 //=============================================================================
 // Message Map Definitions

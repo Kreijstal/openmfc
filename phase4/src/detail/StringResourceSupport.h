@@ -3,8 +3,7 @@
 namespace openmfc { namespace detail {
 // Native ATL string image lookup: a block can exist without this particular
 // non-empty entry. Both module selection and copying must check the same image.
-inline const WORD* StringResourceImage(HINSTANCE module,UINT id) {
-    HRSRC resource=FindResourceW(module,MAKEINTRESOURCEW(WORD((id>>4)+1)),RT_STRING);
+inline const WORD* StringResourceEntry(HINSTANCE module,HRSRC resource,UINT id) {
     if (!resource) return nullptr;
     HGLOBAL loaded=LoadResource(module,resource);
     if (!loaded) return nullptr;
@@ -17,5 +16,11 @@ inline const WORD* StringResourceImage(HINSTANCE module,UINT id) {
     }
     if (reinterpret_cast<const BYTE*>(cursor)>=end || !*cursor) return nullptr;
     return cursor;
+}
+inline const WORD* StringResourceImage(HINSTANCE module,UINT id) {
+    return StringResourceEntry(module,FindResourceW(module,MAKEINTRESOURCEW(WORD((id>>4)+1)),RT_STRING),id);
+}
+inline const WORD* StringResourceImage(HINSTANCE module,UINT id,WORD language) {
+    return StringResourceEntry(module,FindResourceExW(module,RT_STRING,MAKEINTRESOURCEW(WORD((id>>4)+1)),language),id);
 }
 } }

@@ -1,4 +1,5 @@
 #include "FilecoreSupport.h"
+#include "openmfc/afxwin.h"
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__FreeAssoc_CMapPtrToWord__IEAAXPEAUCAssoc_1___Z(CMapPtrToWord* /*pThis*/, void* pAssoc);
@@ -83,22 +84,6 @@ CRuntimeClass* AFXAPI gb_CStdioFile() { return &CFile::classCFile; }
 CRuntimeClass g_classCStdioFile = {
     "CStdioFile", 48, 0xFFFF, nullptr, gb_CStdioFile, nullptr, nullptr
 };
-int FileExceptionFromErrno(int nErrno) {
-    enum FileCause {
-        kGenericException = 1,
-        kFileNotFound = 2,
-        kTooManyOpenFiles = 4,
-        kAccessDenied = 5,
-        kSharingViolation = 10,
-        kLockViolation = 11,
-        kDiskFull = 13
-    };
-    switch (nErrno) {
-        case ENOENT: return kFileNotFound;
-        case EACCES: return kAccessDenied;
-        case EMFILE: return kTooManyOpenFiles;
-        case ENOSPC: return kDiskFull;
-        default: return kGenericException;
-    }
-}
+int FileExceptionFromErrno(int error) {return CFileException::ErrnoToException(error);}
+
 } } }  // namespace openmfc::detail::filecore

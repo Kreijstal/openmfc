@@ -127,14 +127,12 @@ int failures;
 void check(bool ok,const char* message) { if(!ok){++failures;std::printf("FAIL: %s\n",message);} }
 // Surrounding framework exception creation and presentation are outside this fixture.
 CRuntimeClass CException::classCException{"CException",16,0xffff,nullptr,&CObject::GetThisClass,nullptr,nullptr};
-CRuntimeClass CFileException::classCFileException{"CFileException",32,0xffff,nullptr,&CException::GetThisClass,nullptr,nullptr};
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const {std::puts("unexpected CException diagnostic");std::abort();}
 int CException::GetErrorMessage(wchar_t* p,UINT n,UINT* h){return static_cast<const CException*>(this)->GetErrorMessage(p,n,h);}
 int CException::ReportError(UINT,UINT){std::abort();}
 int CFileException::GetErrorMessage(wchar_t*,UINT,UINT*) const {std::puts("unexpected CFileException diagnostic");std::abort();}
-void CFileException::Dump() const {std::abort();}
-void CFileException::AssertValid() const {std::abort();}
 struct Boundary {int kind;long code;};
+void AFXAPI AfxThrowOleException(long code){throw Boundary{3,code};}
 void AFXAPI AfxThrowMemoryException(){throw Boundary{1,0};}
 void AFXAPI AfxThrowInvalidArgException(){throw Boundary{2,0};}
 extern "C" void impl__AfxThrowOleException__YAXJ_Z(long code){throw Boundary{3,code};}

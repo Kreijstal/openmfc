@@ -13,16 +13,14 @@
 
 // These surrounding services are outside the buffer and Win32 file tests.
 CRuntimeClass CException::classCException{"CException",16,0xffff,nullptr,&CObject::GetThisClass,nullptr,nullptr};
-CRuntimeClass CFileException::classCFileException{"CFileException",32,0xffff,nullptr,&CException::GetThisClass,nullptr,nullptr};
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const { std::abort(); }
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) { std::abort(); }
 int CException::ReportError(UINT,UINT) { std::abort(); }
 int CFileException::GetErrorMessage(wchar_t*,UINT,UINT*) const { std::abort(); }
-void CFileException::Dump() const { std::abort(); }
-void CFileException::AssertValid() const { std::abort(); }
 extern "C" int impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t*,UINT,UINT) { std::abort(); }
 struct BoundaryError { int kind; long os; int cause=0; std::wstring path; bool nullPath=false; };
 extern "C" void impl__AfxThrowOleException__YAXJ_Z(long code) { throw BoundaryError{6,code}; }
+void AFXAPI AfxThrowOleException(long code) { throw BoundaryError{6,code}; }
 void AFXAPI AfxThrowMemoryException() { throw BoundaryError{1,0}; }
 void AFXAPI AfxThrowInvalidArgException() { throw BoundaryError{2,0}; }
 extern "C" void impl__AfxThrowNotSupportedException__YAXXZ() { throw BoundaryError{3,0}; }

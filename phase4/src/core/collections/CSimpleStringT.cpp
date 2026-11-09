@@ -79,27 +79,6 @@ extern "C" wchar_t MS_ABI impl__GetAt___CSimpleStringT__W_00_ATL__QEBA_WH_Z(cons
     if (!pThis) return L'\0';
     return pThis->GetAt(nIndex);
 }
-// Symbol: ?GetBuffer@?$CSimpleStringT@_W$00@ATL@@QEAAPEA_WH@Z
-extern "C" wchar_t* MS_ABI impl__GetBuffer___CSimpleStringT__W_00_ATL__QEAAPEA_WH_Z(CString* pThis, int nMinBufferLength) {
-    if (!pThis) return nullptr;
-    return pThis->GetBuffer(nMinBufferLength);
-}
-// Symbol: ?GetBuffer@?$CSimpleStringT@_W$00@ATL@@QEAAPEA_WXZ
-extern "C" wchar_t* MS_ABI impl__GetBuffer___CSimpleStringT__W_00_ATL__QEAAPEA_WXZ(CString* pThis) {
-    if (!pThis) return nullptr;
-    return pThis->GetBuffer();
-}
-// Symbol: ?GetBufferSetLength@?$CSimpleStringT@_W$00@ATL@@QEAAPEA_WH@Z
-extern "C" wchar_t* MS_ABI impl__GetBufferSetLength___CSimpleStringT__W_00_ATL__QEAAPEA_WH_Z(CString* pThis, int nLength) {
-    if (!pThis) return nullptr;
-    if (nLength < 0) nLength = 0;
-    wchar_t* pBuf = pThis->GetBuffer(nLength);
-    // Set the logical length via the public API rather than poking
-    // nDataLength directly (ReleaseBuffer keeps the string's state flags and
-    // shared-empty-buffer handling correct, and writes the terminator).
-    pThis->ReleaseBuffer(nLength);
-    return pBuf;
-}
 // Symbol: ?GetAllocLength@?$CSimpleStringT@_W$00@ATL@@QEBAHXZ
 extern "C" int MS_ABI impl__GetAllocLength___CSimpleStringT__W_00_ATL__QEBAHXZ(const CString* pThis) {
     if (!pThis) return 0;

@@ -272,23 +272,3 @@ impl__CollateNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____
 }
 // Implemented in global_cstring_core.cpp; this unit had a second, unlinked copy.
 // Symbol: ??1?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@XZ
-// CString::LoadString(UINT nID)
-// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHI@Z
-extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHI_Z(CString* pThis, UINT nID)
-{
-    return CStringLoadStringImpl(pThis, GetResourceHandle(), nID);
-}
-// CString::LoadString(HINSTANCE, UINT)
-// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEAUHINSTANCE__@@I@Z
-extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(
-    CString* pThis, HINSTANCE hInst, UINT nID)
-{
-    return CStringLoadStringImpl(pThis, hInst, nID);
-}
-// CString::LoadString(HINSTANCE, UINT, LANGID)
-// Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEAUHINSTANCE__@@IG@Z
-extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEAUHINSTANCE____IG_Z(
-    CString* pThis, HINSTANCE hInst, UINT nID, unsigned short /*wLanguageID*/)
-{
-    return CStringLoadStringImpl(pThis, hInst, nID);
-}

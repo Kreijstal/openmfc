@@ -207,6 +207,9 @@ on:
       - 'tests/cmdui_tests.h'
       - 'phase4/src/core/exceptions/CExceptionVirtuals.cpp'
       - 'phase4/src/core/runtime/AfxLoadString.cpp'
+      - 'phase4/src/core/runtime/AfxFormatStrings.cpp'
+      - 'phase4/src/core/collections/CStringBuffer.cpp'
+      - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/detail/StringResourceSupport.h'
       - 'phase4/src/core/exceptions/CSimpleException.cpp'
       - 'phase4/src/core/exceptions/CUserException.cpp'
@@ -509,6 +512,9 @@ on:
       - 'tests/cmdui_tests.h'
       - 'phase4/src/core/exceptions/CExceptionVirtuals.cpp'
       - 'phase4/src/core/runtime/AfxLoadString.cpp'
+      - 'phase4/src/core/runtime/AfxFormatStrings.cpp'
+      - 'phase4/src/core/collections/CStringBuffer.cpp'
+      - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/detail/StringResourceSupport.h'
       - 'phase4/src/core/exceptions/CSimpleException.cpp'
       - 'phase4/src/core/exceptions/CUserException.cpp'
@@ -662,6 +668,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndMessageMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CExceptionVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxLoadString.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringResource.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxFormatStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CSimpleException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CUserException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CsimpleexceptionRttiSupport.cpp"
@@ -904,6 +913,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndMessageMap.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CExceptionVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxLoadString.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringResource.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxFormatStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CSimpleException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CUserException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CsimpleexceptionRttiSupport.cpp"
