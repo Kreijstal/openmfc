@@ -14,7 +14,7 @@ int main() {
     if(!run||!oracle)return 1;
     auto left=std::make_unique<ArrayReport>(),right=std::make_unique<ArrayReport>();
     int cases=0,failures=0;
-    for(int kind=0;kind<5;++kind)for(int scenario=0;scenario<(kind==4?2:kind==3?6:16);++scenario)for(int failure=0;failure<(kind>=3?1:10);++failure) {
+    for(int kind=0;kind<6;++kind)for(int scenario=0;scenario<(kind==4?2:kind==3?6:16);++scenario)for(int failure=0;failure<(kind==5?4:kind>=3?1:10);++failure) {
         run(kind,scenario,failure,left.get());oracle(kind,scenario,failure,right.get());++cases;
         if(left->overflow||right->overflow||left->count!=right->count||memcmp(left->events,right->events,left->count*sizeof(ArrayEvent))) {
             ++failures;printf("Mismatch kind=%d scenario=%d failure=%d events=%u/%u overflow=%u/%u\n",kind,scenario,failure,left->count,right->count,left->overflow,right->overflow);
@@ -25,5 +25,5 @@ int main() {
             }
         }
     }
-    printf("Native SDK CArray oracle: %d scenarios, %d failures\n",cases,failures);return failures?1:0;
+    printf("Native SDK array oracle: %d scenarios, %d failures\n",cases,failures);return failures?1:0;
 }

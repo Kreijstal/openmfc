@@ -328,9 +328,7 @@ namespace openmfc { namespace detail { namespace filecore {
 extern CRuntimeClass g_classCWordArray;
 } } }
 
-// Pointer-array metadata must be visible to native MSVC inline accessors.
 template<class Array> inline void SyncArrayNative(Array*) {}
-inline void SyncArrayNative(CPtrArray* array) { array->SyncNativeArray(); }
 template<class Array> struct ArrayNativeSync {
     Array* array;
     explicit ArrayNativeSync(Array* value) : array(value) {}

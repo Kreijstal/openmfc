@@ -1589,39 +1589,46 @@ OPENMFC_DECLARE_ARRAY_WRAPPER(CUIntArray, unsigned int, unsigned int, DECLARE_DY
 OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, DECLARE_SERIAL)
 OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, DECLARE_SERIAL)
 class CPtrArray : public CObject {
-    DECLARE_DYNAMIC(CPtrArray)
+#if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
 public:
-    CPtrArray();
-    virtual ~CPtrArray();
-    INT_PTR GetSize() const;
-    INT_PTR GetCount() const;
-    BOOL IsEmpty() const;
-    INT_PTR GetUpperBound() const;
-    void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1);
-    void FreeExtra();
-    void RemoveAll();
-    void* GetAt(INT_PTR nIndex) const;
-    void SetAt(INT_PTR nIndex, void* newElement);
-    void*& ElementAt(INT_PTR nIndex);
-    const void*& ElementAt(INT_PTR nIndex) const;
-    void* operator[](INT_PTR nIndex) const;
-    void*& operator[](INT_PTR nIndex);
-    void** GetData();
-    const void** GetData() const;
-    void SetAtGrow(INT_PTR nIndex, void* newElement);
-    INT_PTR Add(void* newElement);
-    INT_PTR Append(const CPtrArray& src);
-    void Copy(const CPtrArray& src);
-    void InsertAt(INT_PTR nIndex, void* newElement, INT_PTR nCount = 1);
-    void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1);
-    void InsertAt(INT_PTR nStartIndex, CPtrArray* pNewArray);
-    virtual void Serialize(CArchive& ar) override;
-    void SyncNativeArray();
+    static OPENMFC_ARCHIVE_API CRuntimeClass* GetThisClass();
+    virtual OPENMFC_ARCHIVE_API CRuntimeClass* GetRuntimeClass() const override;
+#else
+    DECLARE_DYNAMIC(CPtrArray)
+#endif
+public:
+    OPENMFC_ARCHIVE_API CPtrArray();
+    OPENMFC_ARCHIVE_API virtual ~CPtrArray();
+    INT_PTR GetSize() const {return m_nSize;}
+    INT_PTR GetCount() const {return m_nSize;}
+    BOOL IsEmpty() const {return m_nSize==0;}
+    INT_PTR GetUpperBound() const {return m_nSize-1;}
+    OPENMFC_ARCHIVE_API void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1);
+    OPENMFC_ARCHIVE_API void FreeExtra();
+    void RemoveAll() {SetSize(0,-1);}
+    void* GetAt(INT_PTR index) const {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();return m_pData[index];}
+    void SetAt(INT_PTR index,void* value) {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();m_pData[index]=value;}
+    void*& ElementAt(INT_PTR index) {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();return m_pData[index];}
+    void* const& ElementAt(INT_PTR index) const {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();return m_pData[index];}
+    void* operator[](INT_PTR index) const {return GetAt(index);}
+    void*& operator[](INT_PTR index) {return ElementAt(index);}
+    void** GetData() {return m_pData;}
+    const void** GetData() const {return const_cast<const void**>(m_pData);}
+    OPENMFC_ARCHIVE_API void SetAtGrow(INT_PTR nIndex, void* newElement);
+    INT_PTR Add(void* value) {INT_PTR index=m_nSize;SetAtGrow(index,value);return index;}
+    OPENMFC_ARCHIVE_API INT_PTR Append(const CPtrArray& src);
+    OPENMFC_ARCHIVE_API void Copy(const CPtrArray& src);
+    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR nIndex, void* newElement, INT_PTR nCount = 1);
+    OPENMFC_ARCHIVE_API void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1);
+    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR nStartIndex, CPtrArray* pNewArray);
 protected:
     void** m_pData;
     INT_PTR m_nSize;
     INT_PTR m_nMaxSize;
     INT_PTR m_nGrowBy;
+private:
+    CPtrArray(const CPtrArray&) = delete;
+    CPtrArray& operator=(const CPtrArray&) = delete;
 };
 OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, DECLARE_SERIAL)
 

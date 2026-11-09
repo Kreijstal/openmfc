@@ -306,9 +306,8 @@ extern "C" void MS_ABI impl__AfxThrowNotSupportedException__YAXXZ() { throw new 
 extern "C" int MS_ABI impl__ReportError_CException__UEAAHII_Z(CException*,UINT,UINT) { std::abort(); }
 int CException::ReportError(UINT type,UINT message) {return impl__ReportError_CException__UEAAHII_Z(this,type,message);}
 
-// Array/map serialization is peripheral to the DLGINIT storage tests.
-UINT CArchive::Read(void*,UINT) {std::abort();}
-void CArchive::Write(const void*,UINT) {std::abort();}
+// Primitive collection operators are peripheral to DLGINIT storage tests.
+// Archive buffering and count methods use their real production owner.
 CArchive& CArchive::operator<<(unsigned long) {std::abort();}
 CArchive& CArchive::operator>>(unsigned long&) {std::abort();}
 // Control subclassing is modeled at its attachment boundary; container ownership,
@@ -349,8 +348,6 @@ CArchive& CArchive::operator>>(int&){std::abort();}
 CArchive& CArchive::operator<<(int){std::abort();}
 CArchive& CArchive::operator>>(CString&){std::abort();}
 CArchive& CArchive::operator<<(const CString&){std::abort();}
-extern "C" UINT MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive*,void*,UINT){std::abort();}
-extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive*,const void*,UINT){std::abort();}
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(const CObject*){return CObject::GetThisClass();}
 extern "C" BOOL MS_ABI impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(CComboBox*,DWORD,const RECT*,CWnd*,UINT){std::abort();}
 extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CWnd*,CString*){std::abort();}

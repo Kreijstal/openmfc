@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare public CArray instantiations with independently compiled installed SDK arrays."""
+"""Compare public generic and pointer arrays with installed SDK/native MFC arrays."""
 import argparse
 import os
 from pathlib import Path

@@ -1,6 +1,7 @@
 #ifdef OPENMFC_USE_SDK_MFC
 #define _AFX_NOFORCE_LIBS
 #include <afx.h>
+#include <afxcoll.h>
 #else
 #include "openmfc/afxwin.h"
 #endif
@@ -10,6 +11,20 @@
 #include <type_traits>
 static_assert(sizeof(CArchive)==112&&!std::is_polymorphic_v<CArchive>,"native archive ABI");
 int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
+ {
+  static_assert(sizeof(CPtrArray)==40,"native pointer array ABI");
+  CPtrArray a,b;check(a.IsEmpty()&&a.GetUpperBound()==-1);
+  a.SetSize(1,17);INT_PTR capacity=0;memcpy(&capacity,reinterpret_cast<const char*>(&a)+24,8);check(capacity==1);
+  void* one=reinterpret_cast<void*>(UINT_PTR(0x1234));void* two=reinterpret_cast<void*>(UINT_PTR(0x5678));
+  a.SetAt(0,one);check(a.Add(two)==1&&a.GetCount()==2&&a[0]==one&&a[1]==two);
+  a.InsertAt(1,one,2);check(a.GetSize()==4&&a[3]==two);a.RemoveAt(1,2);
+  b.Copy(a);check(b.GetSize()==2&&b.GetAt(0)==one);check(b.Append(a)==2&&b.GetSize()==4);
+  a.InsertAt(1,&b);check(a.GetSize()==6&&a[5]==two);a.SetAtGrow(9,two);check(a[9]==two&&a[8]==nullptr);
+  a.FreeExtra();memcpy(&capacity,reinterpret_cast<const char*>(&a)+24,8);check(capacity==a.GetSize());
+  check(!strcmp(a.GetRuntimeClass()->m_lpszClassName,"CPtrArray")&&a.GetRuntimeClass()==CPtrArray::GetThisClass());
+  bool caught=false;try{a.Append(a);}catch(CInvalidArgException* e){caught=true;e->Delete();}check(caught);
+  a.RemoveAll();check(a.GetData()==nullptr&&a.GetSize()==0);
+ }
  CMemFile file;
  {
   CArchive store(&file,CArchive::store,128);check(store.IsStoring()&&!store.IsLoading()&&!store.IsByteSwapping());

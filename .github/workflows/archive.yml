@@ -4,6 +4,8 @@ on:
     paths:
       - 'include/openmfc/**'
       - 'phase4/src/core/runtime/CArchive*.cpp'
+      - 'phase4/src/core/runtime/CObject*.cpp'
+      - 'phase4/src/core/collections/CPtrArray*.cpp'
       - 'phase4/src/core/runtime/Thunks.cpp'
       - 'phase4/src/core/collections/CString*.cpp'
       - 'phase4/src/core/collections/CSimpleStringT.cpp'
@@ -20,6 +22,8 @@ on:
     paths:
       - 'include/openmfc/**'
       - 'phase4/src/core/runtime/CArchive*.cpp'
+      - 'phase4/src/core/runtime/CObject*.cpp'
+      - 'phase4/src/core/collections/CPtrArray*.cpp'
       - 'phase4/src/core/runtime/Thunks.cpp'
       - 'phase4/src/core/collections/CString*.cpp'
       - 'phase4/src/core/collections/CSimpleStringT.cpp'

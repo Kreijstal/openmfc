@@ -4,6 +4,7 @@ on:
     paths:
       - 'include/openmfc/**'
       - 'phase4/src/core/runtime/CObject*.cpp'
+      - 'phase4/src/core/collections/CPtrArray*.cpp'
       - 'tests/*array*'
       - 'tests/*archive*'
       - 'tests/build_string_imports.py'
@@ -12,6 +13,7 @@ on:
     paths:
       - 'include/openmfc/**'
       - 'phase4/src/core/runtime/CObject*.cpp'
+      - 'phase4/src/core/collections/CPtrArray*.cpp'
       - 'tests/*array*'
       - 'tests/*archive*'
       - 'tests/build_string_imports.py'

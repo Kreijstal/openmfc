@@ -19,6 +19,7 @@ bool tracking;
 int failAllocation,failConstructor,failAssignment;
 struct Block {unsigned char* data;size_t bytes;bool live;};
 Block blocks[1024];unsigned blockCount;
+using Free=void(__cdecl*)(void*);Free originalFree;
 template<class T>T field(const void* object,size_t offset) {T result{};if(object)memcpy(&result,static_cast<const char*>(object)+offset,sizeof(T));return result;}
 long long pointer(const void* p) {
     if(!p)return 0;
@@ -45,8 +46,40 @@ void release(void* p) {
         event(2,pointer(p));
         for(unsigned i=0;i<blockCount;++i)if(p==blocks[i].data) {event(3,i,blocks[i].live);blocks[i].live=false;return;}
     }
-    free(p);
+    if(originalFree)originalFree(p);else free(p);
 }
+// Observe allocation at the actual DLL boundary; all collection code remains
+// inside its production or native owner. Ordinal 1489 is native operator new.
+struct AllocationHook {
+    BYTE* entry;BYTE saved[12];DWORD protection;void** freeSlot;void* savedFree;DWORD freeProtection;
+    AllocationHook() {
+#ifdef OPENMFC_USE_SDK_MFC
+        HMODULE image=GetModuleHandleW(L"mfc140u.dll");
+#else
+        HMODULE image=GetModuleHandleW(L"openmfc_archive.dll");
+#endif
+        entry=reinterpret_cast<BYTE*>(GetProcAddress(image,MAKEINTRESOURCEA(1489)));if(!entry)abort();
+        memcpy(saved,entry,12);VirtualProtect(entry,12,PAGE_EXECUTE_READWRITE,&protection);
+        BYTE jump[12]={0x48,0xb8};auto target=&allocate;memcpy(jump+2,&target,8);jump[10]=0xff;jump[11]=0xe0;
+        memcpy(entry,jump,12);FlushInstructionCache(GetCurrentProcess(),entry,12);
+        auto* base=reinterpret_cast<BYTE*>(image);
+        auto* nt=reinterpret_cast<IMAGE_NT_HEADERS*>(base+reinterpret_cast<IMAGE_DOS_HEADER*>(base)->e_lfanew);
+        auto* dll=reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(base+nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+        freeSlot=nullptr;
+        for(;dll->Name;++dll) {
+            auto* names=reinterpret_cast<IMAGE_THUNK_DATA*>(base+dll->OriginalFirstThunk);
+            auto* values=reinterpret_cast<IMAGE_THUNK_DATA*>(base+dll->FirstThunk);
+            for(;names->u1.AddressOfData;++names,++values)
+                if(!IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal)&&!strcmp(reinterpret_cast<char*>(reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(base+names->u1.AddressOfData)->Name),"free"))freeSlot=reinterpret_cast<void**>(&values->u1.Function);
+        }
+        if(!freeSlot)abort();savedFree=*freeSlot;originalFree=reinterpret_cast<Free>(savedFree);
+        VirtualProtect(freeSlot,8,PAGE_READWRITE,&freeProtection);*freeSlot=reinterpret_cast<void*>(&release);
+    }
+    ~AllocationHook() {
+        memcpy(entry,saved,12);FlushInstructionCache(GetCurrentProcess(),entry,12);DWORD ignored;
+        VirtualProtect(entry,12,protection,&ignored);*freeSlot=savedFree;VirtualProtect(freeSlot,8,freeProtection,&ignored);originalFree=nullptr;
+    }
+};
 struct Element {
     int value,tag;
     Element() {event(4,pointer(this),field<int>(this,0),field<int>(this,4));if(failConstructor>0&&!--failConstructor)throw 71;value=7;tag=9;}
@@ -79,7 +112,15 @@ template<class T>void snapshot(CArray<T,const T&>& a) {
         for(size_t i=0;i<size_t(capacity)*sizeof(T);++i)event(12,i,reinterpret_cast<const unsigned char*>(a.GetData())[i]);
     }
 }
-template<class T,class F>void operation(CArray<T,const T&>& a,int label,F fn) {
+void snapshot(CPtrArray& a) {
+    active=&a;event(8,a.GetCount(),a.GetUpperBound(),a.IsEmpty());
+    auto* type=static_cast<CObject*>(&a)->GetRuntimeClass();
+    event(7,strcmp(type->m_lpszClassName,"CPtrArray"),type->m_nObjectSize,type->m_wSchema);
+    event(13,type==CPtrArray::GetThisClass());
+    for(INT_PTR i=0;i<a.GetSize();++i)event(9,i,reinterpret_cast<INT_PTR>(a.GetAt(i)));
+    for(size_t i=0;i<size_t(field<INT_PTR>(&a,24))*sizeof(void*);++i)event(12,i,reinterpret_cast<const unsigned char*>(a.GetData())[i]);
+}
+template<class ARRAY,class F>void operation(ARRAY& a,int label,F fn) {
     active=&a;event(20,label);
     try {fn();event(21);}
     catch(CInvalidArgException* e){event(22,1);e->Delete();}
@@ -198,13 +239,75 @@ void largeArithmetic(int scenario) {
     }
     active=nullptr;
 }
+void pointerArray(int scenario,int failure) {
+    AllocationHook hook;
+    alignas(CPtrArray) unsigned char first[sizeof(CPtrArray)],second[sizeof(CPtrArray)];
+    active=first;CPtrArray& a=*::new(first) CPtrArray;active=second;CPtrArray& b=*::new(second) CPtrArray;
+    void* value=reinterpret_cast<void*>(UINT_PTR(0x1234));
+    failAllocation=failure;
+    if(scenario==0) {
+        for(INT_PTR grow:{INT_PTR(0),INT_PTR(4),INT_PTR(17)}) {
+            for(INT_PTR size:{INT_PTR(1),INT_PTR(3),INT_PTR(6),INT_PTR(2),INT_PTR(19),INT_PTR(1),INT_PTR(0)})
+                operation(a,1,[&]{a.SetSize(size,grow);});
+            operation(a,2,[&]{a.SetSize(7,grow);});operation(a,3,[&]{a.SetSize(2);});operation(a,4,[&]{a.FreeExtra();});operation(a,5,[&]{a.RemoveAll();});
+        }
+    } else if(scenario==1) {
+        operation(a,1,[&]{a.SetSize(4,3);});operation(a,2,[&]{a.InsertAt(1,value,2);});
+        operation(a,3,[&]{a.RemoveAt(2,3);});operation(a,4,[&]{a.InsertAt(9,value,2);});
+        operation(a,5,[&]{a.SetAtGrow(15,value);});operation(a,6,[&]{event(23,a.Add(value));});
+        operation(b,7,[&]{b.Copy(a);});operation(a,8,[&]{a.InsertAt(1,&b);});
+        operation(a,9,[&]{event(23,a.Append(b));});operation(a,10,[&]{a.Copy(a);});
+        operation(a,11,[&]{a.Append(a);});operation(a,12,[&]{a.RemoveAt(a.GetSize(),0);});
+        operation(a,13,[&]{a.FreeExtra();});
+        operation(a,14,[&]{a.InsertAt(0,&a);});operation(a,15,[&]{a.InsertAt(1,&a);});
+    } else if(scenario==2) {
+        operation(a,1,[&]{a.SetSize(3,5);});
+        for(INT_PTR index:{INT_PTR(-1),INT_PTR(0),INT_PTR(2),INT_PTR(3),INT_PTR(4),INT_PTR(0x7fffffffffffffffLL)}) {
+            operation(a,2,[&]{event(23,reinterpret_cast<INT_PTR>(a.GetAt(index)));});
+            operation(a,3,[&]{a.SetAt(index,value);});
+            for(INT_PTR count:{INT_PTR(-1),INT_PTR(0),INT_PTR(1),INT_PTR(4),INT_PTR(0x7fffffffffffffffLL)})
+                operation(a,4,[&]{a.RemoveAt(index,count);});
+        }
+        operation(a,5,[&]{a.SetSize(-1,99);});operation(a,6,[&]{a.InsertAt(-1,&b);});
+        operation(a,7,[&]{a.InsertAt(0,static_cast<CPtrArray*>(nullptr));});
+        operation(a,8,[&]{a.InsertAt(0,value,0);});operation(a,9,[&]{a.InsertAt(-1,value,1);});
+        operation(a,10,[&]{a.SetAtGrow(-1,value);});operation(a,11,[&]{a.SetAtGrow(INT_PTR(0x7fffffffffffffffLL),value);});
+    } else if(scenario==3) {
+        operation(a,1,[&]{a.SetSize(3,INT_PTR(0x100000000LL));});
+        operation(a,2,[&]{a.SetSize(4);});
+        operation(a,3,[&]{a.SetSize(0,0);});
+        operation(a,4,[&]{a.SetSize(INT_PTR(0x100000001LL));});
+        operation(a,5,[&]{a.SetSize(-1,99);});
+    } else {
+        unsigned random=unsigned(scenario)*19337+1;
+        for(int i=0;i<80;++i) {
+            random=random*1664525+1013904223;unsigned choice=random%10;
+            INT_PTR at=(random>>8)%24,count=(random>>17)%4;
+            operation(a,i,[&]{switch(choice) {
+                case 0:a.SetSize(at,count);break;case 1:a.SetAtGrow(at,value);break;
+                case 2:a.InsertAt(at,value,count);break;
+                case 3:if(a.GetSize())a.RemoveAt(at%a.GetSize(),count);break;
+                case 4:a.FreeExtra();break;case 5:b.Copy(a);break;
+                case 6:if(a.GetSize()+b.GetSize()<64)a.Append(b);break;
+                case 7:if(a.GetSize()+b.GetSize()<64)a.InsertAt(at,&b);break;
+                case 8:if(a.GetSize())a[a.GetSize()-1]=reinterpret_cast<void*>(UINT_PTR(i));break;
+                case 9:a.RemoveAll();break;
+            }});
+        }
+    }
+    failAllocation=0;
+    // CPtrArray inherits CObject's empty Serialize slot; it has no wire format.
+    operation(a,70,[&]{CMemFile file;CArchive store(&file,CArchive::store,128);static_cast<CObject*>(&a)->Serialize(store);store.Close();event(71,file.GetLength());});
+    active=&a;a.~CPtrArray();active=&b;b.~CPtrArray();active=nullptr;
+}
 }
 void* operator new[](size_t bytes) {return allocate(bytes);}
 void operator delete[](void* p) noexcept {release(p);}
 extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int failure,ArrayReport* output) {
     report=output;report->count=report->overflow=0;active=nullptr;blockCount=0;tracking=true;
     failAllocation=failConstructor=failAssignment=0;
-    if(kind==4)largeArithmetic(scenario);
+    if(kind==5)pointerArray(scenario,failure);
+    else if(kind==4)largeArithmetic(scenario);
     else if(kind==3) {
         serialization(scenario);
     } else if(kind==0)probe<int>(scenario,failure);

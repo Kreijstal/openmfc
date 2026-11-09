@@ -17,6 +17,8 @@ def sources():
         *['phase4/src/core/exceptions/'+n+'.cpp' for n in ['CFileException','CFileExceptionLifetime','CArchiveException','CArchiveExceptionLifetime']],
         'phase4/src/core/collections/CMapPtrToPtrStorage.cpp',
         'phase4/src/core/collections/CPlex.cpp',
+        'phase4/src/core/collections/CPtrArray.cpp',
+        'phase4/src/core/collections/CPtrArrayStorage.cpp',
         'tests/archive_services.cpp',
     ]
 
