@@ -449,6 +449,7 @@ impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(AFX_MODULE_THREAD_STATE::NewHandler 
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() { std::abort(); }
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() { std::abort(); }
 void AFXAPI AfxThrowMemoryException() { std::abort(); }
+void AFXAPI AfxThrowOleException(long) { std::abort(); }
 _AFX_THREAD_STATE* AFXAPI AfxGetThreadState() { return nullptr; }
 HINSTANCE AFXAPI AfxGetInstanceHandle() { return ::GetModuleHandleW(nullptr); }
 extern "C" HINSTANCE MS_ABI
