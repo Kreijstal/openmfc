@@ -1,77 +1,47 @@
-// COleException — OpenMFC implementation.
-// Sources: global_ctor_quickwins.cpp, mfc_exceptions.cpp
-
+// Native OLE exception object, system message lookup and typed pointer throw.
 #define OPENMFC_APPCORE_IMPL
-
-#include "detail/MfcExceptionsSupport.h"
-
-// Hand-written real implementations for header-defined classes that were one
-// export short of complete. Constructors placement-new into the caller-provided
-// storage so the openmfc C++ constructor establishes the validated member
-// layout. Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass (scan of
-// `// Symbol:` comments) removes the weak/typed stubs for these ordinals
-// automatically.
-
-#include "openmfc/afxwin.h"
-#include "openmfc/afxinet.h"
 #include "openmfc/afxdisp.h"
-#include "openmfc/afxole.h"
-
-#include <cstdio>
+#include <cerrno>
+#include <cwchar>
 #include <new>
-#include <cstdlib>
-#include <cstring>
-
-#ifdef __GNUC__
-  #define MS_ABI __attribute__((ms_abi))
-#else
-  #define MS_ABI
-#endif
-
-extern "C" void MS_ABI impl__CommonInit_CFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
-    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM);
-extern "C" void MS_ABI impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(
-    void* pThis, FILE* pStream, void* pTM);
-extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
-    void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Symbol: ?GetErrorMessage@COleException@@UEBAHPEA_WIPEAI@Z
-extern "C" int MS_ABI impl__GetErrorMessage_COleException__UEBAHPEA_WIPEAI_Z(
-    const COleException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext
-) {
-    if (!lpszError || nMaxError == 0) return 0;
-    if (pnHelpContext) *pnHelpContext = 0;
-    if (!pThis) {
-        lpszError[0] = L'\0';
-        return 0;
+extern "C" void* impl___2_YAPEAX_K_Z(size_t);
+extern "C" void impl___3_YAXPEAX_Z(void*);
+IMPLEMENT_DYNAMIC(COleException,CException)
+static_assert(sizeof(COleException)==24 && offsetof(COleException,m_sc)==16,"native OLE exception storage");
+COleException::COleException():CException(TRUE),m_sc(0) {}
+COleException::~COleException() = default;
+int COleException::GetErrorMessage(wchar_t* output,UINT capacity,UINT* help) const {
+    if(help)*help=0;
+    wchar_t* message;
+    if(!::FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM,nullptr,DWORD(m_sc),
+        MAKELANGID(LANG_NEUTRAL,SUBLANG_SYS_DEFAULT),reinterpret_cast<wchar_t*>(&message),0,nullptr)) {
+        *output=0;return FALSE;
     }
-
-    const DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
-    DWORD len = FormatMessageW(
-        flags, nullptr, static_cast<DWORD>(pThis->m_sc), 0, lpszError, nMaxError, nullptr
-    );
-    if (len != 0) {
-        while (len > 0 && (lpszError[len - 1] == L'\r' || lpszError[len - 1] == L'\n')) {
-            lpszError[len - 1] = L'\0';
-            --len;
-        }
-        return 1;
+    int result=wcsncpy_s(output,capacity,message,_TRUNCATE);
+    if(result && result!=STRUNCATE) {
+        if(result==ENOMEM)AfxThrowMemoryException();
+        else AfxThrowInvalidArgException();
     }
-
-    swprintf(lpszError, nMaxError, L"OLE exception 0x%08lX", static_cast<unsigned long>(pThis->m_sc));
-    return 1;
+    ::LocalFree(message);
+    return TRUE;
 }
+void AFXAPI AfxThrowOleException(LONG code) {
+    void* storage=impl___2_YAPEAX_K_Z(sizeof(COleException));
+    COleException* error=nullptr;
+    if(storage) {
+        try {error=::new(storage) COleException;}
+        catch(...){impl___3_YAXPEAX_Z(storage);throw;}
+    }
+    error->m_sc=code;
+    throw error;
+}
+// Symbol: ?GetErrorMessage@COleException@@UEBAHPEA_WIPEAI@Z
+extern "C" int impl__GetErrorMessage_COleException__UEBAHPEA_WIPEAI_Z(const COleException* self,wchar_t* output,UINT capacity,UINT* help) {
+    return self->COleException::GetErrorMessage(output,capacity,help);
+}
+// Symbol: ?AfxThrowOleException@@YAXJ@Z
+extern "C" void impl__AfxThrowOleException__YAXJ_Z(LONG code) {AfxThrowOleException(code);}
+// Symbol: ?GetThisClass@COleException@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ() {return COleException::GetThisClass();}
+// Symbol: ?GetRuntimeClass@COleException@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetRuntimeClass_COleException__UEBAPEAUCRuntimeClass__XZ(const COleException*) {return COleException::GetThisClass();}

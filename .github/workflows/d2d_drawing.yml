@@ -277,7 +277,7 @@ on:
       - 'phase4/src/core/ole/OleExceptionTranslation.cpp'
       - 'phase4/src/core/exceptions/COleDispatchException.cpp'
       - 'phase4/src/detail/OleExceptionTranslationSupport.h'
-      - 'phase4/src/detail/OleOleexceptionRttiSupport.*'
+      - 'phase4/src/core/exceptions/COleException.cpp'
       - 'tests/automation_exception_tests.h'
       - 'phase4/src/detail/CCmdTargetDispatchSupport.h'
       - 'tests/cmdtarget_dispatch_tests.h'
@@ -579,7 +579,7 @@ on:
       - 'phase4/src/core/ole/OleExceptionTranslation.cpp'
       - 'phase4/src/core/exceptions/COleDispatchException.cpp'
       - 'phase4/src/detail/OleExceptionTranslationSupport.h'
-      - 'phase4/src/detail/OleOleexceptionRttiSupport.*'
+      - 'phase4/src/core/exceptions/COleException.cpp'
       - 'tests/automation_exception_tests.h'
       - 'phase4/src/detail/CCmdTargetDispatchSupport.h'
       - 'tests/cmdtarget_dispatch_tests.h'
@@ -808,7 +808,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/ole/COleDispatchImpl.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/ole/OleExceptionTranslation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/COleDispatchException.cpp"
-            echo "%GITHUB_WORKSPACE%/phase4/src/detail/OleOleexceptionRttiSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/COleException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/InterfaceMaps.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/d2d/_AFX_D2D_STATE.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CDCRenderTarget.cpp"
@@ -1049,7 +1049,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/ole/COleDispatchImpl.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/ole/OleExceptionTranslation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/COleDispatchException.cpp"
-            echo "%GITHUB_WORKSPACE%/phase4/src/detail/OleOleexceptionRttiSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/COleException.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/InterfaceMaps.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/d2d/_AFX_D2D_STATE.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/d2d/CDCRenderTarget.cpp"

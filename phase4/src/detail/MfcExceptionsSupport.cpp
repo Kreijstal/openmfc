@@ -6,15 +6,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CException__SAPEAUCRuntimeCl
 // Implementations this unit calls that are defined with their own class.
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
 
-void AFXAPI AfxThrowOleException(LONG sc) {
-    impl__AfxThrowOleException__YAXJ_Z(sc);
-}
-void AFXAPI AfxThrowOleDispatchException(WORD wCode, UINT nDescriptionID, UINT nHelpID) {
-    impl__AfxThrowOleDispatchException__YAXGII_Z(wCode, nDescriptionID, nHelpID);
-}
-void AFXAPI AfxThrowOleDispatchException(WORD wCode, const wchar_t* lpszDescription, UINT nHelpID) {
-    impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(wCode, lpszDescription, nHelpID);
-}
 // Symbol: ?AfxThrowFileException@@YAXHJPEB_W@Z
 extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
     int cause, LONG lOsError, const wchar_t* lpszFileName
@@ -25,43 +16,7 @@ extern "C" void MS_ABI impl__AfxThrowFileException__YAXHJPEB_W_Z(
     }
     ThrowNew(pEx, &TI_CFileException, g_vtbl_CFileException);
 }
-// Symbol: ?AfxThrowOleException@@YAXJ@Z
-extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(LONG sc) {
-    COleException* pEx = new COleException();
-    pEx->m_sc = sc;
-    ThrowNew(pEx, &TI_COleException, nullptr);
-}
-// Symbol: ?AfxThrowOleDispatchException@@YAXGII@Z
-extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGII_Z(
-    WORD wCode, UINT nDescriptionID, UINT nHelpID
-) {
-    std::wstring description=LoadOleDispatchDescription(nDescriptionID);
-    COleDispatchException* pEx = new COleDispatchException(description.c_str(),nHelpID==UINT_MAX ? nDescriptionID : nHelpID,wCode);
-    ThrowNew(pEx, &TI_COleDispatchException, nullptr);
-}
-// Symbol: ?AfxThrowOleDispatchException@@YAXGPEB_WI@Z
-extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
-    WORD wCode, const wchar_t* lpszDescription, UINT nHelpID
-) {
-    COleDispatchException* pEx = new COleDispatchException(lpszDescription,nHelpID,wCode);
-    ThrowNew(pEx, &TI_COleDispatchException, nullptr);
-}
 namespace openmfc { namespace detail { namespace mfcexceptions {
-std::wstring LoadOleDispatchDescription(UINT nDescriptionID) {
-    std::wstring description;
-    if (nDescriptionID == 0) {
-        return description;
-    }
-
-    wchar_t buffer[1024];
-    int nLen = LoadStringW(AfxGetResourceHandle(), nDescriptionID,
-                           buffer, static_cast<int>(sizeof(buffer) / sizeof(buffer[0])));
-    if (nLen <= 0) {
-        return description;
-    }
-    description.assign(buffer, buffer + nLen);
-    return description;
-}
 void CopyErrorText(wchar_t* out, UINT maxLen, const wchar_t* text) {
     if (!out || maxLen == 0) return;
     const wchar_t* src = text ? text : L"";
@@ -193,14 +148,6 @@ TD_CArchiveException_t TD_CArchiveException = { nullptr, nullptr, ".PEAVCArchive
 CatchableType CT_CArchiveException = { 1, 0, 0, -1, 0, 8, 0 };
 CTA_CArchiveException_t CTA_CArchiveException = { 3, {0,0,0} };
 ThrowInfo TI_CArchiveException = { 0, 0, 0, 0 };
-TD_COleException_t TD_COleException = { nullptr, nullptr, ".PEAVCOleException@@" };
-CatchableType CT_COleException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_COleException_t CTA_COleException = { 3, {0,0,0} };
-ThrowInfo TI_COleException = { 0, 0, 0, 0 };
-TD_COleDispatchException_t TD_COleDispatchException = { nullptr, nullptr, ".PEAVCOleDispatchException@@" };
-CatchableType CT_COleDispatchException = { 1, 0, 0, -1, 0, 8, 0 };
-CTA_COleDispatchException_t CTA_COleDispatchException = { 3, {0,0,0} };
-ThrowInfo TI_COleDispatchException = { 0, 0, 0, 0 };
 TD_CInternetException_t TD_CInternetException = { nullptr, nullptr, ".PEAVCInternetException@@" };
 CatchableType CT_CInternetException = { 1, 0, 0, -1, 0, 8, 0 };
 CTA_CInternetException_t CTA_CInternetException = { 3, {0,0,0} };
@@ -242,24 +189,6 @@ void InitAllRTTI() {
     CTA_CArchiveException.t[2] = TO_RVA(&CT_CObject);
     TI_CArchiveException.pmfnUnwind = 0;
     TI_CArchiveException.pCatchableTypeArray = TO_RVA(&CTA_CArchiveException);
-
-    // COleException
-    TD_COleException.pVFTable = g_typeInfoVFT;
-    CT_COleException.pType = TO_RVA(&TD_COleException);
-    CTA_COleException.t[0] = TO_RVA(&CT_COleException);
-    CTA_COleException.t[1] = TO_RVA(&CT_CException);
-    CTA_COleException.t[2] = TO_RVA(&CT_CObject);
-    TI_COleException.pmfnUnwind = 0;
-    TI_COleException.pCatchableTypeArray = TO_RVA(&CTA_COleException);
-
-    // COleDispatchException
-    TD_COleDispatchException.pVFTable = g_typeInfoVFT;
-    CT_COleDispatchException.pType = TO_RVA(&TD_COleDispatchException);
-    CTA_COleDispatchException.t[0] = TO_RVA(&CT_COleDispatchException);
-    CTA_COleDispatchException.t[1] = TO_RVA(&CT_CException);
-    CTA_COleDispatchException.t[2] = TO_RVA(&CT_CObject);
-    TI_COleDispatchException.pmfnUnwind = 0;
-    TI_COleDispatchException.pCatchableTypeArray = TO_RVA(&CTA_COleDispatchException);
 
     // CInternetException
     TD_CInternetException.pVFTable = g_typeInfoVFT;

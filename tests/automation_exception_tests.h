@@ -73,8 +73,8 @@ static void exceptions() {
         "dispatch exception constructor preserves native offsets, help-ID bias, error code and owned CString storage");
     check(constructed->GetRuntimeClass()==COleDispatchException::GetThisClass() &&
         !constructed->IsKindOf(COleException::GetThisClass()) && constructed->GetErrorMessage(text,4,&help) &&
-        std::wcscmp(text,L"cop")==0 && help==0x72345,
-        "dispatch exceptions expose their own runtime class and truncate error text with the native help context");
+        std::wcscmp(text,L"cop")==0 && help==0,
+        "dispatch exceptions expose their own runtime class and truncate error text and clear the native message help output");
     impl___1COleDispatchException__UEAA_XZ(constructed);
     COleDispatchException noCode;
     check(noCode.m_scError==E_UNEXPECTED && noCode.m_dwHelpContext==0,"zero-code dispatch exceptions initialize E_UNEXPECTED");
@@ -89,7 +89,7 @@ static void exceptions() {
     EXCEPINFO info{};VARIANT result{};result.vt=VT_I4;result.lVal=99;
     target.kind=1;
     check(invoke(dispatch,&info,&result)==DISP_E_EXCEPTION && info.wCode==37 && info.scode==E_ABORT &&
-        info.dwHelpContext==0x72345 && info.bstrDescription && SysStringLen(info.bstrDescription)==3 && info.bstrDescription[2]==L'b' &&
+        info.dwHelpContext==0x72345 && info.bstrDescription && SysStringLen(info.bstrDescription)==1 && info.bstrDescription[0]==L'a' &&
         info.bstrSource && std::wcscmp(info.bstrSource,L"Automation server")==0 &&
         info.bstrHelpFile && std::wcscmp(info.bstrHelpFile,L"help.chm")==0 && result.vt==VT_EMPTY &&
         target.lifetime.deleted==1 && target.lifetime.module==owner && g_cmdTestCurrentModule==caller,

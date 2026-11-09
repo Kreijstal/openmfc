@@ -25,6 +25,11 @@ def sources():
         'phase4/src/core/exceptions/CUserException.cpp',
         'phase4/src/detail/CsimpleexceptionRttiSupport.cpp',
         'phase4/src/core/runtime/AfxLoadString.cpp',
+        'phase4/src/core/exceptions/COleException.cpp',
+        'phase4/src/core/exceptions/COleDispatchException.cpp',
+        'phase4/src/core/exceptions/OleExceptionProcess.cpp',
+        'phase4/src/core/ole/OleExceptionTranslation.cpp',
+        'tests/test_ole_exception_rtti_logic.cpp',
         'tests/test_simple_exceptions_logic.cpp',
     ]
 
@@ -49,7 +54,7 @@ def verify_exception_vtable(path,cls):
     for at in range(relocations,relocations+total*10,10):
         address,symbol,_=struct.unpack_from('<IIH',data,at)
         if address>=value:targets[(address-value)//8]=names[symbol]
-    expected={0:'?GetRuntimeClass@'+cls+'@@',2:'?Serialize@CObject@@',3:'?AssertValid@CObject@@',4:'?Dump@CObject@@',5:'?GetErrorMessage@CException@@UEAA',6:'?GetErrorMessage@CSimpleException@@UEBA',7:'?ReportError@CException@@'}
+    expected={0:'?GetRuntimeClass@'+cls+'@@',2:'?Serialize@CObject@@',3:'?AssertValid@CObject@@',4:'?Dump@CObject@@',5:'?GetErrorMessage@CException@@UEAA',6:'?GetErrorMessage@'+(cls if cls.startswith('COle') else 'CSimpleException')+'@@UEBA',7:'?ReportError@CException@@'}
     for slot,prefix in expected.items():assert targets[slot].startswith(prefix),(cls,slot,targets[slot])
     print(cls+': all eight actual exception slots in native order',flush=True)
 
@@ -93,7 +98,7 @@ def main():
         objects = list(pool.map(compile_one, sources()))
     sys.path.insert(0, str(ROOT / 'phase4/scripts'))
     import build_msvc
-    checked=sources()[:-1]
+    checked=[source for source in sources() if not source.startswith('tests/')]
     defined,names=set(),set()
     for source in checked:
         obj=out / (source.removesuffix('.cpp').replace('/','_')+'.obj')
@@ -101,7 +106,7 @@ def main():
         names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(encoding='utf-8', errors='replace'),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==28, (len(entries), len(names))
+    assert len(entries)==len(names)==41, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
         for name in re.findall(r'^// Symbol: (.+)$', path.read_text(encoding='utf-8', errors='replace'), re.M):
@@ -110,13 +115,13 @@ def main():
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 28 framework-exception exports have actual providers',flush=True)
+    print('All 41 framework/OLE exception exports have actual providers',flush=True)
     for relative in checked:
         name=Path(relative).stem
-        if name in ('CMemoryException','CNotSupportedException','CInvalidArgException','CResourceException','CUserException'):
+        if name in ('CMemoryException','CNotSupportedException','CInvalidArgException','CResourceException','CUserException','COleException','COleDispatchException'):
             verify_exception_vtable(out/(relative.removesuffix('.cpp').replace('/','_')+'.obj'),name)
     link.extend(str(obj) for obj in objects)
-    link.extend(['kernel32.lib', 'user32.lib', 'comdlg32.lib', 'shlwapi.lib'])
+    link.extend(['kernel32.lib', 'user32.lib', 'comdlg32.lib', 'shlwapi.lib', 'oleaut32.lib'])
     response = out / 'link.rsp'
     response.write_text('\n'.join('"' + part + '"' for part in link))
     subprocess.run(['link' if os.name == 'nt' else 'lld-link', '@' + str(response)], check=True, cwd=out, env=env)

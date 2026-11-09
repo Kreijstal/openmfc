@@ -81,11 +81,6 @@ impl__AfxSetNewHandler__YAP6AH_K_ZP6AH0_Z_Z(AFX_MODULE_THREAD_STATE::NewHandler 
 }
 #endif
 
-// Property getter allocation/type failures use the framework exception sibling.
-extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long result) {
-    auto* error=new COleException;error->m_sc=result;throw error;
-}
-
 // Invalid event arguments exercise the framework exception path.
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() { throw 19; }
 

@@ -23,6 +23,9 @@ void AFXAPI impl__AfxUnlockGlobals__YAXH_Z(int);
 HINSTANCE AFXAPI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(const wchar_t*,const wchar_t*);
 void* AFXAPI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
 int AFXAPI impl__AfxLoadString__YAHIPEA_WI_Z(UINT,wchar_t*,UINT);
+COleDispatchException* impl___0COleDispatchException__QEAA_PEB_WIG_Z(COleDispatchException*,const wchar_t*,UINT,WORD);
+void impl___1COleDispatchException__UEAA_XZ(COleDispatchException*);
+void impl__Process_COleDispatchException__SAXPEAUtagEXCEPINFO__PEBVCException___Z(EXCEPINFO*,const CException*);
 }
 namespace {
 int failures;
@@ -39,6 +42,9 @@ struct API {
     decltype(&impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z) resource;
     decltype(&impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z) string;
     decltype(&impl__AfxLoadString__YAHIPEA_WI_Z) load;
+    decltype(&impl___0COleDispatchException__QEAA_PEB_WIG_Z) dispatchCtor;
+    decltype(&impl___1COleDispatchException__UEAA_XZ) dispatchDtor;
+    decltype(&impl__Process_COleDispatchException__SAXPEAUtagEXCEPINFO__PEBVCException___Z) dispatchProcess;
     HMODULE image;
 };
 struct alignas(16) Object {
@@ -102,9 +108,16 @@ void** import(HMODULE image,const char* wanted) {
     for(;descriptor->Name;++descriptor) {
         auto* names=reinterpret_cast<IMAGE_THUNK_DATA*>(base+descriptor->OriginalFirstThunk);
         auto* values=reinterpret_cast<IMAGE_THUNK_DATA*>(base+descriptor->FirstThunk);
-        for(;names->u1.AddressOfData;++names,++values)if(!IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal)) {
-            auto* name=reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(base+names->u1.AddressOfData);
-            if(!std::strcmp(reinterpret_cast<char*>(name->Name),wanted))return reinterpret_cast<void**>(&values->u1.Function);
+        for(;names->u1.AddressOfData;++names,++values) {
+            if(IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal)) {
+                auto provider=GetModuleHandleA(reinterpret_cast<char*>(base+descriptor->Name));
+                auto expected=GetProcAddress(provider,wanted);
+                if(expected && GetProcAddress(provider,MAKEINTRESOURCEA(IMAGE_ORDINAL(names->u1.Ordinal)))==expected)
+                    return reinterpret_cast<void**>(&values->u1.Function);
+            } else {
+                auto* name=reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(base+names->u1.AddressOfData);
+                if(!std::strcmp(reinterpret_cast<char*>(name->Name),wanted))return reinterpret_cast<void**>(&values->u1.Function);
+            }
         }
     }
     return nullptr;
@@ -189,6 +202,7 @@ void lifetime() {
     }
 }
 #include "resource_search_tests.h"
+#include "ole_exception_process_tests.h"
 void run(const API& functions) {
     api=&functions;auto* old=api->thread()->m_pModuleState;clear();
     api->lock(0);api->unlock(0); // initialize the real lock before installing observers
@@ -199,7 +213,7 @@ void run(const API& functions) {
         realEnter=reinterpret_cast<decltype(realEnter)>(first.previous);realLeave=reinterpret_cast<decltype(realLeave)>(second.previous);
         captureLock=true;api->lock(0);captureLock=false;api->unlock(0);
         check(libraryLock!=nullptr,"observe the production library lock separately from TLS allocation locks");
-        constructors(api->image!=nullptr);lifetime();resourceSearch();
+        constructors(api->image!=nullptr);lifetime();resourceSearch();oleProcess();
     }
     auto* type=api->descriptor();
     auto* parent=type ? type->BaseClass():nullptr;
@@ -219,7 +233,8 @@ int main() {
         impl___1CDynLinkLibrary__UEAA_XZ,impl__GetThisClass_CDynLinkLibrary__SAPEAUCRuntimeClass__XZ,
         impl__GetRuntimeClass_CDynLinkLibrary__UEBAPEAUCRuntimeClass__XZ,AfxGetThreadState,impl__AfxLockGlobals__YAXH_Z,impl__AfxUnlockGlobals__YAXH_Z,
         impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z,impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z,
-        impl__AfxLoadString__YAHIPEA_WI_Z,nullptr};
+        impl__AfxLoadString__YAHIPEA_WI_Z,impl___0COleDispatchException__QEAA_PEB_WIG_Z,impl___1COleDispatchException__UEAA_XZ,
+        impl__Process_COleDispatchException__SAXPEAUtagEXCEPINFO__PEBVCException___Z,nullptr};
     run(source);
     if(const char* path=std::getenv("OPENMFC_NATIVE_DYNLINK_DLL")) {
         auto image=LoadLibraryA(path);check(image!=nullptr,"load native extension-library oracle");
@@ -234,6 +249,7 @@ int main() {
                 RVA(extension,0x2ae800);RVA(handles,0x2ae900);RVA(destroy,0x2ae9a0);RVA(descriptor,0x2ae7f0);RVA(runtime,0x2ae7f0);
                 RVA(thread,0x1332a0);RVA(lock,0x33540);RVA(unlock,0x335e0);
                 RVA(resource,0x2aeb50);RVA(string,0x2aee00);RVA(load,0x2af0b0);
+                RVA(dispatchCtor,0x2514c0);RVA(dispatchDtor,0x251190);RVA(dispatchProcess,0x251270);
 #undef RVA
                 run(native);
             }

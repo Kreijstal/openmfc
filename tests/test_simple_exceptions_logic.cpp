@@ -169,6 +169,7 @@ void resources(){
 
     auto* p=static_cast<CSimpleException*>(catchAs<CException>(api->throws[0]));field<BOOL>(p,20)=FALSE;events.clear();UINT help=77;check(!api->simpleMessage(p,nullptr,8,&help)&&help==77&&events.empty()&&!field<BOOL>(p,20),"invalid simple-message output leaves help/cache untouched");wchar_t output[8]={L'x'};check(!api->simpleMessage(p,output,0,&help)&&help==77&&output[0]==L'x'&&events.empty(),"zero-capacity simple message returns before all side effects");
 }
-void run(){printf("%s framework exceptions\n",api->image?"Native":"Source");base();factories();resources();if(!api->image)constructors();}
+int TestOleExceptions(HMODULE);
+void run(){printf("%s framework exceptions\n",api->image?"Native":"Source");base();factories();resources();if(!api->image)constructors();failures+=TestOleExceptions(api->image);}
 int main(){setvbuf(stdout,nullptr,_IONBF,0);auto source=sourceAPI();api=&source;run();if(auto* path=getenv("OPENMFC_NATIVE_EXCEPTION_DLL")){auto image=LoadLibraryA(path);check(image!=nullptr,"load native exception oracle");if(image){auto* b=reinterpret_cast<BYTE*>(image);auto* pe=reinterpret_cast<IMAGE_NT_HEADERS*>(b+reinterpret_cast<IMAGE_DOS_HEADER*>(b)->e_lfanew);if(pe->FileHeader.TimeDateStamp!=0x442cba30||pe->OptionalHeader.SizeOfImage!=0x55c000)return 1;auto native=nativeAPI(image);api=&native;Hook finder(0x2aee00,reinterpret_cast<void*>(&impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z)),text(0x1cec10,reinterpret_cast<void*>(&impl__AfxMessageBox__YAHPEB_WII_Z)),resource(0x1cec70,reinterpret_cast<void*>(&impl__AfxMessageBox__YAHIII_Z));run();}}
     printf("Framework exceptions: %d failures\n",failures);return failures?1:0;}

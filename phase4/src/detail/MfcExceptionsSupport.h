@@ -4,24 +4,9 @@
 // single instance across the classes this unit was split into.
 namespace openmfc { namespace detail { namespace mfcexceptions {} } }
 using namespace openmfc::detail::mfcexceptions;
-// MFC Exception Implementation for OpenMFC
-//
-// This implements all AfxThrowXxxException functions using MSVC-compatible
-// C++ exception structures so that MSVC-compiled code can catch them.
-//
-// Supported exception types:
-// - CMemoryException (Static instance)
-// - CUserException_MfcExceptions
-// - CFileException
-// - CArchiveException
-// - COleException
-// - COleDispatchException
-// - CInternetException
-// - CDBException
-// - CDaoException (Stubbed as CException)
-//
-// Key insight: We call _CxxThrowException from vcruntime140.dll with
-// manually constructed RTTI structures that match MSVC's format.
+// Legacy file, archive, internet and DAO exception support. Resource-critical
+// and OLE exceptions own their actual C++ classes, metadata and typed throws
+// in core/exceptions; this remaining manual EH implementation is still debt.
 
 // Define OPENMFC_APPCORE_IMPL to prevent inline implementations conflicting with appcore.cpp
 #define OPENMFC_APPCORE_IMPL
@@ -55,16 +40,7 @@ asm(".globl \"?classCException@CException@@2UCRuntimeClass@@A\"\n"
 #endif
 
 
-namespace openmfc { namespace detail { namespace mfcexceptions {
 
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-
-} } }
-
-namespace openmfc { namespace detail { namespace mfcexceptions {
-std::wstring LoadOleDispatchDescription(UINT nDescriptionID);
-} } }
 
 namespace openmfc { namespace detail { namespace mfcexceptions {
 void CopyErrorText(wchar_t* out, UINT maxLen, const wchar_t* text);
@@ -306,46 +282,6 @@ extern CTA_CArchiveException_t CTA_CArchiveException;
 } } }
 namespace openmfc { namespace detail { namespace mfcexceptions {
 extern ThrowInfo TI_CArchiveException;
-} } }
-
-// COleException
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_COleException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[24];
-};
-extern TD_COleException_t TD_COleException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_COleException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_COleException_t { uint32_t n; int32_t t[3]; };
-extern CTA_COleException_t CTA_COleException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_COleException;
-} } }
-
-// COleDispatchException
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct TD_COleDispatchException_t {
-    const void* pVFTable;
-    void* spare;
-    char name[32];
-};
-extern TD_COleDispatchException_t TD_COleDispatchException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern CatchableType CT_COleDispatchException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-struct CTA_COleDispatchException_t { uint32_t n; int32_t t[3]; };
-extern CTA_COleDispatchException_t CTA_COleDispatchException;
-} } }
-namespace openmfc { namespace detail { namespace mfcexceptions {
-extern ThrowInfo TI_COleDispatchException;
 } } }
 
 // CInternetException
@@ -697,10 +633,8 @@ extern "C" void MS_ABI impl__AfxThrowOleDispatchException__YAXGPEB_WI_Z(
 
 
 
-// Runtime class descriptors for COleException/COleDispatchException
-// (defined with external linkage in ole_oleexception_rtti.cpp)
-extern CRuntimeClass classCOleException;
-extern CRuntimeClass classCOleDispatchException;
+
+
 
 
 

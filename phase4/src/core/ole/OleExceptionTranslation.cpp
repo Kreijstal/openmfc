@@ -1,49 +1,52 @@
-// COleDispatchException::Process, retail mfc140u RVA 0x251270.
+// Native COleDispatchException::Process writes EXCEPINFO in allocation order.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/OleExceptionTranslationSupport.h"
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
-namespace {
-struct OwnedInfo {
-    EXCEPINFO value{};
-    ~OwnedInfo() { SysFreeString(value.bstrSource);SysFreeString(value.bstrDescription);SysFreeString(value.bstrHelpFile); }
-};
-BSTR Allocate(const CString& text) { return SysAllocStringLen(text,static_cast<UINT>(text.GetLength())); }
-}
-HRESULT FillOleDispatchExceptionInfo(EXCEPINFO* out,const CException* error) {
-    if(!out)return S_OK;
-    *out={};
-    OwnedInfo temporary;
-    auto& info=temporary.value;
-    CWinApp* app=AfxGetApp();
-    if(error && error->IsKindOf(COleDispatchException::GetThisClass())) {
+#include "detail/RegcoreSupport.h"
+#include <cstring>
+extern "C" CRuntimeClass* impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
+extern "C" AFX_MODULE_STATE* impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ();
+extern "C" int impl__AfxLoadString__YAHIPEA_WI_Z(UINT,wchar_t*,UINT);
+static_assert(offsetof(CWinApp,m_pszHelpFilePath)==0xd0,"native application help file");
+void PASCAL COleDispatchException::Process(EXCEPINFO* out,const CException* error) {
+    std::memset(out,0,sizeof(*out));
+    wchar_t buffer[256];
+    const wchar_t* description;
+    if(error->IsKindOf(COleDispatchException::GetThisClass())) {
         const auto* dispatch=static_cast<const COleDispatchException*>(error);
-        info.wCode=dispatch->m_wCode;info.dwHelpContext=dispatch->m_dwHelpContext;info.scode=dispatch->m_scError;
-        info.bstrDescription=Allocate(dispatch->m_strDescription);
-        if(!info.bstrDescription)return E_OUTOFMEMORY;
-        if(!dispatch->m_strSource.IsEmpty()) {
-            info.bstrSource=Allocate(dispatch->m_strSource);
-            if(!info.bstrSource)return E_OUTOFMEMORY;
-        }
+        description=dispatch->m_strDescription.GetString();
+        out->wCode=dispatch->m_wCode;
+        out->dwHelpContext=dispatch->m_dwHelpContext;
+        out->scode=dispatch->m_scError;
         if(!dispatch->m_strHelpFile.IsEmpty()) {
-            info.bstrHelpFile=Allocate(dispatch->m_strHelpFile);
-            if(!info.bstrHelpFile)return E_OUTOFMEMORY;
+            CString text(dispatch->m_strHelpFile);
+            out->bstrHelpFile=::SysAllocString(text.GetString());
+        }
+        if(!dispatch->m_strSource.IsEmpty()) {
+            CString text(dispatch->m_strSource);
+            out->bstrSource=::SysAllocString(text.GetString());
         }
     } else {
-        UINT resource=error && error->IsKindOf(impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ()) ? 0xf10a : 0xf108;
-        wchar_t description[256]{};
-        LoadStringW(AfxGetResourceHandle(),resource,description,256);
-        info.wCode=static_cast<WORD>(resource);
-        info.bstrDescription=SysAllocString(description);
-        if(!info.bstrDescription)return E_OUTOFMEMORY;
+        UINT resource=error->IsKindOf(impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ()) ? 0xf10a:0xf108;
+        impl__AfxLoadString__YAHIPEA_WI_Z(resource,buffer,256);
+        out->wCode=WORD(resource);
+        description=buffer;
     }
-    if(!info.bstrSource) {
-        info.bstrSource=SysAllocString(app && app->m_pszAppName ? app->m_pszAppName : L"");
-        if(!info.bstrSource)return E_OUTOFMEMORY;
+    {
+        CString text(description);
+        out->bstrDescription=::SysAllocString(text.GetString());
     }
-    if(!info.bstrHelpFile && info.dwHelpContext) {
-        info.bstrHelpFile=SysAllocString(app && app->m_pszHelpFilePath ? app->m_pszHelpFilePath : L"");
-        if(!info.bstrHelpFile)return E_OUTOFMEMORY;
+    if(!out->bstrSource) {
+        CString text(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ()->m_lpszCurrentAppName);
+        out->bstrSource=::SysAllocString(text.GetString());
     }
-    *out=info;info.bstrSource=info.bstrDescription=info.bstrHelpFile=nullptr;
+    if(!out->bstrHelpFile && out->dwHelpContext) {
+        auto* app=impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ()->m_pCurrentWinApp;
+        CString text(app->m_pszHelpFilePath);
+        out->bstrHelpFile=::SysAllocString(text.GetString());
+    }
+}
+// IDispatch and event boundaries allow callers to omit EXCEPINFO.
+HRESULT FillOleDispatchExceptionInfo(EXCEPINFO* out,const CException* error) {
+    if(out)COleDispatchException::Process(out,error);
     return S_OK;
 }
