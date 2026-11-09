@@ -358,6 +358,8 @@ using CString=CStringW;
 static_assert(sizeof(CSimpleStringA)==8 && sizeof(CSimpleStringW)==8,"native simple strings");
 
 
+namespace openmfc_string_services {struct Access;}
+
 // CString (Unicode) - ABI compatible with MFC CStringW
 namespace ATL {
 template<> class CStringT<wchar_t,::StrTraitMFC_DLL<wchar_t>> : public CSimpleStringT<wchar_t,true> {
@@ -450,6 +452,16 @@ public:
     OPENMFC_STRING_API int Replace(wchar_t before,wchar_t after);
     OPENMFC_STRING_API int Replace(const wchar_t* before,const wchar_t* after);
 
+    OPENMFC_STRING_API wchar_t* AllocSysString() const;
+    OPENMFC_STRING_API wchar_t* SetSysString(wchar_t** target) const;
+    OPENMFC_STRING_API void CharToOemA();
+    OPENMFC_STRING_API void OemToCharA();
+    OPENMFC_STRING_API static void Construct(CStringW* target);
+    OPENMFC_STRING_API int GetEnvironmentVariableW(const wchar_t* name);
+#pragma push_macro("GetEnvironmentVariable")
+#undef GetEnvironmentVariable
+    OPENMFC_STRING_API int GetEnvironmentVariable(const wchar_t* name);
+#pragma pop_macro("GetEnvironmentVariable")
     OPENMFC_STRING_API void FormatV(const wchar_t* format,va_list args);
     OPENMFC_STRING_API void Format(const wchar_t* format,...);
     OPENMFC_STRING_API void Format(UINT id,...);
@@ -481,6 +493,8 @@ public:
 #endif
 
 private:
+    friend struct openmfc_string_services::Access;
+    OPENMFC_STRING_API bool CheckImplicitLoad(const void* source);
     friend class ::CDatabase;
     friend class ::CFrameWnd;
     struct OwnedData {};

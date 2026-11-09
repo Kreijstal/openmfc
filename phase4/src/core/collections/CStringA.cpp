@@ -3,6 +3,7 @@
 #include "openmfc/afxwin.h"
 #include "detail/CStringOperations.h"
 #include "detail/CStringMutation.h"
+#include "detail/CStringServices.h"
 #include "detail/CStringFormatSupport.h"
 #include "detail/StringResourceSupport.h"
 extern "C" void* impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
@@ -231,3 +232,31 @@ extern "C" CStringA* impl__TrimRight___CStringT_DV__StrTraitMFC_DLL_DV__ChTraits
 extern "C" CStringA* impl__TrimRight___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_PEBD_Z(CStringA* self,const char* set) {return &self->TrimRight(set);}
 // Symbol: ?TrimRight@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@XZ
 extern "C" CStringA* impl__TrimRight___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(CStringA* self) {return &self->TrimRight();}
+
+wchar_t* CStringA::AllocSysString() const {return openmfc_string_services::AllocateBSTR(GetString(),GetLength());}
+wchar_t* CStringA::SetSysString(wchar_t** target) const {return openmfc_string_services::SetBSTR(GetString(),GetLength(),target);}
+void CStringA::CharToOemA() {openmfc_string_services::ConvertOEM(*this,true);}
+void CStringA::OemToCharA() {openmfc_string_services::ConvertOEM(*this,false);}
+void CStringA::Construct(CStringA* target) {::new(target) CStringA;}
+bool CStringA::CheckImplicitLoad(const void* source) {return openmfc_string_services::CheckResource(*this,source);}
+int CStringA::GetEnvironmentVariableW(const char* name) {return openmfc_string_services::LoadEnvironment(*this,name);}
+#pragma push_macro("GetEnvironmentVariable")
+#undef GetEnvironmentVariable
+int CStringA::GetEnvironmentVariable(const char* name) {return openmfc_string_services::LoadEnvironment(*this,name);}
+#pragma pop_macro("GetEnvironmentVariable")
+// Symbol: ?AllocSysString@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAPEA_WXZ
+extern "C" wchar_t* impl__AllocSysString___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEA_WXZ(const CStringA* self) {return self->AllocSysString();}
+// Symbol: ?CharToOemA@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXXZ
+extern "C" void impl__CharToOemA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ(CStringA* self) {self->CharToOemA();}
+// Symbol: ?CheckImplicitLoad@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@AEAA_NPEBX@Z
+extern "C" bool impl__CheckImplicitLoad___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__AEAA_NPEBX_Z(CStringA* self,const void* source) {return openmfc_string_services::Access::Check(*self,source);}
+// Symbol: ?Construct@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@SAXPEAV12@@Z
+extern "C" void impl__Construct___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__SAXPEAV12__Z(CStringA* target) {CStringA::Construct(target);}
+// Symbol: ?GetEnvironmentVariable@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHPEBD@Z
+extern "C" int impl__GetEnvironmentVariable___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD_Z(CStringA* self,const char* name) {return openmfc_string_services::LoadEnvironment(*self,name);}
+// Symbol: ?GetEnvironmentVariableW@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHPEBD@Z
+extern "C" int impl__GetEnvironmentVariableW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD_Z(CStringA* self,const char* name) {return openmfc_string_services::LoadEnvironment(*self,name);}
+// Symbol: ?OemToCharA@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXXZ
+extern "C" void impl__OemToCharA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ(CStringA* self) {self->OemToCharA();}
+// Symbol: ?SetSysString@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAPEA_WPEAPEA_W@Z
+extern "C" wchar_t* impl__SetSysString___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEA_WPEAPEA_W_Z(const CStringA* self,wchar_t** target) {return self->SetSysString(target);}

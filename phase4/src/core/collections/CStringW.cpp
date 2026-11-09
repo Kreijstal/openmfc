@@ -3,6 +3,7 @@
 #include "openmfc/afxwin.h"
 #include "detail/CStringOperations.h"
 #include "detail/CStringMutation.h"
+#include "detail/CStringServices.h"
 #include "detail/CStringFormatSupport.h"
 #include <new>
 #include <cerrno>
@@ -293,3 +294,31 @@ extern "C" CStringW* impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTrai
 extern "C" CStringW* impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_PEB_W_Z(CStringW* self,const wchar_t* set) {return &self->TrimRight(set);}
 // Symbol: ?TrimRight@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
 extern "C" CStringW* impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CStringW* self) {return &self->TrimRight();}
+
+wchar_t* CStringW::AllocSysString() const {return openmfc_string_services::AllocateBSTR(GetString(),GetLength());}
+wchar_t* CStringW::SetSysString(wchar_t** target) const {return openmfc_string_services::SetBSTR(GetString(),GetLength(),target);}
+void CStringW::CharToOemA() {openmfc_string_services::ConvertOEM(*this,true);}
+void CStringW::OemToCharA() {openmfc_string_services::ConvertOEM(*this,false);}
+void CStringW::Construct(CStringW* target) {::new(target) CStringW;}
+bool CStringW::CheckImplicitLoad(const void* source) {return openmfc_string_services::CheckResource(*this,source);}
+int CStringW::GetEnvironmentVariableW(const wchar_t* name) {return openmfc_string_services::LoadEnvironment(*this,name);}
+#pragma push_macro("GetEnvironmentVariable")
+#undef GetEnvironmentVariable
+int CStringW::GetEnvironmentVariable(const wchar_t* name) {return openmfc_string_services::LoadEnvironment(*this,name);}
+#pragma pop_macro("GetEnvironmentVariable")
+// Symbol: ?AllocSysString@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAPEA_WXZ
+extern "C" wchar_t* impl__AllocSysString___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEA_WXZ(const CStringW* self) {return self->AllocSysString();}
+// Symbol: ?CharToOemA@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXXZ
+extern "C" void impl__CharToOemA___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXXZ(CStringW* self) {self->CharToOemA();}
+// Symbol: ?CheckImplicitLoad@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@AEAA_NPEBX@Z
+extern "C" bool impl__CheckImplicitLoad___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAA_NPEBX_Z(CStringW* self,const void* source) {return openmfc_string_services::Access::Check(*self,source);}
+// Symbol: ?Construct@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@SAXPEAV12@@Z
+extern "C" void impl__Construct___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__SAXPEAV12__Z(CStringW* target) {CStringW::Construct(target);}
+// Symbol: ?GetEnvironmentVariable@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEB_W@Z
+extern "C" int impl__GetEnvironmentVariable___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W_Z(CStringW* self,const wchar_t* name) {return openmfc_string_services::LoadEnvironment(*self,name);}
+// Symbol: ?GetEnvironmentVariableW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEB_W@Z
+extern "C" int impl__GetEnvironmentVariableW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W_Z(CStringW* self,const wchar_t* name) {return openmfc_string_services::LoadEnvironment(*self,name);}
+// Symbol: ?OemToCharA@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXXZ
+extern "C" void impl__OemToCharA___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXXZ(CStringW* self) {self->OemToCharA();}
+// Symbol: ?SetSysString@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAPEA_WPEAPEA_W@Z
+extern "C" wchar_t* impl__SetSysString___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEA_WPEAPEA_W_Z(const CStringW* self,wchar_t** target) {return self->SetSysString(target);}

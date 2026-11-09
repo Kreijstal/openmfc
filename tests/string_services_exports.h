@@ -1,0 +1,39 @@
+#pragma once
+#include "openmfc/afxstr.h"
+extern "C" wchar_t* impl__AllocSysString___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEA_WXZ(const CStringA* self);
+extern "C" void impl__CharToOemA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ(CStringA* self);
+extern "C" bool impl__CheckImplicitLoad___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__AEAA_NPEBX_Z(CStringA* self,const void* source);
+extern "C" void impl__Construct___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__SAXPEAV12__Z(CStringA* target);
+extern "C" int impl__GetEnvironmentVariable___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD_Z(CStringA* self,const char* name);
+extern "C" int impl__GetEnvironmentVariableW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD_Z(CStringA* self,const char* name);
+extern "C" void impl__OemToCharA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ(CStringA* self);
+extern "C" wchar_t* impl__SetSysString___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEA_WPEAPEA_W_Z(const CStringA* self,wchar_t** target);
+extern "C" wchar_t* impl__AllocSysString___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEA_WXZ(const CStringW* self);
+extern "C" void impl__CharToOemA___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXXZ(CStringW* self);
+extern "C" bool impl__CheckImplicitLoad___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAA_NPEBX_Z(CStringW* self,const void* source);
+extern "C" void impl__Construct___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__SAXPEAV12__Z(CStringW* target);
+extern "C" int impl__GetEnvironmentVariable___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W_Z(CStringW* self,const wchar_t* name);
+extern "C" int impl__GetEnvironmentVariableW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W_Z(CStringW* self,const wchar_t* name);
+extern "C" void impl__OemToCharA___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXXZ(CStringW* self);
+extern "C" wchar_t* impl__SetSysString___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEA_WPEAPEA_W_Z(const CStringW* self,wchar_t** target);
+template<class T>struct StringServiceExports;
+template<>struct StringServiceExports<CStringA> {
+    static inline auto AllocSysString=&impl__AllocSysString___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEA_WXZ;static constexpr UINT_PTR AllocSysStringRVA=0x2b4ad0;
+    static inline auto CharToOemA=&impl__CharToOemA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ;static constexpr UINT_PTR CharToOemARVA=0x2b5300;
+    static inline auto CheckImplicitLoad=&impl__CheckImplicitLoad___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__AEAA_NPEBX_Z;static constexpr UINT_PTR CheckImplicitLoadRVA=0x1cd6f0;
+    static inline auto Construct=&impl__Construct___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__SAXPEAV12__Z;static constexpr UINT_PTR ConstructRVA=0x2b45b0;
+    static inline auto Environment=&impl__GetEnvironmentVariable___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD_Z;static constexpr UINT_PTR EnvironmentRVA=0x2b4990;
+    static inline auto EnvironmentW=&impl__GetEnvironmentVariableW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD_Z;static constexpr UINT_PTR EnvironmentWRVA=0x2b49a0;
+    static inline auto OemToCharA=&impl__OemToCharA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ;static constexpr UINT_PTR OemToCharARVA=0x2b5280;
+    static inline auto SetSysString=&impl__SetSysString___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEA_WPEAPEA_W_Z;static constexpr UINT_PTR SetSysStringRVA=0x2b4a50;
+};
+template<>struct StringServiceExports<CStringW> {
+    static inline auto AllocSysString=&impl__AllocSysString___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEA_WXZ;static constexpr UINT_PTR AllocSysStringRVA=0xd770;
+    static inline auto CharToOemA=&impl__CharToOemA___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXXZ;static constexpr UINT_PTR CharToOemARVA=0x2b3c00;
+    static inline auto CheckImplicitLoad=&impl__CheckImplicitLoad___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAA_NPEBX_Z;static constexpr UINT_PTR CheckImplicitLoadRVA=0xdc60;
+    static inline auto Construct=&impl__Construct___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__SAXPEAV12__Z;static constexpr UINT_PTR ConstructRVA=0x2b45b0;
+    static inline auto Environment=&impl__GetEnvironmentVariable___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W_Z;static constexpr UINT_PTR EnvironmentRVA=0x2b3790;
+    static inline auto EnvironmentW=&impl__GetEnvironmentVariableW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W_Z;static constexpr UINT_PTR EnvironmentWRVA=0x2b37a0;
+    static inline auto OemToCharA=&impl__OemToCharA___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXXZ;static constexpr UINT_PTR OemToCharARVA=0x2b3c00;
+    static inline auto SetSysString=&impl__SetSysString___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEA_WPEAPEA_W_Z;static constexpr UINT_PTR SetSysStringRVA=0x2b3850;
+};

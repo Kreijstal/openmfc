@@ -21,6 +21,7 @@
 #include "string_search_exports.h"
 #include "string_format_exports.h"
 #include "string_mutation_exports.h"
+#include "string_services_exports.h"
 extern void* (*g_fileExceptionFinder)(UINT);
 namespace ansi_string_test {
 int failures;unsigned comparisons;HMODULE image;
@@ -217,7 +218,10 @@ void** imported(HMODULE module,const char* wanted){
      WORD ordinal=WORD(IMAGE_ORDINAL(names->u1.Ordinal));
      matched=(ordinal==8&&!strcmp(wanted,"VariantInit")) ||
        (ordinal==9&&!strcmp(wanted,"VariantClear")) ||
-       (ordinal==12&&!strcmp(wanted,"VariantChangeType"));
+       (ordinal==12&&!strcmp(wanted,"VariantChangeType")) ||
+       (ordinal==2&&!strcmp(wanted,"SysAllocString")) ||
+       (ordinal==4&&!strcmp(wanted,"SysAllocStringLen")) ||
+       (ordinal==5&&!strcmp(wanted,"SysReAllocStringLen"));
     }
    }else{
     auto* name=reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(bytes+names->u1.AddressOfData);
@@ -226,6 +230,7 @@ void** imported(HMODULE module,const char* wanted){
    if(matched)return reinterpret_cast<void**>(&values->u1.Function);
   }
  }
+ printf("Missing %s string-service import: %s\n",image?"native":"source",wanted);
  return nullptr;
 }
 struct Patch {void** slot;void* old;DWORD protection;Patch(void** targetSlot,void* target):slot(targetSlot){check(slot!=nullptr,"locate ANSI allocator boundary");if(!slot)abort();old=*slot;VirtualProtect(slot,8,PAGE_READWRITE,&protection);*slot=target;}Patch(const char* name,void* target):Patch(imported(image?image:GetModuleHandleW(nullptr),name),target){}~Patch(){*slot=old;DWORD ignored;VirtualProtect(slot,8,protection,&ignored);}};
@@ -627,6 +632,7 @@ void wideStorage(){
 #include "string_search_tests.h"
 #include "string_format_tests.h"
 #include "string_mutation_tests.h"
+#include "string_services_tests.h"
 
 using VariantInitAPI=decltype(&::VariantInit);using VariantClearAPI=decltype(&::VariantClear);using VariantCoerceAPI=decltype(&::VariantChangeType);
 VariantInitAPI originalInit;VariantClearAPI originalClear;VariantCoerceAPI originalCoerce;
@@ -736,6 +742,7 @@ int TestAnsiStringOwnership(HMODULE native){using namespace ansi_string_test;ima
  stringSearchAndCase();
  stringFormatting();
  stringMutation();
+ stringServices();
  variantStrings();
  noexceptCases();
  }

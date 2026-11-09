@@ -83,9 +83,44 @@ template<class T>void mutationClient() {
     }
     check(owner.live==0,"mutation clients release all caller-managed allocations");
 }
+#pragma push_macro("GetEnvironmentVariable")
+#undef GetEnvironmentVariable
+template<class T>void serviceClient() {
+    using C=typename T::XCHAR;Manager owner;
+    {
+        const C input[]={C('a'),0,C('b'),C('c'),0};T text(input,4,&owner);
+        BSTR allocated=text.AllocSysString();
+        check(allocated&&SysStringLen(allocated)==4&&allocated[1]==0&&allocated[2]==L'b',"BSTR allocation preserves counted embedded NULs");
+        BSTR target=SysAllocString(L"old");
+        check(text.SetSysString(&target)==target&&SysStringLen(target)==4&&target[3]==L'c',"BSTR replacement uses the actual imported method");
+        SysFreeString(allocated);SysFreeString(target);
+        T sibling(text);
+        if constexpr(sizeof(C)==1) {
+            text.AnsiToOem();text.OemToAnsi();
+            check(text.GetLength()==4&&text[1]==0&&sibling.GetString()!=text.GetString(),"OEM conversion processes counted data and detaches shared buffers");
+        } else {
+            bool caught=false;try{text.AnsiToOem();}catch(COleException* e){caught=e->m_sc==E_FAIL;e->Delete();}
+            check(caught&&text.GetString()!=sibling.GetString(),"wide OEM conversion detaches before throwing E_FAIL");
+            caught=false;try{text.OemToAnsi();}catch(COleException* e){caught=e->m_sc==E_FAIL;e->Delete();}
+            check(caught,"wide ANSI conversion preserves the native exception class");
+        }
+        const C variable[]={C('O'),C('P'),C('E'),C('N'),C('M'),C('F'),C('C'),C('_'),C('S'),C('E'),C('R'),C('V'),C('I'),C('C'),C('E'),C('_'),C('T'),C('E'),C('S'),C('T'),0};
+        check(text.GetEnvironmentVariable(variable)==TRUE&&text.GetLength()==5&&text[0]==C('v'),"environment loading returns BOOL and releases the terminated buffer");
+        check(text.GetEnvironmentVariableW(variable)==TRUE&&text.GetLength()==5,"both environment entry points resolve through native imports");
+        alignas(T) unsigned char storage[sizeof(T)];T* empty=reinterpret_cast<T*>(storage);T::Construct(empty);
+        check(empty->IsEmpty()&&header(*empty)->pStringMgr==AfxGetStringManager(),"static string construction uses the producer manager");empty->~T();
+    }
+    check(owner.live==0,"service clients release all caller-managed allocations");
+}
+#pragma pop_macro("GetEnvironmentVariable")
 }
 int main(){
     mutationClient<CStringA>();mutationClient<CStringW>();
+    const wchar_t* serviceVariable=L"OPENMFC_SERVICE_TEST";
+    wchar_t savedServiceValue[32768];DWORD savedServiceSize=::GetEnvironmentVariableW(serviceVariable,savedServiceValue,32768);
+    ::SetEnvironmentVariableW(serviceVariable,L"value");
+    serviceClient<CStringA>();serviceClient<CStringW>();
+    ::SetEnvironmentVariableW(serviceVariable,savedServiceSize?savedServiceValue:nullptr);
     auto* manager=AfxGetStringManager();
     check(manager!=nullptr,"DLL exposes the actual string manager");
     {

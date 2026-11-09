@@ -141,7 +141,7 @@ def main():
         print(f'{name}: {sum(isinstance(item,int) for item in raw)} ordinal imports, {sum(isinstance(item,str) for item in raw)} named imports',flush=True)
         for prefix in ('??0?$CStringT@D','??0?$CStringT@_W','?AfxGetStringManager@@'):
             assert any(symbol.startswith(prefix) for symbol in actual),(name,prefix,actual)
-        for method in ('Delete','Insert','Remove','Replace','Trim','TrimLeft','TrimRight'):
+        for method in ('Delete','Insert','Remove','Replace','Trim','TrimLeft','TrimRight','AllocSysString','SetSysString','GetEnvironmentVariable','GetEnvironmentVariableW','CharToOemA','OemToCharA','Construct'):
             for width in ('D','_W'):
                 prefix='?'+method+'@?$CStringT@'+width+'V'
                 assert any(symbol.startswith(prefix) for symbol in actual),(name,prefix,actual)

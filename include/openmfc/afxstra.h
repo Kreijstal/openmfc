@@ -74,6 +74,16 @@ public:
     OPENMFC_STRING_API int Remove(char value);
     OPENMFC_STRING_API int Replace(char before,char after);
     OPENMFC_STRING_API int Replace(const char* before,const char* after);
+    OPENMFC_STRING_API wchar_t* AllocSysString() const;
+    OPENMFC_STRING_API wchar_t* SetSysString(wchar_t** target) const;
+    OPENMFC_STRING_API void CharToOemA();
+    OPENMFC_STRING_API void OemToCharA();
+    OPENMFC_STRING_API static void Construct(CStringA* target);
+    OPENMFC_STRING_API int GetEnvironmentVariableW(const char* name);
+#pragma push_macro("GetEnvironmentVariable")
+#undef GetEnvironmentVariable
+    OPENMFC_STRING_API int GetEnvironmentVariable(const char* name);
+#pragma pop_macro("GetEnvironmentVariable")
     OPENMFC_STRING_API void FormatV(const char* format,va_list args);
     OPENMFC_STRING_API void Format(const char* format,...);
     OPENMFC_STRING_API void Format(UINT id,...);
@@ -96,6 +106,8 @@ public:
     OPENMFC_STRING_API int LoadStringW(HINSTANCE module,UINT id,unsigned short language);
     int LoadString(HINSTANCE module,UINT id,unsigned short language) {return LoadStringW(module,id,language);}
 private:
+    friend struct openmfc_string_services::Access;
+    OPENMFC_STRING_API bool CheckImplicitLoad(const void* source);
     void Convert(const wchar_t*,int);
 };
 } // namespace ATL
