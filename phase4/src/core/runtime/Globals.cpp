@@ -231,10 +231,6 @@ extern "C" unsigned int MS_ABI impl____HashKey_PEBD__YAIPEBD_Z(const char* key) 
     }
     return nHash;
 }
-// Symbol: ?AfxGetStringManager@@YAPEAUIAtlStringMgr@ATL@@XZ
-extern "C" IAtlStringMgr* MS_ABI impl__AfxGetStringManager__YAPEAUIAtlStringMgr_ATL__XZ() {
-    return OpenMFC_GetStringMgr();
-}
 // AfxLoadLibrary - Load a DLL with MFC-style error handling
 // Symbol: ?AfxLoadLibrary@@YAPEAUHINSTANCE__@@PEB_W@Z
 // Ordinal: 2260

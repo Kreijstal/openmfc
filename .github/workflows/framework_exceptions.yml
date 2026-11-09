@@ -28,6 +28,10 @@ on:
       - 'phase4/src/core/window/WindowActivation.cpp'
       - 'phase4/src/detail/WindowActivationSupport.h'
       - 'tests/build_framework_exceptions.py'
+      - 'tests/build_string_imports.py'
+      - 'tests/test_string_imports.cpp'
+      - 'tests/string_dll_services.cpp'
+      - 'tests/string_import_fixture.rc'
       - 'tools/gen_weak_stubs.py'
       - '.github/workflows/framework_exceptions.yml'
   pull_request:
@@ -58,6 +62,10 @@ on:
       - 'phase4/src/core/window/WindowActivation.cpp'
       - 'phase4/src/detail/WindowActivationSupport.h'
       - 'tests/build_framework_exceptions.py'
+      - 'tests/build_string_imports.py'
+      - 'tests/test_string_imports.cpp'
+      - 'tests/string_dll_services.cpp'
+      - 'tests/string_import_fixture.rc'
       - 'tools/gen_weak_stubs.py'
       - '.github/workflows/framework_exceptions.yml'
   workflow_dispatch:
@@ -81,3 +89,6 @@ jobs:
       - name: Verify exception layouts, pointer catches, cached resources and ownership
         shell: cmd
         run: python tests/build_framework_exceptions.py --build "%RUNNER_TEMP%/framework-exceptions" ${{ matrix.flags }}
+      - name: Link public and SDK string clients against production DLL exports
+        shell: cmd
+        run: python tests/build_string_imports.py --build "%RUNNER_TEMP%/string-imports" ${{ matrix.flags }}

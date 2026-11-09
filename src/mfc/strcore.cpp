@@ -52,7 +52,7 @@
 #endif
 
 // CString::LoadString implementation
-int CString::LoadString(UINT nID) {
+int CString::LoadStringW(UINT nID) {
     HINSTANCE hInst = AfxGetResourceHandle();
     if (!hInst) return 0;
 

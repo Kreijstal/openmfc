@@ -50,13 +50,13 @@ extern "C" const char* impl___B__CSimpleStringT_D_00_ATL__QEBAPEBDXZ(const CSimp
 extern "C" CSimpleStringA* impl___B__CSimpleStringT_D_00_ATL__QEAAAEAV__CSimpleStringT_D_0A__1_XZ(CSimpleStringA* self);
 extern "C" char impl___A__CSimpleStringT_D_00_ATL__QEBADH_Z(const CSimpleStringA* self,int index);
 extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_PEBD_Z(CSimpleStringA* self,const char* source);
-extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const CSimpleStringA* source);
+extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const ATL::CSimpleStringT<char,false>* source);
 extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_AEBV01__Z(CSimpleStringA* self,const CSimpleStringA* source);
 extern "C" void impl___1__CSimpleStringT_D_00_ATL__QEAA_XZ(CSimpleStringA* self);
 extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_PEBDPEAUIAtlStringMgr_1__Z(CSimpleStringA* self,const char* source,IAtlStringMgr* manager);
 extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_PEBDHPEAUIAtlStringMgr_1__Z(CSimpleStringA* self,const char* source,int length,IAtlStringMgr* manager);
 extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_PEAUIAtlStringMgr_1__Z(CSimpleStringA* self,IAtlStringMgr* manager);
-extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const CSimpleStringA* source);
+extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const ATL::CSimpleStringT<char,false>* source);
 extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_AEBV01__Z(CSimpleStringA* self,const CSimpleStringA* source);
 extern "C" int impl__LoadStringW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEAUHINSTANCE____IG_Z(CStringA* self,HINSTANCE module,UINT id,WORD language);
 extern "C" int impl__LoadStringW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEAUHINSTANCE____I_Z(CStringA* self,HINSTANCE module,UINT id);
@@ -127,7 +127,7 @@ extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_
 extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEB_WPEAUIAtlStringMgr_1__Z(CSimpleStringW* self,const wchar_t* text,IAtlStringMgr* manager);
 extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEB_WHPEAUIAtlStringMgr_1__Z(CSimpleStringW* self,const wchar_t* text,int count,IAtlStringMgr* manager);
 extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEAUIAtlStringMgr_1__Z(CSimpleStringW* self,IAtlStringMgr* manager);
-extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const CSimpleStringW* source);
+extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const ATL::CSimpleStringT<wchar_t,false>* source);
 extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV01__Z(CSimpleStringW* self,const CSimpleStringW* source);
 extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01__W_Z(CString* self,wchar_t source);
 extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEB_W_Z(CString* self,const wchar_t* source);
@@ -135,7 +135,7 @@ extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_
 extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_D_Z(CString* self,char source);
 extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBV01__Z(CString* self,const CString* source);
 extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_PEB_W_Z(CSimpleStringW* self,const wchar_t* source);
-extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const CSimpleStringW* source);
+extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const ATL::CSimpleStringT<wchar_t,false>* source);
 extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV01__Z(CSimpleStringW* self,const CSimpleStringW* source);
 static const std::pair<UINT_PTR,void*> ansiStringProviders[]={
     {0x2b4680,reinterpret_cast<void*>(&impl__UnlockBuffer___CSimpleStringT_D_00_ATL__QEAAXXZ)},

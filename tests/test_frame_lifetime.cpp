@@ -177,19 +177,19 @@ void __cdecl freeBlock(void* p) {
     realFree(p);
 }
 struct Manager:IAtlStringMgr {
-    CStringData* Allocate(int length,int width) override {
+    CStringData* Allocate(int length,int width) noexcept override {
         auto* p=static_cast<CStringData*>(std::malloc(sizeof(CStringData)+(length+1)*width));
         p->pStringMgr=this;p->nRefs=1;p->nAllocLength=length;p->nDataLength=length;return p;
     }
-    void Free(CStringData* p) override {
+    void Free(CStringData* p) noexcept override {
         events.push_back(20);check(*reinterpret_cast<void**>(watched)==expectedFrameRoot,"title release occurs before the base window destructor changes the frame root");
         void* actual=field<void*>(mutation==1 ? hookB:hookA,0x40);
         void* wanted=mutation==3 ? watched : mutation==2 ? reinterpret_cast<void*>(UINT_PTR(0x44440000)):nullptr;
         check(actual==wanted,"OLE hook cleanup rereads the post-free hook and clears only a matching frame back-reference");std::free(p);
     }
-    CStringData* Reallocate(CStringData*,int,int) override {std::abort();}
-    CStringData* GetNilString() override {std::abort();}
-    IAtlStringMgr* Clone() override {return this;}
+    CStringData* Reallocate(CStringData*,int,int) noexcept override {std::abort();}
+    CStringData* GetNilString() noexcept override {std::abort();}
+    IAtlStringMgr* Clone() noexcept override {return this;}
 } manager;
 void* AFXAPI containerDelete(void* self,unsigned flags) {
     events.push_back(30);check(flags==1 && field<void*>(watched,0x128)==expectedListRoot &&
@@ -202,9 +202,9 @@ void ownership(const API& api) {
         select(0);Object object;object.poison();api.construct(object.get());watched=object.get();
         expectedFrameRoot=field<void*>(watched,0);expectedListRoot=field<void*>(watched,0x128);
         auto* old=reinterpret_cast<CStringData*>(field<wchar_t*>(watched,0x198))-1;
-        if(old->Release())old->pStringMgr->Free(old);
-        auto* data=manager.Allocate(3,sizeof(wchar_t));wcscpy_s(data->data(),4,L"own");
-        field<wchar_t*>(watched,0x198)=data->data();
+        old->Release();
+        auto* data=manager.Allocate(3,sizeof(wchar_t));wcscpy_s(static_cast<wchar_t*>(data->data()),4,L"own");
+        field<wchar_t*>(watched,0x198)=static_cast<wchar_t*>(data->data());
         auto& bars=openmfc::detail::frame::ControlBars(watched);bars.AddTail(reinterpret_cast<void*>(UINT_PTR(0x1111)));
         bars.AddTail(reinterpret_cast<void*>(UINT_PTR(0x2222)));barBlock=bars.m_pBlocks;
         disabled=std::malloc(32);watched->m_retailTail.m_phWndDisable=static_cast<HWND*>(disabled);

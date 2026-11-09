@@ -89,14 +89,14 @@ struct BinaryCache : CByteArray {
 };
 struct StringManager : IAtlStringMgr {
     int releases=0;
-    CStringData* Allocate(int n,int size) override {
+    CStringData* Allocate(int n,int size) noexcept override {
         auto* data=static_cast<CStringData*>(std::calloc(1,sizeof(CStringData)+(n+1)*size));
         data->pStringMgr=this;data->nRefs=1;data->nDataLength=n;data->nAllocLength=n;return data;
     }
-    void Free(CStringData* data) override {++releases;std::free(data);}
-    CStringData* Reallocate(CStringData*,int,int) override {std::abort();}
-    CStringData* GetNilString() override {std::abort();}
-    IAtlStringMgr* Clone() override {return this;}
+    void Free(CStringData* data) noexcept override {++releases;std::free(data);}
+    CStringData* Reallocate(CStringData*,int,int) noexcept override {std::abort();}
+    CStringData* GetNilString() noexcept override {std::abort();}
+    IAtlStringMgr* Clone() noexcept override {return this;}
 };
 std::vector<UINT64> exercise(const API& api) {
     Fixture fixture(3,2);auto* rs=fixture.recordset;

@@ -4,20 +4,20 @@
 #include <new>
 #include <cerrno>
 
-CString::CString(const wchar_t* source):CString(source,OpenMFC_GetStringMgr()) {}
-CString::CString(const wchar_t* source,IAtlStringMgr* manager):CSimpleStringW(manager) {
+CString::CStringT(const wchar_t* source):CStringT(source,OpenMFC_GetStringMgr()) {}
+CString::CStringT(const wchar_t* source,IAtlStringMgr* manager):CSimpleStringW(manager) {
     if(source && uintptr_t(source)<0x10000)LoadString(UINT(uintptr_t(source)));
     else SetString(source);
 }
-CString::CString(const char* source):CString(source,OpenMFC_GetStringMgr()) {}
-CString::CString(const char* source,IAtlStringMgr* manager):CSimpleStringW(manager) {
+CString::CStringT(const char* source):CStringT(source,OpenMFC_GetStringMgr()) {}
+CString::CStringT(const char* source,IAtlStringMgr* manager):CSimpleStringW(manager) {
     if(source && uintptr_t(source)<0x10000)LoadString(UINT(uintptr_t(source)));
     else operator=(source);
 }
-CString::CString(const unsigned char* source):CString(source,OpenMFC_GetStringMgr()) {}
-CString::CString(const unsigned char* source,IAtlStringMgr* manager):CSimpleStringW(manager) {operator=(reinterpret_cast<const char*>(source));}
-CString::CString(const char* source,int length):CString(source,length,OpenMFC_GetStringMgr()) {}
-CString::CString(const char* source,int length,IAtlStringMgr* manager):CSimpleStringW(manager) {Convert(source,length);}
+CString::CStringT(const unsigned char* source):CStringT(source,OpenMFC_GetStringMgr()) {}
+CString::CStringT(const unsigned char* source,IAtlStringMgr* manager):CSimpleStringW(manager) {operator=(reinterpret_cast<const char*>(source));}
+CString::CStringT(const char* source,int length):CStringT(source,length,OpenMFC_GetStringMgr()) {}
+CString::CStringT(const char* source,int length,IAtlStringMgr* manager):CSimpleStringW(manager) {Convert(source,length);}
 void CString::Convert(const char* source,int length) {
     if(length<=0)return;
     if(!source)InvalidLength();
@@ -35,7 +35,7 @@ CString& CString::operator=(const char* source) {
     } else Empty();
     return *this;
 }
-CString::CString(wchar_t value,int count):CSimpleStringW(OpenMFC_GetStringMgr()) {
+CString::CStringT(wchar_t value,int count):CSimpleStringW(OpenMFC_GetStringMgr()) {
     if(count<=0)return;
     wchar_t text[]={value,0};
     size_t width=value?wcslen(text):1;
@@ -59,7 +59,7 @@ CString::CString(wchar_t value,int count):CSimpleStringW(OpenMFC_GetStringMgr())
     } catch(...){if(converted!=local)free(converted);throw;}
     if(converted!=local)free(converted);
 }
-CString::CString(char value,int count):CSimpleStringW(OpenMFC_GetStringMgr()) {
+CString::CStringT(char value,int count):CSimpleStringW(OpenMFC_GetStringMgr()) {
     if(count>0){wmemset(GetBuffer(count),wchar_t(static_cast<signed char>(value)),size_t(count));SetLength(count);}
 }
 
@@ -112,7 +112,7 @@ extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEB_WHPEAUIA
 // Symbol: ??0?$CSimpleStringT@_W$00@ATL@@QEAA@PEAUIAtlStringMgr@1@@Z
 extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEAUIAtlStringMgr_1__Z(CSimpleStringW* self,IAtlStringMgr* manager) {return ::new(self) CSimpleStringW(manager);}
 // Symbol: ??0?$CSimpleStringT@_W$00@ATL@@QEAA@AEBV?$CSimpleStringT@_W$0A@@1@@Z
-extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const CSimpleStringW* source) {return ::new(self) CSimpleStringW(*source);}
+extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const ATL::CSimpleStringT<wchar_t,false>* source) {return ::new(self) CSimpleStringW(*source);}
 // Symbol: ??0?$CSimpleStringT@_W$00@ATL@@QEAA@AEBV01@@Z
 extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV01__Z(CSimpleStringW* self,const CSimpleStringW* source) {return ::new(self) CSimpleStringW(*source);}
 // Symbol: ??4?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@_W@Z
@@ -128,6 +128,6 @@ extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_
 // Symbol: ??4?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@PEB_W@Z
 extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_PEB_W_Z(CSimpleStringW* self,const wchar_t* source) {*self=source;return self;}
 // Symbol: ??4?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@AEBV?$CSimpleStringT@_W$0A@@1@@Z
-extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const CSimpleStringW* source) {*self=*source;return self;}
+extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const ATL::CSimpleStringT<wchar_t,false>* source) {*self=*source;return self;}
 // Symbol: ??4?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@AEBV01@@Z
 extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV01__Z(CSimpleStringW* self,const CSimpleStringW* source) {*self=*source;return self;}

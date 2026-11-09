@@ -144,7 +144,7 @@ static std::vector<Event> buffers(const ValueAPI& functions) {
     return result;
 }
 struct Manager:database_strings_test::Manager {
-    CStringData* Reallocate(CStringData* old,int length,int size) override {
+    CStringData* Reallocate(CStringData* old,int length,int size) noexcept override {
         int capacity=old->nAllocLength;auto* fresh=database_strings_test::Manager::Reallocate(old,length,size);
         if(length>capacity)memset(static_cast<BYTE*>(static_cast<void*>(fresh+1))+size_t(capacity+1)*size,0,size_t(length-capacity)*size);
         return fresh;
@@ -166,7 +166,7 @@ static std::vector<Event> text(const ValueAPI& functions) {
         event(90,manager.allocations,manager.reallocations,manager.clones,manager.frees,other.allocations,other.reallocations);
         auto* bytes=static_cast<BYTE*>(object);for(int i=0;i<std::min(32,(output->nAllocLength+1)*size);++i)event(91,i,bytes[i]);
         save(result,caught);
-        if(output->Release())output->pStringMgr->Free(output);
+        output->Release();
         if(shared && !locked)manager.Free(original);
         db.m_hdbc=nullptr;stringObject=nullptr;
     };
@@ -259,7 +259,7 @@ static std::vector<Event> fields(const FieldAPI& functions) {
         }
         event(100,manager.frees,manager.allocations,manager.reallocations,manager.clones);save(result,caught);
         if(!oldOwned) {
-            auto* output=reinterpret_cast<CStringData*>(object)-1;if(output->Release())output->pStringMgr->Free(output);
+            auto* output=reinterpret_cast<CStringData*>(object)-1;output->Release();
             if(shared && !locked)manager.Free(old);
         }
         f.rs.m_rgODBCFieldInfos=nullptr;activeVariant=nullptr;activeBinary=nullptr;stringObject=nullptr;

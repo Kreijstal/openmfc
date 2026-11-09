@@ -15,13 +15,13 @@ static HRESULT __cdecl empty(void* value) {return invoke([&]{static_cast<CString
 static void __cdecl destroy(void* value) {static_cast<CString*>(value)->~CString();}
 struct Manager: database_strings_test::Manager {
     bool fail=false;
-    CStringData* Allocate(int length,int size) override {if(fail){++allocations;return nullptr;}return database_strings_test::Manager::Allocate(length,size);}
-    CStringData* Reallocate(CStringData* data,int length,int size) override {if(fail){++reallocations;return nullptr;}return database_strings_test::Manager::Reallocate(data,length,size);}
+    CStringData* Allocate(int length,int size) noexcept override {if(fail){++allocations;return nullptr;}return database_strings_test::Manager::Allocate(length,size);}
+    CStringData* Reallocate(CStringData* data,int length,int size) noexcept override {if(fail){++reallocations;return nullptr;}return database_strings_test::Manager::Reallocate(data,length,size);}
 };
 static void attach(CString& value,Manager& manager,const wchar_t* text,int refs=1) {
-    auto* old=database_strings_test::data(value);if(old->Release())old->pStringMgr->Free(old);
+    auto* old=database_strings_test::data(value);old->Release();
     int length=int(std::wcslen(text));auto* data=manager.Allocate(length,sizeof(wchar_t));data->nDataLength=length;data->nRefs=refs;
-    std::wmemcpy(data->data(),text,length+1);database_strings_test::attach(value,data);
+    std::wmemcpy(static_cast<wchar_t*>(data->data()),text,length+1);database_strings_test::attach(value,data);
 }
 static std::vector<INT64> exercise(const API& api) {
     std::vector<INT64> result;
@@ -63,7 +63,7 @@ static std::vector<INT64> exercise(const API& api) {
         save(target,sourceManager,targetManager,cloneManager,status);
         sourceManager.fail=targetManager.fail=cloneManager.fail=false;
         // The fixture retains one reference to shared destination buffers.
-        if(targetRefs==2 && originalTarget->Release())originalTarget->pStringMgr->Free(originalTarget);
+        if(targetRefs==2)originalTarget->Release();
     }
     for(bool sharedTarget:{false,true})for(bool sameManager:{false,true})for(bool fail:{false,true}) {
         Manager sourceManager,targetManager,cloneManager;Manager& destination=sameManager?sourceManager:targetManager;
@@ -75,7 +75,7 @@ static std::vector<INT64> exercise(const API& api) {
         else check(target==source.GetString() && database_strings_test::data(target)->pStringMgr==((sameManager || sharedTarget)?&cloneManager:&destination),
             "CString assignment honors the manager returned by cloning a source or a shared destination");
         save(target,sourceManager,targetManager,cloneManager,status);sourceManager.fail=targetManager.fail=cloneManager.fail=false;
-        if(sharedTarget && originalTarget->Release())originalTarget->pStringMgr->Free(originalTarget);
+        if(sharedTarget)originalTarget->Release();
     }
     for(int refs:{1,2,-1})for(int operation:{0,1,2,3,4,5}) {
         Manager manager,second,third;CString value;attach(value,manager,L"old string",refs);auto* original=database_strings_test::data(value);
@@ -83,7 +83,7 @@ static std::vector<INT64> exercise(const API& api) {
             operation==3?api.set(&value,value.GetString()+4):operation==4?api.assign(&value,&value):api.set(&value,nullptr);
         check(SUCCEEDED(status) && (refs!=-1 || database_strings_test::data(value)->nRefs==-1),"CString clearing, replacement, substring assignment and self-assignment preserve native locked-buffer state");
         save(value,manager,second,third,status);
-        if(refs==2 && original->Release())original->pStringMgr->Free(original);
+        if(refs==2)original->Release();
     }
     return result;
 }

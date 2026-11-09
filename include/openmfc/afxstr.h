@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstdarg>
+#include <type_traits>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -38,9 +39,15 @@ typedef int BOOL;
     #endif
 #endif
 
+#if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
+#define OPENMFC_STRING_API __declspec(dllimport)
+#else
+#define OPENMFC_STRING_API
+#endif
+
 // MFC CStringT ABI-compatible implementation
-extern void AFXAPI AfxThrowMemoryException();
-extern void AFXAPI AfxThrowOleException(long);
+extern OPENMFC_STRING_API void AFXAPI AfxThrowMemoryException();
+extern OPENMFC_STRING_API void AFXAPI AfxThrowOleException(long);
 // 
 // Layout: CStringT contains a single pointer m_pszData pointing to character data.
 // A CStringData header is stored BEFORE the character buffer in memory:
@@ -52,16 +59,17 @@ extern void AFXAPI AfxThrowOleException(long);
 // destructed correctly. ATL CStringData: pStringMgr@0, nDataLength@8, nAllocLength@12,
 // nRefs@16 (data at offset 24). When a client releases the last ref it calls
 // pStringMgr->Free through this vtable, so OpenMFC strings carry a real manager.
+namespace ATL {
 struct CStringData;
 
 // Matches ATL's __interface IAtlStringMgr exactly (5 pure-virtual methods, no
 // virtual destructor -> 5-slot vtable identical under MSVC and mingw/Win64).
 struct IAtlStringMgr {
-    virtual CStringData* Allocate(int nAllocLength, int nCharSize) = 0;
-    virtual void         Free(CStringData* pData) = 0;
-    virtual CStringData* Reallocate(CStringData* pData, int nAllocLength, int nCharSize) = 0;
-    virtual CStringData* GetNilString() = 0;
-    virtual IAtlStringMgr* Clone() = 0;
+    virtual CStringData* Allocate(int nAllocLength, int nCharSize) noexcept = 0;
+    virtual void         Free(CStringData* pData) noexcept = 0;
+    virtual CStringData* Reallocate(CStringData* pData, int nAllocLength, int nCharSize) noexcept = 0;
+    virtual CStringData* GetNilString() noexcept = 0;
+    virtual IAtlStringMgr* Clone() noexcept = 0;
 };
 
 struct CStringData {
@@ -71,26 +79,31 @@ struct CStringData {
     long  nRefs;                // offset 16 (long == 4 bytes on Win64/LLP64)
     // wchar_t data[] follows at offset 24
 
-    wchar_t* data() { return reinterpret_cast<wchar_t*>(this + 1); }
-    const wchar_t* data() const { return reinterpret_cast<const wchar_t*>(this + 1); }
+    void* data() noexcept {return this+1;}
 
-    void AddRef() {
+    void AddRef() noexcept {
 #ifdef _MSC_VER
         _InterlockedIncrement(&nRefs);
 #else
         __atomic_add_fetch(&nRefs,1,__ATOMIC_SEQ_CST);
 #endif
     }
-    bool Release() {
+    void Release() noexcept {
 #ifdef _MSC_VER
-        return _InterlockedDecrement(&nRefs)<=0;
+        if(_InterlockedDecrement(&nRefs)<=0)pStringMgr->Free(this);
 #else
-        return __atomic_sub_fetch(&nRefs,1,__ATOMIC_SEQ_CST)<=0;
+        if(__atomic_sub_fetch(&nRefs,1,__ATOMIC_SEQ_CST)<=0)pStringMgr->Free(this);
 #endif
     }
-    bool IsLocked() const { return nRefs < 0; }
-    bool IsShared() const { return nRefs > 1; }
+    void Lock() noexcept {if(--nRefs==0)nRefs=-1;}
+    void Unlock() noexcept {if(nRefs<0&&++nRefs==0)nRefs=1;}
+    bool IsLocked() const noexcept { return nRefs < 0; }
+    bool IsShared() const noexcept { return nRefs > 1; }
 };
+
+} // namespace ATL
+using CStringData=ATL::CStringData;
+using IAtlStringMgr=ATL::IAtlStringMgr;
 
 static_assert(sizeof(CStringData) == 24, "CStringData must match ATL (24 bytes)");
 
@@ -102,7 +115,7 @@ class CAfxStringMgr : public IAtlStringMgr {
 public:
     CAfxStringMgr():m_nil{{this,0,0,2},{0,0}} {}
     CStringData* NilData() {return &m_nil.header;}
-    CStringData* Allocate(int nAllocLength, int nCharSize) override {
+    CStringData* Allocate(int nAllocLength, int nCharSize) noexcept override {
         if(nAllocLength<0)return nullptr;
         int32_t bytes=int32_t((uint32_t(nAllocLength)+1u)*uint32_t(nCharSize));
         size_t nBytes=sizeof(CStringData)+size_t(int64_t(bytes));
@@ -114,8 +127,8 @@ public:
         pData->nRefs = 1;
         return pData;
     }
-    void Free(CStringData* pData) override { free(pData); }
-    CStringData* Reallocate(CStringData* pData, int nAllocLength, int nCharSize) override {
+    void Free(CStringData* pData) noexcept override { free(pData); }
+    CStringData* Reallocate(CStringData* pData, int nAllocLength, int nCharSize) noexcept override {
         if(nAllocLength<0)return nullptr;
         int32_t bytes=int32_t((uint32_t(nAllocLength)+1u)*uint32_t(nCharSize));
         size_t nBytes=sizeof(CStringData)+size_t(int64_t(bytes));
@@ -124,17 +137,22 @@ public:
         pNew->nAllocLength = nAllocLength;
         return pNew;
     }
-    CStringData* GetNilString() override {auto* data=NilData();data->AddRef();return data;}
-    IAtlStringMgr* Clone() override { return this; }
+    CStringData* GetNilString() noexcept override {auto* data=NilData();data->AddRef();return data;}
+    IAtlStringMgr* Clone() noexcept override { return this; }
 private:
     struct {CStringData header;wchar_t zero[2];} m_nil;
 };
 static_assert(sizeof(CAfxStringMgr)==40,"native string manager with embedded nil data");
 using OpenMFCStringMgr=CAfxStringMgr;
 
+OPENMFC_STRING_API IAtlStringMgr* AFXAPI AfxGetStringManager();
 inline IAtlStringMgr* OpenMFC_GetStringMgr() {
-    static OpenMFCStringMgr mgr;
-    return &mgr;
+#if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
+    return AfxGetStringManager();
+#else
+    static CAfxStringMgr manager;
+    return &manager;
+#endif
 }
 
 // Native ATL nil data retains two manager-owned references. Each attached
@@ -143,21 +161,28 @@ inline CStringData* GetNilStringData() {
     return static_cast<CAfxStringMgr*>(OpenMFC_GetStringMgr())->NilData();
 }
 
-// Native Unicode simple-string base: one pointer and an owning manager.
-class CSimpleStringW {
+namespace ATL {
+// One pointer, with an owning manager and the native ATL template identity.
+template<class BaseType,bool IsMFCDLL=false>
+class CSimpleStringT {
 public:
-    explicit CSimpleStringW(IAtlStringMgr* manager) {
+    using XCHAR=BaseType;using PXSTR=BaseType*;using PCXSTR=const BaseType*;
+    using YCHAR=std::conditional_t<sizeof(BaseType)==1,wchar_t,char>;
+    using PYSTR=YCHAR*;using PCYSTR=const YCHAR*;
+    explicit CSimpleStringT(IAtlStringMgr* manager) {
         if(!manager)InvalidManager();
         Attach(manager->GetNilString());
     }
-    CSimpleStringW(const CSimpleStringW& source) {Attach(CloneData(source.GetData()));}
-    CSimpleStringW(const wchar_t* source,int length,IAtlStringMgr* manager) {Initialize(source,length,manager);}
-    CSimpleStringW(const wchar_t* source,IAtlStringMgr* manager) {
+    CSimpleStringT(const CSimpleStringT& source) {Attach(CloneData(source.GetData()));}
+    CSimpleStringT(const CSimpleStringT<BaseType,!IsMFCDLL>& source) {Attach(CloneData(source.GetData()));}
+    operator CSimpleStringT<BaseType,!IsMFCDLL>&() noexcept {return reinterpret_cast<CSimpleStringT<BaseType,!IsMFCDLL>&>(*this);}
+    CSimpleStringT(const BaseType* source,int length,IAtlStringMgr* manager) {Initialize(source,length,manager);}
+    CSimpleStringT(const BaseType* source,IAtlStringMgr* manager) {
         if(!manager)InvalidManager();
         Initialize(source,StringLength(source),manager);
     }
-    ~CSimpleStringW() {Release(GetData());}
-    CSimpleStringW& operator=(const CSimpleStringW& source) {
+    ~CSimpleStringT() {Release(GetData());}
+    CSimpleStringT& operator=(const CSimpleStringT& source) {
         auto* old=GetData();auto* data=source.GetData();
         if(old!=data) {
             if(old->IsLocked() || old->pStringMgr!=data->pStringMgr)SetString(source.GetString(),data->nDataLength);
@@ -165,21 +190,30 @@ public:
         }
         return *this;
     }
-    CSimpleStringW& operator=(const wchar_t* source) {SetString(source);return *this;}
-    const wchar_t* GetString() const {return m_pszData;}
-    operator const wchar_t*() const {return m_pszData;}
+    CSimpleStringT& operator=(const CSimpleStringT<BaseType,!IsMFCDLL>& source) {
+        auto* old=GetData();auto* data=source.GetData();
+        if(old!=data) {
+            if(old->IsLocked() || old->pStringMgr!=data->pStringMgr)SetString(source.GetString(),data->nDataLength);
+            else {auto* replacement=CloneData(data);Release(old);Attach(replacement);}
+        }
+        return *this;
+    }
+    CSimpleStringT& operator=(const BaseType* source) {SetString(source);return *this;}
+    const BaseType* GetString() const {return m_pszData;}
+    operator const BaseType*() const {return m_pszData;}
     int GetLength() const {return GetData()->nDataLength;}
     int GetAllocLength() const {return GetData()->nAllocLength;}
     bool IsEmpty() const {return !GetLength();}
     CStringData* GetData() const {return reinterpret_cast<CStringData*>(m_pszData)-1;}
-    IAtlStringMgr* GetManager() const {auto* manager=GetData()->pStringMgr;return manager?manager->Clone():nullptr;}
+    IAtlStringMgr* GetManager() const noexcept {auto* manager=GetData()->pStringMgr;return manager?manager->Clone():nullptr;}
     void SetManager(IAtlStringMgr* manager) {Release(GetData());Attach(manager->GetNilString());}
-    void Attach(CStringData* data) {m_pszData=reinterpret_cast<wchar_t*>(data+1);}
+    void Attach(CStringData* data) {m_pszData=reinterpret_cast<BaseType*>(data+1);}
+    static int StringLength(const char* text) {return text?int(strlen(text)):0;}
     static int StringLength(const wchar_t* text) {return text?int(wcslen(text)):0;}
     static void ThrowMemoryException() {AfxThrowMemoryException();}
-    wchar_t GetAt(int index) const {if(index<0 || index>GetLength())InvalidLength();return m_pszData[index];}
-    wchar_t operator[](int index) const {return GetAt(index);}
-    void SetAt(int index,wchar_t value) {
+    BaseType GetAt(int index) const {if(index<0 || index>GetLength())InvalidLength();return m_pszData[index];}
+    BaseType operator[](int index) const {return GetAt(index);}
+    void SetAt(int index,BaseType value) {
         int length=GetLength();if(index<0 || index>=length)InvalidLength();
         if(GetData()->IsShared())Fork(length);
         m_pszData[index]=value;SetLength(length);
@@ -189,20 +223,21 @@ public:
         if(data->IsLocked()){data->nDataLength=0;m_pszData[0]=0;return;}
         auto* manager=data->pStringMgr;Release(data);Attach(manager->GetNilString());
     }
-    wchar_t* GetBuffer(int minimum=0) {
+    BaseType* GetBuffer() {return GetBuffer(0);}
+    BaseType* GetBuffer(int minimum) {
         if(minimum<0)InvalidLength();
         if(GetData()->IsShared() || minimum>GetAllocLength())PrepareWrite2(minimum);
         return m_pszData;
     }
-    wchar_t* GetBufferSetLength(int length) {auto* out=GetBuffer(length);SetLength(length);return out;}
+    BaseType* GetBufferSetLength(int length) {auto* out=GetBuffer(length);SetLength(length);return out;}
     void SetLength(int length) {
         if(length<0 || length>GetAllocLength())InvalidLength();
         GetData()->nDataLength=length;m_pszData[length]=0;
     }
     void ReleaseBufferSetLength(int length) {SetLength(length);}
-    void ReleaseBuffer(int length=-1) {SetLength(length==-1?(m_pszData?int(wcsnlen(m_pszData,GetAllocLength())):0):length);}
-    wchar_t* LockBuffer() {GetBuffer();if(--GetData()->nRefs==0)GetData()->nRefs=-1;return m_pszData;}
-    void UnlockBuffer() {if(GetData()->nRefs<0 && ++GetData()->nRefs==0)GetData()->nRefs=1;}
+    void ReleaseBuffer(int length=-1) {SetLength(length==-1?(m_pszData?int(BoundedLength(m_pszData,size_t(GetAllocLength()))):0):length);}
+    BaseType* LockBuffer() {GetBuffer();GetData()->Lock();return m_pszData;}
+    void UnlockBuffer() {GetData()->Unlock();}
     void PrepareWrite2(int length) {
         auto* data=GetData();if(length<data->nDataLength)length=data->nDataLength;
         if(data->IsShared())Fork(length);
@@ -214,12 +249,12 @@ public:
         }
     }
     void Reallocate(int length) {
-        auto* data=GetData();auto* replacement=data->pStringMgr->Reallocate(data,length,2);
+        auto* data=GetData();auto* replacement=data->pStringMgr->Reallocate(data,length,sizeof(BaseType));
         if(!replacement)AfxThrowMemoryException();Attach(replacement);
     }
     void Fork(int length) {
         auto* old=GetData();auto* text=m_pszData;int oldLength=old->nDataLength;
-        auto* manager=old->pStringMgr->Clone();auto* data=manager->Allocate(length,2);
+        auto* manager=old->pStringMgr->Clone();auto* data=manager->Allocate(length,sizeof(BaseType));
         if(!data)AfxThrowMemoryException();
         int copied=length<oldLength?length:oldLength;
         memcpy_s(Characters(data),Bytes(int32_t(uint32_t(copied)+1)),text,Bytes(int32_t(uint32_t(copied)+1)));
@@ -228,102 +263,126 @@ public:
     static CStringData* CloneData(CStringData* old) {
         auto* manager=old->pStringMgr->Clone();
         if(!old->IsLocked() && manager==old->pStringMgr){old->AddRef();return old;}
-        auto* data=manager->Allocate(old->nDataLength,2);if(!data)AfxThrowMemoryException();
+        auto* data=manager->Allocate(old->nDataLength,sizeof(BaseType));if(!data)AfxThrowMemoryException();
         int length=old->nDataLength;data->nDataLength=length;
         size_t bytes=Bytes(int32_t(uint32_t(length)+1));
         memcpy_s(Characters(data),bytes,Characters(old),bytes);return data;
     }
-    void SetString(const wchar_t* source) {SetString(source,StringLength(source));}
-    void SetString(const wchar_t* source,int length) {
+    void SetString(const BaseType* source) {SetString(source,StringLength(source));}
+    void SetString(const BaseType* source,int length) {
         if(!length){Empty();return;}
         if(!source || length<0)InvalidLength();
-        uintptr_t offset=uintptr_t(intptr_t(uintptr_t(source)-uintptr_t(m_pszData))>>1);int oldLength=GetLength();
+        uintptr_t offset=Offset(source,m_pszData);int oldLength=GetLength();
         auto* out=GetBuffer(length);
         if(offset<=uintptr_t(oldLength))memmove_s(out,Bytes(GetAllocLength()),out+offset,Bytes(length));
         else memcpy_s(out,Bytes(GetAllocLength()),source,Bytes(length));
         SetLength(length);
     }
-    void Append(const wchar_t* source,int maximum) {
+    void Append(const BaseType* source,int maximum) {
         if(maximum<0)InvalidLength();
-        auto* old=m_pszData;int length=GetLength();int added=source?int(wcsnlen(source,size_t(maximum))):0;
+        auto* old=m_pszData;int length=GetLength();int added=source?int(BoundedLength(source,size_t(maximum))):0;
         if(length>INT32_MAX-added)InvalidLength();
         int total=length+added;if(total<0)InvalidLength();
-        uintptr_t offset=uintptr_t(intptr_t(uintptr_t(source)-uintptr_t(old))>>1);wchar_t* out=GetBuffer(total);
+        uintptr_t offset=Offset(source,old);BaseType* out=GetBuffer(total);
         if(offset<=uintptr_t(length))source=out+offset;
         if(added)memcpy_s(out+length,Bytes(added),source,Bytes(added));SetLength(total);
     }
-    void Append(const wchar_t* source) {Append(source,StringLength(source));}
-    void Append(const CSimpleStringW& source) {Append(source.GetString(),source.GetLength());}
-    void AppendChar(wchar_t value) {
+    void Append(const BaseType* source) {Append(source,StringLength(source));}
+    void Append(const CSimpleStringT& source) {Append(source.GetString(),source.GetLength());}
+    void AppendChar(BaseType value) {
         int length=GetLength();if(length==INT32_MAX)InvalidLength();
         GetBuffer(length+1)[length]=value;SetLength(length+1);
     }
-    CSimpleStringW& operator+=(const wchar_t* source) {Append(source);return *this;}
-    CSimpleStringW& operator+=(const CSimpleStringW& source) {Append(source);return *this;}
-    CSimpleStringW& operator+=(wchar_t value) {AppendChar(value);return *this;}
+    CSimpleStringT& operator+=(const BaseType* source) {Append(source);return *this;}
+    CSimpleStringT& operator+=(const CSimpleStringT& source) {Append(source);return *this;}
+    CSimpleStringT& operator+=(BaseType value) {AppendChar(value);return *this;}
     void Truncate(int length) {GetBuffer(length);SetLength(length);}
     void Preallocate(int length) {GetBuffer(length);}
     void FreeExtra() {
         auto* old=GetData();auto* text=m_pszData;int length=old->nDataLength;
         if(length==old->nAllocLength || old->IsLocked())return;
-        auto* data=old->pStringMgr->Allocate(length,2);
+        auto* data=old->pStringMgr->Allocate(length,sizeof(BaseType));
         if(data){if(length)memcpy_s(Characters(data),Bytes(length),text,Bytes(length));Release(old);Attach(data);}
         SetLength(length);
     }
-    static void Concatenate(CSimpleStringW& text,const wchar_t* first,int firstLength,const wchar_t* second,int secondLength) {
+    static void Concatenate(CSimpleStringT& text,const BaseType* first,int firstLength,const BaseType* second,int secondLength) {
         int length=int32_t(uint32_t(firstLength)+uint32_t(secondLength));
-        wchar_t* out=text.GetBuffer(length);
+        BaseType* out=text.GetBuffer(length);
         if(firstLength)memcpy_s(out,Bytes(firstLength),first,Bytes(firstLength));
         if(secondLength)memcpy_s(out+firstLength,Bytes(secondLength),second,Bytes(secondLength));
         text.SetLength(length);
     }
-    static wchar_t* Characters(CStringData* data) {return reinterpret_cast<wchar_t*>(data+1);}
+    static BaseType* Characters(CStringData* data) {return reinterpret_cast<BaseType*>(data+1);}
 protected:
-    static size_t Bytes(int characters) {return size_t(int64_t(characters))*sizeof(wchar_t);}
-    explicit CSimpleStringW(CStringData* data):m_pszData(Characters(data)) {}
-    void Initialize(const wchar_t* source,int length,IAtlStringMgr* manager) {
+    static uintptr_t Offset(const BaseType* source,const BaseType* base) {
+        auto delta=uintptr_t(source)-uintptr_t(base);
+        if constexpr(sizeof(BaseType)==1)return delta;
+        else return uintptr_t(intptr_t(delta)>>1);
+    }
+    static size_t BoundedLength(const BaseType* text,size_t maximum) {
+        if constexpr(sizeof(BaseType)==1)return strnlen(text,maximum);
+        else return wcsnlen(text,maximum);
+    }
+    static size_t Bytes(int characters) {return size_t(int64_t(characters))*sizeof(BaseType);}
+    explicit CSimpleStringT(CStringData* data):m_pszData(Characters(data)) {}
+    void Initialize(const BaseType* source,int length,IAtlStringMgr* manager) {
         if(!manager)InvalidManager();
         if(!source && length)InvalidLength();
-        auto* data=manager->Allocate(length,2);
+        auto* data=manager->Allocate(length,sizeof(BaseType));
         if(!data)AfxThrowMemoryException();
         Attach(data);SetLength(length);
         if(length)memcpy_s(m_pszData,Bytes(length),source,Bytes(length));
     }
-    wchar_t* m_pszData;
-    static void Release(CStringData* data) {if(data->Release())data->pStringMgr->Free(data);}
+    BaseType* m_pszData;
+    static void Release(CStringData* data) {data->Release();}
     static void InvalidLength() {AfxThrowOleException(static_cast<long>(0x80070057u));}
     static void InvalidManager() {AfxThrowOleException(static_cast<long>(0x80004005u));}
 };
-static_assert(sizeof(CSimpleStringW)==8,"native Unicode simple string");
+} // namespace ATL
 
 struct tagVARIANT;
+class CDatabase;
+class CFrameWnd;
+namespace ATL {
+template<class BaseType> class ChTraitsCRT;
+template<class BaseType,class StringTraits> class CStringT;
+}
+template<class BaseType,class Iterator=ATL::ChTraitsCRT<BaseType>> class StrTraitMFC_DLL;
+using CSimpleStringA=ATL::CSimpleStringT<char,true>;
+using CSimpleStringW=ATL::CSimpleStringT<wchar_t,true>;
+using CStringA=ATL::CStringT<char,StrTraitMFC_DLL<char>>;
+using CStringW=ATL::CStringT<wchar_t,StrTraitMFC_DLL<wchar_t>>;
+using CString=CStringW;
+static_assert(sizeof(CSimpleStringA)==8 && sizeof(CSimpleStringW)==8,"native simple strings");
+
 
 // CString (Unicode) - ABI compatible with MFC CStringW
-class CString : public CSimpleStringW {
+namespace ATL {
+template<> class CStringT<wchar_t,::StrTraitMFC_DLL<wchar_t>> : public CSimpleStringT<wchar_t,true> {
 public:
-    CString() noexcept:CSimpleStringW(OpenMFC_GetStringMgr()) {}
-    explicit CString(IAtlStringMgr* manager) noexcept:CSimpleStringW(manager) {}
-    CString(const wchar_t*);
-    CString(const wchar_t*,IAtlStringMgr*);
-    CString(const wchar_t* source,int length):CSimpleStringW(source,length,OpenMFC_GetStringMgr()) {}
-    CString(const wchar_t* source,int length,IAtlStringMgr* manager):CSimpleStringW(source,length,manager) {}
-    CString(const char*);
-    CString(const char*,IAtlStringMgr*);
-    CString(const char*,int);
-    CString(const char*,int,IAtlStringMgr*);
-    CString(unsigned char* source):CString(reinterpret_cast<const char*>(source)) {}
-    CString(const unsigned char*);
-    CString(const unsigned char*,IAtlStringMgr*);
-    CString(wchar_t,int);
-    CString(char,int);
-    CString(const CString& source):CSimpleStringW(source) {}
-    CString(const tagVARIANT&);
-    CString(const tagVARIANT&,IAtlStringMgr*);
-    CString& operator=(const tagVARIANT&);
-    CString& operator+=(const tagVARIANT&);
+    CStringT() noexcept:CSimpleStringW(OpenMFC_GetStringMgr()) {}
+    explicit CStringT(IAtlStringMgr* manager) noexcept:CSimpleStringW(manager) {}
+    OPENMFC_STRING_API CStringT(const wchar_t*);
+    OPENMFC_STRING_API CStringT(const wchar_t*,IAtlStringMgr*);
+    CStringT(const wchar_t* source,int length):CSimpleStringW(source,length,OpenMFC_GetStringMgr()) {}
+    CStringT(const wchar_t* source,int length,IAtlStringMgr* manager):CSimpleStringW(source,length,manager) {}
+    OPENMFC_STRING_API CStringT(const char*);
+    OPENMFC_STRING_API CStringT(const char*,IAtlStringMgr*);
+    OPENMFC_STRING_API CStringT(const char*,int);
+    OPENMFC_STRING_API CStringT(const char*,int,IAtlStringMgr*);
+    CStringT(unsigned char* source):CStringT(reinterpret_cast<const char*>(source)) {}
+    OPENMFC_STRING_API CStringT(const unsigned char*);
+    OPENMFC_STRING_API CStringT(const unsigned char*,IAtlStringMgr*);
+    OPENMFC_STRING_API CStringT(wchar_t,int);
+    OPENMFC_STRING_API CStringT(char,int);
+    CStringT(const CString& source):CSimpleStringW(source) {}
+    OPENMFC_STRING_API CStringT(const tagVARIANT&);
+    OPENMFC_STRING_API CStringT(const tagVARIANT&,IAtlStringMgr*);
+    OPENMFC_STRING_API CString& operator=(const tagVARIANT&);
+    OPENMFC_STRING_API CString& operator+=(const tagVARIANT&);
     CString& operator=(const CString& source) {CSimpleStringW::operator=(source);return *this;}
     CString& operator=(const wchar_t* source) {SetString(source);return *this;}
-    CString& operator=(const char*);
+    OPENMFC_STRING_API CString& operator=(const char*);
     CString& operator=(const unsigned char* source) {return operator=(reinterpret_cast<const char*>(source));}
     CString& operator=(wchar_t value) {wchar_t text[]={value,0};SetString(text);return *this;}
     CString& operator=(char value) {char text[]={value,0};return operator=(text);}
@@ -670,17 +729,20 @@ public:
     #ifdef LoadString
     #undef LoadString
     #endif
-    int LoadString(UINT nID);
+    OPENMFC_STRING_API int LoadStringW(UINT id);
+    int LoadString(UINT id) {return LoadStringW(id);}
 #ifdef _WIN32
-    int LoadString(HINSTANCE module,UINT id);
-    int LoadString(HINSTANCE module,UINT id,unsigned short language);
+    OPENMFC_STRING_API int LoadStringW(HINSTANCE module,UINT id);
+    int LoadString(HINSTANCE module,UINT id) {return LoadStringW(module,id);}
+    OPENMFC_STRING_API int LoadStringW(HINSTANCE module,UINT id,unsigned short language);
+    int LoadString(HINSTANCE module,UINT id,unsigned short language) {return LoadStringW(module,id,language);}
 #endif
 
 private:
-    friend class CDatabase;
-    friend class CFrameWnd;
+    friend class ::CDatabase;
+    friend class ::CFrameWnd;
     struct OwnedData {};
-    CString(CStringData* data,OwnedData) : CSimpleStringW(data) {}
+    CStringT(CStringData* data,OwnedData) : CSimpleStringW(data) {}
     static CString FromOwnedData(CStringData* data) {return CString(data,OwnedData{});}
 
     CStringData* GetData() const {
@@ -696,13 +758,13 @@ private:
         if (pData == nullptr) {
             AfxThrowMemoryException();
         }
-        pData->data()[0] = L'\0';
+        static_cast<wchar_t*>(pData->data())[0] = L'\0';
         return pData;
     }
 
     void AllocBuffer(int nLength) {
         CStringData* pData = AllocData(nLength);
-        m_pszData = pData->data();
+        m_pszData = static_cast<wchar_t*>(pData->data());
     }
 
     static void FreeBuffer(CStringData* pData) {
@@ -711,6 +773,8 @@ private:
         }
     }
 };
+
+} // namespace ATL
 
 static_assert(sizeof(CString)==8,"native Unicode CString");
 

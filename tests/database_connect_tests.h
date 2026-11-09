@@ -147,7 +147,7 @@ std::vector<std::wstring> exercise(const API& api,_AFX_THREAD_STATE* state,HENV&
         }
         save(result,database);result.push_back(std::to_wstring(manager.allocations));result.push_back(std::to_wstring(manager.reallocations));result.push_back(std::to_wstring(manager.clones));
         if(references<0) {owned->nRefs=1;manager.Free(owned);}
-        else if(final->Release())manager.Free(final);
+        else final->Release();
         if(references>1){owned->nRefs=1;manager.Free(owned);}
         database_strings_test::attach(database.m_strConnect,previous);
         if(database.m_blobConnect.pbData){::LocalFree(database.m_blobConnect.pbData);database.m_blobConnect.pbData=nullptr;}

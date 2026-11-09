@@ -99,7 +99,7 @@ extern "C" char impl___A__CSimpleStringT_D_00_ATL__QEBADH_Z(const CSimpleStringA
 // Symbol: ??4?$CSimpleStringT@D$00@ATL@@QEAAAEAV01@PEBD@Z
 extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_PEBD_Z(CSimpleStringA* self,const char* source) {*self=source;return self;}
 // Symbol: ??4?$CSimpleStringT@D$00@ATL@@QEAAAEAV01@AEBV?$CSimpleStringT@D$0A@@1@@Z
-extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const CSimpleStringA* source) {*self=*source;return self;}
+extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const ATL::CSimpleStringT<char,false>* source) {*self=*source;return self;}
 // Symbol: ??4?$CSimpleStringT@D$00@ATL@@QEAAAEAV01@AEBV01@@Z
 extern "C" CSimpleStringA* impl___4__CSimpleStringT_D_00_ATL__QEAAAEAV01_AEBV01__Z(CSimpleStringA* self,const CSimpleStringA* source) {*self=*source;return self;}
 // Symbol: ??1?$CSimpleStringT@D$00@ATL@@QEAA@XZ
@@ -111,7 +111,7 @@ extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_PEBDHPEAUIAtl
 // Symbol: ??0?$CSimpleStringT@D$00@ATL@@QEAA@PEAUIAtlStringMgr@1@@Z
 extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_PEAUIAtlStringMgr_1__Z(CSimpleStringA* self,IAtlStringMgr* manager) {return ::new(self) CSimpleStringA(manager);}
 // Symbol: ??0?$CSimpleStringT@D$00@ATL@@QEAA@AEBV?$CSimpleStringT@D$0A@@1@@Z
-extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const CSimpleStringA* source) {return ::new(self) CSimpleStringA(*source);}
+extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_AEBV__CSimpleStringT_D_0A__1__Z(CSimpleStringA* self,const ATL::CSimpleStringT<char,false>* source) {return ::new(self) CSimpleStringA(*source);}
 // Symbol: ??0?$CSimpleStringT@D$00@ATL@@QEAA@AEBV01@@Z
 extern "C" CSimpleStringA* impl___0__CSimpleStringT_D_00_ATL__QEAA_AEBV01__Z(CSimpleStringA* self,const CSimpleStringA* source) {return ::new(self) CSimpleStringA(*source);}
 // Symbol: ?LoadStringW@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHPEAUHINSTANCE__@@IG@Z

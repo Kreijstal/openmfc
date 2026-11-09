@@ -16,12 +16,12 @@ static int failure,deleted,ownerDestructions;
 static void event(INT64 kind,INT64 a=0,INT64 b=0,INT64 c=0,INT64 d=0,INT64 e=0) {events.push_back({kind,a,b,c,d,e});}
 struct Failure: CDBException {~Failure() override {++deleted;}};
 struct Manager: database_strings_test::Manager {
-    void Free(CStringData* data) override {event(104,data->nDataLength);database_strings_test::Manager::Free(data);}
+    void Free(CStringData* data) noexcept override {event(104,data->nDataLength);database_strings_test::Manager::Free(data);}
 };
 static void setString(CString& value,Manager& manager,const wchar_t* text,int refs=1) {
-    auto* old=database_strings_test::data(value);if(old->Release())old->pStringMgr->Free(old);
+    auto* old=database_strings_test::data(value);old->Release();
     int length=int(std::wcslen(text));auto* data=manager.Allocate(length,sizeof(wchar_t));
-    std::wmemcpy(data->data(),text,length+1);data->nDataLength=length;data->nRefs=refs;database_strings_test::attach(value,data);
+    std::wmemcpy(static_cast<wchar_t*>(data->data()),text,length+1);data->nDataLength=length;data->nRefs=refs;database_strings_test::attach(value,data);
 }
 static SQLRETURN SQL_API drop(SQLHSTMT statement,SQLUSMALLINT option) {
     event(101,INT64(UINT_PTR(statement)),option,active->m_nEditMode,active->m_lOpen,
@@ -100,8 +100,8 @@ struct Fixture {
         rs->m_mapFieldIndex.SetAt(reinterpret_cast<void*>(0x900),reinterpret_cast<void*>(3));rs->m_mapParamIndex.SetAt(reinterpret_cast<void*>(0x901),reinterpret_cast<void*>(4));
     }
     ~Fixture() {
-        if(sharedCursor && sharedCursor->Release())sharedCursor->pStringMgr->Free(sharedCursor);
-        for(auto* name:sharedNames)if(name && name->Release())name->pStringMgr->Free(name);
+        if(sharedCursor)sharedCursor->Release();
+        for(auto* name:sharedNames)if(name)name->Release();
         if(ownsRawCache)std::free(rawCache);
         auto* cursor=database_strings_test::data(rs->m_strCursorName);if(cursor->IsLocked())cursor->nRefs=1;
         *reinterpret_cast<void***>(rs)=original;rs->m_pDatabase=nullptr;rs->m_hstmt=nullptr;rs->m_bRecordsetDb=FALSE;
@@ -203,7 +203,7 @@ static std::vector<Event> destruction(const API& api) {
         for(auto& value:events)result.push_back(value);result.push_back({192,refs,manager.frees,0,0,0});
         // Release shared fixture ownership; reclaim locked buffers only if the
         // implementation failed the check, keeping the failing probe leak-free.
-        if(refs==2) {for(auto* data:buffers)if(data->Release())data->pStringMgr->Free(data);}
+        if(refs==2) {for(auto* data:buffers)data->Release();}
         else if(refs<0 && manager.frees==0) {for(auto* data:buffers)manager.Free(data);}
     }
     return result;

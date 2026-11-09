@@ -20,7 +20,7 @@ namespace {
 template<class T> T Read(const void* p) {T value;std::memcpy(&value,p,sizeof(value));return value;}
 bool Inline(int type) {return (type>=1 && type<=4) || type==6;}
 void Require(bool condition) {if(!condition)impl__AfxThrowInvalidArgException__YAXXZ();}
-void Release(CStringData* data) {if(data->Release())data->pStringMgr->Free(data);}
+void Release(CStringData* data) {data->Release();}
 void AssignString(void* destination,const void* source,int charSize) {
     auto*& target=*static_cast<char**>(destination);auto* text=Read<char*>(source);
     auto* old=reinterpret_cast<CStringData*>(target)-1;

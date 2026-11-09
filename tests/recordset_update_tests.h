@@ -249,7 +249,7 @@ static std::vector<Event> construction(const UpdateAPI& functions) {
         event(58,manager.allocations,manager.reallocations,manager.clones,other.allocations,other.reallocations,output==storage);
         event(59,output->nRefs,output->pStringMgr==&manager);text(54,f.rs.m_strUpdateSQL.GetString());saveState(result,f);
         f.rs.m_strUpdateSQL.~CString();new(&f.rs.m_strUpdateSQL)CString;
-        auto* nil=database_strings_test::data(f.rs.m_strUpdateSQL);if(nil->Release())nil->pStringMgr->Free(nil);database_strings_test::attach(f.rs.m_strUpdateSQL,old);
+        auto* nil=database_strings_test::data(f.rs.m_strUpdateSQL);nil->Release();database_strings_test::attach(f.rs.m_strUpdateSQL,old);
         if(shared && !locked)manager.Free(storage);
     }
     autoDrive=false;

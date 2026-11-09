@@ -21,14 +21,14 @@ int LoadImage(CString& text,const WORD* image) {
     return TRUE;
 }
 }
-int CString::LoadString(UINT id) {
+int CString::LoadStringW(UINT id) {
     auto module=FindModule(id);
     return module?LoadString(module,id):FALSE;
 }
-int CString::LoadString(HINSTANCE module,UINT id) {
+int CString::LoadStringW(HINSTANCE module,UINT id) {
     return LoadImage(*this,openmfc::detail::StringResourceImage(module,id));
 }
-int CString::LoadString(HINSTANCE module,UINT id,unsigned short language) {
+int CString::LoadStringW(HINSTANCE module,UINT id,unsigned short language) {
     return LoadImage(*this,openmfc::detail::StringResourceImage(module,id,language));
 }
 // Symbol: ?LoadStringW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHI@Z

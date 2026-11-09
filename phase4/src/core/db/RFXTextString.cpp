@@ -54,7 +54,7 @@ struct RfxStr {
 
     // Release every owned reference, including shared empty-string references.
     static void ReleaseData(CStringData* pd) {
-        if (pd->Release()) Mgr(pd)->Free(pd);
+        pd->Release();
     }
     // CSimpleStringT::Fork(nLength): allocate nLength, copy min(old, new) + NUL,
     // keep nDataLength, release the old block.

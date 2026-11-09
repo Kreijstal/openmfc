@@ -22,16 +22,16 @@ struct API {
 static void resetSQL(SQLRETURN code=0,bool accepted=true) {binding={};binds=checks=throws=0;sqlResult=code;accept=accepted;}
 struct CacheManager : IAtlStringMgr {
     IAtlStringMgr* clone=nullptr;
-    CStringData* Allocate(int n,int size) override {
+    CStringData* Allocate(int n,int size) noexcept override {
         auto* p=static_cast<CStringData*>(std::calloc(1,sizeof(CStringData)+(n+1)*size));
         p->pStringMgr=this;p->nRefs=1;p->nAllocLength=n;return p;
     }
-    void Free(CStringData* p) override {std::free(p);}
-    CStringData* Reallocate(CStringData* p,int n,int size) override {
+    void Free(CStringData* p) noexcept override {std::free(p);}
+    CStringData* Reallocate(CStringData* p,int n,int size) noexcept override {
         p=static_cast<CStringData*>(std::realloc(p,sizeof(CStringData)+(n+1)*size));p->nAllocLength=n;return p;
     }
-    CStringData* GetNilString() override {std::abort();}
-    IAtlStringMgr* Clone() override {return clone?clone:this;}
+    CStringData* GetNilString() noexcept override {std::abort();}
+    IAtlStringMgr* Clone() noexcept override {return clone?clone:this;}
 };
 void valueTypes(const API& api) {
     bool scalarCopies=true,scalarEquals=true;
@@ -81,9 +81,9 @@ void valueTypes(const API& api) {
         if(mode==4)strings &= result->pStringMgr==&cloneManager && source->nRefs==1;
         if(mode==0)source->nRefs=1;
         if(mode==1)result->nRefs=1;
-        if(result->Release())result->pStringMgr->Free(result);
-        if(source->Release())source->pStringMgr->Free(source);
-        if(kept && kept->Release())kept->pStringMgr->Free(kept);
+        result->Release();
+        source->Release();
+        if(kept)kept->Release();
     }
     check(strings,"ANSI string cache copies preserve locks, manager ownership, shared buffers and clone-manager semantics");
 }

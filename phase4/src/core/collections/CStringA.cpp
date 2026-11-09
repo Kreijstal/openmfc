@@ -13,24 +13,24 @@ int LoadImage(CStringA& text,const WORD* image) {
     text.ReleaseBufferSetLength(length);return TRUE;
 }
 }
-CStringA::CStringA(const char* source):CSimpleStringA(OpenMFC_GetStringMgr()) {
+CStringA::CStringT(const char* source):CSimpleStringA(OpenMFC_GetStringMgr()) {
     if(source && uintptr_t(source)<0x10000)LoadString(UINT(uintptr_t(source)));
     else SetString(source);
 }
-CStringA::CStringA(const char* source,IAtlStringMgr* manager):CSimpleStringA(manager) {
+CStringA::CStringT(const char* source,IAtlStringMgr* manager):CSimpleStringA(manager) {
     if(source && uintptr_t(source)<0x10000)LoadString(UINT(uintptr_t(source)));
     else SetString(source);
 }
-CStringA::CStringA(const wchar_t* source):CSimpleStringA(OpenMFC_GetStringMgr()) {
+CStringA::CStringT(const wchar_t* source):CSimpleStringA(OpenMFC_GetStringMgr()) {
     if(source && uintptr_t(source)<0x10000)LoadString(UINT(uintptr_t(source)));
     else operator=(source);
 }
-CStringA::CStringA(const wchar_t* source,IAtlStringMgr* manager):CSimpleStringA(manager) {
+CStringA::CStringT(const wchar_t* source,IAtlStringMgr* manager):CSimpleStringA(manager) {
     if(source && uintptr_t(source)<0x10000)LoadString(UINT(uintptr_t(source)));
     else operator=(source);
 }
-CStringA::CStringA(const wchar_t* source,int length):CSimpleStringA(OpenMFC_GetStringMgr()) {Convert(source,length);}
-CStringA::CStringA(const wchar_t* source,int length,IAtlStringMgr* manager):CSimpleStringA(manager) {Convert(source,length);}
+CStringA::CStringT(const wchar_t* source,int length):CSimpleStringA(OpenMFC_GetStringMgr()) {Convert(source,length);}
+CStringA::CStringT(const wchar_t* source,int length,IAtlStringMgr* manager):CSimpleStringA(manager) {Convert(source,length);}
 void CStringA::Convert(const wchar_t* source,int length) {
     if(length<=0)return;
     if(!source)InvalidLength();
@@ -49,10 +49,10 @@ CStringA& CStringA::operator=(const wchar_t* source) {
     return *this;
 }
 CStringA& CStringA::operator=(wchar_t value) {wchar_t text[]={value,0};return operator=(text);}
-CStringA::CStringA(char value,int count):CSimpleStringA(OpenMFC_GetStringMgr()) {
+CStringA::CStringT(char value,int count):CSimpleStringA(OpenMFC_GetStringMgr()) {
     if(count>0){memset(GetBuffer(count),value,size_t(count));SetLength(count);}
 }
-CStringA::CStringA(wchar_t value,int count):CSimpleStringA(OpenMFC_GetStringMgr()) {
+CStringA::CStringT(wchar_t value,int count):CSimpleStringA(OpenMFC_GetStringMgr()) {
     if(count<=0)return;
     wchar_t text[]={value,0};
     int width=value?int32_t(uint32_t(::WideCharToMultiByte(CP_THREAD_ACP,0,text,-1,nullptr,0,nullptr,nullptr))-1):1;
@@ -69,6 +69,6 @@ CStringA::CStringA(wchar_t value,int count):CSimpleStringA(OpenMFC_GetStringMgr(
     } catch(...){if(converted!=local)free(converted);throw;}
     if(converted!=local)free(converted);
 }
-int CStringA::LoadString(UINT id) {auto module=FindModule(id);return module?LoadString(module,id):FALSE;}
-int CStringA::LoadString(HINSTANCE module,UINT id) {return LoadImage(*this,openmfc::detail::StringResourceImage(module,id));}
-int CStringA::LoadString(HINSTANCE module,UINT id,unsigned short language) {return LoadImage(*this,openmfc::detail::StringResourceImage(module,id,language));}
+int CStringA::LoadStringW(UINT id) {auto module=FindModule(id);return module?LoadString(module,id):FALSE;}
+int CStringA::LoadStringW(HINSTANCE module,UINT id) {return LoadImage(*this,openmfc::detail::StringResourceImage(module,id));}
+int CStringA::LoadStringW(HINSTANCE module,UINT id,unsigned short language) {return LoadImage(*this,openmfc::detail::StringResourceImage(module,id,language));}

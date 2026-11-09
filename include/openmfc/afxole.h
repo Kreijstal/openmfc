@@ -44,7 +44,6 @@ typedef DWORD OLE_NOTIFICATION;
 //=============================================================================
 // Forward declarations and base classes
 //=============================================================================
-class CString;
 class CPropExchange;
 class CArchive;
 class CView;

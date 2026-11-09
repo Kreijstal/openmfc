@@ -27,7 +27,6 @@ class CDBException;
 class CRecordView;
 class CFieldExchange;
 class CLongBinary;
-class CStringA;
 
 enum DBVariantType {
     DBVT_NULL=0,DBVT_BOOL,DBVT_UCHAR,DBVT_SHORT,DBVT_LONG,DBVT_SINGLE,

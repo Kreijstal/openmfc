@@ -20,7 +20,7 @@ CStringData* Data(const CString& string) {
     return reinterpret_cast<CStringData*>(*reinterpret_cast<wchar_t* const*>(&string))-1;
 }
 void Attach(CString& string,CStringData* data) {*reinterpret_cast<wchar_t**>(&string)=reinterpret_cast<wchar_t*>(data+1);}
-void Release(CStringData* data) {if(data->Release())data->pStringMgr->Free(data);}
+void Release(CStringData* data) {data->Release();}
 CStringData* Allocate(IAtlStringMgr* manager,int length) {
     auto* data=manager->Allocate(length,sizeof(wchar_t));
     if(!data)impl__AfxThrowMemoryException__YAXXZ();return data;

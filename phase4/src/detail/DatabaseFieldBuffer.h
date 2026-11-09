@@ -24,7 +24,7 @@ public:
             auto* fresh=old->pStringMgr->Clone()->Allocate(required,sizeof(Char));
             if(!fresh)impl__AfxThrowMemoryException__YAXXZ();
             std::memcpy(fresh+1,*text,size_t(old->nDataLength+1)*sizeof(Char));fresh->nDataLength=old->nDataLength;
-            if(old->Release())old->pStringMgr->Free(old);*text=reinterpret_cast<Char*>(fresh+1);
+            old->Release();*text=reinterpret_cast<Char*>(fresh+1);
         } else if(required>old->nAllocLength) {
             int extra=old->nAllocLength>1024*1024*1024?1024*1024:old->nAllocLength/2;
             int grown=int32_t(uint32_t(old->nAllocLength)+uint32_t(extra));
@@ -42,7 +42,7 @@ public:
     void empty() {
         auto* old=data();if(!old->nDataLength)return;
         if(old->IsLocked()){release(0);return;}
-        auto* manager=old->pStringMgr;if(old->Release())manager->Free(old);
+        auto* manager=old->pStringMgr;old->Release();
         *text=reinterpret_cast<Char*>(manager->GetNilString()+1);
     }
 };

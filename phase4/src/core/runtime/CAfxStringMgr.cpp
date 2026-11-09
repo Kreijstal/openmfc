@@ -1,6 +1,7 @@
 // CAfxStringMgr — OpenMFC implementation.
 // Actual 40-byte manager, embedded nil header and native allocation providers.
 
+#define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxstr.h"
 #include <cstdlib>
 
@@ -41,3 +42,7 @@ extern "C" CStringData* MS_ABI impl__Reallocate_CAfxStringMgr__UEAAPEAUCStringDa
     void* pThis, CStringData* pData, int nAllocLength, int nCharSize) {
     return static_cast<CAfxStringMgr*>(pThis)->CAfxStringMgr::Reallocate(pData,nAllocLength,nCharSize);
 }
+
+IAtlStringMgr* AFXAPI AfxGetStringManager() {return OpenMFC_GetStringMgr();}
+// Symbol: ?AfxGetStringManager@@YAPEAUIAtlStringMgr@ATL@@XZ
+extern "C" IAtlStringMgr* impl__AfxGetStringManager__YAPEAUIAtlStringMgr_ATL__XZ() {return AfxGetStringManager();}

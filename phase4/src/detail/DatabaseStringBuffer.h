@@ -19,7 +19,7 @@ class DatabaseStringBuffer {
             auto* replacement=old->pStringMgr->Clone()->Allocate(size,sizeof(wchar_t));
             if(!replacement) {impl__AfxThrowMemoryException__YAXXZ();return;}
             std::memcpy(chars(replacement),*text,size_t(old->nDataLength+1)*sizeof(wchar_t));replacement->nDataLength=old->nDataLength;
-            if(old->Release())old->pStringMgr->Free(old);*text=chars(replacement);
+            old->Release();*text=chars(replacement);
         } else if(size>old->nAllocLength) {
             int capacity=old->nAllocLength;
             int extra=capacity>1024*1024*1024?1024*1024:capacity/2;
@@ -40,7 +40,7 @@ public:
     void empty() {
         auto* old=data();if(!old->nDataLength)return;
         if(old->IsLocked()) {old->nDataLength=0;(*text)[0]=0;return;}
-        auto* manager=old->pStringMgr;if(old->Release())manager->Free(old);*text=chars(manager->GetNilString());
+        auto* manager=old->pStringMgr;old->Release();*text=chars(manager->GetNilString());
     }
     void set(const wchar_t* source) {set(source,source?int(std::wcslen(source)):0);}
     void set(const wchar_t* source,int length) {

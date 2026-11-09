@@ -146,7 +146,7 @@ static std::vector<INT64> ownership(const API& api) {
             refs==2?buffer->nRefs:0});text(result,f.rs.m_strSQL);
         f.rs.m_strSQL.~CString();new(&f.rs.m_strSQL) CString;
         database_strings_test::data(f.rs.m_strSQL)->Release();database_strings_test::attach(f.rs.m_strSQL,original);
-        if(refs==2 && buffer->Release())source.Free(buffer);
+        if(refs==2)buffer->Release();
         result.insert(result.end(),{source.frees,other.frees});
     }
     return result;

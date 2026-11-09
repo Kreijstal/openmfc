@@ -17,8 +17,8 @@ void CheckCoercion(HRESULT status) {
     }
 }
 }
-CStringA::CStringA(const VARIANT& source):CStringA(source,OpenMFC_GetStringMgr()) {}
-CStringA::CStringA(const VARIANT& source,IAtlStringMgr* manager):CSimpleStringA(manager) {
+CStringA::CStringT(const VARIANT& source):CStringT(source,OpenMFC_GetStringMgr()) {}
+CStringA::CStringT(const VARIANT& source,IAtlStringMgr* manager):CSimpleStringA(manager) {
     ConvertedVariant converted;CheckCoercion(converted.Coerce(source));operator=(converted.value.bstrVal);
 }
 CStringA& CStringA::operator=(const VARIANT& source) {
@@ -33,8 +33,8 @@ CStringA& CStringA::operator+=(const VARIANT& source) {
     ConvertedVariant converted;CheckCoercion(converted.Coerce(source));
     operator+=(converted.value.bstrVal);return *this;
 }
-CString::CString(const VARIANT& source):CString(source,OpenMFC_GetStringMgr()) {}
-CString::CString(const VARIANT& source,IAtlStringMgr* manager):CSimpleStringW(manager) {
+CString::CStringT(const VARIANT& source):CStringT(source,OpenMFC_GetStringMgr()) {}
+CString::CStringT(const VARIANT& source,IAtlStringMgr* manager):CSimpleStringW(manager) {
     ConvertedVariant converted;CheckCoercion(converted.Coerce(source));operator=(converted.value.bstrVal);
 }
 CString& CString::operator=(const VARIANT& source) {

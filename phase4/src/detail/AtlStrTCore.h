@@ -129,7 +129,7 @@ public:
 
         CStringData* pd = GetData();
         if (pd->nDataLength == 0) return;
-        if (pd->Release()) FreeData(pd);
+        pd->Release();
         m_pszData = data(NilData<CH>());NilData<CH>()->AddRef();
     }
 
@@ -154,7 +154,7 @@ public:
             CStringData* nd = AllocData(nNew);
             Copy(data(nd), m_pszData, nOld + 1);
             nd->nDataLength = nOld;
-            if (pd->Release()) FreeData(pd);
+            pd->Release();
             m_pszData = data(nd);
         }
         GetData()->nRefs = -1; // lock while exposed
@@ -223,7 +223,7 @@ public:
 
         if (m_pszData == src.m_pszData) return;
         CStringData* pd = GetData();
-        if (pd->Release()) FreeData(pd);
+        pd->Release();
         CStringData* s = src.GetData();
         if (s->IsLocked()) m_pszData = src.m_pszData;
         else { s->AddRef(); m_pszData = src.m_pszData; }
@@ -236,7 +236,7 @@ public:
         int n = Len(psz);
         CStringData* pd = GetData();
         if (pd->IsLocked() || pd->IsShared() || n > pd->nAllocLength) {
-            if (pd->Release()) FreeData(pd);
+            pd->Release();
             AllocBuffer(n);
         }
         Copy(m_pszData, psz, n + 1);
@@ -255,7 +255,7 @@ public:
         if (pd->IsLocked() || pd->IsShared() || nNew > pd->nAllocLength) {
             CStringData* nd = AllocData(nNew);
             Copy(data(nd), m_pszData, nOld);
-            if (pd->Release()) FreeData(pd);
+            pd->Release();
             m_pszData = data(nd);
         }
         Copy(m_pszData + nOld, psz, n);
@@ -368,7 +368,7 @@ public:
         Copy(data(nd), m_pszData, n);
         data(nd)[n] = 0;
         nd->nDataLength = n;
-        if (pOld->Release()) FreeData(pOld);
+        pOld->Release();
         m_pszData = data(nd);
     }
     void SetLength(int nLength) {
@@ -403,7 +403,7 @@ public:
         if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Attach(pData);}
 
         CStringData* pd = GetData();
-        if (pd->Release()) FreeData(pd);
+        pd->Release();
         m_pszData = data(pData);
     }
     void SetManagerEmpty(IAtlStringMgr* mgr) {

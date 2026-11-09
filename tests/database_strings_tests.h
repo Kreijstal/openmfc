@@ -23,16 +23,16 @@ struct Manager : IAtlStringMgr {
     Manager* clone=this;int allocations=0,frees=0,reallocations=0,clones=0;
     alignas(8) BYTE nil[32]{};
     Manager() {auto* p=reinterpret_cast<CStringData*>(nil);p->pStringMgr=this;p->nRefs=2;}
-    CStringData* Allocate(int length,int size) override {
+    CStringData* Allocate(int length,int size) noexcept override {
         ++allocations;auto* p=static_cast<CStringData*>(std::calloc(1,sizeof(CStringData)+(length+1)*size));
         p->pStringMgr=this;p->nAllocLength=length;p->nRefs=1;return p;
     }
-    void Free(CStringData* p) override {++frees;std::free(p);}
-    CStringData* Reallocate(CStringData* p,int length,int size) override {
+    void Free(CStringData* p) noexcept override {++frees;std::free(p);}
+    CStringData* Reallocate(CStringData* p,int length,int size) noexcept override {
         ++reallocations;p=static_cast<CStringData*>(std::realloc(p,sizeof(CStringData)+(length+1)*size));p->nAllocLength=length;return p;
     }
-    CStringData* GetNilString() override {auto* p=reinterpret_cast<CStringData*>(nil);p->AddRef();return p;}
-    IAtlStringMgr* Clone() override {++clones;return clone;}
+    CStringData* GetNilString() noexcept override {auto* p=reinterpret_cast<CStringData*>(nil);p->AddRef();return p;}
+    IAtlStringMgr* Clone() noexcept override {++clones;return clone;}
 };
 std::vector<UINT64> exercise(const API& api) {
     CDatabase database;std::vector<UINT64> result;

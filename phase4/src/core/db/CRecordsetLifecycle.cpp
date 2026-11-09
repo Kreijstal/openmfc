@@ -19,7 +19,7 @@ void DeleteFieldMetadata(CODBCFieldInfo* fields) {
     auto* allocation=reinterpret_cast<size_t*>(fields)-1;
     for(size_t i=*allocation;i;--i) {
         auto* data=reinterpret_cast<CStringData*>(*reinterpret_cast<wchar_t**>(&fields[i-1].m_strName))-1;
-        if(data->Release())data->pStringMgr->Free(data);
+        data->Release();
     }
     ::operator delete[](allocation);
 }

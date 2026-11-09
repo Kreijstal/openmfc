@@ -7,12 +7,12 @@ template<class CH> struct Value {
     CH* text;
     explicit Value(IAtlStringMgr* manager) : text(reinterpret_cast<CH*>(manager->GetNilString()+1)) {}
     CStringData* data() const {return reinterpret_cast<CStringData*>(text)-1;}
-    ~Value() {auto* p=data();if(p->Release())p->pStringMgr->Free(p);}
+    ~Value() {auto* p=data();p->Release();}
     void set(const char* string) {
         int length=int(strlen(string));auto* p=data();
         if(p->IsShared() || p->nAllocLength<length) {
             auto* fresh=p->pStringMgr->Allocate(length,sizeof(CH));
-            if(p->Release())p->pStringMgr->Free(p);p=fresh;text=reinterpret_cast<CH*>(p+1);
+            p->Release();p=fresh;text=reinterpret_cast<CH*>(p+1);
         }
         for(int i=0;i<=length;++i)text[i]=CH(string[i]);p->nDataLength=length;
     }

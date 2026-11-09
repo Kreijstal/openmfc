@@ -24,7 +24,7 @@ struct Block {CStringData* data;int bytes,id;bool live;};
 std::vector<Block> blocks;
 int blockID(CStringData* data){for(auto b:blocks)if(b.data==data)return b.id;return 0;}
 CSimpleStringA* mutationTarget;int mutationStage;int mutationWidth=1;
-void mutate(int stage){if(mutationTarget&&mutationStage==stage){auto* data=mutationTarget->GetData();data->nDataLength=3;if(mutationWidth==2)data->data()[3]=0;else CSimpleStringA::Characters(data)[3]=0;}}
+void mutate(int stage){if(mutationTarget&&mutationStage==stage){auto* data=mutationTarget->GetData();data->nDataLength=3;if(mutationWidth==2)static_cast<wchar_t*>(data->data())[3]=0;else CSimpleStringA::Characters(data)[3]=0;}}
 struct Manager: IAtlStringMgr {
  struct {CStringData header;char empty[8];} nil;
  int id;Manager* cloned;bool failAllocate=false,failReallocate=false;
@@ -34,15 +34,15 @@ struct Manager: IAtlStringMgr {
   auto* data=static_cast<CStringData*>(malloc(sizeof(CStringData)+bytes));
   *data={this,0,actual,1};memset(data+1,0xa5,bytes);blocks.push_back({data,bytes,int(blocks.size()+1),true});return data;
  }
- CStringData* Allocate(int length,int width) override {events.push_back({1,id,length,width,0,0});mutate(2);return failAllocate?nullptr:make(length,width);}
- void Free(CStringData* data) override {events.push_back({2,id,blockID(data),data->nDataLength,data->nAllocLength,data->nRefs});for(auto& b:blocks)if(b.data==data){check(b.live,"ANSI buffers are released exactly once");b.live=false;return;}check(false,"manager frees one of its own live buffers");}
- CStringData* Reallocate(CStringData* data,int length,int width) override {
+ CStringData* Allocate(int length,int width) noexcept override {events.push_back({1,id,length,width,0,0});mutate(2);return failAllocate?nullptr:make(length,width);}
+ void Free(CStringData* data) noexcept override {events.push_back({2,id,blockID(data),data->nDataLength,data->nAllocLength,data->nRefs});for(auto& b:blocks)if(b.data==data){check(b.live,"ANSI buffers are released exactly once");b.live=false;return;}check(false,"manager frees one of its own live buffers");}
+ CStringData* Reallocate(CStringData* data,int length,int width) noexcept override {
   events.push_back({3,id,blockID(data),length,width,data->nRefs});mutate(3);if(failReallocate)return nullptr;
   auto* out=make(length,width);int bytes=0;for(auto& b:blocks)if(b.data==data){bytes=b.bytes-32;b.live=false;break;}
   memcpy(out+1,data+1,size_t((std::min)(bytes,((length<0?0:length)+1)*width)));out->nDataLength=data->nDataLength;out->nRefs=data->nRefs;return out;
  }
- CStringData* GetNilString() override {events.push_back({4,id,0,0,0,0});nil.header.AddRef();return &nil.header;}
- IAtlStringMgr* Clone() override {events.push_back({5,id,cloned->id,0,0,0});mutate(1);return cloned;}
+ CStringData* GetNilString() noexcept override {events.push_back({4,id,0,0,0,0});nil.header.AddRef();return &nil.header;}
+ IAtlStringMgr* Clone() noexcept override {events.push_back({5,id,cloned->id,0,0,0});mutate(1);return cloned;}
 };
 struct Fixture {
  Manager first{1},second{2},third{3};
