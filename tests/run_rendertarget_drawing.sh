@@ -19,6 +19,7 @@ FLAGS=(/nologo /EHs /MT /std:c++17 /Gy /Gw /W0
     -I"$ROOT/include" -I"$ROOT/phase4/src")
 SOURCES=(tests/test_rendertarget_drawing.cpp
     phase4/src/core/runtime/CArchiveStorage.cpp phase4/src/core/exceptions/CArchiveException.cpp phase4/src/core/exceptions/CArchiveExceptionLifetime.cpp
+    phase4/src/core/runtime/CArchiveMapping.cpp phase4/src/core/runtime/CArchiveStoreObjects.cpp phase4/src/core/runtime/RuntimeClassStore.cpp
     phase4/src/core/runtime/CThreadLocalObject.cpp phase4/src/core/runtime/CThreadSlotData.cpp phase4/src/detail/CThreadLocalObjectSupport.cpp phase4/src/detail/CThreadSlotDataSupport.cpp phase4/src/core/collections/CPlex.cpp
     phase4/src/detail/GdicoreSupport.cpp
     phase4/src/core/gdi/CGdiObject.cpp phase4/src/detail/GdiObjectHandleMapSupport.cpp

@@ -46,7 +46,6 @@ void CFile::Flush() { if (m_hFile != INVALID_HANDLE_VALUE) FlushFileBuffers(m_hF
 void CFile::Close() {
     if (m_hFile != INVALID_HANDLE_VALUE) { CloseHandle(m_hFile); m_hFile = INVALID_HANDLE_VALUE; }
 }
-void CFile::SetFilePath(const wchar_t*) {}
 CString CFile::GetFileName() const { return CString(); }
 CString CFile::GetFileTitle() const { return CString(); }
 CString CFile::GetFilePath() const { return CString(); }

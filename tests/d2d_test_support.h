@@ -18,7 +18,6 @@ HINSTANCE AFXAPI AfxGetInstanceHandle() {
 HINSTANCE AFXAPI AfxGetResourceHandle() { return g_d2dTestResourceModule ? g_d2dTestResourceModule : GetModuleHandleW(nullptr); }
 // List serialization is linked for its vtable but is outside these drawing tests.
 CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
-CArchive& CArchive::operator<<(const CObject*) { std::abort(); }
 CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
 CArchive& CArchive::operator>>(CObject*&) { std::abort(); }
 // Command routing is outside these rendering tests.

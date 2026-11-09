@@ -2,6 +2,7 @@
 // user serialization so recursive graphs can reference the object in progress.
 #include "detail/FilecoreSupport.h"
 #include "openmfc/afxwin.h"
+extern "C" void impl__AfxThrowNotSupportedException__YAXXZ();
 namespace {
 void Error(CArchive& archive,int cause) {AfxThrowArchiveException(cause,archive.m_strFileName.GetString());}
 void Reference(CArchive& archive,UINT index,bool type) {
@@ -12,7 +13,7 @@ void Reference(CArchive& archive,UINT index,bool type) {
 void CArchive::WriteClass(const CRuntimeClass* type) {
     if(!type)Error(*this,6);
     if(IsLoading())Error(*this,1);
-    if(type->m_wSchema==0xffff)AfxThrowNotSupportedException();
+    if(type->m_wSchema==0xffff)impl__AfxThrowNotSupportedException__YAXXZ();
     MapObject(nullptr);
     UINT index=UINT(UINT_PTR((*m_pStoreMap)[const_cast<CRuntimeClass*>(type)]));
     if(index)Reference(*this,index,true);
