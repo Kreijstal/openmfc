@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - 'include/openmfc/**'
+      - 'phase4/src/core/collections/CStringW.cpp'
+      - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/core/file/**'
       - 'phase4/src/core/exceptions/CFileOsError.cpp'
       - 'phase4/src/core/exceptions/CFileExceptionLifetime.cpp'
@@ -14,6 +16,8 @@ on:
   pull_request:
     paths:
       - 'include/openmfc/**'
+      - 'phase4/src/core/collections/CStringW.cpp'
+      - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/core/file/**'
       - 'phase4/src/core/exceptions/CFileOsError.cpp'
       - 'phase4/src/core/exceptions/CFileExceptionLifetime.cpp'

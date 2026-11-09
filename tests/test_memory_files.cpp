@@ -12,6 +12,7 @@
 #include <ctime>
 
 // These surrounding services are outside the buffer and Win32 file tests.
+extern "C" void* impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT) { std::abort(); }
 CRuntimeClass CException::classCException{"CException",16,0xffff,nullptr,&CObject::GetThisClass,nullptr,nullptr};
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) const { std::abort(); }
 int CException::GetErrorMessage(wchar_t*,UINT,UINT*) { std::abort(); }

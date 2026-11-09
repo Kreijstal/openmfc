@@ -34,7 +34,7 @@ CStringA& CStringA::operator+=(const VARIANT& source) {
     operator+=(converted.value.bstrVal);return *this;
 }
 CString::CString(const VARIANT& source):CString(source,OpenMFC_GetStringMgr()) {}
-CString::CString(const VARIANT& source,IAtlStringMgr* manager):CString(manager) {
+CString::CString(const VARIANT& source,IAtlStringMgr* manager):CSimpleStringW(manager) {
     ConvertedVariant converted;CheckCoercion(converted.Coerce(source));operator=(converted.value.bstrVal);
 }
 CString& CString::operator=(const VARIANT& source) {

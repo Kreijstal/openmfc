@@ -82,7 +82,7 @@ extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_AT
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEBD_Z(CStringA* self,const char* source);
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEA_W_Z(CStringA* self,const wchar_t* source);
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAUIAtlStringMgr_1__Z(CStringA* self,IAtlStringMgr* manager);
-extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAE_Z(CStringA* self,const unsigned char* source);
+extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAE_Z(CStringA* self,unsigned char* source);
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAD_Z(CStringA* self,const char* source);
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_DH_Z(CStringA* self,char value,int count);
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_AEBV01__Z(CStringA* self,const CStringA* source);
@@ -103,6 +103,40 @@ extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_AT
 extern "C" void impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_WH_Z(CString* self,const wchar_t* text,int count);
 extern "C" void impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z(CString* self,const wchar_t* text);
 extern "C" void impl__Append___CSimpleStringT__W_00_ATL__QEAAXAEBV12__Z(CString* self,const CString* text);
+extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEBD_Z(CString* self,const char* text);
+extern "C" void impl___1__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(CString* self);
+extern "C" void impl___1__CSimpleStringT__W_00_ATL__QEAA_XZ(CSimpleStringW* self);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA__WH_Z(CString* self,wchar_t value,int count);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(CString* self);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_WPEAUIAtlStringMgr_1__Z(CString* self,const wchar_t* text,IAtlStringMgr* manager);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_WHPEAUIAtlStringMgr_1__Z(CString* self,const wchar_t* text,int count,IAtlStringMgr* manager);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_WH_Z(CString* self,const wchar_t* text,int count);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_W_Z(CString* self,const wchar_t* text);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBEPEAUIAtlStringMgr_1__Z(CString* self,const unsigned char* text,IAtlStringMgr* manager);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBE_Z(CString* self,const unsigned char* text);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBDPEAUIAtlStringMgr_1__Z(CString* self,const char* text,IAtlStringMgr* manager);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBDHPEAUIAtlStringMgr_1__Z(CString* self,const char* text,int count,IAtlStringMgr* manager);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBDH_Z(CString* self,const char* text,int count);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBD_Z(CString* self,const char* text);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEA_W_Z(CString* self,wchar_t* text);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEAUIAtlStringMgr_1__Z(CString* self,IAtlStringMgr* manager);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEAE_Z(CString* self,unsigned char* text);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEAD_Z(CString* self,char* text);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_DH_Z(CString* self,char value,int count);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_AEBV01__Z(CString* self,const CString* source);
+extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEB_WPEAUIAtlStringMgr_1__Z(CSimpleStringW* self,const wchar_t* text,IAtlStringMgr* manager);
+extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEB_WHPEAUIAtlStringMgr_1__Z(CSimpleStringW* self,const wchar_t* text,int count,IAtlStringMgr* manager);
+extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_PEAUIAtlStringMgr_1__Z(CSimpleStringW* self,IAtlStringMgr* manager);
+extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const CSimpleStringW* source);
+extern "C" CSimpleStringW* impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV01__Z(CSimpleStringW* self,const CSimpleStringW* source);
+extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01__W_Z(CString* self,wchar_t source);
+extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEB_W_Z(CString* self,const wchar_t* source);
+extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEBE_Z(CString* self,const unsigned char* source);
+extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_D_Z(CString* self,char source);
+extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBV01__Z(CString* self,const CString* source);
+extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_PEB_W_Z(CSimpleStringW* self,const wchar_t* source);
+extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const CSimpleStringW* source);
+extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV01__Z(CSimpleStringW* self,const CSimpleStringW* source);
 static const std::pair<UINT_PTR,void*> ansiStringProviders[]={
     {0x2b4680,reinterpret_cast<void*>(&impl__UnlockBuffer___CSimpleStringT_D_00_ATL__QEAAXXZ)},
     {0x2b6e00,reinterpret_cast<void*>(&impl__Truncate___CSimpleStringT_D_00_ATL__QEAAXH_Z)},
@@ -205,4 +239,38 @@ static const std::pair<UINT_PTR,void*> ansiStringProviders[]={
     {0x2ba0,reinterpret_cast<void*>(&impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_WH_Z)},
     {0x122f0,reinterpret_cast<void*>(&impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z)},
     {0x2ca0,reinterpret_cast<void*>(&impl__Append___CSimpleStringT__W_00_ATL__QEAAXAEBV12__Z)},
+    {0x1cd480,reinterpret_cast<void*>(&impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEBD_Z)},
+    {0x2fd0,reinterpret_cast<void*>(&impl___1__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ)},
+    {0x2fd0,reinterpret_cast<void*>(&impl___1__CSimpleStringT__W_00_ATL__QEAA_XZ)},
+    {0x7c260,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA__WH_Z)},
+    {0x3040,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ)},
+    {0xd790,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_WPEAUIAtlStringMgr_1__Z)},
+    {0x12a60,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_WHPEAUIAtlStringMgr_1__Z)},
+    {0x1c0c0,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_WH_Z)},
+    {0xdcb0,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_W_Z)},
+    {0x2b4500,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBEPEAUIAtlStringMgr_1__Z)},
+    {0x2b4560,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBE_Z)},
+    {0x264be0,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBDPEAUIAtlStringMgr_1__Z)},
+    {0x2b4380,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBDHPEAUIAtlStringMgr_1__Z)},
+    {0x1c0e0,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBDH_Z)},
+    {0x1cd550,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEBD_Z)},
+    {0xdcb0,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEA_W_Z)},
+    {0x12bc0,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEAUIAtlStringMgr_1__Z)},
+    {0x1cd550,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEAE_Z)},
+    {0x1cd550,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEAD_Z)},
+    {0x2b4470,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_DH_Z)},
+    {0xd740,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_AEBV01__Z)},
+    {0x2b47c0,reinterpret_cast<void*>(&impl___0__CSimpleStringT__W_00_ATL__QEAA_PEB_WPEAUIAtlStringMgr_1__Z)},
+    {0x12980,reinterpret_cast<void*>(&impl___0__CSimpleStringT__W_00_ATL__QEAA_PEB_WHPEAUIAtlStringMgr_1__Z)},
+    {0x3000,reinterpret_cast<void*>(&impl___0__CSimpleStringT__W_00_ATL__QEAA_PEAUIAtlStringMgr_1__Z)},
+    {0xd740,reinterpret_cast<void*>(&impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV__CSimpleStringT__W_0A__1__Z)},
+    {0xd740,reinterpret_cast<void*>(&impl___0__CSimpleStringT__W_00_ATL__QEAA_AEBV01__Z)},
+    {0x2b4330,reinterpret_cast<void*>(&impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01__W_Z)},
+    {0x2f90,reinterpret_cast<void*>(&impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEB_W_Z)},
+    {0x2b4370,reinterpret_cast<void*>(&impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEBE_Z)},
+    {0x2b4310,reinterpret_cast<void*>(&impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_D_Z)},
+    {0xdec0,reinterpret_cast<void*>(&impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBV01__Z)},
+    {0x2f90,reinterpret_cast<void*>(&impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_PEB_W_Z)},
+    {0xde30,reinterpret_cast<void*>(&impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_0A__1__Z)},
+    {0xde30,reinterpret_cast<void*>(&impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV01__Z)},
 };

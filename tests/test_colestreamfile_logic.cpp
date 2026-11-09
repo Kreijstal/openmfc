@@ -9,6 +9,8 @@
 #include <cstring>
 #include <ctime>
 #include <climits>
+// Resource-module lookup is outside these stream and file tests.
+extern "C" void* impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT) {std::abort();}
 extern "C" void impl__Write_COleStreamFile__UEAAXPEBXI_Z(COleStreamFile* p,const void* b,UINT n);
 extern "C" void impl__UnlockRange_COleStreamFile__UEAAX_K0_Z(COleStreamFile* p,ULONGLONG o,ULONGLONG n);
 extern "C" void impl__SetLength_COleStreamFile__UEAAX_K_Z(COleStreamFile* p,ULONGLONG n);

@@ -163,7 +163,7 @@ extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_AT
 // Symbol: ??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEAUIAtlStringMgr@1@@Z
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAUIAtlStringMgr_1__Z(CStringA* self,IAtlStringMgr* manager) {return ::new(self) CStringA(manager);}
 // Symbol: ??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEAE@Z
-extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAE_Z(CStringA* self,const unsigned char* source) {return ::new(self) CStringA(source);}
+extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAE_Z(CStringA* self,unsigned char* source) {return ::new(self) CStringA(source);}
 // Symbol: ??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@PEAD@Z
 extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAD_Z(CStringA* self,const char* source) {return ::new(self) CStringA(source);}
 // Symbol: ??0?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAA@DH@Z

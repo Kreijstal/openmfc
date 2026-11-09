@@ -21,6 +21,8 @@ def sources():
             'phase4/src/detail/FileStatusSupport.cpp',
             'phase4/src/core/exceptions/CFileOsError.cpp',
             'phase4/src/core/exceptions/CFileExceptionLifetime.cpp',
+            'phase4/src/core/collections/CStringW.cpp',
+            'phase4/src/core/collections/CStringResource.cpp',
             'tests/test_memory_files.cpp']
 
 

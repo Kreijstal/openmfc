@@ -95,67 +95,19 @@ template <class CH>
 class AtlStrT {
 public:
     // --- lifetime ---------------------------------------------------------------
-    void Construct() {
-        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA, void();}
-        m_pszData = data(NilData<CH>());NilData<CH>()->AddRef(); }
+    void Construct() {if constexpr(sizeof(CH)==1)::new(this) CStringA;else ::new(this) CString;}
 
-    void ConstructMgr(IAtlStringMgr* mgr) {
-        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(mgr), void();}
+    void ConstructMgr(IAtlStringMgr* mgr) {if constexpr(sizeof(CH)==1)::new(this) CStringA(mgr);else ::new(this) CString(mgr);}
 
-        // Empty string bound to a specific manager. ATL keeps the manager even when empty;
-        // we model that by allocating a zero-length buffer from it (so later growth uses it).
-        if (!mgr) { Construct(); return; }
-        CStringData* pd = mgr->Allocate(0, sizeof(CH));
-        if (!pd) { Construct(); return; }
-        data(pd)[0] = 0;
-        pd->nDataLength = 0;
-        m_pszData = data(pd);
-    }
+    void ConstructPsz(const CH* psz) {if constexpr(sizeof(CH)==1)::new(this) CStringA(psz);else ::new(this) CString(psz);}
 
-    void ConstructPsz(const CH* psz) {
-        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(psz), void();}
+    void ConstructPszN(const CH* psz, int n) {if constexpr(sizeof(CH)==1)::new(this) CStringA(psz,n);else ::new(this) CString(psz,n);}
 
-        if (!psz || !*psz) { Construct(); return; }
-        int n = Len(psz);
-        AllocBuffer(n);
-        Copy(m_pszData, psz, n + 1);
-        GetData()->nDataLength = n;
-    }
+    void ConstructChRep(CH ch, int nRep) {if constexpr(sizeof(CH)==1)::new(this) CStringA(ch,nRep);else ::new(this) CString(ch,nRep);}
 
-    void ConstructPszN(const CH* psz, int n) {
-        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(psz,n), void();}
+    void ConstructCopy(const AtlStrT& src) {if constexpr(sizeof(CH)==1)::new(this) CStringA(*reinterpret_cast<const CStringA*>(&src));else ::new(this) CString(*reinterpret_cast<const CString*>(&src));}
 
-        if (n <= 0 || !psz) { Construct(); return; }
-        AllocBuffer(n);
-        Copy(m_pszData, psz, n);
-        m_pszData[n] = 0;
-        GetData()->nDataLength = n;
-    }
-
-    void ConstructChRep(CH ch, int nRep) {
-        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(ch,nRep), void();}
-
-        if (nRep <= 0) { Construct(); return; }
-        AllocBuffer(nRep);
-        for (int i = 0; i < nRep; ++i) m_pszData[i] = ch;
-        m_pszData[nRep] = 0;
-        GetData()->nDataLength = nRep;
-    }
-
-    void ConstructCopy(const AtlStrT& src) {
-        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(*reinterpret_cast<const CStringA*>(&src)), void();}
-
-        CStringData* s = src.GetData();
-        if (s->IsLocked()) { m_pszData = src.m_pszData; }
-        else { s->AddRef(); m_pszData = src.m_pszData; }
-    }
-
-    void Destruct() {
-        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CStringA*>(this)->~CStringA();}
-
-        CStringData* pd = GetData();
-        if (pd->Release()) FreeData(pd);
-    }
+    void Destruct() {if constexpr(sizeof(CH)==1)reinterpret_cast<CStringA*>(this)->~CStringA();else reinterpret_cast<CString*>(this)->~CString();}
 
     // --- accessors --------------------------------------------------------------
     int GetLength() const { return GetData()->nDataLength; }

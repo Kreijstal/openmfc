@@ -19,6 +19,8 @@ def sources():
             'phase4/src/core/exceptions/CFileOsError.cpp',
             'phase4/src/core/exceptions/CFileExceptionLifetime.cpp',
             'phase4/src/core/ole/OleFileRuntimeClasses.cpp',
+            'phase4/src/core/collections/CStringW.cpp',
+            'phase4/src/core/collections/CStringResource.cpp',
             'tests/test_global_olefile_rtti_logic.cpp',
             'tests/test_colestreamfile_logic.cpp']
 
@@ -65,7 +67,10 @@ def main():
         objects = list(pool.map(compile_one, sources()))
     sys.path.insert(0, str(ROOT / 'phase4/scripts'))
     import build_msvc
-    checked=[source for source in sources() if not source.startswith('tests/')]
+    # String dependencies have their own provider audit in build_framework_exceptions.py.
+    checked=[source for source in sources() if not source.startswith('tests/')
+             and source not in ('phase4/src/core/collections/CStringW.cpp',
+                                'phase4/src/core/collections/CStringResource.cpp')]
     defined,names=set(),set()
     for source in checked:
         obj=out / (source.removesuffix('.cpp').replace('/','_')+'.obj')

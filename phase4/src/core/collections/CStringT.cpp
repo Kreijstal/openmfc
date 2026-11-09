@@ -74,38 +74,6 @@
   #define MS_ABI
 #endif
 
-// Wide (Unicode) CStringT / CSimpleStringT destructors.
-//
-// In the MFC headers a Unicode CStringW is the concrete instantiation
-//   CStringT<wchar_t, StrTraitMFC_DLL<wchar_t, ChTraitsCRT<wchar_t>>>
-// whose base is CSimpleStringT<wchar_t, true>.  Both have an identical ABI
-// layout to the repo's faithful CString: a single m_pszData pointer to a
-// reference-counted, header-prefixed character buffer.  The destructor simply
-// releases that buffer, which is exactly what CString::~CString() does.
-//
-// Only the wide variants are implemented here; the narrow (char) variants have
-// no faithful CStringA equivalent in the repo, so their weak stubs are left.
-
-
-// Symbol: ??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@XZ
-extern "C" void* MS_ABI impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(void* pThis) {
-    new (pThis) CString();
-    return pThis;
-}
-// Symbol: ??0?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@PEB_W@Z
-extern "C" void* MS_ABI impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEB_W_Z(void* pThis, const wchar_t* psz) {
-    new (pThis) CString(psz);
-    return pThis;
-}
-// Symbol: ??1?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@XZ
-extern "C" void MS_ABI impl___1__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(void* pThis) {
-    static_cast<CString*>(pThis)->~CString();
-}
-// Symbol: ??4?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@PEB_W@Z
-extern "C" void* MS_ABI impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEB_W_Z(void* pThis, const wchar_t* psz) {
-    *static_cast<CString*>(pThis) = psz;
-    return pThis;
-}
 // Symbol: ?Delete@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHHH@Z
 extern "C" int MS_ABI impl__Delete___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHHH_Z(CString* pThis, int iIndex, int nCount) {
     if (!pThis) return 0;
@@ -270,5 +238,3 @@ impl__CollateNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____
     }
     return ::_wcsicoll(pThis->GetString(), psz ? psz : L"");
 }
-// Implemented in global_cstring_core.cpp; this unit had a second, unlinked copy.
-// Symbol: ??1?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAA@XZ

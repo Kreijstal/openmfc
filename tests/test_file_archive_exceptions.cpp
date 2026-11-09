@@ -184,7 +184,7 @@ void checkedCopies(){
  strings.clear();strings[17]=L"resource";strings[0xf1a1]=L"file %1";strings[0xf1b1]=L"archive %1";resourceFailure=finderFailure=mutation=0;
  {
   Patch patch("wmemcpy_s",reinterpret_cast<void*>(&memoryCopy));realMemoryCopy=reinterpret_cast<MemCopy>(patch.old);
-  for(int result:{0,80,12,22,34,7}){checkedResult=result;CString text(L"existing");requested=17;events.clear();int returned=0,caught=invoke([&]{returned=api->loadModule(&text,module,17);});record(state(text,returned,caught));check(caught==((!result||result==80)?0:result==12?12:22),"resource-copy failures retain native memory/invalid exception types");}
+  for(int result:{0,80,12,22,34,7}){checkedResult=0;CString text(L"existing");checkedResult=result;requested=17;events.clear();int returned=0,caught=invoke([&]{returned=api->loadModule(&text,module,17);});record(state(text,returned,caught));check(caught==((!result||result==80)?0:result==12?12:22),"resource-copy failures retain native memory/invalid exception types");}
  }
  {
   Patch patch("wcscpy_s",reinterpret_cast<void*>(&stringCopy));realStringCopy=reinterpret_cast<StringCopy>(patch.old);

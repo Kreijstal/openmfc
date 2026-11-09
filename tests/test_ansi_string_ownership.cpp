@@ -23,8 +23,8 @@ std::vector<Event> events;
 struct Block {CStringData* data;int bytes,id;bool live;};
 std::vector<Block> blocks;
 int blockID(CStringData* data){for(auto b:blocks)if(b.data==data)return b.id;return 0;}
-CSimpleStringA* mutationTarget;int mutationStage;
-void mutate(int stage){if(mutationTarget&&mutationStage==stage){auto* data=mutationTarget->GetData();data->nDataLength=3;CSimpleStringA::Characters(data)[3]=0;}}
+CSimpleStringA* mutationTarget;int mutationStage;int mutationWidth=1;
+void mutate(int stage){if(mutationTarget&&mutationStage==stage){auto* data=mutationTarget->GetData();data->nDataLength=3;if(mutationWidth==2)data->data()[3]=0;else CSimpleStringA::Characters(data)[3]=0;}}
 struct Manager: IAtlStringMgr {
  struct {CStringData header;char empty[8];} nil;
  int id;Manager* cloned;bool failAllocate=false,failReallocate=false;
@@ -71,7 +71,7 @@ void snapshot(Result& result,Object& object,Fixture& fixture,bool valid){
 }
 template<class F>void sample(Object& object,Fixture& fixture,bool valid,F fn){
  Result result;safeRead=valid;
- try{result.value=fn();}catch(CMemoryException*){result.caught=12;}catch(COleException* error){result.caught=error->m_sc;error->Delete();}catch(CException* error){check(false,"string storage throws the expected native exception class");error->Delete();result.caught=-1;}
+ try{result.value=fn();}catch(CMemoryException*){result.caught=12;}catch(CInvalidArgException*){result.caught=22;}catch(COleException* error){result.caught=error->m_sc;error->Delete();}catch(CException* error){check(false,"string storage throws the expected native exception class");error->Delete();result.caught=-1;}
  snapshot(result,object,fixture,safeRead);
  if(image){bool good=comparisons<golden.size()&&result==golden[comparisons];if(!good&&failures<30){auto& old=golden[comparisons];printf("ANSI mismatch %u caught%x/%x value%lld/%lld object%d/%d calls ",comparisons,result.caught,old.caught,result.value,old.value,result.objectID,old.objectID);for(auto e:result.calls)printf("%lld:%lld:%lld,",e[0],e[1],e[2]);printf(" / ");for(auto e:old.calls)printf("%lld:%lld:%lld,",e[0],e[1],e[2]);printf("\n");}check(good,"ANSI ownership, byte contents, manager callbacks and failure states match native MFC");}
  else golden.push_back(result);++comparisons;
@@ -298,6 +298,149 @@ void resources(){
  resourceFailure=conversionFailure=0;g_fileExceptionFinder=previous;
 }
 
+void wideConstructors(){
+ for(int kind:{0,1,2,3,4,5})for(int length:{-2,-1,0,1,3,6})for(bool nil:{false,true})for(bool missing:{false,true})for(bool fail:{false,true}){
+  if(kind==5&&missing)continue;
+  Fixture fixture;Object object;fixture.first.failAllocate=fail;bool owned=false;events.clear();
+  sample(object,fixture,false,[&]()->INT64{
+   const wchar_t* text=nil?nullptr:L"A\0BCDE";IAtlStringMgr* manager=missing?nullptr:&fixture.first;
+   switch(kind){
+   case 0:call<void*>(0x12980,object.storage,text,length,manager);break;
+   case 1:call<void*>(0x2b47c0,object.storage,text,manager);break;
+   case 2:call<void*>(0x3000,object.storage,manager);break;
+   case 3:call<void*>(0x12a60,object.storage,text,length,manager);break;
+   case 4:call<void*>(0xd790,object.storage,text,manager);break;
+   case 5:call<void*>(0x12bc0,object.storage,manager);break;
+   }owned=true;safeRead=true;return object.get()->GetLength();
+  });
+  if(owned)reinterpret_cast<CString*>(object.storage)->~CString();
+ }
+ for(int state:{0,1,2})for(bool clone:{false,true})for(bool fail:{false,true})for(int length:{0,6}){
+  Fixture fixture;Object object,source;auto* text=::new(source.storage) CString(L"abcdef",length,&fixture.first);
+  if(state){text->LockBuffer();if(state==2)text->LockBuffer();}
+  fixture.first.cloned=clone?&fixture.second:&fixture.first;fixture.first.failAllocate=fixture.second.failAllocate=fail;bool owned=false;events.clear();
+  sample(object,fixture,false,[&]()->INT64{call<void*>(0xd740,object.storage,text);owned=true;safeRead=true;return object.get()->GetLength();});
+  if(owned)reinterpret_cast<CString*>(object.storage)->~CString();text->~CString();
+ }
+ for(int stage:{1,2})for(bool locked:{false,true}){
+  Fixture fixture;Object object,source;auto* text=::new(source.storage) CString(L"abcdef",6,&fixture.first);
+  if(locked)text->LockBuffer();fixture.first.cloned=&fixture.second;mutationTarget=source.get();mutationStage=stage;mutationWidth=2;events.clear();bool owned=false;
+  sample(object,fixture,false,[&]()->INT64{call<void*>(0xd740,object.storage,text);owned=true;safeRead=true;return object.get()->GetLength();});
+  mutationTarget=nullptr;mutationWidth=1;if(owned)reinterpret_cast<CString*>(object.storage)->~CString();text->~CString();
+ }
+ {Fixture fixture;{
+   CString source(L"abcdef",6,&fixture.first);source.LockBuffer();source.LockBuffer();
+   CString copy(source);check(copy.GetString()!=source.GetString()&&copy==L"abcdef","ordinary wide C++ copies own separate storage for locked sources");
+   copy.SetAt(0,L'Z');check(source==L"abcdef"&&copy==L"Zbcdef","changing a wide locked copy preserves its source");
+  }for(auto block:blocks)check(!block.live,"ordinary wide C++ destruction releases every owned buffer");}
+}
+using WideConverter=decltype(&::MultiByteToWideChar);WideConverter realWideConvert;int wideConversionFailure;
+int WINAPI wideConvert(UINT cp,DWORD flags,const char* text,int length,wchar_t* output,int capacity){
+ events.push_back({17,cp,flags,length,capacity,output!=nullptr});
+ if(!output&&wideConversionFailure==1)return 0;if(!output&&wideConversionFailure==2)return -1;if(output&&wideConversionFailure==3)return 0;
+ return realWideConvert(cp,flags,text,length,output,capacity);
+}
+void wideConversions(){
+ Patch conversion("MultiByteToWideChar",reinterpret_cast<void*>(&wideConvert));realWideConvert=reinterpret_cast<WideConverter>(conversion.old);
+ for(int kind=0;kind<9;++kind)for(int failure:{0,1,2,3})for(int count:{-1,0,1,4})for(bool nil:{false,true}){
+  Fixture fixture;Object object;bool owned=kind==8;if(owned)::new(object.storage) CString(L"old",3,&fixture.first);
+  wideConversionFailure=failure;events.clear();
+  sample(object,fixture,owned,[&]()->INT64{
+   const char* text=nil?nullptr:"A\xe9\0Z";
+   switch(kind){
+   case 0:call<void*>(0x264be0,object.storage,text,&fixture.first);break;
+   case 1:call<void*>(0x2b4380,object.storage,text,count,&fixture.first);break;
+   case 2:call<void*>(0x1cd550,object.storage,text);break;
+   case 3:call<void*>(0x1c0e0,object.storage,text,count);break;
+   case 4:call<void*>(0x2b4500,object.storage,reinterpret_cast<const unsigned char*>(text),&fixture.first);break;
+   case 5:call<void*>(0x2b4560,object.storage,reinterpret_cast<const unsigned char*>(text));break;
+   case 6:call<void*>(0x7c260,object.storage,wchar_t(nil?0:0x3a9),count);break;
+   case 7:call<void*>(0x2b4470,object.storage,char(nil?0:0xe9),count);break;
+   case 8:check(call<void*>(0x1cd480,object.storage,text)==object.storage,"ANSI-to-Unicode assignment returns its receiver");break;
+   }owned=true;safeRead=true;return object.get()->GetLength();
+  });
+  if(owned)reinterpret_cast<CString*>(object.storage)->~CString();
+ }
+ wideConversionFailure=0;
+}
+void wideConstructorResources(){
+ auto previous=g_fileExceptionFinder;g_fileExceptionFinder=&finder;
+ Patch a("FindResourceW",reinterpret_cast<void*>(&find)),b("LoadResource",reinterpret_cast<void*>(&load)),c("LockResource",reinterpret_cast<void*>(&lock)),d("SizeofResource",reinterpret_cast<void*>(&size));
+ for(int kind:{0,1,2,3,4,5})for(int failure=0;failure<7;++failure)for(bool fail:{false,true}){
+  Fixture fixture;Object object;fixture.first.failAllocate=fail;bool owned=false;resourceText.assign(L"Wide \x3a9\0tail",11);resourceID=35;resourceFailure=failure;events.clear();
+  sample(object,fixture,false,[&]()->INT64{
+   if(kind==0)call<void*>(0xd790,object.storage,reinterpret_cast<const wchar_t*>(UINT_PTR(resourceID)),&fixture.first);
+   if(kind==1)call<void*>(0x264be0,object.storage,reinterpret_cast<const char*>(UINT_PTR(resourceID)),&fixture.first);
+   if(kind==2)call<void*>(0xdcb0,object.storage,reinterpret_cast<const wchar_t*>(UINT_PTR(resourceID)));
+   if(kind==3)call<void*>(0x1cd550,object.storage,reinterpret_cast<const char*>(UINT_PTR(resourceID)));
+   if(kind==4){auto* text=reinterpret_cast<unsigned char*>(UINT_PTR(resourceID));if(image)call<void*>(0x1cd550,object.storage,text);else impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_PEAE_Z(reinterpret_cast<CString*>(object.storage),text);}
+   if(kind==5){auto* text=reinterpret_cast<unsigned char*>(UINT_PTR(resourceID));if(image)call<void*>(0x2b69d0,object.storage,text);else impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_PEAE_Z(object.string(),text);}
+   owned=true;safeRead=true;return object.get()->GetLength();
+  });
+  if(owned)reinterpret_cast<CString*>(object.storage)->~CString();
+ }
+ resourceFailure=0;g_fileExceptionFinder=previous;
+}
+
+void unsignedConstructors(){
+ for(bool wide:{false,true})for(bool manager:{false,true})for(bool nil:{false,true})for(bool missing:{false,true})for(bool fail:{false,true}){
+  if(!manager&&(missing||fail))continue;
+  Fixture fixture;Object object;bool owned=false;fixture.first.failAllocate=fail;events.clear();
+  sample(object,fixture,false,[&]()->INT64{
+   auto* text=nil?nullptr:reinterpret_cast<const unsigned char*>("A\0tail");
+   if(manager)call<void*>(wide?0x2b4500:0x2b6960,object.storage,text,missing?nullptr:&fixture.first);
+   else call<void*>(wide?0x2b4560:0x2b6a60,object.storage,text);
+   owned=true;safeRead=true;return object.get()->GetLength();
+  });
+  if(owned){if(wide)reinterpret_cast<CString*>(object.storage)->~CString();else destroy(object);}
+ }
+}
+void wideAssignments(){
+ for(int mode:{0,1,2})for(bool same:{false,true})for(bool clone:{false,true})for(int failure:{0,1,2})for(int operation=0;operation<8;++operation){
+  Fixture fixture;Object object,source;auto* text=::new(object.storage) CString(L"abcdef",6,&fixture.first);
+  auto* input=::new(source.storage) CString(L"AB\0DEF",6,same?&fixture.first:&fixture.third);
+  if(mode==1)text->LockBuffer();if(mode==2)input->LockBuffer();
+  fixture.first.cloned=clone?&fixture.second:&fixture.first;fixture.third.cloned=clone?&fixture.second:&fixture.third;
+  fixture.first.failAllocate=fixture.second.failAllocate=fixture.third.failAllocate=failure==1;fixture.first.failReallocate=failure==2;events.clear();
+  sample(object,fixture,true,[&]()->INT64{
+   void* result=nullptr;
+   switch(operation){
+   case 0:result=call<void*>(0xde30,text,input);break;
+   case 1:result=call<void*>(0xdec0,text,input);break;
+   case 2:result=call<void*>(0xdec0,text,text);break;
+   case 3:result=call<void*>(0x2f90,text,input->GetString());break;
+   case 4:result=call<void*>(0x2f90,text,text->GetString()+1);break;
+   case 5:result=call<void*>(0x2b4310,text,char(mode?0:0xe9));break;
+   case 6:result=call<void*>(0x2b4330,text,wchar_t(mode?0:0x3a9));break;
+   case 7:result=call<void*>(0x2b4370,text,reinterpret_cast<const unsigned char*>("ansi"));break;
+   }check(result==text,"wide assignments return their actual receiver");return text->GetLength();
+  });
+  fixture.first.failAllocate=fixture.second.failAllocate=fixture.third.failAllocate=fixture.first.failReallocate=false;
+  text->~CString();input->~CString();
+ }
+ for(int state:{0,1,2,3}){
+  Fixture fixture;Object object,sibling;auto* text=::new(object.storage) CString(L"abcdef",6,&fixture.first);
+  if(state==1)::new(sibling.storage) CString(*text);
+  if(state>=2){text->LockBuffer();if(state==3)text->LockBuffer();}
+  events.clear();sample(object,fixture,true,[&]()->INT64{call<void>(0x2fd0,text);return 0;});
+  if(state==1)reinterpret_cast<CString*>(sibling.storage)->~CString();
+ }
+}
+using WideMemoryCopy=decltype(&::wmemcpy_s);WideMemoryCopy originalWideCopy;int wideCopyResult;
+int __cdecl wideCopy(wchar_t* out,size_t capacity,const wchar_t* text,size_t count){
+ events.push_back({18,INT64(capacity),INT64(count),text[0],text[1],0});
+ return wideCopyResult?wideCopyResult:originalWideCopy(out,capacity,text,count);
+}
+void wideRepeatCopies(){
+ Patch copy("wmemcpy_s",reinterpret_cast<void*>(&wideCopy));originalWideCopy=reinterpret_cast<WideMemoryCopy>(copy.old);
+ for(int result:{0,80,12,22,34,7})for(int count:{-1,0,1,4})for(wchar_t value:std::array<wchar_t,2>{0,0x3a9}){
+  Fixture fixture;Object object;bool owned=false;wideCopyResult=result;events.clear();
+  sample(object,fixture,false,[&]()->INT64{call<void*>(0x7c260,object.storage,value,count);owned=true;safeRead=true;return object.get()->GetLength();});
+  if(owned)reinterpret_cast<CString*>(object.storage)->~CString();
+ }
+ wideCopyResult=0;
+}
+
 void wideAppend(){
  for(int state:{0,1,2,3})for(bool clone:{false,true})for(int failure:{0,1,2})for(int operation=0;operation<7;++operation)for(int maximum:{-1,0,1,4,10}){
   if(operation>=3&&maximum!=0)continue;
@@ -397,7 +540,7 @@ void* throwingFinder(UINT){throw 71;}
 struct Hook {BYTE* entry;BYTE saved[12];DWORD protection;Hook(void* target,void* callback):entry(static_cast<BYTE*>(target)){memcpy(saved,entry,12);VirtualProtect(entry,12,PAGE_EXECUTE_READWRITE,&protection);BYTE bytes[12]={0x48,0xb8};memcpy(bytes+2,&callback,8);bytes[10]=0xff;bytes[11]=0xe0;memcpy(entry,bytes,12);FlushInstructionCache(GetCurrentProcess(),entry,12);}~Hook(){memcpy(entry,saved,12);FlushInstructionCache(GetCurrentProcess(),entry,12);DWORD ignored;VirtualProtect(entry,12,protection,&ignored);}};
 void noexceptCases(){
  char executable[MAX_PATH];GetModuleFileNameA(nullptr,executable,MAX_PATH);
- for(int kind:{0,1,2}){
+ for(int kind:{0,1,2,3,4,5,6}){
   std::string command="\""+std::string(executable)+"\" --ansi-noexcept "+(image?"native ":"source ")+std::to_string(kind);
   STARTUPINFOA start{sizeof(start)};PROCESS_INFORMATION process{};
   BOOL launched=CreateProcessA(executable,command.data(),nullptr,nullptr,FALSE,0,nullptr,nullptr,&start,&process);
@@ -405,7 +548,7 @@ void noexceptCases(){
   DWORD wait=WaitForSingleObject(process.hProcess,30000);if(wait!=WAIT_OBJECT_0)TerminateProcess(process.hProcess,75);
   DWORD code=0;GetExitCodeProcess(process.hProcess,&code);CloseHandle(process.hThread);CloseHandle(process.hProcess);
   if(code!=73)printf("ANSI child %s kind%d exit%lu\n",image?"Native":"Source",kind,code);
-  check(wait==WAIT_OBJECT_0&&code==73,"ANSI resource traits terminate on a throwing resource-module lookup");
+  check(wait==WAIT_OBJECT_0&&code==73,"string constructors and resource traits preserve native no-throw boundaries");
  }
 }
 
@@ -414,7 +557,21 @@ int TestAnsiStringOwnership(HMODULE native){using namespace ansi_string_test;ima
  if(providers.empty())for(auto entry:ansiStringProviders)providers.emplace(entry.first,entry.second);
  auto** table=*reinterpret_cast<void***>(native?static_cast<void*>(reinterpret_cast<BYTE*>(native)+0x3b25e8):static_cast<void*>(OpenMFC_GetStringMgr()));
  {Patch allocate(table,reinterpret_cast<void*>(&defaultAllocate)),release(table+1,reinterpret_cast<void*>(&defaultFree)),reallocate(table+2,reinterpret_cast<void*>(&defaultReallocate));
- constructors();buffers();assignment();reentry();extraStorage();conversions();resources();managerExports();wideAppend();variantStrings();noexceptCases();
+ constructors();
+ buffers();
+ assignment();
+ reentry();
+ extraStorage();
+ conversions();
+ resources();
+ managerExports();
+ wideConstructors();
+ wideConversions();
+ wideConstructorResources();
+ unsignedConstructors();wideAssignments();wideRepeatCopies();
+ wideAppend();
+ variantStrings();
+ noexceptCases();
  }
  printf("%s string storage/conversion: %u native comparisons, %d failures\n",native?"Native":"Source",comparisons,failures);return failures;
 }
@@ -434,11 +591,18 @@ int TestAnsiNoexceptChild(int argc,char** argv){
    if(kind==0){reinterpret_cast<void*(*)(void*)>(bytes+0x3040)(object.storage);call<int>(0x1cd6b0,object.string(),UINT(35));}
    if(kind==1)call<void*>(0x2b69d0,object.string(),reinterpret_cast<const char*>(UINT_PTR(35)));
    if(kind==2)call<void*>(0x1cdad0,object.string(),reinterpret_cast<const wchar_t*>(UINT_PTR(35)));
+   if(kind==3||kind==4)call<void*>(0x12bc0,object.storage,static_cast<IAtlStringMgr*>(nullptr));
+   if(kind==5)call<void*>(0xdcb0,object.storage,reinterpret_cast<const wchar_t*>(UINT_PTR(35)));
+   if(kind==6)call<void*>(0x1cd550,object.storage,reinterpret_cast<const char*>(UINT_PTR(35)));
   }else{
    g_fileExceptionFinder=&throwingFinder;
    if(kind==0){CStringA text;text.LoadString(35);}
    if(kind==1){CStringA text(reinterpret_cast<const char*>(UINT_PTR(35)));}
    if(kind==2){CStringA text(reinterpret_cast<const wchar_t*>(UINT_PTR(35)));}
+   if(kind==3){CString text(static_cast<IAtlStringMgr*>(nullptr));}
+   if(kind==4){CStringA text(static_cast<IAtlStringMgr*>(nullptr));}
+   if(kind==5){CString text(reinterpret_cast<const wchar_t*>(UINT_PTR(35)));}
+   if(kind==6){CString text(reinterpret_cast<const char*>(UINT_PTR(35)));}
   }
  }catch(...){return 74;}
  return 77;

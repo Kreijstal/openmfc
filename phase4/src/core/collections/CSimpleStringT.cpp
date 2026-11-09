@@ -84,11 +84,3 @@ extern "C" int MS_ABI impl__GetAllocLength___CSimpleStringT__W_00_ATL__QEBAHXZ(c
     if (!pThis) return 0;
     return DataOf(const_cast<CString*>(pThis))->nAllocLength;
 }
-// Symbol: ??1?$CSimpleStringT@_W$00@ATL@@QEAA@XZ
-extern "C" void MS_ABI
-impl___1__CSimpleStringT__W_00_ATL__QEAA_XZ(CString* pThis) {
-    if (!pThis) {
-        return;
-    }
-    pThis->~CString();
-}

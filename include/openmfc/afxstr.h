@@ -143,138 +143,190 @@ inline CStringData* GetNilStringData() {
     return static_cast<CAfxStringMgr*>(OpenMFC_GetStringMgr())->NilData();
 }
 
+// Native Unicode simple-string base: one pointer and an owning manager.
+class CSimpleStringW {
+public:
+    explicit CSimpleStringW(IAtlStringMgr* manager) {
+        if(!manager)InvalidManager();
+        Attach(manager->GetNilString());
+    }
+    CSimpleStringW(const CSimpleStringW& source) {Attach(CloneData(source.GetData()));}
+    CSimpleStringW(const wchar_t* source,int length,IAtlStringMgr* manager) {Initialize(source,length,manager);}
+    CSimpleStringW(const wchar_t* source,IAtlStringMgr* manager) {
+        if(!manager)InvalidManager();
+        Initialize(source,StringLength(source),manager);
+    }
+    ~CSimpleStringW() {Release(GetData());}
+    CSimpleStringW& operator=(const CSimpleStringW& source) {
+        auto* old=GetData();auto* data=source.GetData();
+        if(old!=data) {
+            if(old->IsLocked() || old->pStringMgr!=data->pStringMgr)SetString(source.GetString(),data->nDataLength);
+            else {auto* replacement=CloneData(data);Release(old);Attach(replacement);}
+        }
+        return *this;
+    }
+    CSimpleStringW& operator=(const wchar_t* source) {SetString(source);return *this;}
+    const wchar_t* GetString() const {return m_pszData;}
+    operator const wchar_t*() const {return m_pszData;}
+    int GetLength() const {return GetData()->nDataLength;}
+    int GetAllocLength() const {return GetData()->nAllocLength;}
+    bool IsEmpty() const {return !GetLength();}
+    CStringData* GetData() const {return reinterpret_cast<CStringData*>(m_pszData)-1;}
+    IAtlStringMgr* GetManager() const {auto* manager=GetData()->pStringMgr;return manager?manager->Clone():nullptr;}
+    void SetManager(IAtlStringMgr* manager) {Release(GetData());Attach(manager->GetNilString());}
+    void Attach(CStringData* data) {m_pszData=reinterpret_cast<wchar_t*>(data+1);}
+    static int StringLength(const wchar_t* text) {return text?int(wcslen(text)):0;}
+    static void ThrowMemoryException() {AfxThrowMemoryException();}
+    wchar_t GetAt(int index) const {if(index<0 || index>GetLength())InvalidLength();return m_pszData[index];}
+    wchar_t operator[](int index) const {return GetAt(index);}
+    void SetAt(int index,wchar_t value) {
+        int length=GetLength();if(index<0 || index>=length)InvalidLength();
+        if(GetData()->IsShared())Fork(length);
+        m_pszData[index]=value;SetLength(length);
+    }
+    void Empty() {
+        auto* data=GetData();if(!data->nDataLength)return;
+        if(data->IsLocked()){data->nDataLength=0;m_pszData[0]=0;return;}
+        auto* manager=data->pStringMgr;Release(data);Attach(manager->GetNilString());
+    }
+    wchar_t* GetBuffer(int minimum=0) {
+        if(minimum<0)InvalidLength();
+        if(GetData()->IsShared() || minimum>GetAllocLength())PrepareWrite2(minimum);
+        return m_pszData;
+    }
+    wchar_t* GetBufferSetLength(int length) {auto* out=GetBuffer(length);SetLength(length);return out;}
+    void SetLength(int length) {
+        if(length<0 || length>GetAllocLength())InvalidLength();
+        GetData()->nDataLength=length;m_pszData[length]=0;
+    }
+    void ReleaseBufferSetLength(int length) {SetLength(length);}
+    void ReleaseBuffer(int length=-1) {SetLength(length==-1?(m_pszData?int(wcsnlen(m_pszData,GetAllocLength())):0):length);}
+    wchar_t* LockBuffer() {GetBuffer();if(--GetData()->nRefs==0)GetData()->nRefs=-1;return m_pszData;}
+    void UnlockBuffer() {if(GetData()->nRefs<0 && ++GetData()->nRefs==0)GetData()->nRefs=1;}
+    void PrepareWrite2(int length) {
+        auto* data=GetData();if(length<data->nDataLength)length=data->nDataLength;
+        if(data->IsShared())Fork(length);
+        else if(length>data->nAllocLength) {
+            int capacity=data->nAllocLength;
+            int extra=capacity>0x40000000?0x100000:capacity/2;
+            int grown=int32_t(uint32_t(capacity)+uint32_t(extra));
+            Reallocate(length>grown?length:grown);
+        }
+    }
+    void Reallocate(int length) {
+        auto* data=GetData();auto* replacement=data->pStringMgr->Reallocate(data,length,2);
+        if(!replacement)AfxThrowMemoryException();Attach(replacement);
+    }
+    void Fork(int length) {
+        auto* old=GetData();auto* text=m_pszData;int oldLength=old->nDataLength;
+        auto* manager=old->pStringMgr->Clone();auto* data=manager->Allocate(length,2);
+        if(!data)AfxThrowMemoryException();
+        int copied=length<oldLength?length:oldLength;
+        memcpy_s(Characters(data),Bytes(int32_t(uint32_t(copied)+1)),text,Bytes(int32_t(uint32_t(copied)+1)));
+        data->nDataLength=oldLength;Release(old);Attach(data);
+    }
+    static CStringData* CloneData(CStringData* old) {
+        auto* manager=old->pStringMgr->Clone();
+        if(!old->IsLocked() && manager==old->pStringMgr){old->AddRef();return old;}
+        auto* data=manager->Allocate(old->nDataLength,2);if(!data)AfxThrowMemoryException();
+        int length=old->nDataLength;data->nDataLength=length;
+        size_t bytes=Bytes(int32_t(uint32_t(length)+1));
+        memcpy_s(Characters(data),bytes,Characters(old),bytes);return data;
+    }
+    void SetString(const wchar_t* source) {SetString(source,StringLength(source));}
+    void SetString(const wchar_t* source,int length) {
+        if(!length){Empty();return;}
+        if(!source || length<0)InvalidLength();
+        uintptr_t offset=uintptr_t(intptr_t(uintptr_t(source)-uintptr_t(m_pszData))>>1);int oldLength=GetLength();
+        auto* out=GetBuffer(length);
+        if(offset<=uintptr_t(oldLength))memmove_s(out,Bytes(GetAllocLength()),out+offset,Bytes(length));
+        else memcpy_s(out,Bytes(GetAllocLength()),source,Bytes(length));
+        SetLength(length);
+    }
+    void Append(const wchar_t* source,int maximum) {
+        if(maximum<0)InvalidLength();
+        auto* old=m_pszData;int length=GetLength();int added=source?int(wcsnlen(source,size_t(maximum))):0;
+        if(length>INT32_MAX-added)InvalidLength();
+        int total=length+added;if(total<0)InvalidLength();
+        uintptr_t offset=uintptr_t(intptr_t(uintptr_t(source)-uintptr_t(old))>>1);wchar_t* out=GetBuffer(total);
+        if(offset<=uintptr_t(length))source=out+offset;
+        if(added)memcpy_s(out+length,Bytes(added),source,Bytes(added));SetLength(total);
+    }
+    void Append(const wchar_t* source) {Append(source,StringLength(source));}
+    void Append(const CSimpleStringW& source) {Append(source.GetString(),source.GetLength());}
+    void AppendChar(wchar_t value) {
+        int length=GetLength();if(length==INT32_MAX)InvalidLength();
+        GetBuffer(length+1)[length]=value;SetLength(length+1);
+    }
+    CSimpleStringW& operator+=(const wchar_t* source) {Append(source);return *this;}
+    CSimpleStringW& operator+=(const CSimpleStringW& source) {Append(source);return *this;}
+    CSimpleStringW& operator+=(wchar_t value) {AppendChar(value);return *this;}
+    void Truncate(int length) {GetBuffer(length);SetLength(length);}
+    void Preallocate(int length) {GetBuffer(length);}
+    void FreeExtra() {
+        auto* old=GetData();auto* text=m_pszData;int length=old->nDataLength;
+        if(length==old->nAllocLength || old->IsLocked())return;
+        auto* data=old->pStringMgr->Allocate(length,2);
+        if(data){if(length)memcpy_s(Characters(data),Bytes(length),text,Bytes(length));Release(old);Attach(data);}
+        SetLength(length);
+    }
+    static void Concatenate(CSimpleStringW& text,const wchar_t* first,int firstLength,const wchar_t* second,int secondLength) {
+        int length=int32_t(uint32_t(firstLength)+uint32_t(secondLength));
+        wchar_t* out=text.GetBuffer(length);
+        if(firstLength)memcpy_s(out,Bytes(firstLength),first,Bytes(firstLength));
+        if(secondLength)memcpy_s(out+firstLength,Bytes(secondLength),second,Bytes(secondLength));
+        text.SetLength(length);
+    }
+    static wchar_t* Characters(CStringData* data) {return reinterpret_cast<wchar_t*>(data+1);}
+protected:
+    static size_t Bytes(int characters) {return size_t(int64_t(characters))*sizeof(wchar_t);}
+    explicit CSimpleStringW(CStringData* data):m_pszData(Characters(data)) {}
+    void Initialize(const wchar_t* source,int length,IAtlStringMgr* manager) {
+        if(!manager)InvalidManager();
+        if(!source && length)InvalidLength();
+        auto* data=manager->Allocate(length,2);
+        if(!data)AfxThrowMemoryException();
+        Attach(data);SetLength(length);
+        if(length)memcpy_s(m_pszData,Bytes(length),source,Bytes(length));
+    }
+    wchar_t* m_pszData;
+    static void Release(CStringData* data) {if(data->Release())data->pStringMgr->Free(data);}
+    static void InvalidLength() {AfxThrowOleException(static_cast<long>(0x80070057u));}
+    static void InvalidManager() {AfxThrowOleException(static_cast<long>(0x80004005u));}
+};
+static_assert(sizeof(CSimpleStringW)==8,"native Unicode simple string");
+
 struct tagVARIANT;
 
 // CString (Unicode) - ABI compatible with MFC CStringW
-class CString {
+class CString : public CSimpleStringW {
 public:
-    // Default constructor - empty string
-    CString() noexcept {
-        m_pszData = GetNilStringData()->data();
-        GetNilStringData()->AddRef();
-    }
-
-    explicit CString(IAtlStringMgr* manager) {
-        if(!manager)AfxThrowOleException(static_cast<long>(0x80004005u));
-        m_pszData=manager->GetNilString()->data();
-    }
+    CString() noexcept:CSimpleStringW(OpenMFC_GetStringMgr()) {}
+    explicit CString(IAtlStringMgr* manager) noexcept:CSimpleStringW(manager) {}
+    CString(const wchar_t*);
+    CString(const wchar_t*,IAtlStringMgr*);
+    CString(const wchar_t* source,int length):CSimpleStringW(source,length,OpenMFC_GetStringMgr()) {}
+    CString(const wchar_t* source,int length,IAtlStringMgr* manager):CSimpleStringW(source,length,manager) {}
+    CString(const char*);
+    CString(const char*,IAtlStringMgr*);
+    CString(const char*,int);
+    CString(const char*,int,IAtlStringMgr*);
+    CString(unsigned char* source):CString(reinterpret_cast<const char*>(source)) {}
+    CString(const unsigned char*);
+    CString(const unsigned char*,IAtlStringMgr*);
+    CString(wchar_t,int);
+    CString(char,int);
+    CString(const CString& source):CSimpleStringW(source) {}
     CString(const tagVARIANT&);
     CString(const tagVARIANT&,IAtlStringMgr*);
     CString& operator=(const tagVARIANT&);
     CString& operator+=(const tagVARIANT&);
-
-    // Constructor from wide string
-    CString(const wchar_t* psz) {
-        if (psz == nullptr || *psz == L'\0') {
-            m_pszData = GetNilStringData()->data();
-        GetNilStringData()->AddRef();
-        } else {
-            int nLen = static_cast<int>(wcslen(psz));
-            AllocBuffer(nLen);
-            wmemcpy(m_pszData, psz, nLen + 1);
-            GetData()->nDataLength = nLen;
-        }
-    }
-
-    // Copy constructor
-    CString(const CString& strSrc) {
-        m_pszData = CloneData(strSrc.GetData())->data();
-    }
-
-    // Destructor
-    ~CString() {
-        CStringData* pData = GetData();
-        if (pData->Release()) {
-            pData->pStringMgr->Free(pData);
-        }
-    }
-
-    // Assignment operator
-    CString& operator=(const CString& strSrc) {
-        auto* source=strSrc.GetData();auto* old=GetData();
-        if(source!=old) {
-            if(old->IsLocked() || source->pStringMgr!=old->pStringMgr)
-                SetCopyString(strSrc.GetString(),source->nDataLength);
-            else {
-                auto* replacement=CloneData(source);
-                if(old->Release())old->pStringMgr->Free(old);
-                m_pszData=replacement->data();
-            }
-        }
-        return *this;
-    }
-
-    CString& operator=(const wchar_t* psz) {
-        SetCopyString(psz,psz?static_cast<int>(wcslen(psz)):0);
-        return *this;
-    }
-
-    // Accessors
-    int GetLength() const { return GetData()->nDataLength; }
-    bool IsEmpty() const { return GetData()->nDataLength == 0; }
-    void Empty() {
-        CStringData* pData = GetData();
-        if(!pData->nDataLength)return;
-        if(pData->IsLocked()) {pData->nDataLength=0;m_pszData[0]=L'\0';return;}
-        auto* manager=pData->pStringMgr;
-        if(pData->Release())manager->Free(pData);
-        m_pszData=manager->GetNilString()->data();
-    }
-
-    // Get the character buffer (read-only)
-    const wchar_t* GetString() const { return m_pszData; }
-    operator const wchar_t*() const { return m_pszData; }
-
-    // Character access
-    wchar_t GetAt(int nIndex) const { return m_pszData[nIndex]; }
-    wchar_t operator[](int nIndex) const { return m_pszData[nIndex]; }
-
-    // Preparing writable storage preserves existing lock state and logical length.
-    wchar_t* GetBuffer(int minimum = 0) {
-        if(minimum<0)AfxThrowOleException(static_cast<long>(0x80070057u));
-        PrepareCopy(minimum);
-        return m_pszData;
-    }
-    int GetAllocLength() const {return GetData()->nAllocLength;}
-    wchar_t* GetBufferSetLength(int length) {
-        wchar_t* buffer=GetBuffer(length);
-        ReleaseBufferSetLength(length);
-        return buffer;
-    }
-    void ReleaseBufferSetLength(int length) {
-        if(length<0 || length>GetData()->nAllocLength)
-            AfxThrowOleException(static_cast<long>(0x80070057u));
-        GetData()->nDataLength=length;m_pszData[length]=0;
-    }
-    void ReleaseBuffer(int length = -1) {
-        if(length==-1)length=static_cast<int>(wcsnlen(m_pszData,GetData()->nAllocLength));
-        ReleaseBufferSetLength(length);
-    }
-    wchar_t* LockBuffer() {
-        GetBuffer();
-        if(--GetData()->nRefs==0)GetData()->nRefs=-1;
-        return m_pszData;
-    }
-    void UnlockBuffer() {
-        if(GetData()->nRefs<0 && ++GetData()->nRefs==0)GetData()->nRefs=1;
-    }
-
-    // Native bounded append preserves the owner and lock state.
-    void Append(const wchar_t* source,int maximum) {
-        if(maximum<0)AfxThrowOleException(static_cast<long>(0x80070057u));
-        const wchar_t* old=m_pszData;int length=GetLength();
-        int added=source?int(wcsnlen(source,size_t(maximum))):0;
-        if(length>INT32_MAX-added)AfxThrowOleException(static_cast<long>(0x80070057u));
-        int total=length+added;
-        if(total<0)AfxThrowOleException(static_cast<long>(0x80070057u));
-        uintptr_t offset=uintptr_t(intptr_t(uintptr_t(source)-uintptr_t(old))>>1);
-        wchar_t* out=GetBuffer(total);
-        if(offset<=uintptr_t(length))source=out+offset;
-        if(added)wmemcpy_s(out+length,size_t(added),source,size_t(added));
-        ReleaseBufferSetLength(total);
-    }
-    void Append(const wchar_t* source) {Append(source,source?int(wcslen(source)):0);}
-    void Append(const CString& source) {Append(source.GetString(),source.GetLength());}
+    CString& operator=(const CString& source) {CSimpleStringW::operator=(source);return *this;}
+    CString& operator=(const wchar_t* source) {SetString(source);return *this;}
+    CString& operator=(const char*);
+    CString& operator=(const unsigned char* source) {return operator=(reinterpret_cast<const char*>(source));}
+    CString& operator=(wchar_t value) {wchar_t text[]={value,0};SetString(text);return *this;}
+    CString& operator=(char value) {char text[]={value,0};return operator=(text);}
     CString& operator+=(const wchar_t* source) {Append(source);return *this;}
     CString& operator+=(const CString& source) {Append(source);return *this;}
 
@@ -625,11 +677,10 @@ public:
 #endif
 
 private:
-    wchar_t* m_pszData;
     friend class CDatabase;
     friend class CFrameWnd;
     struct OwnedData {};
-    CString(CStringData* data,OwnedData) : m_pszData(data->data()) {}
+    CString(CStringData* data,OwnedData) : CSimpleStringW(data) {}
     static CString FromOwnedData(CStringData* data) {return CString(data,OwnedData{});}
 
     CStringData* GetData() const {
@@ -637,45 +688,7 @@ private:
     }
     
     // ... (rest of private members)
-    static CStringData* AllocateCopy(IAtlStringMgr* manager,int length) {
-        auto* data=manager->Allocate(length,sizeof(wchar_t));
-        if(!data)AfxThrowMemoryException();
-        return data;
-    }
-    static CStringData* CloneData(CStringData* data) {
-        auto* manager=data->pStringMgr->Clone();
-        if(!data->IsLocked() && manager==data->pStringMgr) {data->AddRef();return data;}
-        auto* copy=AllocateCopy(manager,data->nDataLength);
-        copy->nDataLength=data->nDataLength;
-        std::memcpy(copy->data(),data->data(),size_t(data->nDataLength+1)*sizeof(wchar_t));
-        return copy;
-    }
-    void PrepareCopy(int length) {
-        auto* data=GetData();length=length>data->nDataLength?length:data->nDataLength;
-        if(data->IsShared()) {
-            auto* copy=AllocateCopy(data->pStringMgr->Clone(),length);
-            copy->nDataLength=data->nDataLength;
-            std::memcpy(copy->data(),m_pszData,size_t(data->nDataLength+1)*sizeof(wchar_t));
-            if(data->Release())data->pStringMgr->Free(data);
-            m_pszData=copy->data();
-        }else if(length>data->nAllocLength) {
-            int capacity=data->nAllocLength;
-            int extra=capacity>1024*1024*1024?1024*1024:capacity/2;
-            int grown=int32_t(uint32_t(capacity)+uint32_t(extra));
-            auto* replacement=data->pStringMgr->Reallocate(data,length>grown?length:grown,sizeof(wchar_t));
-            if(!replacement)AfxThrowMemoryException();
-            m_pszData=replacement->data();
-        }
-    }
-    void SetCopyString(const wchar_t* source,int length) {
-        if(length<0 || (!source && length))AfxThrowOleException(static_cast<long>(0x80070057u));
-        if(!length) {Empty();return;}
-        bool internal=reinterpret_cast<uintptr_t>(source)>=reinterpret_cast<uintptr_t>(m_pszData) &&
-            reinterpret_cast<uintptr_t>(source)<=reinterpret_cast<uintptr_t>(m_pszData)+size_t(GetLength())*sizeof(wchar_t);
-        size_t offset=internal?size_t(source-m_pszData):0;
-        PrepareCopy(length);if(internal)source=m_pszData+offset;
-        std::memmove(m_pszData,source,size_t(length)*sizeof(wchar_t));GetData()->nDataLength=length;m_pszData[length]=0;
-    }
+    void Convert(const char* source,int length);
     static CStringData* AllocData(int nLength) {
         // Allocate via the string manager so the buffer carries a valid pStringMgr
         // (an MSVC client releasing the last ref calls pStringMgr->Free through it).
@@ -698,6 +711,8 @@ private:
         }
     }
 };
+
+static_assert(sizeof(CString)==8,"native Unicode CString");
 
 // Concatenation operators
 inline CString operator+(const CString& str1, const CString& str2) {

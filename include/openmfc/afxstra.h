@@ -153,15 +153,16 @@ static_assert(sizeof(CSimpleStringA)==8,"native ANSI simple string");
 struct tagVARIANT;
 class CStringA : public CSimpleStringA {
 public:
-    CStringA():CSimpleStringA(OpenMFC_GetStringMgr()) {}
-    explicit CStringA(IAtlStringMgr* manager):CSimpleStringA(manager) {}
+    CStringA() noexcept:CSimpleStringA(OpenMFC_GetStringMgr()) {}
+    explicit CStringA(IAtlStringMgr* manager) noexcept:CSimpleStringA(manager) {}
     CStringA(const CStringA& source):CSimpleStringA(source) {}
     CStringA(const char* source);
     CStringA(const char* source,IAtlStringMgr* manager);
     CStringA(const char* source,int length):CSimpleStringA(source,length,OpenMFC_GetStringMgr()) {}
     CStringA(const char* source,int length,IAtlStringMgr* manager):CSimpleStringA(source,length,manager) {}
-    CStringA(const unsigned char* source):CStringA(reinterpret_cast<const char*>(source)) {}
-    CStringA(const unsigned char* source,IAtlStringMgr* manager):CStringA(reinterpret_cast<const char*>(source),manager) {}
+    CStringA(unsigned char* source):CStringA(reinterpret_cast<const char*>(source)) {}
+    CStringA(const unsigned char* source):CSimpleStringA(OpenMFC_GetStringMgr()) {SetString(reinterpret_cast<const char*>(source));}
+    CStringA(const unsigned char* source,IAtlStringMgr* manager):CSimpleStringA(manager) {SetString(reinterpret_cast<const char*>(source));}
     CStringA(const wchar_t* source);
     CStringA(const wchar_t* source,IAtlStringMgr* manager);
     CStringA(const wchar_t* source,int length);
