@@ -1,6 +1,7 @@
 // Native Unicode CString constructors and ANSI-to-Unicode conversion.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "detail/CStringOperations.h"
 #include <new>
 #include <cerrno>
 
@@ -131,3 +132,42 @@ extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_PEB_W_
 extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_0A__1__Z(CSimpleStringW* self,const ATL::CSimpleStringT<wchar_t,false>* source) {*self=*source;return self;}
 // Symbol: ??4?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@AEBV01@@Z
 extern "C" CSimpleStringW* impl___4__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV01__Z(CSimpleStringW* self,const CSimpleStringW* source) {*self=*source;return self;}
+
+CString CString::Left(int count) const {return openmfc_string_ops::Left(*this,count);}
+CString CString::Right(int count) const {return openmfc_string_ops::Right(*this,count);}
+CString CString::Mid(int first) const {return openmfc_string_ops::Mid(*this,first);}
+CString CString::Mid(int first,int count) const {return openmfc_string_ops::Mid(*this,first,count);}
+CString CString::SpanIncluding(const wchar_t* set) const {return openmfc_string_ops::Span(*this,set,true);}
+CString CString::SpanExcluding(const wchar_t* set) const {return openmfc_string_ops::Span(*this,set,false);}
+CString CString::Tokenize(const wchar_t* delimiters,int& start) const {return openmfc_string_ops::Tokenize(*this,delimiters,start);}
+CString& CString::operator+=(const char* source) {CString converted(source,GetManager());Append(converted);return *this;}
+
+// Native member exports place this before the explicit result pointer.
+// Symbol: ??Y?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@AEBV?$CSimpleStringT@_W$00@1@@Z
+extern "C" CString* impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBV__CSimpleStringT__W_00_1__Z(CString* self,const CSimpleStringW* source) {*self+=*source;return self;}
+// Symbol: ??Y?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@D@Z
+extern "C" CString* impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_D_Z(CString* self,char value) {*self+=value;return self;}
+// Symbol: ??Y?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@E@Z
+extern "C" CString* impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_E_Z(CString* self,unsigned char value) {*self+=value;return self;}
+// Symbol: ??Y?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@PEBD@Z
+extern "C" CString* impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEBD_Z(CString* self,const char* source) {*self+=source;return self;}
+// Symbol: ??Y?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@PEB_W@Z
+extern "C" CString* impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_PEB_W_Z(CString* self,const wchar_t* source) {*self+=source;return self;}
+// Symbol: ??Y?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV01@_W@Z
+extern "C" CString* impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01__W_Z(CString* self,wchar_t value) {*self+=value;return self;}
+// Symbol: ?GetManager@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAPEAUIAtlStringMgr@2@XZ
+extern "C" IAtlStringMgr* impl__GetManager___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAPEAUIAtlStringMgr_2_XZ(const CString* self) {return self->GetManager();}
+// Symbol: ?Left@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@H@Z
+extern "C" CString* impl__Left___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_H_Z(const CString* self,CString* result,int count) {return ::new(result) CString(self->Left(count));}
+// Symbol: ?Mid@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@H@Z
+extern "C" CString* impl__Mid___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_H_Z(const CString* self,CString* result,int first) {return ::new(result) CString(self->Mid(first));}
+// Symbol: ?Mid@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@HH@Z
+extern "C" CString* impl__Mid___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_HH_Z(const CString* self,CString* result,int first,int count) {return ::new(result) CString(self->Mid(first,count));}
+// Symbol: ?Right@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@H@Z
+extern "C" CString* impl__Right___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_H_Z(const CString* self,CString* result,int count) {return ::new(result) CString(self->Right(count));}
+// Symbol: ?SpanExcluding@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@PEB_W@Z
+extern "C" CString* impl__SpanExcluding___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_PEB_W_Z(const CString* self,CString* result,const wchar_t* set) {return ::new(result) CString(self->SpanExcluding(set));}
+// Symbol: ?SpanIncluding@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@PEB_W@Z
+extern "C" CString* impl__SpanIncluding___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_PEB_W_Z(const CString* self,CString* result,const wchar_t* set) {return ::new(result) CString(self->SpanIncluding(set));}
+// Symbol: ?Tokenize@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@PEB_WAEAH@Z
+extern "C" CString* impl__Tokenize___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_PEB_WAEAH_Z(const CString* self,CString* result,const wchar_t* delimiters,int* start) {return ::new(result) CString(self->Tokenize(delimiters,*start));}

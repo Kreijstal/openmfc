@@ -23,7 +23,21 @@ public:
     OPENMFC_STRING_API CStringT(const tagVARIANT&);
     OPENMFC_STRING_API CStringT(const tagVARIANT&,IAtlStringMgr*);
     OPENMFC_STRING_API CStringA& operator=(const tagVARIANT&);
-    using CSimpleStringA::operator+=;
+    CStringA& operator+=(const CSimpleStringA& source) {Append(source);return *this;}
+    CStringA& operator+=(const char* source) {Append(source);return *this;}
+    CStringA& operator+=(char value) {AppendChar(value);return *this;}
+    CStringA& operator+=(unsigned char value) {AppendChar(static_cast<char>(value));return *this;}
+    CStringA& operator+=(wchar_t value) {AppendChar(static_cast<char>(value));return *this;}
+    IAtlStringMgr* GetManager() const noexcept {
+        auto* manager=CSimpleStringA::GetManager();return manager?manager:OpenMFC_GetStringMgr()->Clone();
+    }
+    OPENMFC_STRING_API CStringA Left(int count) const;
+    OPENMFC_STRING_API CStringA Right(int count) const;
+    OPENMFC_STRING_API CStringA Mid(int first) const;
+    OPENMFC_STRING_API CStringA Mid(int first,int count) const;
+    OPENMFC_STRING_API CStringA SpanIncluding(const char* set) const;
+    OPENMFC_STRING_API CStringA SpanExcluding(const char* set) const;
+    OPENMFC_STRING_API CStringA Tokenize(const char* delimiters,int& start) const;
     OPENMFC_STRING_API CStringA& operator+=(const wchar_t*);
     OPENMFC_STRING_API CStringA& operator+=(const tagVARIANT&);
     OPENMFC_STRING_API CStringT(char value,int count);

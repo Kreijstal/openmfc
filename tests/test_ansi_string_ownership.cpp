@@ -11,8 +11,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <mbctype.h>
 #include "ansi_string_exports.h"
 #include "wide_string_storage_exports.h"
+#include "string_operations_exports.h"
 extern void* (*g_fileExceptionFinder)(UINT);
 namespace ansi_string_test {
 int failures;unsigned comparisons;HMODULE image;
@@ -43,7 +45,7 @@ struct Manager: IAtlStringMgr {
   memcpy(out+1,data+1,size_t((std::min)(bytes,((length<0?0:length)+1)*width)));out->nDataLength=data->nDataLength;out->nRefs=data->nRefs;return out;
  }
  CStringData* GetNilString() noexcept override {events.push_back({4,id,0,0,0,0});nil.header.AddRef();return &nil.header;}
- IAtlStringMgr* Clone() noexcept override {events.push_back({5,id,cloned->id,0,0,0});mutate(1);return cloned;}
+ IAtlStringMgr* Clone() noexcept override {events.push_back({5,id,cloned?cloned->id:0,0,0,0});mutate(1);return cloned;}
 };
 struct Fixture {
  Manager first{1},second{2},third{3};
@@ -614,6 +616,9 @@ void wideStorage(){
  snapshotCharSize=1;providers=std::move(saved);
 }
 
+
+#include "string_operations_tests.h"
+
 using VariantInitAPI=decltype(&::VariantInit);using VariantClearAPI=decltype(&::VariantClear);using VariantCoerceAPI=decltype(&::VariantChangeType);
 VariantInitAPI originalInit;VariantClearAPI originalClear;VariantCoerceAPI originalCoerce;
 const VARIANT* expectedVariant;HRESULT coercionStatus,clearStatus;int variantMode;bool nullBSTR;
@@ -718,6 +723,7 @@ int TestAnsiStringOwnership(HMODULE native){using namespace ansi_string_test;ima
  unsignedConstructors();wideAssignments();wideRepeatCopies();
  wideAppend();
  wideStorage();
+ stringOperations();
  variantStrings();
  noexceptCases();
  }

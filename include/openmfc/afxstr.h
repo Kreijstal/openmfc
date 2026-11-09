@@ -389,7 +389,14 @@ public:
     CString& operator=(wchar_t value) {wchar_t text[]={value,0};SetString(text);return *this;}
     CString& operator=(char value) {char text[]={value,0};return operator=(text);}
     CString& operator+=(const wchar_t* source) {Append(source);return *this;}
-    CString& operator+=(const CString& source) {Append(source);return *this;}
+    CString& operator+=(const CSimpleStringW& source) {Append(source);return *this;}
+    CString& operator+=(wchar_t value) {AppendChar(value);return *this;}
+    CString& operator+=(char value) {AppendChar(static_cast<wchar_t>(value));return *this;}
+    CString& operator+=(unsigned char value) {AppendChar(static_cast<wchar_t>(value));return *this;}
+    OPENMFC_STRING_API CString& operator+=(const char*);
+    IAtlStringMgr* GetManager() const noexcept {
+        auto* manager=CSimpleStringW::GetManager();return manager?manager:OpenMFC_GetStringMgr()->Clone();
+    }
 
     // Comparison
     int Compare(const wchar_t* psz) const {
@@ -401,39 +408,13 @@ public:
     bool operator==(const CString& str) const { return Compare(str.m_pszData) == 0; }
     bool operator!=(const CString& str) const { return Compare(str.m_pszData) != 0; }
 
-    // Substring extraction
-    CString Left(int nCount) const {
-        if (nCount <= 0) return CString();
-        if (nCount >= GetLength()) return *this;
-        CString result;
-        result.AllocBuffer(nCount);
-        wmemcpy(result.m_pszData, m_pszData, nCount);
-        result.m_pszData[nCount] = L'\0';
-        result.GetData()->nDataLength = nCount;
-        return result;
-    }
-
-    CString Right(int nCount) const {
-        int nLen = GetLength();
-        if (nCount <= 0) return CString();
-        if (nCount >= nLen) return *this;
-        return CString(m_pszData + nLen - nCount);
-    }
-
-    CString Mid(int nFirst, int nCount = -1) const {
-        int nLen = GetLength();
-        if (nFirst < 0) nFirst = 0;
-        if (nFirst >= nLen) return CString();
-        if (nCount < 0) nCount = nLen - nFirst;
-        if (nFirst + nCount > nLen) nCount = nLen - nFirst;
-        
-        CString dest;
-        dest.AllocBuffer(nCount);
-        wmemcpy(dest.m_pszData, m_pszData + nFirst, nCount);
-        dest.m_pszData[nCount] = L'\0';
-        dest.GetData()->nDataLength = nCount;
-        return dest;
-    }
+    OPENMFC_STRING_API CString Left(int count) const;
+    OPENMFC_STRING_API CString Right(int count) const;
+    OPENMFC_STRING_API CString Mid(int first) const;
+    OPENMFC_STRING_API CString Mid(int first,int count) const;
+    OPENMFC_STRING_API CString SpanIncluding(const wchar_t* set) const;
+    OPENMFC_STRING_API CString SpanExcluding(const wchar_t* set) const;
+    OPENMFC_STRING_API CString Tokenize(const wchar_t* delimiters,int& start) const;
 
     // Searching
     int Find(wchar_t ch, int nStart = 0) const {
@@ -640,20 +621,6 @@ public:
             ReleaseBuffer(nLen);
         }
         return *this;
-    }
-
-    // Get span of characters matching set
-    CString SpanIncluding(const wchar_t* pszCharSet) const {
-        if (pszCharSet == nullptr || *pszCharSet == L'\0') return CString();
-        int nLen = static_cast<int>(wcsspn(m_pszData, pszCharSet));
-        return Left(nLen);
-    }
-
-    // Get span of characters NOT in set
-    CString SpanExcluding(const wchar_t* pszCharSet) const {
-        if (pszCharSet == nullptr || *pszCharSet == L'\0') return *this;
-        int nLen = static_cast<int>(wcscspn(m_pszData, pszCharSet));
-        return Left(nLen);
     }
 
     // Case-insensitive comparison

@@ -26,7 +26,7 @@ CStringA& CStringA::operator=(const VARIANT& source) {
     operator=(converted.value.bstrVal);return *this;
 }
 CStringA& CStringA::operator+=(const wchar_t* source) {
-    auto* manager=GetManager();if(!manager)manager=OpenMFC_GetStringMgr()->Clone();
+    auto* manager=GetManager();
     CStringA converted(source,manager);Append(converted);return *this;
 }
 CStringA& CStringA::operator+=(const VARIANT& source) {
