@@ -139,7 +139,7 @@ def main():
                                  (sources()[3], 'CSharedFile', 29)]:
         verify_vtables(out / (relative.removesuffix('.cpp').replace('/', '_') + '.obj'), cls, slots)
     link.extend(str(obj) for obj in objects)
-    link.extend(['kernel32.lib', 'user32.lib', 'comdlg32.lib', 'shlwapi.lib'])
+    link.extend(['kernel32.lib', 'user32.lib', 'comdlg32.lib', 'shlwapi.lib', 'oleaut32.lib'])
     response = out / 'link.rsp'
     response.write_text('\n'.join('"' + part + '"' for part in link))
     subprocess.run(['link' if os.name == 'nt' else 'lld-link', '@' + str(response)], check=True, cwd=out, env=env)
