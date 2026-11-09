@@ -150,6 +150,7 @@ protected:
 };
 static_assert(sizeof(CSimpleStringA)==8,"native ANSI simple string");
 
+struct tagVARIANT;
 class CStringA : public CSimpleStringA {
 public:
     CStringA():CSimpleStringA(OpenMFC_GetStringMgr()) {}
@@ -165,6 +166,12 @@ public:
     CStringA(const wchar_t* source,IAtlStringMgr* manager);
     CStringA(const wchar_t* source,int length);
     CStringA(const wchar_t* source,int length,IAtlStringMgr* manager);
+    CStringA(const tagVARIANT&);
+    CStringA(const tagVARIANT&,IAtlStringMgr*);
+    CStringA& operator=(const tagVARIANT&);
+    using CSimpleStringA::operator+=;
+    CStringA& operator+=(const wchar_t*);
+    CStringA& operator+=(const tagVARIANT&);
     CStringA(char value,int count);
     CStringA(wchar_t value,int count);
     CStringA& operator=(const CStringA& source) {CSimpleStringA::operator=(source);return *this;}

@@ -91,6 +91,18 @@ extern "C" IAtlStringMgr* impl__Clone_CAfxStringMgr__UEAAPEAUIAtlStringMgr_ATL__
 extern "C" void impl__Free_CAfxStringMgr__UEAAXPEAUCStringData_ATL___Z(void* pThis, CStringData* pData);
 extern "C" CStringData* impl__GetNilString_CAfxStringMgr__UEAAPEAUCStringData_ATL__XZ(void* pThis);
 extern "C" CStringData* impl__Reallocate_CAfxStringMgr__UEAAPEAUCStringData_ATL__PEAU23_HH_Z(void* pThis, CStringData* pData, int nAllocLength, int nCharSize);
+extern "C" CString* impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z(CString* self,const VARIANT* source);
+extern "C" CStringA* impl___Y__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV01_PEB_W_Z(CStringA* self,const wchar_t* text);
+extern "C" CStringA* impl___Y__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z(CStringA* self,const VARIANT* source);
+extern "C" CString* impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z(CString* self,const VARIANT* source);
+extern "C" CStringA* impl___4__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z(CStringA* self,const VARIANT* source);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_AEBUtagVARIANT__PEAUIAtlStringMgr_1__Z(CString* self,const VARIANT* source,IAtlStringMgr* manager);
+extern "C" CString* impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_AEBUtagVARIANT___Z(CString* self,const VARIANT* source);
+extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_AEBUtagVARIANT__PEAUIAtlStringMgr_1__Z(CStringA* self,const VARIANT* source,IAtlStringMgr* manager);
+extern "C" CStringA* impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_AEBUtagVARIANT___Z(CStringA* self,const VARIANT* source);
+extern "C" void impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_WH_Z(CString* self,const wchar_t* text,int count);
+extern "C" void impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z(CString* self,const wchar_t* text);
+extern "C" void impl__Append___CSimpleStringT__W_00_ATL__QEAAXAEBV12__Z(CString* self,const CString* text);
 static const std::pair<UINT_PTR,void*> ansiStringProviders[]={
     {0x2b4680,reinterpret_cast<void*>(&impl__UnlockBuffer___CSimpleStringT_D_00_ATL__QEAAXXZ)},
     {0x2b6e00,reinterpret_cast<void*>(&impl__Truncate___CSimpleStringT_D_00_ATL__QEAAXH_Z)},
@@ -181,4 +193,16 @@ static const std::pair<UINT_PTR,void*> ansiStringProviders[]={
     {0x22b070,reinterpret_cast<void*>(&impl__Free_CAfxStringMgr__UEAAXPEAUCStringData_ATL___Z)},
     {0x273730,reinterpret_cast<void*>(&impl__GetNilString_CAfxStringMgr__UEAAPEAUCStringData_ATL__XZ)},
     {0x2736f0,reinterpret_cast<void*>(&impl__Reallocate_CAfxStringMgr__UEAAPEAUCStringData_ATL__PEAU23_HH_Z)},
+    {0x2b33d0,reinterpret_cast<void*>(&impl___Y__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z)},
+    {0x2b6420,reinterpret_cast<void*>(&impl___Y__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV01_PEB_W_Z)},
+    {0x2b2db0,reinterpret_cast<void*>(&impl___Y__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z)},
+    {0x2b3340,reinterpret_cast<void*>(&impl___4__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z)},
+    {0x2b2d30,reinterpret_cast<void*>(&impl___4__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV01_AEBUtagVARIANT___Z)},
+    {0x2b31c0,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_AEBUtagVARIANT__PEAUIAtlStringMgr_1__Z)},
+    {0x2b3280,reinterpret_cast<void*>(&impl___0__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_AEBUtagVARIANT___Z)},
+    {0x2b2be0,reinterpret_cast<void*>(&impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_AEBUtagVARIANT__PEAUIAtlStringMgr_1__Z)},
+    {0x2b2c90,reinterpret_cast<void*>(&impl___0__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAA_AEBUtagVARIANT___Z)},
+    {0x2ba0,reinterpret_cast<void*>(&impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_WH_Z)},
+    {0x122f0,reinterpret_cast<void*>(&impl__Append___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z)},
+    {0x2ca0,reinterpret_cast<void*>(&impl__Append___CSimpleStringT__W_00_ATL__QEAAXAEBV12__Z)},
 };

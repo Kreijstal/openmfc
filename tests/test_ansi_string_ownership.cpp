@@ -1,4 +1,4 @@
-// Actual ANSI string objects, owning managers and an independent native oracle.
+// Actual string storage, VARIANT conversion and an independent native oracle.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "openmfc/afxdisp.h"
@@ -30,7 +30,7 @@ struct Manager: IAtlStringMgr {
  int id;Manager* cloned;bool failAllocate=false,failReallocate=false;
  explicit Manager(int number):nil{{this,0,0,2},{}},id(number),cloned(this){}
  CStringData* make(int length,int width){
-  int actual=length<0?0:length;int bytes=actual*width+1+32;
+  int actual=length<0?0:length;int bytes=(actual+1)*width+32;
   auto* data=static_cast<CStringData*>(malloc(sizeof(CStringData)+bytes));
   *data={this,0,actual,1};memset(data+1,0xa5,bytes);blocks.push_back({data,bytes,int(blocks.size()+1),true});return data;
  }
@@ -39,7 +39,7 @@ struct Manager: IAtlStringMgr {
  CStringData* Reallocate(CStringData* data,int length,int width) override {
   events.push_back({3,id,blockID(data),length,width,data->nRefs});mutate(3);if(failReallocate)return nullptr;
   auto* out=make(length,width);int bytes=0;for(auto& b:blocks)if(b.data==data){bytes=b.bytes-32;b.live=false;break;}
-  memcpy(out+1,data+1,size_t((std::min)(bytes,(length<0?0:length)*width+1)));out->nDataLength=data->nDataLength;out->nRefs=data->nRefs;return out;
+  memcpy(out+1,data+1,size_t((std::min)(bytes,((length<0?0:length)+1)*width)));out->nDataLength=data->nDataLength;out->nRefs=data->nRefs;return out;
  }
  CStringData* GetNilString() override {events.push_back({4,id,0,0,0,0});nil.header.AddRef();return &nil.header;}
  IAtlStringMgr* Clone() override {events.push_back({5,id,cloned->id,0,0,0});mutate(1);return cloned;}
@@ -71,7 +71,7 @@ void snapshot(Result& result,Object& object,Fixture& fixture,bool valid){
 }
 template<class F>void sample(Object& object,Fixture& fixture,bool valid,F fn){
  Result result;safeRead=valid;
- try{result.value=fn();}catch(CMemoryException*){result.caught=12;}catch(COleException* error){result.caught=error->m_sc;error->Delete();}catch(CException* error){check(false,"ANSI storage throws the expected native exception class");error->Delete();result.caught=-1;}
+ try{result.value=fn();}catch(CMemoryException*){result.caught=12;}catch(COleException* error){result.caught=error->m_sc;error->Delete();}catch(CException* error){check(false,"string storage throws the expected native exception class");error->Delete();result.caught=-1;}
  snapshot(result,object,fixture,safeRead);
  if(image){bool good=comparisons<golden.size()&&result==golden[comparisons];if(!good&&failures<30){auto& old=golden[comparisons];printf("ANSI mismatch %u caught%x/%x value%lld/%lld object%d/%d calls ",comparisons,result.caught,old.caught,result.value,old.value,result.objectID,old.objectID);for(auto e:result.calls)printf("%lld:%lld:%lld,",e[0],e[1],e[2]);printf(" / ");for(auto e:old.calls)printf("%lld:%lld:%lld,",e[0],e[1],e[2]);printf("\n");}check(good,"ANSI ownership, byte contents, manager callbacks and failure states match native MFC");}
  else golden.push_back(result);++comparisons;
@@ -189,17 +189,41 @@ void extraStorage(){
   for(auto block:blocks)check(!block.live,"ordinary ANSI lifetimes release every owned buffer");
  }
 }
-void** imported(HMODULE module,const char* wanted){auto* b=reinterpret_cast<BYTE*>(module);auto* pe=reinterpret_cast<IMAGE_NT_HEADERS*>(b+reinterpret_cast<IMAGE_DOS_HEADER*>(b)->e_lfanew);auto* d=reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(b+pe->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);for(;d->Name;++d){auto* n=reinterpret_cast<IMAGE_THUNK_DATA*>(b+d->OriginalFirstThunk);auto* v=reinterpret_cast<IMAGE_THUNK_DATA*>(b+d->FirstThunk);for(;n->u1.AddressOfData;++n,++v)if(!IMAGE_SNAP_BY_ORDINAL(n->u1.Ordinal)){auto* name=reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(b+n->u1.AddressOfData);if(!strcmp(reinterpret_cast<char*>(name->Name),wanted))return reinterpret_cast<void**>(&v->u1.Function);}}return nullptr;}
+void** imported(HMODULE module,const char* wanted){
+ auto* bytes=reinterpret_cast<BYTE*>(module);
+ auto* pe=reinterpret_cast<IMAGE_NT_HEADERS*>(bytes+reinterpret_cast<IMAGE_DOS_HEADER*>(bytes)->e_lfanew);
+ auto* dll=reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(bytes+pe->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+ for(;dll->Name;++dll){
+  auto* names=reinterpret_cast<IMAGE_THUNK_DATA*>(bytes+dll->OriginalFirstThunk);
+  auto* values=reinterpret_cast<IMAGE_THUNK_DATA*>(bytes+dll->FirstThunk);
+  for(;names->u1.AddressOfData;++names,++values){
+   bool matched=false;
+   if(IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal)){
+    if(!_stricmp(reinterpret_cast<char*>(bytes+dll->Name),"OLEAUT32.dll")){
+     WORD ordinal=WORD(IMAGE_ORDINAL(names->u1.Ordinal));
+     matched=(ordinal==8&&!strcmp(wanted,"VariantInit")) ||
+       (ordinal==9&&!strcmp(wanted,"VariantClear")) ||
+       (ordinal==12&&!strcmp(wanted,"VariantChangeType"));
+    }
+   }else{
+    auto* name=reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(bytes+names->u1.AddressOfData);
+    matched=!strcmp(reinterpret_cast<char*>(name->Name),wanted);
+   }
+   if(matched)return reinterpret_cast<void**>(&values->u1.Function);
+  }
+ }
+ return nullptr;
+}
 struct Patch {void** slot;void* old;DWORD protection;Patch(void** targetSlot,void* target):slot(targetSlot){check(slot!=nullptr,"locate ANSI allocator boundary");if(!slot)abort();old=*slot;VirtualProtect(slot,8,PAGE_READWRITE,&protection);*slot=target;}Patch(const char* name,void* target):Patch(imported(image?image:GetModuleHandleW(nullptr),name),target){}~Patch(){*slot=old;DWORD ignored;VirtualProtect(slot,8,protection,&ignored);}};
 CStringData* defaultAllocate(IAtlStringMgr* manager,int length,int width){
  events.push_back({1,0,length,width,0,0});if(length<0)return nullptr;
- int bytes=length*width+1+32;auto* data=static_cast<CStringData*>(malloc(sizeof(CStringData)+bytes));
+ int bytes=(length+1)*width+32;auto* data=static_cast<CStringData*>(malloc(sizeof(CStringData)+bytes));
  *data={manager,0,length,1};memset(data+1,0xa5,bytes);blocks.push_back({data,bytes,int(blocks.size()+1),true});return data;
 }
 void defaultFree(IAtlStringMgr*,CStringData* data){events.push_back({2,0,blockID(data),data->nDataLength,data->nAllocLength,data->nRefs});for(auto& b:blocks)if(b.data==data){check(b.live,"default ANSI manager releases a live buffer");b.live=false;return;}check(false,"default ANSI manager frees its owned storage");}
 CStringData* defaultReallocate(IAtlStringMgr* manager,CStringData* old,int length,int width){
  events.push_back({3,0,blockID(old),length,width,old->nRefs});if(length<0)return nullptr;
- int bytes=length*width+1+32;auto* data=static_cast<CStringData*>(malloc(sizeof(CStringData)+bytes));*data={manager,old->nDataLength,length,old->nRefs};memset(data+1,0xa5,bytes);
+ int bytes=(length+1)*width+32;auto* data=static_cast<CStringData*>(malloc(sizeof(CStringData)+bytes));*data={manager,old->nDataLength,length,old->nRefs};memset(data+1,0xa5,bytes);
  for(auto& b:blocks)if(b.data==old){memcpy(data+1,old+1,size_t((std::min)(b.bytes-32,bytes-32)));b.live=false;break;}
  blocks.push_back({data,bytes,int(blocks.size()+1),true});return data;
 }
@@ -274,6 +298,101 @@ void resources(){
  resourceFailure=conversionFailure=0;g_fileExceptionFinder=previous;
 }
 
+void wideAppend(){
+ for(int state:{0,1,2,3})for(bool clone:{false,true})for(int failure:{0,1,2})for(int operation=0;operation<7;++operation)for(int maximum:{-1,0,1,4,10}){
+  if(operation>=3&&maximum!=0)continue;
+  Fixture fixture;Object object,sibling,other;
+  auto* text=::new(object.storage) CString(&fixture.first);*text=L"abcdef";
+  auto* source=::new(other.storage) CString(&fixture.third);*source=L"ABcdef";source->GetBuffer()[2]=0;
+  if(state==1)::new(sibling.storage) CString(*text);
+  if(state>=2){text->LockBuffer();if(state==3)text->LockBuffer();}
+  fixture.first.cloned=clone?&fixture.second:&fixture.first;
+  fixture.first.failAllocate=fixture.second.failAllocate=failure==1;fixture.first.failReallocate=failure==2;events.clear();
+  sample(object,fixture,true,[&]()->INT64{
+   switch(operation){
+   case 0:call<void>(0x2ba0,text,L"AB\0tail",maximum);break;
+   case 1:call<void>(0x2ba0,text,text->GetString()+2,maximum);break;
+   case 2:call<void>(0x2ba0,text,static_cast<const wchar_t*>(nullptr),maximum);break;
+   case 3:call<void>(0x122f0,text,L"AB\0tail");break;
+   case 4:call<void>(0x122f0,text,text->GetString()+2);break;
+   case 5:call<void>(0x2ca0,text,text);break;
+   case 6:call<void>(0x2ca0,text,source);break;
+   }return text->GetLength();
+  });
+  fixture.first.failAllocate=fixture.second.failAllocate=fixture.first.failReallocate=false;
+  text->~CString();source->~CString();if(state==1)reinterpret_cast<CString*>(sibling.storage)->~CString();
+ }
+}
+
+using VariantInitAPI=decltype(&::VariantInit);using VariantClearAPI=decltype(&::VariantClear);using VariantCoerceAPI=decltype(&::VariantChangeType);
+VariantInitAPI originalInit;VariantClearAPI originalClear;VariantCoerceAPI originalCoerce;
+const VARIANT* expectedVariant;HRESULT coercionStatus,clearStatus;int variantMode;bool nullBSTR;
+void WINAPI initVariant(VARIANT* value){
+ const BYTE* raw=reinterpret_cast<const BYTE*>(value);bool zero=true;for(size_t at=0;at<sizeof(*value);++at)zero=zero&&!raw[at];
+ events.push_back({30,zero,0,0,0,0});check(zero,"converted VARIANT storage is fully zeroed before VariantInit");
+ originalInit(value);
+}
+HRESULT WINAPI coerceVariant(VARIANT* result,VARIANT* source,USHORT flags,VARTYPE type){
+ events.push_back({31,source==expectedVariant,flags,type,source?source->vt:-1,0});check(source==expectedVariant&&flags==0&&type==VT_BSTR,"string conversion preserves the original VARIANT and uses VariantChangeType flags zero/VT_BSTR");
+ if(variantMode==1)return originalCoerce(result,source,flags,type);
+ result->vt=VT_BSTR;result->bstrVal=nullBSTR?nullptr:SysAllocStringLen(L"AB\0CDE",6);return coercionStatus;
+}
+HRESULT WINAPI clearVariant(VARIANT* value){
+ events.push_back({32,value->vt,value->vt==VT_BSTR&&value->bstrVal?SysStringLen(value->bstrVal):-1,0,0,0});
+ originalClear(value);return clearStatus;
+}
+void variantStrings(){
+ Patch initialize("VariantInit",reinterpret_cast<void*>(&initVariant)),coerce("VariantChangeType",reinterpret_cast<void*>(&coerceVariant)),clear("VariantClear",reinterpret_cast<void*>(&clearVariant));
+ originalInit=reinterpret_cast<VariantInitAPI>(initialize.old);originalCoerce=reinterpret_cast<VariantCoerceAPI>(coerce.old);originalClear=reinterpret_cast<VariantClearAPI>(clear.old);
+ for(bool wide:{false,true})for(int operation=0;operation<4;++operation)for(int state:{0,1,2})for(bool clone:{false,true})for(int failure:{0,1,2})for(HRESULT status:std::array<HRESULT,5>{S_OK,S_FALSE,E_FAIL,E_OUTOFMEMORY,DISP_E_TYPEMISMATCH})for(bool empty:{false,true}){
+  Fixture fixture;Object object,sibling;bool owned=operation>=2;
+  if(owned){if(wide){auto* text=::new(object.storage) CString(&fixture.first);*text=L"prefix";}else construct(object,fixture.first);}
+  if(owned&&state==1){if(wide)::new(sibling.storage) CString(*reinterpret_cast<CString*>(object.storage));else call<void*>(0x2b6c00,sibling.get(),object.get());}
+  if(owned&&state==2){if(wide)reinterpret_cast<CString*>(object.storage)->LockBuffer();else call<char*>(0x203f20,object.get());}
+  fixture.first.cloned=clone?&fixture.second:&fixture.first;fixture.first.failAllocate=fixture.second.failAllocate=failure==1;fixture.first.failReallocate=failure==2;
+  VARIANT input{};input.vt=VT_I4;input.lVal=17;expectedVariant=&input;coercionStatus=status;clearStatus=E_FAIL;variantMode=0;nullBSTR=empty;events.clear();
+  sample(object,fixture,owned,[&]()->INT64{
+   if(operation<2){
+    if(operation==0)call<void*>(wide?0x2b31c0:0x2b2be0,object.storage,&input,&fixture.first);
+    else call<void*>(wide?0x2b3280:0x2b2c90,object.storage,&input);
+    owned=true;safeRead=true;
+   }else{
+    void* result=call<void*>(wide?(operation==2?0x2b3340:0x2b33d0):(operation==2?0x2b2d30:0x2b2db0),object.storage,&input);
+    check(result==object.storage,"VARIANT string operators return their actual receiver");
+   }
+   return object.get()->GetLength();
+  });
+  fixture.first.failAllocate=fixture.second.failAllocate=fixture.first.failReallocate=false;
+  if(owned){if(wide)reinterpret_cast<CString*>(object.storage)->~CString();else destroy(object);}
+  if(operation>=2&&state==1){if(wide)reinterpret_cast<CString*>(sibling.storage)->~CString();else destroy(sibling);}
+ }
+ for(bool wide:{false,true})for(int operation=0;operation<4;++operation)for(int type:{VT_EMPTY,VT_NULL,VT_I4,VT_BOOL,VT_BSTR,VT_R8,VT_ERROR}){
+  Fixture fixture;Object object;bool owned=operation>=2;
+  if(owned){if(wide){auto* text=::new(object.storage) CString(&fixture.first);*text=L"prefix";}else construct(object,fixture.first);}
+  VARIANT input{};input.vt=VARTYPE(type);if(type==VT_I4)input.lVal=-123;if(type==VT_BOOL)input.boolVal=VARIANT_TRUE;if(type==VT_R8)input.dblVal=1.25;if(type==VT_ERROR)input.scode=E_FAIL;if(type==VT_BSTR)input.bstrVal=SysAllocStringLen(L"A\0tail",6);
+  expectedVariant=&input;variantMode=1;events.clear();
+  sample(object,fixture,owned,[&]()->INT64{
+   if(operation<2){if(operation==0)call<void*>(wide?0x2b31c0:0x2b2be0,object.storage,&input,&fixture.first);else call<void*>(wide?0x2b3280:0x2b2c90,object.storage,&input);owned=true;safeRead=true;}
+   else call<void*>(wide?(operation==2?0x2b3340:0x2b33d0):(operation==2?0x2b2d30:0x2b2db0),object.storage,&input);
+   return object.get()->GetLength();
+  });
+  if(owned){if(wide)reinterpret_cast<CString*>(object.storage)->~CString();else destroy(object);}originalClear(&input);
+ }
+ for(bool wide:{false,true})for(int operation=0;operation<4;++operation)for(bool missingSource:{false,true})for(bool missingManager:{false,true}){
+  Fixture fixture;Object object;bool owned=operation>=2;
+  if(owned){if(wide){auto* text=::new(object.storage) CString(&fixture.first);*text=L"prefix";}else construct(object,fixture.first);}
+  VARIANT input{};input.vt=VT_I4;input.lVal=42;
+  expectedVariant=missingSource?nullptr:&input;variantMode=0;coercionStatus=expectedVariant?S_OK:E_INVALIDARG;nullBSTR=false;events.clear();
+  sample(object,fixture,owned,[&]()->INT64{
+   if(operation<2){if(operation==0)call<void*>(wide?0x2b31c0:0x2b2be0,object.storage,expectedVariant,missingManager?nullptr:&fixture.first);else call<void*>(wide?0x2b3280:0x2b2c90,object.storage,expectedVariant);owned=true;safeRead=true;}
+   else call<void*>(wide?(operation==2?0x2b3340:0x2b33d0):(operation==2?0x2b2d30:0x2b2db0),object.storage,expectedVariant);
+   return object.get()->GetLength();
+  });
+  if(owned){if(wide)reinterpret_cast<CString*>(object.storage)->~CString();else destroy(object);}
+ }
+ variantMode=0;expectedVariant=nullptr;
+}
+
 void* throwingFinder(UINT){throw 71;}
 struct Hook {BYTE* entry;BYTE saved[12];DWORD protection;Hook(void* target,void* callback):entry(static_cast<BYTE*>(target)){memcpy(saved,entry,12);VirtualProtect(entry,12,PAGE_EXECUTE_READWRITE,&protection);BYTE bytes[12]={0x48,0xb8};memcpy(bytes+2,&callback,8);bytes[10]=0xff;bytes[11]=0xe0;memcpy(entry,bytes,12);FlushInstructionCache(GetCurrentProcess(),entry,12);}~Hook(){memcpy(entry,saved,12);FlushInstructionCache(GetCurrentProcess(),entry,12);DWORD ignored;VirtualProtect(entry,12,protection,&ignored);}};
 void noexceptCases(){
@@ -295,9 +414,9 @@ int TestAnsiStringOwnership(HMODULE native){using namespace ansi_string_test;ima
  if(providers.empty())for(auto entry:ansiStringProviders)providers.emplace(entry.first,entry.second);
  auto** table=*reinterpret_cast<void***>(native?static_cast<void*>(reinterpret_cast<BYTE*>(native)+0x3b25e8):static_cast<void*>(OpenMFC_GetStringMgr()));
  {Patch allocate(table,reinterpret_cast<void*>(&defaultAllocate)),release(table+1,reinterpret_cast<void*>(&defaultFree)),reallocate(table+2,reinterpret_cast<void*>(&defaultReallocate));
- constructors();buffers();assignment();reentry();extraStorage();conversions();resources();managerExports();noexceptCases();
+ constructors();buffers();assignment();reentry();extraStorage();conversions();resources();managerExports();wideAppend();variantStrings();noexceptCases();
  }
- printf("%s ANSI ownership: %u native comparisons, %d failures\n",native?"Native":"Source",comparisons,failures);return failures;
+ printf("%s string storage/conversion: %u native comparisons, %d failures\n",native?"Native":"Source",comparisons,failures);return failures;
 }
 
 int TestAnsiNoexceptChild(int argc,char** argv){

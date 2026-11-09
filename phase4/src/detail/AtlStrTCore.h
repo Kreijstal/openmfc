@@ -577,7 +577,6 @@ public:
     }
 
     // --- VARIANT construction ---------------------------------------------------
-    void ConstructVariant(const VARIANT* pv);   // defined out-of-line per CH below
 
     // --- static char helpers ----------------------------------------------------
     static int StringLength(const CH* psz) { return psz ? Len(psz) : 0; }
@@ -684,28 +683,5 @@ private:
         if (pd != NilData<CH>() && !pd->IsLocked() && pd->pStringMgr) pd->pStringMgr->Free(pd);
     }
 };
-
-// VARIANT -> string: coerce a copy to VT_BSTR (thread locale) then take the wide text,
-// converting to the narrow codepage for CStringA.  Matches CStringT's VARIANT ctor.
-template <>
-inline void AtlStrT<wchar_t>::ConstructVariant(const VARIANT* pv) {
-    Construct();
-    if (!pv) return;
-    VARIANT v; VariantInit(&v);
-    if (VariantChangeTypeEx(&v, const_cast<VARIANT*>(pv), GetThreadLocale(), 0, VT_BSTR) == S_OK) {
-        if (v.bstrVal) ConstructPszN(v.bstrVal, (int)SysStringLen(v.bstrVal));
-    }
-    VariantClear(&v);
-}
-template <>
-inline void AtlStrT<char>::ConstructVariant(const VARIANT* pv) {
-    Construct();
-    if (!pv) return;
-    VARIANT v; VariantInit(&v);
-    if (VariantChangeTypeEx(&v, const_cast<VARIANT*>(pv), GetThreadLocale(), 0, VT_BSTR) == S_OK) {
-        if (v.bstrVal) ConstructConvertN<wchar_t>(v.bstrVal, (int)SysStringLen(v.bstrVal));
-    }
-    VariantClear(&v);
-}
 
 } // namespace openmfc_str

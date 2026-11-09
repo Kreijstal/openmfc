@@ -211,6 +211,7 @@ on:
       - 'phase4/src/core/collections/CStringBuffer.cpp'
       - 'phase4/src/core/collections/CStringA.cpp'
       - 'phase4/src/core/collections/CStringAStorage.cpp'
+      - 'phase4/src/core/collections/CStringVariant.cpp'
       - 'phase4/src/core/runtime/CAfxStringMgr.cpp'
       - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/detail/StringResourceSupport.h'
@@ -519,6 +520,7 @@ on:
       - 'phase4/src/core/collections/CStringBuffer.cpp'
       - 'phase4/src/core/collections/CStringA.cpp'
       - 'phase4/src/core/collections/CStringAStorage.cpp'
+      - 'phase4/src/core/collections/CStringVariant.cpp'
       - 'phase4/src/core/runtime/CAfxStringMgr.cpp'
       - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/detail/StringResourceSupport.h'
@@ -677,6 +679,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringA.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringAStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringVariant.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CAfxStringMgr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringResource.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxFormatStrings.cpp"
@@ -925,6 +928,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringA.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringAStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringVariant.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CAfxStringMgr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringResource.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxFormatStrings.cpp"
