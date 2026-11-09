@@ -1,0 +1,51 @@
+#pragma once
+#include "openmfc/afxstr.h"
+extern "C" int impl__Collate___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z(const CStringA* self,const char* text);
+extern "C" int impl__CollateNoCase___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z(const CStringA* self,const char* text);
+extern "C" int impl__Compare___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z(const CStringA* self,const char* text);
+extern "C" int impl__CompareNoCase___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z(const CStringA* self,const char* text);
+extern "C" int impl__Find___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHDH_Z(const CStringA* self,char value,int start);
+extern "C" int impl__Find___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBDH_Z(const CStringA* self,const char* text,int start);
+extern "C" int impl__FindOneOf___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z(const CStringA* self,const char* text);
+extern "C" CStringA* impl__MakeLower___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(CStringA* self);
+extern "C" CStringA* impl__MakeReverse___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(CStringA* self);
+extern "C" CStringA* impl__MakeUpper___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(CStringA* self);
+extern "C" int impl__ReverseFind___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHD_Z(const CStringA* self,char value);
+extern "C" int impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_WH_Z(const CString* self,wchar_t value,int start);
+extern "C" int impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_WH_Z(const CString* self,const wchar_t* text,int start);
+extern "C" int impl__FindOneOf___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text);
+extern "C" CString* impl__MakeLower___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* self);
+extern "C" CString* impl__MakeReverse___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* self);
+extern "C" CString* impl__MakeUpper___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* self);
+extern "C" int impl__Compare___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text);
+extern "C" int impl__CompareNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text);
+extern "C" int impl__Collate___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text);
+extern "C" int impl__CollateNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text);
+extern "C" int impl__ReverseFind___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_W_Z(const CString* self,wchar_t value);
+template<class T>struct StringSearchExports;
+template<>struct StringSearchExports<CStringA> {
+    static inline auto Collate=&impl__Collate___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z;static constexpr UINT_PTR CollateRVA=0x2b63a0;
+    static inline auto CollateNoCase=&impl__CollateNoCase___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z;static constexpr UINT_PTR CollateNoCaseRVA=0x2b6390;
+    static inline auto Compare=&impl__Compare___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z;static constexpr UINT_PTR CompareRVA=0x204230;
+    static inline auto CompareNoCase=&impl__CompareNoCase___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z;static constexpr UINT_PTR CompareNoCaseRVA=0x2b63b0;
+    static inline auto FindChar=&impl__Find___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHDH_Z;static constexpr UINT_PTR FindCharRVA=0x2b5b30;
+    static inline auto FindText=&impl__Find___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBDH_Z;static constexpr UINT_PTR FindTextRVA=0x2b5af0;
+    static inline auto FindOneOf=&impl__FindOneOf___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z;static constexpr UINT_PTR FindOneOfRVA=0x2b5ac0;
+    static inline auto MakeLower=&impl__MakeLower___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ;static constexpr UINT_PTR MakeLowerRVA=0x2b5970;
+    static inline auto MakeReverse=&impl__MakeReverse___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ;static constexpr UINT_PTR MakeReverseRVA=0x2b5900;
+    static inline auto MakeUpper=&impl__MakeUpper___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ;static constexpr UINT_PTR MakeUpperRVA=0x2b5a00;
+    static inline auto ReverseFind=&impl__ReverseFind___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHD_Z;static constexpr UINT_PTR ReverseFindRVA=0x2b5a90;
+};
+template<>struct StringSearchExports<CString> {
+    static inline auto FindChar=&impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_WH_Z;static constexpr UINT_PTR FindCharRVA=0x12b80;
+    static inline auto FindText=&impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_WH_Z;static constexpr UINT_PTR FindTextRVA=0x66d70;
+    static inline auto FindOneOf=&impl__FindOneOf___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z;static constexpr UINT_PTR FindOneOfRVA=0x3b020;
+    static inline auto MakeLower=&impl__MakeLower___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ;static constexpr UINT_PTR MakeLowerRVA=0x2da0;
+    static inline auto MakeReverse=&impl__MakeReverse___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ;static constexpr UINT_PTR MakeReverseRVA=0x2b3fe0;
+    static inline auto MakeUpper=&impl__MakeUpper___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ;static constexpr UINT_PTR MakeUpperRVA=0x1fb80;
+    static inline auto Compare=&impl__Compare___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z;static constexpr UINT_PTR CompareRVA=0xdab0;
+    static inline auto CompareNoCase=&impl__CompareNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z;static constexpr UINT_PTR CompareNoCaseRVA=0x3b050;
+    static inline auto Collate=&impl__Collate___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z;static constexpr UINT_PTR CollateRVA=0x61df0;
+    static inline auto CollateNoCase=&impl__CollateNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z;static constexpr UINT_PTR CollateNoCaseRVA=0x6ca80;
+    static inline auto ReverseFind=&impl__ReverseFind___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_W_Z;static constexpr UINT_PTR ReverseFindRVA=0x3aff0;
+};

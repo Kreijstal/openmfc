@@ -171,3 +171,38 @@ extern "C" CString* impl__SpanExcluding___CStringT__WV__StrTraitMFC_DLL__WV__ChT
 extern "C" CString* impl__SpanIncluding___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_PEB_W_Z(const CString* self,CString* result,const wchar_t* set) {return ::new(result) CString(self->SpanIncluding(set));}
 // Symbol: ?Tokenize@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBA?AV12@PEB_WAEAH@Z
 extern "C" CString* impl__Tokenize___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBA_AV12_PEB_WAEAH_Z(const CString* self,CString* result,const wchar_t* delimiters,int* start) {return ::new(result) CString(self->Tokenize(delimiters,*start));}
+
+int CString::Compare(const wchar_t* text) const {return openmfc_string_ops::Compare(*this,text,0);}
+int CString::CompareNoCase(const wchar_t* text) const {return openmfc_string_ops::Compare(*this,text,1);}
+int CString::Collate(const wchar_t* text) const {return openmfc_string_ops::Compare(*this,text,2);}
+int CString::CollateNoCase(const wchar_t* text) const {return openmfc_string_ops::Compare(*this,text,3);}
+int CString::Find(wchar_t value,int start) const {return openmfc_string_ops::Find(*this,value,start);}
+int CString::Find(const wchar_t* text,int start) const {return openmfc_string_ops::Find(*this,text,start);}
+int CString::FindOneOf(const wchar_t* set) const {return openmfc_string_ops::FindOneOf(*this,set);}
+int CString::ReverseFind(wchar_t value) const {return openmfc_string_ops::ReverseFind(*this,value);}
+CString& CString::MakeLower() {return openmfc_string_ops::ChangeCase(*this,0);}
+CString& CString::MakeUpper() {return openmfc_string_ops::ChangeCase(*this,1);}
+CString& CString::MakeReverse() {return openmfc_string_ops::ChangeCase(*this,2);}
+
+// Symbol: ?Find@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAH_WH@Z
+extern "C" int impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_WH_Z(const CString* self,wchar_t value,int start) {return self->Find(value,start);}
+// Symbol: ?Find@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_WH@Z
+extern "C" int impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_WH_Z(const CString* self,const wchar_t* text,int start) {return self->Find(text,start);}
+// Symbol: ?FindOneOf@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
+extern "C" int impl__FindOneOf___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text) {return self->FindOneOf(text);}
+// Symbol: ?MakeLower@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* impl__MakeLower___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* self) {return &self->MakeLower();}
+// Symbol: ?MakeReverse@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* impl__MakeReverse___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* self) {return &self->MakeReverse();}
+// Symbol: ?MakeUpper@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CString* impl__MakeUpper___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* self) {return &self->MakeUpper();}
+// Symbol: ?Compare@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
+extern "C" int impl__Compare___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text) {return self->Compare(text);}
+// Symbol: ?CompareNoCase@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
+extern "C" int impl__CompareNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text) {return self->CompareNoCase(text);}
+// Symbol: ?Collate@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
+extern "C" int impl__Collate___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text) {return self->Collate(text);}
+// Symbol: ?CollateNoCase@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
+extern "C" int impl__CollateNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text) {return self->CollateNoCase(text);}
+// Symbol: ?ReverseFind@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAH_W@Z
+extern "C" int impl__ReverseFind___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_W_Z(const CString* self,wchar_t value) {return self->ReverseFind(value);}

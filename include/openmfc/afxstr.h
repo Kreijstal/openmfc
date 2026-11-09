@@ -398,10 +398,18 @@ public:
         auto* manager=CSimpleStringW::GetManager();return manager?manager:OpenMFC_GetStringMgr()->Clone();
     }
 
-    // Comparison
-    int Compare(const wchar_t* psz) const {
-        return wcscmp(m_pszData, psz ? psz : L"");
-    }
+    // Comparison, search and case operations use the native CRT contracts.
+    OPENMFC_STRING_API int Compare(const wchar_t* text) const;
+    OPENMFC_STRING_API int CompareNoCase(const wchar_t* text) const;
+    OPENMFC_STRING_API int Collate(const wchar_t* text) const;
+    OPENMFC_STRING_API int CollateNoCase(const wchar_t* text) const;
+    OPENMFC_STRING_API int Find(wchar_t value,int start=0) const;
+    OPENMFC_STRING_API int Find(const wchar_t* text,int start=0) const;
+    OPENMFC_STRING_API int FindOneOf(const wchar_t* set) const;
+    OPENMFC_STRING_API int ReverseFind(wchar_t value) const;
+    OPENMFC_STRING_API CString& MakeUpper();
+    OPENMFC_STRING_API CString& MakeLower();
+    OPENMFC_STRING_API CString& MakeReverse();
 
     bool operator==(const wchar_t* psz) const { return Compare(psz) == 0; }
     bool operator!=(const wchar_t* psz) const { return Compare(psz) != 0; }
@@ -415,62 +423,6 @@ public:
     OPENMFC_STRING_API CString SpanIncluding(const wchar_t* set) const;
     OPENMFC_STRING_API CString SpanExcluding(const wchar_t* set) const;
     OPENMFC_STRING_API CString Tokenize(const wchar_t* delimiters,int& start) const;
-
-    // Searching
-    int Find(wchar_t ch, int nStart = 0) const {
-        if (nStart < 0) nStart = 0;
-        int nLen = GetLength();
-        if (nStart >= nLen) return -1;
-        const wchar_t* p = wcschr(m_pszData + nStart, ch);
-        return p ? static_cast<int>(p - m_pszData) : -1;
-    }
-
-    int Find(const wchar_t* pszSub, int nStart = 0) const {
-        if (pszSub == nullptr || *pszSub == L'\0') return -1;
-        if (nStart < 0) nStart = 0;
-        int nLen = GetLength();
-        if (nStart >= nLen) return -1;
-        const wchar_t* p = wcsstr(m_pszData + nStart, pszSub);
-        return p ? static_cast<int>(p - m_pszData) : -1;
-    }
-
-    int ReverseFind(wchar_t ch) const {
-        const wchar_t* p = wcsrchr(m_pszData, ch);
-        return p ? static_cast<int>(p - m_pszData) : -1;
-    }
-
-    int FindOneOf(const wchar_t* pszCharSet) const {
-        if (pszCharSet == nullptr || *pszCharSet == L'\0') return -1;
-        const wchar_t* p = wcspbrk(m_pszData, pszCharSet);
-        return p ? static_cast<int>(p - m_pszData) : -1;
-    }
-
-    // Case conversion (modifies in place, returns reference)
-    CString& MakeUpper() {
-        int nLen = GetLength();
-        if (nLen > 0) {
-            wchar_t* pBuf = GetBuffer(nLen);
-            for (int i = 0; i < nLen; i++) {
-                if (pBuf[i] >= L'a' && pBuf[i] <= L'z')
-                    pBuf[i] -= 32;
-            }
-            ReleaseBuffer(nLen);
-        }
-        return *this;
-    }
-
-    CString& MakeLower() {
-        int nLen = GetLength();
-        if (nLen > 0) {
-            wchar_t* pBuf = GetBuffer(nLen);
-            for (int i = 0; i < nLen; i++) {
-                if (pBuf[i] >= L'A' && pBuf[i] <= L'Z')
-                    pBuf[i] += 32;
-            }
-            ReleaseBuffer(nLen);
-        }
-        return *this;
-    }
 
     // Trimming
     CString& TrimLeft() {
@@ -606,37 +558,6 @@ public:
         wmemcpy(pBuf + nIndex, pstr, nInsertLen);
         ReleaseBuffer(nNewLen);
         return nNewLen;
-    }
-
-    // Reverse string in place
-    CString& MakeReverse() {
-        int nLen = GetLength();
-        if (nLen > 1) {
-            wchar_t* pBuf = GetBuffer(nLen);
-            for (int i = 0; i < nLen / 2; i++) {
-                wchar_t tmp = pBuf[i];
-                pBuf[i] = pBuf[nLen - 1 - i];
-                pBuf[nLen - 1 - i] = tmp;
-            }
-            ReleaseBuffer(nLen);
-        }
-        return *this;
-    }
-
-    // Case-insensitive comparison
-    int CompareNoCase(const wchar_t* psz) const {
-        if (psz == nullptr) psz = L"";
-        const wchar_t* p1 = m_pszData;
-        const wchar_t* p2 = psz;
-        while (*p1 && *p2) {
-            wchar_t c1 = (*p1 >= L'A' && *p1 <= L'Z') ? *p1 + 32 : *p1;
-            wchar_t c2 = (*p2 >= L'A' && *p2 <= L'Z') ? *p2 + 32 : *p2;
-            if (c1 != c2) return c1 - c2;
-            p1++; p2++;
-        }
-        wchar_t c1 = (*p1 >= L'A' && *p1 <= L'Z') ? *p1 + 32 : *p1;
-        wchar_t c2 = (*p2 >= L'A' && *p2 <= L'Z') ? *p2 + 32 : *p2;
-        return c1 - c2;
     }
 
     // Printf-style formatting

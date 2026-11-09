@@ -22,6 +22,8 @@ static_assert(std::is_same_v<decltype(std::declval<CStringA&>()+=wchar_t()),CStr
 static_assert(std::is_same_v<decltype(std::declval<CStringA&>()+=char()),CStringA&>,"native ANSI character append return type");
 static_assert(std::is_same_v<decltype(std::declval<CStringW&>()+=char()),CStringW&>,"native Unicode append return type");
 static_assert(std::is_same_v<decltype(std::declval<CStringW&>()+=static_cast<unsigned char>(0)),CStringW&>,"native unsigned-character append return type");
+static_assert(std::is_same_v<decltype(std::declval<CStringW&>().MakeUpper()),CStringW&>,"native Unicode case return type");
+static_assert(std::is_same_v<decltype(std::declval<CStringA&>().MakeReverse()),CStringA&>,"native ANSI case return type");
 namespace {
 int failures;
 void check(bool value,const char* message){if(!value){++failures;std::printf("FAIL: %s\n",message);}}
@@ -95,6 +97,25 @@ int main(){
             CStringW charsW(&custom);CStringA charsA(&custom);
             charsW+=char(0xe9);charsW+=static_cast<unsigned char>(0xe9);charsA+=wchar_t(0x3a9);
             check(charsW.GetLength()==2&&charsW.GetAt(0)==wchar_t(0xffe9)&&charsW.GetAt(1)==wchar_t(0xe9)&&static_cast<unsigned char>(charsA.GetAt(0))==0xa9,"derived character appends widen or truncate without encoding conversion");
+        }
+        {
+            CStringW textW(L"Ab\0aB",5,&custom);CStringA textA("Ab\0aB",5,&custom);
+            check(textW.Compare(L"Ab")==0&&textA.Compare("Ab")==0&&textW.CompareNoCase(L"aB")==0&&textA.CompareNoCase("aB")==0,"comparison imports use the terminated prefix");
+            check(textW.Collate(L"Ab")==0&&textA.Collate("Ab")==0&&textW.CollateNoCase(L"aB")==0&&textA.CollateNoCase("aB")==0,"collation imports use the CRT rules");
+            check(textW.Find(L"",5)==5&&textA.Find("",5)==5&&textW.Find(L"",-1)==-1&&textA.Find("",-1)==-1,"substring searches allow the end position and reject negative offsets");
+            check(textW.Find(L'a',3)==3&&textA.Find('a',3)==3&&textW.Find(L'a',0)==-1&&textA.Find('a',0)==-1,"search offsets can begin after an embedded NUL");
+            check(textW.ReverseFind(wchar_t(0))==2&&textA.ReverseFind(char(0))==2&&textW.FindOneOf(L"b")==1&&textA.FindOneOf("b")==1,"reverse and set search imports preserve native indices");
+            bool rejectedW=false,rejectedA=false;
+            try{textW.Compare(nullptr);}catch(COleException* error){rejectedW=error->m_sc==E_FAIL;error->Delete();}
+            try{textA.CompareNoCase(nullptr);}catch(COleException* error){rejectedA=error->m_sc==E_FAIL;error->Delete();}
+            check(rejectedW&&rejectedA,"null comparisons throw native typed E_FAIL exceptions across the DLL boundary");
+            CStringW sharedW(textW);CStringA sharedA(textA);
+            check(&textW.MakeUpper()==&textW && &textA.MakeUpper()==&textA,"case imports return the original object");
+            check(textW.GetString()!=sharedW.GetString()&&textA.GetString()!=sharedA.GetString()&&sharedW.GetAt(1)==L'b'&&sharedA.GetAt(1)=='b',"case conversion detaches shared storage");
+            check(textW.GetAt(1)==L'B'&&textA.GetAt(1)=='B'&&textW.GetAt(3)==L'a'&&textA.GetAt(3)=='a',"case conversion preserves data following an embedded NUL");
+            textW.LockBuffer();textW.LockBuffer();textA.LockBuffer();textA.LockBuffer();
+            textW.MakeLower().MakeReverse();textA.MakeLower().MakeReverse();
+            check(textW.GetLength()==5&&textA.GetLength()==5&&textW.GetAt(0)==L'b'&&textA.GetAt(0)=='b'&&header(textW)->nRefs==-2&&header(textA)->nRefs==-2,"case conversion and reversal preserve counted length and nested locks");
         }
         {
             ATL::CSimpleStringT<char,false> plain("foreign",&custom);

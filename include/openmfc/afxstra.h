@@ -31,6 +31,17 @@ public:
     IAtlStringMgr* GetManager() const noexcept {
         auto* manager=CSimpleStringA::GetManager();return manager?manager:OpenMFC_GetStringMgr()->Clone();
     }
+    OPENMFC_STRING_API int Compare(const char* text) const;
+    OPENMFC_STRING_API int CompareNoCase(const char* text) const;
+    OPENMFC_STRING_API int Collate(const char* text) const;
+    OPENMFC_STRING_API int CollateNoCase(const char* text) const;
+    OPENMFC_STRING_API int Find(char value,int start=0) const;
+    OPENMFC_STRING_API int Find(const char* text,int start=0) const;
+    OPENMFC_STRING_API int FindOneOf(const char* set) const;
+    OPENMFC_STRING_API int ReverseFind(char value) const;
+    OPENMFC_STRING_API CStringA& MakeUpper();
+    OPENMFC_STRING_API CStringA& MakeLower();
+    OPENMFC_STRING_API CStringA& MakeReverse();
     OPENMFC_STRING_API CStringA Left(int count) const;
     OPENMFC_STRING_API CStringA Right(int count) const;
     OPENMFC_STRING_API CStringA Mid(int first) const;

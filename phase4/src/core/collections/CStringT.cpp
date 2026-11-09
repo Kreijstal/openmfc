@@ -79,21 +79,6 @@ extern "C" int MS_ABI impl__Delete___CStringT__WV__StrTraitMFC_DLL__WV__ChTraits
     if (!pThis) return 0;
     return pThis->Delete(iIndex, nCount);
 }
-// Symbol: ?Find@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAH_WH@Z
-extern "C" int MS_ABI impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_WH_Z(const CString* pThis, wchar_t ch, int iStart) {
-    if (!pThis) return -1;
-    return pThis->Find(ch, iStart);
-}
-// Symbol: ?Find@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_WH@Z
-extern "C" int MS_ABI impl__Find___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_WH_Z(const CString* pThis, const wchar_t* pszSub, int iStart) {
-    if (!pThis) return -1;
-    return pThis->Find(pszSub, iStart);
-}
-// Symbol: ?FindOneOf@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
-extern "C" int MS_ABI impl__FindOneOf___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* pThis, const wchar_t* pszCharSet) {
-    if (!pThis) return -1;
-    return pThis->FindOneOf(pszCharSet);
-}
 // Symbol: ?FormatV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAD@Z
 extern "C" void MS_ABI impl__FormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z(CString* pThis, const wchar_t* pszFormat, char* args) {
     if (!pThis) return;
@@ -106,24 +91,6 @@ extern "C" void MS_ABI impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTrait
     va_start(args, pszFormat);
     pThis->FormatV(pszFormat, args);
     va_end(args);
-}
-// Symbol: ?MakeLower@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
-extern "C" CString* MS_ABI
-impl__MakeLower___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
-    if (pThis) pThis->MakeLower();
-    return pThis;
-}
-// Symbol: ?MakeReverse@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
-extern "C" CString* MS_ABI
-impl__MakeReverse___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
-    if (pThis) pThis->MakeReverse();
-    return pThis;
-}
-// Symbol: ?MakeUpper@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
-extern "C" CString* MS_ABI
-impl__MakeUpper___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CString* pThis) {
-    if (pThis) pThis->MakeUpper();
-    return pThis;
 }
 // Symbol: ?Replace@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAH_W0@Z
 extern "C" int MS_ABI
@@ -197,44 +164,8 @@ impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL_
     return pThis;
 }
 // int CStringT<wchar_t>::Compare(PCXSTR) const
-// Symbol: ?Compare@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
-extern "C" int MS_ABI
-impl__Compare___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(
-        const CString* pThis, const wchar_t* psz) {
-    if (pThis == nullptr) {
-        return 0;
-    }
-    return ::wcscmp(pThis->GetString(), psz ? psz : L"");
-}
 // int CStringT<wchar_t>::CompareNoCase(PCXSTR) const
-// Symbol: ?CompareNoCase@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
-extern "C" int MS_ABI
-impl__CompareNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(
-        const CString* pThis, const wchar_t* psz) {
-    if (pThis == nullptr) {
-        return 0;
-    }
-    return pThis->CompareNoCase(psz);
-}
 // int CStringT<wchar_t>::Collate(PCXSTR) const
 // MFC implements Collate via _tcscoll (locale-aware comparison).
-// Symbol: ?Collate@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
-extern "C" int MS_ABI
-impl__Collate___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(
-        const CString* pThis, const wchar_t* psz) {
-    if (pThis == nullptr) {
-        return 0;
-    }
-    return ::wcscoll(pThis->GetString(), psz ? psz : L"");
-}
 // int CStringT<wchar_t>::CollateNoCase(PCXSTR) const
 // MFC implements CollateNoCase via _tcsicoll (locale-aware, case-insensitive).
-// Symbol: ?CollateNoCase@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAHPEB_W@Z
-extern "C" int MS_ABI
-impl__CollateNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(
-        const CString* pThis, const wchar_t* psz) {
-    if (pThis == nullptr) {
-        return 0;
-    }
-    return ::_wcsicoll(pThis->GetString(), psz ? psz : L"");
-}
