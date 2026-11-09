@@ -1,5 +1,6 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "detail/StringResourceSupport.h"
 
 #ifdef __GNUC__
 #define MS_ABI __attribute__((ms_abi))
@@ -38,6 +39,11 @@ extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_
 
 // Symbol: ?AfxFindStringResourceHandle@@YAPEAUHINSTANCE__@@I@Z
 extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT resource) {
-    return impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
-        MAKEINTRESOURCEW(resource/16+1),MAKEINTRESOURCEW(6));
+    HINSTANCE resources=AfxGetResourceHandle();
+    if (resources && openmfc::detail::StringResourceImage(resources,resource)) return resources;
+    HINSTANCE instance=AfxGetInstanceHandle();
+    if (instance && openmfc::detail::StringResourceImage(instance,resource)) return instance;
+    HINSTANCE main=GetModuleHandleW(nullptr);
+    if (main && main!=resources && main!=instance && openmfc::detail::StringResourceImage(main,resource)) return main;
+    return nullptr;
 }

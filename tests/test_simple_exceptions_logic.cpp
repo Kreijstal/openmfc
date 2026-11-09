@@ -1,6 +1,7 @@
 // Actual framework exceptions with an independent native DLL oracle.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
+#include "detail/StringResourceSupport.h"
 #include <cstdio>
 #include <cstring>
 #include <array>
@@ -161,6 +162,11 @@ void resources(){
         check(!help&&field<BOOL>(p,20)==TRUE&&field<BOOL>(p,24)==(mode?FALSE:TRUE),"simple cache commits initialized before loading and loaded only after a normal return");check(mode==2?escaped:result==(mode?FALSE:TRUE)&&!wcscmp(output,mode?L"":L"AB"),"simple cache preserves failed-load/exception output behavior");events.clear();help=77;api->simpleMessage(static_cast<CSimpleException*>(p),output,8,&help);check(events.empty()&&!help,"message cache does not retry failed or interrupted initialization");
     }
     initializing=nullptr;resourceMode=0;reenter=false;
+    // An existing resource block with an empty/missing slot is not a string.
+    expectedResource=0xf023;resourceBlock.fill(0);resourceSize=32;
+    check((api->image?reinterpret_cast<const WORD*(*)(HINSTANCE,UINT)>(reinterpret_cast<BYTE*>(api->image)+0xdad4)(reinterpret_cast<HINSTANCE>(0x44),expectedResource):openmfc::detail::StringResourceImage(reinterpret_cast<HINSTANCE>(0x44),expectedResource))==nullptr,"empty entry in an existing STRING block is rejected");
+    stringBlock();
+
     auto* p=static_cast<CSimpleException*>(catchAs<CException>(api->throws[0]));field<BOOL>(p,20)=FALSE;events.clear();UINT help=77;check(!api->simpleMessage(p,nullptr,8,&help)&&help==77&&events.empty()&&!field<BOOL>(p,20),"invalid simple-message output leaves help/cache untouched");wchar_t output[8]={L'x'};check(!api->simpleMessage(p,output,0,&help)&&help==77&&output[0]==L'x'&&events.empty(),"zero-capacity simple message returns before all side effects");
 }
 void run(){printf("%s framework exceptions\n",api->image?"Native":"Source");base();factories();resources();if(!api->image)constructors();}
