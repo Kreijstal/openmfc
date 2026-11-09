@@ -12,6 +12,7 @@
 #include <cstring>
 #include <exception>
 #include "ansi_string_exports.h"
+#include "wide_string_storage_exports.h"
 extern void* (*g_fileExceptionFinder)(UINT);
 namespace ansi_string_test {
 int failures;unsigned comparisons;HMODULE image;
@@ -54,7 +55,7 @@ struct Result {
  LONG caught=0;INT64 value=0;std::vector<Event> calls,headers;std::vector<std::string> text;int objectID=0;bool guard=true;
  bool operator==(const Result& b)const{return caught==b.caught&&value==b.value&&calls==b.calls&&headers==b.headers&&text==b.text&&objectID==b.objectID&&guard==b.guard;}
 };
-std::vector<Result> golden;bool safeRead;
+std::vector<Result> golden;bool safeRead;int snapshotCharSize=1;
 int managerID(IAtlStringMgr* manager,Fixture& fixture){return manager==&fixture.first?1:manager==&fixture.second?2:manager==&fixture.third?3:0;}
 void snapshot(Result& result,Object& object,Fixture& fixture,bool valid){
  result.calls=events;
@@ -64,7 +65,7 @@ void snapshot(Result& result,Object& object,Fixture& fixture,bool valid){
  else {
   auto* data=reinterpret_cast<CStringData*>(pointer)-1;result.objectID=blockID(data);
   for(auto* m:{&fixture.first,&fixture.second,&fixture.third})if(data==&m->nil.header)result.objectID=100+m->id;
-  if(valid){result.headers.push_back({-1,managerID(data->pStringMgr,fixture),data->nDataLength,data->nAllocLength,result.objectID?data->nRefs:(data->nAllocLength?data->nRefs:0),1});result.text.emplace_back(pointer,size_t((std::min)(data->nDataLength+1,256)));}
+  if(valid){result.headers.push_back({-1,managerID(data->pStringMgr,fixture),data->nDataLength,data->nAllocLength,result.objectID?data->nRefs:(data->nAllocLength?data->nRefs:0),1});result.text.emplace_back(pointer,size_t((std::min)(INT64(data->nDataLength+1)*snapshotCharSize,INT64(256))));}
  }
  for(auto block:blocks){auto* data=block.data;result.headers.push_back({block.id,managerID(data->pStringMgr,fixture),data->nDataLength,data->nAllocLength,data->nRefs,block.live});result.text.emplace_back(reinterpret_cast<char*>(data+1),size_t((std::min)(block.bytes-32,256)));}
  for(size_t at=8;at<32;++at)if(object.storage[at]!=0xa5)result.guard=false;
@@ -167,6 +168,11 @@ void reentry(){
 }
 
 void extraStorage(){
+ for(int length:{-1,0,3,6,12})for(bool failed:{false,true}){
+  Fixture f;Object object;construct(object,f.first);f.first.failReallocate=failed;events.clear();
+  sample(object,f,true,[&]()->INT64{call<void>(0x1cd810,object.get(),length);return 0;});
+  f.first.failReallocate=false;destroy(object);
+ }
  for(int length:{0,3,6})for(int mode:{0,1,2})for(bool failed:{false,true}){
   Fixture f;Object object,sibling;construct(object,f.first,"abcdef",length);call<char*>(0x1cd8d0,object.get(),24);
   if(mode==1)call<void*>(0x2b6c00,sibling.get(),object.get());if(mode==2)call<char*>(0x203f20,object.get());
@@ -467,6 +473,147 @@ void wideAppend(){
  }
 }
 
+template<class F,class... A>auto exactExport(UINT_PTR rva,F source,A... args)->decltype(source(args...)) {
+ return image?reinterpret_cast<F>(reinterpret_cast<BYTE*>(image)+rva)(args...):source(args...);
+}
+CSimpleStringW* wide(Object& object){return reinterpret_cast<CSimpleStringW*>(object.storage);}
+void constructWide(Object& object,Manager& manager,const wchar_t* text=L"abcdef",int length=6){call<void*>(0x12980,wide(object),text,length,&manager);}
+void wideBuffers(){
+ for(int mode:{0,1,2,3})for(bool cloneOther:{false,true})for(int failure:{0,1,2})for(int operation=0;operation<20;++operation)for(int length:{-2,-1,0,1,6,7,12}) {
+  Fixture f;Object object,sibling;constructWide(object,f.first);auto* text=wide(object);
+  bool shared=mode==1;if(shared)call<void*>(0xd740,wide(sibling),text);
+  if(mode>=2){call<wchar_t*>(0x203f60,text);if(mode==3)call<wchar_t*>(0x203f60,text);}
+  f.first.cloned=cloneOther?&f.second:&f.first;
+  f.first.failAllocate=f.second.failAllocate=failure==1;f.first.failReallocate=failure==2;events.clear();
+  sample(object,f,true,[&]()->INT64{
+   switch(operation){
+   case 0:{auto* out=call<wchar_t*>(0x3230,text,length);return out==text->GetString();}
+   case 1:{auto* out=call<wchar_t*>(0x2cd0,text);return out==text->GetString();}
+   case 2:{auto* out=call<wchar_t*>(0x77850,text,length);return out==text->GetString();}
+   case 3:call<void>(0x777f0,text,length);break;
+   case 4:call<void>(0x3280,text,length);break;
+   case 5:{auto* out=call<wchar_t*>(0x203f60,text);return out==text->GetString();}
+   case 6:call<void>(0x2b4680,text);break;
+   case 7:call<void>(0x33b0,text);break;
+   case 8:call<void>(0x2b46b0,text);break;
+   case 9:call<void>(0x133ba0,text,length);break;
+   case 10:call<void>(0x126f0,text,length);break;
+   case 11:call<void>(0x2d00,text,length,wchar_t(0x3a9));break;
+   case 12:return exactExport(0x2d70,&impl__GetAt___CSimpleStringT__W_00_ATL__QEBA_WH_Z,text,length);
+   case 13:return managerID(call<IAtlStringMgr*>(0xd830,text),f);
+   case 14:call<void>(0x32b0,text,wchar_t(0));break;
+   case 15:return exactExport(0x2d70,&impl___A__CSimpleStringT__W_00_ATL__QEBA_WH_Z,text,length);
+   case 16:{auto* out=exactExport(0x3230,&impl__PrepareWrite___CSimpleStringT__W_00_ATL__AEAAPEA_WH_Z,text,length);return out==text->GetString();}
+   case 17:call<void>(0x31c0,text,length);break;
+   case 18:exactExport(0x3280,&impl__SetLength___CSimpleStringT__W_00_ATL__AEAAXH_Z,text,length);break;
+   case 19:return call<int>(0x3080,text)*100+call<int>(0x2e20,text)*10+call<bool>(0x9720,text);
+   }return 0;
+  });
+  f.first.failAllocate=f.second.failAllocate=f.first.failReallocate=false;destroy(object);if(shared)destroy(sibling);
+ }
+}
+void wideStorageAssignments(){
+ for(int mode:{0,1,2})for(bool cloneOther:{false,true})for(int failure:{0,1,2})for(int operation=0;operation<12;++operation){
+  Fixture f;Object object,source;constructWide(object,f.first);constructWide(source,f.third,L"AB\0DEF");auto* text=wide(object);
+  if(mode==1)text->LockBuffer();if(mode==2)wide(source)->LockBuffer();
+  f.first.cloned=cloneOther?&f.second:&f.first;
+  f.first.failAllocate=f.second.failAllocate=failure==1;f.first.failReallocate=failure==2;events.clear();
+  sample(object,f,true,[&]()->INT64{
+   switch(operation){
+   case 0:call<void>(0x2e30,text,wide(source)->GetString(),6);break;
+   case 1:call<void>(0x2e30,text,text->GetString()+1,4);break;
+   case 2:call<void>(0x2e30,text,static_cast<const wchar_t*>(nullptr),0);break;
+   case 3:call<void>(0x2e30,text,static_cast<const wchar_t*>(nullptr),1);break;
+   case 4:call<void>(0x2e30,text,L"abc",-1);break;
+   case 5:call<void>(0x2f50,text,wide(source)->GetString());break;
+   case 6:call<void>(0x2f50,text,static_cast<const wchar_t*>(nullptr));break;
+   case 7:call<void>(0x2b4620,text,&f.third);break;
+   case 8:return call<CSimpleStringW*>(0x2cb0,text,wide(source))==text;
+   case 9:return call<CSimpleStringW*>(0x2cb0,text,text)==text;
+   case 10:return call<CSimpleStringW*>(0x12330,text,text->GetString()+1)==text;
+   case 11:return call<CSimpleStringW*>(0x12330,text,static_cast<const wchar_t*>(nullptr))==text;
+   }return 0;
+  });
+  f.first.failAllocate=f.second.failAllocate=f.first.failReallocate=false;destroy(object);destroy(source);
+ }
+ // The base += character overloads widen values; they do not use the ACP.
+ for(int mode:{0,1,2})for(bool cloneOther:{false,true})for(int failure:{0,1,2})for(int operation:{0,1,2})for(unsigned value:{0,65,128,233,255,0x3a9}){
+  Fixture f;Object object,sibling;constructWide(object,f.first);auto* text=wide(object);
+  if(mode==1)call<void*>(0xd740,wide(sibling),text);if(mode==2)text->LockBuffer();
+  f.first.cloned=cloneOther?&f.second:&f.first;
+  f.first.failAllocate=f.second.failAllocate=failure==1;f.first.failReallocate=failure==2;events.clear();
+  sample(object,f,true,[&]()->INT64{
+   if(operation==0)return call<CSimpleStringW*>(0x3320,text,char(value))==text;
+   if(operation==1)return call<CSimpleStringW*>(0x2b42f0,text,static_cast<unsigned char>(value))==text;
+   return call<CSimpleStringW*>(0x122d0,text,wchar_t(value))==text;
+  });
+  f.first.failAllocate=f.second.failAllocate=f.first.failReallocate=false;destroy(object);if(mode==1)destroy(sibling);
+ }
+}
+void wideStorageReentry(){
+ mutationWidth=2;
+ for(int stage:{1,2,3})for(int operation:{0,1,2,3,4})for(bool shared:{false,true}){
+  Fixture f;Object object,sibling,copy;constructWide(object,f.first);auto* text=wide(object);
+  if(shared)call<void*>(0xd740,wide(sibling),text);if(operation==3)call<wchar_t*>(0x3230,text,12);
+  mutationTarget=object.get();mutationStage=stage;events.clear();bool copied=false;
+  sample(object,f,true,[&]()->INT64{
+   if(operation==0)call<wchar_t*>(0x3230,text,10);
+   if(operation==1){call<void*>(0xd740,wide(copy),text);copied=true;}
+   if(operation==2)call<void>(0x2d00,text,1,wchar_t(0x3a9));
+   if(operation==3)call<void>(0x2b46b0,text);
+   if(operation==4)call<void>(0x2e30,text,L"123456789",9);
+   return copied?wide(copy)->GetLength():0;
+  });
+  mutationTarget=nullptr;mutationStage=0;if(copied)destroy(copy);destroy(object);if(shared)destroy(sibling);
+ }
+ mutationWidth=1;
+}
+void wideStorageHelpers(){
+ for(int length:{0,3,6})for(int mode:{0,1,2})for(bool failed:{false,true}){
+  Fixture f;Object object,sibling;constructWide(object,f.first,L"abcdef",length);auto* text=wide(object);text->GetBuffer(24);
+  if(mode==1)call<void*>(0xd740,wide(sibling),text);if(mode==2)text->LockBuffer();
+  f.first.failAllocate=failed;events.clear();sample(object,f,true,[&]()->INT64{call<void>(0x2b46b0,text);return 0;});
+  f.first.failAllocate=false;destroy(object);if(mode==1)destroy(sibling);
+ }
+ for(int operation:{0,1,2,3})for(int length:{0,3,6,12})for(bool cloned:{false,true})for(bool failed:{false,true}){
+  Fixture f;Object object;constructWide(object,f.first);auto* text=wide(object);f.first.cloned=cloned?&f.second:&f.first;
+  f.first.failAllocate=f.second.failAllocate=f.first.failReallocate=failed;events.clear();
+  sample(object,f,true,[&]()->INT64{
+   if(operation==0)call<void>(0x3090,text,length);
+   if(operation==1)call<void>(0x3170,text,length);
+   if(operation==2){auto* data=call<CStringData*>(0xdd40,text->GetData());data->Release();}
+   if(operation==3){auto* data=text->GetData();call<void>(0x33a0,text,data);return call<CStringData*>(0x3360,text)==data;}
+   return 0;
+  });
+  f.first.failAllocate=f.second.failAllocate=f.first.failReallocate=false;destroy(object);
+ }
+ for(int first:{0,1,3})for(int second:{0,1,4})for(bool shared:{false,true})for(bool failed:{false,true}){
+  Fixture f;Object object,sibling;constructWide(object,f.first);auto* text=wide(object);if(shared)call<void*>(0xd740,wide(sibling),text);
+  f.first.failAllocate=f.first.failReallocate=failed;events.clear();
+  sample(object,f,true,[&]()->INT64{call<void>(0x12c00,text,L"A\0B",first,L"\u03a9DEF",second);return 0;});
+  f.first.failAllocate=f.first.failReallocate=false;destroy(object);if(shared)destroy(sibling);
+ }
+ for(int operation:{0,1,2})for(int length:{0,1,4}){
+  Fixture f;Object object;constructWide(object,f.first);auto* text=wide(object);events.clear();
+  sample(object,f,true,[&]()->INT64{
+   auto* out=const_cast<wchar_t*>(text->GetString());
+   if(operation==0)call<void>(0x2b4600,out,L"\u03a9\0DE",length);
+   if(operation==1)call<void>(0x2b4600,out,static_cast<const wchar_t*>(nullptr),length);
+   if(operation==2)call<void>(0x2b45f0,out+1,out,length);
+   return call<const wchar_t*>(0x2e10,text)==text->GetString();
+  });destroy(object);
+ }
+ {Fixture f;Object object;constructWide(object,f.first);events.clear();sample(object,f,true,[&]()->INT64{call<void>(0x3160);return 0;});destroy(object);}
+ {Fixture f;Object object;constructWide(object,f.first);events.clear();sample(object,f,true,[&]()->INT64{return call<int>(0x2f40,L"\u03a9BC")+call<int>(0x2b45e0,"AB")+call<int>(0x2f40,static_cast<const wchar_t*>(nullptr))+call<int>(0x2b45e0,static_cast<const char*>(nullptr));});destroy(object);}
+}
+void wideStorage(){
+ // Native linker folding must not silently select an ANSI source provider.
+ auto saved=providers;for(auto entry:wideStorageProviders)providers[entry.first]=entry.second;
+ snapshotCharSize=2;
+ wideBuffers();wideStorageAssignments();wideStorageReentry();wideStorageHelpers();
+ snapshotCharSize=1;providers=std::move(saved);
+}
+
 using VariantInitAPI=decltype(&::VariantInit);using VariantClearAPI=decltype(&::VariantClear);using VariantCoerceAPI=decltype(&::VariantChangeType);
 VariantInitAPI originalInit;VariantClearAPI originalClear;VariantCoerceAPI originalCoerce;
 const VARIANT* expectedVariant;HRESULT coercionStatus,clearStatus;int variantMode;bool nullBSTR;
@@ -570,6 +717,7 @@ int TestAnsiStringOwnership(HMODULE native){using namespace ansi_string_test;ima
  wideConstructorResources();
  unsignedConstructors();wideAssignments();wideRepeatCopies();
  wideAppend();
+ wideStorage();
  variantStrings();
  noexceptCases();
  }

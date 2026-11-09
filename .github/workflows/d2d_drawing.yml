@@ -211,6 +211,7 @@ on:
       - 'phase4/src/core/collections/CStringBuffer.cpp'
       - 'phase4/src/core/collections/CStringA.cpp'
       - 'phase4/src/core/collections/CStringAStorage.cpp'
+      - 'phase4/src/core/collections/CSimpleStringT.cpp'
       - 'phase4/src/core/collections/CStringVariant.cpp'
       - 'phase4/src/core/collections/CStringW.cpp'
       - 'phase4/src/core/runtime/CAfxStringMgr.cpp'
@@ -521,6 +522,7 @@ on:
       - 'phase4/src/core/collections/CStringBuffer.cpp'
       - 'phase4/src/core/collections/CStringA.cpp'
       - 'phase4/src/core/collections/CStringAStorage.cpp'
+      - 'phase4/src/core/collections/CSimpleStringT.cpp'
       - 'phase4/src/core/collections/CStringVariant.cpp'
       - 'phase4/src/core/collections/CStringW.cpp'
       - 'phase4/src/core/runtime/CAfxStringMgr.cpp'
@@ -681,6 +683,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringA.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringAStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CSimpleStringT.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringVariant.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringW.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CAfxStringMgr.cpp"
@@ -931,6 +934,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringA.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringAStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CSimpleStringT.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringVariant.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringW.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CAfxStringMgr.cpp"

@@ -249,7 +249,9 @@ public:
         }
     }
     void Reallocate(int length) {
-        auto* data=GetData();auto* replacement=data->pStringMgr->Reallocate(data,length,sizeof(BaseType));
+        auto* data=GetData();
+        if(length<=data->nAllocLength || length<=0)AfxThrowMemoryException();
+        auto* replacement=data->pStringMgr->Reallocate(data,length,sizeof(BaseType));
         if(!replacement)AfxThrowMemoryException();Attach(replacement);
     }
     void Fork(int length) {

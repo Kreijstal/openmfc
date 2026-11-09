@@ -69,6 +69,25 @@ int main(){
             ATL::CSimpleStringT<char,true> managed(plain);managed=plain;
             check(!strcmp(managed.GetString(),"foreign"),"boolean-specialized simple strings cross the native constructor and assignment imports");
         }
+        {
+            using Wide=ATL::CSimpleStringT<wchar_t,true>;
+            Wide text(L"abcdef",&custom);
+            HMODULE dll=GetModuleHandleW(L"openmfc_string_types.dll");
+            auto signedByte=reinterpret_cast<Wide*(*)(Wide*,char)>(GetProcAddress(dll,"??Y?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@D@Z"));
+            auto unsignedByte=reinterpret_cast<Wide*(*)(Wide*,unsigned char)>(GetProcAddress(dll,"??Y?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@E@Z"));
+            auto compact=reinterpret_cast<void(*)(Wide*)>(GetProcAddress(dll,"?FreeExtra@?$CSimpleStringT@_W$00@ATL@@QEAAXXZ"));
+            auto reallocate=reinterpret_cast<void(*)(Wide*,int)>(GetProcAddress(dll,"?Reallocate@?$CSimpleStringT@_W$00@ATL@@AEAAXH@Z"));
+            check(signedByte&&unsignedByte&&compact&&reallocate,"native wide storage aliases are exported by the DLL");
+            if(signedByte&&unsignedByte&&compact&&reallocate){
+                check(signedByte(&text,char(0xe9))==&text&&text.GetAt(6)==wchar_t(0xffe9),"base += char sign-extends across the DLL boundary");
+                check(unsignedByte(&text,0xe9)==&text&&text.GetAt(7)==wchar_t(0xe9),"base += unsigned char zero-extends across the DLL boundary");
+                text.Preallocate(32);compact(&text);
+                check(header(text)->nAllocLength==text.GetLength(),"exported FreeExtra compacts client-managed wide storage");
+                bool rejected=false;
+                try{reallocate(&text,text.GetLength());}catch(CMemoryException* error){rejected=true;error->Delete();}
+                check(rejected,"native Reallocate rejects non-growing requests with a typed memory exception");
+            }
+        }
         auto* data=custom.Allocate(3,1);data->Lock();data->Lock();data->Unlock();data->Unlock();
         check(data->nRefs==1&&data->data()==data+1,"native data locking and untyped storage access");
         data->AddRef();data->Release();check(data->nRefs==1,"data release retains shared storage");data->Release();

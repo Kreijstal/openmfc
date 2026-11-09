@@ -23,7 +23,7 @@ def sources():
         'phase4/src/core/runtime/AfxLoadString.cpp',
         'phase4/src/core/runtime/CAfxStringMgr.cpp',
         *['phase4/src/core/collections/'+name+'.cpp' for name in (
-            'CStringA','CStringAStorage','CStringW','CStringVariant','CStringBuffer','CStringResource')],
+            'CStringA','CStringAStorage','CStringW','CStringVariant','CStringBuffer','CStringResource','CSimpleStringT')],
         'phase4/src/detail/MemcoreSupport.cpp',
         'tests/string_dll_services.cpp',
     ]

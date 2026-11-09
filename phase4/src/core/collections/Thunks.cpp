@@ -43,36 +43,6 @@
 
 
 
-// Symbol: ??Y?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@AEBV01@@Z
-extern "C" void* MS_ABI impl___Y__CSimpleStringT__W_00_ATL__QEAAAEAV01_AEBV01__Z(void* pThis, const void* src) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    const openmfc_str::AtlStrT<wchar_t>* o = reinterpret_cast<const openmfc_str::AtlStrT<wchar_t>*>(src); self->AppendPszN(o->GetString(), o->GetLength());
-    return pThis;
-}
-// Symbol: ??Y?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@D@Z
-extern "C" void* MS_ABI impl___Y__CSimpleStringT__W_00_ATL__QEAAAEAV01_D_Z(void* pThis, char ch) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    openmfc_str::AtlStrT<wchar_t> t; t.ConstructConvertN<char>(&ch, 1); self->AppendPszN(t.GetString(), t.GetLength()); t.Destruct();
-    return pThis;
-}
-// Symbol: ??Y?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@E@Z
-extern "C" void* MS_ABI impl___Y__CSimpleStringT__W_00_ATL__QEAAAEAV01_E_Z(void* pThis, unsigned char ch) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    char c = (char)ch; self->AppendConvert<char>(&c);
-    return pThis;
-}
-// Symbol: ??Y?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@PEB_W@Z
-extern "C" void* MS_ABI impl___Y__CSimpleStringT__W_00_ATL__QEAAAEAV01_PEB_W_Z(void* pThis, const wchar_t* psz) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->AppendPsz(psz);
-    return pThis;
-}
-// Symbol: ??Y?$CSimpleStringT@_W$00@ATL@@QEAAAEAV01@_W@Z
-extern "C" void* MS_ABI impl___Y__CSimpleStringT__W_00_ATL__QEAAAEAV01__W_Z(void* pThis, wchar_t ch) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->AppendChar(ch);
-    return pThis;
-}
 // Symbol: ??Y?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV01@AEBV?$CSimpleStringT@D$00@1@@Z
 extern "C" void* MS_ABI impl___Y__CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV01_AEBV__CSimpleStringT_D_00_1__Z(void* pThis, const void* src) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
@@ -153,11 +123,6 @@ extern "C" OLECHAR* MS_ABI impl__AllocSysString___CStringT__WV__StrTraitMFC_DLL_
 
 
 
-// Symbol: ?AppendChar@?$CSimpleStringT@_W$00@ATL@@QEAAX_W@Z
-extern "C" void MS_ABI impl__AppendChar___CSimpleStringT__W_00_ATL__QEAAX_W_Z(void* pThis, wchar_t ch) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->AppendChar(ch);
-}
 // Symbol: ?AppendFormat@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ
 extern "C" void MS_ABI impl__AppendFormat___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
@@ -189,11 +154,6 @@ extern "C" void MS_ABI impl__AppendFormatV___CStringT__WV__StrTraitMFC_DLL__WV__
     self->AppendFormatV(fmt, (va_list)args);
 }
 
-// Symbol: ?Attach@?$CSimpleStringT@_W$00@ATL@@AEAAXPEAUCStringData@2@@Z
-extern "C" void MS_ABI impl__Attach___CSimpleStringT__W_00_ATL__AEAAXPEAUCStringData_2__Z(void* pThis, CStringData* pd) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->Attach(pd);
-}
 // Symbol: ?CharToOemA@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXXZ
 extern "C" void MS_ABI impl__CharToOemA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ(void* pThis) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
@@ -215,10 +175,6 @@ extern "C" bool MS_ABI impl__CheckImplicitLoad___CStringT__WV__StrTraitMFC_DLL__
     (void)self; return p != nullptr;
 }
 
-// Symbol: ?CloneData@?$CSimpleStringT@_W$00@ATL@@CAPEAUCStringData@2@PEAU32@@Z
-extern "C" CStringData* MS_ABI impl__CloneData___CSimpleStringT__W_00_ATL__CAPEAUCStringData_2_PEAU32__Z(CStringData* pd) {
-    return openmfc_str::AtlStrT<wchar_t>::CloneData(pd);
-}
 // Symbol: ?Collate@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAHPEBD@Z
 extern "C" int MS_ABI impl__Collate___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAHPEBD_Z(void* pThis, const char* psz) {
     const openmfc_str::AtlStrT<char>* cself = reinterpret_cast<const openmfc_str::AtlStrT<char>*>(pThis);
@@ -240,10 +196,6 @@ extern "C" int MS_ABI impl__CompareNoCase___CStringT_DV__StrTraitMFC_DLL_DV__ChT
     return cself->CompareNoCase(psz);
 }
 
-// Symbol: ?Concatenate@?$CSimpleStringT@_W$00@ATL@@KAXAEAV12@PEB_WH1H@Z
-extern "C" void MS_ABI impl__Concatenate___CSimpleStringT__W_00_ATL__KAXAEAV12_PEB_WH1H_Z(void* dst, const wchar_t* p1, int n1, const wchar_t* p2, int n2) {
-    openmfc_str::AtlStrT<wchar_t>::Concatenate(*reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(dst), p1, n1, p2, n2);
-}
 // Symbol: ?Construct@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@SAXPEAV12@@Z
 extern "C" void MS_ABI impl__Construct___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__SAXPEAV12__Z(void* p) {
     openmfc_str::AtlStrT<char>::ConstructStatic(reinterpret_cast<openmfc_str::AtlStrT<char>*>(p));
@@ -253,15 +205,7 @@ extern "C" void MS_ABI impl__Construct___CStringT__WV__StrTraitMFC_DLL__WV__ChTr
     openmfc_str::AtlStrT<wchar_t>::ConstructStatic(reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(p));
 }
 
-// Symbol: ?CopyChars@?$CSimpleStringT@_W$00@ATL@@SAXPEA_WPEB_WH@Z
-extern "C" void MS_ABI impl__CopyChars___CSimpleStringT__W_00_ATL__SAXPEA_WPEB_WH_Z(wchar_t* d, const wchar_t* s, int n) {
-    openmfc_str::AtlStrT<wchar_t>::CopyChars(d, s, n);
-}
 
-// Symbol: ?CopyCharsOverlapped@?$CSimpleStringT@_W$00@ATL@@SAXPEA_WPEB_WH@Z
-extern "C" void MS_ABI impl__CopyCharsOverlapped___CSimpleStringT__W_00_ATL__SAXPEA_WPEB_WH_Z(wchar_t* d, const wchar_t* s, int n) {
-    openmfc_str::AtlStrT<wchar_t>::CopyCharsOverlapped(d, s, n);
-}
 // Symbol: ?Delete@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHHH@Z
 extern "C" int MS_ABI impl__Delete___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHHH_Z(void* pThis, int i, int n) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
@@ -284,11 +228,6 @@ extern "C" int MS_ABI impl__FindOneOf___CStringT_DV__StrTraitMFC_DLL_DV__ChTrait
     return cself->FindOneOf(set);
 }
 
-// Symbol: ?Fork@?$CSimpleStringT@_W$00@ATL@@AEAAXH@Z
-extern "C" void MS_ABI impl__Fork___CSimpleStringT__W_00_ATL__AEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->Fork(n);
-}
 // Symbol: ?Format@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ
 extern "C" void MS_ABI impl__Format___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
@@ -360,22 +299,12 @@ extern "C" void MS_ABI impl__FormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraits
     self->FormatV(fmt, (va_list)args);
 }
 
-// Symbol: ?FreeExtra@?$CSimpleStringT@_W$00@ATL@@QEAAXXZ
-extern "C" void MS_ABI impl__FreeExtra___CSimpleStringT__W_00_ATL__QEAAXXZ(void* pThis) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->FreeExtra();
-}
 
 
 
 
 
 
-// Symbol: ?GetData@?$CSimpleStringT@_W$00@ATL@@AEBAPEAUCStringData@2@XZ
-extern "C" CStringData* MS_ABI impl__GetData___CSimpleStringT__W_00_ATL__AEBAPEAUCStringData_2_XZ(void* pThis) {
-    const openmfc_str::AtlStrT<wchar_t>* cself = reinterpret_cast<const openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    return cself->GetData();
-}
 // Symbol: ?GetEnvironmentVariable@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHPEBD@Z
 extern "C" int MS_ABI impl__GetEnvironmentVariable___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD_Z(void* pThis, const char* name) {
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
@@ -398,11 +327,6 @@ extern "C" int MS_ABI impl__GetEnvironmentVariableW___CStringT__WV__StrTraitMFC_
 }
 
 
-// Symbol: ?GetManager@?$CSimpleStringT@_W$00@ATL@@QEBAPEAUIAtlStringMgr@2@XZ
-extern "C" IAtlStringMgr* MS_ABI impl__GetManager___CSimpleStringT__W_00_ATL__QEBAPEAUIAtlStringMgr_2_XZ(void* pThis) {
-    const openmfc_str::AtlStrT<wchar_t>* cself = reinterpret_cast<const openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    return cself->GetManager();
-}
 // Symbol: ?GetManager@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAPEAUIAtlStringMgr@2@XZ
 extern "C" IAtlStringMgr* MS_ABI impl__GetManager___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEAUIAtlStringMgr_2_XZ(void* pThis) {
     const openmfc_str::AtlStrT<char>* cself = reinterpret_cast<const openmfc_str::AtlStrT<char>*>(pThis);
@@ -510,29 +434,9 @@ extern "C" void MS_ABI impl__OemToCharA___CStringT__WV__StrTraitMFC_DLL__WV__ChT
     self->OemToChar();
 }
 
-// Symbol: ?Preallocate@?$CSimpleStringT@_W$00@ATL@@QEAAXH@Z
-extern "C" void MS_ABI impl__Preallocate___CSimpleStringT__W_00_ATL__QEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->Preallocate(n);
-}
 
-// Symbol: ?PrepareWrite2@?$CSimpleStringT@_W$00@ATL@@AEAAXH@Z
-extern "C" void MS_ABI impl__PrepareWrite2___CSimpleStringT__W_00_ATL__AEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->PrepareWrite2(n);
-}
 
-// Symbol: ?PrepareWrite@?$CSimpleStringT@_W$00@ATL@@AEAAPEA_WH@Z
-extern "C" wchar_t* MS_ABI impl__PrepareWrite___CSimpleStringT__W_00_ATL__AEAAPEA_WH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    return self->PrepareWrite(n);
-}
 
-// Symbol: ?Reallocate@?$CSimpleStringT@_W$00@ATL@@AEAAXH@Z
-extern "C" void MS_ABI impl__Reallocate___CSimpleStringT__W_00_ATL__AEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->Reallocate(n);
-}
 
 
 // Symbol: ?Remove@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHD@Z
@@ -580,35 +484,10 @@ extern "C" void* MS_ABI impl__Right___CStringT__WV__StrTraitMFC_DLL__WV__ChTrait
     return pRet;
 }
 
-// Symbol: ?SetAt@?$CSimpleStringT@_W$00@ATL@@QEAAXH_W@Z
-extern "C" void MS_ABI impl__SetAt___CSimpleStringT__W_00_ATL__QEAAXH_W_Z(void* pThis, int i, wchar_t ch) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->SetAt(i, ch);
-}
-
-// Symbol: ?SetLength@?$CSimpleStringT@_W$00@ATL@@AEAAXH@Z
-extern "C" void MS_ABI impl__SetLength___CSimpleStringT__W_00_ATL__AEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->SetLength(n);
-}
-
-// Symbol: ?SetManager@?$CSimpleStringT@_W$00@ATL@@QEAAXPEAUIAtlStringMgr@2@@Z
-extern "C" void MS_ABI impl__SetManager___CSimpleStringT__W_00_ATL__QEAAXPEAUIAtlStringMgr_2__Z(void* pThis, IAtlStringMgr* mgr) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->SetManagerEmpty(mgr);
-}
 
 
-// Symbol: ?SetString@?$CSimpleStringT@_W$00@ATL@@QEAAXPEB_W@Z
-extern "C" void MS_ABI impl__SetString___CSimpleStringT__W_00_ATL__QEAAXPEB_W_Z(void* pThis, const wchar_t* psz) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->AssignPsz(psz);
-}
-// Symbol: ?SetString@?$CSimpleStringT@_W$00@ATL@@QEAAXPEB_WH@Z
-extern "C" void MS_ABI impl__SetString___CSimpleStringT__W_00_ATL__QEAAXPEB_WH_Z(void* pThis, const wchar_t* psz, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    if (!psz || n <= 0) { self->Empty(); } else { self->Empty(); self->AppendPszN(psz, n); }
-}
+
+
 // Symbol: ?SetSysString@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBAPEA_WPEAPEA_W@Z
 extern "C" OLECHAR* MS_ABI impl__SetSysString___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBAPEA_WPEAPEA_W_Z(void* pThis, OLECHAR** pbstr) {
     const openmfc_str::AtlStrT<char>* cself = reinterpret_cast<const openmfc_str::AtlStrT<char>*>(pThis);
@@ -649,19 +528,7 @@ extern "C" void* MS_ABI impl__SpanIncluding___CStringT__WV__StrTraitMFC_DLL__WV_
 }
 
 
-// Symbol: ?StringLength@?$CSimpleStringT@_W$00@ATL@@SAHPEBD@Z
-extern "C" int MS_ABI impl__StringLength___CSimpleStringT__W_00_ATL__SAHPEBD_Z(const char* psz) {
-    int n = 0; if (psz) while (psz[n]) ++n; return n;
-}
-// Symbol: ?StringLength@?$CSimpleStringT@_W$00@ATL@@SAHPEB_W@Z
-extern "C" int MS_ABI impl__StringLength___CSimpleStringT__W_00_ATL__SAHPEB_W_Z(const wchar_t* psz) {
-    return openmfc_str::AtlStrT<wchar_t>::StringLength(psz);
-}
 
-// Symbol: ?ThrowMemoryException@?$CSimpleStringT@_W$00@ATL@@KAXXZ
-extern "C" void MS_ABI impl__ThrowMemoryException___CSimpleStringT__W_00_ATL__KAXXZ() {
-    RaiseException(0xE06D7363u, 0, 0, nullptr);
-}
 // Symbol: ?Tokenize@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEBA?AV12@PEBDAEAH@Z
 extern "C" void* MS_ABI impl__Tokenize___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEBA_AV12_PEBDAEAH_Z(void* pRet, void* pThis, const char* toks, int* piStart) {
     openmfc_str::AtlStrT<char>* r = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pRet);
@@ -729,10 +596,4 @@ extern "C" void* MS_ABI impl__TrimRight___CStringT_DV__StrTraitMFC_DLL_DV__ChTra
     openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
     Trim_StringAtlThunks<char>(self, (char)0, (const char*)nullptr, 2);
     return pThis;
-}
-
-// Symbol: ?Truncate@?$CSimpleStringT@_W$00@ATL@@QEAAXH@Z
-extern "C" void MS_ABI impl__Truncate___CSimpleStringT__W_00_ATL__QEAAXH_Z(void* pThis, int n) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->Truncate(n);
 }
