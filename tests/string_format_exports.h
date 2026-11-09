@@ -1,0 +1,51 @@
+#pragma once
+#include "openmfc/afxstr.h"
+extern "C" void impl__AppendFormat___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(CStringA* self,UINT id,...);
+extern "C" void impl__AppendFormat___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(CStringA* self,const char* format,...);
+extern "C" void impl__AppendFormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAD_Z(CStringA* self,const char* format,char* args);
+extern "C" void impl__Format___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(CStringA* self,UINT id,...);
+extern "C" void impl__Format___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(CStringA* self,const char* format,...);
+extern "C" void impl__FormatMessage___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(CStringA* self,UINT id,...);
+extern "C" void impl__FormatMessage___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(CStringA* self,const char* format,...);
+extern "C" void impl__FormatMessageV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAPEAD_Z(CStringA* self,const char* format,char** args);
+extern "C" void impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(CStringA* self,UINT id,...);
+extern "C" void impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(CStringA* self,const char* format,...);
+extern "C" void impl__FormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAD_Z(CStringA* self,const char* format,char* args);
+extern "C" void impl__FormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z(CString* self,const wchar_t* format,char* args);
+extern "C" void impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...);
+extern "C" void impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...);
+extern "C" void impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...);
+extern "C" void impl__AppendFormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z(CString* self,const wchar_t* format,char* args);
+extern "C" void impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...);
+extern "C" void impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...);
+extern "C" void impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...);
+extern "C" void impl__FormatMessageV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAPEAD_Z(CString* self,const wchar_t* format,char** args);
+extern "C" void impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...);
+extern "C" void impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...);
+template<class T>struct StringFormatExports;
+template<>struct StringFormatExports<CStringA> {
+    static inline auto AppendFormatResource=&impl__AppendFormat___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR AppendFormatResourceRVA=0x2b2f80;
+    static inline auto AppendFormat=&impl__AppendFormat___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ;static constexpr UINT_PTR AppendFormatRVA=0x2b2f50;
+    static inline auto AppendFormatV=&impl__AppendFormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAD_Z;static constexpr UINT_PTR AppendFormatVRVA=0x2b4e40;
+    static inline auto FormatResource=&impl__Format___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR FormatResourceRVA=0x2b2e30;
+    static inline auto Format=&impl__Format___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ;static constexpr UINT_PTR FormatRVA=0x2b2f20;
+    static inline auto MessageResource=&impl__FormatMessage___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR MessageResourceRVA=0x2b3070;
+    static inline auto Message=&impl__FormatMessage___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ;static constexpr UINT_PTR MessageRVA=0x2b3180;
+    static inline auto MessageV=&impl__FormatMessageV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAPEAD_Z;static constexpr UINT_PTR MessageVRVA=0x2b4b50;
+    static inline auto MessageWResource=&impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR MessageWResourceRVA=0x2b3070;
+    static inline auto MessageW=&impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ;static constexpr UINT_PTR MessageWRVA=0x2b3180;
+    static inline auto FormatV=&impl__FormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAD_Z;static constexpr UINT_PTR FormatVRVA=0x2b4ce0;
+};
+template<>struct StringFormatExports<CString> {
+    static inline auto FormatV=&impl__FormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z;static constexpr UINT_PTR FormatVRVA=0xd8a0;
+    static inline auto Format=&impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ;static constexpr UINT_PTR FormatRVA=0xda00;
+    static inline auto AppendFormatResource=&impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR AppendFormatResourceRVA=0x2b3490;
+    static inline auto AppendFormat=&impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ;static constexpr UINT_PTR AppendFormatRVA=0x2b3460;
+    static inline auto AppendFormatV=&impl__AppendFormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z;static constexpr UINT_PTR AppendFormatVRVA=0x2b3a20;
+    static inline auto FormatResource=&impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR FormatResourceRVA=0x66db0;
+    static inline auto MessageResource=&impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR MessageResourceRVA=0x2b3580;
+    static inline auto Message=&impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ;static constexpr UINT_PTR MessageRVA=0x2b3690;
+    static inline auto MessageV=&impl__FormatMessageV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAPEAD_Z;static constexpr UINT_PTR MessageVRVA=0x2b3880;
+    static inline auto MessageWResource=&impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ;static constexpr UINT_PTR MessageWResourceRVA=0x2b3580;
+    static inline auto MessageW=&impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ;static constexpr UINT_PTR MessageWRVA=0x2b3690;
+};

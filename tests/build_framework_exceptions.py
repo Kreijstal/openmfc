@@ -127,7 +127,7 @@ def main():
         names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(encoding='utf-8', errors='replace'),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==296, (len(entries), len(names))
+    assert len(entries)==len(names)==318, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
         for name in re.findall(r'^// Symbol: (.+)$', path.read_text(encoding='utf-8', errors='replace'), re.M):
@@ -136,7 +136,7 @@ def main():
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 296 framework/file/string exports have actual providers',flush=True)
+    print('All 318 framework/file/string exports have actual providers',flush=True)
     for relative in checked:
         name=Path(relative).stem
         if name.endswith("Lifetime"):name=name[:-8]

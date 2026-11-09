@@ -79,19 +79,6 @@ extern "C" int MS_ABI impl__Delete___CStringT__WV__StrTraitMFC_DLL__WV__ChTraits
     if (!pThis) return 0;
     return pThis->Delete(iIndex, nCount);
 }
-// Symbol: ?FormatV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAD@Z
-extern "C" void MS_ABI impl__FormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z(CString* pThis, const wchar_t* pszFormat, char* args) {
-    if (!pThis) return;
-    pThis->FormatV(pszFormat, reinterpret_cast<va_list>(args));
-}
-// Symbol: ?Format@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
-extern "C" void MS_ABI impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* pThis, const wchar_t* pszFormat, ...) {
-    if (!pThis) return;
-    va_list args;
-    va_start(args, pszFormat);
-    pThis->FormatV(pszFormat, args);
-    va_end(args);
-}
 // Symbol: ?Replace@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAH_W0@Z
 extern "C" int MS_ABI
 impl__Replace___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAH_W0_Z(

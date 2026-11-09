@@ -1,4 +1,6 @@
 STRINGTABLE
 BEGIN
     35 "string DLL resource"
+    36 "resource:%d"
+    37 "message:%1!d!"
 END

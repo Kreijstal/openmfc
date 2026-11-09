@@ -59,6 +59,21 @@ public:
     OPENMFC_STRING_API CStringA& operator=(const wchar_t* source);
     CStringA& operator=(char value) {char text[]={value,0};SetString(text);return *this;}
     OPENMFC_STRING_API CStringA& operator=(wchar_t value);
+    OPENMFC_STRING_API void FormatV(const char* format,va_list args);
+    OPENMFC_STRING_API void Format(const char* format,...);
+    OPENMFC_STRING_API void Format(UINT id,...);
+    OPENMFC_STRING_API void AppendFormatV(const char* format,va_list args);
+    OPENMFC_STRING_API void AppendFormat(const char* format,...);
+    OPENMFC_STRING_API void AppendFormat(UINT id,...);
+    OPENMFC_STRING_API void FormatMessageV(const char* format,va_list* args);
+    OPENMFC_STRING_API void FormatMessageW(const char* format,...);
+    OPENMFC_STRING_API void FormatMessageW(UINT id,...);
+#pragma push_macro("FormatMessage")
+#undef FormatMessage
+    OPENMFC_STRING_API void FormatMessage(const char* format,...);
+    OPENMFC_STRING_API void FormatMessage(UINT id,...);
+#pragma pop_macro("FormatMessage")
+
     OPENMFC_STRING_API int LoadStringW(UINT id);
     int LoadString(UINT id) {return LoadStringW(id);}
     OPENMFC_STRING_API int LoadStringW(HINSTANCE module,UINT id);

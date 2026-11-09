@@ -57,36 +57,6 @@ extern "C" OLECHAR* MS_ABI impl__AllocSysString___CStringT__WV__StrTraitMFC_DLL_
 
 
 
-// Symbol: ?AppendFormat@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__AppendFormat___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    openmfc_str::AtlStrT<char> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->AppendFormatV(f.GetString(), a); va_end(a); f.Destruct();
-}
-// Symbol: ?AppendFormat@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDZZ
-extern "C" void MS_ABI impl__AppendFormat___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(void* pThis, const char* fmt, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    va_list a; va_start(a, fmt); self->AppendFormatV(fmt, a); va_end(a);
-}
-// Symbol: ?AppendFormat@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    openmfc_str::AtlStrT<wchar_t> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->AppendFormatV(f.GetString(), a); va_end(a); f.Destruct();
-}
-// Symbol: ?AppendFormat@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
-extern "C" void MS_ABI impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(void* pThis, const wchar_t* fmt, ...) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    va_list a; va_start(a, fmt); self->AppendFormatV(fmt, a); va_end(a);
-}
-// Symbol: ?AppendFormatV@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDPEAD@Z
-extern "C" void MS_ABI impl__AppendFormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAD_Z(void* pThis, const char* fmt, char* args) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    self->AppendFormatV(fmt, (va_list)args);
-}
-// Symbol: ?AppendFormatV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAD@Z
-extern "C" void MS_ABI impl__AppendFormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z(void* pThis, const wchar_t* fmt, char* args) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->AppendFormatV(fmt, (va_list)args);
-}
 
 // Symbol: ?CharToOemA@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXXZ
 extern "C" void MS_ABI impl__CharToOemA___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXXZ(void* pThis) {
@@ -127,76 +97,6 @@ extern "C" int MS_ABI impl__Delete___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCR
 }
 
 
-// Symbol: ?Format@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__Format___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    openmfc_str::AtlStrT<char> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->FormatV(f.GetString(), a); va_end(a); f.Destruct();
-}
-// Symbol: ?Format@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDZZ
-extern "C" void MS_ABI impl__Format___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(void* pThis, const char* fmt, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    va_list a; va_start(a, fmt); self->FormatV(fmt, a); va_end(a);
-}
-// Symbol: ?Format@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    openmfc_str::AtlStrT<wchar_t> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->FormatV(f.GetString(), a); va_end(a); f.Destruct();
-}
-// Symbol: ?FormatMessage@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__FormatMessage___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    openmfc_str::AtlStrT<char> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->FormatMessageStr(f.GetString(), &a); va_end(a); f.Destruct();
-}
-// Symbol: ?FormatMessage@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDZZ
-extern "C" void MS_ABI impl__FormatMessage___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(void* pThis, const char* fmt, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    va_list a; va_start(a, fmt); self->FormatMessageStr(fmt, &a); va_end(a);
-}
-// Symbol: ?FormatMessage@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    openmfc_str::AtlStrT<wchar_t> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->FormatMessageStr(f.GetString(), &a); va_end(a); f.Destruct();
-}
-// Symbol: ?FormatMessage@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
-extern "C" void MS_ABI impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(void* pThis, const wchar_t* fmt, ...) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    va_list a; va_start(a, fmt); self->FormatMessageStr(fmt, &a); va_end(a);
-}
-// Symbol: ?FormatMessageV@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDPEAPEAD@Z
-extern "C" void MS_ABI impl__FormatMessageV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAPEAD_Z(void* pThis, const char* fmt, char** pArgs) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    self->FormatMessageStr(fmt, (va_list*)pArgs);
-}
-// Symbol: ?FormatMessageV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAPEAD@Z
-extern "C" void MS_ABI impl__FormatMessageV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAPEAD_Z(void* pThis, const wchar_t* fmt, char** pArgs) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    self->FormatMessageStr(fmt, (va_list*)pArgs);
-}
-// Symbol: ?FormatMessageW@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    openmfc_str::AtlStrT<char> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->FormatMessageStr(f.GetString(), &a); va_end(a); f.Destruct();
-}
-// Symbol: ?FormatMessageW@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDZZ
-extern "C" void MS_ABI impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(void* pThis, const char* fmt, ...) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    va_list a; va_start(a, fmt); self->FormatMessageStr(fmt, &a); va_end(a);
-}
-// Symbol: ?FormatMessageW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
-extern "C" void MS_ABI impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(void* pThis, unsigned int nID, ...) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    openmfc_str::AtlStrT<wchar_t> f; f.Construct(); f.LoadStr(GetResHandle(), nID); va_list a; va_start(a, nID); self->FormatMessageStr(f.GetString(), &a); va_end(a); f.Destruct();
-}
-// Symbol: ?FormatMessageW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
-extern "C" void MS_ABI impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(void* pThis, const wchar_t* fmt, ...) {
-    openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);
-    va_list a; va_start(a, fmt); self->FormatMessageStr(fmt, &a); va_end(a);
-}
-// Symbol: ?FormatV@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDPEAD@Z
-extern "C" void MS_ABI impl__FormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAD_Z(void* pThis, const char* fmt, char* args) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    self->FormatV(fmt, (va_list)args);
-}
 
 
 

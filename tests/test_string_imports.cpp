@@ -45,6 +45,14 @@ struct Manager:ATL::IAtlStringMgr {
     ATL::CStringData* GetNilString() noexcept override {nil.data.AddRef();return &nil.data;}
     ATL::IAtlStringMgr* Clone() noexcept override {return cloned;}
 };
+template<class T>void printfClient(T& text,bool append,const typename T::XCHAR* format,...){
+    va_list args;va_start(args,format);
+    if(append)text.AppendFormatV(format,args);else text.FormatV(format,args);
+    va_end(args);
+}
+template<class T>void messageClient(T& text,const typename T::XCHAR* format,...){
+    va_list args;va_start(args,format);text.FormatMessageV(format,&args);va_end(args);
+}
 }
 int main(){
     auto* manager=AfxGetStringManager();
@@ -116,6 +124,32 @@ int main(){
             textW.LockBuffer();textW.LockBuffer();textA.LockBuffer();textA.LockBuffer();
             textW.MakeLower().MakeReverse();textA.MakeLower().MakeReverse();
             check(textW.GetLength()==5&&textA.GetLength()==5&&textW.GetAt(0)==L'b'&&textA.GetAt(0)=='b'&&header(textW)->nRefs==-2&&header(textA)->nRefs==-2,"case conversion and reversal preserve counted length and nested locks");
+        }
+        {
+            CStringW formatW(L"[%d]",&custom);CStringA formatA("[%d]",&custom);
+            formatW.Format(formatW.GetString(),7);formatA.Format(formatA.GetString(),7);
+            check(!wcscmp(formatW.GetString(),L"[7]")&&!strcmp(formatA.GetString(),"[7]"),"Format preserves a format string that aliases its destination");
+            formatW.Format(L"%s-%d",L"wide",42);formatA.Format("%s-%d","ansi",42);
+            formatW.AppendFormat(L"|%0*d",40000,1);formatA.AppendFormat("|%0*d",40000,1);
+            check(formatW.GetLength()==40008&&formatA.GetLength()==40008&&formatW.GetAt(40007)==L'1'&&formatA.GetAt(40007)=='1',"format imports support output beyond the old fixed limit");
+            printfClient(formatW,false,L"%c/%s",0,L"tail");printfClient(formatA,false,"%c/%s",0,"tail");
+            check(formatW.GetLength()==6&&formatA.GetLength()==6&&formatW.GetAt(0)==0&&formatA.GetAt(0)==0&&formatW.GetAt(5)==L'l'&&formatA.GetAt(5)=='l',"FormatV preserves the counted length of embedded NUL output");
+            printfClient(formatW,true,L"=%d",9);printfClient(formatA,true,"=%d",9);
+            check(formatW.GetLength()==8&&formatA.GetLength()==8&&formatW.GetAt(7)==L'9'&&formatA.GetAt(7)=='9',"AppendFormatV appends at the counted end");
+            formatW.Format(UINT(36),42);formatA.Format(UINT(36),42);
+            formatW.AppendFormat(UINT(36),9);formatA.AppendFormat(UINT(36),9);
+            check(!wcscmp(formatW.GetString(),L"resource:42resource:9")&&!strcmp(formatA.GetString(),"resource:42resource:9"),"resource formatting imports use production resource loading");
+            SetLastError(0x4321);messageClient(formatW,L"text:%1!s!",L"wide");
+            check(GetLastError()==0x4321&&!wcscmp(formatW.GetString(),L"text:wide"),"wide FormatMessageV preserves the caller's last error");
+            messageClient(formatA,"text:%1!s!","ansi");
+            formatW.FormatMessageW(L"number:%1!d!",7);formatA.FormatMessageW("number:%1!d!",7);
+            check(!wcscmp(formatW.GetString(),L"number:7")&&!strcmp(formatA.GetString(),"number:7"),"message-format pointer imports use the native Windows argument list");
+            formatW.FormatMessageW(UINT(37),42);formatA.FormatMessageW(UINT(37),42);
+            check(!wcscmp(formatW.GetString(),L"message:42")&&!strcmp(formatA.GetString(),"message:42"),"message-format resource imports load the native template");
+            bool missing=false,invalid=false;
+            try{formatW.Format(UINT(999));}catch(COleException* error){missing=error->m_sc==E_FAIL;error->Delete();}
+            try{formatA.Format(static_cast<const char*>(nullptr));}catch(COleException* error){invalid=error->m_sc==E_INVALIDARG;error->Delete();}
+            check(missing&&invalid,"formatting imports preserve typed resource and invalid-argument failures");
         }
         {
             ATL::CSimpleStringT<char,false> plain("foreign",&custom);

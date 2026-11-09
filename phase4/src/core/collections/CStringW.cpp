@@ -2,6 +2,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "detail/CStringOperations.h"
+#include "detail/CStringFormatSupport.h"
 #include <new>
 #include <cerrno>
 
@@ -206,3 +207,41 @@ extern "C" int impl__Collate___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W
 extern "C" int impl__CollateNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(const CString* self,const wchar_t* text) {return self->CollateNoCase(text);}
 // Symbol: ?ReverseFind@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEBAH_W@Z
 extern "C" int impl__ReverseFind___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAH_W_Z(const CString* self,wchar_t value) {return self->ReverseFind(value);}
+
+#pragma push_macro("FormatMessage")
+#undef FormatMessage
+void CString::FormatV(const wchar_t* format,va_list args) {openmfc_string_format::Printf(*this,format,args,false);}
+void CString::AppendFormatV(const wchar_t* format,va_list args) {openmfc_string_format::Printf(*this,format,args,true);}
+void CString::FormatMessageV(const wchar_t* format,va_list* args) {openmfc_string_format::Message(*this,format,args);}
+void CString::Format(const wchar_t* format,...) {va_list args;va_start(args,format);FormatV(format,args);va_end(args);}
+void CString::Format(UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::Resource(*this,id,args,false);va_end(args);}
+void CString::AppendFormat(const wchar_t* format,...) {va_list args;va_start(args,format);AppendFormatV(format,args);va_end(args);}
+void CString::AppendFormat(UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::Resource(*this,id,args,true);va_end(args);}
+void CString::FormatMessage(const wchar_t* format,...) {if(!format)AfxThrowOleException(static_cast<long>(0x80070057u));va_list args;va_start(args,format);FormatMessageV(format,&args);va_end(args);}
+void CString::FormatMessage(UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::MessageResource(*this,id,&args);va_end(args);}
+void CString::FormatMessageW(const wchar_t* format,...) {if(!format)AfxThrowOleException(static_cast<long>(0x80070057u));va_list args;va_start(args,format);FormatMessageV(format,&args);va_end(args);}
+void CString::FormatMessageW(UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::MessageResource(*this,id,&args);va_end(args);}
+#pragma pop_macro("FormatMessage")
+
+// Symbol: ?FormatV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAD@Z
+extern "C" void impl__FormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z(CString* self,const wchar_t* format,char* args) {self->FormatV(format,args);}
+// Symbol: ?Format@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
+extern "C" void impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...) {va_list args;va_start(args,format);self->FormatV(format,args);va_end(args);}
+// Symbol: ?AppendFormat@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
+extern "C" void impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::Resource(*self,id,args,true);va_end(args);}
+// Symbol: ?AppendFormat@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
+extern "C" void impl__AppendFormat___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...) {va_list args;va_start(args,format);self->AppendFormatV(format,args);va_end(args);}
+// Symbol: ?AppendFormatV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAD@Z
+extern "C" void impl__AppendFormatV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAD_Z(CString* self,const wchar_t* format,char* args) {self->AppendFormatV(format,args);}
+// Symbol: ?Format@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
+extern "C" void impl__Format___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::Resource(*self,id,args,false);va_end(args);}
+// Symbol: ?FormatMessage@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
+extern "C" void impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::MessageResource(*self,id,&args);va_end(args);}
+// Symbol: ?FormatMessage@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
+extern "C" void impl__FormatMessage___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...) {if(!format)AfxThrowOleException(static_cast<long>(0x80070057u));va_list args;va_start(args,format);self->FormatMessageV(format,&args);va_end(args);}
+// Symbol: ?FormatMessageV@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WPEAPEAD@Z
+extern "C" void impl__FormatMessageV___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WPEAPEAD_Z(CString* self,const wchar_t* format,char** args) {self->FormatMessageV(format,args);}
+// Symbol: ?FormatMessageW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXIZZ
+extern "C" void impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::MessageResource(*self,id,&args);va_end(args);}
+// Symbol: ?FormatMessageW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
+extern "C" void impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...) {if(!format)AfxThrowOleException(static_cast<long>(0x80070057u));va_list args;va_start(args,format);self->FormatMessageV(format,&args);va_end(args);}

@@ -560,58 +560,20 @@ public:
         return nNewLen;
     }
 
-    // Printf-style formatting
-    void FormatV(const wchar_t* pszFormat, va_list args) {
-        if (pszFormat == nullptr) {
-            Empty();
-            return;
-        }
-        constexpr int kInitialFormatBuffer = 256;
-        constexpr int kMaxFormatBuffer = 32768;
-        int nBufLen = kInitialFormatBuffer;
-        while (true) {
-            wchar_t* pBuf = GetBuffer(nBufLen);
-            va_list argsCopy;
-            va_copy(argsCopy, args);
-            int nWritten = vswprintf(pBuf, nBufLen, pszFormat, argsCopy);
-            va_end(argsCopy);
-
-            if (nWritten >= 0 && nWritten < nBufLen) {
-                ReleaseBuffer(nWritten);
-                return;
-            }
-
-            ReleaseBuffer(0);
-            if (nBufLen >= kMaxFormatBuffer) {
-                break;
-            }
-            if (nWritten >= nBufLen && nWritten > 0) {
-                nBufLen = nWritten + 1;
-            } else {
-                nBufLen *= 2;
-            }
-            if (nBufLen > kMaxFormatBuffer) {
-                nBufLen = kMaxFormatBuffer;
-            }
-        }
-        Empty();
-    }
-
-    void Format(const wchar_t* pszFormat, ...) {
-        va_list args;
-        va_start(args, pszFormat);
-        FormatV(pszFormat, args);
-        va_end(args);
-    }
-
-    void AppendFormat(const wchar_t* pszFormat, ...) {
-        CString strAppend;
-        va_list args;
-        va_start(args, pszFormat);
-        strAppend.FormatV(pszFormat, args);
-        va_end(args);
-        *this += strAppend;
-    }
+    OPENMFC_STRING_API void FormatV(const wchar_t* format,va_list args);
+    OPENMFC_STRING_API void Format(const wchar_t* format,...);
+    OPENMFC_STRING_API void Format(UINT id,...);
+    OPENMFC_STRING_API void AppendFormatV(const wchar_t* format,va_list args);
+    OPENMFC_STRING_API void AppendFormat(const wchar_t* format,...);
+    OPENMFC_STRING_API void AppendFormat(UINT id,...);
+    OPENMFC_STRING_API void FormatMessageV(const wchar_t* format,va_list* args);
+    OPENMFC_STRING_API void FormatMessageW(const wchar_t* format,...);
+    OPENMFC_STRING_API void FormatMessageW(UINT id,...);
+#pragma push_macro("FormatMessage")
+#undef FormatMessage
+    OPENMFC_STRING_API void FormatMessage(const wchar_t* format,...);
+    OPENMFC_STRING_API void FormatMessage(UINT id,...);
+#pragma pop_macro("FormatMessage")
 
     // Resource loading
     // Note: Windows defines LoadString as a macro to LoadStringW/LoadStringA

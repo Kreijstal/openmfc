@@ -19,6 +19,7 @@
 #include "wide_string_storage_exports.h"
 #include "string_operations_exports.h"
 #include "string_search_exports.h"
+#include "string_format_exports.h"
 extern void* (*g_fileExceptionFinder)(UINT);
 namespace ansi_string_test {
 int failures;unsigned comparisons;HMODULE image;
@@ -623,6 +624,7 @@ void wideStorage(){
 
 #include "string_operations_tests.h"
 #include "string_search_tests.h"
+#include "string_format_tests.h"
 
 using VariantInitAPI=decltype(&::VariantInit);using VariantClearAPI=decltype(&::VariantClear);using VariantCoerceAPI=decltype(&::VariantChangeType);
 VariantInitAPI originalInit;VariantClearAPI originalClear;VariantCoerceAPI originalCoerce;
@@ -730,6 +732,7 @@ int TestAnsiStringOwnership(HMODULE native){using namespace ansi_string_test;ima
  wideStorage();
  stringOperations();
  stringSearchAndCase();
+ stringFormatting();
  variantStrings();
  noexceptCases();
  }
