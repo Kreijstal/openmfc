@@ -59,6 +59,21 @@ public:
     OPENMFC_STRING_API CStringA& operator=(const wchar_t* source);
     CStringA& operator=(char value) {char text[]={value,0};SetString(text);return *this;}
     OPENMFC_STRING_API CStringA& operator=(wchar_t value);
+    OPENMFC_STRING_API CStringA& Trim();
+    OPENMFC_STRING_API CStringA& Trim(char value);
+    OPENMFC_STRING_API CStringA& Trim(const char* set);
+    OPENMFC_STRING_API CStringA& TrimLeft();
+    OPENMFC_STRING_API CStringA& TrimLeft(char value);
+    OPENMFC_STRING_API CStringA& TrimLeft(const char* set);
+    OPENMFC_STRING_API CStringA& TrimRight();
+    OPENMFC_STRING_API CStringA& TrimRight(char value);
+    OPENMFC_STRING_API CStringA& TrimRight(const char* set);
+    OPENMFC_STRING_API int Delete(int index,int count=1);
+    OPENMFC_STRING_API int Insert(int index,char value);
+    OPENMFC_STRING_API int Insert(int index,const char* source);
+    OPENMFC_STRING_API int Remove(char value);
+    OPENMFC_STRING_API int Replace(char before,char after);
+    OPENMFC_STRING_API int Replace(const char* before,const char* after);
     OPENMFC_STRING_API void FormatV(const char* format,va_list args);
     OPENMFC_STRING_API void Format(const char* format,...);
     OPENMFC_STRING_API void Format(UINT id,...);

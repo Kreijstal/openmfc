@@ -2,6 +2,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "detail/CStringOperations.h"
+#include "detail/CStringMutation.h"
 #include "detail/CStringFormatSupport.h"
 #include "detail/StringResourceSupport.h"
 extern "C" void* impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
@@ -183,3 +184,50 @@ extern "C" void impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraits
 extern "C" void impl__FormatMessageW___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDZZ(CStringA* self,const char* format,...) {if(!format)AfxThrowOleException(static_cast<long>(0x80070057u));va_list args;va_start(args,format);self->FormatMessageV(format,&args);va_end(args);}
 // Symbol: ?FormatV@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAXPEBDPEAD@Z
 extern "C" void impl__FormatV___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAXPEBDPEAD_Z(CStringA* self,const char* format,char* args) {self->FormatV(format,args);}
+
+int CStringA::Delete(int index,int count) {return openmfc_string_mutation::Delete(*this,index,count);}
+int CStringA::Insert(int index,char value) {return openmfc_string_mutation::Insert(*this,index,value);}
+int CStringA::Insert(int index,const char* source) {return openmfc_string_mutation::Insert(*this,index,source);}
+int CStringA::Remove(char value) {return openmfc_string_mutation::Remove(*this,value);}
+int CStringA::Replace(char before,char after) {return openmfc_string_mutation::Replace(*this,before,after);}
+int CStringA::Replace(const char* before,const char* after) {return openmfc_string_mutation::Replace(*this,before,after);}
+// Symbol: ?Delete@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHHH@Z
+extern "C" int impl__Delete___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHHH_Z(CStringA* self,int index,int count) {return self->Delete(index,count);}
+// Symbol: ?Insert@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHHD@Z
+extern "C" int impl__Insert___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHHD_Z(CStringA* self,int index,char value) {return self->Insert(index,value);}
+// Symbol: ?Insert@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHHPEBD@Z
+extern "C" int impl__Insert___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHHPEBD_Z(CStringA* self,int index,const char* source) {return self->Insert(index,source);}
+// Symbol: ?Remove@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHD@Z
+extern "C" int impl__Remove___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHD_Z(CStringA* self,char value) {return self->Remove(value);}
+// Symbol: ?Replace@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHDD@Z
+extern "C" int impl__Replace___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHDD_Z(CStringA* self,char before,char after) {return self->Replace(before,after);}
+// Symbol: ?Replace@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAHPEBD0@Z
+extern "C" int impl__Replace___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAHPEBD0_Z(CStringA* self,const char* before,const char* after) {return self->Replace(before,after);}
+
+CStringA& CStringA::Trim() {TrimRight();return TrimLeft();}
+CStringA& CStringA::Trim(char value) {TrimRight(value);return TrimLeft(value);}
+CStringA& CStringA::Trim(const char* set) {TrimRight(set);return TrimLeft(set);}
+CStringA& CStringA::TrimLeft() {return openmfc_string_mutation::TrimLeft(*this);}
+CStringA& CStringA::TrimLeft(char value) {return openmfc_string_mutation::TrimLeft(*this,value);}
+CStringA& CStringA::TrimLeft(const char* set) {return openmfc_string_mutation::TrimLeft(*this,set);}
+CStringA& CStringA::TrimRight() {return openmfc_string_mutation::TrimRight(*this);}
+CStringA& CStringA::TrimRight(char value) {return openmfc_string_mutation::TrimRight(*this,value);}
+CStringA& CStringA::TrimRight(const char* set) {return openmfc_string_mutation::TrimRight(*this,set);}
+// Symbol: ?Trim@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@D@Z
+extern "C" CStringA* impl__Trim___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_D_Z(CStringA* self,char value) {return &self->Trim(value);}
+// Symbol: ?Trim@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@PEBD@Z
+extern "C" CStringA* impl__Trim___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_PEBD_Z(CStringA* self,const char* set) {return &self->Trim(set);}
+// Symbol: ?Trim@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CStringA* impl__Trim___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(CStringA* self) {return &self->Trim();}
+// Symbol: ?TrimLeft@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@D@Z
+extern "C" CStringA* impl__TrimLeft___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_D_Z(CStringA* self,char value) {return &self->TrimLeft(value);}
+// Symbol: ?TrimLeft@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@PEBD@Z
+extern "C" CStringA* impl__TrimLeft___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_PEBD_Z(CStringA* self,const char* set) {return &self->TrimLeft(set);}
+// Symbol: ?TrimLeft@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CStringA* impl__TrimLeft___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(CStringA* self) {return &self->TrimLeft();}
+// Symbol: ?TrimRight@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@D@Z
+extern "C" CStringA* impl__TrimRight___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_D_Z(CStringA* self,char value) {return &self->TrimRight(value);}
+// Symbol: ?TrimRight@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@PEBD@Z
+extern "C" CStringA* impl__TrimRight___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_PEBD_Z(CStringA* self,const char* set) {return &self->TrimRight(set);}
+// Symbol: ?TrimRight@?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CStringA* impl__TrimRight___CStringT_DV__StrTraitMFC_DLL_DV__ChTraitsCRT_D_ATL_____ATL__QEAAAEAV12_XZ(CStringA* self) {return &self->TrimRight();}

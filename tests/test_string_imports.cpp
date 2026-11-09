@@ -53,8 +53,39 @@ template<class T>void printfClient(T& text,bool append,const typename T::XCHAR* 
 template<class T>void messageClient(T& text,const typename T::XCHAR* format,...){
     va_list args;va_start(args,format);text.FormatMessageV(format,&args);va_end(args);
 }
+template<class T>void mutationClient() {
+    using C=typename T::XCHAR;
+    Manager owner;
+    {
+        const C input[]={C('a'),C('b'),0,C('a'),C('b'),0};
+        const C before[]={C('a'),C('b'),0},after[]={C('X'),C('Y'),C('Z'),0};
+        T text(input,5,&owner),sibling(text);const C* original=text.GetString();
+        check(text.Replace(C('q'),C('z'))==0&&text.GetString()==original,"character replacement leaves unmatched shared storage intact");
+        check(text.Replace(before,after)==2&&text.GetLength()==7,"string replacement visits embedded NUL segments");
+        check(text[0]==C('X')&&text[3]==0&&text[4]==C('X')&&sibling.GetLength()==5&&sibling[0]==C('a'),"replacement detaches shared storage and preserves its sibling");
+        check(text.Remove(0)==1&&text.GetLength()==6,"removal processes counted embedded NULs");
+        check(text.Delete(-1,2)==4&&text[0]==C('Z'),"deletion clamps its index and moves the tail");
+        check(text.Insert(100,C(0))==5&&text.GetLength()==5&&text[4]==0,"insertion counts an embedded NUL character");
+        check(text.Insert(1,before)==7&&text[1]==C('a')&&text[2]==C('b'),"pointer insertion shifts counted data");
+        const C padded[]={C(' '),C('\v'),C('a'),C('b'),C('\f'),C(' '),0},letters[]={C('a'),C('b'),0};
+        T trimmed(padded,&owner),trimSibling(trimmed);
+        check(&trimmed.Trim()==&trimmed&&trimmed.GetLength()==2&&trimSibling.GetLength()==6,"locale trim detaches and recognizes vertical whitespace");
+        trimmed.TrimLeft(C('a'));trimmed.TrimRight(letters);
+        check(trimmed.IsEmpty(),"character and set trim overloads resolve through the DLL");
+        trimmed=padded;trimmed.TrimLeft();trimmed.TrimRight();trimmed.Trim(letters);
+        check(trimmed.IsEmpty(),"all public trim overloads use native DLL owners");
+        trimmed=padded;trimmed.TrimLeft(letters);trimmed.TrimRight(C(' '));trimmed.Trim(C(' '));
+        bool overflow=false;try{text.Delete(INT_MAX,1);}catch(COleException* e){overflow=e->m_sc==HRESULT(0x80070216u);e->Delete();}
+        check(overflow,"deletion rejects checked index plus count overflow");
+        T shared(text);owner.fail=true;bool caught=false;
+        try{text.Insert(0,C('q'));}catch(CMemoryException* e){caught=true;e->Delete();}
+        owner.fail=false;check(caught&&text.GetString()==shared.GetString(),"insertion propagates actual DLL allocation failure without losing ownership");
+    }
+    check(owner.live==0,"mutation clients release all caller-managed allocations");
+}
 }
 int main(){
+    mutationClient<CStringA>();mutationClient<CStringW>();
     auto* manager=AfxGetStringManager();
     check(manager!=nullptr,"DLL exposes the actual string manager");
     {

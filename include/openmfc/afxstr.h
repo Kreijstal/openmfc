@@ -424,92 +424,15 @@ public:
     OPENMFC_STRING_API CString SpanExcluding(const wchar_t* set) const;
     OPENMFC_STRING_API CString Tokenize(const wchar_t* delimiters,int& start) const;
 
-    // Trimming
-    CString& TrimLeft() {
-        int nLen = GetLength();
-        if (nLen == 0) return *this;
-        int nStart = 0;
-        while (nStart < nLen && (m_pszData[nStart] == L' ' || m_pszData[nStart] == L'\t' ||
-               m_pszData[nStart] == L'\r' || m_pszData[nStart] == L'\n'))
-            nStart++;
-        if (nStart > 0) {
-            *this = Mid(nStart);
-        }
-        return *this;
-    }
-
-    CString& TrimRight() {
-        int nLen = GetLength();
-        if (nLen == 0) return *this;
-        int nEnd = nLen;
-        while (nEnd > 0 && (m_pszData[nEnd - 1] == L' ' || m_pszData[nEnd - 1] == L'\t' ||
-               m_pszData[nEnd - 1] == L'\r' || m_pszData[nEnd - 1] == L'\n'))
-            nEnd--;
-        if (nEnd < nLen) {
-            wchar_t* pBuf = GetBuffer(nEnd);
-            pBuf[nEnd] = L'\0';
-            ReleaseBuffer(nEnd);
-        }
-        return *this;
-    }
-
-    CString& Trim() {
-        TrimRight();
-        TrimLeft();
-        return *this;
-    }
-
-    // Replace
-    int Replace(wchar_t chOld, wchar_t chNew) {
-        int nCount = 0;
-        int nLen = GetLength();
-        if (nLen > 0 && chOld != chNew) {
-            wchar_t* pBuf = GetBuffer(nLen);
-            for (int i = 0; i < nLen; i++) {
-                if (pBuf[i] == chOld) {
-                    pBuf[i] = chNew;
-                    nCount++;
-                }
-            }
-            ReleaseBuffer(nLen);
-        }
-        return nCount;
-    }
-
-    int Replace(const wchar_t* pszOld, const wchar_t* pszNew) {
-        if (pszOld == nullptr || *pszOld == L'\0') return 0;
-        if (pszNew == nullptr) pszNew = L"";
-        int nOldLen = static_cast<int>(wcslen(pszOld));
-        int nNewLen = static_cast<int>(wcslen(pszNew));
-        int nCount = 0;
-        // Count occurrences
-        const wchar_t* pStart = m_pszData;
-        while ((pStart = wcsstr(pStart, pszOld)) != nullptr) {
-            nCount++;
-            pStart += nOldLen;
-        }
-        if (nCount == 0) return 0;
-        // Build new string
-        int nSrcLen = GetLength();
-        int nNewStrLen = nSrcLen + (nNewLen - nOldLen) * nCount;
-        CString strResult;
-        strResult.AllocBuffer(nNewStrLen);
-        wchar_t* pDest = strResult.m_pszData;
-        const wchar_t* pSrc = m_pszData;
-        while (*pSrc) {
-            if (wcsncmp(pSrc, pszOld, nOldLen) == 0) {
-                wmemcpy(pDest, pszNew, nNewLen);
-                pDest += nNewLen;
-                pSrc += nOldLen;
-            } else {
-                *pDest++ = *pSrc++;
-            }
-        }
-        *pDest = L'\0';
-        strResult.GetData()->nDataLength = nNewStrLen;
-        *this = strResult;
-        return nCount;
-    }
+    OPENMFC_STRING_API CStringW& Trim();
+    OPENMFC_STRING_API CStringW& Trim(wchar_t value);
+    OPENMFC_STRING_API CStringW& Trim(const wchar_t* set);
+    OPENMFC_STRING_API CStringW& TrimLeft();
+    OPENMFC_STRING_API CStringW& TrimLeft(wchar_t value);
+    OPENMFC_STRING_API CStringW& TrimLeft(const wchar_t* set);
+    OPENMFC_STRING_API CStringW& TrimRight();
+    OPENMFC_STRING_API CStringW& TrimRight(wchar_t value);
+    OPENMFC_STRING_API CStringW& TrimRight(const wchar_t* set);
 
     // Character modification
     void SetAt(int nIndex, wchar_t ch) {
@@ -520,45 +443,12 @@ public:
         }
     }
 
-    // Delete characters from string
-    int Delete(int nIndex, int nCount = 1) {
-        if (nIndex < 0) nIndex = 0;
-        int nLen = GetLength();
-        if (nIndex >= nLen || nCount <= 0) return nLen;
-        if (nIndex + nCount > nLen) nCount = nLen - nIndex;
-        int nNewLen = nLen - nCount;
-        wchar_t* pBuf = GetBuffer(nLen);
-        wmemmove(pBuf + nIndex, pBuf + nIndex + nCount, nLen - nIndex - nCount + 1);
-        ReleaseBuffer(nNewLen);
-        return nNewLen;
-    }
-
-    // Insert character at position
-    int Insert(int nIndex, wchar_t ch) {
-        if (nIndex < 0) nIndex = 0;
-        int nLen = GetLength();
-        if (nIndex > nLen) nIndex = nLen;
-        wchar_t* pBuf = GetBuffer(nLen + 1);
-        wmemmove(pBuf + nIndex + 1, pBuf + nIndex, nLen - nIndex + 1);
-        pBuf[nIndex] = ch;
-        ReleaseBuffer(nLen + 1);
-        return nLen + 1;
-    }
-
-    // Insert string at position
-    int Insert(int nIndex, const wchar_t* pstr) {
-        if (pstr == nullptr || *pstr == L'\0') return GetLength();
-        if (nIndex < 0) nIndex = 0;
-        int nLen = GetLength();
-        if (nIndex > nLen) nIndex = nLen;
-        int nInsertLen = static_cast<int>(wcslen(pstr));
-        int nNewLen = nLen + nInsertLen;
-        wchar_t* pBuf = GetBuffer(nNewLen);
-        wmemmove(pBuf + nIndex + nInsertLen, pBuf + nIndex, nLen - nIndex + 1);
-        wmemcpy(pBuf + nIndex, pstr, nInsertLen);
-        ReleaseBuffer(nNewLen);
-        return nNewLen;
-    }
+    OPENMFC_STRING_API int Delete(int index,int count=1);
+    OPENMFC_STRING_API int Insert(int index,wchar_t value);
+    OPENMFC_STRING_API int Insert(int index,const wchar_t* source);
+    OPENMFC_STRING_API int Remove(wchar_t value);
+    OPENMFC_STRING_API int Replace(wchar_t before,wchar_t after);
+    OPENMFC_STRING_API int Replace(const wchar_t* before,const wchar_t* after);
 
     OPENMFC_STRING_API void FormatV(const wchar_t* format,va_list args);
     OPENMFC_STRING_API void Format(const wchar_t* format,...);

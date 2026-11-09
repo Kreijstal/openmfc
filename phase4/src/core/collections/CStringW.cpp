@@ -2,6 +2,7 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "detail/CStringOperations.h"
+#include "detail/CStringMutation.h"
 #include "detail/CStringFormatSupport.h"
 #include <new>
 #include <cerrno>
@@ -245,3 +246,50 @@ extern "C" void impl__FormatMessageV___CStringT__WV__StrTraitMFC_DLL__WV__ChTrai
 extern "C" void impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXIZZ(CString* self,UINT id,...) {va_list args;va_start(args,id);openmfc_string_format::MessageResource(*self,id,&args);va_end(args);}
 // Symbol: ?FormatMessageW@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAXPEB_WZZ
 extern "C" void impl__FormatMessageW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAXPEB_WZZ(CString* self,const wchar_t* format,...) {if(!format)AfxThrowOleException(static_cast<long>(0x80070057u));va_list args;va_start(args,format);self->FormatMessageV(format,&args);va_end(args);}
+
+int CStringW::Delete(int index,int count) {return openmfc_string_mutation::Delete(*this,index,count);}
+int CStringW::Insert(int index,wchar_t value) {return openmfc_string_mutation::Insert(*this,index,value);}
+int CStringW::Insert(int index,const wchar_t* source) {return openmfc_string_mutation::Insert(*this,index,source);}
+int CStringW::Remove(wchar_t value) {return openmfc_string_mutation::Remove(*this,value);}
+int CStringW::Replace(wchar_t before,wchar_t after) {return openmfc_string_mutation::Replace(*this,before,after);}
+int CStringW::Replace(const wchar_t* before,const wchar_t* after) {return openmfc_string_mutation::Replace(*this,before,after);}
+// Symbol: ?Delete@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHHH@Z
+extern "C" int impl__Delete___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHHH_Z(CStringW* self,int index,int count) {return self->Delete(index,count);}
+// Symbol: ?Replace@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAH_W0@Z
+extern "C" int impl__Replace___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAH_W0_Z(CStringW* self,wchar_t before,wchar_t after) {return self->Replace(before,after);}
+// Symbol: ?Replace@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHPEB_W0@Z
+extern "C" int impl__Replace___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHPEB_W0_Z(CStringW* self,const wchar_t* before,const wchar_t* after) {return self->Replace(before,after);}
+// Symbol: ?Insert@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHHPEB_W@Z
+extern "C" int impl__Insert___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHHPEB_W_Z(CStringW* self,int index,const wchar_t* source) {return self->Insert(index,source);}
+// Symbol: ?Insert@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAHH_W@Z
+extern "C" int impl__Insert___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHH_W_Z(CStringW* self,int index,wchar_t value) {return self->Insert(index,value);}
+// Symbol: ?Remove@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAH_W@Z
+extern "C" int impl__Remove___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAH_W_Z(CStringW* self,wchar_t value) {return self->Remove(value);}
+
+CStringW& CStringW::Trim() {TrimRight();return TrimLeft();}
+CStringW& CStringW::Trim(wchar_t value) {TrimRight(value);return TrimLeft(value);}
+CStringW& CStringW::Trim(const wchar_t* set) {TrimRight(set);return TrimLeft(set);}
+CStringW& CStringW::TrimLeft() {return openmfc_string_mutation::TrimLeft(*this);}
+CStringW& CStringW::TrimLeft(wchar_t value) {return openmfc_string_mutation::TrimLeft(*this,value);}
+CStringW& CStringW::TrimLeft(const wchar_t* set) {return openmfc_string_mutation::TrimLeft(*this,set);}
+CStringW& CStringW::TrimRight() {return openmfc_string_mutation::TrimRight(*this);}
+CStringW& CStringW::TrimRight(wchar_t value) {return openmfc_string_mutation::TrimRight(*this,value);}
+CStringW& CStringW::TrimRight(const wchar_t* set) {return openmfc_string_mutation::TrimRight(*this,set);}
+// Symbol: ?Trim@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@_W@Z
+extern "C" CStringW* impl__Trim___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12__W_Z(CStringW* self,wchar_t value) {return &self->Trim(value);}
+// Symbol: ?Trim@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@PEB_W@Z
+extern "C" CStringW* impl__Trim___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_PEB_W_Z(CStringW* self,const wchar_t* set) {return &self->Trim(set);}
+// Symbol: ?Trim@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CStringW* impl__Trim___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CStringW* self) {return &self->Trim();}
+// Symbol: ?TrimLeft@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@_W@Z
+extern "C" CStringW* impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12__W_Z(CStringW* self,wchar_t value) {return &self->TrimLeft(value);}
+// Symbol: ?TrimLeft@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@PEB_W@Z
+extern "C" CStringW* impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_PEB_W_Z(CStringW* self,const wchar_t* set) {return &self->TrimLeft(set);}
+// Symbol: ?TrimLeft@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CStringW* impl__TrimLeft___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CStringW* self) {return &self->TrimLeft();}
+// Symbol: ?TrimRight@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@_W@Z
+extern "C" CStringW* impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12__W_Z(CStringW* self,wchar_t value) {return &self->TrimRight(value);}
+// Symbol: ?TrimRight@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@PEB_W@Z
+extern "C" CStringW* impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_PEB_W_Z(CStringW* self,const wchar_t* set) {return &self->TrimRight(set);}
+// Symbol: ?TrimRight@?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@QEAAAEAV12@XZ
+extern "C" CStringW* impl__TrimRight___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAAEAV12_XZ(CStringW* self) {return &self->TrimRight();}
