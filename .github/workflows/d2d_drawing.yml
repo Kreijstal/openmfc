@@ -209,6 +209,9 @@ on:
       - 'phase4/src/core/runtime/AfxLoadString.cpp'
       - 'phase4/src/core/runtime/AfxFormatStrings.cpp'
       - 'phase4/src/core/collections/CStringBuffer.cpp'
+      - 'phase4/src/core/collections/CStringA.cpp'
+      - 'phase4/src/core/collections/CStringAStorage.cpp'
+      - 'phase4/src/core/runtime/CAfxStringMgr.cpp'
       - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/detail/StringResourceSupport.h'
       - 'phase4/src/core/exceptions/CSimpleException.cpp'
@@ -514,6 +517,9 @@ on:
       - 'phase4/src/core/runtime/AfxLoadString.cpp'
       - 'phase4/src/core/runtime/AfxFormatStrings.cpp'
       - 'phase4/src/core/collections/CStringBuffer.cpp'
+      - 'phase4/src/core/collections/CStringA.cpp'
+      - 'phase4/src/core/collections/CStringAStorage.cpp'
+      - 'phase4/src/core/runtime/CAfxStringMgr.cpp'
       - 'phase4/src/core/collections/CStringResource.cpp'
       - 'phase4/src/detail/StringResourceSupport.h'
       - 'phase4/src/core/exceptions/CSimpleException.cpp'
@@ -669,6 +675,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CExceptionVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxLoadString.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringA.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringAStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CAfxStringMgr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringResource.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxFormatStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CSimpleException.cpp"
@@ -914,6 +923,9 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CExceptionVirtuals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxLoadString.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringBuffer.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringA.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringAStorage.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CAfxStringMgr.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/collections/CStringResource.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/AfxFormatStrings.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/exceptions/CSimpleException.cpp"

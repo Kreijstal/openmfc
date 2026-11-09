@@ -95,9 +95,13 @@ template <class CH>
 class AtlStrT {
 public:
     // --- lifetime ---------------------------------------------------------------
-    void Construct() { m_pszData = data(NilData<CH>());NilData<CH>()->AddRef(); }
+    void Construct() {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA, void();}
+        m_pszData = data(NilData<CH>());NilData<CH>()->AddRef(); }
 
     void ConstructMgr(IAtlStringMgr* mgr) {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(mgr), void();}
+
         // Empty string bound to a specific manager. ATL keeps the manager even when empty;
         // we model that by allocating a zero-length buffer from it (so later growth uses it).
         if (!mgr) { Construct(); return; }
@@ -109,6 +113,8 @@ public:
     }
 
     void ConstructPsz(const CH* psz) {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(psz), void();}
+
         if (!psz || !*psz) { Construct(); return; }
         int n = Len(psz);
         AllocBuffer(n);
@@ -117,6 +123,8 @@ public:
     }
 
     void ConstructPszN(const CH* psz, int n) {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(psz,n), void();}
+
         if (n <= 0 || !psz) { Construct(); return; }
         AllocBuffer(n);
         Copy(m_pszData, psz, n);
@@ -125,6 +133,8 @@ public:
     }
 
     void ConstructChRep(CH ch, int nRep) {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(ch,nRep), void();}
+
         if (nRep <= 0) { Construct(); return; }
         AllocBuffer(nRep);
         for (int i = 0; i < nRep; ++i) m_pszData[i] = ch;
@@ -133,12 +143,16 @@ public:
     }
 
     void ConstructCopy(const AtlStrT& src) {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(*reinterpret_cast<const CStringA*>(&src)), void();}
+
         CStringData* s = src.GetData();
         if (s->IsLocked()) { m_pszData = src.m_pszData; }
         else { s->AddRef(); m_pszData = src.m_pszData; }
     }
 
     void Destruct() {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CStringA*>(this)->~CStringA();}
+
         CStringData* pd = GetData();
         if (pd->Release()) FreeData(pd);
     }
@@ -152,11 +166,15 @@ public:
     CH GetAt(int i) const { return m_pszData[i]; }
     CStringData* GetData() const { return reinterpret_cast<CStringData*>(m_pszData) - 1; }
     IAtlStringMgr* GetManager() const {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<const CSimpleStringA*>(this)->GetManager();}
+
         CStringData* pd = GetData();
         return pd->pStringMgr ? pd->pStringMgr : OpenMFC_GetStringMgr();
     }
 
     void Empty() {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Empty();}
+
         CStringData* pd = GetData();
         if (pd->nDataLength == 0) return;
         if (pd->Release()) FreeData(pd);
@@ -164,6 +182,8 @@ public:
     }
 
     void SetAt(int i, CH ch) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->SetAt(i,ch);}
+
         if (i < 0 || i >= GetLength()) return;
         CH* p = GetBuffer(GetLength());
         p[i] = ch;
@@ -172,6 +192,8 @@ public:
 
     // --- buffer management (ATL semantics) --------------------------------------
     CH* GetBuffer(int nMin) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->GetBuffer(nMin);}
+
         CStringData* pd = GetData();
         if (nMin < 0) nMin = pd->nDataLength;
         if (pd->IsShared() || nMin > pd->nAllocLength) {
@@ -186,9 +208,13 @@ public:
         GetData()->nRefs = -1; // lock while exposed
         return m_pszData;
     }
-    CH* GetBufferDefault() { return GetBuffer(GetData()->nDataLength); }
+    CH* GetBufferDefault() {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->GetBuffer();}
+        return GetBuffer(GetData()->nDataLength); }
 
     CH* GetBufferSetLength(int n) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->GetBufferSetLength(n);}
+
         CH* p = GetBuffer(n);
         GetData()->nDataLength = n;
         p[n] = 0;
@@ -196,23 +222,35 @@ public:
     }
 
     void ReleaseBuffer(int nNew) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->ReleaseBuffer(nNew);}
+
         CStringData* pd = GetData();
         if (nNew < 0) nNew = Len(m_pszData);
         pd->nDataLength = nNew;
         m_pszData[nNew] = 0;
         pd->nRefs = 1;
     }
-    void ReleaseBufferSetLength(int n) { if (n >= 0) ReleaseBuffer(n); }
+    void ReleaseBufferSetLength(int n) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->ReleaseBufferSetLength(n);}
+        if (n >= 0) ReleaseBuffer(n); }
 
     CH* LockBuffer() {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->LockBuffer();}
+
         CH* p = GetBuffer(GetData()->nDataLength);
         GetData()->nRefs = -1;
         return p;
     }
-    void UnlockBuffer() { CStringData* pd = GetData(); if (pd->nRefs == -1) pd->nRefs = 1; }
+    void UnlockBuffer() {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->UnlockBuffer();}
+        CStringData* pd = GetData(); if (pd->nRefs == -1) pd->nRefs = 1; }
 
-    void Preallocate(int n) { if (n > GetData()->nAllocLength) { int len = GetLength(); GetBuffer(n); GetData()->nDataLength = len; } ReleaseBuffer(GetLength()); }
+    void Preallocate(int n) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Preallocate(n);}
+        if (n > GetData()->nAllocLength) { int len = GetLength(); GetBuffer(n); GetData()->nDataLength = len; } ReleaseBuffer(GetLength()); }
     void FreeExtra() {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->FreeExtra();}
+
         CStringData* pd = GetData();
         if (pd->IsShared() || pd->IsLocked()) return;
         if (pd->nAllocLength == pd->nDataLength) return;
@@ -223,10 +261,14 @@ public:
         FreeData(pd);
         m_pszData = data(nd);
     }
-    void Truncate(int n) { if (n < GetLength()) { GetBuffer(GetLength()); GetData()->nDataLength = n; m_pszData[n] = 0; ReleaseBuffer(n); } }
+    void Truncate(int n) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Truncate(n);}
+        if (n < GetLength()) { GetBuffer(GetLength()); GetData()->nDataLength = n; m_pszData[n] = 0; ReleaseBuffer(n); } }
 
     // --- assignment / append ----------------------------------------------------
     void AssignCopy(const AtlStrT& src) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->operator=(*reinterpret_cast<const CSimpleStringA*>(&src)), void();}
+
         if (m_pszData == src.m_pszData) return;
         CStringData* pd = GetData();
         if (pd->Release()) FreeData(pd);
@@ -236,6 +278,8 @@ public:
     }
 
     void AssignPsz(const CH* psz) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->SetString(psz);}
+
         if (!psz || !*psz) { Empty(); return; }
         int n = Len(psz);
         CStringData* pd = GetData();
@@ -250,6 +294,8 @@ public:
     void AssignChar(CH ch) { CH b[2] = { ch, 0 }; AssignPsz(b); }
 
     void AppendPszN(const CH* psz, int n) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Append(psz,n);}
+
         if (!psz || n <= 0) return;
         int nOld = GetData()->nDataLength;
         int nNew = nOld + n;
@@ -264,8 +310,12 @@ public:
         m_pszData[nNew] = 0;
         GetData()->nDataLength = nNew;
     }
-    void AppendPsz(const CH* psz) { if (psz) AppendPszN(psz, Len(psz)); }
-    void AppendChar(CH ch) { AppendPszN(&ch, 1); }
+    void AppendPsz(const CH* psz) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Append(psz);}
+        if (psz) AppendPszN(psz, Len(psz)); }
+    void AppendChar(CH ch) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->AppendChar(ch);}
+        AppendPszN(&ch, 1); }
 
     // --- edit -------------------------------------------------------------------
     int Insert(int nIndex, CH ch) { CH b[2] = { ch, 0 }; return InsertPsz(nIndex, b, 1); }
@@ -357,6 +407,8 @@ public:
 
     // --- ATL-internal buffer primitives -----------------------------------------
     void Fork(int nLength) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Fork(nLength);}
+
         CStringData* pOld = GetData();
         int nOldLen = pOld->nDataLength;
         CStringData* nd = AllocData(nLength);
@@ -368,12 +420,16 @@ public:
         m_pszData = data(nd);
     }
     void SetLength(int nLength) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->SetLength(nLength);}
+
         CStringData* pd = GetData();
         if (nLength < 0 || nLength > pd->nAllocLength) return;
         pd->nDataLength = nLength;
         m_pszData[nLength] = 0;
     }
     CH* PrepareWrite(int nLength) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->GetBuffer(nLength);}
+
         CStringData* pd = GetData();
         if (pd->IsShared() || pd->IsLocked() || nLength > pd->nAllocLength) {
             int want = nLength > pd->nAllocLength ? nLength : pd->nAllocLength;
@@ -381,21 +437,31 @@ public:
         }
         return m_pszData;
     }
-    void PrepareWrite2(int nLength) { (void)PrepareWrite(nLength); }
+    void PrepareWrite2(int nLength) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->PrepareWrite2(nLength);}
+        (void)PrepareWrite(nLength); }
     void Reallocate(int nLength) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Reallocate(nLength);}
+
         CStringData* pd = GetData();
         if (nLength <= pd->nAllocLength) return;
         Fork(nLength);
     }
     void Attach(CStringData* pData) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->Attach(pData);}
+
         CStringData* pd = GetData();
         if (pd->Release()) FreeData(pd);
         m_pszData = data(pData);
     }
-    void SetManagerEmpty(IAtlStringMgr* mgr) { Destruct(); ConstructMgr(mgr); }
+    void SetManagerEmpty(IAtlStringMgr* mgr) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CSimpleStringA*>(this)->SetManager(mgr);}
+        Destruct(); ConstructMgr(mgr); }
 
     static void ConstructStatic(AtlStrT* p) { p->Construct(); }
     static CStringData* CloneData(CStringData* pData) {
+        if constexpr(sizeof(CH)==1) {return CSimpleStringA::CloneData(pData);}
+
         IAtlStringMgr* mgr = pData && pData->pStringMgr ? pData->pStringMgr : OpenMFC_GetStringMgr();
         if (pData && !pData->IsShared() && !pData->IsLocked()) { pData->AddRef(); return pData; }
         int n = pData ? pData->nDataLength : 0;
@@ -406,6 +472,7 @@ public:
         return nd;
     }
     static void Concatenate(AtlStrT& dest, const CH* p1, int n1, const CH* p2, int n2) {
+        if constexpr(sizeof(CH)==1) {return CSimpleStringA::Concatenate(*reinterpret_cast<CSimpleStringA*>(&dest),p1,n1,p2,n2);}
         if (n1 < 0) n1 = 0;
         if (n2 < 0) n2 = 0;
         dest.Destruct();
@@ -420,6 +487,8 @@ public:
     // OT = the "other" character type. Narrow(char) converts from wchar_t and vice versa.
     template <class OT>
     void ConstructConvert(const OT* src) {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(src), void();}
+
         if (!src || !*src) { Construct(); return; }
         int n = ConvLen(src);
         if (n <= 0) { Construct(); return; }
@@ -430,6 +499,8 @@ public:
     }
     template <class OT>
     void ConstructConvertN(const OT* src, int srcLen) {
+        if constexpr(sizeof(CH)==1) {return ::new(this) CStringA(src,srcLen), void();}
+
         if (!src || srcLen <= 0) { Construct(); return; }
         int n = ConvLenN(src, srcLen);
         AllocBuffer(n > 0 ? n : 0);
@@ -438,7 +509,9 @@ public:
         GetData()->nDataLength = w;
     }
     template <class OT>
-    void AssignConvert(const OT* src) { AtlStrT<CH> t; t.ConstructConvert(src); AssignCopy(t); t.Destruct(); }
+    void AssignConvert(const OT* src) {
+        if constexpr(sizeof(CH)==1) {return reinterpret_cast<CStringA*>(this)->operator=(src), void();}
+        AtlStrT<CH> t; t.ConstructConvert(src); AssignCopy(t); t.Destruct(); }
     template <class OT>
     void AppendConvert(const OT* src) { AtlStrT<CH> t; t.ConstructConvert(src); AppendPszN(t.GetString(), t.GetLength()); t.Destruct(); }
 

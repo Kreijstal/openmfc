@@ -1115,17 +1115,6 @@
 
 // Generated 1074 thunks
 // Errors (could not parse): 0
-// Symbol: ??B?$CSimpleStringT@D$00@ATL@@QEAAAEAV?$CSimpleStringT@D$0A@@1@XZ
-extern "C" void* MS_ABI impl___B__CSimpleStringT_D_00_ATL__QEAAAEAV__CSimpleStringT_D_0A__1_XZ(void* pThis) {
-    openmfc_str::AtlStrT<char>* self = reinterpret_cast<openmfc_str::AtlStrT<char>*>(pThis);
-    (void)self;
-    return pThis;
-}
-// Symbol: ??B?$CSimpleStringT@D$00@ATL@@QEBAPEBDXZ
-extern "C" const char* MS_ABI impl___B__CSimpleStringT_D_00_ATL__QEBAPEBDXZ(void* pThis) {
-    const openmfc_str::AtlStrT<char>* cself = reinterpret_cast<const openmfc_str::AtlStrT<char>*>(pThis);
-    return cself->GetString();
-}
 // Symbol: ??B?$CSimpleStringT@_W$00@ATL@@QEAAAEAV?$CSimpleStringT@_W$0A@@1@XZ
 extern "C" void* MS_ABI impl___B__CSimpleStringT__W_00_ATL__QEAAAEAV__CSimpleStringT__W_0A__1_XZ(void* pThis) {
     openmfc_str::AtlStrT<wchar_t>* self = reinterpret_cast<openmfc_str::AtlStrT<wchar_t>*>(pThis);

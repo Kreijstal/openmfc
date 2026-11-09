@@ -98,10 +98,14 @@ inline CStringData* GetNilStringData();  // fwd (manager references it)
 
 // The OpenMFC string manager. Its vtable layout matches IAtlStringMgr, so a MSVC
 // client can call Free/Reallocate/etc. on buffers our DLL allocated (and vice versa).
-class OpenMFCStringMgr : public IAtlStringMgr {
+class CAfxStringMgr : public IAtlStringMgr {
 public:
+    CAfxStringMgr():m_nil{{this,0,0,2},{0,0}} {}
+    CStringData* NilData() {return &m_nil.header;}
     CStringData* Allocate(int nAllocLength, int nCharSize) override {
-        size_t nBytes = sizeof(CStringData) + static_cast<size_t>(nAllocLength + 1) * nCharSize;
+        if(nAllocLength<0)return nullptr;
+        int32_t bytes=int32_t((uint32_t(nAllocLength)+1u)*uint32_t(nCharSize));
+        size_t nBytes=sizeof(CStringData)+size_t(int64_t(bytes));
         CStringData* pData = static_cast<CStringData*>(malloc(nBytes));
         if (!pData) return nullptr;
         pData->pStringMgr = this;
@@ -112,15 +116,21 @@ public:
     }
     void Free(CStringData* pData) override { free(pData); }
     CStringData* Reallocate(CStringData* pData, int nAllocLength, int nCharSize) override {
-        size_t nBytes = sizeof(CStringData) + static_cast<size_t>(nAllocLength + 1) * nCharSize;
+        if(nAllocLength<0)return nullptr;
+        int32_t bytes=int32_t((uint32_t(nAllocLength)+1u)*uint32_t(nCharSize));
+        size_t nBytes=sizeof(CStringData)+size_t(int64_t(bytes));
         CStringData* pNew = static_cast<CStringData*>(realloc(pData, nBytes));
         if (!pNew) return nullptr;
         pNew->nAllocLength = nAllocLength;
         return pNew;
     }
-    CStringData* GetNilString() override {auto* data=GetNilStringData();data->AddRef();return data;}
+    CStringData* GetNilString() override {auto* data=NilData();data->AddRef();return data;}
     IAtlStringMgr* Clone() override { return this; }
+private:
+    struct {CStringData header;wchar_t zero[2];} m_nil;
 };
+static_assert(sizeof(CAfxStringMgr)==40,"native string manager with embedded nil data");
+using OpenMFCStringMgr=CAfxStringMgr;
 
 inline IAtlStringMgr* OpenMFC_GetStringMgr() {
     static OpenMFCStringMgr mgr;
@@ -130,14 +140,7 @@ inline IAtlStringMgr* OpenMFC_GetStringMgr() {
 // Native ATL nil data retains two manager-owned references. Each attached
 // string adds one reference, so native client destruction cannot free it.
 inline CStringData* GetNilStringData() {
-    static struct {
-        CStringData header;
-        wchar_t nul;
-    } nilData = { { nullptr, 0, 0, 2 }, L'\0' };
-    if (nilData.header.pStringMgr == nullptr) {
-        nilData.header.pStringMgr = OpenMFC_GetStringMgr();
-    }
-    return &nilData.header;
+    return static_cast<CAfxStringMgr*>(OpenMFC_GetStringMgr())->NilData();
 }
 
 // CString (Unicode) - ABI compatible with MFC CStringW
@@ -732,3 +735,5 @@ int AfxComparePath(const wchar_t* pszPath1, const wchar_t* pszPath2);
 // Display message box
 int AfxMessageBox(const wchar_t* lpszText, UINT nType = 0, UINT nIDHelp = 0);
 int AfxMessageBox(UINT nIDPrompt, UINT nType = 0, UINT nIDHelp = 0);
+
+#include "afxstra.h"

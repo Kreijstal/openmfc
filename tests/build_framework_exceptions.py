@@ -40,6 +40,10 @@ def sources():
         'phase4/src/core/exceptions/CInternetException.cpp',
         'phase4/src/core/window/WindowActivation.cpp',
         'phase4/src/core/exceptions/AFX_EXCEPTION_LINK.cpp',
+        'phase4/src/core/runtime/CAfxStringMgr.cpp',
+        'phase4/src/core/collections/CStringA.cpp',
+        'phase4/src/core/collections/CStringAStorage.cpp',
+        'tests/test_ansi_string_ownership.cpp',
         'tests/test_exception_links.cpp',
         'tests/test_internet_exceptions.cpp',
         'tests/test_file_archive_exceptions.cpp',
@@ -120,7 +124,7 @@ def main():
         names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(encoding='utf-8', errors='replace'),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==76, (len(entries), len(names))
+    assert len(entries)==len(names)==165, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
         for name in re.findall(r'^// Symbol: (.+)$', path.read_text(encoding='utf-8', errors='replace'), re.M):
@@ -129,7 +133,7 @@ def main():
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 76 framework/file/string exports have actual providers',flush=True)
+    print('All 165 framework/file/string exports have actual providers',flush=True)
     for relative in checked:
         name=Path(relative).stem
         if name.endswith("Lifetime"):name=name[:-8]
