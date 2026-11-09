@@ -176,9 +176,9 @@ class CFileException;
 
 // CFileStatus - file status structure
 struct CFileStatus {
-    ULONGLONG m_ctime;      // Creation time (simplified)
-    ULONGLONG m_mtime;      // Last modification time (simplified)
-    ULONGLONG m_atime;      // Last access time (simplified)
+    LONGLONG m_ctime;       // Native CTime seconds since the Unix epoch
+    LONGLONG m_mtime;       // Last modification time in seconds
+    LONGLONG m_atime;       // Last access time in seconds
     ULONGLONG m_size;       // File size
     DWORD m_attribute;      // Native file attributes
     wchar_t m_szFullName[_MAX_PATH];  // Absolute path name
@@ -525,11 +525,11 @@ public:
     enum BufferCommand {bufferRead,bufferWrite,bufferCommit,bufferCheck};
     enum BufferFlags {bufferDirect=1,bufferBlocking=2};
     virtual UINT GetBufferPtr(UINT,UINT=0,void** =nullptr,void** =nullptr);
-    static void Rename(const wchar_t*,const wchar_t*);
-    static void Remove(const wchar_t*);
+    static void Rename(const wchar_t*,const wchar_t*,ATL::CAtlTransactionManager* = nullptr);
+    static void Remove(const wchar_t*,ATL::CAtlTransactionManager* = nullptr);
     int GetStatus(CFileStatus&) const;
-    static int GetStatus(const wchar_t*,CFileStatus&,void* = nullptr);
-    static void SetStatus(const wchar_t*,const CFileStatus&);
+    static int GetStatus(const wchar_t*,CFileStatus&,ATL::CAtlTransactionManager* = nullptr);
+    static void SetStatus(const wchar_t*,const CFileStatus&,ATL::CAtlTransactionManager* = nullptr);
     HANDLE m_hFile;
     BOOL m_bCloseOnDelete;
     CString m_strFileName;

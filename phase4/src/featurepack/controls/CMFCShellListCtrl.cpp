@@ -113,9 +113,6 @@
 //     so -- exactly as retail behaves for an application that never called
 //     InitShellManager() -- DisplayFolder returns E_FAIL and InitList returns
 //     FALSE until that is fixed.
-//   * CFile::GetStatus (core/file/CFile.cpp) stores raw FILETIME ticks in
-//     CFileStatus::m_mtime where retail stores a CTime (__time64_t seconds);
-//     OnFormatFileDate receives whatever GetStatus stored.
 //   * The CMFCListCtrl (OnCreate, PreSubclassWindow, Sort, ctor/dtor) and
 //     CMFCShellTreeCtrl::SelectPath thunks called from here are still
 //     auto-generated placeholders with wrong parameter lists; they ignore
@@ -1182,9 +1179,8 @@ extern "C" void MS_ABI impl__OnFormatFileSize_CMFCShellListCtrl__UEAAX_JAEAV__CS
 //         // else VarBstrFromDate(dt, 0x400, 0, &bstr) (oleaut32 #114); on failure the
 //         //   same invalid-string path; on success str = bstr.
 // (this is not read.)  OpenMFC's COleDateTime (afxole.h) has no Format, so the
-// oleaut32 calls are made here directly.  NOTE: OpenMFC's CFile::GetStatus
-// stores FILETIME ticks, not CTime seconds, in m_mtime (see the file header),
-// so the value OnGetItemText passes in today does not convert.
+// oleaut32 calls are made here directly. CFile::GetStatus supplies the native
+// CTime seconds consumed by OnGetItemText and this formatter.
 extern "C" void MS_ABI impl__OnFormatFileDate_CMFCShellListCtrl__UEAAXAEBVCTime_ATL__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____3__Z(void* /*pThis*/, const __int64* tmFile, CString* str) {
     if (str == nullptr || tmFile == nullptr) return;
     bool valid = false;

@@ -1326,25 +1326,6 @@ extern "C" void MS_ABI impl__AfxGetDitheredBitmap__YAXAEBVCBitmap__PEAV1_KK_Z(co
 extern "C" void* MS_ABI impl__AfxGetDlgItemStartFromHWND__YAPEAUHWND____HPEAU1__Z(int p0, void* /*struct*/* p1) {
     return reinterpret_cast<void*>(::GetDlgItem(reinterpret_cast<HWND>(p1), p0));
 }
-// Symbol: ?AfxGetFileTitle@@YAIPEB_WPEA_WI@Z
-extern "C" unsigned int MS_ABI impl__AfxGetFileTitle__YAIPEB_WPEA_WI_Z(const wchar_t* p0, wchar_t* p1, unsigned int p2) {
-    if (!p0 || !p1 || p2 == 0) return 0;
-    const wchar_t* filePart = p0;
-    const wchar_t* backslash = std::wcsrchr(p0, L'\\');
-    const wchar_t* slash = std::wcsrchr(p0, L'/');
-    if (backslash && slash) {
-        filePart = (backslash > slash) ? backslash + 1 : slash + 1;
-    } else if (backslash) {
-        filePart = backslash + 1;
-    } else if (slash) {
-        filePart = slash + 1;
-    }
-    size_t len = std::wcslen(filePart);
-    if (len >= p2) len = p2 - 1;
-    std::memcpy(p1, filePart, len * sizeof(wchar_t));
-    p1[len] = L'\0';
-    return static_cast<unsigned int>(len);
-}
 // Symbol: ?AfxGetGrayBitmap@@YAXAEBVCBitmap@@PEAV1@K@Z
 extern "C" void MS_ABI impl__AfxGetGrayBitmap__YAXAEBVCBitmap__PEAV1_K_Z(const void* /*class*/* p0, void* /*class*/* p1, unsigned long p2) {
     // Per-pixel luminance grayscale copy of the source bitmap into the
@@ -1502,41 +1483,6 @@ extern "C" int MS_ABI impl__AfxGetPerUserRegistration__YAHXZ() {
 extern "C" int MS_ABI impl__AfxGetPropSheetFont__YAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__AEAGH_Z(void* /*class*/* p0, void** p1, void* p2, unsigned short* p3, int p4) {
     (void)p0; (void)p1; (void)p2; (void)p3; (void)p4;
     return 0;
-}
-// Symbol: ?AfxGetRoot@@YAXPEB_WAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" void MS_ABI impl__AfxGetRoot__YAXPEB_WAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const wchar_t* p0, void* /*class*/* p1, void** p2, void* p3) {
-    // p1 is the real CString& (single pointer); p2/p3 are CStringT<> demangler
-    // artifacts (this is the last real parameter, so nothing is shifted). Never
-    // read p2/p3.
-    (void)p2; (void)p3;
-    CString* pStrRoot = reinterpret_cast<CString*>(p1);
-    if (!pStrRoot) return;
-    if (!p0) { pStrRoot->Empty(); return; }
-
-    const wchar_t* lpsz = p0;
-    if (lpsz[0] == L'\\' && lpsz[1] == L'\\') {
-        // UNC name (format: two backslashes, server, backslash, share, backslash)
-        const wchar_t* p = lpsz + 2;
-        while (*p != L'\0' && *p != L'\\') ++p;
-        if (*p == L'\\') {
-            ++p;
-            while (*p != L'\0' && *p != L'\\') ++p;
-            if (*p == L'\\') ++p;
-            size_t len = static_cast<size_t>(p - lpsz);
-            wchar_t* buf = pStrRoot->GetBuffer(static_cast<int>(len));
-            std::memcpy(buf, lpsz, len * sizeof(wchar_t));
-            pStrRoot->ReleaseBuffer(static_cast<int>(len));
-        } else {
-            pStrRoot->Empty(); // malformed UNC path
-        }
-    } else if (lpsz[0] != L'\0' && lpsz[1] == L':') {
-        size_t len = (lpsz[2] == L'\\') ? 3 : 2;
-        wchar_t* buf = pStrRoot->GetBuffer(static_cast<int>(len));
-        std::memcpy(buf, lpsz, len * sizeof(wchar_t));
-        pStrRoot->ReleaseBuffer(static_cast<int>(len));
-    } else {
-        pStrRoot->Empty();
-    }
 }
 // Symbol: ?AfxGlobalsAddRef@@YAXXZ
 // Real MFC increments a process-wide refcount shared with AfxGlobalsRelease,
@@ -2870,18 +2816,6 @@ extern "C" void MS_ABI impl__AfxTermExtensionModule__YAXAEAUAFX_EXTENSION_MODULE
     pState->hResourceModule = nullptr;
     pState->pFirstSharedClass = nullptr;
     pState->pFirstSharedFactory = nullptr;
-}
-// Symbol: ?AfxTimeToFileTime@@YAXAEBVCTime@ATL@@PEAU_FILETIME@@@Z
-extern "C" void MS_ABI impl__AfxTimeToFileTime__YAXAEBVCTime_ATL__PEAU_FILETIME___Z(const void* /*class*/* p0, void* /*struct*/* p1) {
-    if (!p0 || !p1) return;
-    // Both MFC's CTime and ATL::CTime store a single 64-bit time_t (seconds
-    // since 1970-01-01) as their sole data member.
-    const __int64 t = *reinterpret_cast<const __int64*>(p0);
-    const unsigned __int64 ft =
-        static_cast<unsigned __int64>(t) * 10000000ULL + 116444736000000000ULL;
-    FILETIME* pft = reinterpret_cast<FILETIME*>(p1);
-    pft->dwLowDateTime = static_cast<DWORD>(ft & 0xFFFFFFFFULL);
-    pft->dwHighDateTime = static_cast<DWORD>(ft >> 32);
 }
 // Symbol: ?AfxTrackerTerm@@YAXXZ
 extern "C" void MS_ABI impl__AfxTrackerTerm__YAXXZ() {

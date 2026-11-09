@@ -3,34 +3,22 @@
 #include "openmfc/afxwin.h"
 #include "detail/FileStatusSupport.h"
 #include <algorithm>
+#include <cerrno>
 
 extern "C" void impl__AfxThrowFileException__YAXHJPEB_W_Z(int,long,const wchar_t*);
 extern "C" int impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t*,UINT,UINT);
 extern "C" void impl__ThrowOsError_CFileException__SAXJPEB_W_Z(long,const wchar_t*);
 extern "C" int impl__OsErrorToException_CFileException__SAHJ_Z(long);
 
+extern "C" UINT impl__AfxGetFileName__YAIPEB_WPEA_WI_Z(const wchar_t*,wchar_t*,UINT);
+extern "C" UINT impl__AfxGetFileTitle__YAIPEB_WPEA_WI_Z(const wchar_t*,wchar_t*,UINT);
 using namespace openmfc::detail::files;
 namespace {
 void ThrowLastFileError(const CFile* file) {
     const wchar_t* name = file->m_strFileName.GetString();
     impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
 }
-// ATL's transaction manager is an external ABI type: handle then fallback BOOL.
-// Read its documented native fields without constructing an unrelated adapter.
-HANDLE TransactionFile(ATL::CAtlTransactionManager* manager,const wchar_t* name,DWORD access,
-                       DWORD share,SECURITY_ATTRIBUTES* security,DWORD create,DWORD flags) {
-    HANDLE transaction;
-    BOOL fallback;
-    memcpy(&transaction,manager,sizeof(transaction));
-    memcpy(&fallback,reinterpret_cast<const BYTE*>(manager)+sizeof(HANDLE),sizeof(fallback));
-    if (!transaction)
-        return fallback ? CreateFileW(name,access,share,security,create,flags,nullptr) : INVALID_HANDLE_VALUE;
-    HMODULE module = GetModuleHandleW(L"kernel32.dll");
-    if (!module) return INVALID_HANDLE_VALUE;
-    using CreateTransacted = HANDLE (WINAPI*)(LPCWSTR,DWORD,DWORD,LPSECURITY_ATTRIBUTES,DWORD,DWORD,HANDLE,HANDLE,PUSHORT,PVOID);
-    auto call = reinterpret_cast<CreateTransacted>(GetProcAddress(module,"CreateFileTransactedW"));
-    return call ? call(name,access,share,security,create,flags,nullptr,transaction,nullptr,nullptr) : INVALID_HANDLE_VALUE;
-}
+
 }
 
 const HANDLE CFile::hFileNull = INVALID_HANDLE_VALUE;
@@ -84,7 +72,7 @@ BOOL CFile::Open(const wchar_t* name, UINT flags, CFileException* error) {
     if (flags & osWriteThrough) attributes |= FILE_FLAG_WRITE_THROUGH;
     if (flags & osRandomAccess) attributes |= FILE_FLAG_RANDOM_ACCESS;
     if (flags & osSequentialScan) attributes |= FILE_FLAG_SEQUENTIAL_SCAN;
-    HANDLE handle = m_pTM ? TransactionFile(m_pTM,name,access,share,&security,create,attributes)
+    HANDLE handle = m_pTM ? OpenTransactionFile(m_pTM,name,access,share,&security,create,attributes)
                          : CreateFileW(name,access,share,&security,create,attributes,nullptr);
     if (handle == hFileNull) { FillFileError(error,name); return FALSE; }
     m_hFile = handle;
@@ -168,127 +156,92 @@ void CFile::SetFilePath(const wchar_t* name) {
 }
 CString CFile::GetFilePath() const { return m_strFileName; }
 CString CFile::GetFileName() const {
-    const wchar_t* path = m_strFileName.GetString();
-    const wchar_t* name = path;
-    for (; *path; ++path) if (*path == L'\\' || *path == L'/' || *path == L':') name = path+1;
-    return CString(name);
+    CFileStatus status;
+    CFile::GetStatus(status);
+    CString result;
+    impl__AfxGetFileName__YAIPEB_WPEA_WI_Z(status.m_szFullName,result.GetBuffer(256),256);
+    result.ReleaseBuffer();
+    return result;
 }
 CString CFile::GetFileTitle() const {
-    wchar_t title[MAX_PATH];
-    if (::GetFileTitleW(m_strFileName.GetString(),title,MAX_PATH) == 0) return CString(title);
-    return CFile::GetFileName();
+    CFileStatus status;
+    CFile::GetStatus(status);
+    CString result;
+    impl__AfxGetFileTitle__YAIPEB_WPEA_WI_Z(status.m_szFullName,result.GetBuffer(256),256);
+    result.ReleaseBuffer();
+    return result;
 }
 UINT CFile::GetBufferPtr(UINT,UINT,void**,void**) { return 0; }
 static CRuntimeClass* AFXAPI FileBase() { return CObject::GetThisClass(); }
 CRuntimeClass CFile::classCFile = {"CFile",sizeof(CFile),0xffff,nullptr,FileBase,nullptr,nullptr};
-void CFile::Rename(const wchar_t* lpszOldName, const wchar_t* lpszNewName) {
-    if (lpszOldName && lpszNewName) {
-        MoveFileW(lpszOldName, lpszNewName);
-    }
+void CFile::Rename(const wchar_t* oldName,const wchar_t* newName,ATL::CAtlTransactionManager* manager) {
+    if (!openmfc::detail::files::MovePath(oldName,newName,manager))
+        impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),oldName);
 }
-void CFile::Remove(const wchar_t* lpszFileName) {
-    if (lpszFileName) {
-        DeleteFileW(lpszFileName);
-    }
+void CFile::Remove(const wchar_t* name,ATL::CAtlTransactionManager* manager) {
+    if (!openmfc::detail::files::DeletePath(name,manager))
+        impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
 }
-int CFile::GetStatus(CFileStatus& rStatus) const {
-    if (!m_strFileName.IsEmpty()) {
-        return GetStatus(m_strFileName.GetString(), rStatus, nullptr);
-    }
-    if (m_hFile == (void*)INVALID_HANDLE_VALUE) {
-        return 0;
-    }
-
-    BY_HANDLE_FILE_INFORMATION info;
-    if (!GetFileInformationByHandle((HANDLE)m_hFile, &info)) {
-        return 0;
-    }
-
-    memset(&rStatus, 0, sizeof(rStatus));
-    ULARGE_INTEGER ul;
-
-    ul.LowPart = info.ftCreationTime.dwLowDateTime;
-    ul.HighPart = info.ftCreationTime.dwHighDateTime;
-    rStatus.m_ctime = ul.QuadPart;
-
-    ul.LowPart = info.ftLastWriteTime.dwLowDateTime;
-    ul.HighPart = info.ftLastWriteTime.dwHighDateTime;
-    rStatus.m_mtime = ul.QuadPart;
-
-    ul.LowPart = info.ftLastAccessTime.dwLowDateTime;
-    ul.HighPart = info.ftLastAccessTime.dwHighDateTime;
-    rStatus.m_atime = ul.QuadPart;
-
-    ul.LowPart = info.nFileSizeLow;
-    ul.HighPart = info.nFileSizeHigh;
-    rStatus.m_size = ul.QuadPart;
-    rStatus.m_attribute = (BYTE)info.dwFileAttributes;
-    rStatus.m_szFullName[0] = L'\0';
-    return 1;
+int CFile::GetStatus(CFileStatus& status) const {
+    memset(&status,0,sizeof(status));
+    int error=wcsncpy_s(status.m_szFullName,MAX_PATH,m_strFileName.GetString(),_TRUNCATE);
+    if (error && error!=STRUNCATE) { if (error==ENOMEM) AfxThrowMemoryException(); AfxThrowInvalidArgException(); }
+    if (m_hFile==hFileNull) return TRUE;
+    FILETIME created,accessed,written;
+    if (!GetFileTime(m_hFile,&created,&accessed,&written)) return FALSE;
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(m_hFile,&size)) return FALSE;
+    status.m_size=size.QuadPart;
+    DWORD attributes=m_strFileName.IsEmpty()?0:FileAttributes(m_strFileName.GetString(),m_pTM);
+    status.m_attribute=attributes==INVALID_FILE_ATTRIBUTES?0:attributes;
+    status.m_ctime=StatusTime(created);
+    status.m_atime=StatusTime(accessed);
+    status.m_mtime=StatusTime(written);
+    if (!status.m_ctime) status.m_ctime=status.m_mtime;
+    if (!status.m_atime) status.m_atime=status.m_mtime;
+    return TRUE;
 }
-int CFile::GetStatus(const wchar_t* lpszFileName, CFileStatus& rStatus, void* pTM) { (void)pTM;
-    if (!lpszFileName) return 0;
-
+int CFile::GetStatus(const wchar_t* name,CFileStatus& status,ATL::CAtlTransactionManager* manager) {
+    if (!name || wcslen(name)>=MAX_PATH) return FALSE;
+    if (!FullFilePath(status.m_szFullName,name,nullptr)) {status.m_szFullName[0]=0;return FALSE;}
     WIN32_FILE_ATTRIBUTE_DATA data;
-    if (!GetFileAttributesExW(lpszFileName, GetFileExInfoStandard, &data)) {
-        return 0;
-    }
-
-    // Convert FILETIME to ULONGLONG
-    ULARGE_INTEGER ul;
-    ul.LowPart = data.ftCreationTime.dwLowDateTime;
-    ul.HighPart = data.ftCreationTime.dwHighDateTime;
-    rStatus.m_ctime = ul.QuadPart;
-
-    ul.LowPart = data.ftLastWriteTime.dwLowDateTime;
-    ul.HighPart = data.ftLastWriteTime.dwHighDateTime;
-    rStatus.m_mtime = ul.QuadPart;
-
-    ul.LowPart = data.ftLastAccessTime.dwLowDateTime;
-    ul.HighPart = data.ftLastAccessTime.dwHighDateTime;
-    rStatus.m_atime = ul.QuadPart;
-
-    ul.LowPart = data.nFileSizeLow;
-    ul.HighPart = data.nFileSizeHigh;
-    rStatus.m_size = ul.QuadPart;
-
-    rStatus.m_attribute = (BYTE)data.dwFileAttributes;
-
-    // Copy full path
-    wcsncpy(rStatus.m_szFullName, lpszFileName, _MAX_PATH - 1);
-    rStatus.m_szFullName[_MAX_PATH - 1] = L'\0';
-
-    return 1;
+    if (!FileAttributes(name,&data,manager)) return FALSE;
+    status.m_attribute=data.dwFileAttributes&~FILE_ATTRIBUTE_NORMAL;
+    status.m_size=(ULONGLONG(data.nFileSizeHigh)<<32)|data.nFileSizeLow;
+    status.m_ctime=StatusTime(data.ftCreationTime);
+    status.m_atime=StatusTime(data.ftLastAccessTime);
+    status.m_mtime=StatusTime(data.ftLastWriteTime);
+    if (!status.m_ctime) status.m_ctime=status.m_mtime;
+    if (!status.m_atime) status.m_atime=status.m_mtime;
+    return TRUE;
 }
-void CFile::SetStatus(const wchar_t* lpszFileName, const CFileStatus& status) {
-    if (!lpszFileName) return;
-
-    // Set file attributes
-    SetFileAttributesW(lpszFileName, status.m_attribute);
-
-    // Set file times (requires opening the file)
-    HANDLE hFile = CreateFileW(lpszFileName, FILE_WRITE_ATTRIBUTES,
-                               FILE_SHARE_READ | FILE_SHARE_WRITE,
-                               nullptr, OPEN_EXISTING, 0, nullptr);
-    if (hFile != INVALID_HANDLE_VALUE) {
-        FILETIME ftCreate, ftAccess, ftWrite;
-        ULARGE_INTEGER ul;
-
-        ul.QuadPart = status.m_ctime;
-        ftCreate.dwLowDateTime = ul.LowPart;
-        ftCreate.dwHighDateTime = ul.HighPart;
-
-        ul.QuadPart = status.m_atime;
-        ftAccess.dwLowDateTime = ul.LowPart;
-        ftAccess.dwHighDateTime = ul.HighPart;
-
-        ul.QuadPart = status.m_mtime;
-        ftWrite.dwLowDateTime = ul.LowPart;
-        ftWrite.dwHighDateTime = ul.HighPart;
-
-        SetFileTime(hFile, &ftCreate, &ftAccess, &ftWrite);
-        CloseHandle(hFile);
+void CFile::SetStatus(const wchar_t* name,const CFileStatus& status,ATL::CAtlTransactionManager* manager) {
+    DWORD original=FileAttributes(name,manager);
+    if (original==INVALID_FILE_ATTRIBUTES) impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
+    DWORD attributes=status.m_attribute;
+    if (attributes!=original && (original&FILE_ATTRIBUTE_READONLY) &&
+        !openmfc::detail::files::ChangeAttributes(name,attributes,manager))
+        impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
+    if (status.m_mtime) {
+        FILETIME written,accessed,created;
+        TimeToFileTime(&status.m_mtime,&written);
+        FILETIME *access=nullptr,*creation=nullptr;
+        if (status.m_atime) {TimeToFileTime(&status.m_atime,&accessed);access=&accessed;}
+        if (status.m_ctime) {TimeToFileTime(&status.m_ctime,&created);creation=&created;}
+        HANDLE file=manager?OpenTransactionFile(manager,name,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL)
+                           :CreateFileW(name,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+        if (file==hFileNull) impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
+        if (!SetFileTime(file,creation,access,&written)) {
+            DWORD error=GetLastError();
+            CloseHandle(file);
+            impl__ThrowOsError_CFileException__SAXJPEB_W_Z(error,name);
+        }
+        if (!CloseHandle(file)) impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
     }
+    attributes=status.m_attribute;
+    if (attributes!=original && !(original&FILE_ATTRIBUTE_READONLY) &&
+        !openmfc::detail::files::ChangeAttributes(name,attributes,manager))
+        impl__ThrowOsError_CFileException__SAXJPEB_W_Z(GetLastError(),name);
 }
 
 struct CFileExports {
@@ -303,7 +256,7 @@ extern "C" void impl__Write_CFile__UEAAXPEBXI_Z(CFile* p, const void* b, UINT n)
 extern "C" void impl__UnlockRange_CFile__UEAAX_K0_Z(CFile* p, ULONGLONG o, ULONGLONG n) { p->CFile::UnlockRange(o,n); }
 
 // Symbol: ?SetStatus@CFile@@SAXPEB_WAEBUCFileStatus@@PEAVCAtlTransactionManager@ATL@@@Z
-extern "C" void impl__SetStatus_CFile__SAXPEB_WAEBUCFileStatus__PEAVCAtlTransactionManager_ATL___Z(const wchar_t* n, const CFileStatus& t, void*) { CFile::SetStatus(n,t); }
+extern "C" void impl__SetStatus_CFile__SAXPEB_WAEBUCFileStatus__PEAVCAtlTransactionManager_ATL___Z(const wchar_t* n, const CFileStatus& t, ATL::CAtlTransactionManager* m) { CFile::SetStatus(n,t,m); }
 
 // Symbol: ?SetLength@CFile@@UEAAX_K@Z
 extern "C" void impl__SetLength_CFile__UEAAX_K_Z(CFile* p, ULONGLONG n) { p->CFile::SetLength(n); }
@@ -312,10 +265,10 @@ extern "C" void impl__SetLength_CFile__UEAAX_K_Z(CFile* p, ULONGLONG n) { p->CFi
 extern "C" ULONGLONG impl__Seek_CFile__UEAA_K_JI_Z(CFile* p, LONGLONG o, UINT f) { return p->CFile::Seek(o,f); }
 
 // Symbol: ?Rename@CFile@@SAXPEB_W0PEAVCAtlTransactionManager@ATL@@@Z
-extern "C" void impl__Rename_CFile__SAXPEB_W0PEAVCAtlTransactionManager_ATL___Z(const wchar_t* a, const wchar_t* b, void*) { CFile::Rename(a,b); }
+extern "C" void impl__Rename_CFile__SAXPEB_W0PEAVCAtlTransactionManager_ATL___Z(const wchar_t* a, const wchar_t* b, ATL::CAtlTransactionManager* m) { CFile::Rename(a,b,m); }
 
 // Symbol: ?Remove@CFile@@SAXPEB_WPEAVCAtlTransactionManager@ATL@@@Z
-extern "C" void impl__Remove_CFile__SAXPEB_WPEAVCAtlTransactionManager_ATL___Z(const wchar_t* n, void*) { CFile::Remove(n); }
+extern "C" void impl__Remove_CFile__SAXPEB_WPEAVCAtlTransactionManager_ATL___Z(const wchar_t* n, ATL::CAtlTransactionManager* m) { CFile::Remove(n,m); }
 
 // Symbol: ?Read@CFile@@UEAAIPEAXI@Z
 extern "C" UINT impl__Read_CFile__UEAAIPEAXI_Z(CFile* p, void* b, UINT n) { return p->CFile::Read(b,n); }
@@ -333,7 +286,7 @@ extern "C" void impl__LockRange_CFile__UEAAX_K0_Z(CFile* p, ULONGLONG o, ULONGLO
 extern "C" CRuntimeClass* impl__GetThisClass_CFile__SAPEAUCRuntimeClass__XZ() { return CFile::GetThisClass(); }
 
 // Symbol: ?GetStatus@CFile@@SAHPEB_WAEAUCFileStatus@@PEAVCAtlTransactionManager@ATL@@@Z
-extern "C" int impl__GetStatus_CFile__SAHPEB_WAEAUCFileStatus__PEAVCAtlTransactionManager_ATL___Z(const wchar_t* n,CFileStatus& t,void* m) { return CFile::GetStatus(n,t,m); }
+extern "C" int impl__GetStatus_CFile__SAHPEB_WAEAUCFileStatus__PEAVCAtlTransactionManager_ATL___Z(const wchar_t* n,CFileStatus& t,ATL::CAtlTransactionManager* m) { return CFile::GetStatus(n,t,m); }
 
 // Symbol: ?GetStatus@CFile@@QEBAHAEAUCFileStatus@@@Z
 extern "C" int impl__GetStatus_CFile__QEBAHAEAUCFileStatus___Z(const CFile* p,CFileStatus& t) { return p->CFile::GetStatus(t); }

@@ -64,24 +64,24 @@ def main():
         objects = list(pool.map(compile_one, sources()))
     sys.path.insert(0, str(ROOT / 'phase4/scripts'))
     import build_msvc
-    checked=[sources()[0],sources()[1],sources()[3],sources()[4]]
+    checked=[sources()[0],sources()[1],sources()[2],sources()[3],sources()[4]]
     defined,names=set(),set()
     for source in checked:
         obj=out / (source.removesuffix('.cpp').replace('/','_')+'.obj')
         defined.update(build_msvc.defined_symbols(obj))
-        names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(),re.M))
+        names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(encoding='utf-8', errors='replace'),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==68, (len(entries), len(names))
+    assert len(entries)==len(names)==73, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
-        for name in re.findall(r'^// Symbol: (.+)$', path.read_text(), re.M):
+        for name in re.findall(r'^// Symbol: (.+)$', path.read_text(encoding='utf-8', errors='replace'), re.M):
             if name in owners:
                 owners[name].append(path.relative_to(ROOT).as_posix())
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 68 file-family exports have actual providers',flush=True)
+    print('All 73 file-family exports have actual providers',flush=True)
     for relative, cls, slots in [(sources()[0], 'CFile', 24), (sources()[1], 'COleStreamFile', 25)]:
         verify_vtables(out / (relative.removesuffix('.cpp').replace('/', '_') + '.obj'), cls, slots)
     link.extend(str(obj) for obj in objects)

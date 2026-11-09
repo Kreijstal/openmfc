@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and validate native file layouts and memory/shared-file behavior."""
+"""Build and validate native file layouts, status/path operations and memory/shared files."""
 import argparse
 import concurrent.futures
 import os
@@ -113,24 +113,24 @@ def main():
         objects = list(pool.map(compile_one, sources()))
     sys.path.insert(0, str(ROOT / 'phase4/scripts'))
     import build_msvc
-    checked=sources()[:3]+['phase4/src/core/exceptions/CFileOsError.cpp']
+    checked=sources()[:3]+['phase4/src/core/exceptions/CFileOsError.cpp','phase4/src/detail/FileStatusSupport.cpp']
     defined,names=set(),set()
     for source in checked:
         obj=out / (source.removesuffix('.cpp').replace('/','_')+'.obj')
         defined.update(build_msvc.defined_symbols(obj))
-        names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(),re.M))
+        names.update(re.findall(r'^// Symbol: (.+)$',(ROOT/source).read_text(encoding='utf-8', errors='replace'),re.M))
     import json
     entries=[entry for entry in json.loads((ROOT/'mfc_complete_ordinal_mapping.json').read_text())['exports']['mfc140u'] if entry['symbol'] in names]
-    assert len(entries)==len(names)==71, (len(entries), len(names))
+    assert len(entries)==len(names)==76, (len(entries), len(names))
     owners = {name: [] for name in names}
     for path in (ROOT / 'phase4/src').rglob('*.cpp'):
-        for name in re.findall(r'^// Symbol: (.+)$', path.read_text(), re.M):
+        for name in re.findall(r'^// Symbol: (.+)$', path.read_text(encoding='utf-8', errors='replace'), re.M):
             if name in owners:
                 owners[name].append(path.relative_to(ROOT).as_posix())
     assert all(len(paths) == 1 for paths in owners.values()), owners
     _,missing=build_msvc.export_definition(entries,defined)
     assert not missing,missing
-    print('All 71 file-family exports have actual providers',flush=True)
+    print('All 76 file-family exports have actual providers',flush=True)
     for relative, cls, slots in [(sources()[0], 'CFile', 24), (sources()[1], 'CMemFile', 29),
                                  (sources()[3], 'CSharedFile', 29)]:
         verify_vtables(out / (relative.removesuffix('.cpp').replace('/', '_') + '.obj'), cls, slots)
