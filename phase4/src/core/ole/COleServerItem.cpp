@@ -326,15 +326,9 @@ COleServerDoc* COleServerItem::GetDocument() const {
 // ?GetInterface@CCmdTarget@@ on `this` with IID_IDataObject; the two ole32
 // calls resolve (iat.py) to ReleaseStgMedium (slot 0x1802c5a98) and
 // CoTaskMemFree (slot 0x1802c5b08).
-// Left a stub, for two independent reasons: (1) its data comes from
-// COleServerItem's own IDataObject (retail's nested m_xDataObject at +0xd8),
-// which OpenMFC's COleServerItem does not have -- GetDataObject below returns
-// NULL; (2) it writes the medium straight into the AFX_DATACACHE_ENTRY that
-// ?GetCacheEntry@COleDataSource@@ returns (entry+0x20), and that export's
-// OpenMFC thunk (core/ole/COleDataSource.cpp) still carries an auto-generated
-// placeholder parameter list, while OpenMFC's own cache entry
-// (DataCacheEntry, detail/OlecoreSupport.h) is not that layout. See
-// headerRequests.
+// Still a stub because COleServerItem does not yet provide its own native
+// IDataObject part at +0xd8; GetDataObject below returns NULL. COleDataSource
+// now supplies the native 64-byte cache entry and GetCacheEntry dependency.
 // Symbol: ?AddOtherClipboardData@COleServerItem@@QEAAXPEAVCOleDataSource@@@Z
 extern "C" void MS_ABI impl__AddOtherClipboardData_COleServerItem__QEAAXPEAVCOleDataSource___Z(
     COleServerItem* pThis, COleDataSource* pDataSource)

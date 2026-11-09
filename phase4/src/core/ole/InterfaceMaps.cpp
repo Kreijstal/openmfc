@@ -39,10 +39,6 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleControlConta
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleControlSite__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleControlSite; }
 // Symbol: ?GetInterfaceMap@COleControlSite@@MEBAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleControlSite__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleControlSite; }
-// Symbol: ?GetThisInterfaceMap@COleDataSource@@KAPEBUAFX_INTERFACEMAP@@XZ
-extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleDataSource__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleDataSource; }
-// Symbol: ?GetInterfaceMap@COleDataSource@@MEBAPEBUAFX_INTERFACEMAP@@XZ
-extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleDataSource__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleDataSource; }
 // Symbol: ?GetThisInterfaceMap@COleDocObjectItem@@KAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleDocObjectItem__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleDocObjectItem; }
 // Symbol: ?GetInterfaceMap@COleDocObjectItem@@MEBAPEBUAFX_INTERFACEMAP@@XZ

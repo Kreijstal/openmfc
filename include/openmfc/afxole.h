@@ -650,41 +650,60 @@ static_assert(sizeof(COleDataObject)==24 && offsetof(COleDataObject,m_lpEnumerat
 //=============================================================================
 // COleDataSource - OLE Data Source
 //=============================================================================
+struct AFX_DATACACHE_ENTRY;
+namespace openmfc { namespace detail { struct OleDataSourceAccess; } }
 class COleDataSource : public CCmdTarget {
-    DECLARE_DYNAMIC(COleDataSource)
+    friend struct openmfc::detail::OleDataSourceAccess;
 public:
     COleDataSource();
-    virtual ~COleDataSource();
-
-    // Cache management
-    void CacheGlobalData(CLIPFORMAT cfFormat, HGLOBAL hGlobal, FORMATETC* lpFormatEtc = nullptr);
-    void CacheData(CLIPFORMAT cfFormat, STGMEDIUM* lpStorageMedium, FORMATETC* lpFormatEtc = nullptr);
-    void DelayRenderData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc = nullptr);
-    void DelayRenderFileData(CLIPFORMAT cfFormat, FORMATETC* lpFormatEtc = nullptr);
-    void SetClipboard();
-
-    // Clipboard operations
-    static COleDataSource* PASCAL GetClipboardOwner();
-
-    // Drag and Drop
-    DROPEFFECT DoDragDrop(DWORD dwEffects = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK,
-                          LPCRECT lpRectStartDrag = nullptr,
-                          COleDropSource* pDropSource = nullptr);
-    // Data provision
-    virtual int OnRenderGlobalData(FORMATETC* lpFormatEtc, void** phGlobal);
-    virtual int OnRenderFileData(FORMATETC* lpFormatEtc, CFile* pFile);
+    ~COleDataSource() override;
     void Empty();
-
-    // IDataObject interface
-    LPDATAOBJECT GetInterface(BOOL bAddRef = FALSE);
-
-public:
-    BOOL m_bClipboardOwner;
-    void* m_pDataCache; // internal cache
-
+    void CacheGlobalData(CLIPFORMAT,HGLOBAL,FORMATETC* = nullptr);
+    void CacheData(CLIPFORMAT,STGMEDIUM*,FORMATETC* = nullptr);
+    void DelayRenderData(CLIPFORMAT,FORMATETC* = nullptr);
+    void DelayRenderFileData(CLIPFORMAT,FORMATETC* = nullptr);
+    void DelaySetData(CLIPFORMAT,FORMATETC* = nullptr);
+    void SetClipboard();
+    static void PASCAL FlushClipboard();
+    static COleDataSource* PASCAL GetClipboardOwner();
+    DROPEFFECT DoDragDrop(DWORD = DROPEFFECT_COPY|DROPEFFECT_MOVE|DROPEFFECT_LINK,
+                          LPCRECT = nullptr,COleDropSource* = nullptr);
+    virtual BOOL OnRenderGlobalData(FORMATETC*,HGLOBAL*);
+    virtual BOOL OnRenderFileData(FORMATETC*,CFile*);
+    virtual BOOL OnRenderData(FORMATETC*,STGMEDIUM*);
+    virtual BOOL OnSetData(FORMATETC*,STGMEDIUM*,BOOL);
+    // Source convenience overload, forwarding to the embedded framework interface.
+    IDataObject* GetInterface(BOOL addRef = FALSE);
+    using CCmdTarget::GetInterface;
 protected:
-    char _oledatasource_padding[48];
+    AFX_DATACACHE_ENTRY* m_pDataCache;
+    UINT m_nMaxSize;
+    UINT m_nSize;
+    UINT m_nGrowBy;
+    AFX_DATACACHE_ENTRY* Lookup(FORMATETC*,DATADIR) const;
+    AFX_DATACACHE_ENTRY* GetCacheEntry(FORMATETC*,DATADIR);
+public:
+    class XDataObject : public IDataObject {
+    public:
+        STDMETHOD(QueryInterface)(REFIID,void**);
+        STDMETHOD_(ULONG,AddRef)();
+        STDMETHOD_(ULONG,Release)();
+        STDMETHOD(GetData)(FORMATETC*,STGMEDIUM*);
+        STDMETHOD(GetDataHere)(FORMATETC*,STGMEDIUM*);
+        STDMETHOD(QueryGetData)(FORMATETC*);
+        STDMETHOD(GetCanonicalFormatEtc)(FORMATETC*,FORMATETC*);
+        STDMETHOD(SetData)(FORMATETC*,STGMEDIUM*,BOOL);
+        STDMETHOD(EnumFormatEtc)(DWORD,IEnumFORMATETC**);
+        STDMETHOD(DAdvise)(FORMATETC*,DWORD,IAdviseSink*,DWORD*);
+        STDMETHOD(DUnadvise)(DWORD);
+        STDMETHOD(EnumDAdvise)(IEnumSTATDATA**);
+    } m_xDataObject;
+protected:
+    static const AFX_INTERFACEMAP* AFXAPI GetThisInterfaceMap();
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 };
+static_assert(sizeof(COleDataSource)==96 && sizeof(COleDataSource::XDataObject)==8 &&
+              offsetof(COleDataSource,m_xDataObject)==88,"native data-source and COM-part layout");
 
 //=============================================================================
 // COleDropTarget - OLE Drag and Drop Target

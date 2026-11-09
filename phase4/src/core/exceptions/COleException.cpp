@@ -28,14 +28,6 @@
   #define MS_ABI
 #endif
 
-// Runtime-class descriptors used by COleException::Process, defined alongside
-// the exception RTTI tables (ole_oleexception_rtti.cpp,
-// global_simple_exceptions_rtti.cpp).
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CNotSupportedException__SAPEAUCRuntimeClass__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInvalidArgException__SAPEAUCRuntimeClass__XZ();
-
 extern "C" void MS_ABI impl__CommonInit_CFile__IEAAXPEB_WIPEAVCAtlTransactionManager_ATL___Z(
     void* pThis, const wchar_t* lpszFileName, unsigned int nOpenFlags, void* pTM);
 extern "C" void MS_ABI impl__CommonBaseInit_CStdioFile__IEAAXPEAU_iobuf__PEAVCAtlTransactionManager_ATL___Z(
@@ -57,26 +49,6 @@ extern "C" void MS_ABI impl__CommonInit_CStdioFile__IEAAXPEB_WIPEAVCAtlTransacti
 
 
 
-// COleException::Process(const CException*) — maps an MFC exception onto the
-// SCODE the OLE layer reports. This is MFC's documented mapping: a COleException
-// yields its own m_sc, the standard exception types map to their COM equivalents,
-// and anything else is E_UNEXPECTED.
-// Symbol: ?Process@COleException@@SAJPEBVCException@@@Z
-extern "C" LONG MS_ABI impl__Process_COleException__SAJPEBVCException___Z(const CException* pAnyException)
-{
-    if (!pAnyException) return E_UNEXPECTED;
-
-    if (pAnyException->IsKindOf(impl__GetThisClass_COleException__SAPEAUCRuntimeClass__XZ()))
-        return static_cast<const COleException*>(pAnyException)->m_sc;
-    if (pAnyException->IsKindOf(impl__GetThisClass_CMemoryException__SAPEAUCRuntimeClass__XZ()))
-        return E_OUTOFMEMORY;
-    if (pAnyException->IsKindOf(impl__GetThisClass_CNotSupportedException__SAPEAUCRuntimeClass__XZ()))
-        return E_NOTIMPL;
-    if (pAnyException->IsKindOf(impl__GetThisClass_CInvalidArgException__SAPEAUCRuntimeClass__XZ()))
-        return E_INVALIDARG;
-
-    return E_UNEXPECTED;
-}
 // Symbol: ?GetErrorMessage@COleException@@UEBAHPEA_WIPEAI@Z
 extern "C" int MS_ABI impl__GetErrorMessage_COleException__UEBAHPEA_WIPEAI_Z(
     const COleException* pThis, wchar_t* lpszError, UINT nMaxError, UINT* pnHelpContext

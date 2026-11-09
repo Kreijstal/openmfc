@@ -136,25 +136,12 @@ namespace openmfc { namespace detail { namespace olecore {
 extern COleMessageFilter* g_pMessageFilter;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
-extern COleDataSource* g_pClipboardOwner;
-} } }
-namespace openmfc { namespace detail { namespace olecore {
 extern std::map<CString, CString> g_oleFactoryLicenseKeys;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern BOOL g_userOleControlMode;
 } } }
 
-
-namespace openmfc { namespace detail { namespace olecore {
-struct DataCacheEntry {
-    FORMATETC format = {};
-    STGMEDIUM medium = {};
-    bool hasMedium = false;
-    bool delayRender = false;
-    bool delayRenderFile = false;
-};
-} } }
 
 namespace openmfc { namespace detail { namespace olecore {
 extern std::map<void*, COleControl*> g_reflectorControls_Olecore;
@@ -178,10 +165,6 @@ bool CopyStorageMedium(const STGMEDIUM& source, STGMEDIUM* dest);
 
 namespace openmfc { namespace detail { namespace olecore {
 LPOLESTR CopyOleString(const wchar_t* text);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-bool MakeRenderedFileMedium(COleDataSource* source, FORMATETC* format, STGMEDIUM* medium);
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
@@ -737,57 +720,6 @@ namespace openmfc { namespace detail { namespace olecore {
 extern "C" HRESULT MS_ABI impl__FindConnectionPoint_COleConnPtContainer__UEAAJAEBU_GUID__PEAPEAUIConnectionPoint___Z(
     COleConnPtContainer* pThis, REFIID riid, IConnectionPoint** ppCP
 );
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-struct DataCacheState;
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-class DataSourceDataObject : public IDataObject {
-public:
-    explicit DataSourceDataObject(DataCacheState* state) : m_refCount(1), m_state(state) {}
-
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override;
-    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
-    ULONG STDMETHODCALLTYPE Release() override {
-        ULONG ref = InterlockedDecrement(&m_refCount);
-        return ref;
-    }
-
-    HRESULT STDMETHODCALLTYPE GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium) override;
-    HRESULT STDMETHODCALLTYPE GetDataHere(FORMATETC*, STGMEDIUM*) override { return DATA_E_FORMATETC; }
-    HRESULT STDMETHODCALLTYPE QueryGetData(FORMATETC* pformatetc) override;
-    HRESULT STDMETHODCALLTYPE GetCanonicalFormatEtc(FORMATETC*, FORMATETC* pformatetcOut) override {
-        if (!pformatetcOut) return E_POINTER;
-        pformatetcOut->ptd = nullptr;
-        return DATA_S_SAMEFORMATETC;
-    }
-    HRESULT STDMETHODCALLTYPE SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium, BOOL fRelease) override;
-    HRESULT STDMETHODCALLTYPE EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** ppenumFormatEtc) override;
-    HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC*, DWORD, IAdviseSink*, DWORD*) override { return OLE_E_ADVISENOTSUPPORTED; }
-    HRESULT STDMETHODCALLTYPE DUnadvise(DWORD) override { return OLE_E_ADVISENOTSUPPORTED; }
-    HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA**) override { return OLE_E_ADVISENOTSUPPORTED; }
-
-private:
-    LONG m_refCount;
-    DataCacheState* m_state;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-struct DataCacheState {
-    explicit DataCacheState(COleDataSource* source) : owner(source), dataObject(this) {}
-    ~DataCacheState() {
-        for (DataCacheEntry& entry : entries) {
-            if (entry.hasMedium) ReleaseStgMedium(&entry.medium);
-        }
-    }
-
-    COleDataSource* owner;
-    DataSourceDataObject dataObject;
-    std::vector<DataCacheEntry> entries;
-};
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
@@ -1470,52 +1402,12 @@ namespace openmfc { namespace detail { namespace olecore {
 size_t ParseLinkedItemIndex(const wchar_t* itemName);
 } } }
 
-namespace openmfc { namespace detail { namespace olecore {
-DataCacheState* GetDataCacheState(COleDataSource* source, bool create);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
-DataCacheEntry* FindCacheEntry(DataCacheState* state, const FORMATETC& format);
-} } }
 
 
 
 
 
 
-namespace openmfc { namespace detail { namespace olecore {
-class DropSourceAdapter : public IDropSource {
-public:
-    explicit DropSourceAdapter(COleDropSource* source) : m_refCount(1), m_source(source) {}
-    virtual ~DropSourceAdapter() {}
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override {
-        if (!ppvObject) return E_POINTER;
-        if (riid == IID_IUnknown || riid == IID_IDropSource) {
-            *ppvObject = static_cast<IDropSource*>(this);
-            AddRef();
-            return S_OK;
-        }
-        *ppvObject = nullptr;
-        return E_NOINTERFACE;
-    }
-    ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&m_refCount); }
-    ULONG STDMETHODCALLTYPE Release() override {
-        ULONG ref = InterlockedDecrement(&m_refCount);
-        if (ref == 0) delete this;
-        return ref;
-    }
-    HRESULT STDMETHODCALLTYPE QueryContinueDrag(BOOL fEscapePressed, DWORD grfKeyState) override {
-        return m_source ? m_source->QueryContinueDrag(fEscapePressed, grfKeyState) : DRAGDROP_S_CANCEL;
-    }
-    HRESULT STDMETHODCALLTYPE GiveFeedback(DWORD dwEffect) override {
-        return m_source ? m_source->GiveFeedback(dwEffect) : DRAGDROP_S_USEDEFAULTCURSORS;
-    }
-
-private:
-    LONG m_refCount;
-    COleDropSource* m_source;
-};
-} } }
 
 namespace openmfc { namespace detail { namespace olecore {
 class OleMessageFilterAdapter : public IMessageFilter {

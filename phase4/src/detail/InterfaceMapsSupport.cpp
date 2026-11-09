@@ -21,8 +21,6 @@ const AFX_INTERFACEMAP* AFXAPI gib_COleControlContainer() { return impl__GetThis
 const AFX_INTERFACEMAP g_imap_COleControlContainer = { gib_COleControlContainer, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleControlSite() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleControlSite = { gib_COleControlSite, g_ifaceEnd };
-const AFX_INTERFACEMAP* AFXAPI gib_COleDataSource() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_COleDataSource = { gib_COleDataSource, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleDocObjectItem() { return impl__GetThisInterfaceMap_COleClientItem__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleDocObjectItem = { gib_COleDocObjectItem, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleFrameHook() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }

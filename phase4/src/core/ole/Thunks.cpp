@@ -1128,11 +1128,6 @@ extern "C" void* MS_ABI impl___0COleCurrency__QEAA_JJ_Z(void* pThis, long p0, lo
 extern "C" void* MS_ABI impl___0COleDataObject__QEAA_XZ(void* pThis) {
     return new(pThis) COleDataObject();
 }
-// Symbol: ??0COleDataSource@@QEAA@XZ
-// Constructor: COleDataSource::COleDataSource
-extern "C" void* MS_ABI impl___0COleDataSource__QEAA_XZ(void* pThis) {
-    return new(pThis) COleDataSource();
-}
 // Symbol: ??0COleDocument@@QEAA@XZ
 // Constructor: COleDocument::COleDocument
 extern "C" void* MS_ABI impl___0COleDocument__QEAA_XZ(void* pThis) {
@@ -1212,11 +1207,6 @@ extern "C" void MS_ABI impl___1COleControlSite__UEAA_XZ(void* pThis) {
 // Destructor: COleConvertDialog::~COleConvertDialog
 extern "C" void MS_ABI impl___1COleConvertDialog__UEAA_XZ(void* pThis) {
     ((COleConvertDialog*)pThis)->~COleConvertDialog();
-}
-// Symbol: ??1COleDataSource@@UEAA@XZ
-// Destructor: COleDataSource::~COleDataSource
-extern "C" void MS_ABI impl___1COleDataSource__UEAA_XZ(void* pThis) {
-    ((COleDataSource*)pThis)->~COleDataSource();
 }
 // Symbol: ??1COleDocObjectItem@@UEAA@XZ
 // Destructor: COleDocObjectItem::~COleDocObjectItem
@@ -1398,16 +1388,6 @@ extern "C" void MS_ABI impl__BoundPropertyChanged_COleControl__QEAAXJ_Z(COleCont
 extern "C" int MS_ABI impl__BoundPropertyRequestEdit_COleControl__QEAAHJ_Z(COleControl* pThis, long p0) {
     return (int)pThis->BoundPropertyRequestEdit(p0);
 }
-// Symbol: ?CacheData@COleDataSource@@QEAAXGPEAUtagSTGMEDIUM@@PEAUtagFORMATETC@@@Z
-// COleDataSource::CacheData
-extern "C" void MS_ABI impl__CacheData_COleDataSource__QEAAXGPEAUtagSTGMEDIUM__PEAUtagFORMATETC___Z(COleDataSource* pThis, unsigned short p0, STGMEDIUM* p1, FORMATETC* p2) {
-    pThis->CacheData(p0, p1, p2);
-}
-// Symbol: ?CacheGlobalData@COleDataSource@@QEAAXGPEAXPEAUtagFORMATETC@@@Z
-// COleDataSource::CacheGlobalData
-extern "C" void MS_ABI impl__CacheGlobalData_COleDataSource__QEAAXGPEAXPEAUtagFORMATETC___Z(COleDataSource* pThis, unsigned short p0, void* p1, FORMATETC* p2) {
-    pThis->CacheGlobalData(p0, p1, p2);
-}
 // Symbol: ?CanActivate@COleClientItem@@MEAAHXZ
 // COleClientItem::CanActivate
 extern "C" int MS_ABI impl__CanActivate_COleClientItem__MEAAHXZ(COleClientItem* pThis) {
@@ -1488,16 +1468,6 @@ extern "C" int MS_ABI impl__CreateStaticFromClipboard_COleClientItem__QEAAHW4tag
 extern "C" void MS_ABI impl__Deactivate_COleClientItem__QEAAXXZ(COleClientItem* pThis) {
     pThis->Deactivate();
 }
-// Symbol: ?DelayRenderData@COleDataSource@@QEAAXGPEAUtagFORMATETC@@@Z
-// COleDataSource::DelayRenderData
-extern "C" void MS_ABI impl__DelayRenderData_COleDataSource__QEAAXGPEAUtagFORMATETC___Z(COleDataSource* pThis, unsigned short p0, FORMATETC* p1) {
-    pThis->DelayRenderData(p0, p1);
-}
-// Symbol: ?DelayRenderFileData@COleDataSource@@QEAAXGPEAUtagFORMATETC@@@Z
-// COleDataSource::DelayRenderFileData
-extern "C" void MS_ABI impl__DelayRenderFileData_COleDataSource__QEAAXGPEAUtagFORMATETC___Z(COleDataSource* pThis, unsigned short p0, FORMATETC* p1) {
-    pThis->DelayRenderFileData(p0, p1);
-}
 // Symbol: ?Destroy@COleSafeArray@@QEAAXXZ
 // COleSafeArray::Destroy
 extern "C" void MS_ABI impl__Destroy_COleSafeArray__QEAAXXZ(COleSafeArray* pThis) {
@@ -1522,11 +1492,6 @@ extern "C" int MS_ABI impl__DoChangeIcon_COleChangeIconDialog__QEAAHPEAVCOleClie
 // COleConvertDialog::DoConvert
 extern "C" int MS_ABI impl__DoConvert_COleConvertDialog__QEAAHPEAVCOleClientItem___Z(COleConvertDialog* pThis, COleClientItem* p0) {
     return (int)pThis->DoConvert(p0);
-}
-// Symbol: ?DoDragDrop@COleDataSource@@QEAAKKPEBUtagRECT@@PEAVCOleDropSource@@@Z
-// COleDataSource::DoDragDrop
-extern "C" unsigned long MS_ABI impl__DoDragDrop_COleDataSource__QEAAKKPEBUtagRECT__PEAVCOleDropSource___Z(COleDataSource* pThis, unsigned long p0, const RECT* p1, COleDropSource* p2) {
-    return (unsigned long)pThis->DoDragDrop(p0, p1, p2);
 }
 // Symbol: ?DoModal@COleBusyDialog@@UEAA_JXZ
 // COleBusyDialog::DoModal
@@ -1593,11 +1558,6 @@ extern "C" int MS_ABI impl__DoVerb_COleClientItem__UEAAHJPEAVCView__PEAUtagMSG__
 extern "C" int MS_ABI impl__Draw_COleClientItem__QEAAHPEAVCDC__PEBUtagRECT__W4tagDVASPECT___Z(COleClientItem* pThis, CDC* p0, const RECT* p1, tagDVASPECT p2) {
     return (int)pThis->Draw(p0, p1, p2);
 }
-// Symbol: ?Empty@COleDataSource@@QEAAXXZ
-// COleDataSource::Empty
-extern "C" void MS_ABI impl__Empty_COleDataSource__QEAAXXZ(COleDataSource* pThis) {
-    pThis->Empty();
-}
 // Symbol: ?EnableWindow@COleControlSite@@UEAAHH@Z
 // COleControlSite::EnableWindow
 extern "C" int MS_ABI impl__EnableWindow_COleControlSite__UEAAHH_Z(COleControlSite* pThis, int p0) {
@@ -1658,11 +1618,6 @@ extern "C" unsigned long MS_ABI impl__GetBackColor_COleControl__QEAAKXZ(COleCont
 // COleControl::GetBorderStyle
 extern "C" short MS_ABI impl__GetBorderStyle_COleControl__QEAAFXZ(COleControl* pThis) {
     return (short)pThis->GetBorderStyle();
-}
-// Symbol: ?GetClipboardOwner@COleDataSource@@SAPEAV1@XZ
-// Static: COleDataSource::GetClipboardOwner
-extern "C" void* MS_ABI impl__GetClipboardOwner_COleDataSource__SAPEAV1_XZ() {
-    return (void*)COleDataSource::GetClipboardOwner();
 }
 // Symbol: ?GetControlFlags@COleControl@@UEAAKXZ
 // COleControl::GetControlFlags
@@ -1959,16 +1914,6 @@ extern "C" void MS_ABI impl__OnObjectsChanged_COlePropertyPage__UEAAXXZ(COleProp
 extern "C" int MS_ABI impl__OnProperties_COleControl__UEAAHPEAUtagMSG__PEAUHWND____PEBUtagRECT___Z(COleControl* pThis, MSG* p0, HWND__* p1, const RECT* p2) {
     return (int)pThis->OnProperties(p0, p1, p2);
 }
-// Symbol: ?OnRenderFileData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAVCFile@@@Z
-// COleDataSource::OnRenderFileData
-extern "C" int MS_ABI impl__OnRenderFileData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAVCFile___Z(COleDataSource* pThis, FORMATETC* p0, CFile* p1) {
-    return (int)pThis->OnRenderFileData(p0, p1);
-}
-// Symbol: ?OnRenderGlobalData@COleDataSource@@UEAAHPEAUtagFORMATETC@@PEAPEAX@Z
-// COleDataSource::OnRenderGlobalData
-extern "C" int MS_ABI impl__OnRenderGlobalData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAPEAX_Z(COleDataSource* pThis, FORMATETC* p0, void** p1) {
-    return (int)pThis->OnRenderGlobalData(p0, p1);
-}
 // Symbol: ?OnRequestPositionChange@COleIPFrameWnd@@MEAAXPEBUtagRECT@@@Z
 // COleIPFrameWnd::OnRequestPositionChange
 extern "C" void MS_ABI impl__OnRequestPositionChange_COleIPFrameWnd__MEAAXPEBUtagRECT___Z(COleIPFrameWnd* pThis, const RECT* p0) {
@@ -2118,11 +2063,6 @@ extern "C" void MS_ABI impl__SetBorderStyle_COleControl__QEAAXF_Z(COleControl* p
 // COleControl::SetCapture
 extern "C" CWnd* MS_ABI impl__SetCapture_COleControl__QEAAPEAVCWnd__XZ(COleControl* pThis) {
     return (CWnd*)pThis->SetCapture();
-}
-// Symbol: ?SetClipboard@COleDataSource@@QEAAXXZ
-// COleDataSource::SetClipboard
-extern "C" void MS_ABI impl__SetClipboard_COleDataSource__QEAAXXZ(COleDataSource* pThis) {
-    pThis->SetClipboard();
 }
 // Symbol: ?SetControlSize@COleControl@@QEAAHHH@Z
 // COleControl::SetControlSize

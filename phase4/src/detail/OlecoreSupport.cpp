@@ -3,81 +3,6 @@ extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 IMPLEMENT_DYNAMIC(CControlBar, CWnd)
 IMPLEMENT_DYNAMIC(CDocItem, CObject)
-HRESULT DataSourceDataObject::QueryInterface(REFIID riid, void** ppvObject) {
-    if (!ppvObject) return E_POINTER;
-    if (riid == IID_IUnknown || riid == IID_IDataObject) {
-        *ppvObject = static_cast<IDataObject*>(this);
-        AddRef();
-        return S_OK;
-    }
-    *ppvObject = nullptr;
-    return E_NOINTERFACE;
-}
-HRESULT DataSourceDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium) {
-    if (!pformatetcIn || !pmedium) return E_POINTER;
-    DataCacheEntry* entry = FindCacheEntry(m_state, *pformatetcIn);
-    if (!entry) return DATA_E_FORMATETC;
-
-    if (!entry->hasMedium) {
-        if (entry->delayRender && m_state->owner->OnRenderGlobalData(&entry->format, reinterpret_cast<void**>(&entry->medium.hGlobal))) {
-            entry->medium.tymed = TYMED_HGLOBAL;
-            entry->medium.pUnkForRelease = nullptr;
-            entry->hasMedium = true;
-        } else if (entry->delayRenderFile && MakeRenderedFileMedium(m_state->owner, &entry->format, &entry->medium)) {
-            entry->hasMedium = true;
-        } else {
-            return DATA_E_FORMATETC;
-        }
-    }
-
-    return CopyStorageMedium(entry->medium, pmedium) ? S_OK : STG_E_MEDIUMFULL;
-}
-HRESULT DataSourceDataObject::QueryGetData(FORMATETC* pformatetc) {
-    if (!pformatetc) return E_POINTER;
-    return FindCacheEntry(m_state, *pformatetc) ? S_OK : DATA_E_FORMATETC;
-}
-HRESULT DataSourceDataObject::SetData(FORMATETC* pformatetc, STGMEDIUM* pmedium, BOOL fRelease) {
-    if (!pformatetc || !pmedium) return E_POINTER;
-
-    DataCacheEntry* existing = FindCacheEntry(m_state, *pformatetc);
-    if (!existing) {
-        m_state->entries.push_back(DataCacheEntry());
-        existing = &m_state->entries.back();
-    } else if (existing->hasMedium) {
-        ReleaseStgMedium(&existing->medium);
-        existing->hasMedium = false;
-    }
-
-    existing->format = *pformatetc;
-    existing->delayRender = false;
-    existing->delayRenderFile = false;
-    if (fRelease) {
-        existing->medium = *pmedium;
-        memset(pmedium, 0, sizeof(*pmedium));
-        existing->hasMedium = true;
-        return S_OK;
-    }
-    existing->hasMedium = CopyStorageMedium(*pmedium, &existing->medium);
-    return existing->hasMedium ? S_OK : STG_E_MEDIUMFULL;
-}
-HRESULT DataSourceDataObject::EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC** ppenumFormatEtc) {
-    if (!ppenumFormatEtc) return E_POINTER;
-    *ppenumFormatEtc = nullptr;
-    if (dwDirection != DATADIR_GET) return S_FALSE;
-
-    CEnumFormatEtc* enumerator = new CEnumFormatEtc();
-    for (const DataCacheEntry& entry : m_state->entries) {
-        FORMATETC format=entry.format;
-        if(format.ptd){
-            auto* copy=static_cast<DVTARGETDEVICE*>(::CoTaskMemAlloc(format.ptd->tdSize));
-            if(!copy)impl__AfxThrowMemoryException__YAXXZ();
-            std::memcpy(copy,format.ptd,format.ptd->tdSize);format.ptd=copy;
-        }
-        enumerator->AddFormat(format);
-    }
-    *ppenumFormatEtc = enumerator->Interface();
-    return S_OK;
-}
 extern "C" {
 MS_ABI void impl__AfxOleInit() {
     if (!g_bOleInitialized) {
@@ -119,7 +44,6 @@ MS_ABI int impl__AfxOleGetMessageFilter() {
     return (g_pMessageFilter != nullptr) ? TRUE : FALSE;
 }
 }
-IMPLEMENT_DYNAMIC(COleDataSource, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleMessageFilter, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleFrameHook, CCmdTarget)
 IMPLEMENT_DYNAMIC(COleResizeBar, CControlBar)
@@ -221,7 +145,6 @@ int g_bOleInitialized = FALSE;
 int g_nOleLockCount = 0;
 BOOL g_bOleUserCtrl = FALSE;
 COleMessageFilter* g_pMessageFilter = nullptr;
-COleDataSource* g_pClipboardOwner = nullptr;
 std::map<CString, CString> g_oleFactoryLicenseKeys;
 BOOL g_userOleControlMode = TRUE;
 std::map<void*, COleControl*> g_reflectorControls_Olecore;
@@ -311,34 +234,6 @@ LPOLESTR CopyOleString(const wchar_t* text) {
     LPOLESTR copy = static_cast<LPOLESTR>(CoTaskMemAlloc(bytes));
     if (copy) memcpy(copy, text, bytes);
     return copy;
-}
-bool MakeRenderedFileMedium(COleDataSource* source, FORMATETC* format, STGMEDIUM* medium) {
-    if (!source || !medium) return false;
-
-    wchar_t tempPath[MAX_PATH] = {};
-    wchar_t tempName[MAX_PATH] = {};
-    if (!GetTempPathW(MAX_PATH, tempPath)) return false;
-    if (!GetTempFileNameW(tempPath, L"omf", 0, tempName)) return false;
-
-    bool ok = false;
-    {
-        CFile file(tempName, CFile::modeCreate | CFile::modeWrite | CFile::shareDenyNone | CFile::typeBinary);
-        ok = source->OnRenderFileData(format, &file) != 0;
-    }
-
-    if (!ok) {
-        DeleteFileW(tempName);
-        return false;
-    }
-
-    memset(medium, 0, sizeof(*medium));
-    medium->tymed = TYMED_FILE;
-    medium->lpszFileName = CopyOleString(tempName);
-    if (!medium->lpszFileName) {
-        DeleteFileW(tempName);
-        return false;
-    }
-    return true;
 }
 void InitializeDocumentView(COleDocObjectItem* item, IOleDocumentView* view) {
     if (!item || !view) return;
@@ -1429,22 +1324,6 @@ size_t ParseLinkedItemIndex(const wchar_t* itemName) {
     unsigned long value = std::wcstoul(itemName, &end, 10);
     if (!end || *end != L'\0' || value == 0) return 0;
     return static_cast<size_t>(value);
-}
-DataCacheState* GetDataCacheState(COleDataSource* source, bool create) {
-    if (!source) return nullptr;
-    DataCacheState* state = static_cast<DataCacheState*>(source->m_pDataCache);
-    if (!state && create) {
-        state = new DataCacheState(source);
-        source->m_pDataCache = state;
-    }
-    return state;
-}
-DataCacheEntry* FindCacheEntry(DataCacheState* state, const FORMATETC& format) {
-    if (!state) return nullptr;
-    for (DataCacheEntry& entry : state->entries) {
-        if (FormatMatches(entry.format, format)) return &entry;
-    }
-    return nullptr;
 }
 thread_local OleMessageFilterAdapter* g_messageFilterAdapter = nullptr;
 thread_local IMessageFilter* g_previousMessageFilter = nullptr;
