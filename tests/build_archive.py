@@ -8,6 +8,7 @@ ROOT=Path(__file__).resolve().parent.parent
 def sources():
     return [s for s in build_string_imports.sources() if not s.startswith('tests/')]+[
         'phase4/src/core/runtime/CArchiveStorage.cpp',
+        'phase4/src/core/runtime/CObjectMetadata.cpp',
         'phase4/src/core/runtime/AfxFormatStrings.cpp',
         'phase4/src/core/file/CFile.cpp',
         'phase4/src/core/file/CMemFile.cpp',

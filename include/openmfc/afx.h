@@ -278,7 +278,7 @@ public: \
 // IMPLEMENT_RUNTIMECLASS does in an _AFXDLL build.
 #define IMPLEMENT_DYNAMIC(class_name, base_class_name) \
     CRuntimeClass* AFXAPI class_name::_GetBaseClass() \
-        { return &base_class_name::class##base_class_name; } \
+        { return base_class_name::GetThisClass(); } \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
@@ -292,7 +292,7 @@ public: \
 // IMPLEMENT_DYNCREATE - implements runtime class with factory
 #define IMPLEMENT_DYNCREATE(class_name, base_class_name) \
     CRuntimeClass* AFXAPI class_name::_GetBaseClass() \
-        { return &base_class_name::class##base_class_name; } \
+        { return base_class_name::GetThisClass(); } \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
@@ -322,7 +322,7 @@ public: \
         return ar; \
     } \
     CRuntimeClass* AFXAPI class_name::_GetBaseClass() \
-        { return &base_class_name::class##base_class_name; } \
+        { return base_class_name::GetThisClass(); } \
     CRuntimeClass class_name::class##class_name = { \
         #class_name, \
         sizeof(class_name), \
@@ -334,7 +334,7 @@ public: \
     };
 
 // RUNTIME_CLASS macro - get CRuntimeClass pointer for a class
-#define RUNTIME_CLASS(class_name) (&class_name::class##class_name)
+#define RUNTIME_CLASS(class_name) (class_name::GetThisClass())
 
 #ifndef AFX_NOVTABLE
 #if defined(_MSC_VER)
@@ -350,17 +350,25 @@ public: \
 class AFX_NOVTABLE CObject {
 public:
     // Runtime class information - MUST be first virtual for vtable[0] compatibility
+#if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
+    virtual OPENMFC_STRING_API CRuntimeClass* GetRuntimeClass() const;
+#else
     virtual CRuntimeClass* GetRuntimeClass() const {
         return GetThisClass();
     }
+#endif
 
     // Virtual destructor - second in vtable
     virtual ~CObject() = 0;
     
     // Static runtime class access
+#if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
+    static OPENMFC_STRING_API CRuntimeClass* GetThisClass();
+#else
     static CRuntimeClass* GetThisClass() {
         return &classCObject;
     }
+#endif
     
     // Type checking
     BOOL IsKindOf(const CRuntimeClass* pClass) const {
@@ -370,7 +378,7 @@ public:
         return type->IsDerivedFrom(pClass);
     }
     
-    // Serialization (stub - needs CArchive implementation)
+    // Base objects carry no serialized payload.
     virtual void Serialize(CArchive& ar);
     
     // Diagnostic support (simplified)
@@ -643,46 +651,54 @@ protected:
 
 // Template collection classes
 template<class TYPE, class ARG_TYPE = const TYPE&>
-class CArray {
-    friend class CPtrArray; // synchronizes the native pointer-array member block
+class CArray : public CObject {
+    friend class CPtrArray;
 protected:
     TYPE* m_pData;
-    int m_nSize;
-    int m_nMaxSize;
-    int m_nGrowBy;
-    
+    INT_PTR m_nSize;
+    INT_PTR m_nMaxSize;
+    INT_PTR m_nGrowBy;
 public:
     CArray();
-    ~CArray();
-    
-    int GetSize() const { return m_nSize; }
-    int GetCount() const { return m_nSize; }
-    bool IsEmpty() const { return m_nSize == 0; }
-    int GetUpperBound() const { return m_nSize - 1; }
-    void SetSize(int nNewSize, int nGrowBy = -1);
+    ~CArray() override;
+    INT_PTR GetSize() const {return m_nSize;}
+    INT_PTR GetCount() const {return m_nSize;}
+    BOOL IsEmpty() const {return m_nSize==0;}
+    INT_PTR GetUpperBound() const {return m_nSize-1;}
+    void SetSize(INT_PTR size,INT_PTR grow=-1);
     void FreeExtra();
-    void RemoveAll();
-    
-    TYPE GetAt(int nIndex) const { return m_pData[nIndex]; }
-    void SetAt(int nIndex, ARG_TYPE newElement) { m_pData[nIndex] = newElement; }
-    TYPE& ElementAt(int nIndex) { return m_pData[nIndex]; }
-    const TYPE& ElementAt(int nIndex) const { return m_pData[nIndex]; }
-    
-    TYPE operator[](int nIndex) const { return GetAt(nIndex); }
-    TYPE& operator[](int nIndex) { return ElementAt(nIndex); }
-    
-    TYPE* GetData() { return m_pData; }
-    const TYPE* GetData() const { return m_pData; }
-    
-    void SetAtGrow(int nIndex, ARG_TYPE newElement);
-    int Add(ARG_TYPE newElement);
-    int Append(const CArray& src);
-    void Copy(const CArray& src);
-    
-    void InsertAt(int nIndex, ARG_TYPE newElement, int nCount = 1);
-    void RemoveAt(int nIndex, int nCount = 1);
-    void InsertAt(int nStartIndex, CArray* pNewArray);
+    void RemoveAll() {SetSize(0,-1);}
+    TYPE& GetAt(INT_PTR index) {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();return m_pData[index];}
+    const TYPE& GetAt(INT_PTR index) const {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();return m_pData[index];}
+    void SetAt(INT_PTR index,ARG_TYPE value) {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();m_pData[index]=value;}
+    TYPE& ElementAt(INT_PTR index) {return GetAt(index);}
+    const TYPE& ElementAt(INT_PTR index) const {return GetAt(index);}
+    TYPE& operator[](INT_PTR index) {return GetAt(index);}
+    const TYPE& operator[](INT_PTR index) const {return GetAt(index);}
+    TYPE* GetData() {return m_pData;}
+    const TYPE* GetData() const {return m_pData;}
+    void SetAtGrow(INT_PTR index,ARG_TYPE value);
+    INT_PTR Add(ARG_TYPE value) {INT_PTR index=m_nSize;SetAtGrow(index,value);return index;}
+    INT_PTR Append(const CArray& source);
+    void Copy(const CArray& source);
+    void InsertAt(INT_PTR index,ARG_TYPE value,INT_PTR count=1);
+    void RemoveAt(INT_PTR index,INT_PTR count=1);
+    void InsertAt(INT_PTR index,CArray* source);
+    void Serialize(CArchive& ar) override;
+private:
+    CArray(const CArray&) = delete;
+    CArray& operator=(const CArray&) = delete;
+    static size_t Bytes(INT_PTR count) {return size_t(count)*sizeof(TYPE);}
+    static INT_PTR Sum(INT_PTR a,INT_PTR b) {return INT_PTR(UINT_PTR(a)+UINT_PTR(b));}
+    static TYPE* Allocate(INT_PTR count) {return reinterpret_cast<TYPE*>(new BYTE[Bytes(count)]);}
+    static void Free(TYPE* data) {::operator delete[](data);}
+    static void Construct(TYPE* data,INT_PTR count) {memset(data,0,Bytes(count));for(INT_PTR at=0;at<count;++at)::new(static_cast<void*>(data+at)) TYPE;}
+    static void Destroy(TYPE* data,INT_PTR count) {for(INT_PTR at=0;at<count;++at)data[at].~TYPE();}
+    static void Relocate(TYPE* out,INT_PTR capacity,const TYPE* from,INT_PTR count) {
+        if(memcpy_s(out,Bytes(capacity),from,Bytes(count)))AfxThrowInvalidArgException();
+    }
 };
+static_assert(sizeof(CArray<int>)==40,"native array representation");
 
 template<class TYPE, class ARG_TYPE = const TYPE&>
 class CList {
@@ -758,27 +774,26 @@ private:
 
 // SerializeElements template function
 template<class TYPE>
-void SerializeElements(CArchive& ar, TYPE* pElements, int nCount) {
-    if (ar.IsStoring()) {
-        for (int i = 0; i < nCount; i++) {
-            ar << pElements[i];
-        }
-    } else {
-        for (int i = 0; i < nCount; i++) {
-            ar >> pElements[i];
-        }
+void SerializeElements(CArchive& ar,TYPE* elements,INT_PTR count) {
+    if(count && !elements)AfxThrowInvalidArgException();
+    const UINT maximum=UINT(INT32_MAX/sizeof(TYPE));
+    while(count) {
+        UINT block=UINT_PTR(count)>maximum?maximum:UINT(count);UINT bytes=block*UINT(sizeof(TYPE));
+        if(ar.IsStoring())ar.Write(elements,bytes);
+        else if(ar.Read(elements,bytes)!=bytes)AfxThrowArchiveException(3,nullptr);
+        elements+=block;count-=block;
     }
 }
 
 // Specialization for CString
 template<>
-inline void SerializeElements<CString>(CArchive& ar, CString* pElements, int nCount) {
+inline void SerializeElements<CString>(CArchive& ar, CString* pElements, INT_PTR nCount) {
     if (ar.IsStoring()) {
-        for (int i = 0; i < nCount; i++) {
+        for (INT_PTR i = 0; i < nCount; i++) {
             ar << pElements[i];
         }
     } else {
-        for (int i = 0; i < nCount; i++) {
+        for (INT_PTR i = 0; i < nCount; i++) {
             ar >> pElements[i];
         }
     }
@@ -847,150 +862,82 @@ protected:
 };
 
 // ============================================================================
-// CArray template implementation
+// CArray template implementation: native storage and byte relocation.
 // ============================================================================
-
-template<class TYPE, class ARG_TYPE>
-CArray<TYPE, ARG_TYPE>::CArray() : m_pData(nullptr), m_nSize(0), m_nMaxSize(0), m_nGrowBy(0) {}
-
-template<class TYPE, class ARG_TYPE>
-CArray<TYPE, ARG_TYPE>::~CArray() {
-    if (m_pData != nullptr) {
-        for (int i = 0; i < m_nSize; i++)
-            m_pData[i].~TYPE();
-        free(m_pData);
+template<class T,class A>CArray<T,A>::CArray():m_pData(nullptr),m_nSize(0),m_nMaxSize(0),m_nGrowBy(0) {}
+template<class T,class A>CArray<T,A>::~CArray() {if(m_pData){Destroy(m_pData,m_nSize);Free(m_pData);}}
+template<class T,class A>void CArray<T,A>::SetSize(INT_PTR size,INT_PTR grow) {
+    if(size<0)AfxThrowInvalidArgException();
+    if(grow>=0)m_nGrowBy=grow;
+    if(!size) {
+        if(m_pData){Destroy(m_pData,m_nSize);Free(m_pData);m_pData=nullptr;}
+        m_nSize=m_nMaxSize=0;return;
     }
-}
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::SetSize(int nNewSize, int nGrowBy) {
-    if (nGrowBy >= 0)
-        m_nGrowBy = nGrowBy;
-
-    if (nNewSize == 0) {
-        if (m_pData != nullptr) {
-            for (int i = 0; i < m_nSize; i++)
-                m_pData[i].~TYPE();
-            free(m_pData);
-            m_pData = nullptr;
-        }
-        m_nSize = m_nMaxSize = 0;
-    } else if (nNewSize <= m_nMaxSize) {
-        if (nNewSize > m_nSize) {
-            for (int i = m_nSize; i < nNewSize; i++)
-                new (&m_pData[i]) TYPE();
-        } else if (nNewSize < m_nSize) {
-            for (int i = nNewSize; i < m_nSize; i++)
-                m_pData[i].~TYPE();
-        }
-        m_nSize = nNewSize;
-    } else {
-        int nNewMax = (m_nGrowBy > 0) ? m_nMaxSize + m_nGrowBy : m_nMaxSize + m_nMaxSize / 2;
-        if (nNewMax < nNewSize)
-            nNewMax = nNewSize;
-        TYPE* pNewData = (TYPE*)malloc(nNewMax * sizeof(TYPE));
-        if (m_pData != nullptr) {
-            for (int i = 0; i < m_nSize; i++) {
-                new (&pNewData[i]) TYPE(m_pData[i]);
-                m_pData[i].~TYPE();
-            }
-            free(m_pData);
-        }
-        for (int i = m_nSize; i < nNewSize; i++)
-            new (&pNewData[i]) TYPE();
-        m_pData = pNewData;
-        m_nSize = nNewSize;
-        m_nMaxSize = nNewMax;
+    if(!m_pData) {
+        INT_PTR capacity=size>m_nGrowBy?size:m_nGrowBy;
+        m_pData=Allocate(capacity);memset(m_pData,0,Bytes(capacity));
+        for(INT_PTR at=0;at<size;++at)::new(static_cast<void*>(m_pData+at)) T;
+        m_nSize=size;m_nMaxSize=capacity;return;
     }
-}
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::FreeExtra() {
-    if (m_nSize != m_nMaxSize) {
-        TYPE* pNewData = nullptr;
-        if (m_nSize > 0) {
-            pNewData = (TYPE*)malloc(m_nSize * sizeof(TYPE));
-            for (int i = 0; i < m_nSize; i++) {
-                new (&pNewData[i]) TYPE(m_pData[i]);
-                m_pData[i].~TYPE();
-            }
-        }
-        free(m_pData);
-        m_pData = pNewData;
-        m_nMaxSize = m_nSize;
+    if(size<=m_nMaxSize) {
+        if(size>m_nSize)Construct(m_pData+m_nSize,size-m_nSize);
+        else if(size<m_nSize)Destroy(m_pData+size,m_nSize-size);
+        m_nSize=size;return;
     }
+    INT_PTR extra=m_nGrowBy;
+    if(!extra){extra=m_nSize/8;if(extra<4)extra=4;if(extra>1024)extra=1024;}
+    INT_PTR capacity=Sum(m_nMaxSize,extra);if(capacity<size)capacity=size;
+    T* data=Allocate(capacity);Relocate(data,capacity,m_pData,m_nSize);
+    Construct(data+m_nSize,size-m_nSize);
+    Free(m_pData);m_pData=data;m_nSize=size;m_nMaxSize=capacity;
 }
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::RemoveAll() {
-    SetSize(0);
+template<class T,class A>void CArray<T,A>::FreeExtra() {
+    if(m_nSize==m_nMaxSize)return;
+    T* data=nullptr;if(m_nSize){data=Allocate(m_nSize);Relocate(data,m_nSize,m_pData,m_nSize);}
+    Free(m_pData);m_pData=data;m_nMaxSize=m_nSize;
 }
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::SetAtGrow(int nIndex, ARG_TYPE newElement) {
-    if (nIndex >= m_nSize)
-        SetSize(nIndex + 1);
-    m_pData[nIndex] = newElement;
+template<class T,class A>void CArray<T,A>::SetAtGrow(INT_PTR index,A value) {
+    if(index<0)AfxThrowInvalidArgException();
+    if(index>=m_nSize)SetSize(Sum(index,1));
+    m_pData[index]=value;
 }
-
-template<class TYPE, class ARG_TYPE>
-int CArray<TYPE, ARG_TYPE>::Add(ARG_TYPE newElement) {
-    int nIndex = m_nSize;
-    SetAtGrow(nIndex, newElement);
-    return nIndex;
+template<class T,class A>INT_PTR CArray<T,A>::Append(const CArray& source) {
+    if(this==&source)AfxThrowInvalidArgException();
+    INT_PTR old=m_nSize;SetSize(Sum(old,source.m_nSize));
+    for(INT_PTR at=0;at<source.m_nSize;++at)m_pData[old+at]=source.m_pData[at];
+    return old;
 }
-
-template<class TYPE, class ARG_TYPE>
-int CArray<TYPE, ARG_TYPE>::Append(const CArray& src) {
-    int nOldSize = m_nSize;
-    SetSize(m_nSize + src.m_nSize);
-    for (int i = 0; i < src.m_nSize; i++)
-        m_pData[nOldSize + i] = src.m_pData[i];
-    return nOldSize;
+template<class T,class A>void CArray<T,A>::Copy(const CArray& source) {
+    if(this==&source)return;
+    SetSize(source.m_nSize);
+    for(INT_PTR at=0;at<source.m_nSize;++at)m_pData[at]=source.m_pData[at];
 }
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::Copy(const CArray& src) {
-    SetSize(src.m_nSize);
-    for (int i = 0; i < src.m_nSize; i++)
-        m_pData[i] = src.m_pData[i];
-}
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::InsertAt(int nIndex, ARG_TYPE newElement, int nCount) {
-    if (nIndex >= m_nSize) {
-        SetSize(nIndex + nCount);
-    } else {
-        int nOldSize = m_nSize;
-        SetSize(m_nSize + nCount);
-        for (int i = nOldSize - 1; i >= nIndex; i--)
-            m_pData[i + nCount] = m_pData[i];
+template<class T,class A>void CArray<T,A>::InsertAt(INT_PTR index,A value,INT_PTR count) {
+    if(index<0||count<=0)AfxThrowInvalidArgException();
+    if(index>=m_nSize)SetSize(Sum(index,count));
+    else {
+        INT_PTR old=m_nSize;SetSize(Sum(m_nSize,count));
+        Destroy(m_pData+old,count);
+        if(memmove_s(m_pData+index+count,Bytes(old-index),m_pData+index,Bytes(old-index)))AfxThrowInvalidArgException();
+        Construct(m_pData+index,count);
     }
-    for (int i = 0; i < nCount; i++)
-        m_pData[nIndex + i] = newElement;
+    for(INT_PTR at=0;at<count;++at)m_pData[index+at]=value;
 }
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::RemoveAt(int nIndex, int nCount) {
-    if (nCount <= 0) {
-        return;
-    }
-    int nOldSize = m_nSize;
-    int nMoveCount = m_nSize - (nIndex + nCount);
-    for (int i = 0; i < nMoveCount; i++)
-        m_pData[nIndex + i] = m_pData[nIndex + nCount + i];
-    for (int i = nOldSize - nCount; i < nOldSize; i++)
-        m_pData[i].~TYPE();
-    m_nSize = nOldSize - nCount;
+template<class T,class A>void CArray<T,A>::RemoveAt(INT_PTR index,INT_PTR count) {
+    INT_PTR end=Sum(index,count);
+    if(index<0||count<0||end>m_nSize||end<index)AfxThrowInvalidArgException();
+    Destroy(m_pData+index,count);
+    INT_PTR remaining=m_nSize-end;
+    if(remaining && memmove_s(m_pData+index,Bytes(remaining),m_pData+end,Bytes(remaining)))AfxThrowInvalidArgException();
+    m_nSize-=count;
 }
-
-template<class TYPE, class ARG_TYPE>
-void CArray<TYPE, ARG_TYPE>::InsertAt(int nStartIndex, CArray* pNewArray) {
-    if (pNewArray->GetSize() > 0) {
-        InsertAt(nStartIndex, pNewArray->GetAt(0), pNewArray->GetSize());
-        for (int i = 1; i < pNewArray->GetSize(); i++)
-            m_pData[nStartIndex + i] = pNewArray->GetAt(i);
-    }
+template<class T,class A>void CArray<T,A>::InsertAt(INT_PTR index,CArray* source) {
+    if(!source||index<0)AfxThrowInvalidArgException();
+    if(source->GetSize()>0){InsertAt(index,source->GetAt(0),source->GetSize());for(INT_PTR at=0;at<source->GetSize();++at)SetAt(index+at,source->GetAt(at));}
+}
+template<class T,class A>void CArray<T,A>::Serialize(CArchive& ar) {
+    if(ar.IsStoring())ar.WriteCount(m_nSize);else SetSize(INT_PTR(ar.ReadCount()));
+    SerializeElements(ar,m_pData,m_nSize);
 }
 
 // ============================================================================
@@ -2040,17 +1987,13 @@ class CWinThread;
 // Collection serialization operators
 template<class TYPE, class ARG_TYPE>
 CArchive& operator<<(CArchive& ar, const CArray<TYPE, ARG_TYPE>& array) {
-    ar << (WORD)array.GetSize();
-    SerializeElements(ar, const_cast<TYPE*>(array.GetData()), array.GetSize());
+    const_cast<CArray<TYPE, ARG_TYPE>&>(array).Serialize(ar);
     return ar;
 }
 
 template<class TYPE, class ARG_TYPE>
 CArchive& operator>>(CArchive& ar, CArray<TYPE, ARG_TYPE>& array) {
-    WORD nSize;
-    ar >> nSize;
-    array.SetSize(nSize);
-    SerializeElements(ar, array.GetData(), nSize);
+    array.Serialize(ar);
     return ar;
 }
 

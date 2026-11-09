@@ -1,0 +1,40 @@
+name: Template array ABI
+on:
+  push:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/runtime/CObject*.cpp'
+      - 'tests/*array*'
+      - 'tests/*archive*'
+      - 'tests/build_string_imports.py'
+      - '.github/workflows/arrays.yml'
+  pull_request:
+    paths:
+      - 'include/openmfc/**'
+      - 'phase4/src/core/runtime/CObject*.cpp'
+      - 'tests/*array*'
+      - 'tests/*archive*'
+      - 'tests/build_string_imports.py'
+      - '.github/workflows/arrays.yml'
+  workflow_dispatch:
+jobs:
+  windows:
+    name: SDK array oracle (${{ matrix.name }})
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          - name: optimized
+            flags: '--optimize'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compare production public arrays with installed SDK/native MFC arrays
+        shell: cmd
+        run: python tests/build_arrays.py --build "%RUNNER_TEMP%/arrays" ${{ matrix.flags }}

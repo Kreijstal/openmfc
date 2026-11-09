@@ -75,11 +75,8 @@ namespace openmfc { namespace detail { namespace filecore {
 template<typename Wrapper, typename State, typename... Args>
 State& EnsureCollectionState(const Wrapper* self, Args&&... args) {
     auto& states = GetCollectionStates<Wrapper, State>();
-    auto it = states.find(self);
-    if (it == states.end()) {
-        it = states.emplace(self, State(std::forward<Args>(args)...)).first;
-    }
-    return it->second;
+    // Owning collections cannot be copied while creating their side-table entry.
+    return states.try_emplace(self, std::forward<Args>(args)...).first->second;
 }
 } } }
 
