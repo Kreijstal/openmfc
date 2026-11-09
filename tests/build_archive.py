@@ -9,6 +9,8 @@ def sources():
     return [s for s in build_string_imports.sources() if not s.startswith('tests/')]+[
         'phase4/src/core/runtime/CArchiveStorage.cpp',
         'phase4/src/core/runtime/CArchiveMapping.cpp',
+        'phase4/src/core/runtime/CArchiveStoreObjects.cpp',
+        'phase4/src/core/runtime/RuntimeClassStore.cpp',
         'phase4/src/core/runtime/NativeMemoryOperators.cpp',
         'phase4/src/core/runtime/CObjectMetadata.cpp',
         'phase4/src/core/runtime/AfxFormatStrings.cpp',

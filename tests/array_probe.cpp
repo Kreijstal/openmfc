@@ -17,6 +17,7 @@ ArrayReport* report;
 void* active;
 bool tracking;
 bool archiveActive,failAsInteger,allocationNull;
+const void* anchors[8]{};
 int failAllocation,failConstructor,failAssignment;
 struct Block {unsigned char* data;size_t bytes;bool live;};
 Block blocks[1024];unsigned blockCount;
@@ -24,6 +25,7 @@ using Free=void(__cdecl*)(void*);Free originalFree;
 template<class T>T field(const void* object,size_t offset) {T result{};if(object)memcpy(&result,static_cast<const char*>(object)+offset,sizeof(T));return result;}
 long long pointer(const void* p) {
     if(!p)return 0;
+    for(unsigned i=0;i<8;++i)if(p==anchors[i])return 40000+i;
     for(unsigned i=0;i<blockCount;++i)if(uintptr_t(p)>=uintptr_t(blocks[i].data)&&uintptr_t(p)<=uintptr_t(blocks[i].data)+blocks[i].bytes)
         return 100000+static_cast<long long>(i)*16384+static_cast<long long>(uintptr_t(p)-uintptr_t(blocks[i].data));
     return -1;
@@ -56,7 +58,7 @@ void release(void* p) {
 struct AllocationHook {
     BYTE* entry;BYTE saved[12];DWORD protection;void** freeSlot;void* savedFree;DWORD freeProtection;
     AllocationHook() {
-#ifdef OPENMFC_USE_SDK_MFC
+#if defined(OPENMFC_USE_SDK_MFC) && !defined(OPENMFC_USE_SOURCE_DLL)
         HMODULE image=GetModuleHandleW(L"mfc140u.dll");
 #else
         HMODULE image=GetModuleHandleW(L"openmfc_archive.dll");
@@ -324,6 +326,7 @@ void mapSnapshot(CMapPtrToPtr* map,bool schema) {
     }
 }
 void archiveSnapshot(ArchiveView& ar) {
+    event(79,field<UINT>(&ar,32),field<UINT>(&ar,20),UINT_PTR(field<void*>(&ar,56))-UINT_PTR(field<void*>(&ar,72)));
     if(ar.IsStoring())mapSnapshot(field<CMapPtrToPtr*>(&ar,88),false);
     else if(void* array=field<void*>(&ar,88)) {
         event(87,field<INT_PTR>(array,16),field<INT_PTR>(array,24),field<INT_PTR>(array,32));
@@ -383,6 +386,104 @@ void mapping(int scenario,int failure) {
     }
     failAllocation=0;failAsInteger=allocationNull=false;ar.Abort();delete detached;event(93);active=nullptr;archiveActive=false;
 }
+int failIO,serializeBehavior,callbackNumber,storeMutation;
+bool didMutate;
+void storeChange() {
+    if(didMutate)return;didMutate=true;
+    if(storeMutation==29||storeMutation==34||storeMutation==35){UINT mode=3;memcpy(static_cast<BYTE*>(active)+32,&mode,4);}
+    if(storeMutation==30){UINT count=0x3ffffffe;memcpy(static_cast<BYTE*>(active)+80,&count,4);}
+    if(storeMutation==37)const_cast<CRuntimeClass*>(static_cast<const CRuntimeClass*>(anchors[0]))->m_lpszClassName="ChangedNamePayload";
+    if(storeMutation==38)const_cast<CRuntimeClass*>(static_cast<const CRuntimeClass*>(anchors[0]))->m_wSchema=9;
+}
+struct StoreFile:CMemFile {
+    CRuntimeClass* GetRuntimeClass()const override {return CObject::GetThisClass();}
+    void Write(const void* bytes,UINT count) override {
+        event(100,count,GetPosition());
+        if(failIO>0&&!--failIO)throw 74;
+        if(storeMutation==29||storeMutation==30||storeMutation==37||storeMutation==38)storeChange();
+        CMemFile::Write(bytes,count);
+    }
+};
+struct StoreRecord:CObject {
+    CRuntimeClass* type;int id;StoreRecord* peer=nullptr;
+    StoreRecord(CRuntimeClass* t,int n):type(t),id(n) {}
+    CRuntimeClass* GetRuntimeClass()const override {
+        event(101,id,pointer(type));
+        if(id==11&&!didMutate) {
+            if(storeMutation==31){didMutate=true;AfxThrowMemoryException();}
+            if(storeMutation==32){didMutate=true;throw 76;}
+            if(storeMutation==33){didMutate=true;static_cast<CArchive*>(active)->MapObject(peer);}
+            if(storeMutation==34)storeChange();
+        }
+        return type;
+    }
+    void Serialize(CArchive& ar)override {
+        event(102,id,++callbackNumber);ar.Write(&id,sizeof(id));
+        if(serializeBehavior==1){ar.WriteObject(this);if(peer)ar.WriteObject(peer);}
+        if(serializeBehavior==2&&callbackNumber==1)AfxThrowMemoryException();
+        if(serializeBehavior==3&&callbackNumber==1)throw 75;
+        if(storeMutation==35&&!didMutate){storeChange();ar.WriteObject(this);}
+    }
+};
+struct StoreCall {
+    CArchive* archive;int method;CRuntimeClass* type;CObject* object;
+    static void invoke(void* data) {
+        auto& call=*static_cast<StoreCall*>(data);
+        if(call.method==0)call.type->Store(*call.archive);
+        else if(call.method==1)call.archive->WriteClass(call.type);
+        else call.archive->WriteObject(call.object);
+    }
+};
+void storing(int scenario,int failure) {
+    tracking=false;StoreFile file;BYTE buffer[128];memset(buffer,0xa5,128);
+    ArchiveView ar(&file,scenario==3||scenario==27||scenario==28?3:2,128,buffer);ar.seed(0);ar.SetStoreParams(1,3);
+    static char name[65540];size_t length=scenario==4?0:scenario==5?63:scenario==6?64:scenario==7?255:scenario==8?65535:scenario==9?65536:11;
+    for(size_t i=0;i<length;++i)name[i]=char('A'+i%23);name[length]=0;
+    CRuntimeClass type={scenario==10?nullptr:name,sizeof(StoreRecord),scenario==11?0xffff:scenario==12?0x8000ffff:scenario==13?0xffffffff:7,nullptr,&CObject::GetThisClass,nullptr,nullptr};
+    CRuntimeClass other={"SecondType",sizeof(StoreRecord),3,nullptr,&CObject::GetThisClass,nullptr,nullptr};
+    StoreRecord first(&type,11),second(&type,22),third(&other,33);first.peer=&second;second.peer=&first;
+    anchors[0]=&type;anchors[1]=&other;anchors[2]=&first;anchors[3]=&second;anchors[4]=&third;
+    serializeBehavior=scenario==14?1:scenario==15?2:scenario==16?3:0;callbackNumber=0;
+    storeMutation=scenario;didMutate=false;
+    if(scenario==17)first.type=nullptr;
+    if(scenario>=18&&scenario<=23) {
+        ar.MapObject(nullptr);UINT index=scenario==18?0x7ffe:scenario==19?0x7fff:scenario==20?0x80000000:scenario==21?0xffffffff:0;
+        auto* map=field<CMapPtrToPtr*>(&ar,88);
+        (*map)[&type]=reinterpret_cast<void*>(UINT_PTR(index));(*map)[&first]=reinterpret_cast<void*>(UINT_PTR(index));
+        ar.seed(scenario==22?0x3ffffffe:scenario==23?0x3ffffffd:5);
+    }
+    if(scenario==24)ar.Write(buffer,126);if(scenario==25)ar.Write(buffer,127);
+    if(scenario==29||scenario==30)ar.Write(buffer,127);
+    if(scenario==37||scenario==38)ar.Write(buffer,124);
+    tracking=true;archiveActive=true;active=&ar;AllocationHook hook;
+    failAllocation=failure>=1&&failure<=7?failure:0;failIO=failure>=8?failure-7:0;
+    for(int step=0;step<5;++step) {
+        int method=scenario==0?0:scenario==1?1:2;
+        if(scenario==27)method=1;if(scenario==28)method=0;
+        if(scenario==29||scenario==30||scenario==37||scenario==38)method=1;
+        if(scenario>3&&scenario<14)method=step<2?0:1;
+        if(scenario>=18&&scenario<=23)method=step&1?2:1;
+        StoreCall call{&ar,method,step==0&&(scenario==3||scenario==27||scenario==28)?nullptr:step==4?&other:&type,step==0?nullptr:step==1?&first:step==2?&second:step==3?&first:&third};
+        event(103,step,method);
+        try{event(104,guarded(&StoreCall::invoke,&call));}
+        catch(CNotSupportedException* e){event(105,4);e->Delete();}
+        catch(CInvalidArgException* e){event(105,1);e->Delete();}
+        catch(CMemoryException* e){event(105,2);e->Delete();}
+        catch(CArchiveException* e){event(105,100+e->m_cause);e->Delete();}
+        catch(CException* e){event(105,3);if(e)e->Delete();}
+        catch(int code){event(105,code);}
+        event(79,field<UINT>(&ar,32),field<UINT>(&ar,20),UINT_PTR(field<void*>(&ar,56))-UINT_PTR(field<void*>(&ar,72)));
+        mapSnapshot(field<CMapPtrToPtr*>(&ar,88),false);mapSnapshot(field<CMapPtrToPtr*>(&ar,96),true);
+        for(unsigned i=0;i<128;++i)event(106,i,buffer[i]);
+        if(auto* map=field<CMapPtrToPtr*>(&ar,88))for(unsigned i=0;i<5;++i){void* value=nullptr;BOOL found=map->Lookup(const_cast<void*>(anchors[i]),value);event(107,i,found,reinterpret_cast<INT_PTR>(value));}
+    }
+    failAllocation=failIO=0;
+    if(ar.IsStoring())ar.Flush();
+    tracking=false;file.Seek(0,CFile::begin);unsigned char chunk[257];UINT n;unsigned long long hash=0;size_t at=0;
+    while((n=file.Read(chunk,sizeof(chunk))))for(UINT i=0;i<n;++i){hash=hash*131+chunk[i];if(at<64||file.GetLength()<512){tracking=true;event(108,at,chunk[i]);tracking=false;}++at;}
+    tracking=true;event(109,at,static_cast<long long>(hash));ar.Abort();event(110);
+    active=nullptr;archiveActive=false;for(auto& anchor:anchors)anchor=nullptr;
+}
 }
 void* operator new[](size_t bytes) {return allocate(bytes);}
 void operator delete[](void* p) noexcept {release(p);}
@@ -391,7 +492,9 @@ extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int 
     report=output;report->count=report->overflow=0;active=nullptr;blockCount=0;tracking=true;
     failAllocation=failConstructor=failAssignment=0;
     archiveActive=failAsInteger=allocationNull=false;
-    if(kind==6)mapping(scenario,failure);
+    for(auto& anchor:anchors)anchor=nullptr;
+    if(kind==7)storing(scenario,failure);
+    else if(kind==6)mapping(scenario,failure);
     else if(kind==5)pointerArray(scenario,failure);
     else if(kind==4)largeArithmetic(scenario);
     else if(kind==3) {

@@ -109,13 +109,10 @@ template <class T> T ArGet(CArchive* ar) {
 
 
 
-// Symbol: ?WriteClass@CArchive@@QEAAXPEBUCRuntimeClass@@@Z
-extern "C" void MS_ABI impl__WriteClass_CArchive__QEAAXPEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass* pClass) {
-    if (pThis && pClass) impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(pClass, pThis);
-}
+// Class/object storage lives in CArchiveStoreObjects.cpp.
 // Symbol: ?SerializeClass@CArchive@@QEAAXPEBUCRuntimeClass@@@Z
 extern "C" void MS_ABI impl__SerializeClass_CArchive__QEAAXPEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass* pClass) {
-    if (pThis && pThis->IsStoring()) impl__WriteClass_CArchive__QEAAXPEBUCRuntimeClass___Z(pThis, pClass);
+    if (pThis && pThis->IsStoring()) pThis->WriteClass(pClass);
     else if (pThis) {
         unsigned int schema = 0;
         (void)impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(pThis, &schema);
@@ -126,10 +123,6 @@ extern "C" void MS_ABI impl__SerializeClass_CArchive__QEAAXPEBUCRuntimeClass___Z
 extern "C" CRuntimeClass* MS_ABI impl__ReadClass_CArchive__QEAAPEAUCRuntimeClass__PEBU2_PEAIPEAK_Z(
     CArchive* pThis, const CRuntimeClass*, unsigned int* schema, unsigned long*) {
     return pThis ? impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(pThis, schema) : nullptr;
-}
-// Symbol: ?WriteObject@CArchive@@QEAAXPEBVCObject@@@Z
-extern "C" void MS_ABI impl__WriteObject_CArchive__QEAAXPEBVCObject___Z(CArchive* pThis, const CObject* object) {
-    if (pThis) (*pThis) << object;
 }
 // Symbol: ?ReadObject@CArchive@@QEAAPEAVCObject@@PEBUCRuntimeClass@@@Z
 extern "C" CObject* MS_ABI impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass*) {
@@ -274,26 +267,6 @@ CArchive& CArchive::operator<<(float f) {
 }
 CArchive& CArchive::operator<<(double d) {
     Write(&d, sizeof(d));
-    return *this;
-}
-CArchive& CArchive::operator<<(const CObject* pOb) {
-    unsigned char hasObject = (pOb != nullptr) ? 1 : 0;
-    Write(&hasObject, sizeof(hasObject));
-
-    if (!hasObject) {
-        return *this;
-    }
-
-    const CRuntimeClass* pClass = pOb->GetRuntimeClass();
-    if (pClass == nullptr) {
-        pClass = &CObject::classCObject;
-    }
-    impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(pClass, this);
-
-    // Conservative format: only write payload if load side can create the object.
-    if (pClass->m_pfnCreateObject) {
-        const_cast<CObject*>(pOb)->Serialize(*this);
-    }
     return *this;
 }
 CArchive& CArchive::operator<<(const void* p) {

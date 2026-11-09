@@ -19,7 +19,6 @@
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
 // Symbol: ?Load@CRuntimeClass@@SAPEAU1@AEAVCArchive@@PEAI@Z
 // Implemented in cobject_impl.cpp; this unit had a second, unlinked copy.
-// Symbol: ?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z
 // Symbol: ?CreateObject@CRuntimeClass@@SAPEAVCObject@@PEB_W@Z
 extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__SAPEAVCObject__PEB_W_Z(
     const wchar_t* lpszClassName  // RCX = class name (wide)
@@ -153,29 +152,4 @@ extern "C" CRuntimeClass* MS_ABI impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive_
     CRuntimeClass* pClass = FindRuntimeClass(szClassName);
 
     return pClass;
-}
-// Symbol: ?Store@CRuntimeClass@@QEBAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Store_CRuntimeClass__QEBAXAEAVCArchive___Z(
-    const CRuntimeClass* pThis,  // RCX = this
-    CArchive* ar                 // RDX = archive
-) {
-    if (!pThis || !ar || !ar->IsStoring()) return;
-
-    // Write schema number
-    unsigned short wSchema = (unsigned short)pThis->m_wSchema;
-    *ar << wSchema;
-
-    // Write class name
-    if (pThis->m_lpszClassName) {
-        size_t nLen = strlen(pThis->m_lpszClassName);
-        if (nLen > 64) nLen = 64;
-
-        unsigned short wNameLen = (unsigned short)nLen;
-        *ar << wNameLen;
-
-        ar->Write(pThis->m_lpszClassName, (UINT)nLen);
-    } else {
-        unsigned short wNameLen = 0;
-        *ar << wNameLen;
-    }
 }

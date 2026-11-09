@@ -10,7 +10,24 @@
 #include <cstring>
 #include <type_traits>
 static_assert(sizeof(CArchive)==112&&!std::is_polymorphic_v<CArchive>,"native archive ABI");
+struct ImportRecord:CObject {
+ static CRuntimeClass descriptor;
+ int value=19;
+ CRuntimeClass* GetRuntimeClass()const override{return &descriptor;}
+ void Serialize(CArchive& archive)override{archive.Write(&value,sizeof(value));}
+};
+CRuntimeClass ImportRecord::descriptor={"ImportRecord",sizeof(ImportRecord),42,nullptr,&CObject::GetThisClass,nullptr,nullptr};
 int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
+ {
+  CMemFile graph;ImportRecord record;
+  {CArchive archive(&graph,CArchive::store,128);archive.WriteClass(&ImportRecord::descriptor);archive.WriteObject(&record);archive<<static_cast<const CObject*>(&record)<<static_cast<const CObject*>(nullptr);archive.Close();}
+  graph.Seek(0,CFile::begin);WORD word=0;char name[13]{};int value=0;
+  graph.Read(&word,2);check(word==0xffff);graph.Read(&word,2);check(word==42);graph.Read(&word,2);check(word==12);
+  graph.Read(name,12);check(!strcmp(name,"ImportRecord"));graph.Read(&word,2);check(word==0x8001);
+  graph.Read(&value,4);check(value==19);graph.Read(&word,2);check(word==2);graph.Read(&word,2);check(word==0&&graph.GetPosition()==graph.GetLength());
+  CMemFile metadata;{CArchive archive(&metadata,CArchive::store,128);ImportRecord::descriptor.Store(archive);archive.Close();}
+  check(metadata.GetLength()==16);
+ }
  {
   static_assert(sizeof(CPtrArray)==40,"native pointer array ABI");
   CPtrArray a,b;check(a.IsEmpty()&&a.GetUpperBound()==-1);
@@ -26,6 +43,8 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
   a.RemoveAll();check(a.GetData()==nullptr&&a.GetSize()==0);
  }
  CMemFile file;
+ file.SetFilePath(L"archive memory");
+ {bool caught=false;try{file.SetFilePath(nullptr);}catch(CInvalidArgException* e){caught=true;e->Delete();}check(caught&&!wcscmp(file.GetFilePath(),L"archive memory"));}
  {
   CArchive store(&file,CArchive::store,128);check(store.IsStoring()&&!store.IsLoading()&&!store.IsByteSwapping());
   store.MapObject(nullptr);store.MapObject(&file);store.EnsureSchemaMapExists(nullptr);store.EnsureSchemaMapExists(nullptr);

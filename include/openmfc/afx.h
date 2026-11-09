@@ -216,6 +216,7 @@ struct CRuntimeClass {
 
     // Helper methods
     CObject* CreateObject();
+    OPENMFC_STRING_API void Store(CArchive& archive) const;
     CObject* CreateObject() const { return const_cast<CRuntimeClass*>(this)->CreateObject(); }
 
     // Convenience accessor for the base link. Returns nullptr at a root descriptor.
@@ -455,7 +456,7 @@ public:
     CArchive& operator<<(unsigned long l);
     CArchive& operator<<(float f);
     CArchive& operator<<(double d);
-    CArchive& operator<<(const CObject* pOb);
+    CArchive& operator<<(const CObject* object) {WriteObject(object);return *this;}
     CArchive& operator<<(const void* p);
     CArchive& operator<<(const CString& str);
     
@@ -489,6 +490,8 @@ public:
     OPENMFC_ARCHIVE_API void WriteCount(ULONGLONG count);
     OPENMFC_ARCHIVE_API void CheckCount();
     OPENMFC_ARCHIVE_API void MapObject(const CObject* object);
+    OPENMFC_ARCHIVE_API void WriteClass(const CRuntimeClass* type);
+    OPENMFC_ARCHIVE_API void WriteObject(const CObject* object);
     OPENMFC_ARCHIVE_API void EnsureSchemaMapExists(CArray<LoadArrayObjType,const LoadArrayObjType&>** types=nullptr);
     void SetStoreParams(UINT hashSize=2053,UINT blockSize=128) {m_nHashSize=hashSize;m_nGrowSize=blockSize;}
     void SetLoadParams(UINT growBy=1024) {m_nGrowSize=growBy;}
@@ -557,7 +560,7 @@ public:
     virtual CString GetFileName() const;
     virtual CString GetFileTitle() const;
     virtual CString GetFilePath() const;
-    virtual void SetFilePath(const wchar_t*);
+    virtual void SetFilePath(const wchar_t* name) {if(!name)AfxThrowInvalidArgException();m_strFileName=name;}
     virtual BOOL Open(const wchar_t*,UINT,CFileException* = nullptr);
     virtual BOOL Open(const wchar_t*,UINT,ATL::CAtlTransactionManager*,CFileException*);
     virtual CFile* Duplicate() const;

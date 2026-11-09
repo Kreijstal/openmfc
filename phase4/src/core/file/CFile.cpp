@@ -150,10 +150,6 @@ void CFile::Abort() {
     if (m_hFile != hFileNull) { CloseHandle(m_hFile); m_hFile = hFileNull; }
     m_strFileName.Empty();
 }
-void CFile::SetFilePath(const wchar_t* name) {
-    if (!name) AfxThrowInvalidArgException();
-    m_strFileName = name;
-}
 CString CFile::GetFilePath() const { return m_strFileName; }
 CString CFile::GetFileName() const {
     CFileStatus status;

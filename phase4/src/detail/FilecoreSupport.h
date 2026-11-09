@@ -790,6 +790,11 @@ extern "C" void MS_ABI impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1__Z(CMapW
 
 class CArchiveAccess {
 public:
+    template<class T>static void StoreScalar(CArchive& archive,T value) {
+        if(archive.IsLoading())AfxThrowArchiveException(2,archive.m_strFileName.GetString());
+        if(UINT_PTR(archive.m_lpBufCur)+sizeof(T)>UINT_PTR(archive.m_lpBufMax))archive.Flush();
+        memcpy(archive.m_lpBufCur,&value,sizeof(value));archive.m_lpBufCur+=sizeof(value);
+    }
     static void InvokeEnsureSchemaMapExists(CArchive* archive,void** output) {
         using Types=CArray<CArchive::LoadArrayObjType,const CArchive::LoadArrayObjType&>;
         archive->EnsureSchemaMapExists(reinterpret_cast<Types**>(output));

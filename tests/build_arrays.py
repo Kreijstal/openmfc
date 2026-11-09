@@ -50,9 +50,10 @@ def main():
                 elif ':/' in text:text=text.replace(':/',':Z:/',1)
             return '"'+text+'"'
         response=out/(name+'.rsp');response.write_text('\n'.join(quote(p) for p in options));run([args.linker,'@'+str(response)])
-    for native in (False,True):
-        name='array_native' if native else 'array_source';obj=out/(name+'.obj')
-        include=['/I'+str(mfc),'/DOPENMFC_USE_SDK_MFC'] if native else ['/I'+str(ROOT/'include')]
+    for name in ('array_source','array_sdk','array_native'):
+        native=name=='array_native';sdk_header=name!='array_source';obj=out/(name+'.obj')
+        include=['/I'+str(mfc),'/DOPENMFC_USE_SDK_MFC'] if sdk_header else ['/I'+str(ROOT/'include')]
+        if name=='array_sdk':include.append('/DOPENMFC_USE_SOURCE_DLL')
         run([args.compiler,*flags,*include,'/D_AFXDLL','/c',str(ROOT/'tests/array_probe.cpp'),'/Fo'+str(obj)])
         link(name,['/nologo','/DLL','/OPT:REF','/OUT:'+str(out/(name+'.dll')),*libraries,obj,
                    mfc.parent/'lib/x64/mfc140u.lib' if native else archive/'openmfc_archive.lib',
@@ -60,7 +61,7 @@ def main():
         imports=build_string_imports.pe_imports(out/(name+'.dll'))
         if native:assert 'mfc140u.dll' in imports and 'openmfc_archive.dll' not in imports,imports
         else:assert 'openmfc_archive.dll' in imports and not any(d.startswith('mfc') for d in imports),imports
-        print(name+': independent '+('installed SDK/native MFC' if native else 'public header/production DLL')+' imports verified',flush=True)
+        print(name+': independent '+('installed SDK/native MFC' if native else 'installed SDK/production DLL' if sdk_header else 'public header/production DLL')+' imports verified',flush=True)
     obj=out/'runner.obj'
     run([args.compiler,*flags,'/c',str(ROOT/'tests/test_array_oracle.cpp'),'/Fo'+str(obj)])
     link('runner',['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF','/OUT:'+str(out/'test_array_oracle.exe'),*libraries,obj,'kernel32.lib'])
