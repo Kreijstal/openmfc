@@ -1634,6 +1634,7 @@ public:
     CDockingManager();
     CDockingManager(CFrameWnd* pParentFrameWnd);
     virtual ~CDockingManager();
+    void Serialize(CArchive& archive) override;
 
     void DockPane(CBasePane* pBar, UINT nDockBarID = 0, LPCRECT lpRect = nullptr);
     BOOL DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar);

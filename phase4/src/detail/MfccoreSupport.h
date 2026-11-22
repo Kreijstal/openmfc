@@ -94,6 +94,7 @@ extern decltype(openmfc::docking_state::PaneCoreStates()) g_paneCoreState_Mfccor
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
+struct DockingProfileArchive;
 struct DockingManagerState {
     struct InPlacePaneSize {
         HWND window = nullptr;
@@ -112,6 +113,7 @@ struct DockingManagerState {
         bool outer;
     };
     std::vector<EdgePane> edgePanes;
+    std::shared_ptr<DockingProfileArchive> pendingLayout;
     DWORD enabledAlignment = 0;
     DWORD enabledAutoHideAlignment = 0;
     bool lockUpdate = false;
@@ -147,24 +149,7 @@ struct DockingManagerState {
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
-struct DockingManagerSnapshot {
-    std::vector<UINT> ids;
-    std::vector<CRect> rects;
-    std::vector<BOOL> hidden;
-    std::vector<BOOL> floating;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace mfccore {
 extern thread_local std::unordered_map<const CDockingManager*, DockingManagerState> g_dockingStates;
-} } }
-namespace openmfc { namespace detail { namespace mfccore {
-extern std::mutex g_dockingProfileMutex;
-} } }
-namespace openmfc { namespace detail { namespace mfccore {
-extern std::unordered_map<const CDockingManager*,
-                          std::unordered_map<std::wstring, DockingManagerSnapshot>>
-    g_dockingProfileStates;
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
@@ -202,14 +187,6 @@ CDockingManager* DockingManagerForMdiChild(CMDIChildWndEx* frame);
 
 namespace openmfc { namespace detail { namespace mfccore {
 void RemoveDockingState(const CDockingManager* pManager);
-} } }
-
-namespace openmfc { namespace detail { namespace mfccore {
-std::wstring DockingProfileName(const wchar_t* section);
-} } }
-
-namespace openmfc { namespace detail { namespace mfccore {
-DockingManagerSnapshot* FindDockingProfileSnapshot(const CDockingManager* pManager, const wchar_t* section);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {

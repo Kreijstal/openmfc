@@ -102,10 +102,6 @@ CRuntimeClass* g_pDefaultVisualManagerClass = RUNTIME_CLASS(CMFCVisualManager);
 decltype(openmfc::docking_state::PaneCoreStateMutex()) g_paneCoreStateMutex_Mfccore = openmfc::docking_state::PaneCoreStateMutex();
 decltype(openmfc::docking_state::PaneCoreStates()) g_paneCoreState_Mfccore = openmfc::docking_state::PaneCoreStates();
 thread_local std::unordered_map<const CDockingManager*, DockingManagerState> g_dockingStates;
-std::mutex g_dockingProfileMutex;
-std::unordered_map<const CDockingManager*,
-                          std::unordered_map<std::wstring, DockingManagerSnapshot>>
-    g_dockingProfileStates;
 DockingManagerState& EnsureDockingState(const CDockingManager* pManager) {
     return g_dockingStates[pManager];
 }
@@ -115,18 +111,6 @@ const DockingManagerState* FindDockingState(const CDockingManager* pManager) {
 }
 void RemoveDockingState(const CDockingManager* pManager) {
     g_dockingStates.erase(pManager);
-}
-std::wstring DockingProfileName(const wchar_t* section) {
-    return section && *section ? std::wstring(section) : std::wstring(L"DockingManager");
-}
-DockingManagerSnapshot* FindDockingProfileSnapshot(const CDockingManager* pManager, const wchar_t* section) {
-    auto it = g_dockingProfileStates.find(pManager);
-    if (it == g_dockingProfileStates.end()) return nullptr;
-
-    const std::wstring profile = DockingProfileName(section);
-    auto profileIt = it->second.find(profile);
-    if (profileIt == it->second.end()) return nullptr;
-    return &profileIt->second;
 }
 void AddDockingPane(CDockingManager* pManager, CBasePane* pPane) {
     if (!pManager || !pPane) return;

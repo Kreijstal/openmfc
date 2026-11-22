@@ -42,6 +42,82 @@ extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd*);
 extern "C" BOOL MS_ABI impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(
     const void*, long long, CBasePane*, int, const CDockingManager*, BOOL, DWORD*, DWORD, const RECT*);
 
+extern "C" CString* MS_ABI impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(
+    CString*, const wchar_t*, const wchar_t*);
+extern "C" void MS_ABI impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(CDockingManager*, CArchive&);
+extern "C" void MS_ABI impl__Serialize_CMFCBaseTabCtrl__UEAAXAEAVCArchive___Z(CMFCBaseTabCtrl*, CArchive&);
+extern "C" void MS_ABI impl__ApplyRestoredTabInfo_CBaseTabbedPane__UEAAXH_Z(CBaseTabbedPane*, int);
+extern "C" void MS_ABI impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(void*, int, CWnd*);
+extern "C" void MS_ABI impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(void*, CArchive&);
+extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManager___Z(void*, void*);
+extern "C" void MS_ABI impl__SetDockState_CMultiPaneFrameWnd__UEAAXPEAVCDockingManager___Z(void*, void*);
+extern "C" void* impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA;
+extern "C" void* impl__m_pParentWndForSerialize_CPaneFrameWnd__1PEAVCFrameWnd__EA;
+extern "C" int impl__m_bRestoringDockState_CDockingManager__2HA;
+extern "C" int impl__m_bSavingState_CDockingManager__2HA;
+extern "C" void* MS_ABI impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(const CBasePane*);
+
+namespace openmfc::detail::mfccore {
+struct DockingProfileArchive {
+    struct TabGroup {
+        UINT id;
+        std::vector<RestoredTab> tabs;
+        int active;
+    };
+    struct AutoHidePane {
+        UINT id;
+        DWORD alignment;
+        BOOL visible;
+        RECT bounds;
+        BOOL first;
+        BOOL last;
+        BOOL active;
+    };
+    std::vector<TabGroup> tabs;
+    std::vector<std::unique_ptr<CPaneDivider>> edges;
+    std::vector<std::unique_ptr<CPaneFrameWnd>> floating;
+    std::vector<AutoHidePane> autoHide;
+    std::vector<UINT> hiddenMdi;
+    std::unordered_map<UINT, BOOL> visibility;
+};
+}
+
+namespace {
+constexpr wchar_t dockingProfileValue[] = L"DockingPaneAndPaneDividers";
+constexpr DWORD maxDockingProfileBytes = 64 * 1024 * 1024;
+constexpr DWORD visibilityRecord = 0x56464d4f; // OMFV
+
+template<class T> class ScopedValue {
+public:
+    ScopedValue(T& value, T temporary) : slot(value), previous(std::exchange(value, temporary)) {}
+    ~ScopedValue() { slot = previous; }
+private:
+    T& slot;
+    T previous;
+};
+
+CString DockingProfilePath(const wchar_t* profile, UINT frameId) {
+    alignas(CString) unsigned char storage[sizeof(CString)];
+    auto* root = reinterpret_cast<CString*>(storage);
+    impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(
+        root, L"DockingManagers", profile);
+    CString path(std::move(*root));
+    root->~CString();
+    CString section;
+    section.Format(L"%sDockingManager-%d", path.GetString(), static_cast<int>(frameId));
+    return section;
+}
+
+void ApplyDockingLayout(CDockingManager& manager, DockingProfileArchive& restored);
+
+int ReadLayoutCount(CArchive& archive) {
+    int count = 0;
+    archive >> count;
+    if (count < 0 || count > 65535) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    return count;
+}
+}
+
 namespace {
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ();
 extern "C" void* MS_ABI impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(
@@ -705,43 +781,40 @@ extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z
     return TRUE;
 }
 // Symbol: ?LoadState@CDockingManager@@UEAAHPEB_WI@Z
-extern "C" int MS_ABI impl__LoadState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t* lpszProfileName, unsigned int) {
-    if (!pThis) return FALSE;
-    DockingManagerState& state = EnsureDockingState(pThis);
-    std::lock_guard<std::mutex> lock(g_dockingProfileMutex);
-    DockingManagerSnapshot* snapshot = FindDockingProfileSnapshot(pThis, lpszProfileName);
-    if (!snapshot) return TRUE;
+extern "C" int MS_ABI impl__LoadState_CDockingManager__UEAAHPEB_WI_Z(
+    CDockingManager* manager, const wchar_t* profile, UINT frameId) {
+    if (!manager) return FALSE;
+    const CString section = DockingProfilePath(profile, frameId);
+    DWORD size = 0;
+    if (::RegGetValueW(HKEY_CURRENT_USER, section, dockingProfileValue, RRF_RT_REG_BINARY,
+            nullptr, nullptr, &size) != ERROR_SUCCESS || !size || size > maxDockingProfileBytes) return FALSE;
+    std::vector<BYTE> bytes(size);
+    if (::RegGetValueW(HKEY_CURRENT_USER, section, dockingProfileValue, RRF_RT_REG_BINARY,
+            nullptr, bytes.data(), &size) != ERROR_SUCCESS || !size) return FALSE;
 
-    const std::size_t kCap = snapshot->ids.size();
-    std::vector<CBasePane*> ordered;
-    std::unordered_set<CBasePane*> restored;
-    ordered.reserve(state.panes.size());
-
-    for (std::size_t i = 0; i < kCap; ++i) {
-        if (i >= snapshot->rects.size() || i >= snapshot->hidden.size() || i >= snapshot->floating.size()) break;
-        CBasePane* pane = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
-            pThis, snapshot->ids[i], TRUE);
-        if (!pane) continue;
-        if (restored.find(pane) != restored.end()) continue;
-
-        if (snapshot->hidden[i]) state.hiddenPanes.insert(pane); else state.hiddenPanes.erase(pane);
-        if (snapshot->floating[i]) state.floatingPanes.insert(pane); else state.floatingPanes.erase(pane);
-
-        std::lock_guard<std::mutex> paneLock(g_paneCoreStateMutex_Mfccore);
-        g_paneCoreState_Mfccore[pane].recentRect = snapshot->rects[i];
-        g_paneCoreState_Mfccore[pane].visible = !snapshot->hidden[i];
-
-        ordered.push_back(pane);
-        restored.insert(pane);
+    auto& state = EnsureDockingState(manager);
+    auto previous = state.pendingLayout;
+    try {
+        CMemFile file(bytes.data(), size);
+        CArchive archive(&file, CArchive::load | CArchive::bNoFlushOnDelete);
+        impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(manager, archive);
+        DWORD tag = 0;
+        if (archive.Read(&tag, sizeof(tag)) == sizeof(tag) && tag == visibilityRecord) {
+            auto& visibility = state.pendingLayout->visibility;
+            for (int count = ReadLayoutCount(archive); count > 0; --count) {
+                UINT id = 0;
+                BOOL visible = FALSE;
+                archive >> id >> visible;
+                visibility[id] = visible;
+            }
+        }
+        archive.Close();
+        return TRUE;
+    } catch (CException* error) {
+        state.pendingLayout = std::move(previous);
+        error->Delete();
+        return FALSE;
     }
-
-    for (CBasePane* pane : state.panes) {
-        if (pane && restored.find(pane) == restored.end()) ordered.push_back(pane);
-    }
-    if (!ordered.empty()) state.panes = ordered;
-
-    pThis->RecalcLayout();
-    return TRUE;
 }
 // Symbol: ?LockUpdate@CDockingManager@@QEAAXH@Z
 extern "C" void MS_ABI impl__LockUpdate_CDockingManager__QEAAXH_Z(CDockingManager* pThis, int bLock) {
@@ -963,40 +1036,42 @@ extern "C" void MS_ABI impl__ResortMiniFramesForZOrder_CDockingManager__QEAAXXZ(
     }
 }
 // Symbol: ?SaveState@CDockingManager@@UEAAHPEB_WI@Z
-extern "C" int MS_ABI impl__SaveState_CDockingManager__UEAAHPEB_WI_Z(CDockingManager* pThis, const wchar_t* lpszProfileName, unsigned int) {
-    if (!pThis) return FALSE;
-    const DockingManagerState& state = EnsureDockingState(pThis);
-    DockingManagerSnapshot snapshot;
-
-    std::unordered_set<UINT> usedIds;
-    for (CBasePane* pane : state.panes) {
-        if (!pane) continue;
-        UINT id = PaneCommandID(pane);
-        if (id == 0 || usedIds.find(id) != usedIds.end()) continue;
-        std::lock_guard<std::mutex> paneLock(g_paneCoreStateMutex_Mfccore);
-        const auto paneStateIt = g_paneCoreState_Mfccore.find(pane);
-
-        CRect rect = paneStateIt == g_paneCoreState_Mfccore.end() ? CRect() : paneStateIt->second.recentRect;
-        if (rect.Width() <= 0 || rect.Height() <= 0) {
-            HWND hWnd = pane->GetSafeHwnd();
-            if (hWnd) {
-                RECT rc{};
-                pane->GetWindowRect(&rc);
-                rect = rc;
-            }
+extern "C" int MS_ABI impl__SaveState_CDockingManager__UEAAHPEB_WI_Z(
+    CDockingManager* manager, const wchar_t* profile, UINT frameId) {
+    if (!manager) return FALSE;
+    ScopedValue saving(impl__m_bSavingState_CDockingManager__2HA, TRUE);
+    try {
+        CMemFile file;
+        CArchive archive(&file, CArchive::store | CArchive::bNoFlushOnDelete);
+        impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(manager, archive);
+        const auto& state = EnsureDockingState(manager);
+        std::unordered_map<UINT, BOOL> visibility;
+        for (auto* pane : state.panes) {
+            if (!pane || !pane->m_hWnd) continue;
+            const UINT id = PaneCommandID(pane);
+            if (id && id != UINT(-1)) visibility[id] = !state.hiddenPanes.count(pane) &&
+                (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0;
         }
-
-        snapshot.ids.push_back(id);
-        snapshot.rects.push_back(rect);
-        snapshot.hidden.push_back(state.hiddenPanes.find(pane) != state.hiddenPanes.end() ? TRUE : FALSE);
-        snapshot.floating.push_back(state.floatingPanes.find(pane) != state.floatingPanes.end() ? TRUE : FALSE);
-        usedIds.insert(id);
+        // Native readers stop at the end of the layout. Plain panes use this
+        // optional trailer to restore their visibility across processes.
+        archive << visibilityRecord << static_cast<int>(visibility.size());
+        for (const auto& [id, visible] : visibility) archive << id << visible;
+        archive.Close();
+        const auto size = file.GetLength();
+        if (!size || size > maxDockingProfileBytes) return FALSE;
+        std::unique_ptr<BYTE, decltype(&std::free)> bytes(file.Detach(), &std::free);
+        const CString section = DockingProfilePath(profile, frameId);
+        HKEY key = nullptr;
+        if (::RegCreateKeyExW(HKEY_CURRENT_USER, section, 0, nullptr, 0, KEY_SET_VALUE,
+                nullptr, &key, nullptr) != ERROR_SUCCESS) return FALSE;
+        const auto status = ::RegSetValueExW(key, dockingProfileValue, 0, REG_BINARY,
+            bytes.get(), static_cast<DWORD>(size));
+        ::RegCloseKey(key);
+        return status == ERROR_SUCCESS;
+    } catch (CException* error) {
+        error->Delete();
+        return FALSE;
     }
-
-    const std::wstring profile = DockingProfileName(lpszProfileName);
-    std::lock_guard<std::mutex> lock(g_dockingProfileMutex);
-    g_dockingProfileStates[pThis][profile] = std::move(snapshot);
-    return TRUE;
 }
 // Symbol: ?SendMessageToMiniFrames@CDockingManager@@QEAAHI_K_J@Z
 extern "C" int MS_ABI impl__SendMessageToMiniFrames_CDockingManager__QEAAHI_K_J_Z(
@@ -1029,6 +1104,7 @@ CDockingManager::CDockingManager(CFrameWnd* pParentFrameWnd)
 CDockingManager::~CDockingManager() {
     if (const DockingManagerState* found = FindDockingState(this)) {
         DockingManagerState& state = const_cast<DockingManagerState&>(*found);
+        state.pendingLayout.reset();
         while (!state.miniFrames.empty()) {
             auto* frame = static_cast<CWnd*>(state.miniFrames.back());
             state.miniFrames.pop_back();
@@ -1052,8 +1128,6 @@ CDockingManager::~CDockingManager() {
         state.printPreviewHiddenBarCount = state.printPreviewHiddenBarCapacity = 0;
     }
     RemoveDockingState(this);
-    std::lock_guard<std::mutex> lock(g_dockingProfileMutex);
-    g_dockingProfileStates.erase(this);
 }
 void CDockingManager::DockPane(CBasePane* pBar, UINT, LPCRECT) {
     AddDockingPane(this, pBar);
@@ -1461,6 +1535,11 @@ RECT openmfc::detail::mfccore::LayoutInPlacePanes(CDockingManager* manager, cons
 }
 void CDockingManager::SetDockState() {
     DockingManagerState& state = EnsureDockingState(this);
+    if (auto restored = std::exchange(state.pendingLayout, {})) {
+        ApplyDockingLayout(*this, *restored);
+        RecalcLayout();
+        return;
+    }
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
     for (CBasePane* pane : state.panes) {
         if (!pane) continue;
@@ -1710,14 +1789,383 @@ extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__
     return TRUE;
 }
 
+namespace {
+CDockablePane* LayoutPane(CDockingManager& manager, UINT id) {
+    if (!id || id == UINT(-1)) return nullptr;
+    auto* pane = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(&manager, id, TRUE);
+    return pane && pane->IsKindOf(RUNTIME_CLASS(CDockablePane)) ? static_cast<CDockablePane*>(pane) : nullptr;
+}
+
+std::vector<DockingProfileArchive::AutoHidePane> AutoHideRecords(const DockingManagerState& state) {
+    std::vector<DockingProfileArchive::AutoHidePane> records;
+    for (const auto& bar : state.autoHideBars) {
+        for (auto pos = bar->m_lstAutoHideButtons.GetHeadPosition(); pos != nullptr;) {
+            const auto* button = static_cast<const CMFCAutoHideButton*>(bar->m_lstAutoHideButtons.GetNext(pos));
+            const auto* pane = button->m_pAutoHideWindow;
+            if (!pane || !pane->m_hWnd || !pane->IsAutoHideMode()) continue;
+            RECT bounds{};
+            ::GetWindowRect(pane->m_hWnd, &bounds);
+            if (::IsRectEmpty(&bounds)) bounds = *static_cast<const RECT*>(pane->m_rectSavedDockedRect);
+            records.push_back({PaneCommandID(pane), bar->GetPaneAlignment(), ::IsWindowVisible(pane->m_hWnd),
+                bounds, bar->m_bFirstInGroup, bar->m_bLastInGroup, bar->m_bActiveInGroup});
+        }
+    }
+    return records;
+}
+
+int TabbedPaneReference(CDockablePane& pane) {
+    if (!pane.IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return 0;
+    const auto* tabs = FindTabCtrlState(static_cast<CBaseTabbedPane&>(pane).GetTabs());
+    if (!tabs) return 0;
+    for (const auto& tab : tabs->tabs) {
+        if (!tab.window || !tab.window->m_hWnd || tab.temporary) continue;
+        const int id = ::GetDlgCtrlID(tab.window->m_hWnd);
+        if (id && id != -1) return id;
+    }
+    return 0;
+}
+
+void StoreDockingLayout(const DockingManagerState& state, CArchive& archive) {
+    std::vector<std::pair<UINT, CMFCBaseTabCtrl*>> tabGroups;
+    for (auto* pane : state.panes) {
+        if (!pane || !pane->m_hWnd || !pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane)) ||
+            state.floatingPanes.count(pane) || DockedPaneDivider(pane)) continue;
+        const UINT id = PaneCommandID(pane);
+        auto* tabs = static_cast<CBaseTabbedPane*>(pane)->GetTabs();
+        if (id && id != UINT(-1) && tabs) tabGroups.emplace_back(id, tabs);
+    }
+    archive << static_cast<int>(tabGroups.size());
+    for (const auto& [id, tabs] : tabGroups) {
+        archive << id;
+        impl__Serialize_CMFCBaseTabCtrl__UEAAXAEAVCArchive___Z(tabs, archive);
+    }
+
+    struct EdgeRecord {
+        CPaneDivider* divider;
+        std::vector<std::pair<int, int>> members;
+    };
+    std::vector<EdgeRecord> edges;
+    int count = 0;
+    for (bool outer : {true, false}) {
+        for (const auto& edge : state.edgePanes) {
+            if (edge.outer != outer) continue;
+            auto* divider = static_cast<CPaneDivider*>(CWnd::FromHandlePermanent(edge.divider));
+            if (!divider || !divider->m_dividerData.bDefaultDivider || divider->m_dividerData.bAutoHideMode) continue;
+            EdgeRecord record{divider, {}};
+            for (auto* pane : openmfc::detail::ContainerPanes(divider->m_dividerData.pContainerManager)) {
+                if (!pane || !pane->m_hWnd) continue;
+                const int id = static_cast<int>(PaneCommandID(pane));
+                const int sibling = id == -1 ? TabbedPaneReference(*pane) : 0;
+                if (id && (id != -1 || sibling)) record.members.emplace_back(id, sibling);
+            }
+            if (record.members.empty()) continue;
+            count += static_cast<int>(record.members.size()) + 1;
+            edges.push_back(std::move(record));
+        }
+    }
+    // Retail walks the control-bar order backwards and inserts at the head.
+    archive << count;
+    for (auto edge = edges.rbegin(); edge != edges.rend(); ++edge) {
+        archive << 0;
+        impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(edge->divider, archive);
+        for (auto member = edge->members.rbegin(); member != edge->members.rend(); ++member) {
+            archive << 1 << member->first;
+            if (member->first == -1) archive << member->second;
+        }
+    }
+
+    std::vector<CPaneFrameWnd*> floating;
+    for (void* value : state.miniFrames) {
+        auto* frame = static_cast<CPaneFrameWnd*>(value);
+        if (frame && frame->m_hWnd && frame->GetPane()) floating.push_back(frame);
+    }
+    archive << static_cast<int>(floating.size());
+    for (auto* frame : floating) archive.WriteObject(frame);
+
+    const auto autoHide = AutoHideRecords(state);
+    archive << static_cast<int>(autoHide.size());
+    for (const auto& record : autoHide) {
+        archive << record.id << record.alignment << record.visible;
+        archive.Write(&record.bounds, sizeof(record.bounds));
+        archive << record.first << record.last << record.active;
+    }
+    archive << static_cast<int>(state.hiddenMDITabbedBarCount);
+    for (std::size_t i = 0; i < state.hiddenMDITabbedBarCount; ++i) {
+        const HWND window = reinterpret_cast<HWND>(state.hiddenMDITabbedBars[i]);
+        archive << (::IsWindow(window) ? ::GetDlgCtrlID(window) : -1);
+    }
+}
+
+void LoadDockingLayout(CDockingManager& manager, CArchive& archive) {
+    auto& state = EnsureDockingState(&manager);
+    auto* owner = state.parentFrame;
+    if (!owner || !owner->m_hWnd) AfxThrowArchiveException(CArchiveException::generic, nullptr);
+    auto draft = std::make_shared<DockingProfileArchive>();
+    for (int count = ReadLayoutCount(archive); count > 0; --count) {
+        UINT id = 0;
+        archive >> id;
+        CMFCBaseTabCtrl tabs;
+        impl__Serialize_CMFCBaseTabCtrl__UEAAXAEAVCArchive___Z(&tabs, archive);
+        auto& loaded = EnsureTabCtrlState(&tabs);
+        draft->tabs.push_back({id, std::move(*loaded.restoredTabs), loaded.restoredActiveTab});
+    }
+    for (int count = ReadLayoutCount(archive); count > 0; --count) {
+        int kind = 0;
+        archive >> kind;
+        if (kind == 1) {
+            // The native order also names the leaves. Loaded divider trees
+            // already resolve these references through their membership list.
+            int id = 0;
+            archive >> id;
+            if (id == -1) archive >> id;
+            continue;
+        }
+        if (kind) AfxThrowArchiveException(CArchiveException::badFormat, nullptr);
+        auto* type = static_cast<CRuntimeClass*>(impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA);
+        if (!type) type = RUNTIME_CLASS(CPaneDivider);
+        std::unique_ptr<CObject> object(type->CreateObject());
+        if (!object || !object->IsKindOf(RUNTIME_CLASS(CPaneDivider)))
+            AfxThrowArchiveException(CArchiveException::badClass, nullptr);
+        std::unique_ptr<CPaneDivider> divider(static_cast<CPaneDivider*>(object.release()));
+        impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(divider.get(), TRUE, owner);
+        impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(divider.get(), archive);
+        if (!divider->m_hWnd || !divider->m_dividerData.bDefaultDivider)
+            AfxThrowArchiveException(CArchiveException::badFormat, nullptr);
+        divider->SetPaneAlignment(divider->m_dwStyle & CBRS_ALIGN_ANY);
+        divider->m_dividerData.destroyWithWindow = false;
+        ::ShowWindow(divider->m_hWnd, SW_HIDE);
+        draft->edges.push_back(std::move(divider));
+    }
+    std::reverse(draft->edges.begin(), draft->edges.end());
+
+    ScopedValue parent(impl__m_pParentWndForSerialize_CPaneFrameWnd__1PEAVCFrameWnd__EA, static_cast<void*>(owner));
+    for (int count = ReadLayoutCount(archive); count > 0; --count) {
+        auto* frame = static_cast<CPaneFrameWnd*>(archive.ReadObject(RUNTIME_CLASS(CPaneFrameWnd)));
+        if (!frame || !frame->m_hWnd ||
+            std::any_of(draft->floating.begin(), draft->floating.end(), [frame](const auto& item) { return item.get() == frame; }))
+            AfxThrowArchiveException(CArchiveException::badClass, nullptr);
+        std::unique_ptr<CPaneFrameWnd> item(frame);
+        auto& frames = state.miniFrames;
+        frames.erase(std::remove(frames.begin(), frames.end(), frame), frames.end());
+        draft->floating.push_back(std::move(item));
+    }
+    for (int count = ReadLayoutCount(archive); count > 0; --count) {
+        DockingProfileArchive::AutoHidePane record{};
+        archive >> record.id >> record.alignment >> record.visible;
+        archive.EnsureRead(&record.bounds, sizeof(record.bounds));
+        archive >> record.first >> record.last >> record.active;
+        draft->autoHide.push_back(record);
+    }
+    for (int count = ReadLayoutCount(archive); count > 0; --count) {
+        UINT id = 0;
+        archive >> id;
+        draft->hiddenMdi.push_back(id);
+    }
+    state.pendingLayout = std::move(draft);
+}
+
+LONG MeasureStoredEdge(const CPaneDivider& divider, RECT& remaining, HWND owner) {
+    RECT sash{};
+    if (!::GetWindowRect(divider.m_hWnd, &sash)) return 0;
+    ::MapWindowPoints(nullptr, owner, reinterpret_cast<POINT*>(&sash), 2);
+    LONG thickness = 0;
+    switch (divider.GetPaneAlignment()) {
+    case CBRS_ALIGN_LEFT:
+        thickness = sash.left - remaining.left;
+        remaining.left = sash.right;
+        break;
+    case CBRS_ALIGN_RIGHT:
+        thickness = remaining.right - sash.right;
+        remaining.right = sash.left;
+        break;
+    case CBRS_ALIGN_TOP:
+        thickness = sash.top - remaining.top;
+        remaining.top = sash.bottom;
+        break;
+    case CBRS_ALIGN_BOTTOM:
+        thickness = remaining.bottom - sash.bottom;
+        remaining.bottom = sash.top;
+        break;
+    }
+    return (std::max)(thickness, 1L);
+}
+
+bool RestoreDockedPane(CDockingManager& manager, CFrameWnd& owner, CPaneDivider& edge,
+                       CDockablePane& pane, BOOL visible) {
+    if (!pane.m_hWnd) return false;
+    const HWND previous = ::GetParent(pane.m_hWnd);
+    auto* group = static_cast<CBaseTabbedPane*>(impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(&pane));
+    if (previous != owner.m_hWnd) {
+        ::SetLastError(ERROR_SUCCESS);
+        if (!::SetParent(pane.m_hWnd, owner.m_hWnd) && ::GetLastError() != ERROR_SUCCESS) return false;
+    }
+    if (group) group->RemovePane(&pane);
+    auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(previous));
+    openmfc::detail::AdoptTransferredPane(pane, owner, parent, &edge);
+    if (pane.IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) {
+        auto* tabs = static_cast<CBaseTabbedPane*>(&pane);
+        impl__ApplyRestoredTabInfo_CBaseTabbedPane__UEAAXH_Z(tabs, TRUE);
+        if (!tabs->GetTabs() || !tabs->GetTabs()->GetTabsCount()) {
+            edge.RemovePane(tabs);
+            tabs->DestroyWindow();
+            return false;
+        }
+    }
+    if (visible) manager.ShowPane(&pane); else manager.HidePane(&pane);
+    return true;
+}
+
+void ApplyDockingLayout(CDockingManager& manager, DockingProfileArchive& restored) {
+    auto& state = EnsureDockingState(&manager);
+    auto* owner = state.parentFrame;
+    if (!owner || !owner->m_hWnd) return;
+    ScopedValue lockLayout(state.lockUpdate, true);
+    ScopedValue restoring(impl__m_bRestoringDockState_CDockingManager__2HA, 0);
+    for (const auto& record : AutoHideRecords(state)) {
+        if (auto* pane = LayoutPane(manager, record.id); pane && pane->IsAutoHideMode())
+            pane->SetAutoHideMode(FALSE, record.alignment, nullptr, FALSE);
+    }
+    for (auto* pane : state.panes) {
+        if (!pane || !pane->m_hWnd) continue;
+        const UINT id = PaneCommandID(pane);
+        if (!id || id == UINT(-1)) continue;
+        const auto saved = restored.visibility.find(id);
+        pane->m_bRecentVisibleState = saved != restored.visibility.end() ? saved->second :
+            (!state.hiddenPanes.count(pane) && (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0);
+    }
+    impl__m_bRestoringDockState_CDockingManager__2HA = TRUE;
+
+    auto previousEdges = std::exchange(state.edgePanes, {});
+    RECT frameBounds{};
+    ::GetClientRect(owner->m_hWnd, &frameBounds);
+    state.fitFrameClient = state.fitFrameClient || !restored.edges.empty();
+    auto remaining = DockedFrameBounds(state, frameBounds);
+    for (auto& entry : restored.edges) {
+        auto* edge = entry.get();
+        if (!edge->m_hWnd) continue;
+        const LONG thickness = MeasureStoredEdge(*edge, remaining, owner->m_hWnd);
+        const auto panes = openmfc::detail::ContainerPanes(edge->m_dividerData.pContainerManager);
+        bool added = false;
+        for (auto* pane : panes) {
+            const HWND window = pane->m_hWnd;
+            const BOOL visible = pane->m_bRecentVisibleState;
+            if (RestoreDockedPane(manager, *owner, *edge, *pane, visible)) added = true;
+            else if (::IsWindow(window)) edge->RemovePane(pane);
+        }
+        if (added) {
+            RegisterFrameEdgeDivider(manager, *edge, thickness, false, nullptr);
+            edge->m_dividerData.destroyWithWindow = true;
+            entry.release();
+        }
+    }
+    for (auto& record : restored.tabs) {
+        auto* pane = LayoutPane(manager, record.id);
+        if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) continue;
+        auto* group = static_cast<CBaseTabbedPane*>(pane);
+        if (auto* tabs = group->GetTabs()) {
+            auto& values = EnsureTabCtrlState(tabs);
+            values.restoredTabs = std::move(record.tabs);
+            values.restoredActiveTab = record.active;
+            impl__ApplyRestoredTabInfo_CBaseTabbedPane__UEAAXH_Z(group, TRUE);
+        }
+    }
+    for (auto& item : restored.floating) {
+        auto* frame = item.get();
+        if (frame->IsKindOf(CMultiPaneFrameWnd::GetThisClass()))
+            impl__SetDockState_CMultiPaneFrameWnd__UEAAXPEAVCDockingManager___Z(frame, &manager);
+        else
+            impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManager___Z(frame, &manager);
+        if (frame->m_hWnd) {
+            impl__AddMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(&manager, frame);
+            frame->AutoDestroyWithWindow();
+            item.release();
+        }
+    }
+    std::unordered_set<HWND> reservedEdges;
+    for (auto* pane : state.panes) {
+        if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CPane))) continue;
+        if (auto* edge = openmfc::detail::ReservedPaneDivider(*static_cast<CPane*>(pane)))
+            reservedEdges.insert(edge->m_hWnd);
+    }
+    for (const auto& old : previousEdges) {
+        auto* edge = static_cast<CPaneDivider*>(CWnd::FromHandlePermanent(old.divider));
+        if (!edge) continue;
+        for (auto* pane : openmfc::detail::ContainerPanes(edge->m_dividerData.pContainerManager)) {
+            if (pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) {
+                auto* group = static_cast<CBaseTabbedPane*>(pane);
+                if (group->GetTabs() && !group->GetTabs()->GetTabsCount()) group->DestroyWindow();
+            }
+        }
+        if (reservedEdges.count(old.divider) ||
+                !openmfc::detail::ContainerPanes(edge->m_dividerData.pContainerManager).empty())
+            state.edgePanes.push_back(old);
+        else
+            edge->DestroyWindow();
+    }
+    CMFCAutoHideBar* groupBar = nullptr;
+    for (const auto& record : restored.autoHide) {
+        auto* pane = LayoutPane(manager, record.id);
+        if (record.first) groupBar = nullptr;
+        if (!pane || pane->IsAutoHideMode()) continue;
+        if (auto* bar = pane->SetAutoHideMode(TRUE, record.alignment, groupBar, FALSE)) {
+            bar->m_bFirstInGroup = record.first;
+            bar->m_bLastInGroup = record.last;
+            bar->m_bActiveInGroup = record.active;
+            groupBar = record.last ? nullptr : bar;
+            if (!::IsRectEmpty(&record.bounds) && !::IsRectEmpty(&frameBounds)) {
+                const int width = static_cast<int>((std::min)(static_cast<long long>(record.bounds.right) - record.bounds.left,
+                    static_cast<long long>(frameBounds.right)));
+                const int height = static_cast<int>((std::min)(static_cast<long long>(record.bounds.bottom) - record.bounds.top,
+                    static_cast<long long>(frameBounds.bottom)));
+                ::SetWindowPos(pane->m_hWnd, nullptr, 0, 0, width, height,
+                    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
+            }
+            if (record.visible) {
+                auto* divider = static_cast<CPaneDivider*>(
+                    impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pane));
+                impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(&manager, divider, TRUE);
+                ::ShowWindow(pane->m_hWnd, SW_SHOWNOACTIVATE);
+                if (divider) ::ShowWindow(divider->m_hWnd, SW_SHOWNOACTIVATE);
+            }
+        }
+    }
+    for (auto* pane : state.panes) {
+        if (!pane || !pane->m_hWnd || state.floatingPanes.count(pane) ||
+                impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(pane)) continue;
+        if (pane->IsKindOf(RUNTIME_CLASS(CDockablePane)) && static_cast<CDockablePane*>(pane)->IsAutoHideMode()) continue;
+        const auto saved = restored.visibility.find(PaneCommandID(pane));
+        if (saved == restored.visibility.end()) continue;
+        if (saved->second) manager.ShowPane(pane); else manager.HidePane(pane);
+        if (!DockedPaneDivider(pane))
+            ::ShowWindow(pane->m_hWnd, saved->second ? SW_SHOWNOACTIVATE : SW_HIDE);
+    }
+    for (std::size_t i = 0; i < state.hiddenMDITabbedBarCount; ++i) {
+        const HWND window = reinterpret_cast<HWND>(state.hiddenMDITabbedBars[i]);
+        auto* pane = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+        if (pane && pane->IsKindOf(RUNTIME_CLASS(CDockablePane)))
+            static_cast<CDockablePane*>(pane)->m_bIsMDITabbed = FALSE;
+    }
+    state.hiddenMDITabbedBarCount = 0;
+    for (UINT id : restored.hiddenMdi) {
+        if (auto* pane = LayoutPane(manager, id)) {
+            if (pane->m_bIsMDITabbed) continue;
+            manager.HidePane(pane);
+            pane->m_bIsMDITabbed = TRUE;
+            impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(&manager, pane);
+        }
+    }
+}
+}
+
 // Symbol: ?Serialize@CDockingManager@@UEAAXAEAVCArchive@@@Z
-// STUB: The ANSI twin's retail entry at RVA 0x4aa90 (mfc140) has a long archive traversal
-// over retail dock-site and manager-list state. The side table tracks pane/frame pointers,
-// but it is not the retail CObList layout/state required by this serialization routine.
 extern "C" void MS_ABI impl__Serialize_CDockingManager__UEAAXAEAVCArchive___Z(
-    CDockingManager* pThis, CArchive& archive) {
-    (void)pThis;
-    (void)archive;
+    CDockingManager* manager, CArchive& archive) {
+    if (manager) manager->CDockingManager::Serialize(archive);
+}
+
+void CDockingManager::Serialize(CArchive& archive) {
+    if (archive.IsStoring()) StoreDockingLayout(EnsureDockingState(this), archive);
+    else LoadDockingLayout(*this, archive);
 }
 
 // Symbol: ?SetAutohideZOrder@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
