@@ -4149,6 +4149,7 @@ public:
     CDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,
                  CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
     virtual ~CDocTemplate();
+    void SetContainerInfo(UINT inPlaceId);
     void SetServerInfo(UINT embeddingId, UINT inPlaceId = 0,
                        CRuntimeClass* frameClass = nullptr, CRuntimeClass* viewClass = nullptr);
     CFrameWnd* CreateOleFrame(CWnd* parent, CDocument* document, BOOL createView);

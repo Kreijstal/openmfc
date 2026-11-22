@@ -1009,9 +1009,10 @@ public:
 
     struct RetailTailStorage {
         HWND m_hWndFrame = nullptr;                // +0x58
-        void* m_unknown_60 = nullptr;              // +0x60
+        HMENU m_hOriginalMenu = nullptr;           // +0x60
         HACCEL m_hAccelTable = nullptr;            // +0x68
         UINT m_nModelessCount = 0;                 // +0x70
+        BOOL m_bSharedMenuInstalled = FALSE;      // +0x74
         CString m_strObjName;                      // +0x78
         XOleInPlaceFrame m_xOleInPlaceFrame;       // +0x80
         XOleCommandTarget m_xOleCommandTarget;     // +0x88
@@ -1427,6 +1428,9 @@ public:
     virtual void OnOpen();
     virtual void OnClose();
     virtual BOOL OnShowControlBars(CFrameWnd* pFrameWnd, BOOL bShow);
+    virtual void OnInsertMenus(CMenu* shared, OLEMENUGROUPWIDTHS* widths);
+    virtual void OnSetMenu(CMenu* shared, HOLEMENU descriptor, HWND activeWindow);
+    virtual void OnRemoveMenus(CMenu* shared);
 
     // Additional drawing / rendering
     HGLOBAL GetIconicMetafile();
@@ -1619,6 +1623,11 @@ public:
 protected:
     const AFX_INTERFACEMAP* GetInterfaceMap() const override;
     void OnGetItemPosition(CRect& position) override;
+    virtual CMenu* GetHelpMenu(UINT& position);
+
+public:
+    void OnInsertMenus(CMenu* shared, OLEMENUGROUPWIDTHS* widths) override;
+    void OnRemoveMenus(CMenu* shared) override;
 
 private:
     void ReleaseDocumentView();
@@ -1929,12 +1938,16 @@ public:
     virtual void RepositionFrame(LPCRECT position, LPCRECT clip);
     RECT GetInPlacePosition() const;
     RECT GetInPlaceClipRect() const;
+    HRESULT BuildSharedMenu(BOOL docObject = FALSE);
+    HRESULT InstallSharedMenu(IOleInPlaceFrame* container, BOOL docObject);
     static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
     const AFX_MSGMAP* GetMessageMap() const override;
 
     virtual BOOL OnCreateAggregates();
     virtual BOOL OnCreateControlBars(CFrameWnd* pWndFrame, CFrameWnd* pWndDoc);
     virtual void OnRequestPositionChange(LPCRECT lpRect);
+    virtual HMENU GetInPlaceMenu();
+    void DestroySharedMenu();
 
     // Command UI update handlers
     void OnUpdateControlBarMenu(CCmdUI* pCmdUI);

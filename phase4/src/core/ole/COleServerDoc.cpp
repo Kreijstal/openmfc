@@ -371,6 +371,8 @@ HRESULT COleServerDoc::ActivateInPlace(IOleInPlaceSite* site, bool docObject) {
         auto* active = &tail.m_xOleInPlaceActiveObject;
         state.frame->SetActiveObject(active, GetTitle());
         if (state.document) state.document->SetActiveObject(active, GetTitle());
+        const HRESULT menu = frame->InstallSharedMenu(state.frame.get(), docObject);
+        if (menu != S_OK) return menu;
         ::ShowWindow(frame->m_hWnd, SW_SHOWNA);
         if (auto* view = frame->GetActiveView()) ::SetFocus(view->m_hWnd);
         return S_OK;
@@ -1057,6 +1059,7 @@ void COleServerDoc::OnDeactivateUI(BOOL undoable) {
 void COleServerDoc::DeactivateInPlaceUI(BOOL undoable) {
     auto* state = m_retailTail.m_inPlaceState;
     if (!state || !std::exchange(state->uiActive, FALSE)) return;
+    if (auto* frame = m_retailTail.m_pInPlaceFrame) frame->DestroySharedMenu();
     if (std::exchange(state->activeObjectSet, FALSE)) {
         if (state->document) state->document->SetActiveObject(nullptr, nullptr);
         if (state->frame) state->frame->SetActiveObject(nullptr, nullptr);

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cwchar>
 #include <cstring>
+#include <iterator>
+#include <string>
 #include <windows.h>
 #include <objbase.h>
 #include <ocidl.h>
@@ -1648,57 +1650,59 @@ extern "C" int MS_ABI impl__AfxLoadString__YAHIPEADI_Z(unsigned int nID, char* l
     return ::LoadStringA(AfxGetResourceHandle(), nID, lpszBuf, nMaxBuf);
 }
 // Symbol: ?AfxMergeMenus@@YAPEAUHMENU__@@PEAU1@0PEAJHH@Z
-// OLE in-place menu merging: insert hMenuSource's top-level popup items into
-// hMenuShared at the group boundary given by lpMenuWidths[nIndex] (the sum
-// of the preceding group widths), the standard MFC/OLE technique for
-// combining a container's and a server's menu groups. Best-effort
-// reconstruction from documented OLE in-place-activation menu group
-// semantics; not verified byte-for-byte against real mfc140u.dll.
-extern "C" void* MS_ABI impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(void* /*struct*/* p0, void* /*struct*/* p1, long* p2, int p3, int p4) {
-    HMENU hMenuShared = reinterpret_cast<HMENU>(p0);
-    HMENU hMenuSource = reinterpret_cast<HMENU>(p1);
-    LONG* lpMenuWidths = p2;
-    int nIndex = p3;
-    BOOL bAdd = p4;
-
-    if (!hMenuShared || !::IsMenu(hMenuShared)) {
+// Retail mfc140u 0x25f410 uses top-level separators to advance by two OLE
+// groups. A nested Help merge returns the borrowed submenu to unmerge.
+extern "C" HMENU MS_ABI impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(
+    HMENU shared, HMENU source, LONG* widths, int group, BOOL mergeHelp) {
+    if (!::IsMenu(shared) || !::IsMenu(source) || !widths || (group != 0 && group != 1))
         return nullptr;
-    }
-    if (!hMenuSource || !::IsMenu(hMenuSource) || !lpMenuWidths || nIndex < 0) {
-        return hMenuShared;
-    }
 
-    UINT nPosition = 0;
-    for (int i = 0; i < nIndex; ++i) {
-        nPosition += static_cast<UINT>(lpMenuWidths[i]);
-    }
+    int position = group == 1 ? widths[0] : 0;
+    int inserted = 0;
+    HMENU mergedHelp = nullptr;
+    const int count = ::GetMenuItemCount(source);
+    for (int i = 0; i < count && group < 6; ++i) {
+        wchar_t title[256]{};
+        MENUITEMINFOW item{};
+        item.cbSize = sizeof(item);
+        item.fMask = MIIM_ID | MIIM_SUBMENU | MIIM_STATE | MIIM_FTYPE | MIIM_STRING |
+                     MIIM_DATA | MIIM_BITMAP | MIIM_CHECKMARKS;
+        item.dwTypeData = title;
+        item.cch = static_cast<UINT>(std::size(title) - 1);
+        if (!::GetMenuItemInfoW(source, i, TRUE, &item)) continue;
 
-    int nSourceCount = ::GetMenuItemCount(hMenuSource);
-    if (nSourceCount < 0) nSourceCount = 0;
-
-    int nInserted = 0;
-    for (int i = 0; i < nSourceCount; ++i) {
-        wchar_t szText[256] = {};
-        MENUITEMINFOW mii = {};
-        mii.cbSize = sizeof(mii);
-        mii.fMask = MIIM_ID | MIIM_SUBMENU | MIIM_STATE | MIIM_TYPE | MIIM_DATA;
-        mii.fType = MFT_STRING;
-        mii.dwTypeData = szText;
-        mii.cch = 255;
-        if (!::GetMenuItemInfoW(hMenuSource, static_cast<UINT>(i), TRUE, &mii)) {
+        if (!item.hSubMenu && (item.fType & MFT_SEPARATOR)) {
+            widths[group] = inserted;
+            inserted = 0;
+            if (group < 5 && widths[group + 1] > 0) position += widths[group + 1];
+            group += 2;
             continue;
         }
-        if (!::InsertMenuItemW(hMenuShared, nPosition + static_cast<UINT>(nInserted), TRUE, &mii)) {
-            continue;
+
+        if (mergeHelp && !mergedHelp && group == 5 && widths[5] == 1 && item.hSubMenu) {
+            if (HMENU help = ::GetSubMenu(shared, position)) {
+                const auto* module = reinterpret_cast<const BYTE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ());
+                const auto* app = *reinterpret_cast<const wchar_t* const*>(module + 0x20);
+                std::wstring label = app && *app ? std::wstring(app) + L" " : std::wstring{};
+                label += title;
+                if (::AppendMenuW(help, MF_POPUP, reinterpret_cast<UINT_PTR>(item.hSubMenu), label.c_str())) {
+                    widths[5] = 0;
+                    ++widths[4];
+                    mergedHelp = item.hSubMenu;
+                }
+                continue;
+            }
         }
-        ++nInserted;
-    }
 
-    if (bAdd) {
-        lpMenuWidths[nIndex] += nInserted;
+        if (item.hSubMenu && ::GetMenuItemCount(item.hSubMenu) == 0) continue;
+        if (!item.hSubMenu && !title[0]) continue;
+        if (::InsertMenuItemW(shared, position, TRUE, &item)) {
+            ++position;
+            ++inserted;
+        }
     }
-
-    return hMenuShared;
+    if (!mergedHelp && group < 6) widths[group] = inserted;
+    return mergedHelp;
 }
 // Symbol: ?AfxOleCanExitApp@@YAHXZ
 extern "C" int MS_ABI impl__AfxOleCanExitApp__YAHXZ() {
@@ -2775,35 +2779,25 @@ extern "C" int MS_ABI impl__AfxUnRegisterPreviewHandler__YAHPEB_W_Z(const wchar_
     return (lr == ERROR_SUCCESS) ? 1 : 0;
 }
 // Symbol: ?AfxUnmergeMenus@@YAXPEAUHMENU__@@00@Z
-// Undoes AfxMergeMenus above: AfxMergeMenus attaches hMenuSource's existing
-// popup HMENUs directly (by handle, not by clone) into hMenuShared, so
-// unmerging walks hMenuShared's top-level items and removes any whose
-// submenu handle is still found (by identity) in either candidate source
-// menu (h1/h2). Best-effort reconstruction, not verified against retail.
-extern "C" void MS_ABI impl__AfxUnmergeMenus__YAXPEAUHMENU____00_Z(void* /*struct*/* p0, void* /*struct*/* p1, void* /*struct*/* p2) {
-    HMENU hMenuShared = reinterpret_cast<HMENU>(p0);
-    HMENU h1 = reinterpret_cast<HMENU>(p1);
-    HMENU h2 = reinterpret_cast<HMENU>(p2);
-    if (!hMenuShared || !::IsMenu(hMenuShared)) return;
-
-    auto containsSubMenu = [](HMENU hParent, HMENU hSub) -> bool {
-        if (!hParent || !hSub || !::IsMenu(hParent)) return false;
-        int n = ::GetMenuItemCount(hParent);
-        for (int i = 0; i < n; ++i) {
-            if (::GetSubMenu(hParent, i) == hSub) return true;
+extern "C" void MS_ABI impl__AfxUnmergeMenus__YAXPEAUHMENU____00_Z(HMENU shared, HMENU source, HMENU mergedHelp) {
+    for (int position = ::GetMenuItemCount(shared) - 1; position >= 0; --position) {
+        const HMENU popup = ::GetSubMenu(shared, position);
+        if (!popup) continue;
+        if (mergedHelp) {
+            const int count = ::GetMenuItemCount(popup);
+            for (int i = 0; i < count; ++i) {
+                if (::GetSubMenu(popup, i) != mergedHelp) continue;
+                ::RemoveMenu(popup, i, MF_BYPOSITION);
+                mergedHelp = nullptr;
+                break;
+            }
+            continue;
         }
-        return false;
-    };
-
-    int i = 0;
-    int nCount = ::GetMenuItemCount(hMenuShared);
-    while (i < nCount) {
-        HMENU hSub = ::GetSubMenu(hMenuShared, i);
-        if (hSub && (containsSubMenu(h1, hSub) || containsSubMenu(h2, hSub))) {
-            ::RemoveMenu(hMenuShared, static_cast<UINT>(i), MF_BYPOSITION);
-            nCount = ::GetMenuItemCount(hMenuShared);
-        } else {
-            ++i;
+        const int count = ::GetMenuItemCount(source);
+        for (int i = 0; i < count; ++i) {
+            if (::GetSubMenu(source, i) != popup) continue;
+            ::RemoveMenu(shared, position, MF_BYPOSITION);
+            break;
         }
     }
 }

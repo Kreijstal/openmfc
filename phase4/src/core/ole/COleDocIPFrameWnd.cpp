@@ -45,7 +45,6 @@
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
 #include <cstddef>
-#include <cstring>
 
 // ---- sibling impl__ exports called by the bodies in this file ----
 // core/ole/Thunks.cpp:1158 (placement-new of OpenMFC's C++ COleIPFrameWnd)
@@ -57,11 +56,7 @@ extern "C" void MS_ABI impl__RequestPositionChange_COleServerDoc__QEAAXPEBUtagRE
     COleServerDoc* pThis, const RECT* lpPosRect);
 // detail/MemcoreSupport.cpp (the DLL's exported MFC operator new, ??2@YAPEAX_K@Z)
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
-// featurepack/CMFC_misc_stubs.cpp (its definition spells each HMENU as
-// `void* /*struct*/*` and the result as void*; all pointer-sized, same ABI --
-// the declaration below is the one the mangled name describes)
-extern "C" HMENU MS_ABI impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(
-    HMENU hMenuShared, HMENU hMenuSource, LONG* lpMenuWidths, int iWidthIndex, int bMergeHelpMenus);
+// featurepack/CMFC_misc_stubs.cpp
 extern "C" void MS_ABI impl__AfxRepositionWindow__YAXPEAUAFX_SIZEPARENTPARAMS__PEAUHWND____PEBUtagRECT___Z(
     void* lpLayout, HWND hWnd, const RECT* lpRect);
 // core/window/CWnd.cpp, core/window/Thunks.cpp
@@ -80,10 +75,6 @@ constexpr size_t kSizeof_COleDocIPFrameWnd = 0x280;   // CreateObject 0x256854 `
 // ---- retail COleIPFrameWnd members touched here (retail afxole.h:1468-1483) --
 // Each offset is followed by the mfc140u instruction in THIS class's bodies
 // that establishes it; the same offsets are pinned in core/ole/COleIPFrameWnd.cpp.
-constexpr size_t kOff_m_lpFrame        = 0x200;   // BuildSharedMenu 0x256b64 `mov 0x200(%rbx),%rcx`
-constexpr size_t kOff_m_hSharedMenu    = 0x220;   // BuildSharedMenu 0x256b3b `mov %rax,0x220(%rbx)`
-constexpr size_t kOff_m_menuWidths     = 0x228;   // BuildSharedMenu 0x256b50 `lea 0x228(%rbx),%rsi`
-constexpr size_t kOff_m_hOleMenu       = 0x240;   // BuildSharedMenu 0x256be0 `mov %rax,0x240(%rbx)`
 constexpr size_t kOff_m_rectPos        = 0x248;   // RecalcLayout `movups 0x248(%rbx),%xmm0`
 constexpr size_t kOff_m_rectClip       = 0x258;   // RecalcLayout `lea 0x258(%rbx),%r8` (IntersectRect)
 constexpr size_t kOff_m_hMenuHelpPopup = 0x270;   // ctor 0x2568a5 `movq $0x0,0x270(%rbx)`;
@@ -91,10 +82,6 @@ constexpr size_t kOff_m_hMenuHelpPopup = 0x270;   // ctor 0x2568a5 `movq $0x0,0x
 
 static_assert(sizeof(COleIPFrameWnd) == kSizeof_COleDocIPFrameWnd,
               "retail COleDocIPFrameWnd adds no data to a 0x280-byte COleIPFrameWnd");
-static_assert(offsetof(COleIPFrameWnd, m_pResizeBar) + sizeof(void*) <= kOff_m_lpFrame,
-              "retail members from +0x200 must lie in OpenMFC's _oleipframewnd_padding");
-static_assert(kOff_m_menuWidths + sizeof(OLEMENUGROUPWIDTHS) == kOff_m_hOleMenu,
-              "OLEMENUGROUPWIDTHS (0x18 bytes, the memset length) runs up to m_hOleMenu");
 static_assert(kOff_m_hMenuHelpPopup + 2 * sizeof(void*) == kSizeof_COleDocIPFrameWnd,
               "m_hMenuHelpPopup @0x270 is followed only by _m_Reserved @0x278");
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd @0x40, where RecalcLayout reads it");
@@ -127,11 +114,9 @@ template <typename Fn> inline Fn VSlot(const void* pObj, int slot) {
 enum : int {
     kSlot_CalcWindowRect    = 0x0e0 / 8,   // 28
     kSlot_GetActiveDocument = 0x2e8 / 8,   // 93
-    kSlot_GetInPlaceMenu    = 0x3c0 / 8,   // 120
 };
 typedef void      (MS_ABI* Fn_CalcWindowRect)(CWnd*, RECT*, UINT);
 typedef CDocument*(MS_ABI* Fn_GetActiveDocument)(void*);
-typedef HMENU     (MS_ABI* Fn_GetInPlaceMenu)(void*);
 
 inline CDocument* GetActiveDocumentV(void* pThis) {
     return VSlot<Fn_GetActiveDocument>(pThis, kSlot_GetActiveDocument)(pThis);
@@ -188,48 +173,9 @@ extern "C" void MS_ABI impl___1COleDocIPFrameWnd__UEAA_XZ(void* pThis) {
     (void)pThis;
 }
 
-// COleDocIPFrameWnd::BuildSharedMenu() -- retail mfc140u 0x256b10 (vslot 118),
-// transcribed:
-//     HMENU hMenu = GetInPlaceMenu();                     // vslot 120, called FIRST
-//     m_hSharedMenu = ::CreateMenu();
-//     if (m_hSharedMenu == NULL) return FALSE;
-//     memset(&m_menuWidths, 0, sizeof m_menuWidths);      // 0x18 bytes
-//     if (m_lpFrame->InsertMenus(m_hSharedMenu, &m_menuWidths) != S_OK) {   // vtbl +0x48
-//         ::DestroyMenu(m_hSharedMenu); m_hSharedMenu = NULL; return FALSE;
-//     }
-//     if (hMenu == NULL) return TRUE;                     // container menus only
-//     m_hMenuHelpPopup = AfxMergeMenus(m_hSharedMenu, hMenu, m_menuWidths.width,
-//                                      1, TRUE);          // 0x25f410
-//     m_hOleMenu = ::OleCreateMenuDescriptor(m_hSharedMenu, &m_menuWidths);
-//     return m_hOleMenu != NULL;
-// The one difference from COleIPFrameWnd::BuildSharedMenu (0x25db90) is the
-// last AfxMergeMenus argument: retail stores a constant 1 (`mov %r9d,0x20(%rsp)`
-// with %r9d = 1, at 0x256bba) where the base computes m_menuWidths.width[5] != 0.
-// Retail does not test m_lpFrame before calling through it; neither does this.
-// IAT slots (iatu.py): 0x1802c6ee8 CreateMenu, 0x1802c7418 memset,
-// 0x1802c6be0 DestroyMenu, 0x1802c7aa8 OleCreateMenuDescriptor.
 // Symbol: ?BuildSharedMenu@COleDocIPFrameWnd@@MEAAHXZ
-extern "C" int MS_ABI impl__BuildSharedMenu_COleDocIPFrameWnd__MEAAHXZ(void* pThis) {
-    HMENU hMenu = VSlot<Fn_GetInPlaceMenu>(pThis, kSlot_GetInPlaceMenu)(pThis);
-    HMENU& hSharedMenu = Member<HMENU>(pThis, kOff_m_hSharedMenu);
-    OLEMENUGROUPWIDTHS& menuWidths = Member<OLEMENUGROUPWIDTHS>(pThis, kOff_m_menuWidths);
-    hSharedMenu = ::CreateMenu();
-    if (hSharedMenu == nullptr)
-        return FALSE;
-    memset(&menuWidths, 0, sizeof(menuWidths));
-    LPOLEINPLACEFRAME lpFrame = Member<LPOLEINPLACEFRAME>(pThis, kOff_m_lpFrame);
-    if (lpFrame->InsertMenus(hSharedMenu, &menuWidths) != S_OK) {
-        ::DestroyMenu(hSharedMenu);
-        hSharedMenu = nullptr;
-        return FALSE;
-    }
-    if (hMenu == nullptr)
-        return TRUE;
-    Member<HMENU>(pThis, kOff_m_hMenuHelpPopup) =
-        impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(hSharedMenu, hMenu, menuWidths.width, 1, TRUE);
-    HOLEMENU hOleMenu = ::OleCreateMenuDescriptor(hSharedMenu, &menuWidths);
-    Member<HOLEMENU>(pThis, kOff_m_hOleMenu) = hOleMenu;
-    return hOleMenu != nullptr;
+extern "C" int MS_ABI impl__BuildSharedMenu_COleDocIPFrameWnd__MEAAHXZ(COleIPFrameWnd* frame) {
+    return frame && frame->BuildSharedMenu(TRUE) == S_OK;
 }
 
 // COleDocIPFrameWnd::CreateObject() -- retail mfc140u 0x256850, transcribed:
@@ -247,13 +193,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_COleDocIPFrameWnd__SAPEAVCObject__
     return static_cast<CObject*>(static_cast<COleIPFrameWnd*>(p));
 }
 
-// COleDocIPFrameWnd::DestroySharedMenu() -- retail mfc140u 0x256c00 (vslot 119).
-// That RVA is also what the mfc140u export table gives
-// ?DestroySharedMenu@COleIPFrameWnd@@: one COMDAT-folded body serves both
-// classes.  core/ole/COleIPFrameWnd.cpp transcribes it (if m_hSharedMenu and
-// GetInPlaceMenu() are both non-NULL: AfxUnmergeMenus, m_lpFrame->RemoveMenus,
-// ::DestroyMenu, ::OleDestroyMenuDescriptor, clear the three handles), so this
-// forwards to that export, exactly as the folded retail vftable slot does.
+// Both retail frames use the same DestroySharedMenu implementation (mfc140u 0x256c00).
 // Symbol: ?DestroySharedMenu@COleDocIPFrameWnd@@MEAAXXZ
 extern "C" void MS_ABI impl__DestroySharedMenu_COleDocIPFrameWnd__MEAAXXZ(void* pThis) {
     impl__DestroySharedMenu_COleIPFrameWnd__MEAAXXZ(pThis);

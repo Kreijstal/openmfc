@@ -102,6 +102,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <utility>
 
 // ---- sibling impl__ exports called by the bodies in this file ----
 // (C++ methods of other classes exist in this DLL only as impl__ thunks.  The
@@ -130,13 +131,7 @@ extern "C" void MS_ABI impl__OnDestroy_CFrameWnd__IEAAXXZ(CFrameWnd* pThis);
 extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(CFrameWnd* pThis, MSG* pMsg);
 // core/doc/CDocument.cpp
 extern "C" void MS_ABI impl__DisconnectViews_CDocument__QEAAXXZ(CDocument* pThis);
-// featurepack/CMFC_misc_stubs.cpp (the definitions there spell each HMENU
-// parameter as `void* /*struct*/*`, i.e. void**, and AfxMergeMenus's result as
-// void*; every one is a pointer-sized value, so the ABI is identical)
-extern "C" HMENU MS_ABI impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(
-    HMENU hMenuShared, HMENU hMenuSource, LONG* lpMenuWidths, int iWidthIndex, int bMergeHelpMenus);
-extern "C" void MS_ABI impl__AfxUnmergeMenus__YAXPEAUHMENU____00_Z(
-    HMENU hMenuShared, HMENU hMenuSource, HMENU hHelpMenuPopup);
+// featurepack/CMFC_misc_stubs.cpp
 extern "C" void MS_ABI impl__AfxRepositionWindow__YAXPEAUAFX_SIZEPARENTPARAMS__PEAUHWND____PEBUtagRECT___Z(
     void* lpLayout, HWND hWnd, const RECT* lpRect);
 // detail/MfcExceptionsSupport.cpp
@@ -153,6 +148,21 @@ namespace {
 // afxole.h:1468-1483.  Each offset is followed by the mfc140u instruction
 // that establishes it.
 // ---------------------------------------------------------------------------
+struct SharedMenuState {
+    MenuResource resource;
+    HMENU serverSource = nullptr;
+    bool installed = false;
+};
+
+bool MenuWidthsMatch(HMENU menu, const OLEMENUGROUPWIDTHS& widths) {
+    long long total = 0;
+    for (LONG width : widths.width) {
+        if (width < 0) return false;
+        total += width;
+    }
+    return total == ::GetMenuItemCount(menu);
+}
+
 constexpr size_t kOff_IPFrameTail = 0x1e0;
 constexpr size_t kSizeof_COleIPFrameWnd = 0x280;   // CreateObject 0x25dc90: `mov $0x280,%ecx`
 
@@ -171,9 +181,9 @@ struct RetailIPFrameTail {
     RECT                 m_rectPos;        // +0x248  RepositionFrame CopyRect target
     RECT                 m_rectClip;       // +0x258  RepositionFrame CopyRect target
     BOOL                 m_bInsideRecalc;  // +0x268  RepositionFrame re-entrancy guard
-    BOOL                 m_bPreviewMode;   // +0x26c  (declaration order; not touched here)
+    BOOL                 m_bLayoutInitialized; // +0x26c
     HMENU                m_hMenuHelpPopup; // +0x270  `mov %rax,0x270(%rbx)` 0x25dc5b
-    BOOL                 m_bLayoutInitialized; // +0x278
+    SharedMenuState*     sharedMenuState;  // +0x278
 };
 #pragma pack(pop)
 
@@ -240,7 +250,6 @@ enum : int {
     kSlot_RecalcLayout            = 0x300 / 8,   // 96
     kSlot_GetDefaultAccelerator   = 0x368 / 8,   // 109
     kSlot_RepositionFrame         = 0x3a0 / 8,   // 116
-    kSlot_GetInPlaceMenu          = 0x3c0 / 8,   // 120
     kSlot_OnRequestPositionChange = 0x3c8 / 8,   // 121
 };
 typedef void      (MS_ABI* Fn_CalcWindowRect)(CWnd*, RECT*, UINT);
@@ -250,14 +259,10 @@ typedef void      (MS_ABI* Fn_GetMessageString)(const void*, UINT, CString*);
 typedef void      (MS_ABI* Fn_RecalcLayout)(void*, BOOL);
 typedef HACCEL    (MS_ABI* Fn_GetDefaultAccelerator)(void*);
 typedef void      (MS_ABI* Fn_RepositionFrame)(void*, const RECT*, const RECT*);
-typedef HMENU     (MS_ABI* Fn_GetInPlaceMenu)(void*);
 typedef void      (MS_ABI* Fn_OnRequestPositionChange)(void*, const RECT*);
 
 inline CDocument* GetActiveDocumentV(void* pThis) {
     return VSlot<Fn_GetActiveDocument>(pThis, kSlot_GetActiveDocument)(pThis);
-}
-inline HMENU GetInPlaceMenuV(void* pThis) {
-    return VSlot<Fn_GetInPlaceMenu>(pThis, kSlot_GetInPlaceMenu)(pThis);
 }
 inline void CalcWindowRectV(CWnd* pWnd, RECT* lpRect, UINT nAdjustType) {
     VSlot<Fn_CalcWindowRect>(pWnd, kSlot_CalcWindowRect)(pWnd, lpRect, nAdjustType);
@@ -296,6 +301,7 @@ COleIPFrameWnd::COleIPFrameWnd()
     Tail(this)->m_frameInfo.cb = sizeof(OLEINPLACEFRAMEINFO);
 }
 COleIPFrameWnd::~COleIPFrameWnd() {
+    DestroySharedMenu();
 }
 
 BEGIN_MESSAGE_MAP(COleIPFrameWnd, CFrameWnd)
@@ -335,41 +341,67 @@ extern "C" int MS_ABI impl__OnCreateControlBars_COleIPFrameWnd__UEAAHPEAVCWnd__0
     return TRUE;
 }
 
-// COleIPFrameWnd::BuildSharedMenu() -- retail mfc140u 0x25db90, transcribed:
-//     HMENU hMenu = GetInPlaceMenu();                     // vslot 120, called FIRST
-//     m_hSharedMenu = ::CreateMenu();
-//     if (m_hSharedMenu == NULL) return FALSE;
-//     memset(&m_menuWidths, 0, sizeof m_menuWidths);      // 0x18 bytes
-//     if (m_lpFrame->InsertMenus(m_hSharedMenu, &m_menuWidths) != S_OK) {   // vtbl +0x48
-//         ::DestroyMenu(m_hSharedMenu); m_hSharedMenu = NULL; return FALSE;
-//     }
-//     if (hMenu == NULL) return TRUE;                     // container menus only
-//     m_hMenuHelpPopup = AfxMergeMenus(m_hSharedMenu, hMenu, m_menuWidths.width,
-//                                      1, m_menuWidths.width[5] != 0);   // +0x23c
-//     m_hOleMenu = ::OleCreateMenuDescriptor(m_hSharedMenu, &m_menuWidths);
-//     return m_hOleMenu != NULL;
-// Retail does not test m_lpFrame before calling through it; neither does this.
-// While GetInPlaceMenu below is a stub, a frame that does not override it gets
-// hMenu == NULL and so the container-menus-only result.
 // Symbol: ?BuildSharedMenu@COleIPFrameWnd@@MEAAHXZ
-extern "C" int MS_ABI impl__BuildSharedMenu_COleIPFrameWnd__MEAAHXZ(COleIPFrameWnd* pThis) {
-    RetailIPFrameTail* t = Tail(pThis);
-    HMENU hMenu = GetInPlaceMenuV(pThis);
-    t->m_hSharedMenu = ::CreateMenu();
-    if (t->m_hSharedMenu == nullptr)
-        return FALSE;
-    memset(&t->m_menuWidths, 0, sizeof(t->m_menuWidths));
-    if (t->m_lpFrame->InsertMenus(t->m_hSharedMenu, &t->m_menuWidths) != S_OK) {
-        ::DestroyMenu(t->m_hSharedMenu);
-        t->m_hSharedMenu = nullptr;
-        return FALSE;
+extern "C" int MS_ABI impl__BuildSharedMenu_COleIPFrameWnd__MEAAHXZ(COleIPFrameWnd* frame) {
+    return frame && frame->BuildSharedMenu() == S_OK;
+}
+
+HRESULT COleIPFrameWnd::BuildSharedMenu(BOOL docObject) {
+    auto& state = *Tail(this);
+    if (state.m_hSharedMenu) return S_OK;
+    if (!state.m_lpFrame) return E_UNEXPECTED;
+
+    auto storage = std::make_unique<SharedMenuState>();
+    storage->resource = GetOleMenuResource(GetActiveDocument(), true);
+    storage->serverSource = GetInPlaceMenu();
+    const HMENU shared = ::CreateMenu();
+    if (!shared) return E_OUTOFMEMORY;
+    state.sharedMenuState = storage.release();
+    state.m_hSharedMenu = shared;
+    state.m_menuWidths = {};
+
+    const auto insertion = state.m_lpFrame->InsertMenus(shared, &state.m_menuWidths);
+    const HMENU source = state.sharedMenuState->serverSource;
+    if (insertion != S_OK) {
+        DestroySharedMenu();
+        if (insertion == E_NOTIMPL && !source) return S_OK;
+        return FAILED(insertion) ? insertion : E_FAIL;
     }
-    if (hMenu == nullptr)
-        return TRUE;
-    t->m_hMenuHelpPopup = impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(
-        t->m_hSharedMenu, hMenu, t->m_menuWidths.width, 1, t->m_menuWidths.width[5] != 0);
-    t->m_hOleMenu = ::OleCreateMenuDescriptor(t->m_hSharedMenu, &t->m_menuWidths);
-    return t->m_hOleMenu != nullptr;
+    if (!MenuWidthsMatch(shared, state.m_menuWidths)) {
+        DestroySharedMenu();
+        return E_INVALIDARG;
+    }
+
+    if (source) {
+        state.m_hMenuHelpPopup = impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(
+            shared, source, state.m_menuWidths.width, 1, docObject || state.m_menuWidths.width[5] != 0);
+        if (!MenuWidthsMatch(shared, state.m_menuWidths)) {
+            DestroySharedMenu();
+            return E_INVALIDARG;
+        }
+        if (::GetMenuItemCount(shared) > 0) {
+            state.m_hOleMenu = ::OleCreateMenuDescriptor(shared, &state.m_menuWidths);
+            if (!state.m_hOleMenu) {
+                DestroySharedMenu();
+                return E_FAIL;
+            }
+        }
+    }
+    return S_OK;
+}
+
+HRESULT COleIPFrameWnd::InstallSharedMenu(IOleInPlaceFrame* container, BOOL docObject) {
+    auto& state = *Tail(this);
+    state.m_lpFrame = container; // Borrowed from the document until UI deactivation.
+    const HRESULT built = BuildSharedMenu(docObject);
+    if (built != S_OK || !state.m_hSharedMenu || ::GetMenuItemCount(state.m_hSharedMenu) == 0)
+        return built;
+
+    state.sharedMenuState->installed = true;
+    const HRESULT installed = container->SetMenu(state.m_hSharedMenu, state.m_hOleMenu, m_hWnd);
+    if (installed == S_OK) return S_OK;
+    DestroySharedMenu();
+    return FAILED(installed) ? installed : E_FAIL;
 }
 
 // COleIPFrameWnd::CreateObject() -- retail mfc140u 0x25dc90, transcribed:
@@ -388,54 +420,40 @@ extern "C" CObject* MS_ABI impl__CreateObject_COleIPFrameWnd__SAPEAVCObject__XZ(
     return static_cast<CObject*>(static_cast<COleIPFrameWnd*>(p));
 }
 
-// COleIPFrameWnd::DestroySharedMenu() -- retail mfc140u 0x256c00, transcribed:
-//     if (m_hSharedMenu == NULL) return;
-//     HMENU hMenu = GetInPlaceMenu();                     // vslot 120
-//     if (hMenu == NULL) return;                          // shared menu NOT destroyed
-//     AfxUnmergeMenus(m_hSharedMenu, hMenu, m_hMenuHelpPopup);
-//     m_lpFrame->RemoveMenus(m_hSharedMenu);              // vtbl +0x58
-//     ::DestroyMenu(m_hSharedMenu); m_hSharedMenu = NULL;
-//     if (m_hOleMenu != NULL) { ::OleDestroyMenuDescriptor(m_hOleMenu); m_hOleMenu = NULL; }
-//     m_hMenuHelpPopup = NULL;                            // on both paths of that test
-// Note the early return when GetInPlaceMenu() is NULL: a shared menu that
-// BuildSharedMenu built from the container's groups alone is left alive.
-// That is retail's behaviour and is kept.
 // Symbol: ?DestroySharedMenu@COleIPFrameWnd@@MEAAXXZ
-extern "C" void MS_ABI impl__DestroySharedMenu_COleIPFrameWnd__MEAAXXZ(COleIPFrameWnd* pThis) {
-    RetailIPFrameTail* t = Tail(pThis);
-    if (t->m_hSharedMenu == nullptr)
-        return;
-    HMENU hMenu = GetInPlaceMenuV(pThis);
-    if (hMenu == nullptr)
-        return;
-    impl__AfxUnmergeMenus__YAXPEAUHMENU____00_Z(t->m_hSharedMenu, hMenu, t->m_hMenuHelpPopup);
-    t->m_lpFrame->RemoveMenus(t->m_hSharedMenu);
-    ::DestroyMenu(t->m_hSharedMenu);
-    t->m_hSharedMenu = nullptr;
-    if (t->m_hOleMenu != nullptr) {
-        ::OleDestroyMenuDescriptor(t->m_hOleMenu);
-        t->m_hOleMenu = nullptr;
-    }
-    t->m_hMenuHelpPopup = nullptr;
+extern "C" void MS_ABI impl__DestroySharedMenu_COleIPFrameWnd__MEAAXXZ(COleIPFrameWnd* frame) {
+    if (frame) frame->COleIPFrameWnd::DestroySharedMenu();
 }
 
-// COleIPFrameWnd::GetInPlaceMenu() -- retail mfc140u 0x25db60:
-//     CDocument* pDoc = GetActiveDocument();              // vslot 93
-//     return pDoc->[+0x50]->[+0x88];   // m_pDocTemplate->m_hMenuInPlaceServer
-// with no NULL test on either pointer.  (+0x50 is CDocument::m_pDocTemplate,
-// as core/ole/COleLinkingDoc.cpp:42 also records.  Template +0x88 is the
-// in-place-server menu, MFC's m_hMenuInPlaceServer: CDocTemplate::LoadTemplate
-// (mfc140u 0x226240) fills it with ::LoadMenuW of the resource ID at +0x9c,
-// which CDocTemplate::SetServerInfo (mfc140u 0x226390) stores from its
-// nIDOleInPlaceServer argument.)  STUB: OpenMFC's
-// CDocTemplate declares no in-place-server menu member, so the
-// menu cannot be reached.  NULL is
-// what BuildSharedMenu / DestroySharedMenu treat as "server has no in-place
-// menu".
+void COleIPFrameWnd::DestroySharedMenu() {
+    auto& state = *Tail(this);
+    std::unique_ptr<SharedMenuState> menu(std::exchange(state.sharedMenuState, nullptr));
+    const HMENU shared = std::exchange(state.m_hSharedMenu, nullptr);
+    const HMENU help = std::exchange(state.m_hMenuHelpPopup, nullptr);
+    const HOLEMENU descriptor = std::exchange(state.m_hOleMenu, nullptr);
+    auto* container = std::exchange(state.m_lpFrame, nullptr);
+    if (!shared) return;
+
+    if (menu && menu->installed && container) container->SetMenu(nullptr, nullptr, nullptr);
+    const HMENU source = menu ? menu->serverSource : GetInPlaceMenu();
+    impl__AfxUnmergeMenus__YAXPEAUHMENU____00_Z(shared, source, help);
+    if (!container || container->RemoveMenus(shared) != S_OK) {
+        // A failed container callback may have left borrowed popups attached.
+        for (int i = ::GetMenuItemCount(shared) - 1; i >= 0; --i) {
+            if (::GetSubMenu(shared, i)) ::RemoveMenu(shared, i, MF_BYPOSITION);
+        }
+    }
+    ::DestroyMenu(shared);
+    if (descriptor) ::OleDestroyMenuDescriptor(descriptor);
+}
+
 // Symbol: ?GetInPlaceMenu@COleIPFrameWnd@@MEAAPEAUHMENU__@@XZ
-extern "C" HMENU MS_ABI impl__GetInPlaceMenu_COleIPFrameWnd__MEAAPEAUHMENU____XZ(COleIPFrameWnd* pThis) {
-    (void)pThis;
-    return nullptr;   // TODO(clean-room): load the in-place server menu from the template.
+extern "C" HMENU MS_ABI impl__GetInPlaceMenu_COleIPFrameWnd__MEAAPEAUHMENU____XZ(COleIPFrameWnd* frame) {
+    return frame ? frame->COleIPFrameWnd::GetInPlaceMenu() : nullptr;
+}
+
+HMENU COleIPFrameWnd::GetInPlaceMenu() {
+    return GetOleMenuResource(GetActiveDocument(), true).get();
 }
 
 // COleIPFrameWnd::LoadFrame(UINT, DWORD, CWnd*, CCreateContext*) -- retail

@@ -194,8 +194,39 @@ extern "C" void MS_ABI impl__CloseAllDocuments_CDocTemplate__UEAAXH_Z(CDocTempla
 extern "C" void MS_ABI impl__OnIdle_CDocTemplate__UEAAXXZ(CDocTemplate* pThis) { if (!pThis) return; for (void* pos=pThis->GetFirstDocPosition(); pos;) if (CDocument* d=pThis->GetNextDoc(pos)) impl__OnIdle_CDocument__UEAAXXZ(d); }
 // Symbol: ?OnCmdMsg@CDocTemplate@@UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
 extern "C" int MS_ABI impl__OnCmdMsg_CDocTemplate__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(CDocTemplate* pThis, unsigned int id, int code, void* extra, AFX_CMDHANDLERINFO* info) { return pThis ? pThis->CCmdTarget::OnCmdMsg(id, code, extra, info) : FALSE; }
+extern "C" HINSTANCE AFXAPI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
+    const wchar_t* name, const wchar_t* type);
+
+namespace {
+openmfc::detail::olecore::MenuResource LoadOleMenu(UINT id) {
+    if (!id) return {};
+    const auto* name = MAKEINTRESOURCEW(id);
+    const auto module = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, RT_MENU);
+    if (HMENU menu = ::LoadMenuW(module, name))
+        return {menu, &::DestroyMenu};
+    return {};
+}
+}
+
 // Symbol: ?SetContainerInfo@CDocTemplate@@QEAAXI@Z
-extern "C" void MS_ABI impl__SetContainerInfo_CDocTemplate__QEAAXI_Z(CDocTemplate* pThis, unsigned int id) { if (pThis) g_templateExtraStates[pThis].containerId = id; }
+extern "C" void MS_ABI impl__SetContainerInfo_CDocTemplate__QEAAXI_Z(CDocTemplate* pThis, UINT id) {
+    if (pThis) pThis->SetContainerInfo(id);
+}
+
+void CDocTemplate::SetContainerInfo(UINT id) {
+    auto menu = LoadOleMenu(id);
+    auto& state = g_templateExtraStates[this];
+    state.containerId = id;
+    state.containerMenu = std::move(menu);
+}
+
+openmfc::detail::olecore::MenuResource openmfc::detail::olecore::GetOleMenuResource(
+    const CDocument* document, bool server) {
+    if (!document || !document->GetDocTemplate()) return {};
+    const auto state = g_templateExtraStates.find(document->GetDocTemplate());
+    if (state == g_templateExtraStates.end()) return {};
+    return server ? state->second.serverMenu : state->second.containerMenu;
+}
 // Symbol: ?SetServerInfo@CDocTemplate@@QEAAXIIPEAUCRuntimeClass@@0@Z
 extern "C" void MS_ABI impl__SetServerInfo_CDocTemplate__QEAAXIIPEAUCRuntimeClass__0_Z(
     CDocTemplate* pThis, UINT embeddingId, UINT inPlaceId, CRuntimeClass* frameClass, CRuntimeClass* viewClass) {
@@ -204,11 +235,13 @@ extern "C" void MS_ABI impl__SetServerInfo_CDocTemplate__QEAAXIIPEAUCRuntimeClas
 
 void CDocTemplate::SetServerInfo(UINT embeddingId, UINT inPlaceId,
                                  CRuntimeClass* frameClass, CRuntimeClass* viewClass) {
+    auto menu = LoadOleMenu(inPlaceId);
     auto& state = g_templateExtraStates[this];
     state.oleEmbeddingId = embeddingId;
     state.oleInPlaceServerId = inPlaceId;
     state.oleFrameClass = frameClass;
     state.oleViewClass = viewClass;
+    state.serverMenu = std::move(menu);
 }
 // Symbol: ?SetPreviewInfo@CDocTemplate@@QEAAXIPEAUCRuntimeClass@@0@Z
 extern "C" void MS_ABI impl__SetPreviewInfo_CDocTemplate__QEAAXIPEAUCRuntimeClass__0_Z(CDocTemplate* pThis, unsigned int id, CRuntimeClass* viewClass, CRuntimeClass* frameClass) { if (pThis) { auto& s=g_templateExtraStates[pThis]; s.previewId=id; s.previewViewClass=viewClass; s.previewFrameClass=frameClass; } }

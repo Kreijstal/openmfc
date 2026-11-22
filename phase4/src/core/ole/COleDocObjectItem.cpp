@@ -461,40 +461,22 @@ extern "C" const void* MS_ABI impl__GetCommandMap_COleDocObjectItem__MEBAPEBUAFX
 }
 
 // Symbol: ?GetHelpMenu@COleDocObjectItem@@MEAAPEAVCMenu@@AEAI@Z
-// CMenu* COleDocObjectItem::GetHelpMenu(UINT& nPosition) -- transcribed from
-// the retail mfc140u function entry RVA 0x255ea0. It loads m_pView at item
-// +0x98, calls CWnd::GetTopLevelFrame (entry RVA 0x28e490, mfc140u), and throws
-// AfxThrowInvalidArgException if no frame is returned. It then wraps the
-// frame's m_hMenuDefault at +0xf0 with CMenu::FromHandle (entry RVA 0x2a80a0,
-// mfc140u).
-// If that wrapper is non-NULL, it stores GetMenuItemCount(m_hMenu) - 1 through
-// nPosition; the call's ANSI-twin IAT slot 0x1802c4c90 resolves to
-// USER32!GetMenuItemCount. A NULL menu leaves nPosition untouched.
-// The two named retail fields are pinned by the static_asserts above. The
-// non-MSVC source-check build has no COleClientItem RetailTailStorage member;
-// its local path supplies NULL rather than treating the compact layout as the
-// retail overlay. The deployed MSVC ABI path reads the modeled +0x98 field.
-// OpenMFC zeroes this slot in the item constructor but currently has no in-tree
-// assignment to it, so absent caller-provided view state this follows retail's
-// null-view outcome and throws the invalid-argument exception.
 extern "C" CMenu* MS_ABI impl__GetHelpMenu_COleDocObjectItem__MEAAPEAVCMenu__AEAI_Z(
-        COleDocObjectItem* pThis, unsigned int* pnPosition) {
-#if defined(_MSC_VER)
-    CView* pView = static_cast<COleClientItem*>(pThis)->m_retailTail.m_pView;
-#else
-    CView* pView = nullptr;
-#endif
-    CFrameWnd* pFrame = impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pView);
-    if (pFrame == nullptr) {
-        impl__AfxThrowInvalidArgException__YAXXZ();
-        return nullptr;
-    }
-    CMenu* pMenu = impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(
-        pFrame->m_retailPrefix.m_hMenuDefault);
-    if (pMenu != nullptr) {
-        *pnPosition = static_cast<unsigned int>(::GetMenuItemCount(pMenu->m_hMenu) - 1);
-    }
-    return pMenu;
+    COleDocObjectItem* item, UINT* position) {
+    if (!item || !position) return nullptr;
+    CView* view = item->COleClientItem::m_retailTail.m_pView;
+    auto* frame = view ? view->GetTopLevelFrame() : nullptr;
+    if (!frame) return nullptr;
+    HMENU handle = frame->m_retailPrefix.m_hMenuDefault;
+    if (!handle) handle = ::GetMenu(frame->m_hWnd);
+    const int count = ::GetMenuItemCount(handle);
+    if (count <= 0) return nullptr;
+    *position = count - 1;
+    return impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(handle);
+}
+
+CMenu* COleDocObjectItem::GetHelpMenu(UINT& position) {
+    return impl__GetHelpMenu_COleDocObjectItem__MEAAPEAVCMenu__AEAI_Z(this, &position);
 }
 
 // Symbol: ?GetPageCount@COleDocObjectItem@@QEAAHPEAJ0@Z
@@ -579,74 +561,65 @@ void COleDocObjectItem::OnGetItemPosition(CRect& position) {
 }
 
 // Symbol: ?OnInsertMenus@COleDocObjectItem@@UEAAXPEAVCMenu@@PEAUtagOleMenuGroupWidths@@@Z
-// void COleDocObjectItem::OnInsertMenus(CMenu* pMenuShared,
-//                                       LPOLEMENUGROUPWIDTHS lpMenuWidths)
-// -- STUB.  Retail (mfc140u 0x255f00 by export ordinal; mfc140 0x254fd0):
-// sets width[0] = 1, width[2] = width[4] = 0 and turns -1 in width[1]/[3]/[5]
-// into 0; reads the in-place menu m_pDocument(+0x40)->[+0x50]->[+0x68]. If it
-// is NULL, it returns without help-menu insertion or AfxMergeMenus; otherwise
-// it calls the virtual GetHelpMenu(nPos)
-// (vtable byte 0x1d0: the mfc140 COleDocObjectItem vftable starts at .rdata
-// 0x32c938 -- OnCmdMsg at +0x28 -- and holds GetHelpMenu's address at +0x1d0)
-// and, when that yields a menu pHelp whose
-// GetMenuString(nPos, strHelp, MF_BYPOSITION) succeeds:
-//     CString strTitle;
-//     strTitle.Format(L"%Ts %Ts", AfxGetModuleState()->[+0x20] /*app name*/,
-//                     strHelp);            // format string mfc140u .rdata 0x34dfb8
-//     strTitle.Remove(L'&');
-//     HMENU hSub = ::GetSubMenu(pHelp->m_hMenu,
-//                               ::GetMenuItemCount(pHelp->m_hMenu) - 1);
-//     if (m_pHelpPopupMenu /*+0xf0*/ == NULL) {
-//         m_pHelpPopupMenu = new CMenu;
-//         m_pHelpPopupMenu->Attach(::CreateMenu());
-//         ::InsertMenu(m_pHelpPopupMenu->m_hMenu, -1, MF_BYPOSITION|MF_POPUP,
-//                      (UINT_PTR)hSub, strTitle);
-//     }
-//     ::InsertMenu(pMenuShared->m_hMenu, -1, MF_BYPOSITION|MF_POPUP,
-//                  (UINT_PTR)m_pHelpPopupMenu->m_hMenu, strHelp);
-//     width[5] = 1;
-// finally AfxMergeMenus(pMenuShared ? pMenuShared->m_hMenu : NULL, hMenuOLE,
-// lpMenuWidths->width, 0, TRUE).  (A NULL help menu goes straight to the
-// merge; a GetMenuString failure returns early, skipping the merge.)  IAT
-// slots resolved with iatu.py: GetMenuItemCount, GetSubMenu, CreateMenu,
-// InsertMenuW.
-// Blocked: OpenMFC does not model retail CDocument::m_pDocTemplate (+0x50) or
-// CDocTemplate::m_hMenuInPlace (+0x68), so this function cannot obtain the
-// merge source; COleClientItem.cpp leaves its corresponding menu methods
-// stubbed for the same missing state. GetHelpMenu and m_pView are now modeled,
-// but implementing only that half would remain unbalanced with OnRemoveMenus.
 extern "C" void MS_ABI impl__OnInsertMenus_COleDocObjectItem__UEAAXPEAVCMenu__PEAUtagOleMenuGroupWidths___Z(
-        COleDocObjectItem* pThis, CMenu* pMenuShared, OLEMENUGROUPWIDTHS* lpMenuWidths) {
-    (void)pThis;
-    (void)pMenuShared;
-    (void)lpMenuWidths;
+    COleDocObjectItem* item, CMenu* shared, OLEMENUGROUPWIDTHS* widths) {
+    if (item) item->COleDocObjectItem::OnInsertMenus(shared, widths);
+}
+
+void COleDocObjectItem::OnInsertMenus(CMenu* shared, OLEMENUGROUPWIDTHS* widths) {
+    if (!widths) return;
+    widths->width[0] = 1;
+    widths->width[2] = widths->width[4] = 0;
+    for (int group : {1, 3, 5}) {
+        if (widths->width[group] == -1) widths->width[group] = 0;
+    }
+
+    if (shared && shared->m_hMenu) COleClientItem::OnRemoveMenus(shared);
+    auto source = GetOleMenuResource(m_pContainerDoc, false);
+    if (!source || !shared || !shared->m_hMenu) {
+        widths->width[0] = 0;
+        return;
+    }
+    UINT helpPosition = 0;
+    auto* help = GetHelpMenu(helpPosition);
+
+    auto& menu = GetClientItemState(this, true)->mergedMenus[shared->m_hMenu];
+    menu.source = std::move(source);
+    if (help) {
+        wchar_t title[256]{};
+        HMENU popup = ::GetSubMenu(help->m_hMenu, helpPosition);
+        if (popup && ::GetMenuStringW(help->m_hMenu, helpPosition, title, 256, MF_BYPOSITION)) {
+            if (HMENU wrapper = ::CreateMenu()) {
+                MenuResource helpResource(wrapper, [](HMENU handle) {
+                    while (::GetMenuItemCount(handle) > 0 && ::RemoveMenu(handle, 0, MF_BYPOSITION)) {
+                    }
+                    ::DestroyMenu(handle);
+                });
+                const auto* module = reinterpret_cast<const BYTE*>(impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ());
+                const auto* app = *reinterpret_cast<const wchar_t* const*>(module + 0x20);
+                std::wstring label = app && *app ? std::wstring(app) + L" " : std::wstring{};
+                label += title;
+                label.erase(std::remove(label.begin(), label.end(), L'&'), label.end());
+                if (::AppendMenuW(wrapper, MF_POPUP, reinterpret_cast<UINT_PTR>(popup), label.c_str()) &&
+                    ::AppendMenuW(shared->m_hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(wrapper), title)) {
+                    menu.help = std::move(helpResource);
+                    widths->width[5] = 1;
+                }
+            }
+        }
+    }
+    impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(
+        shared->m_hMenu, menu.source.get(), widths->width, 0, TRUE);
 }
 
 // Symbol: ?OnRemoveMenus@COleDocObjectItem@@UEAAXPEAVCMenu@@@Z
-// void COleDocObjectItem::OnRemoveMenus(CMenu* pMenuShared) -- STUB.
-// Retail (mfc140u 0x2561c0 by export ordinal; mfc140 0x255280):
-//     int n = ::GetMenuItemCount(pMenuShared->m_hMenu);
-//     if (n != 0) {
-//         CMenu* pSub = CMenu::FromHandle(::GetSubMenu(pMenuShared->m_hMenu, n - 1));
-//         if (pSub != NULL) {
-//             int c = ::GetMenuItemCount(pSub->m_hMenu);
-//             for (int i = 1; i < c; i++)
-//                 ::DeleteMenu(pSub->m_hMenu, i, MF_BYPOSITION);
-//         }
-//         ::RemoveMenu(pMenuShared->m_hMenu, n - 1, MF_BYPOSITION);
-//     }
-//     HMENU hMenuOLE = m_pDocument(+0x40)->[+0x50]->[+0x68];
-//     if (hMenuOLE != NULL) AfxUnmergeMenus(pMenuShared->m_hMenu, hMenuOLE, NULL);
-// (IAT slots resolved with iat.py: GetMenuItemCount, GetSubMenu, DeleteMenu,
-// RemoveMenu.) Blocked on the same unmodeled CDocument::m_pDocTemplate and
-// CDocTemplate::m_hMenuInPlace fields as OnInsertMenus. Its destructive
-// last-popup removal must not run while this implementation's OnInsertMenus is
-// a stub: without a paired insertion it could remove pre-existing shared-menu
-// content belonging to the caller.
 extern "C" void MS_ABI impl__OnRemoveMenus_COleDocObjectItem__UEAAXPEAVCMenu___Z(
-        COleDocObjectItem* pThis, CMenu* pMenuShared) {
-    (void)pThis;
-    (void)pMenuShared;
+    COleDocObjectItem* item, CMenu* shared) {
+    if (item) item->COleDocObjectItem::OnRemoveMenus(shared);
+}
+
+void COleDocObjectItem::OnRemoveMenus(CMenu* shared) {
+    COleClientItem::OnRemoveMenus(shared);
 }
 
 // Symbol: ?QueryCommand@COleDocObjectItem@@QEAAJKPEAKPEAU_tagOLECMDTEXT@@PEBU_GUID@@@Z

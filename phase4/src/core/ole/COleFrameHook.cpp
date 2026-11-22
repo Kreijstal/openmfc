@@ -923,14 +923,40 @@ extern "C" long MS_ABI impl__GetWindow_XOleInPlaceFrame_COleFrameHook__UEAAJPEAP
     return *phwnd != nullptr ? S_OK : E_FAIL;
 }
 
+namespace {
+struct BorrowedMenu : CMenu {
+    explicit BorrowedMenu(HMENU handle) { m_hMenu = handle; }
+    ~BorrowedMenu() override { m_hMenu = nullptr; }
+};
+
+template<class Callback>
+HRESULT WithActiveItem(void* part, Callback callback) {
+    if (!part) return E_POINTER;
+    auto* hook = HookFromInPlaceFrameInterface(part);
+    auto* item = ActiveItem(hook);
+    if (!item) return E_UNEXPECTED;
+    try {
+        FrameHookModuleStateScope state(hook->m_pModuleState);
+        callback(*item);
+        return S_OK;
+    } catch (CException* error) {
+        if (error) error->Delete();
+        return E_UNEXPECTED;
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
+}
+}
+
 // Symbol: ?InsertMenus@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@PEAUtagOleMenuGroupWidths@@@Z
-// The container menu merge and removal paths still need their template resources.
 extern "C" long MS_ABI impl__InsertMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU____PEAUtagOleMenuGroupWidths___Z(
-    void* pThis, HMENU hmenuShared, OLEMENUGROUPWIDTHS* lpMenuWidths) {
-    (void)pThis;
-    (void)hmenuShared;
-    (void)lpMenuWidths;
-    return E_NOTIMPL;
+    void* part, HMENU shared, OLEMENUGROUPWIDTHS* widths) {
+    if (!widths) return E_POINTER;
+    if (!::IsMenu(shared)) return E_INVALIDARG;
+    return WithActiveItem(part, [&](COleClientItem& item) {
+        BorrowedMenu menu(shared);
+        item.OnInsertMenus(&menu, widths);
+    });
 }
 
 // Symbol: ?QueryStatus@XOleCommandTarget@COleFrameHook@@UEAAJPEBU_GUID@@KQEAU_tagOLECMD@@PEAU_tagOLECMDTEXT@@@Z
@@ -946,12 +972,13 @@ extern "C" long MS_ABI impl__QueryStatus_XOleCommandTarget_COleFrameHook__UEAAJP
 }
 
 // Symbol: ?RemoveMenus@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@@Z
-// The container menu merge and removal paths still need their template resources.
 extern "C" long MS_ABI impl__RemoveMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU_____Z(
-    void* pThis, HMENU hmenuShared) {
-    (void)pThis;
-    (void)hmenuShared;
-    return E_NOTIMPL;
+    void* part, HMENU shared) {
+    if (!::IsMenu(shared)) return E_INVALIDARG;
+    return WithActiveItem(part, [&](COleClientItem& item) {
+        BorrowedMenu menu(shared);
+        item.OnRemoveMenus(&menu);
+    });
 }
 
 // Symbol: ?RequestBorderSpace@XOleInPlaceFrame@COleFrameHook@@UEAAJPEBUtagRECT@@@Z
@@ -1011,14 +1038,13 @@ extern "C" long MS_ABI impl__SetBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAA
 }
 
 // Symbol: ?SetMenu@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUHMENU__@@PEAXPEAUHWND__@@@Z
-// Updating the merged frame menu requires the client item menu path.
 extern "C" long MS_ABI impl__SetMenu_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUHMENU____PEAXPEAUHWND_____Z(
-    void* pThis, HMENU hmenuShared, void* holemenu, HWND hwndActiveObject) {
-    (void)pThis;
-    (void)hmenuShared;
-    (void)holemenu;
-    (void)hwndActiveObject;
-    return E_NOTIMPL;
+    void* part, HMENU shared, HOLEMENU descriptor, HWND activeWindow) {
+    if (shared && !::IsMenu(shared)) return E_INVALIDARG;
+    return WithActiveItem(part, [&](COleClientItem& item) {
+        BorrowedMenu menu(shared);
+        item.OnSetMenu(shared ? &menu : nullptr, descriptor, activeWindow);
+    });
 }
 
 // Symbol: ?SetStatusText@XOleInPlaceFrame@COleFrameHook@@UEAAJPEB_W@Z

@@ -15,6 +15,7 @@ struct AFX_INTERFACEMAP;
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
 #include "openmfc/afxole.h"
+#include "detail/OleMenuSupport.h"
 #include <windows.h>
 #include <algorithm>
 #include <cstring>
@@ -83,6 +84,8 @@ struct TemplateExtraState {
     UINT oleEmbeddingId = 0;
     UINT oleInPlaceServerId = 0;
     UINT previewId = 0;
+    openmfc::detail::olecore::MenuResource containerMenu;
+    openmfc::detail::olecore::MenuResource serverMenu;
     CRuntimeClass* oleFrameClass = nullptr;
     CRuntimeClass* oleViewClass = nullptr;
     CRuntimeClass* previewViewClass = nullptr;

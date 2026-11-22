@@ -2154,41 +2154,46 @@ BOOL COleClientItem::OnGetWindowContext(CFrameWnd** frame, CFrameWnd** document,
 }
 
 // Symbol: ?OnInsertMenus@COleClientItem@@UEAAXPEAVCMenu@@PEAUtagOleMenuGroupWidths@@@Z
-// COleClientItem::OnInsertMenus(CMenu*, LPOLEMENUGROUPWIDTHS) — retail
-// 0x247360:
-//     lpMenuWidths->width[0] = lpMenuWidths->width[2] =
-//         lpMenuWidths->width[4] = 0;                          // 0x247364
-//     HMENU hMenuInPlace = m_pDocument->[doc+0x50] /*the document's
-//                              template*/ ->[tpl+0x68];        // 0x247372
-//         // both loads are unguarded: a null document or template faults here
-//     if (hMenuInPlace != NULL)
-//         AfxMergeMenus(pMenuShared ? pMenuShared->m_hMenu : NULL,
-//                       hMenuInPlace, &lpMenuWidths->width[0], 0, 0);
-//                                                              // 0x247397
-// Left as generated: OpenMFC's CDocTemplate (include/openmfc/afxwin.h) declares
-// no in-place menu handle (retail template+0x68), so there is nothing to merge
-// and no way to reach one from here.  That is the only blocker — the
-// AfxMergeMenus export itself is implemented (phase4/src/featurepack/
-// CMFC_misc_stubs.cpp), so this becomes implementable the moment the template
-// carries the handle.
 extern "C" void MS_ABI impl__OnInsertMenus_COleClientItem__UEAAXPEAVCMenu__PEAUtagOleMenuGroupWidths___Z(
-        COleClientItem* pThis, CMenu* pMenuShared, void* lpMenuWidths) {
-    (void)pThis; (void)pMenuShared; (void)lpMenuWidths;
+    COleClientItem* item, CMenu* shared, OLEMENUGROUPWIDTHS* widths) {
+    if (item) item->COleClientItem::OnInsertMenus(shared, widths);
+}
+
+void COleClientItem::OnInsertMenus(CMenu* shared, OLEMENUGROUPWIDTHS* widths) {
+    if (!widths) return;
+    widths->width[0] = widths->width[2] = widths->width[4] = 0;
+    if (!shared || !shared->m_hMenu) return;
+    COleClientItem::OnRemoveMenus(shared);
+    auto source = GetOleMenuResource(m_pContainerDoc, false);
+    if (!source) return;
+    auto& menu = GetClientItemState(this, true)->mergedMenus[shared->m_hMenu];
+    menu.source = std::move(source);
+    impl__AfxMergeMenus__YAPEAUHMENU____PEAU1_0PEAJHH_Z(
+        shared->m_hMenu, menu.source.get(), widths->width, 0, FALSE);
 }
 
 // Symbol: ?OnRemoveMenus@COleClientItem@@UEAAXPEAVCMenu@@@Z
-// COleClientItem::OnRemoveMenus(CMenu*) — retail 0x247470, the exact mirror of
-// OnInsertMenus above:
-//     HMENU hMenuInPlace = m_pDocument->[doc+0x50] /*the document's
-//                              template*/ ->[tpl+0x68];        // 0x247474
-//     if (hMenuInPlace != NULL)
-//         AfxUnmergeMenus(pMenuShared ? pMenuShared->m_hMenu : NULL,
-//                         hMenuInPlace, NULL);                 // 0x247498
-// Left as generated for the same reason as OnInsertMenus: OpenMFC's
-// CDocTemplate carries no in-place HMENU at template+0x68.
 extern "C" void MS_ABI impl__OnRemoveMenus_COleClientItem__UEAAXPEAVCMenu___Z(
-        COleClientItem* pThis, CMenu* pMenuShared) {
-    (void)pThis; (void)pMenuShared;
+    COleClientItem* item, CMenu* shared) {
+    if (item) item->COleClientItem::OnRemoveMenus(shared);
+}
+
+void COleClientItem::OnRemoveMenus(CMenu* shared) {
+    auto* state = GetClientItemState(this, false);
+    if (!shared || !state) return;
+    auto merge = state->mergedMenus.extract(shared->m_hMenu);
+    if (merge.empty()) return;
+
+    auto& menu = merge.mapped();
+    if (menu.help) {
+        for (int i = ::GetMenuItemCount(shared->m_hMenu) - 1; i >= 0; --i) {
+            if (::GetSubMenu(shared->m_hMenu, i) == menu.help.get())
+                ::RemoveMenu(shared->m_hMenu, i, MF_BYPOSITION);
+        }
+        menu.help.reset();
+    }
+    if (menu.source)
+        impl__AfxUnmergeMenus__YAXPEAUHMENU____00_Z(shared->m_hMenu, menu.source.get(), nullptr);
 }
 
 // Symbol: ?OnScrollBy@COleClientItem@@MEAAHVCSize@@@Z
@@ -2220,25 +2225,35 @@ extern "C" int MS_ABI impl__OnScrollBy_COleClientItem__MEAAHVCSize___Z(
 }
 
 // Symbol: ?OnSetMenu@COleClientItem@@UEAAXPEAVCMenu@@PEAXPEAUHWND__@@@Z
-// COleClientItem::OnSetMenu(CMenu*, HOLEMENU, HWND) — retail 0x2473b0:
-//     CFrameWnd* pFrame = [this+0xa8] /*in-place frame hook*/ ->[hook+0x40];
-//     if ([this+0xb0] /*doc-frame hook*/ != NULL &&
-//         [this+0xb0]->[hook+0x40] != pFrame->vftable[0x2f0]())
-//         return;                                              // 0x2473fa
-//     pFrame->vftable[0x370](pMenuShared ? pMenuShared->m_hMenu : NULL);
-//                                                              // 0x247416
-//     OleSetMenuDescriptor(hOleMenu, pFrame->m_hWnd, hwndActiveObject,
-//                          NULL, NULL);                        // 0x247432
-//     if ([this+0xb0] != NULL)
-//         OleSetMenuDescriptor(hOleMenu, [this+0xb0]->[hook+0x40]->m_hWnd,
-//                              hwndActiveObject, NULL, NULL);  // 0x24745e
-// The retail hook pointers are now named at item+0xa8 and +0xb0, but OpenMFC
-// does not construct compatible COleFrameHook interface parts in this object;
-// the retail body dereferences the first hook before any null test, so this
-// implementation still cannot reproduce its dispatch safely.
 extern "C" void MS_ABI impl__OnSetMenu_COleClientItem__UEAAXPEAVCMenu__PEAXPEAUHWND_____Z(
-        COleClientItem* pThis, CMenu* pMenuShared, void* hOleMenu, HWND hwndActiveObject) {
-    (void)pThis; (void)pMenuShared; (void)hOleMenu; (void)hwndActiveObject;
+    COleClientItem* item, CMenu* shared, HOLEMENU descriptor, HWND activeWindow) {
+    if (item) item->COleClientItem::OnSetMenu(shared, descriptor, activeWindow);
+}
+
+void COleClientItem::OnSetMenu(CMenu* shared, HOLEMENU descriptor, HWND activeWindow) {
+    auto* hook = m_retailTail.m_pInPlaceFrame;
+    if (!hook || !hook->m_pFrameWnd || !hook->m_pFrameWnd->m_hWnd) return;
+    auto* frame = hook->m_pFrameWnd;
+    auto* document = m_retailTail.m_pInPlaceDoc;
+    auto& menus = hook->m_retailTail;
+    const HMENU menu = shared ? shared->m_hMenu : nullptr;
+    if (menu) {
+        if (document && document->m_pFrameWnd != frame->GetActiveFrame()) return;
+        if (!std::exchange(menus.m_bSharedMenuInstalled, TRUE))
+            menus.m_hOriginalMenu = ::GetMenu(frame->m_hWnd);
+        frame->OnUpdateFrameMenu(menu);
+    } else if (std::exchange(menus.m_bSharedMenuInstalled, FALSE)) {
+        const HMENU original = std::exchange(menus.m_hOriginalMenu, nullptr);
+        if (original) frame->OnUpdateFrameMenu(original);
+        else {
+            ::SetMenu(frame->m_hWnd, nullptr);
+            ::DrawMenuBar(frame->m_hWnd);
+        }
+    }
+
+    ::OleSetMenuDescriptor(descriptor, frame->m_hWnd, activeWindow, nullptr, nullptr);
+    if (document && document->m_pFrameWnd && document->m_pFrameWnd->m_hWnd)
+        ::OleSetMenuDescriptor(descriptor, document->m_pFrameWnd->m_hWnd, activeWindow, nullptr, nullptr);
 }
 
 // Symbol: ?OnUpdateFrameTitle@COleClientItem@@UEAAHXZ

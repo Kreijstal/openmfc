@@ -11,6 +11,7 @@ using namespace openmfc::detail::olecore;
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxole.h"
+#include "detail/OleMenuSupport.h"
 #include <algorithm>
 #include <cstring>
 #include <cwchar>
@@ -931,6 +932,10 @@ struct DocumentState {
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
+struct ContainerMenuMerge {
+    MenuResource source;
+    MenuResource help;
+};
 struct ClientItemState {
     COleClientItem* item = nullptr;
     LONG activeVerb = OLEIVERB_PRIMARY;
@@ -953,6 +958,7 @@ struct ClientItemState {
     COleFrameHook* inPlaceDoc = nullptr;
     HWND serverWindow = nullptr;
     DWORD frameMenuBarVisibility = 0;
+    std::map<HMENU, ContainerMenuMerge> mergedMenus;
     CString hostName;
     CString hostObjectName;
     IUnknown* attachedDataObject = nullptr;
@@ -972,6 +978,7 @@ struct ClientItemState {
           activeView(other.activeView), savedViewStyle(other.savedViewStyle),
           inPlaceFrame(other.inPlaceFrame), inPlaceDoc(other.inPlaceDoc),
           serverWindow(other.serverWindow), frameMenuBarVisibility(other.frameMenuBarVisibility),
+          mergedMenus(std::move(other.mergedMenus)),
           hostName(std::move(other.hostName)),
           hostObjectName(std::move(other.hostObjectName)),
           attachedDataObject(other.attachedDataObject),
@@ -1016,6 +1023,7 @@ struct ClientItemState {
             inPlaceDoc = other.inPlaceDoc;
             serverWindow = other.serverWindow;
             frameMenuBarVisibility = other.frameMenuBarVisibility;
+            mergedMenus = std::move(other.mergedMenus);
             hostName = std::move(other.hostName);
             hostObjectName = std::move(other.hostObjectName);
             attachedDataObject = other.attachedDataObject;
