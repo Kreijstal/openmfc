@@ -698,16 +698,6 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CStatusBar__UEAA_AVCSize__HH_Z(CS
 //         rect.right -= rgBorders[0] + ::GetSystemMetrics(SM_CXVSCROLL)
 //                     + ::GetSystemMetrics(SM_CXBORDER) * 2;              // IAT GetSystemMetrics
 //     }
-// DEVIATION (inherited, not introduced here): retail's CControlBar::CalcInsideRect
-// (0x1d7c50, mfc140u) first applies the four CBRS_BORDER_* bits of m_dwStyle
-// (bits 8..11 -> afxData.cxBorder2 / cyBorder2) and then picks which of
-// m_cxLeftBorder / m_cyTopBorder goes on which edge according to bHorz, plus a
-// +7 nudge when (m_dwStyle & 0x400001) == 0x400000.  OpenMFC's thunk
-// (core/controlbar/CControlBar.cpp) ignores bHorz and the border bits and just
-// insets by the four border members, so every caller of the base here --
-// this function, OnNcCalcSize, CalcFixedLayout and UpdateAllPanes -- inherits
-// that simplification.  Reported in headerRequests; nothing is worked around
-// locally because the correct result is not derivable without afxData.
 // Symbol: ?CalcInsideRect@CStatusBar@@UEBAXAEAVCRect@@H@Z
 extern "C" void MS_ABI impl__CalcInsideRect_CStatusBar__UEBAXAEAVCRect__H_Z(const CStatusBar* pThis, CRect& rect, int bHorz) {
     if (pThis == nullptr) return;

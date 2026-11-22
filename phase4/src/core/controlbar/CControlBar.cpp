@@ -326,11 +326,22 @@ extern "C" int MS_ABI impl__AllocElements_CControlBar__QEAAHHH_Z(CControlBar* pT
 }
 // Symbol: ?CalcInsideRect@CControlBar@@UEBAXAEAVCRect@@H@Z
 extern "C" void MS_ABI impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(const CControlBar* pThis, CRect& rect, int bHorz) {
-    (void)bHorz;
-    rect.left += pThis->m_cxLeftBorder;
-    rect.right -= pThis->m_cxRightBorder;
-    rect.top += pThis->m_cyTopBorder;
-    rect.bottom -= pThis->m_cyBottomBorder;
+    const DWORD style = pThis->m_dwStyle;
+    if (style & kCBRS_BORDER_LEFT) rect.left += kCxBorder2;
+    if (style & kCBRS_BORDER_TOP) rect.top += kCyBorder2;
+    if (style & kCBRS_BORDER_RIGHT) rect.right -= kCxBorder2;
+    if (style & kCBRS_BORDER_BOTTOM) rect.bottom -= kCyBorder2;
+
+    rect.left += bHorz ? pThis->m_cxLeftBorder : pThis->m_cyTopBorder;
+    rect.top += bHorz ? pThis->m_cyTopBorder : pThis->m_cxLeftBorder;
+    rect.right -= bHorz ? pThis->m_cxRightBorder : pThis->m_cyBottomBorder;
+    rect.bottom -= bHorz ? pThis->m_cyBottomBorder : pThis->m_cxRightBorder;
+
+    if ((style & (kCBRS_GRIPPER | kCBRS_FLOATING)) == kCBRS_GRIPPER) {
+        constexpr int gripperInset = 7;
+        if (bHorz) rect.left += gripperInset;
+        else rect.top += gripperInset;
+    }
 }
 // Transcribed from retail RVA 0x1d74e0 (mfc140u):
 //     CRect rect;  ::GetClientRect(m_hWnd, &rect);   // IAT GetClientRect

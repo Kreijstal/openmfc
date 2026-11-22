@@ -102,13 +102,12 @@ constexpr long kVERSION_6   = 0x60000;
 // exported GetCommCtrlVersion exactly as core/controlbar/CReBar.cpp does, so a
 // value is always available instead of the -1 an unfilled retail cache holds.
 long ComCtlVersion() {
-    static long s_ver = -1;
-    if (s_ver == -1) {
+    static const long version = [] {
         unsigned long major = 0, minor = 0;
         impl__GetCommCtrlVersion__YAJPEAK0_Z(&major, &minor);
-        s_ver = static_cast<long>(((major & 0xffffu) << 16) | (minor & 0xffffu));
-    }
-    return s_ver;
+        return static_cast<long>(((major & 0xffffu) << 16) | (minor & 0xffffu));
+    }();
+    return version;
 }
 
 // this->DefWindowProc(msg, wParam, lParam): CWnd vslot 73 (`call *0x248(%rax)`)
@@ -130,11 +129,11 @@ inline LRESULT TbDefWindowProc(const CToolBar* pThis, UINT msg, WPARAM wParam, L
 //     pButton->fsState ^= TBSTATE_ENABLED;       // TBSTATE_ENABLED == TBBS_DISABLED, so invert it
 // DEVIATION: the caller's buffer is zeroed first so a failed TB_GETBUTTON
 // yields zeros instead of retail's uninitialised stack.
-inline void TbGetButton(const CToolBar* pThis, int nIndex, ::TBBUTTON* pButton) {
-    std::memset(pButton, 0, sizeof(*pButton));
-    TbDefWindowProc(pThis, kTB_GETBUTTON, static_cast<WPARAM>(static_cast<INT_PTR>(nIndex)),
-                    reinterpret_cast<LPARAM>(pButton));
-    pButton->fsState ^= TBSTATE_ENABLED;
+inline bool TbGetButton(const CToolBar* bar, int index, ::TBBUTTON* button) {
+    std::memset(button, 0, sizeof(*button));
+    if (!TbDefWindowProc(bar, kTB_GETBUTTON, index, reinterpret_cast<LPARAM>(button))) return false;
+    button->fsState ^= TBSTATE_ENABLED;
+    return true;
 }
 
 // CToolBar::_SetButton (unexported, 0x1dba90 mfc140u), transcribed:
@@ -164,21 +163,24 @@ inline void TbGetButton(const CToolBar* pThis, int nIndex, ::TBBUTTON* pButton) 
 //             ::InvalidateRect(m_hWnd, &rect, TRUE);
 //     }
 // The IAT slots were resolved in mfc140u: memcmp, SendMessageW, InvalidateRect.
-void TbSetButton(CToolBar* pThis, int nIndex, ::TBBUTTON* pButton) {
+bool TbSetButton(CToolBar* pThis, int nIndex, ::TBBUTTON* pButton) {
     const WPARAM wIndex = static_cast<WPARAM>(static_cast<INT_PTR>(nIndex));
     ::TBBUTTON button;
     std::memset(&button, 0, sizeof(button));   // DEVIATION: retail leaves it uninitialised
-    TbDefWindowProc(pThis, kTB_GETBUTTON, wIndex, reinterpret_cast<LPARAM>(&button));
+    if (!TbDefWindowProc(pThis, kTB_GETBUTTON, wIndex, reinterpret_cast<LPARAM>(&button))) return false;
     pButton->fsState ^= TBSTATE_ENABLED;
     button.bReserved[0] = 0;
     button.bReserved[1] = 0;
     pButton->bReserved[0] = 0;
     pButton->bReserved[1] = 0;
-    if (std::memcmp(pButton, &button, sizeof(::TBBUTTON)) == 0) return;
+    if (std::memcmp(pButton, &button, sizeof(::TBBUTTON)) == 0) return true;
 
     const DWORD dwStyle = impl__GetStyle_CWnd__QEBAKXZ(pThis);
     impl__ModifyStyle_CWnd__QEAAHKKI_Z(pThis, WS_VISIBLE, 0, 0);
-    TbDefWindowProc(pThis, kTB_DELETEBUTTON, wIndex, 0);
+    if (!TbDefWindowProc(pThis, kTB_DELETEBUTTON, wIndex, 0)) {
+        impl__ModifyStyle_CWnd__QEAAHKKI_Z(pThis, 0, dwStyle & WS_VISIBLE, 0);
+        return false;
+    }
     if (pButton->iString < -1) {
         const LRESULT iTextRows = ::SendMessageW(pThis->m_hWnd, kTB_GETTEXTROWS, 0, 0);
         ::SendMessageW(pThis->m_hWnd, WM_SETREDRAW, FALSE, 0);
@@ -189,8 +191,14 @@ void TbSetButton(CToolBar* pThis, int nIndex, ::TBBUTTON* pButton) {
         ::SendMessageW(pThis->m_hWnd, WM_SETREDRAW, TRUE, 0);
         pButton->iString += 1000000;
     }
-    TbDefWindowProc(pThis, kTB_INSERTBUTTON415, wIndex, reinterpret_cast<LPARAM>(pButton));
+    const bool inserted = TbDefWindowProc(
+        pThis, kTB_INSERTBUTTON415, wIndex, reinterpret_cast<LPARAM>(pButton)) != 0;
+    if (!inserted && !TbDefWindowProc(pThis, kTB_INSERTBUTTON415, wIndex, reinterpret_cast<LPARAM>(&button))) {
+        pThis->m_nCount = static_cast<int>(TbDefWindowProc(pThis, kTB_BUTTONCOUNT, 0, 0));
+    }
     impl__ModifyStyle_CWnd__QEAAHKKI_Z(pThis, 0, dwStyle & WS_VISIBLE, 0);
+
+    if (!inserted) return false;
 
     if (((pButton->fsStyle ^ button.fsStyle) & TBSTYLE_SEP) ||
         ((pButton->fsStyle & TBSTYLE_SEP) && pButton->iBitmap != button.iBitmap)) {
@@ -201,16 +209,15 @@ void TbSetButton(CToolBar* pThis, int nIndex, ::TBBUTTON* pButton) {
             ::InvalidateRect(pThis->m_hWnd, &rect, TRUE);
         }
     }
+    return true;
 }
 
 // CToolBar::GetButtonStyle, retail 0x1dbdc0 (mfc140u), transcribed:
 //     TBBUTTON button;  _GetButton(nIndex, &button);
 //     return MAKELONG(button.fsStyle, button.fsState);
-// (The exported thunk in core/controlbar/Thunks.cpp still routes to the C++
-// CToolBar::GetButtonStyle below, which returns fsStyle only.)
 inline UINT TbGetButtonStyle(const CToolBar* pThis, int nIndex) {
     ::TBBUTTON button;
-    TbGetButton(pThis, nIndex, &button);
+    if (!TbGetButton(pThis, nIndex, &button)) return 0;
     return static_cast<UINT>(button.fsStyle) | (static_cast<UINT>(button.fsState) << 16);
 }
 
@@ -224,15 +231,256 @@ inline UINT TbGetButtonStyle(const CToolBar* pThis, int nIndex) {
 //     }
 void TbSetButtonStyle(CToolBar* pThis, int nIndex, UINT nStyle) {
     ::TBBUTTON button;
-    TbGetButton(pThis, nIndex, &button);
+    if (!TbGetButton(pThis, nIndex, &button)) return;
     const BYTE newStyle = static_cast<BYTE>(nStyle);
     const BYTE newState = static_cast<BYTE>(nStyle >> 16);
     if (button.fsStyle != newStyle || button.fsState != newState) {
         button.fsStyle = newStyle;
         button.fsState = newState;
-        TbSetButton(pThis, nIndex, &button);
-        pThis->m_bDelayedButtonLayout = TRUE;
+        if (TbSetButton(pThis, nIndex, &button)) pThis->m_bDelayedButtonLayout = TRUE;
     }
+}
+
+constexpr DWORD kLM_STRETCH  = 0x01;
+constexpr DWORD kLM_HORZ     = 0x02;
+constexpr DWORD kLM_MRUWIDTH = 0x04;
+constexpr DWORD kLM_HORZDOCK = 0x08;
+constexpr DWORD kLM_VERTDOCK = 0x10;
+constexpr DWORD kLM_LENGTHY  = 0x20;
+constexpr DWORD kLM_COMMIT   = 0x40;
+constexpr int kMaxToolbarLength = 32767;
+
+bool IsSeparator(const ::TBBUTTON& button) {
+    return (button.fsStyle & TBSTYLE_SEP) != 0;
+}
+
+bool IsEmbeddedControl(const ::TBBUTTON& button) {
+    return IsSeparator(button) && button.idCommand != 0;
+}
+
+// The common control uses the Marlett arrow for draw-dropdown buttons.
+int DropDownArrowWidth() {
+    static const int width = [] {
+        HDC dc = ::GetDC(nullptr);
+        int result = -1;
+        if (!dc) return result;
+        HFONT font = ::CreateFontW(::GetSystemMetrics(SM_CYMENUCHECK), 0, 0, 0,
+                                   FW_NORMAL, FALSE, FALSE, FALSE, SYMBOL_CHARSET,
+                                   0, 0, 0, 0, L"Marlett");
+        HGDIOBJ previous = font ? ::SelectObject(dc, font) : nullptr;
+        ::GetCharWidthW(dc, L'6', L'6', &result);
+        if (previous && previous != HGDI_ERROR) ::SelectObject(dc, previous);
+        if (font) ::DeleteObject(font);
+        ::ReleaseDC(nullptr, dc);
+        return result;
+    }();
+    return width;
+}
+
+// Retail measures wrapped separators as vertical gaps, and hidden buttons
+// contribute neither size nor a break. A dropdown arrow widens only the measured size.
+CSize MeasureButtons(const CToolBar* bar, const ::TBBUTTON* buttons, int count) {
+    const bool flatSeparators = (impl__GetStyle_CWnd__QEBAKXZ(bar) & TBSTYLE_FLAT) != 0 ||
+                                ComCtlVersion() == kVERSION_IE4;
+    const bool drawArrows = (TbDefWindowProc(bar, kTB_GETEXTENDEDSTYLE, 0, 0) &
+                             TBSTYLE_EX_DRAWDDARROWS) != 0;
+    const int buttonHeight = bar->m_sizeButton.cy;
+    CSize size;
+    CPoint cursor(0, 0);
+    for (int i = 0; i < count; ++i) {
+        const auto& button = buttons[i];
+        if (button.fsState & TBSTATE_HIDDEN) continue;
+
+        const bool wraps = (button.fsState & TBSTATE_WRAP) != 0;
+        const bool separator = IsSeparator(button);
+        const int width = separator ? button.iBitmap
+            : bar->m_sizeButton.cx + ((drawArrows && (button.fsStyle & TBSTYLE_DROPDOWN)) ? DropDownArrowWidth() : 0);
+        int separatorGap = 0;
+        if (wraps && separator) {
+            separatorGap = flatSeparators ? button.iBitmap : static_cast<int>(2LL * button.iBitmap / 3);
+            size.cy = std::max(size.cy, cursor.y + buttonHeight + separatorGap);
+        } else {
+            size.cx = std::max(size.cx, cursor.x + width);
+            if (!separator) size.cy = std::max(size.cy, cursor.y + buttonHeight);
+        }
+
+        if (wraps) {
+            cursor.x = 0;
+            cursor.y += buttonHeight + separatorGap;
+        } else {
+            cursor.x += width;
+        }
+    }
+    return size;
+}
+
+// Prefer the last ordinary separator on this row. Command-bearing separators
+// reserve space for child controls and stay with the surrounding buttons.
+int WrapButtons(const CToolBar* bar, ::TBBUTTON* buttons, int count, int width) {
+    int rows = 1;
+    int rowWidth = 0;
+    for (int i = 0; i < count; ++i) {
+        auto& button = buttons[i];
+        button.fsState &= ~TBSTATE_WRAP;
+        if (button.fsState & TBSTATE_HIDDEN) continue;
+
+        rowWidth += IsSeparator(button) ? button.iBitmap : bar->m_sizeButton.cx;
+        if (rowWidth <= width) continue;
+
+        int split = i;
+        for (; split >= 0 && !(buttons[split].fsState & TBSTATE_WRAP); --split) {
+            const auto& candidate = buttons[split];
+            if (!(candidate.fsState & TBSTATE_HIDDEN) && IsSeparator(candidate) && candidate.idCommand == 0) break;
+        }
+        if (split < 0 || (buttons[split].fsState & TBSTATE_WRAP)) {
+            split = i - 1;
+            for (; split >= 0 && !(buttons[split].fsState & TBSTATE_WRAP); --split) {
+                const auto& candidate = buttons[split];
+                if (!(candidate.fsState & TBSTATE_HIDDEN) && !IsEmbeddedControl(candidate)) break;
+            }
+        }
+        if (split >= 0 && !(buttons[split].fsState & TBSTATE_WRAP)) {
+            buttons[split].fsState |= TBSTATE_WRAP;
+            i = split;
+            rowWidth = 0;
+            ++rows;
+        }
+    }
+    return rows;
+}
+
+void SizeButtons(const CToolBar* bar, ::TBBUTTON* buttons, int count, int length, BOOL vertical) {
+    if (!vertical) {
+        const int targetRows = WrapButtons(bar, buttons, count, length);
+        if (WrapButtons(bar, buttons, count, 0) != targetRows) {
+            int low = 0;
+            int high = length;
+            while (low < high) {
+                const int width = low + (high - low) / 2;
+                if (WrapButtons(bar, buttons, count, width) == targetRows) {
+                    high = width;
+                } else if (low == width) {
+                    WrapButtons(bar, buttons, count, high);
+                    break;
+                } else {
+                    low = width;
+                }
+            }
+        }
+        WrapButtons(bar, buttons, count, MeasureButtons(bar, buttons, count).cx);
+        return;
+    }
+
+    WrapButtons(bar, buttons, count, 0);
+    CSize narrow = MeasureButtons(bar, buttons, count);
+    WrapButtons(bar, buttons, count, kMaxToolbarLength);
+    CSize wide = MeasureButtons(bar, buttons, count);
+    while (narrow.cx < wide.cx) {
+        WrapButtons(bar, buttons, count, narrow.cx + (wide.cx - narrow.cx) / 2);
+        const CSize size = MeasureButtons(bar, buttons, count);
+        if (size.cy == length) break;
+        if (size.cy > length) {
+            if (size.cx == narrow.cx && size.cy == narrow.cy) {
+                WrapButtons(bar, buttons, count, wide.cx);
+                break;
+            }
+            narrow = size;
+        } else {
+            if (size.cx == wide.cx && size.cy == wide.cy) {
+                WrapButtons(bar, buttons, count, narrow.cx);
+                break;
+            }
+            wide = size;
+        }
+    }
+}
+
+void CommitButtons(CToolBar* bar, std::vector<::TBBUTTON>& buttons, CSize size) {
+    struct EmbeddedControl {
+        int index;
+        int id;
+        POINT oldPosition;
+    };
+
+    std::vector<EmbeddedControl> controls;
+    struct LayoutFlag {
+        BOOL& flag;
+        BOOL previous;
+        ~LayoutFlag() { flag = previous; }
+    };
+    const LayoutFlag delayed{bar->m_bDelayedButtonLayout, bar->m_bDelayedButtonLayout};
+    bar->m_bDelayedButtonLayout = FALSE;
+    for (size_t i = 0; i < buttons.size(); ++i) {
+        const auto& button = buttons[i];
+        if (!IsEmbeddedControl(button)) continue;
+
+        RECT rect{};
+        bar->GetItemRect(static_cast<int>(i), &rect);
+        POINT position{rect.left, rect.top};
+        ::ClientToScreen(bar->m_hWnd, &position);
+        controls.push_back({static_cast<int>(i), button.idCommand, position});
+    }
+
+    constexpr DWORD floatingDynamic = CBRS_FLOATING | CBRS_SIZE_DYNAMIC;
+    if ((bar->m_dwStyle & floatingDynamic) == floatingDynamic) bar->m_nMRUWidth = size.cx;
+    for (size_t i = 0; i < buttons.size(); ++i) {
+        TbSetButton(bar, static_cast<int>(i), &buttons[i]);
+    }
+
+    for (const auto& control : controls) {
+        HWND child = ::GetDlgItem(bar->m_hWnd, control.id);
+        RECT childRect{};
+        if (!child || !::GetWindowRect(child, &childRect)) continue;
+
+        RECT rect{};
+        bar->GetItemRect(control.index, &rect);
+        ::SetWindowPos(child, nullptr,
+                       rect.left + childRect.left - control.oldPosition.x,
+                       rect.top + childRect.top - control.oldPosition.y,
+                       0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+}
+
+CSize CalculateToolbarLayout(CToolBar* bar, DWORD mode, int length) {
+    const int count = static_cast<int>(TbDefWindowProc(bar, kTB_BUTTONCOUNT, 0, 0));
+    const DWORD style = bar->m_dwStyle;
+    const BOOL horizontal = mode & kLM_HORZ;
+    CSize size;
+    if (count > 0) {
+        std::vector<::TBBUTTON> buttons(count);
+        for (int i = 0; i < count; ++i) TbGetButton(bar, i, &buttons[i]);
+        if (!(style & CBRS_SIZE_FIXED)) {
+            int limit = horizontal ? kMaxToolbarLength : 0;
+            BOOL vertical = FALSE;
+            if (style & CBRS_SIZE_DYNAMIC) {
+                if (mode & kLM_MRUWIDTH) {
+                    limit = bar->m_nMRUWidth;
+                } else if (mode & kLM_HORZDOCK) {
+                    limit = kMaxToolbarLength;
+                } else if (mode & kLM_VERTDOCK) {
+                    limit = 0;
+                } else if (length != -1) {
+                    CRect inside;
+                    bar->CalcInsideRect(inside, horizontal);
+                    vertical = mode & kLM_LENGTHY;
+                    limit = length + (vertical ? inside.Height() : inside.Width());
+                } else if (style & CBRS_FLOATING) {
+                    limit = bar->m_nMRUWidth;
+                }
+            }
+            SizeButtons(bar, buttons.data(), count, limit, vertical);
+        }
+
+        size = MeasureButtons(bar, buttons.data(), count);
+        if (mode & kLM_COMMIT) CommitButtons(bar, buttons, size);
+    }
+
+    CRect inside;
+    bar->CalcInsideRect(inside, horizontal);
+    const CSize stretch = bar->CControlBar::CalcFixedLayout(mode & kLM_STRETCH, horizontal);
+    size.cx = std::max(size.cx - inside.Width(), stretch.cx);
+    size.cy = std::max(size.cy - inside.Height(), stretch.cy);
+    return size;
 }
 
 // ---- MSVC-layout CToolCmdUI for OnUpdateCmdUI -------------------------------
@@ -310,22 +558,16 @@ const void* const g_msToolCmdUIVtbl[4] = {
 } // namespace
 
 CSize CToolBar::CalcDynamicLayout(int length, DWORD mode) {
-    (void)mode;
-    CSize size = ToolbarDefaultSize(this);
-    if (length > 0) size.cx = length;
-    return size;
+    if (length == -1 && !(mode & (kLM_MRUWIDTH | kLM_COMMIT)) &&
+        (mode & (kLM_HORZDOCK | kLM_VERTDOCK))) {
+        return CalcFixedLayout(mode & kLM_STRETCH, mode & kLM_HORZDOCK);
+    }
+    return CalculateToolbarLayout(this, mode, length);
 }
 
 CSize CToolBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
-    CSize size = ToolbarDefaultSize(this);
-    if (stretch && m_hWnd) {
-        RECT rect = {};
-        if (::GetClientRect(::GetParent(m_hWnd), &rect)) {
-            if (horizontal) size.cx = rect.right - rect.left;
-            else size.cy = rect.bottom - rect.top;
-        }
-    }
-    return size;
+    const DWORD mode = (stretch ? kLM_STRETCH : 0) | (horizontal ? kLM_HORZ : 0);
+    return CalculateToolbarLayout(this, mode, -1);
 }
 
 // Symbol: ?CalcDynamicLayout@CToolBar@@UEAA?AVCSize@@HK@Z
@@ -343,13 +585,13 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CToolBar__UEAA_AVCSize__HH_Z(
 // Symbol: ?CalcLayout@CToolBar@@IEAA?AVCSize@@KH@Z
 extern "C" CSize* MS_ABI impl__CalcLayout_CToolBar__IEAA_AVCSize__KH_Z(
     CToolBar* pThis, CSize* result, DWORD mode, int length) {
-    return new (result) CSize(pThis->CToolBar::CalcDynamicLayout(length, mode));
+    return new (result) CSize(CalculateToolbarLayout(pThis, mode, length));
 }
 
 // Symbol: ?CalcSize@CToolBar@@IEAA?AVCSize@@PEAU_TBBUTTON@@H@Z
 extern "C" CSize* MS_ABI impl__CalcSize_CToolBar__IEAA_AVCSize__PEAU_TBBUTTON__H_Z(
-    CToolBar* pThis, CSize* result, TBBUTTON* /*buttons*/, int count) {
-    return new (result) CSize(ToolbarDefaultSize(pThis, count));
+    CToolBar* pThis, CSize* result, TBBUTTON* buttons, int count) {
+    return new (result) CSize(MeasureButtons(pThis, buttons, count));
 }
 // Symbol: ?get_accName@CToolBar@@UEAAJUtagVARIANT@@PEAPEA_W@Z
 extern "C" long MS_ABI impl__get_accName_CToolBar__UEAAJUtagVARIANT__PEAPEA_W_Z(
@@ -369,19 +611,22 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBar__UEBAPEAUCRuntim
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ() {
     return CToolBar::GetThisClass();
 }
-// Retail CToolBar::Layout (0x1dbd60, mfc140u) first clears
-// m_bDelayedButtonLayout (`movl $0,0x160(%rcx)`) and then calls
-// CalcDynamicLayout (vslot 92) with LM_* flags chosen from m_dwStyle.  Only the
-// flag clear is transcribed here (so OnPaint's delayed layout runs once, as in
-// retail); the TB_AUTOSIZE below is OpenMFC's pre-existing stand-in for the
-// CalcDynamicLayout call, which is itself not yet a retail transcription.
 // Symbol: ?Layout@CToolBar@@IEAAXXZ
-extern "C" void MS_ABI impl__Layout_CToolBar__IEAAXXZ(CToolBar* pThis) {
-    if (pThis) pThis->m_bDelayedButtonLayout = FALSE;
-    if (pThis && pThis->GetSafeHwnd()) {
-        ::SendMessageW(pThis->GetSafeHwnd(), TB_AUTOSIZE, 0, 0);
+extern "C" void MS_ABI impl__Layout_CToolBar__IEAAXXZ(CToolBar* bar) {
+    bar->m_bDelayedButtonLayout = FALSE;
+    constexpr DWORD floatingDynamic = CBRS_FLOATING | CBRS_SIZE_DYNAMIC;
+    const DWORD style = bar->m_dwStyle;
+    DWORD mode = kLM_COMMIT;
+    if ((style & floatingDynamic) == floatingDynamic) {
+        mode |= kLM_HORZ | kLM_MRUWIDTH;
+    } else if (style & CBRS_ORIENT_HORZ) {
+        mode |= kLM_HORZ | kLM_HORZDOCK;
+    } else {
+        mode |= kLM_VERTDOCK;
     }
+    bar->CalcDynamicLayout(0, mode);
 }
+
 void CToolBar::OnBarStyleChange(DWORD oldStyle, DWORD newStyle) {
     if (m_hWnd && ((oldStyle ^ newStyle) & CBRS_BORDER_ANY)) {
         ::SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0,
@@ -588,32 +833,14 @@ extern "C" void MS_ABI impl__SetOwner_CToolBar__QEAAXPEAVCWnd___Z(CToolBar* pThi
 }
 // Symbol: ?SizeToolBar@CToolBar@@IEAAXPEAU_TBBUTTON@@HHH@Z
 extern "C" void MS_ABI impl__SizeToolBar_CToolBar__IEAAXPEAU_TBBUTTON__HHH_Z(
-    CToolBar* pThis, TBBUTTON* pData, int nCount, int nLength, int bVert) {
-    (void)pData;
-    if (!pThis) return;
-    CSize sz = ToolbarDefaultSize(pThis, nCount);
-    if (nLength > 0) {
-        if (bVert) sz.cy = nLength;
-        else sz.cx = nLength;
-    }
-    pThis->m_sizeButton = sz;
+    CToolBar* bar, TBBUTTON* buttons, int count, int length, BOOL vertical) {
+    SizeButtons(bar, buttons, count, length, vertical);
 }
+
 // Symbol: ?WrapToolBar@CToolBar@@IEAAHPEAU_TBBUTTON@@HH@Z
 extern "C" int MS_ABI impl__WrapToolBar_CToolBar__IEAAHPEAU_TBBUTTON__HH_Z(
-    CToolBar* pThis, TBBUTTON* pData, int nCount, int nWidth) {
-    (void)pThis;
-    if (!pData || nCount <= 0 || nWidth <= 0) return 0;
-    int rows = 1;
-    int x = 0;
-    for (int i = 0; i < nCount; ++i) {
-        x += 23;
-        if (x > nWidth) {
-            pData[i].fsState |= TBSTATE_WRAP;
-            x = 23;
-            ++rows;
-        }
-    }
-    return rows;
+    CToolBar* bar, TBBUTTON* buttons, int count, int width) {
+    return WrapButtons(bar, buttons, count, width);
 }
 // Symbol: ?GetButtonText@CToolBar@@QEBA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
 extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
@@ -712,44 +939,61 @@ BOOL CToolBar::LoadBitmap(const wchar_t* lpszResourceName) {
     if (!hbm) return FALSE;
     return SetBitmap(hbm);
 }
-BOOL CToolBar::SetButtons(const UINT* lpIDArray, int nIDCount) {
-    if (!m_hWnd || !lpIDArray || nIDCount <= 0) return FALSE;
-
-    while ((int)::SendMessageW(m_hWnd, TB_BUTTONCOUNT, 0, 0) > 0) {
-        ::SendMessageW(m_hWnd, TB_DELETEBUTTON, 0, 0);
+BOOL CToolBar::SetButtons(const UINT* ids, int count) {
+    if (!m_hWnd || count < 0) return FALSE;
+    BOOL success = TRUE;
+    const int previousCount = static_cast<int>(TbDefWindowProc(this, kTB_BUTTONCOUNT, 0, 0));
+    for (int i = 0; i < previousCount && success; ++i) {
+        success = TbDefWindowProc(this, kTB_DELETEBUTTON, 0, 0) != 0;
     }
 
-    for (int i = 0; i < nIDCount; i++) {
-        TBBUTTON tb = {};
-        tb.iBitmap = I_IMAGENONE;
-        tb.idCommand = lpIDArray[i];
-        tb.fsState = TBSTATE_ENABLED;
-        tb.fsStyle = (lpIDArray[i] == 0) ? BTNS_SEP : BTNS_BUTTON;
-        tb.dwData = 0;
-        tb.iString = -1;
-        ::SendMessageW(m_hWnd, TB_INSERTBUTTONW, i, (LPARAM)&tb);
+    ::TBBUTTON button{};
+    button.fsState = TBSTATE_ENABLED;
+    button.iString = -1;
+    const int separatorWidth = (impl__GetStyle_CWnd__QEBAKXZ(this) & TBSTYLE_FLAT) ||
+                               ComCtlVersion() == kVERSION_IE4 ? 6 : 8;
+    int image = 0;
+    for (int i = 0; i < count && success; ++i) {
+        if (ids) {
+            button.idCommand = static_cast<int>(ids[i]);
+            button.fsStyle = ids[i] == ID_SEPARATOR ? TBSTYLE_SEP : TBSTYLE_BUTTON;
+            button.iBitmap = ids[i] == ID_SEPARATOR ? separatorWidth : image++;
+        }
+        success = TbDefWindowProc(this, TB_ADDBUTTONSA, 1, reinterpret_cast<LPARAM>(&button)) != 0;
     }
-    m_nCount = nIDCount;
+
+    m_nCount = static_cast<int>(TbDefWindowProc(this, kTB_BUTTONCOUNT, 0, 0));
+    m_bDelayedButtonLayout = TRUE;
+    return success;
+}
+
+BOOL CToolBar::SetButtonInfo(int index, UINT id, UINT style, int image) {
+    ::TBBUTTON button;
+    if (!TbGetButton(this, index, &button)) return FALSE;
+    const int command = static_cast<int>(id);
+    const BYTE state = static_cast<BYTE>(HIWORD(style));
+    const BYTE type = static_cast<BYTE>(LOWORD(style));
+    if (button.idCommand != command || button.fsState != state || button.fsStyle != type || button.iBitmap != image) {
+        button.idCommand = command;
+        button.fsState = state;
+        button.fsStyle = type;
+        button.iBitmap = image;
+        if (!TbSetButton(this, index, &button)) return FALSE;
+        m_bDelayedButtonLayout = TRUE;
+    }
     return TRUE;
 }
-BOOL CToolBar::SetButtonInfo(int nIndex, UINT nID, UINT nStyle, int iImage) {
-    if (!m_hWnd) return FALSE;
-    TBBUTTONINFO tbi = {};
-    tbi.cbSize = sizeof(TBBUTTONINFO);
-    tbi.dwMask = TBIF_COMMAND | TBIF_STYLE | TBIF_IMAGE;
-    tbi.idCommand = nID;
-    tbi.fsStyle = (BYTE)nStyle;
-    tbi.iImage = iImage;
-    return ::SendMessageW(m_hWnd, TB_SETBUTTONINFOW, nIndex, (LPARAM)&tbi) ? TRUE : FALSE;
-}
-void CToolBar::GetButtonInfo(int nIndex, UINT& nID, UINT& nStyle, int& iImage) const {
-    nID = 0; nStyle = 0; iImage = -1;
-    if (!m_hWnd) return;
-    TBBUTTON tb = {};
-    if (::SendMessageW(m_hWnd, TB_GETBUTTON, nIndex, (LPARAM)&tb)) {
-        nID = tb.idCommand;
-        nStyle = tb.fsStyle;
-        iImage = tb.iBitmap;
+
+void CToolBar::GetButtonInfo(int index, UINT& id, UINT& style, int& image) const {
+    ::TBBUTTON button;
+    if (TbGetButton(this, index, &button)) {
+        id = static_cast<UINT>(button.idCommand);
+        style = MAKELONG(button.fsStyle, button.fsState);
+        image = button.iBitmap;
+    } else {
+        id = 0;
+        style = 0;
+        image = -1;
     }
 }
 int CToolBar::CommandToIndex(UINT nIDFind) const {
@@ -764,8 +1008,11 @@ UINT CToolBar::GetItemID(int nIndex) const {
     return 0;
 }
 void CToolBar::GetItemRect(int nIndex, LPRECT lpRect) const {
-    if (m_hWnd && lpRect)
-        ::SendMessageW(m_hWnd, TB_GETITEMRECT, nIndex, (LPARAM)lpRect);
+    if (!lpRect) return;
+    if (m_bDelayedButtonLayout) impl__Layout_CToolBar__IEAAXXZ(const_cast<CToolBar*>(this));
+    if (!TbDefWindowProc(this, kTB_GETITEMRECT, nIndex, reinterpret_cast<LPARAM>(lpRect))) {
+        ::SetRectEmpty(lpRect);
+    }
 }
 void CToolBar::SetSizes(SIZE sizeButton, SIZE sizeImage) {
     if (!::IsWindow(m_hWnd)) {
@@ -797,20 +1044,12 @@ void CToolBar::SetHeight(int cyHeight) {
 int CToolBar::GetHeight() const {
     return m_sizeButton.cy;
 }
-void CToolBar::SetButtonStyle(int nIndex, UINT nStyle) {
-    if (!m_hWnd) return;
-    TBBUTTONINFO tbi = {};
-    tbi.cbSize = sizeof(TBBUTTONINFO);
-    tbi.dwMask = TBIF_STYLE;
-    tbi.fsStyle = (BYTE)nStyle;
-    ::SendMessageW(m_hWnd, TB_SETBUTTONINFOW, nIndex, (LPARAM)&tbi);
+void CToolBar::SetButtonStyle(int index, UINT style) {
+    TbSetButtonStyle(this, index, style);
 }
-UINT CToolBar::GetButtonStyle(int nIndex) const {
-    if (!m_hWnd) return 0;
-    TBBUTTON tb = {};
-    if (::SendMessageW(m_hWnd, TB_GETBUTTON, nIndex, (LPARAM)&tb))
-        return tb.fsStyle;
-    return 0;
+
+UINT CToolBar::GetButtonStyle(int index) const {
+    return TbGetButtonStyle(this, index);
 }
 BOOL CToolBar::SetButtonText(int nIndex, const wchar_t* lpszText) {
     if (!m_hWnd) return FALSE;
@@ -887,11 +1126,7 @@ BOOL CToolBar::IsFloating() const {
 extern "C" void MS_ABI impl__GetButtonInfo_CToolBar__QEBAXHAEAI0AEAH_Z(
     const CToolBar* pThis, int nIndex, UINT* pnID, UINT* pnStyle, int* piImage) {
     if (pThis == nullptr || pnID == nullptr || pnStyle == nullptr || piImage == nullptr) return;
-    ::TBBUTTON button;
-    TbGetButton(pThis, nIndex, &button);
-    *pnID = static_cast<UINT>(button.idCommand);
-    *pnStyle = static_cast<UINT>(button.fsStyle) | (static_cast<UINT>(button.fsState) << 16);
-    *piImage = button.iBitmap;
+    pThis->GetButtonInfo(nIndex, *pnID, *pnStyle, *piImage);
 }
 
 // Transcribed from retail CToolBar::AddReplaceBitmap, RVA 0x1db7d0 (mfc140u):

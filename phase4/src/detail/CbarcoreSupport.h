@@ -331,14 +331,6 @@ inline void BuildCSizeResult(void* pRet, int cx, int cy) {
 } } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
-inline CSize ToolbarDefaultSize(const CToolBar* pBar, int nButtons = -1) {
-    const int count = nButtons >= 0 ? nButtons : (pBar ? std::max(0, pBar->m_nCount) : 0);
-    const CSize button = pBar ? pBar->GetButtonSize() : CSize(23, 22);
-    return CSize(button.cx * std::max(1, count), button.cy);
-}
-} } }
-
-namespace openmfc { namespace detail { namespace cbarcore {
 inline std::wstring TypeInfoCacheKey(unsigned long lcid, const GUID& iid) {
     wchar_t guidText[64] = {};
     ::StringFromGUID2(iid, guidText, 64);
