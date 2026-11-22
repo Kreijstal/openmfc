@@ -130,8 +130,33 @@ static_assert(sizeof(RetailCOleIPFrameWndExPrefix) == 0x218,
 extern "C" CBasePane* AFXAPI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
     CDockingManager*, UINT, int);
 
+using openmfc::detail::olecore::FeaturePackInPlaceFrame;
+
+namespace {
+constexpr UINT viewToolbar = 0xe800;
+constexpr UINT viewStatusBar = 0xe801;
+constexpr UINT viewReBar = 0xe804;
+}
+
+BEGIN_MESSAGE_MAP(FeaturePackInPlaceFrame, COleIPFrameWnd)
+    ON_COMMAND_EX(viewToolbar, &FeaturePackInPlaceFrame::TogglePane)
+    ON_UPDATE_COMMAND_UI(viewToolbar, &FeaturePackInPlaceFrame::UpdatePaneMenu)
+    ON_COMMAND_EX(viewStatusBar, &FeaturePackInPlaceFrame::TogglePane)
+    ON_UPDATE_COMMAND_UI(viewStatusBar, &FeaturePackInPlaceFrame::UpdatePaneMenu)
+    ON_COMMAND_EX(viewReBar, &FeaturePackInPlaceFrame::TogglePane)
+    ON_UPDATE_COMMAND_UI(viewReBar, &FeaturePackInPlaceFrame::UpdatePaneMenu)
+END_MESSAGE_MAP()
+
 CBasePane* openmfc::detail::olecore::FeaturePackInPlaceFrame::FindPane(UINT id) {
     return impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(&m_dockManager, id, TRUE);
+}
+
+BOOL openmfc::detail::olecore::FeaturePackInPlaceFrame::TogglePane(UINT id) {
+    auto* pane = FindPane(id);
+    if (!pane) return FALSE;
+    const BOOL show = (::GetWindowLongW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE) == 0;
+    impl__ShowPane_CBasePane__UEAAXHHH_Z(pane, show, FALSE, FALSE);
+    return TRUE;
 }
 
 void openmfc::detail::olecore::FeaturePackInPlaceFrame::UpdatePaneMenu(CCmdUI* command) {
@@ -142,7 +167,6 @@ void openmfc::detail::olecore::FeaturePackInPlaceFrame::UpdatePaneMenu(CCmdUI* c
         command->ContinueRouting();
 }
 
-using openmfc::detail::olecore::FeaturePackInPlaceFrame;
 extern "C" int AFXAPI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
     CDockingManager*, CBasePane*, int, int, int);
 
@@ -266,15 +290,11 @@ extern "C" void MS_ABI impl__HtmlHelpW_COleIPFrameWndEx__MEAAX_KI_Z(
     // into OnContextHelp is not modeled.
 }
 
-// COleIPFrameWndEx::InsertPane(CBasePane*, CBasePane*, BOOL) — retail
-// (mfc140.dll ANSI RVA 0x95f30): add $0x428,%rcx; jmp CDockingManager::InsertPane
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?InsertPane@COleIPFrameWndEx@@QEAAHPEAVCBasePane@@0H@Z
 extern "C" int MS_ABI impl__InsertPane_COleIPFrameWndEx__QEAAHPEAVCBasePane__0H_Z(
-    void* pThis, void* pPane, void* pTarget, int bAfter) {
-    (void)pThis; (void)pPane; (void)pTarget; (void)bAfter;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+    FeaturePackInPlaceFrame* frame, CBasePane* pane, CBasePane* target, BOOL after) {
+    return frame && openmfc::detail::olecore::impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
+        &frame->m_dockManager, pane, target, after);
 }
 
 // COleIPFrameWndEx::IsPointNearDockSite(CPoint, DWORD&, BOOL&) — retail
@@ -500,18 +520,9 @@ extern "C" int MS_ABI impl__OnMoveMiniFrame_COleIPFrameWndEx__UEAAHPEAVCWnd___Z(
     return 0;
 }
 
-// COleIPFrameWndEx::OnPaneCheck(UINT) — retail mfc140.dll (ANSI) RVA 0x96140:
-//     pane = CDockingManager vtable slot 0x58 (FindPaneByID)(this+0x428, nID, TRUE);
-//     if (!pane) return 0;
-//     pane->ShowPane(!(pane->GetStyle() & WS_VISIBLE), FALSE, FALSE);   // slot 0x458
-//     return 1;
-// This stub omits the lookup; its unconditional 0 matches retail only when
-// FindPaneByID returns null.
 // Symbol: ?OnPaneCheck@COleIPFrameWndEx@@IEAAHI@Z
-extern "C" int MS_ABI impl__OnPaneCheck_COleIPFrameWndEx__IEAAHI_Z(void* pThis, unsigned int nID) {
-    (void)pThis; (void)nID;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" int MS_ABI impl__OnPaneCheck_COleIPFrameWndEx__IEAAHI_Z(FeaturePackInPlaceFrame* frame, UINT id) {
+    return frame && frame->TogglePane(id);
 }
 
 // COleIPFrameWndEx::OnSetMenu(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x95820:
@@ -565,16 +576,9 @@ extern "C" void MS_ABI impl__OnSetPreviewMode_COleIPFrameWndEx__UEAAXHPEAUCPrint
     impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(pThis, bPreview, pState);
 }
 
-// COleIPFrameWndEx::OnShowPanes(BOOL) — retail mfc140.dll (ANSI) RVA 0x963e0:
-//     r = CDockingManager vtable slot 0xb0 (ShowPanes)(this+0x428, bShow);
-//     this->vtable[0x3d8](this, 0);              // AdjustDockingLayout(nullptr)
-//     return r;
-// The docking manager at this+0x428 and the class vtable are not modeled.
 // Symbol: ?OnShowPanes@COleIPFrameWndEx@@UEAAHH@Z
-extern "C" int MS_ABI impl__OnShowPanes_COleIPFrameWndEx__UEAAHH_Z(void* pThis, int bShow) {
-    (void)pThis; (void)bShow;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" int MS_ABI impl__OnShowPanes_COleIPFrameWndEx__UEAAHH_Z(FeaturePackInPlaceFrame* frame, BOOL show) {
+    return frame && openmfc::detail::olecore::impl__ShowPanes_CDockingManager__UEAAHH_Z(&frame->m_dockManager, show);
 }
 
 // COleIPFrameWndEx::OnToolbarContextMenu(WPARAM, LPARAM) — export ordinal

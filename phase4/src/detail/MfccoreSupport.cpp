@@ -128,19 +128,11 @@ DockingManagerSnapshot* FindDockingProfileSnapshot(const CDockingManager* pManag
     if (profileIt == it->second.end()) return nullptr;
     return &profileIt->second;
 }
-void AddDockingPane(CDockingManager* pManager, CBasePane* pPane, CBasePane* pInsertAfter) {
+void AddDockingPane(CDockingManager* pManager, CBasePane* pPane) {
     if (!pManager || !pPane) return;
 
     DockingManagerState& state = EnsureDockingState(pManager);
     if (ContainsPtr(state.panes, pPane)) return;
-
-    if (pInsertAfter) {
-        auto it = std::find(state.panes.begin(), state.panes.end(), pInsertAfter);
-        if (it != state.panes.end()) {
-            state.panes.insert(std::next(it), pPane);
-            return;
-        }
-    }
 
     state.panes.push_back(pPane);
 }

@@ -355,16 +355,11 @@ extern "C" void MS_ABI impl__HtmlHelpW_COleDocIPFrameWndEx__MEAAX_KI_Z(
     impl__HtmlHelpW_CWnd__UEAAX_KI_Z(pThis, dwData, nCmd);
 }
 
-// COleDocIPFrameWndEx::InsertPane(CBasePane*, CBasePane*, BOOL) — retail
-// (RVA 0x95f30, named ?InsertPane@COleIPFrameWndEx@@ in the map):
-//     add $0x428,%rcx; jmp CDockingManager::InsertPane   // 0x477a0
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?InsertPane@COleDocIPFrameWndEx@@QEAAHPEAVCBasePane@@0H@Z
 extern "C" int MS_ABI impl__InsertPane_COleDocIPFrameWndEx__QEAAHPEAVCBasePane__0H_Z(
-    void* pThis, void* pPane, void* pTarget, int bAfter) {
-    (void)pThis; (void)pPane; (void)pTarget; (void)bAfter;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+    FeaturePackInPlaceFrame* frame, CBasePane* pane, CBasePane* target, BOOL after) {
+    return frame && openmfc::detail::olecore::impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
+        &frame->m_dockManager, pane, target, after);
 }
 
 // COleDocIPFrameWndEx::IsPointNearDockSite(CPoint, DWORD&, BOOL&) const —
@@ -643,22 +638,9 @@ extern "C" int MS_ABI impl__OnMoveMiniFrame_COleDocIPFrameWndEx__UEAAHPEAVCWnd__
     return 0;
 }
 
-// COleDocIPFrameWndEx::OnPaneCheck(UINT) — retail (RVA 0x96140, named
-// ?OnPaneCheck@COleIPFrameWndEx@@ in the map, reached from THIS class's
-// message-map entries 6/8/10), transcribed in full:
-//     pane = CDockingManager::FindPaneByID(this+0x428, nID, TRUE);  // vtable +0x58
-//     if (!pane) return 0;
-//     bShow = ((CWnd::GetStyle(pane) & WS_VISIBLE) == 0);           // 0x2a75a0,
-//                                       // encoded as `bt $0x1c,%eax; setae %dl`
-//     pane->vtable[+0x458](pane, bShow, 0, 0);       // CBasePane::ShowPane
-//     return 1;
-// The lookup needs the embedded CDockingManager at this+0x428, which is not
-// modeled, so the pane can never be found and retail's !pane path is what runs.
 // Symbol: ?OnPaneCheck@COleDocIPFrameWndEx@@IEAAHI@Z
-extern "C" int MS_ABI impl__OnPaneCheck_COleDocIPFrameWndEx__IEAAHI_Z(void* pThis, unsigned int nID) {
-    (void)pThis; (void)nID;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" int MS_ABI impl__OnPaneCheck_COleDocIPFrameWndEx__IEAAHI_Z(FeaturePackInPlaceFrame* frame, UINT id) {
+    return frame && frame->TogglePane(id);
 }
 
 // COleDocIPFrameWndEx::OnSetMenu(WPARAM, LPARAM) — retail (RVA 0x95820, named
@@ -728,18 +710,9 @@ extern "C" void MS_ABI impl__OnSetPreviewMode_COleDocIPFrameWndEx__UEAAXHPEAUCPr
     impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(pThis, bPreview, pState);
 }
 
-// COleDocIPFrameWndEx::OnShowPanes(BOOL) — retail (RVA 0x963e0, named
-// ?OnShowPanes@COleIPFrameWndEx@@ in the map; slot +0x3d0 of this class's
-// vftable points at it), transcribed in full:
-//     r = CDockingManager::ShowPanes(this+0x428, bShow);   // vtable +0xb0, 0x4d490
-//     this->vtable[+0x3d8](this, nullptr);                 // AdjustDockingLayout
-//     return r;
-// The docking manager at this+0x428 and the class vtable are not modeled.
 // Symbol: ?OnShowPanes@COleDocIPFrameWndEx@@UEAAHH@Z
-extern "C" int MS_ABI impl__OnShowPanes_COleDocIPFrameWndEx__UEAAHH_Z(void* pThis, int bShow) {
-    (void)pThis; (void)bShow;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" int MS_ABI impl__OnShowPanes_COleDocIPFrameWndEx__UEAAHH_Z(FeaturePackInPlaceFrame* frame, BOOL show) {
+    return frame && openmfc::detail::olecore::impl__ShowPanes_CDockingManager__UEAAHH_Z(&frame->m_dockManager, show);
 }
 
 // COleDocIPFrameWndEx::OnToolbarContextMenu(WPARAM, LPARAM) — the export name

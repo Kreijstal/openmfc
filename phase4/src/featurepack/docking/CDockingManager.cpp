@@ -488,9 +488,13 @@ extern "C" void MS_ABI impl__HideAutoHidePanes_CDockingManager__QEAAXPEAVCDockab
 }
 // Symbol: ?InsertPane@CDockingManager@@QEAAHPEAVCBasePane@@0H@Z
 extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
-    CDockingManager* pThis, CBasePane* pPane, CBasePane* pTarget, int) {
-    if (!pThis || !pPane) return FALSE;
-    AddDockingPane(pThis, pPane, pTarget);
+    CDockingManager* manager, CBasePane* pane, CBasePane* target, int after) {
+    if (!manager || !pane || !target) return FALSE;
+    auto& panes = EnsureDockingState(manager).panes;
+    if (ContainsPtr(panes, pane)) return FALSE;
+    const auto position = std::find(panes.begin(), panes.end(), target);
+    if (position == panes.end()) return FALSE;
+    panes.insert(after ? std::next(position) : position, pane);
     return TRUE;
 }
 // Symbol: ?LoadState@CDockingManager@@UEAAHPEB_WI@Z

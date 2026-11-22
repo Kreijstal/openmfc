@@ -181,7 +181,7 @@ bool ContainsPtr(const std::vector<T*>& values, T* value) {
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
-void AddDockingPane(CDockingManager* pManager, CBasePane* pPane, CBasePane* pInsertAfter = nullptr);
+void AddDockingPane(CDockingManager* pManager, CBasePane* pPane);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
