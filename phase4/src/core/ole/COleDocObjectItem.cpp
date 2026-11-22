@@ -4,6 +4,9 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include "detail/CCmdTargetVirtualsSupport.h"
+#include <new>
+#include <utility>
 
 #include "openmfc/afxole.h"
 #include "openmfc/afxmfc.h"
@@ -40,11 +43,14 @@
 
 // Symbol: ??0COleDocObjectItem@@QEAA@PEAVCOleDocument@@@Z
 // COleDocObjectItem::COleDocObjectItem(COleDocument* pContainerDoc)
-extern "C" void* MS_ABI impl___0COleDocObjectItem__QEAA_PEAVCOleDocument___Z(COleDocument* pContainerDoc) {
-    return new COleDocObjectItem(pContainerDoc);
+extern "C" void* MS_ABI impl___0COleDocObjectItem__QEAA_PEAVCOleDocument___Z(
+    void* storage, COleDocument* document) {
+    return new (storage) COleDocObjectItem(document);
 }
-COleDocObjectItem::COleDocObjectItem(COleDocument* pContainerDoc) : COleClientItem(pContainerDoc) { memset(_coledocobjectitem_padding, 0, sizeof(_coledocobjectitem_padding)); }
-COleDocObjectItem::~COleDocObjectItem() {}
+COleDocObjectItem::COleDocObjectItem(COleDocument* document) : COleClientItem(document) {}
+COleDocObjectItem::~COleDocObjectItem() {
+    ReleaseDocumentView();
+}
 BOOL COleDocObjectItem::IsDocObject() const {
     if (!m_lpObject) return FALSE;
     IOleDocument* document = nullptr;
@@ -54,21 +60,7 @@ BOOL COleDocObjectItem::IsDocObject() const {
 }
 BOOL COleDocObjectItem::IsActive() const { return m_bInPlaceActive && IsOpen(); }
 IOleDocumentView* COleDocObjectItem::GetActiveView() const {
-    if (!m_lpObject) return nullptr;
-    IOleDocumentView* view = nullptr;
-    if (m_lpInPlaceObject &&
-        SUCCEEDED(m_lpInPlaceObject->QueryInterface(IID_IOleDocumentView, reinterpret_cast<void**>(&view)))) {
-        return view;
-    }
-
-    IOleDocument* document = nullptr;
-    if (SUCCEEDED(m_lpObject->QueryInterface(IID_IOleDocument, reinterpret_cast<void**>(&document))) && document) {
-        if (SUCCEEDED(document->CreateView(nullptr, nullptr, 0, &view)) && view) {
-            InitializeDocumentView(const_cast<COleDocObjectItem*>(this), view);
-        }
-        document->Release();
-    }
-    return view;
+    return m_retailTail.m_pActiveView;
 }
 HRESULT COleDocObjectItem::GetDocument(IUnknown** ppDocument) {
     if (!ppDocument) return E_POINTER;
@@ -84,34 +76,25 @@ HRESULT COleDocObjectItem::GetDocument(IUnknown** ppDocument) {
     return hr;
 }
 void COleDocObjectItem::ActivateAndShow() {
-    if (!m_lpObject) return;
-    Activate(OLEIVERB_SHOW);
-    IOleDocumentView* view = GetActiveView();
-    if (view) {
-        view->Show(TRUE);
-        view->Release();
+    auto* view = GetActiveView();
+    if (!view) return;
+    view->AddRef();
+    view->UIActivate(TRUE);
+    if (view == GetActiveView()) {
+        auto* host = COleClientItem::m_retailTail.m_pView;
+        RECT bounds{};
+        if (host && ::GetClientRect(host->GetSafeHwnd(), &bounds)) view->SetRect(&bounds);
     }
+    if (view == GetActiveView()) view->Show(TRUE);
+    view->Release();
 }
 BOOL COleDocObjectItem::IsOpen() const { return m_nStatus == OLE_OPEN; }
 void COleDocObjectItem::OnActivateView() {
     if (!m_lpObject) return;
-
-    if (!IsOpen()) {
-        OnOpen();
-        if (m_nStatus == OLE_OPEN) {
-            Activate(OLEIVERB_OPEN, nullptr, nullptr, nullptr, nullptr, FALSE);
-        }
-    }
-
-    IOleDocumentView* view = GetActiveView();
-    if (!view) return;
-    view->UIActivate(TRUE);
-    if (m_lpInPlaceObject && !m_bInPlaceActive) {
-        m_bInPlaceActive = TRUE;
-    }
+    if (GetActiveView()) ActivateAndShow();
+    else if (FAILED(m_retailTail.m_xOleDocumentSite.ActivateMe(nullptr))) return;
+    if (m_lpInPlaceObject) m_bInPlaceActive = TRUE;
     m_nStatus = OLE_OPEN;
-    view->Show(TRUE);
-    view->Release();
 }
 BOOL COleDocObjectItem::OnPreparePrinting(void* pInfo) { (void)pInfo; return TRUE; }
 void COleDocObjectItem::OnBeginPrinting(CDC* pDC, void* pInfo) { (void)pDC; (void)pInfo; }
@@ -156,11 +139,8 @@ HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, const GU
 //                                                 {&IID_IOleDocumentSite, 0x110}
 //                                                 (interface-map entry shape)
 //
-// OpenMFC's COleDocObjectItem (include/openmfc/afxole.h) now names these
-// members in a union over the existing 40-byte tail, which its constructor
-// zeroes. The offsets are pinned below against that same storage; the object
-// view and IPrint pointer are still not initialized with retail interface
-// vtables/ownership semantics.
+// OpenMFC constructs the document site and tracks the view and IPrint
+// references in the same 40-byte tail.
 //
 // Base-class members still differ: retail m_lpObject is +0x48, while OpenMFC
 // keeps it at +0x50 and uses +0x48 for m_pContainerDoc. Base fields already
@@ -174,8 +154,6 @@ HRESULT COleDocObjectItem::ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt, const GU
 // core/ole/COleClientItem.cpp, core/ole/Thunks.cpp, core/ole/COleDocument.cpp,
 // core/ole/RuntimeClasses.cpp, core/runtime/CObject.cpp,
 // core/runtime/CCmdTarget.cpp, detail/MfcExceptionsSupport.cpp.
-extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
-    COleClientItem* pThis, unsigned long dwCloseOption);
 extern "C" void* MS_ABI impl__GetStartPosition_COleDocument__UEBAPEAU__POSITION__XZ(
     const COleDocument* pThis);
 extern "C" void* MS_ABI impl__GetNextItemOfKind_COleDocument__IEBAPEAVCDocItem__AEAPEAU__POSITION__PEAUCRuntimeClass___Z(
@@ -222,7 +200,7 @@ static_assert(offsetof(COleDocObjectItem, m_retailTail) +
                   offsetof(COleDocObjectItem::RetailTailStorage, m_reserved_10c) == 0x10c,
               "COleDocObjectItem reserved gap at +0x10c");
 static_assert(offsetof(COleDocObjectItem, m_retailTail) +
-                  offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSiteVftable) == 0x110,
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSite) == 0x110,
               "COleDocObjectItem document-site part at +0x110");
 static_assert(offsetof(COleClientItem, m_retailTail) +
                   offsetof(COleClientItem::RetailTailStorage, m_pView) == 0x98,
@@ -232,9 +210,6 @@ static_assert(offsetof(CFrameWnd, m_retailPrefix) +
               "CFrameWnd default menu at +0xf0");
 #endif
 
-inline IOleDocumentView*& ItemActiveView(COleDocObjectItem* pThis) {
-    return pThis->m_retailTail.m_pActiveView;
-}
 inline IPrint*& ItemIPrint(COleDocObjectItem* pThis) {
     return pThis->m_retailTail.m_pIPrint;
 }
@@ -591,21 +566,16 @@ extern "C" int MS_ABI impl__OnCmdMsg_COleDocObjectItem__MEAAHIHPEAXPEAUAFX_CMDHA
 // +0x40, then tail-jump to USER32!GetClientRect. The ANSI twin's function
 // entry is RVA 0x244b70 (mfc140); iat.py resolves its ANSI import slot
 // 0x1802c5358 to USER32!GetClientRect. The +0x98 overlay is asserted above.
-// The non-MSVC compile-check declaration does not expose that overlay, so this
-// source-only path does not attempt a raw-offset substitute. OpenMFC's item
-// constructor zeroes the modeled slot, but no in-tree path currently assigns
-// m_pView; unlike retail, the native path returns without touching rPosition
-// when that unsupported state is NULL rather than dereferencing a null view.
 extern "C" void MS_ABI impl__OnGetItemPosition_COleDocObjectItem__MEAAXAEAVCRect___Z(
         COleDocObjectItem* pThis, CRect* rPosition) {
-#if defined(_MSC_VER)
+    if (!pThis || !rPosition) return;
+    rPosition->SetRectEmpty();
     CView* pView = static_cast<COleClientItem*>(pThis)->m_retailTail.m_pView;
     if (pView == nullptr) return;
     ::GetClientRect(pView->GetSafeHwnd(), static_cast<RECT*>(*rPosition));
-#else
-    (void)pThis;
-    (void)rPosition;
-#endif
+}
+void COleDocObjectItem::OnGetItemPosition(CRect& position) {
+    impl__OnGetItemPosition_COleDocObjectItem__MEAAXAEAVCRect___Z(this, &position);
 }
 
 // Symbol: ?OnInsertMenus@COleDocObjectItem@@UEAAXPEAVCMenu@@PEAUtagOleMenuGroupWidths@@@Z
@@ -726,10 +696,17 @@ extern "C" long MS_ABI impl__QueryCommand_COleDocObjectItem__QEAAJKPEAKPEAU_tagO
 // whose deviations from retail are documented in COleClientItem.cpp.
 extern "C" void MS_ABI impl__Release_COleDocObjectItem__UEAAXW4tagOLECLOSE___Z(
         COleDocObjectItem* pThis, OLECLOSE dwCloseOption) {
-    ReleaseAndClear(ItemActiveView(pThis));
-    if (ItemIPrint(pThis) != kIPrintUnsupported) ReleaseAndClear(ItemIPrint(pThis));
-    impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
-        pThis, static_cast<unsigned long>(dwCloseOption));
+    if (pThis) pThis->COleDocObjectItem::Release(dwCloseOption);
+}
+void COleDocObjectItem::Release(OLECLOSE closeOption) {
+    ReleaseDocumentView();
+    COleClientItem::Release(closeOption);
+}
+void COleDocObjectItem::ReleaseDocumentView() {
+    if (auto* view = std::exchange(m_retailTail.m_pActiveView, nullptr)) view->Release();
+    if (m_retailTail.m_pIPrint != kIPrintUnsupported) {
+        if (auto* print = std::exchange(m_retailTail.m_pIPrint, nullptr)) print->Release();
+    }
 }
 
 // Symbol: ?SupportsIPrint@COleDocObjectItem@@IEAAHXZ
@@ -767,29 +744,68 @@ extern "C" int MS_ABI impl__SupportsIPrint_COleDocObjectItem__IEAAHXZ(COleDocObj
 }
 
 // Symbol: ?ActivateMe@XOleDocumentSite@COleDocObjectItem@@UEAAJPEAUIOleDocumentView@@@Z
-// HRESULT COleDocObjectItem::XOleDocumentSite::ActivateMe(LPOLEDOCUMENTVIEW
-// pViewToActivate) -- STUB.  Retail mfc140u 0x2559d0 opens with METHOD_PROLOGUE
-// (pThis = this - 0x110, then AFX_MANAGE_STATE on pThis's module state at
-// +0x38), gets the client site from the virtual GetClientSite (vtable 0x190)
-// and the item's own IOleInPlaceSite through CCmdTarget::GetInterface, and
-// returns E_FAIL if either is NULL.  Then:
-//   * pViewToActivate == NULL: if m_pActiveView (+0xf8) and m_pView (+0x98)
-//     are both non-NULL it just calls ActivateAndShow and returns S_OK;
-//     otherwise it QIs m_lpObject for IOleDocument and calls
-//     CreateView(pInPlaceSite, NULL, 0, &pView) (E_FAIL when m_lpObject or
-//     IOleDocument is missing, E_OUTOFMEMORY when CreateView fails);
-//   * pViewToActivate != NULL: if it equals a non-NULL m_pActiveView it just
-//     calls ActivateAndShow and returns S_OK; otherwise
-//     pView->SetInPlaceSite(pInPlaceSite) and pView->AddRef().
-// With a new view in hand: if m_pActiveView was non-NULL it gets
-// UIActivate(FALSE), Show(FALSE) and Release, m_pIPrint is released unless it
-// is NULL or -1 and is then set to NULL; the new view is stored in
-// m_pActiveView, ActivateAndShow is called, and S_OK is returned.
-// The base client item supplies its client site and in-place site. The
-// XOleDocumentSite slot at +0x110 still needs a vtable and view activation.
 extern "C" long MS_ABI impl__ActivateMe_XOleDocumentSite_COleDocObjectItem__UEAAJPEAUIOleDocumentView___Z(
-        void* pThisSite, IOleDocumentView* pViewToActivate) {
-    (void)pThisSite;
-    (void)pViewToActivate;
-    return E_FAIL;
+    void* part, IOleDocumentView* view) {
+    if (!part) return E_FAIL;
+    auto* site = static_cast<COleDocObjectItem::XOleDocumentSite*>(part);
+    return site->COleDocObjectItem::XOleDocumentSite::ActivateMe(view);
+}
+
+namespace {
+COleDocObjectItem* ItemFromDocumentSite(COleDocObjectItem::XOleDocumentSite* part) {
+    constexpr auto offset = offsetof(COleDocObjectItem, m_retailTail) +
+        offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSite);
+    return reinterpret_cast<COleDocObjectItem*>(reinterpret_cast<BYTE*>(part) - offset);
+}
+}
+
+HRESULT STDMETHODCALLTYPE COleDocObjectItem::XOleDocumentSite::QueryInterface(REFIID iid, void** result) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(
+        ItemFromDocumentSite(this), &iid, result);
+}
+ULONG STDMETHODCALLTYPE COleDocObjectItem::XOleDocumentSite::AddRef() {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(ItemFromDocumentSite(this));
+}
+ULONG STDMETHODCALLTYPE COleDocObjectItem::XOleDocumentSite::Release() {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(ItemFromDocumentSite(this));
+}
+
+HRESULT STDMETHODCALLTYPE COleDocObjectItem::XOleDocumentSite::ActivateMe(IOleDocumentView* view) {
+    auto* item = ItemFromDocumentSite(this);
+    openmfc::detail::CmdTargetModuleScope module(item->m_pModuleState);
+    if (!item->GetClientSite()) return E_FAIL;
+    auto* inPlace = static_cast<IOleInPlaceSite*>(item->GetInterface(&IID_IOleInPlaceSite));
+    if (!inPlace) return E_FAIL;
+
+    auto& tail = item->m_retailTail;
+    if (tail.m_pActiveView &&
+        (tail.m_pActiveView == view || (!view && item->COleClientItem::m_retailTail.m_pView))) {
+        item->ActivateAndShow();
+        return S_OK;
+    }
+    if (!view) {
+        if (!item->m_lpObject) return E_FAIL;
+        auto* document = QueryIface<IOleDocument>(item->m_lpObject, IID_IOleDocument);
+        if (!document) return E_FAIL;
+        const HRESULT created = document->CreateView(inPlace, nullptr, 0, &view);
+        document->Release();
+        if (FAILED(created) || !view) {
+            if (view) view->Release();
+            return E_OUTOFMEMORY;
+        }
+    } else {
+        const HRESULT attached = view->SetInPlaceSite(inPlace);
+        if (FAILED(attached)) return attached;
+        view->AddRef();
+    }
+
+    if (auto* previous = std::exchange(tail.m_pActiveView, view)) {
+        auto* print = std::exchange(tail.m_pIPrint, nullptr);
+        previous->Show(FALSE);
+        previous->UIActivate(FALSE);
+        previous->Release();
+        if (print && print != kIPrintUnsupported) print->Release();
+    }
+    if (tail.m_pActiveView == view) item->ActivateAndShow();
+    return S_OK;
 }

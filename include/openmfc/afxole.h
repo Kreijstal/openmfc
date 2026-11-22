@@ -1145,6 +1145,7 @@ public:
     LPOLEITEMCONTAINER GetItemContainer();
     virtual LPMONIKER GetMoniker(OLEGETMONIKER assign);
     virtual LPOLEITEMCONTAINER GetContainer();
+    void DeleteContents() override;
 
     // Command UI update handlers
     void OnUpdateEditChangeIcon(CCmdUI* pCmdUI);
@@ -1386,6 +1387,7 @@ public:
     COleControlSite* GetControlSite() const;
     void AttachDataObject(COleDataObject& dataObject) const;
     virtual int DoVerb(LONG nVerb, CView* pView = nullptr, MSG* lpMsg = nullptr);
+    virtual void Release(OLECLOSE closeOption = OLECLOSE_NOSAVE);
 
 protected:
     virtual IOleClientSite* GetClientSite();
@@ -1527,7 +1529,9 @@ public:
 
     BOOL IsDocObject() const;
     BOOL IsActive() const;
+    // Borrowed until the current view is replaced or released.
     IOleDocumentView* GetActiveView() const;
+    void Release(OLECLOSE closeOption = OLECLOSE_NOSAVE) override;
     HRESULT GetDocument(IUnknown** ppDocument);
     void ActivateAndShow();
     BOOL IsOpen() const;
@@ -1539,12 +1543,21 @@ public:
     HRESULT ExecCommand(DWORD nCmdID, DWORD nCmdExecOpt = OLECMDEXECOPT_DONTPROMPTUSER,
                         const GUID* pguidCmdGroup = nullptr);
 
+protected:
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
+    void OnGetItemPosition(CRect& position) override;
+
+private:
+    void ReleaseDocumentView();
+
 public:
-    // Retail COleDocObjectItem tail, mapped into the existing 40 bytes.
-    // Pack it to four-byte alignment so MinGW can retain its original reusable
-    // base-tail padding; clang-cl starts this storage at the retail +0xf0.
-    // XOleDocumentSite remains raw vftable storage because the constructor
-    // does not currently install a compatible local interface vtable.
+    struct XOleDocumentSite : IOleDocumentSite {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE ActivateMe(IOleDocumentView*) override;
+    };
+
 #pragma pack(push, 4)
     struct RetailTailStorage {
         CMenu* m_pHelpPopupMenu;                 // +0xf0; COleDocObjectItem ctor RVA 0x2557b0 (mfc140u)
@@ -1552,13 +1565,10 @@ public:
         IPrint* m_pIPrint;                       // +0x100; ctor RVA 0x2557b0 (mfc140u)
         BOOL m_bInHelpMenu;                      // +0x108; ctor RVA 0x2557b0 (mfc140u)
         DWORD m_reserved_10c;                    // +0x10c; gap before interface part, ctor RVA 0x2557b0 (mfc140u)
-        void* m_xOleDocumentSiteVftable;         // interface part +0x110; ctor RVA 0x2557b0 (mfc140u)
-    };
-    union {
-        RetailTailStorage m_retailTail;
-        char _coledocobjectitem_padding[40];
+        XOleDocumentSite m_xOleDocumentSite;     // interface part +0x110
     };
 #pragma pack(pop)
+    RetailTailStorage m_retailTail{};
 };
 
 //=============================================================================

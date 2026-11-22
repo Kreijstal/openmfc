@@ -234,28 +234,6 @@ LPOLESTR CopyOleString(const wchar_t* text) {
     if (copy) memcpy(copy, text, bytes);
     return copy;
 }
-void InitializeDocumentView(COleDocObjectItem* item, IOleDocumentView* view) {
-    if (!item || !view) return;
-
-    IOleClientSite* clientSite = nullptr;
-    if (item->m_lpObject &&
-        SUCCEEDED(item->m_lpObject->GetClientSite(&clientSite)) && clientSite) {
-        IOleInPlaceSite* inPlaceSite = nullptr;
-        if (SUCCEEDED(clientSite->QueryInterface(IID_IOleInPlaceSite,
-                                                 reinterpret_cast<void**>(&inPlaceSite))) &&
-            inPlaceSite) {
-            view->SetInPlaceSite(inPlaceSite);
-            inPlaceSite->Release();
-        }
-        clientSite->Release();
-    }
-
-    CRect itemRect;
-    item->OnGetItemPosition(itemRect);
-    RECT rect = { itemRect.left, itemRect.top, itemRect.right, itemRect.bottom };
-    view->SetRect(&rect);
-    view->UIActivate(TRUE);
-}
 int CountDispatchParams(const BYTE* pbParamInfo) {
     if (!pbParamInfo) return 0;
     int count = 0;

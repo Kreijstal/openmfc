@@ -38,7 +38,16 @@ const AFX_INTERFACEMAP g_imap_COleControlContainer = { gib_COleControlContainer,
 const AFX_INTERFACEMAP* AFXAPI gib_COleControlSite() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleControlSite = { gib_COleControlSite, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleDocObjectItem() { return impl__GetThisInterfaceMap_COleClientItem__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_COleDocObjectItem = { gib_COleDocObjectItem, g_ifaceEnd };
+namespace {
+constexpr size_t documentSite = offsetof(COleDocObjectItem, m_retailTail) +
+    offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSite);
+static_assert(documentSite == 0x110);
+const AFX_INTERFACEMAP_ENTRY docObjectInterfaces[] = {
+    { &IID_IOleDocumentSite, documentSite },
+    { nullptr, static_cast<size_t>(-1) }
+};
+}
+const AFX_INTERFACEMAP g_imap_COleDocObjectItem = { gib_COleDocObjectItem, docObjectInterfaces };
 const AFX_INTERFACEMAP* AFXAPI gib_COleFrameHook() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 namespace {
 constexpr size_t framePart = offsetof(COleFrameHook, m_retailTail) +

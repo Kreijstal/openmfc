@@ -1141,18 +1141,7 @@ void COleClientItem::Activate(LONG nVerb, CView* pView, HWND hwndParent, LPCRECT
     if (!m_lpObject) return;
     HWND parent = hwndParent;
     if (!parent && pView) parent = pView->GetSafeHwnd();
-    RECT rect = {};
-    LPCRECT rectToUse = lpRect;
-    if (!rectToUse) {
-        CRect itemRect;
-        OnGetItemPosition(itemRect);
-        rect.left = itemRect.left;
-        rect.top = itemRect.top;
-        rect.right = itemRect.right;
-        rect.bottom = itemRect.bottom;
-        rectToUse = &rect;
-    }
-    const HRESULT hr = InvokeOleVerb(nVerb, pView, nullptr, parent, rectToUse);
+    const HRESULT hr = InvokeOleVerb(nVerb, pView, nullptr, parent, lpRect);
     if (SUCCEEDED(hr)) {
         ClientItemState* state = GetClientItemState(this, true);
         if (state) state->activeVerb = nVerb;
@@ -1175,9 +1164,7 @@ void COleClientItem::Deactivate() {
 int COleClientItem::DoVerb(LONG nVerb, CView* pView, MSG* lpMsg) {
     if (!m_lpObject) return -1;
     HWND parent = pView ? pView->GetSafeHwnd() : nullptr;
-    CRect rect;
-    OnGetItemPosition(rect);
-    const HRESULT hr = InvokeOleVerb(nVerb, pView, lpMsg, parent, rect);
+    const HRESULT hr = InvokeOleVerb(nVerb, pView, lpMsg, parent, nullptr);
     if (FAILED(hr)) return static_cast<int>(hr);
     ClientItemState* state = GetClientItemState(this, true);
     if (state) state->activeVerb = nVerb;
@@ -1198,6 +1185,11 @@ HRESULT COleClientItem::InvokeOleVerb(LONG verb, CView* view, MSG* message, HWND
     const auto wasInPlaceActive = m_bInPlaceActive;
     const bool hadFrame = tail.m_pInPlaceFrame != nullptr;
     const bool hadDocumentFrame = tail.m_pInPlaceDoc != nullptr;
+    CRect bounds(0, 0, 0, 0);
+    if (!position) {
+        OnGetItemPosition(bounds);
+        position = bounds;
+    }
     const HRESULT result = m_lpObject->DoVerb(verb, message, COleClientItem::GetClientSite(), 0, parent, position);
     if (FAILED(result)) {
         tail.m_pView = previousView;
@@ -1218,6 +1210,10 @@ void COleClientItem::SetItemState(OLE_STATUS nNewState) {
     m_nStatus = nNewState;
 }
 void COleClientItem::Close(OLE_CLOSE dwCloseOption) {
+    Release(static_cast<OLECLOSE>(dwCloseOption));
+    m_nStatus = OLE_EMPTY;
+}
+void COleClientItem::Release(OLECLOSE dwCloseOption) {
     if (m_lpObject) {
         m_lpObject->Close(dwCloseOption);
         m_lpObject->Release();
@@ -1235,7 +1231,6 @@ void COleClientItem::Close(OLE_CLOSE dwCloseOption) {
     ReleaseFrameHook(m_retailTail.m_pInPlaceDoc);
     m_retailTail.m_pView = nullptr;
     m_bInPlaceActive = FALSE;
-    m_nStatus = OLE_EMPTY;
 }
 BOOL COleClientItem::Draw(CDC* pDC, LPCRECT lpBounds, DVASPECT nDrawAspect) {
     if (!m_lpObject || !pDC || !pDC->GetSafeHdc() || !lpBounds) return FALSE;
@@ -2349,30 +2344,11 @@ extern "C" void MS_ABI impl__ReadItemFlat_COleClientItem__QEAAXAEAVCArchive___Z(
 // Retail entry: RVA 0x242b00 (mfc140.dll, ANSI twin; the --u symbol lookup did
 // not resolve). It clears m_scLast, tears down IViewObject advise state,
 // unadvises and closes/releases m_lpObject, releases m_lpStorage and
-// m_lpLockBytes, and releases its in-place frame hooks. This local body cannot
-// reproduce the unmodeled view, storage, advise, or hook teardown. It also
-// releases OpenMFC's m_lpLink and m_lpInPlaceObject and clears
-// m_bInPlaceActive, which are local-model cleanup steps, not retail fields.
+// m_lpLockBytes, and releases its in-place frame hooks. OpenMFC also releases
+// its cached link and in-place object.
 extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
         COleClientItem* pThis, unsigned long dwCloseOption) {
-    if (!pThis) return;
-    if (pThis->m_lpObject) {
-        pThis->m_lpObject->Close(dwCloseOption);
-        pThis->m_lpObject->Release();
-        pThis->m_lpObject = nullptr;
-    }
-    if (pThis->m_lpLink) {
-        pThis->m_lpLink->Release();
-        pThis->m_lpLink = nullptr;
-    }
-    if (pThis->m_lpInPlaceObject) {
-        pThis->m_lpInPlaceObject->Release();
-        pThis->m_lpInPlaceObject = nullptr;
-    }
-    ReleaseFrameHook(pThis->m_retailTail.m_pInPlaceFrame);
-    ReleaseFrameHook(pThis->m_retailTail.m_pInPlaceDoc);
-    pThis->m_retailTail.m_pView = nullptr;
-    pThis->m_bInPlaceActive = FALSE;
+    if (pThis) pThis->COleClientItem::Release(static_cast<OLECLOSE>(dwCloseOption));
 }
 
 //=============================================================================

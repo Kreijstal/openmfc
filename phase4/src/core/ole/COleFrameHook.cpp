@@ -257,7 +257,7 @@ static_assert(offsetof(COleDocObjectItem, m_retailTail) +
                   kOffDocObjectInHelpMenu,
               "retail m_bInHelpMenu at +0x108");
 static_assert(offsetof(COleDocObjectItem, m_retailTail) +
-                  offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSiteVftable) ==
+                  offsetof(COleDocObjectItem::RetailTailStorage, m_xOleDocumentSite) ==
                   0x110,
               "retail XOleDocumentSite storage at +0x110");
 #endif

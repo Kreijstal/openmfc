@@ -52,7 +52,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDocItem__SAPEAUCRuntimeClas
 extern "C" int MS_ABI impl__IsBlank_CDocItem__UEBAHXZ(const CDocItem* pThis);
 extern "C" int MS_ABI impl__IsBlank_COleServerItem__MEBAHXZ(const COleServerItem* pThis);
 // core/ole/COleClientItem.cpp, core/ole/Thunks.cpp
-extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(COleClientItem* pThis, unsigned long dwCloseOption);
+extern "C" ULONG MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(CCmdTarget*);
 extern "C" void MS_ABI impl__CommitItem_COleClientItem__UEAAXH_Z(COleClientItem* pThis, int bSuccess);
 extern "C" int MS_ABI impl__SetPrintDevice_COleClientItem__QEAAHPEBUtagDVTARGETDEVICE___Z(COleClientItem* pThis, const tagDVTARGETDEVICE* ptd);
 extern "C" int MS_ABI impl__IsModified_COleClientItem__QEBAHXZ(const COleClientItem* pThis);
@@ -924,13 +924,7 @@ extern "C" void MS_ABI impl__CommitItems_COleDocument__QEAAXHPEAUIStorage___Z(CO
 //                                                                //  which deletes the item
 //     if (IsSearchAndOrganizeHandler())                          // +0x128|+0x12c|+0x130
 //         RELEASE(m_lpRootStg);                                  // +0x1c8
-// OpenMFC's CDocItem is a CObject, not a refcounted CCmdTarget, so the item is
-// deleted directly (the listed items are the OpenMFC-constructed objects the
-// exported COleClientItem ctor thunk creates, so the C++ virtual destructor
-// is the right one).  Because a POSITION here is an index that removal
-// shifts, the walk restarts at the head after each item; RemoveItem always
-// takes the item out of the list, so this visits the items in the same order
-// retail does and terminates.
+// Each removal shifts the POSITION indices, so the walk restarts at the head.
 // Symbol: ?DeleteContents@COleDocument@@UEAAXXZ
 extern "C" void MS_ABI impl__DeleteContents_COleDocument__UEAAXXZ(COleDocument* pThis) {
     if (!pThis) return;
@@ -939,16 +933,19 @@ extern "C" void MS_ABI impl__DeleteContents_COleDocument__UEAAXXZ(COleDocument* 
         COleClientItem* pItem = pThis->GetNextClientItem(pos);
         if (pItem == nullptr) break;
         if (pItem->m_lpObject != nullptr) {
-            impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(pItem, OLECLOSE_NOSAVE);
+            pItem->Release(OLECLOSE_NOSAVE);
         }
         impl__RemoveItem_COleDocument__UEAAXPEAVCDocItem___Z(pThis, pItem);
         if (pItem->m_pDocument == pThis || pItem->m_pContainerDoc == pThis) break;   // still attached: stop rather than spin
-        delete pItem;
+        impl__InternalRelease_CCmdTarget__QEAAKXZ(pItem);
     }
     if (impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(pThis)) {
         OleDocExtra* extra = GetExtra(pThis, false);
         if (extra) ReleaseAndClear(extra->lpRootStg);
     }
+}
+void COleDocument::DeleteContents() {
+    impl__DeleteContents_COleDocument__UEAAXXZ(this);
 }
 
 // COleDocument::DoSave(LPCTSTR, BOOL) -- mfc140u 0x2546d0:

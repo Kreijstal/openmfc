@@ -215,10 +215,6 @@ private:
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
-void InitializeDocumentView(COleDocObjectItem* item, IOleDocumentView* view);
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
 int CountDispatchParams(const BYTE* pbParamInfo);
 } } }
 
