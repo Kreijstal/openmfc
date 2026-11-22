@@ -32,20 +32,9 @@ using namespace openmfc::detail::dlgcore;
 // =============================================================================
 
 // Forward declaration
-INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK PropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
-// Map HWND to CDialog* for dialog message routing
 #include <map>
-namespace openmfc { namespace detail { namespace dlgcore {
-extern std::map<HWND, CDialog*> g_dlgMap;
-} } }
-namespace openmfc { namespace detail { namespace dlgcore {
-extern std::map<CDialog*, const DLGTEMPLATE*> g_dlgIndirectTemplates;
-} } }
-namespace openmfc { namespace detail { namespace dlgcore {
-extern std::map<CDialog*, HWND> g_dlgParents;
-} } }
 namespace openmfc { namespace detail { namespace dlgcore {
 extern std::map<CPropertyPage*, PROPSHEETPAGEW> g_propertyPagePspMap;
 } } }
@@ -159,7 +148,7 @@ extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
 
 // Create with resource ID
 namespace openmfc { namespace detail { namespace dlgcore {
-extern "C" int MS_ABI impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(
+extern "C" int MS_ABI impl__Create_CDialog__UEAAHIPEAVCWnd___Z(
     CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd);
 } } }
 
@@ -234,7 +223,6 @@ extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis);
 
 
 
-INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 // =============================================================================
 // CDialogEx Implementation

@@ -5,59 +5,6 @@ extern "C" void MS_ABI impl__SetBackgroundImage_CDialogEx__QEAAXPEAUHBITMAP____W
     CDialogEx* pThis, HBITMAP hBitmap, int backgroundLocation, BOOL bAutoDestroy, BOOL bRepaint);
 
 IMPLEMENT_DYNAMIC(CDialogEx, CDialog)
-INT_PTR CALLBACK AfxDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    CDialog* pDlg = nullptr;
-
-    if (message == WM_INITDIALOG) {
-        // lParam contains the CDialog pointer
-        pDlg = reinterpret_cast<CDialog*>(lParam);
-        if (pDlg) {
-            pDlg->m_hWnd = hDlg;
-            g_dlgMap[hDlg] = pDlg;
-        }
-
-        // Call OnInitDialog
-        if (pDlg) {
-            return pDlg->OnInitDialog() ? TRUE : FALSE;
-        }
-        return TRUE;
-    }
-
-    // Look up CDialog from HWND
-    auto it = g_dlgMap.find(hDlg);
-    if (it != g_dlgMap.end()) {
-        pDlg = it->second;
-    }
-
-    if (!pDlg) {
-        return FALSE;  // Not handled
-    }
-
-    switch (message) {
-    case WM_COMMAND:
-        switch (LOWORD(wParam)) {
-        case IDOK:
-            pDlg->OnOK();
-            return TRUE;
-        case IDCANCEL:
-            pDlg->OnCancel();
-            return TRUE;
-        }
-        break;
-
-    case WM_CLOSE:
-        pDlg->OnCancel();
-        return TRUE;
-
-    case WM_DESTROY:
-        g_dlgMap.erase(hDlg);
-        pDlg->m_hWnd = nullptr;
-        break;
-    }
-
-    return FALSE;  // Not handled - use default dialog processing
-}
 IMPLEMENT_DYNAMIC(CPropertyPage, CDialog)
 IMPLEMENT_DYNAMIC(CPropertySheet, CWnd)
 INT_PTR CALLBACK PropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -130,9 +77,6 @@ INT_PTR CALLBACK PropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
     return FALSE;
 }
 namespace openmfc { namespace detail { namespace dlgcore {
-std::map<HWND, CDialog*> g_dlgMap;
-std::map<CDialog*, const DLGTEMPLATE*> g_dlgIndirectTemplates;
-std::map<CDialog*, HWND> g_dlgParents;
 std::map<CPropertyPage*, PROPSHEETPAGEW> g_propertyPagePspMap;
 std::map<HWND, CPropertySheet*> g_propertySheetMap;
 std::map<CPropertySheet*, CString> g_propertySheetCaptions;
@@ -151,89 +95,6 @@ CPropertyPageAccess* PropertyPageAccess(CPropertyPage* pThis) {
 }
 CPropertySheetAccess* PropertySheetAccess(CPropertySheet* pThis) {
     return static_cast<CPropertySheetAccess*>(pThis);
-}
-// Symbol: ?DoModal@CDialog@@UEAA_JXZ
-extern "C" intptr_t MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* pThis) {
-    if (!pThis || (!pThis->m_lpszTemplateName && !pThis->m_lpDialogTemplate && !pThis->m_hDialogTemplate)) {
-        return -1;  // IDABORT
-    }
-
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    if (!hInst) {
-        hInst = GetModuleHandle(nullptr);
-    }
-
-    // Get parent window
-    CWnd* pParent = pThis->m_pParentWnd ? pThis->m_pParentWnd : AfxGetMainWnd();
-    HWND hWndParent = pParent ? pParent->m_hWnd : nullptr;
-
-    // Store the CDialog pointer so the dialog proc can find it
-    // Use a thread-local for the pending dialog
-    thread_local CDialog* s_pPendingDialog = nullptr;
-    s_pPendingDialog = pThis;
-
-    INT_PTR nResult = 0;
-    if (pThis->m_lpDialogTemplate || pThis->m_hDialogTemplate) {
-        nResult = DialogBoxIndirectParamW(
-            hInst,
-            pThis->m_lpDialogTemplate ? pThis->m_lpDialogTemplate : static_cast<const DLGTEMPLATE*>(LockResource(pThis->m_hDialogTemplate)),
-            hWndParent,
-            AfxDlgProc,
-            reinterpret_cast<LPARAM>(pThis));
-    } else {
-        nResult = DialogBoxParamW(
-            hInst,
-            pThis->m_lpszTemplateName,
-            hWndParent,
-            AfxDlgProc,
-            reinterpret_cast<LPARAM>(pThis));
-    }
-
-    s_pPendingDialog = nullptr;
-    return nResult;
-}
-// Symbol: ?Create@CDialog@@UEAAHPEB_WPEAVCWnd@@@Z
-extern "C" int MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
-    CDialog* pThis, const wchar_t* lpszTemplateName, CWnd* pParentWnd)
-{
-    if (!pThis) return FALSE;
-
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    if (!hInst) {
-        hInst = GetModuleHandle(nullptr);
-    }
-
-    HWND hWndParent = pParentWnd ? pParentWnd->m_hWnd : nullptr;
-    pThis->m_pParentWnd=pParentWnd;
-
-    // Store template name
-    pThis->m_lpszTemplateName = lpszTemplateName;
-    pThis->m_lpDialogTemplate=nullptr;pThis->m_hDialogTemplate=nullptr;pThis->m_lpDialogInit=nullptr;
-
-    // Create the modeless dialog
-    HWND hDlg = CreateDialogParamW(
-        hInst,
-        lpszTemplateName,
-        hWndParent,
-        AfxDlgProc,
-        reinterpret_cast<LPARAM>(pThis)
-    );
-
-    if (!hDlg) {
-        return FALSE;
-    }
-
-    pThis->m_hWnd = hDlg;
-    g_dlgMap[hDlg] = pThis;
-
-    return TRUE;
-}
-// Symbol: ?Create@CDialog@@UEAAHIPEAVCWnd@@@Z
-extern "C" int MS_ABI impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(
-    CDialog* pThis, UINT nIDTemplate, CWnd* pParentWnd)
-{
-    return impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
-        pThis, MAKEINTRESOURCEW(nIDTemplate), pParentWnd);
 }
 // Symbol: ??0CDialogEx@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CDialogEx__QEAA_XZ(CDialogEx* pThis) {

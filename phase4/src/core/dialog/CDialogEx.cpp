@@ -28,19 +28,6 @@ extern "C" void MS_ABI impl__OnSysColorChange_CWnd__IEAAXXZ(CWnd* pThis);
 extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__OnSettingChange_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__UpdateSysColors_AFX_GLOBAL_DATA__QEAAXXZ(void* pThis);
-extern "C" void MS_ABI impl__OnOK_CDialog__MEAAXXZ(CDialog* pThis);
-extern "C" void MS_ABI impl__OnCancel_CDialog__MEAAXXZ(CDialog* pThis);
-extern "C" intptr_t MS_ABI impl__OnCommandHelp_CDialog__IEAA_J_K_J_Z(
-    CDialog* pThis, WPARAM wParam, LPARAM lParam);
-extern "C" intptr_t MS_ABI impl__OnHelpHitTest_CDialog__IEAA_J_K_J_Z(
-    CDialog* pThis, WPARAM wParam, LPARAM lParam);
-extern "C" intptr_t MS_ABI impl__HandleInitDialog_CDialog__IEAA_J_K_J_Z(
-    CDialog* pThis, WPARAM wParam, LPARAM lParam);
-extern "C" void MS_ABI impl__OnSetFont_CDialog__IEAAXPEAVCFont__H_Z(
-    CDialog* pThis, CFont* pFont, BOOL bRedraw);
-extern "C" void MS_ABI impl__OnPaint_CDialog__IEAAXXZ(CDialog* pThis);
-extern "C" int MS_ABI impl__OnQueryEndSession_CDialog__IEAAHXZ(CDialog* pThis);
-extern "C" void MS_ABI impl__OnEndSession_CDialog__IEAAXH_Z(CDialog* pThis, BOOL bEnding);
 extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
 extern "C" void MS_ABI impl__OnActivate_CDialogEx__IEAAXIPEAVCWnd__H_Z(
     CDialogEx* pThis, UINT nState, CWnd* pWndOther, BOOL bMinimized);
@@ -54,45 +41,6 @@ extern "C" void MS_ABI impl__OnSettingChange_CDialogEx__IEAAXIPEB_W_Z(
     CDialogEx* pThis, UINT uFlags, const wchar_t* lpszSection);
 
 namespace {
-struct DialogBaseMessageMapTarget : CDialog {
-    void OnOkCommand() { impl__OnOK_CDialog__MEAAXXZ(this); }
-    void OnCancelCommand() { impl__OnCancel_CDialog__MEAAXXZ(this); }
-    LRESULT OnCommandHelpMessage(WPARAM wParam, LPARAM lParam) {
-        return impl__OnCommandHelp_CDialog__IEAA_J_K_J_Z(this, wParam, lParam);
-    }
-    LRESULT OnHelpHitTestMessage(WPARAM wParam, LPARAM lParam) {
-        return impl__OnHelpHitTest_CDialog__IEAA_J_K_J_Z(this, wParam, lParam);
-    }
-    LRESULT OnInitDialogMessage(WPARAM wParam, LPARAM lParam) {
-        return impl__HandleInitDialog_CDialog__IEAA_J_K_J_Z(this, wParam, lParam);
-    }
-    void OnSetFontMessage(CFont* font, BOOL redraw) {
-        impl__OnSetFont_CDialog__IEAAXPEAVCFont__H_Z(this, font, redraw);
-    }
-    void OnPaintMessage() { impl__OnPaint_CDialog__IEAAXXZ(this); }
-    BOOL OnQueryEndSessionMessage() { return impl__OnQueryEndSession_CDialog__IEAAHXZ(this); }
-    void OnEndSessionMessage(UINT ending) {
-        impl__OnEndSession_CDialog__IEAAXH_Z(this, static_cast<BOOL>(ending));
-    }
-};
-
-const AFX_MSGMAP* DialogBaseMessageMap() {
-    static const AFX_MSGMAP_ENTRY entries[] = {
-        {WM_COMMAND, CN_COMMAND, IDOK, IDOK, AfxSigCmd_v, (AFX_PMSG)&DialogBaseMessageMapTarget::OnOkCommand},
-        {WM_COMMAND, CN_COMMAND, IDCANCEL, IDCANCEL, AfxSigCmd_v, (AFX_PMSG)&DialogBaseMessageMapTarget::OnCancelCommand},
-        {0x365, 0, 0, 0, AfxSig_l_w_l, (AFX_PMSG)&DialogBaseMessageMapTarget::OnCommandHelpMessage},
-        {0x366, 0, 0, 0, AfxSig_l_w_l, (AFX_PMSG)&DialogBaseMessageMapTarget::OnHelpHitTestMessage},
-        {WM_INITDIALOG, 0, 0, 0, AfxSig_l_w_l, (AFX_PMSG)&DialogBaseMessageMapTarget::OnInitDialogMessage},
-        {WM_SETFONT, 0, 0, 0, AfxSig_v_F_b, (AFX_PMSG)&DialogBaseMessageMapTarget::OnSetFontMessage},
-        {WM_PAINT, 0, 0, 0, AfxSig_v_v_v, (AFX_PMSG)&DialogBaseMessageMapTarget::OnPaintMessage},
-        {WM_QUERYENDSESSION, 0, 0, 0, AfxSig_b_v_v, (AFX_PMSG)&DialogBaseMessageMapTarget::OnQueryEndSessionMessage},
-        {WM_ENDSESSION, 0, 0, 0, AfxSig_v_u_v, (AFX_PMSG)&DialogBaseMessageMapTarget::OnEndSessionMessage},
-        {0, 0, 0, 0, AfxSig_end, nullptr}
-    };
-    static const AFX_MSGMAP map = {&CWnd::GetThisMessageMap, entries};
-    return &map;
-}
-
 struct DialogExMessageMapTarget : CDialogEx {
     void OnActivateMessage(UINT state, CWnd* other, int minimized) {
         impl__OnActivate_CDialogEx__IEAAXIPEAVCWnd__H_Z(this, state, other, minimized);
@@ -143,7 +91,7 @@ const AFX_MSGMAP* DialogExMessageMap() {
         {WM_SETTINGCHANGE, 0, 0, 0, AfxSig_v_u_cs, (AFX_PMSG)&DialogExMessageMapTarget::OnSettingChangeMessage},
         {0, 0, 0, 0, AfxSig_end, nullptr}
     };
-    static const AFX_MSGMAP map = {&DialogBaseMessageMap, entries};
+    static const AFX_MSGMAP map = {&CDialog::GetThisMessageMap, entries};
     return &map;
 }
 } // namespace
@@ -169,8 +117,7 @@ extern "C" void MS_ABI impl__CommonConstruct_CDialogEx__IEAAXXZ(CDialogEx* pThis
     g_dialogExBackgroundState[pThis] = state;
 }
 // Retail mfc140u RVA 0x3ef30 returns the CDialogEx map (descriptor RVA
-// 0x2e49a0), whose base is CDialog. The seven CDialogEx handlers and the nine
-// CDialog base entries are represented by the local maps above.
+// 0x2e49a0), whose base is CDialog. The extension handlers chain to the shared CDialog message map.
 // Symbol: ?GetMessageMap@CDialogEx@@MEBAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CDialogEx__MEBAPEBUAFX_MSGMAP__XZ(
     const CDialogEx* pThis) {
@@ -240,7 +187,6 @@ extern "C" void MS_ABI impl__OnDestroy_CDialogEx__IEAAXXZ(CDialogEx* pThis) {
         ::DeleteObject(*pBitmap);
         *pBitmap = nullptr;
     }
-    if (pThis->m_hWnd) g_dlgMap.erase(pThis->m_hWnd);
     if (*pBrush) {
         ::DeleteObject(*pBrush);
         *pBrush = nullptr;

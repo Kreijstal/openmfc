@@ -10,8 +10,9 @@ void MS_ABI impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(CWnd*);
 BOOL MS_ABI impl__AfxUnhookWindowCreate__YAHXZ();
 }
 
-namespace {
-INT_PTR CALLBACK ModelessDialogProc(HWND window, UINT message, WPARAM, LPARAM) {
+// Symbol: ?AfxDlgProc@@YA_JPEAUHWND__@@I_K_J@Z
+extern "C" INT_PTR CALLBACK impl__AfxDlgProc__YA_JPEAUHWND____I_K_J_Z(
+    HWND window, UINT message, WPARAM, LPARAM) {
     if (message != WM_INITDIALOG) return FALSE;
     auto* wrapper = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
     if (wrapper && wrapper->IsKindOf(CDialog::GetThisClass())) {
@@ -20,6 +21,7 @@ INT_PTR CALLBACK ModelessDialogProc(HWND window, UINT message, WPARAM, LPARAM) {
     return TRUE;
 }
 
+namespace {
 const DLGTEMPLATE* PrepareOleTemplate(COccManager* manager, _AFX_OCC_DIALOG_INFO* info,
                                     const DLGTEMPLATE* dialog) {
     using Prepare = const DLGTEMPLATE* (MS_ABI*)(COccManager*, _AFX_OCC_DIALOG_INFO*, const DLGTEMPLATE*);
@@ -67,7 +69,8 @@ int CWnd::CreateDlgIndirect(const DLGTEMPLATE* dialog, void* parent, HINSTANCE m
             m_nFlags |= openmfc::detail::wfContinueModal;
             impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(this);
             window = openmfc::detail::ContextCreateDialog(
-                module, dialog, owner ? owner->m_hWnd : nullptr, ModelessDialogProc);
+                module, dialog, owner ? owner->m_hWnd : nullptr,
+                impl__AfxDlgProc__YA_JPEAUHWND____I_K_J_Z);
             attached = impl__AfxUnhookWindowCreate__YAHXZ() != FALSE;
         }
     } catch (...) {

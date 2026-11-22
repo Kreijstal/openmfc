@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/DlgcoreSupport.h"
+#include "detail/WindowMessageSupport.h"
 
 #include <cstddef>
 
@@ -15,75 +16,43 @@ extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd)
 extern "C" CWinThread* MS_ABI impl__AfxGetThread__YAPEAVCWinThread__XZ();            // core/app/Globals.cpp
 extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
     const wchar_t* lpszResource, const wchar_t* lpszType);                            // core/runtime/Globals.cpp
-extern "C" int MS_ABI impl__AfxUnhookWindowCreate__YAHXZ();                          // featurepack/CMFC_misc_stubs.cpp
+extern "C" int MS_ABI impl__AfxUnhookWindowCreate__YAHXZ();
+extern "C" void MS_ABI impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(CWnd*);
+extern "C" HWND MS_ABI impl__GetSafeOwner__CWnd__SAPEAUHWND____PEAU2_PEAPEAU2__Z(HWND, HWND*);
 extern "C" HWND__* MS_ABI impl__Detach_CWnd__QEAAPEAUHWND____XZ(CWnd* pThis);        // core/window/Thunks.cpp
 extern "C" void MS_ABI impl__DoEnableModeless_CWinApp__SAXH_Z(int bEnable);          // core/app/CWinApp.cpp
 
-// OpenMFC's stand-in for AfxGetModuleState()->m_pCurrentWinApp: the plain global
-// the CWinApp constructor export stores `this` into (core/app/CWinApp.cpp; defined
-// in detail/CWinAppSupport.cpp, declared the same way in detail/CWinAppSupport.h).
-// AfxGetApp()/impl__AfxGetApp are NOT used for it: in this build they return
-// AfxGetThread(), which on a thread with its own CWinThread is that thread object,
-// not the application.
-
-
 namespace {
 
-// ---------------------------------------------------------------------------
-// Retail CDialog data layout (afxwin.h:3332, _AFXDLL x64), read off the retail
-// constructor ??0CDialog@@QEAA@XZ (RVA 0x207e50 (mfc140u)) and
-// CDialog::Initialize (RVA 0x207ee0 (mfc140u)), which store every member:
-//   +0xe8  UINT            m_nIDHelp             (dword store)
-//   +0xf0  LPCTSTR         m_lpszTemplateName
-//   +0xf8  HGLOBAL         m_hDialogTemplate
-//   +0x100 LPCDLGTEMPLATE  m_lpDialogTemplate
-//   +0x108 void*           m_lpDialogInit
-//   +0x110 CWnd*           m_pParentWnd
-//   +0x118 HWND            m_hWndTop
-//   +0x120 BOOL            m_bClosedByEndDialog  (dword store)
-//   +0x128 _AFX_OCC_DIALOG_INFO* m_pOccDialogInfo
-//   sizeof 0x130 (CPrintDialogEx's first own member sits at +0x130).
-//
-struct S_CDialogRetailTail {
-    unsigned char          m_head[0xf8];          // CWnd + OpenMFC's m_lpszTemplateName/m_nIDHelp
-    HGLOBAL                m_hDialogTemplate;     // +0xf8
-    const DLGTEMPLATE*     m_lpDialogTemplate;    // +0x100
-    void*                  m_lpDialogInit;        // +0x108
-    CWnd*                  m_pParentWnd;          // +0x110
-    HWND                   m_hWndTop;             // +0x118
-    BOOL                   m_bClosedByEndDialog;  // +0x120
-    _AFX_OCC_DIALOG_INFO*  m_pOccDialogInfo;      // +0x128
-};
-static_assert(offsetof(S_CDialogRetailTail, m_hDialogTemplate) == 0xf8, "Initialize: mov %rax,0xf8(%rcx)");
-static_assert(offsetof(S_CDialogRetailTail, m_lpDialogTemplate) == 0x100, "Initialize: mov %rax,0x100(%rcx)");
-static_assert(offsetof(S_CDialogRetailTail, m_lpDialogInit) == 0x108, "Initialize: mov %rax,0x108(%rcx)");
-static_assert(offsetof(S_CDialogRetailTail, m_pParentWnd) == 0x110, "ctor(UINT,CWnd*): mov %rbx,0x110(%rsi)");
-static_assert(offsetof(S_CDialogRetailTail, m_hWndTop) == 0x118, "PostModal: mov 0x118(%rbx),%rcx");
-static_assert(offsetof(S_CDialogRetailTail, m_bClosedByEndDialog) == 0x120, "Initialize: mov %eax,0x120(%rcx)");
-static_assert(offsetof(S_CDialogRetailTail, m_pOccDialogInfo) == 0x128, "SetOccDialogInfo: mov %rdx,0x128(%rcx)");
-static_assert(sizeof(S_CDialogRetailTail) == 0x130, "retail sizeof(CDialog)");
+// Release x64 CDialog members used by the dialog resource and modal paths.
+static_assert(sizeof(CDialog) == 0x130);
+static_assert(offsetof(CDialog, m_nIDHelp) == 0xe8);
+static_assert(offsetof(CDialog, m_lpszTemplateName) == 0xf0);
+static_assert(offsetof(CDialog, m_hDialogTemplate) == 0xf8);
+static_assert(offsetof(CDialog, m_lpDialogTemplate) == 0x100);
+static_assert(offsetof(CDialog, m_lpDialogInit) == 0x108);
+static_assert(offsetof(CDialog, m_pParentWnd) == 0x110);
+static_assert(offsetof(CDialog, m_hWndTop) == 0x118);
+static_assert(offsetof(CDialog, m_bClosedByEndDialog) == 0x120);
+static_assert(offsetof(CDialog, m_pOccDialogInfo) == 0x128);
+static_assert(offsetof(CDialogExAccess, m_clrBackground) == 0x130);
 
-static_assert(sizeof(CDialog)==0x130 && offsetof(CDialog,m_nIDHelp)==0xe8 && offsetof(CDialog,m_lpszTemplateName)==0xf0,"native dialog prefix");
-static_assert(offsetof(CDialogExAccess,m_clrBackground)==0x130,"extended dialog follows the complete native base");
+const DLGTEMPLATE* IndirectTemplateOf(CDialog* dialog) {
+    return dialog->m_hDialogTemplate
+        ? static_cast<const DLGTEMPLATE*>(::LockResource(dialog->m_hDialogTemplate))
+        : dialog->m_lpDialogTemplate;
+}
 
-inline S_CDialogRetailTail* Tail(CDialog* p) { return reinterpret_cast<S_CDialogRetailTail*>(p); }
-
-// OpenMFC keeps the indirect template in a side table (InitModalIndirect in this
-// file stores it there, DoModal in detail/DlgcoreSupport.cpp reads it from
-// there) instead of retail's m_lpDialogTemplate (+0x100), so that table is what
-// stands in for the member when a body below reads it.
-inline const DLGTEMPLATE* IndirectTemplateOf(CDialog* p) {return p->m_lpDialogTemplate ? p->m_lpDialogTemplate : static_cast<const DLGTEMPLATE*>(::LockResource(p->m_hDialogTemplate));}
+const DLGTEMPLATE* LoadDialogTemplate(const wchar_t* name, HINSTANCE& module) {
+    module = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, RT_DIALOG);
+    const auto resource = ::FindResourceW(module, name, RT_DIALOG);
+    const auto data = resource ? ::LoadResource(module, resource) : nullptr;
+    return data ? static_cast<const DLGTEMPLATE*>(::LockResource(data)) : nullptr;
+}
 
 // Native command routing uses CCmdTarget virtual slot 5.
 constexpr std::size_t kVs_OnCmdMsg = 5;
-// CWinApp::WinHelpInternal: `mov 0x1a0(%rdx),%rax` at 0x208efc inside
-// CDialog::OnCommandHelp (entry 0x208ec0, mfc140u).  Slot 52 of the mfc140u
-// CWinApp vftable (RVA 0x320d58, installed by ??0CWinApp@@QEAA@PEB_W@Z) holds
-// 0x1cc990, which is the export ?WinHelpInternal@CWinApp@@UEAAX_KI@Z
-// (ordinal 14210) -- all mfc140u.
-constexpr std::size_t kVs_WinApp_WinHelpInternal = 52;
 using OnCmdMsgFn = int (MS_ABI*)(void* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
-using WinHelpInternalFn = void (MS_ABI*)(void* pThis, unsigned long long dwData, unsigned int nCmd);
 
 template <typename Fn>
 inline Fn VSlot(const void* pObj, std::size_t nSlot) {
@@ -116,13 +85,6 @@ int DispatchOnCmdMsg(CCmdTarget* target,UINT id,int code,void* extra,AFX_CMDHAND
 //     return (x == 0 && y == 0);                                          // 16-bit compares
 // (import slots 0x1802c6588/0x1802c6580/0x1802c6550 of mfc140u resolve to
 // FindResourceW, LoadResource, LockResource.)  Nothing is unlocked or freed.
-// DEVIATION: m_lpDialogTemplate is read from OpenMFC's indirect-template side
-// table (IndirectTemplateOf) and m_hDialogTemplate is taken as NULL -- OpenMFC
-// never stores a separate template handle (InitModalIndirect(HGLOBAL) in this
-// file files the handle in that same table and, like DoModal, uses it directly
-// as the template pointer, which holds for GMEM_FIXED memory only), and the retail +0xf8/+0x100 slots are
-// not initialised by the OpenMFC constructor exports, so they are not read.
-// OpenMFC's m_lpszTemplateName is used by name (see the layout note above).
 // The NULL-`this` guard is OpenMFC's; retail dereferences `this` unconditionally.
 // (The pre-existing `Ordinal: 2701` line below disagrees with the mfc140u
 // table in mfc_complete_ordinal_mapping.json, which gives 2697; its source is
@@ -170,12 +132,30 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
 namespace {
 BOOL CreateIndirectWindow(CDialog* self,const DLGTEMPLATE* data,CWnd* parent,HINSTANCE module) {
     if(!self || !data)return FALSE;
-    if(!module)module=AfxGetInstanceHandle();
-    if(!parent) {CWinThread* thread=AfxGetThread();if(thread)parent=thread->GetMainWnd();}
-    HWND dialog=::CreateDialogIndirectParamW(module,data,parent ? parent->m_hWnd : nullptr,AfxDlgProc,reinterpret_cast<LPARAM>(self));
-    if(!dialog)return FALSE;self->m_hWnd=dialog;g_dlgMap[dialog]=self;return TRUE;
+    return self->CreateDlgIndirect(data, parent ? parent : AfxGetMainWnd(), module);
 }
 }
+// Symbol: ?Create@CDialog@@UEAAHPEB_WPEAVCWnd@@@Z
+extern "C" BOOL MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(
+    CDialog* self, const wchar_t* name, CWnd* parent) {
+    if (!self || !name) return FALSE;
+    self->m_lpszTemplateName = name;
+    if (!self->m_nIDHelp && IS_INTRESOURCE(name)) {
+        self->m_nIDHelp = LOWORD(reinterpret_cast<UINT_PTR>(name));
+    }
+    HINSTANCE module;
+    const auto* data = LoadDialogTemplate(name, module);
+    if (!data) return FALSE;
+    self->m_lpDialogInit = nullptr;
+    return CreateIndirectWindow(self, data, parent, module);
+}
+
+// Symbol: ?Create@CDialog@@UEAAHIPEAVCWnd@@@Z
+extern "C" BOOL MS_ABI impl__Create_CDialog__UEAAHIPEAVCWnd___Z(
+    CDialog* self, UINT id, CWnd* parent) {
+    return impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(self, MAKEINTRESOURCEW(id), parent);
+}
+
 // Symbol: ?CreateIndirect@CDialog@@IEAAHPEAXPEAVCWnd@@PEAUHINSTANCE__@@@Z
 extern "C" BOOL MS_ABI impl__CreateIndirect_CDialog__IEAAHPEAXPEAVCWnd__PEAUHINSTANCE_____Z(CDialog* self,HGLOBAL data,CWnd* parent,HINSTANCE module) {
     self->m_lpDialogInit=nullptr;
@@ -197,12 +177,6 @@ extern "C" int MS_ABI impl__CreateIndirect_CDialog__UEAAHPEBUDLGTEMPLATE__PEAVCW
     return impl__CreateIndirect_CDialog__IEAAHPEBUDLGTEMPLATE__PEAVCWnd__PEAXPEAUHINSTANCE_____Z(
         pThis, lpDialogTemplate, pParentWnd, lpDialogInit, nullptr);
 }
-// Symbol: ?GetMessageMap@CDialog@@MEBAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CDialog__MEBAPEBUAFX_MSGMAP__XZ(
-    const CDialog* pThis) {
-    (void)pThis;
-    return CWnd::GetThisMessageMap();
-}
 // Symbol: ?GetRuntimeClass@CDialog@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialog__UEBAPEAUCRuntimeClass__XZ(
     const CDialog* pThis) {
@@ -211,17 +185,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialog__UEBAPEAUCRuntime
 // Symbol: ?GetThisClass@CDialog@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialog__SAPEAUCRuntimeClass__XZ() {
     return CDialog::GetThisClass();
-}
-// Symbol: ?GetThisMessageMap@CDialog@@KAPEBUAFX_MSGMAP@@XZ
-extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CDialog__KAPEBUAFX_MSGMAP__XZ() {
-    return CWnd::GetThisMessageMap();
-}
-// Symbol: ?HandleInitDialog@CDialog@@IEAA_J_K_J@Z
-extern "C" intptr_t MS_ABI impl__HandleInitDialog_CDialog__IEAA_J_K_J_Z(
-    CDialog* pThis, WPARAM wParam, LPARAM lParam) {
-    (void)wParam;
-    (void)lParam;
-    return pThis ? impl__OnInitDialog_CDialog__UEAAHXZ(pThis) : TRUE;
 }
 // CDialog::OnCmdMsg -- transcribed from RVA 0x207d80 (mfc140u; named by the
 // mfc140u symbol map and by ordinal 8901 in the export address table).  Retail:
@@ -263,63 +226,6 @@ extern "C" int MS_ABI impl__OnCmdMsg_CDialog__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO_
     }
     return FALSE;
 }
-// CDialog::OnCommandHelp -- transcribed from RVA 0x208ec0 (mfc140u; ordinal 8949).
-// Retail:
-//     if (lParam == 0) {
-//         if (m_nIDHelp == 0) return 0;                  // +0xe8
-//         lParam = (DWORD)(m_nIDHelp + HID_BASE_RESOURCE);  // add $0x20000; mov %eax,%ebx
-//         if (lParam == 0) return 0;                     // the jne after the add (32-bit wrap only)
-//     }
-//     CWinApp* pApp = AfxGetModuleState()->m_pCurrentWinApp;   // call 0x133930, +0x8
-//     if (pApp != NULL)
-//         pApp->WinHelpInternal(lParam, HELP_CONTEXT);   // vslot 52 (+0x1a0), r8d = 1
-//     return TRUE;
-// (Slot 52 is WinHelpInternal: see kVs_WinApp_WinHelpInternal at the top of
-// the file -- the slot's entry is that export's own RVA.)
-// m_nIDHelp is read by its OpenMFC name (see the layout note at the top of the
-// file); the application is resolved from the current module and is a
-// client object and so carries an MSVC vftable (no CWinApp is constructed
-// inside this DLL).  The NULL-`this` guard is OpenMFC's.
-// Symbol: ?OnCommandHelp@CDialog@@IEAA_J_K_J@Z
-extern "C" intptr_t MS_ABI impl__OnCommandHelp_CDialog__IEAA_J_K_J_Z(
-    CDialog* pThis, WPARAM wParam, LPARAM lParam) {
-    (void)wParam;
-    if (lParam == 0) {
-        if (pThis == nullptr || pThis->m_nIDHelp == 0) return 0;
-        lParam = static_cast<LPARAM>(static_cast<DWORD>(pThis->m_nIDHelp + 0x20000u /* HID_BASE_RESOURCE */));
-        if (lParam == 0) return 0;
-    }
-    CWinApp* pApp = AfxGetApp();
-    if (pApp != nullptr) {
-        VSlot<WinHelpInternalFn>(pApp, kVs_WinApp_WinHelpInternal)(
-            pApp, static_cast<unsigned long long>(lParam), HELP_CONTEXT);
-    }
-    return TRUE;
-}
-// Restart-manager session callbacks live in DialogMessageCallbacks.cpp.
-// CDialog::OnHelpHitTest -- transcribed from RVA 0x208f20 (mfc140u; ordinal
-// 10077).  Retail, in full:
-//     return m_nIDHelp != 0 ? HID_BASE_RESOURCE + m_nIDHelp : 0;   // +0xe8, add $0x20000
-// The sum is a 32-bit add (eax), zero-extended into the LRESULT.  m_nIDHelp is
-// read by its OpenMFC name (see the layout note at the top of the file).  The
-// NULL-`this` guard is OpenMFC's.
-// Symbol: ?OnHelpHitTest@CDialog@@IEAA_J_K_J@Z
-extern "C" intptr_t MS_ABI impl__OnHelpHitTest_CDialog__IEAA_J_K_J_Z(
-    CDialog* pThis, WPARAM wParam, LPARAM lParam) {
-    (void)wParam;
-    (void)lParam;
-    if (pThis == nullptr || pThis->m_nIDHelp == 0) return 0;
-    return static_cast<intptr_t>(static_cast<DWORD>(pThis->m_nIDHelp + 0x20000u /* HID_BASE_RESOURCE */));
-}
-// Symbol: ?OnPaint@CDialog@@IEAAXXZ
-extern "C" void MS_ABI impl__OnPaint_CDialog__IEAAXXZ(CDialog* pThis) {
-    if (!pThis || !pThis->m_hWnd) return;
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(pThis->m_hWnd, &ps);
-    if (hdc) {
-        EndPaint(pThis->m_hWnd, &ps);
-    }
-}
 // CDialog::PostModal -- transcribed from RVA 0x208850 (mfc140u; the RVA has no
 // entry in the symbol map and was found through ordinal 11757 in the export
 // address table).  Retail:
@@ -335,11 +241,10 @@ extern "C" void MS_ABI impl__PostModal_CDialog__IEAAXXZ(CDialog* pThis) {
     if (!pThis) return;
     impl__AfxUnhookWindowCreate__YAHXZ();
     impl__Detach_CWnd__QEAAPEAUHWND____XZ(pThis);
-    S_CDialogRetailTail* t = Tail(pThis);
-    if (::IsWindow(t->m_hWndTop)) {
-        ::EnableWindow(t->m_hWndTop, TRUE);
+    if (::IsWindow(pThis->m_hWndTop)) {
+        ::EnableWindow(pThis->m_hWndTop, TRUE);
     }
-    t->m_hWndTop = nullptr;
+    pThis->m_hWndTop = nullptr;
     if (AfxGetApp() != nullptr) {
         impl__DoEnableModeless_CWinApp__SAXH_Z(TRUE);
     }
@@ -357,7 +262,61 @@ extern "C" void MS_ABI impl__PostModal_CDialog__IEAAXXZ(CDialog* pThis) {
 // CPrintDialogEx.cpp note reaches through slot 100.
 // Symbol: ?PreModal@CDialog@@IEAAPEAUHWND__@@XZ
 extern "C" HWND MS_ABI impl__PreModal_CDialog__IEAAPEAUHWND____XZ(CDialog* pThis) {
-    CWnd* pParent = AfxGetMainWnd();
-    HWND hWndParent = pParent ? pParent->m_hWnd : nullptr;
-    return (pThis && pThis->m_hWnd) ? pThis->m_hWnd : hWndParent;
+    if (!pThis) return nullptr;
+    if (AfxGetApp()) impl__DoEnableModeless_CWinApp__SAXH_Z(FALSE);
+    const HWND parent = pThis->m_pParentWnd ? pThis->m_pParentWnd->GetSafeHwnd() : nullptr;
+    const HWND owner = impl__GetSafeOwner__CWnd__SAPEAUHWND____PEAU2_PEAPEAU2__Z(
+        parent, &pThis->m_hWndTop);
+    impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(pThis);
+    return owner;
+}
+
+// Symbol: ?DoModal@CDialog@@UEAA_JXZ
+extern "C" INT_PTR MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog* dialog) {
+    if (!dialog || dialog->m_hWnd) return -1;
+
+    HINSTANCE module = AfxGetResourceHandle();
+    const DLGTEMPLATE* data = dialog->m_lpszTemplateName
+        ? LoadDialogTemplate(dialog->m_lpszTemplateName, module) : IndirectTemplateOf(dialog);
+    if (!data) return -1;
+
+    HWND owner = nullptr;
+    CWnd* disabledFrame = nullptr;
+    bool restoreOwner = false;
+    auto finish = [&] {
+        if (disabledFrame) disabledFrame->EnableWindow(TRUE);
+        if (restoreOwner) ::EnableWindow(owner, TRUE);
+        if (owner && ::GetActiveWindow() == dialog->m_hWnd) ::SetActiveWindow(owner);
+        dialog->DestroyWindow();
+        impl__PostModal_CDialog__IEAAXXZ(dialog);
+    };
+
+    try {
+        owner = impl__PreModal_CDialog__IEAAPEAUHWND____XZ(dialog);
+        impl__AfxUnhookWindowCreate__YAHXZ();
+        if (owner && owner != ::GetDesktopWindow() && ::IsWindowEnabled(owner)) {
+            ::EnableWindow(owner, FALSE);
+            restoreOwner = true;
+            CWnd* frame = AfxGetMainWnd();
+            if (frame && frame->IsFrameWnd() && frame->IsWindowEnabled()) {
+                frame->EnableWindow(FALSE);
+                disabledFrame = frame;
+            }
+        }
+
+        auto* parent = CWnd::FromHandle(owner);
+        impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(dialog);
+        if (!dialog->CreateRunDlgIndirect(data, parent, module) && !dialog->m_bClosedByEndDialog) {
+            dialog->CreateRunDlgIndirect(data, CWnd::FromHandle(owner), AfxGetInstanceHandle());
+        }
+    } catch (CException* error) {
+        if (error) error->Delete();
+    } catch (...) {
+        dialog->m_bClosedByEndDialog = FALSE;
+        finish();
+        throw;
+    }
+    dialog->m_bClosedByEndDialog = FALSE;
+    finish();
+    return dialog->m_nModalResult;
 }

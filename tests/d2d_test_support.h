@@ -314,7 +314,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCShellListCtrl__SAPEAUCRu
 // Dialog creation/routing helpers are outside the focused initialization tests.
 extern "C" INT_PTR MS_ABI impl__DoModal_CDialog__UEAA_JXZ(CDialog*) {std::abort();}
 extern "C" BOOL MS_ABI impl__Create_CDialog__UEAAHPEB_WPEAVCWnd___Z(CDialog*,const wchar_t*,CWnd*) {std::abort();}
-extern "C" BOOL MS_ABI impl__Create_CDialog__UEAAHI_PEAVCWnd___Z(CDialog*,UINT,CWnd*) {std::abort();}
+extern "C" BOOL MS_ABI impl__Create_CDialog__UEAAHIPEAVCWnd___Z(CDialog*,UINT,CWnd*) {std::abort();}
 extern "C" BOOL MS_ABI impl__CreateIndirect_CDialog__UEAAHPEAXPEAVCWnd___Z(CDialog*,HGLOBAL,CWnd*) {std::abort();}
 extern "C" BOOL MS_ABI impl__CreateIndirect_CDialog__UEAAHPEBUDLGTEMPLATE__PEAVCWnd__PEAX_Z(CDialog*,const DLGTEMPLATE*,CWnd*,void*) {std::abort();}
 extern "C" BOOL MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(CDialog*,MSG*) {std::abort();}

@@ -1319,6 +1319,8 @@ public:
     BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) override;
     _AFX_OCC_DIALOG_INFO* GetOccDialogInfo() override;
     virtual void PreInitDialog();
+    static const AFX_MSGMAP* GetThisMessageMap();
+    const AFX_MSGMAP* GetMessageMap() const override;
     UINT m_nIDHelp;
     const wchar_t* m_lpszTemplateName;
     HGLOBAL m_hDialogTemplate;

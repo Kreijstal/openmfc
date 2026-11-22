@@ -1058,10 +1058,6 @@ extern "C" void MS_ABI impl__AfxDeleteObject__YAXPEAPEAX_Z(void** p0) {
         *p0 = nullptr;
     }
 }
-// Symbol: ?AfxDlgProc@@YA_JPEAUHWND__@@I_K_J@Z
-extern "C" __int64 MS_ABI impl__AfxDlgProc__YA_JPEAUHWND____I_K_J_Z(void* /*struct*/* p0, unsigned int p1, unsigned __int64 p2, __int64 p3) {
-    return static_cast<__int64>(AfxDlgProc(reinterpret_cast<HWND>(p0), p1, static_cast<WPARAM>(p2), static_cast<LPARAM>(p3)));
-}
 // Symbol: ?AfxDllCanUnloadNow@@YAJXZ
 extern "C" long MS_ABI impl__AfxDllCanUnloadNow__YAJXZ() {
     // Approximate real MFC behavior: unloadable when the OLE server lock
