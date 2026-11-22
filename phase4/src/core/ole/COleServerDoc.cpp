@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include "detail/CDocObjectServerSupport.h"
 
 // COleClientItem / COleServerDoc methods, wave 2 (ole-2). Every function here
 // was decoded from the retail mfc140u export (ordinal -> RVA -> objdump, see
@@ -14,11 +15,9 @@
 //   m_pDocument@0x40 (CDocItem) m_pContainerDoc@0x48 m_lpObject@0x50
 //   m_lpLink@0x58 m_lpInPlaceObject@0x60 m_nStatus@0x68 m_nDrawAspect@0x6C
 //   m_pControlSite@0x70 m_lpFrame@0x78 m_lpDocFrame@0x80 m_bInPlaceActive@0x88
-// COleServerDoc declares only m_bEmbedded plus 96 bytes of padding; the retail
-// server state (m_lpClientSite@0x230, m_pInPlaceFrame@0x250, m_rectPos /
-// m_rectClip, m_pDocObjectServer@0x268, ...) is NOT modeled, so COleServerDoc
-// methods that need it are implemented conservatively (safe defaults +
-// TODO(clean-room)).
+// COleServerDoc stores its client site in the tail because OpenMFC uses
+// retail offset +0x230 for m_bEmbedded. Frame and DocObject pointers have
+// their own slots in that tail.
 //
 // CORRECTION (wave-4 review, evidenced below): the labels originally written
 // here had +0x230 and +0x250 the wrong way round.  +0x230 is the
@@ -143,6 +142,12 @@ inline void*& InPlaceFrameWord(COleServerDoc* pDoc) {
 inline LONG volatile* RefWord(COleServerDoc* pDoc) {
     return reinterpret_cast<LONG volatile*>(reinterpret_cast<char*>(pDoc) + kOff_CCmdTarget_m_dwRef);
 }
+void ReleaseClientSite(COleServerDoc* document) {
+    auto*& current = document->m_retailTail.m_clientSite;
+    auto* site = current;
+    current = nullptr;
+    if (site) site->Release();
+}
 } // namespace
 
 //=============================================================================
@@ -190,17 +195,16 @@ inline LONG volatile* RefWord(COleServerDoc* pDoc) {
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int enable);
+extern "C" void MS_ABI impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(void*);
 
 // COleServerDoc::ActivateDocObject() — retail (0x265ad0):
 //     if (m_pDocObjectServer@0x268) m_pDocObjectServer->ActivateDocObject();
-// The m_pDocObjectServer member is not modeled.
 // Symbol: ?ActivateDocObject@COleServerDoc@@QEAAXXZ
 extern "C" void MS_ABI impl__ActivateDocObject_COleServerDoc__QEAAXXZ(
     COleServerDoc* pThis)
 {
-    if (!pThis) return;
-    // TODO(clean-room): transcribed partially. Retail forwards to the
-    // CDocObjectServer (member at retail offset 0x268); not modeled.
+    if (pThis && pThis->m_retailTail.m_pDocObjectServer)
+        impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(pThis->m_retailTail.m_pDocObjectServer);
 }
 // COleServerDoc::ActivateInPlace() — retail (mfc140u 0x266da0 = mfc140
 // 0x265b50) is the full in-place activation handshake over m_lpClientSite@0x230
@@ -385,28 +389,18 @@ impl__GetFileTypeString_COleServerDoc__MEAAHAEAV__CStringT__WV__StrTraitMFC_DLL_
     // object (retail offset 0x50) for the file type string; not modeled.
     return 0;
 }
-// COleServerDoc::GetInterfaceHook(const void*) — retail (mfc140u 0x265a80 =
-// mfc140 0x264830).  Re-read from the disassembly in the wave-4 review; the
-// earlier note here had the control flow wrong:
-//     if (m_pDocObjectServer@0x268 == NULL) return NULL;
-//     if (IsEqualIID(*pIID, *(const IID*)0x2d79a8 /* IID_IUnknown */))
-//         return NULL;               // don't hook IUnknown queries
-//     return CCmdTarget::GetInterface(pIID);        // 0x26bc00
-// So with no doc-object server retail returns NULL outright — it does NOT fall
-// through to a base hook, and the fallback is GetInterface, not
-// GetInterfaceHook.  The member is not modeled and CCmdTarget::GetInterface is
-// an unimplemented stub here (core/runtime/CCmdTarget.cpp:340), so NULL (no
-// interception) is both the safe default and what retail returns in this
-// port's state.
+// An attached DocObject supplies interfaces while the owning document keeps
+// its own IUnknown and controls the lifetime of the returned parts.
 // Symbol: ?GetInterfaceHook@COleServerDoc@@MEAAPEAUIUnknown@@PEBX@Z
 extern "C" IUnknown* MS_ABI impl__GetInterfaceHook_COleServerDoc__MEAAPEAUIUnknown__PEBX_Z(
-    COleServerDoc* pThis, const void* /*pInterfaceID*/)
+    COleServerDoc* document, const void* iid)
 {
-    if (!pThis) return nullptr;
-    // Retail returns NULL whenever there is no doc-object server (retail
-    // offset 0x268), which is always the case here, so NULL is exact rather
-    // than merely conservative.
-    return nullptr;
+    if (!document || !iid || *static_cast<const IID*>(iid) == IID_IUnknown) return nullptr;
+    auto* server = static_cast<DocObjectServer*>(document->m_retailTail.m_pDocObjectServer);
+    return server ? server->GetInterface(iid) : nullptr;
+}
+IUnknown* COleServerDoc::GetInterfaceHook(const void* iid) {
+    return impl__GetInterfaceHook_COleServerDoc__MEAAPEAUIUnknown__PEBX_Z(this, iid);
 }
 // COleServerDoc::GetItemClipRect(RECT*) const — retail (mfc140u 0x265e20 =
 // mfc140 0x264bd0) copies 16 bytes from m_pInPlaceFrame@0x250 + 0x258.  Note
@@ -512,6 +506,7 @@ COleServerDoc::COleServerDoc()
     GetServerDocState(this, true);
 }
 COleServerDoc::~COleServerDoc() {
+    ReleaseClientSite(this);
     ServerDocState* state = GetServerDocState(this, false);
     if (state) {
         for (COleServerItem* item : state->items) {
@@ -801,6 +796,7 @@ extern "C" void MS_ABI impl__OnCloseDocument_COleServerDoc__UEAAXXZ(COleServerDo
     const int bAutoDelete = pThis->m_bAutoDelete;
     pThis->m_bAutoDelete = FALSE;
     impl__OnCloseDocument_COleLinkingDoc__UEAAXXZ(pThis);
+    ReleaseClientSite(pThis);
 
     IUnknown* pUnk = impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, &kIID_IUnknown);
     if (pUnk != nullptr) ::CoDisconnectObject(pUnk, 0);
@@ -1368,9 +1364,15 @@ extern "C" long MS_ABI impl__GetClassID_XPersistStorage_COleServerDoc__UEAAJPEAU
 }
 
 // Symbol: ?GetClientSite@XOleObject@COleServerDoc@@UEAAJPEAPEAUIOleClientSite@@@Z
-extern "C" long MS_ABI impl__GetClientSite_XOleObject_COleServerDoc__UEAAJPEAPEAUIOleClientSite___Z(void* pThisItf, void** ppClientSite) {
-    (void)pThisItf; (void)ppClientSite;
-    return 0;
+extern "C" long MS_ABI impl__GetClientSite_XOleObject_COleServerDoc__UEAAJPEAPEAUIOleClientSite___Z(
+    void* part, IOleClientSite** result) {
+    if (!result) return E_POINTER;
+    *result = nullptr;
+    if (!part) return E_UNEXPECTED;
+    auto* site = DocFromPart(part, kOff_m_xOleObject)->m_retailTail.m_clientSite;
+    if (site) site->AddRef();
+    *result = site;
+    return S_OK;
 }
 
 // Symbol: ?GetClipboardData@XOleObject@COleServerDoc@@UEAAJKPEAPEAUIDataObject@@@Z
@@ -2035,15 +2037,19 @@ extern "C" long MS_ABI impl__SaveCompleted_XPersistStorage_COleServerDoc__UEAAJP
 //     return S_OK;                                           // unconditional
 // Slot 90 holds 0x7260 == `xor %eax,%eax ; ret` in the base class, so a
 // COleServerDoc that does not override it stores NULL there.
-// Stubbed: needs the document, m_lpClientSite and m_pDocObjectServer.  Retail
-// returns S_OK on every path, so `return 0` matches the return value; the site
-// is simply not remembered.
+// OpenMFC stores the client site's reference in its own tail. The DocObject
+// wrapper binds its IOleDocumentSite when a server is supplied by the caller.
 // Symbol: ?SetClientSite@XOleObject@COleServerDoc@@UEAAJPEAUIOleClientSite@@@Z
 extern "C" long MS_ABI impl__SetClientSite_XOleObject_COleServerDoc__UEAAJPEAUIOleClientSite___Z(
-    void* pThisItf, void* pClientSite)
+    void* part, IOleClientSite* site)
 {
-    (void)pThisItf; (void)pClientSite;
-    return 0;
+    if (!part) return E_UNEXPECTED;
+    auto& current = DocFromPart(part, kOff_m_xOleObject)->m_retailTail.m_clientSite;
+    if (site) site->AddRef();
+    auto* previous = current;
+    current = site;
+    if (previous) previous->Release();
+    return S_OK;
 }
 
 // COleServerDoc::XOleObject::SetColorScheme(LOGPALETTE*) -- retail 0x267f50,

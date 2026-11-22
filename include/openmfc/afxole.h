@@ -1264,6 +1264,9 @@ public:
     void OnUpdateFileUpdate(CCmdUI* pCmdUI);
     void UpdateUsingHostObj(unsigned int nID, CCmdUI* pCmdUI);
 
+protected:
+    IUnknown* GetInterfaceHook(const void* iid) override;
+
 public:
     BOOL m_bEmbedded;
 
@@ -1276,7 +1279,9 @@ public:
     // installed by the current constructor.
 #pragma pack(push, 4)
     struct RetailTailStorage {
-        BYTE m_reserved_234[0x1c];              // through +0x250; ctor RVA 0x2657b0 (mfc140u)
+        DWORD m_reserved_234;
+        IOleClientSite* m_clientSite;           // OpenMFC uses +0x230 for m_bEmbedded.
+        BYTE m_reserved_240[0x10];
         COleIPFrameWnd* m_pInPlaceFrame;         // +0x250; ctor RVA 0x2657b0 (mfc140u)
         BYTE m_reserved_258[0x10];               // through +0x268; ctor RVA 0x2657b0 (mfc140u)
         void* m_pDocObjectServer;                // +0x268; ctor RVA 0x2657b0 (mfc140u)

@@ -722,39 +722,6 @@ namespace openmfc { namespace detail { namespace olecore {
 // Retail-only shadows. These are layout references, not castable views of
 // OpenMFC's compact public declarations; offsets are pinned below and traced
 // to the retail constructors/field users plus the installed MFC headers.
-struct RetailCDocObjectServerLayout {
-    BYTE m_ccmdTargetPrefix[0x40];
-    IOleDocumentSite* m_pDocSite;             // +0x40; ctor entry RVA 0x256ce0 (mfc140u)
-    COleServerDoc* m_pOwner;                  // +0x48; ctor entry RVA 0x256ce0 (mfc140u)
-    LONG m_nFirstPage;                       // +0x50; ctor entry RVA 0x256ce0 (mfc140u)
-    BYTE m_reserved_54[4];
-    LPCONTINUECALLBACK m_pContinueCallback;   // +0x58; afxdocob.h order between ctor-confirmed +0x50/+0x60, RVA 0x256ce0 (mfc140u)
-    IOleInPlaceSite* m_pViewSite;             // +0x60; ctor entry RVA 0x256ce0 (mfc140u)
-    void* m_xOleObjectVftable;                // +0x68; ctor entry RVA 0x256ce0 (mfc140u)
-    void* m_xOleDocumentVftable;              // +0x70; ctor entry RVA 0x256ce0 (mfc140u)
-    void* m_xOleDocumentViewVftable;           // +0x78; ctor entry RVA 0x256ce0 (mfc140u)
-    void* m_xOleCommandTargetVftable;          // +0x80; ctor entry RVA 0x256ce0 (mfc140u)
-    void* m_xPrintVftable;                    // +0x88; ctor entry RVA 0x256ce0 (mfc140u)
-};
-#define ASSERT_RETAIL_DOC_OBJECT_SERVER(member, offset) \
-    static_assert(offsetof(RetailCDocObjectServerLayout, member) == (offset), \
-                  "RetailCDocObjectServerLayout::" #member)
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_ccmdTargetPrefix, 0x00);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pDocSite, 0x40);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pOwner, 0x48);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_nFirstPage, 0x50);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_reserved_54, 0x54);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pContinueCallback, 0x58);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_pViewSite, 0x60);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleObjectVftable, 0x68);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleDocumentVftable, 0x70);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleDocumentViewVftable, 0x78);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xOleCommandTargetVftable, 0x80);
-ASSERT_RETAIL_DOC_OBJECT_SERVER(m_xPrintVftable, 0x88);
-#undef ASSERT_RETAIL_DOC_OBJECT_SERVER
-static_assert(sizeof(RetailCDocObjectServerLayout) == 0x90,
-              "retail CDocObjectServer size");
-
 struct RetailCOleDocumentLayout {
     BYTE m_documentPrefix[0x180];
     BYTE m_docItemList[0x38];                // CObList +0x180; ctor entry RVA 0x253e90 (mfc140u)

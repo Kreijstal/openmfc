@@ -1,10 +1,22 @@
 #define OPENMFC_APPCORE_IMPL
 #include "InterfaceMapsSupport.h"
+#include "CDocObjectServerSupport.h"
 #include "openmfc/afxole.h"
 
 namespace openmfc { namespace detail { namespace interfacemaps {
 const AFX_INTERFACEMAP* AFXAPI gib_CDocObjectServer() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_CDocObjectServer = { gib_CDocObjectServer, g_ifaceEnd };
+namespace {
+using openmfc::detail::olecore::DocObjectServer;
+const AFX_INTERFACEMAP_ENTRY docObjectServerInterfaces[] = {
+    { &IID_IOleObject, offsetof(DocObjectServer, m_xOleObject) },
+    { &IID_IOleDocument, offsetof(DocObjectServer, m_xOleDocument) },
+    { &IID_IOleDocumentView, offsetof(DocObjectServer, m_xOleDocumentView) },
+    { &IID_IOleCommandTarget, offsetof(DocObjectServer, m_xOleCommandTarget) },
+    { &IID_IPrint, offsetof(DocObjectServer, m_xPrint) },
+    { nullptr, static_cast<size_t>(-1) }
+};
+}
+const AFX_INTERFACEMAP g_imap_CDocObjectServer = { gib_CDocObjectServer, docObjectServerInterfaces };
 const AFX_INTERFACEMAP* AFXAPI gib_CEnumConnPoints() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_CEnumConnPoints = { gib_CEnumConnPoints, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_CEnumConnections() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
