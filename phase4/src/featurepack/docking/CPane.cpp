@@ -5,11 +5,22 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/FeaturePackDockSite.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <mutex>
+
+extern "C" void* MS_ABI impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(const CBasePane*);
+extern "C" void* MS_ABI impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(const CDockablePane*);
+extern "C" void MS_ABI impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(CDockablePane*, HWND);
+extern "C" int MS_ABI impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(const CMFCBaseTabCtrl*, HWND);
+extern "C" void* MS_ABI impl__AddRow_CDockSite__QEAAPEAVCDockingPanesRow__PEAU__POSITION__H_Z(void*, void*, int);
+extern "C" void MS_ABI impl__AddPaneFromRow_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(void*, CPane*, int);
+extern "C" unsigned int impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
+extern "C" void MS_ABI impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(CPane*, CWnd*, int);
+extern "C" void MS_ABI impl__OnAfterChangeParent_CPane__UEAAXPEAVCWnd___Z(CPane*, CWnd*);
 
 // ---------------------------------------------------------------------------
 // Retail decode notes for the bodies added below (2026-09).
@@ -545,10 +556,53 @@ CPane::CPane() {
     m_cyTopBorder = m_cyBottomBorder = 6;
     m_cxDefaultGap = 1;
     m_nMRUWidth = 32767;
+    m_pMiniFrameRTC = CPaneFrameWnd::GetThisClass();
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
     g_paneCoreState_Mfccore[this].canFloat = TRUE;
 }
-CPane::~CPane() {}
+namespace {
+CPaneFrameWnd* FloatingFrame(HWND hwnd) {
+    auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(hwnd));
+    return window && window->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)) ? static_cast<CPaneFrameWnd*>(window) : nullptr;
+}
+
+}
+
+void CPane::ReleaseFloatingFrame() {
+    HWND miniWindow = nullptr;
+    HWND dockOwner = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto it = g_paneCoreState_Mfccore.find(this);
+        if (it != g_paneCoreState_Mfccore.end()) {
+            miniWindow = std::exchange(it->second.floatingFrame, nullptr);
+            if (it->second.floatRestore) {
+                dockOwner = it->second.floatRestore->owner;
+                it->second.floatRestore.reset();
+            }
+        }
+    }
+    if (auto* mini = FloatingFrame(miniWindow)) {
+        mini->RemovePane(this);
+    }
+    if (miniWindow) {
+        m_dwStyle &= ~CBRS_FLOATING;
+        m_bRecentFloatingState = FALSE;
+        m_recentDockInfo.m_layout.m_hRecentMiniFrame = nullptr;
+    }
+    if (auto* owner = static_cast<CWnd*>(CWnd::FromHandlePermanent(dockOwner))) {
+        if (auto* manager = DockingManagerForFrame(owner)) RemoveDockingPane(manager, this);
+    }
+}
+
+CPane::~CPane() {
+    ReleaseFloatingFrame();
+}
+
+void CPane::PostNcDestroy() {
+    ReleaseFloatingFrame();
+    CBasePane::PostNcDestroy();
+}
 BOOL CPane::CanBeDocked() const { return TRUE; }
 BOOL CPane::CanFloat() const { return TRUE; }
 void CPane::RecalcLayout() {
@@ -752,20 +806,43 @@ extern "C" void MS_ABI impl__CopyState_CPane__UEAAXPEAV1__Z(CPane* pThis, CPane*
     pThis->m_bRecentFloatingState = pOrgBar->m_bRecentFloatingState;
 }
 
+namespace {
+CDockingManager* PaneDockingManager(const CPane& pane, CFrameWnd*& owner) {
+    CGlobalUtils utils;
+    auto* site = static_cast<CWnd*>(impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(&pane));
+    auto* manager = utils.GetDockingManager(site);
+    owner = pane.GetParentFrame();
+    if (!manager) manager = utils.GetDockingManager(owner);
+    if (manager) {
+        if (const auto* state = FindDockingState(manager); state && state->parentFrame)
+            owner = state->parentFrame;
+    }
+    return manager;
+}
+
+CPaneFrameWnd* CreatePaneFrame(CPane& pane, CFrameWnd* owner, CDockingManager* manager, const RECT& rect) {
+    auto* type = pane.m_pMiniFrameRTC;
+    if (!owner || !owner->m_hWnd || !manager || !type || !type->IsDerivedFrom(RUNTIME_CLASS(CPaneFrameWnd)))
+        return nullptr;
+    std::unique_ptr<CPaneFrameWnd> frame(static_cast<CPaneFrameWnd*>(type->CreateObject()));
+    if (!frame) return nullptr;
+    frame->SetDockingManager(manager);
+    constexpr DWORD style = WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME;
+    std::wstring title(::GetWindowTextLengthW(pane.m_hWnd) + 1, L'\0');
+    ::GetWindowTextW(pane.m_hWnd, title.data(), static_cast<int>(title.size()));
+    if (!frame->Create(title.c_str(), style, rect, owner, nullptr)) return nullptr;
+    frame->AutoDestroyWithWindow();
+    return frame.release();
+}
+}
+
 // Symbol: ?CreateDefaultMiniframe@CPane@@UEAAPEAVCPaneFrameWnd@@VCRect@@@Z
-// STUB. Disassembled mfc140u entry RVA 0xa1440: create an object through
-// m_pMiniFrameRTC (+0x230), obtain and store a docking manager at the new
-// frame's +0x248, then dispatch Create through that frame's vtable byte offset
-// +0x418; on failure it invokes the deleting destructor. OpenMFC has a
-// CPaneFrameWnd::Create thunk, but it uses the local smaller frame object and
-// does not reproduce retail's +0x248 manager setup or retail vtable dispatch.
-// Calling that partial path would create a different operation, so this stays
-// stubbed.
 extern "C" void* MS_ABI impl__CreateDefaultMiniframe_CPane__UEAAPEAVCPaneFrameWnd__VCRect___Z(
-    CPane* pThis, const RECT* pRectInitial) {
-    (void)pThis;
-    (void)pRectInitial;
-    return nullptr;
+    CPane* pane, const RECT* rect) {
+    if (!pane || !pane->m_hWnd || !rect) return nullptr;
+    CFrameWnd* owner = nullptr;
+    auto* manager = PaneDockingManager(*pane, owner);
+    return CreatePaneFrame(*pane, owner, manager, *rect);
 }
 
 // Symbol: ?DockByMouse@CPane@@UEAAHPEAVCBasePane@@@Z
@@ -832,22 +909,190 @@ extern "C" void MS_ABI impl__EnterDragMode_CPane__MEAAXH_Z(CPane* pThis, int bCh
     }
 }
 
+namespace {
+bool ReparentPane(HWND pane, HWND parent) {
+    if (::GetParent(pane) == parent) return true;
+    ::SetLastError(ERROR_SUCCESS);
+    return ::SetParent(pane, parent) != nullptr || ::GetLastError() == ERROR_SUCCESS;
+}
+
+CPaneDivider* DockDivider(HWND hwnd) {
+    auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(hwnd));
+    return window && window->IsKindOf(RUNTIME_CLASS(CPaneDivider)) ? static_cast<CPaneDivider*>(window) : nullptr;
+}
+}
+
+BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDockingManager* manager) {
+    const HWND pane = m_hWnd;
+    if (!pane || !CanFloat() || m_bIsMDITabbed) return FALSE;
+    auto* dockable = IsKindOf(RUNTIME_CLASS(CDockablePane)) ? static_cast<CDockablePane*>(this) : nullptr;
+    if (dockable && dockable->IsAutoHideMode()) return FALSE;
+    auto* group = static_cast<CBaseTabbedPane*>(
+        impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(this));
+    if (!group && FloatingFrame(::GetParent(pane))) return FALSE;
+
+    CFrameWnd* owner = nullptr;
+    if (manager) owner = EnsureDockingState(manager).parentFrame;
+    else manager = PaneDockingManager(*this, owner);
+    if (!owner || !owner->m_hWnd || !manager) return FALSE;
+
+    openmfc::docking_state::PaneFloatRestore restore;
+    restore.parent = ::GetParent(pane);
+    restore.owner = owner->m_hWnd;
+    restore.style = m_dwStyle;
+    restore.row = reinterpret_cast<CDockingPanesRow*>(m_pDockBarRow);
+    auto* divider = dockable ? static_cast<CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(dockable)) : nullptr;
+    if (divider) {
+        restore.divider = divider->m_hWnd;
+        restore.dividerVisible = ::IsWindowVisible(restore.divider) != FALSE;
+    }
+    if (group && group->GetTabs()) {
+        restore.tabGroup = group->m_hWnd;
+        restore.tabIndex = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(group->GetTabs(), pane);
+        restore.detachable = group->GetTabs()->IsTabDetachable(restore.tabIndex) != FALSE;
+    }
+    if (!::GetWindowRect(pane, &restore.bounds)) return FALSE;
+    CRect bounds(::IsRectEmpty(&requested) ? restore.bounds : requested);
+    ::MapWindowPoints(nullptr, restore.tabGroup ? restore.owner : restore.parent,
+        reinterpret_cast<POINT*>(&restore.bounds), 2);
+    if (!impl__OnBeforeFloat_CPane__UEAAHAEAVCRect__W4AFX_DOCK_METHOD___Z(this, bounds, method)) return FALSE;
+    CGlobalUtils utils;
+    utils.AdjustRectToWorkArea(bounds, nullptr);
+    auto* mini = CreatePaneFrame(*this, owner, manager, *static_cast<const RECT*>(bounds));
+    if (!mini) return FALSE;
+    if (!ReparentPane(pane, mini->m_hWnd)) {
+        mini->DestroyWindow();
+        return FALSE;
+    }
+
+    if (method == kDockMethodMouse && ::GetCapture() == pane) {
+        m_bCaptured = FALSE;
+        m_bDragMode = FALSE;
+        ::ReleaseCapture();
+    }
+    if (group) group->RemovePane(this);
+    else impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(this, mini, FALSE);
+    if (dockable) impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(dockable, nullptr);
+    if (divider && !divider->GetFirstPane()) ::ShowWindow(divider->m_hWnd, SW_HIDE);
+
+    m_pDockSite = reinterpret_cast<CDockSite*>(owner);
+    m_dwStyle = (m_dwStyle & ~CBRS_BORDER_ANY) | CBRS_FLOATING;
+    m_bRecentFloatingState = TRUE;
+    m_bWasFloatingBeforeTabbed = FALSE;
+    m_rectSavedDockedRect = restore.bounds;
+    auto& recent = m_recentDockInfo.m_layout;
+    recent.m_rectRecentFloatingRect = *static_cast<const RECT*>(bounds);
+    recent.m_dwRecentAlignmentToFrame = restore.style & CBRS_ALIGN_ANY;
+    recent.m_hRecentDefaultSlider = restore.divider;
+    recent.m_hRecentMiniFrame = mini->m_hWnd;
+    recent.m_nRecentTabNumber = restore.tabIndex;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[this];
+        state.parent = mini;
+        state.tabbed = FALSE;
+        state.tabWindow = nullptr;
+        state.floatingFrame = mini->m_hWnd;
+        state.floatRestore = restore;
+    }
+    mini->AddPane(this);
+    RECT client{};
+    ::GetClientRect(mini->m_hWnd, &client);
+    ::SetWindowPos(pane, nullptr, 0, 0, client.right, client.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
+    impl__OnAfterChangeParent_CPane__UEAAXPEAVCWnd___Z(this,
+        static_cast<CWnd*>(FromHandlePermanent(restore.parent)));
+    impl__OnAfterFloat_CPane__UEAAXXZ(this);
+    auto& docking = EnsureDockingState(manager);
+    docking.floatingPanes.insert(this);
+    if (show) manager->ShowPane(this);
+    else manager->HidePane(this);
+    return TRUE;
+}
+
+BOOL CPane::DockToRecentPosition() {
+    if (!m_hWnd) return FALSE;
+    auto* mini = FloatingFrame(::GetParent(m_hWnd));
+    if (!mini || mini->GetPane() != this) return FALSE;
+    std::optional<openmfc::docking_state::PaneFloatRestore> restore;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        const auto it = g_paneCoreState_Mfccore.find(this);
+        if (it != g_paneCoreState_Mfccore.end()) restore = it->second.floatRestore;
+    }
+    if (!restore) return FALSE;
+    auto* owner = static_cast<CWnd*>(FromHandlePermanent(restore->owner));
+    if (!owner) return FALSE;
+    auto* manager = DockingManagerForFrame(owner);
+    if (!manager) {
+        CGlobalUtils utils;
+        manager = utils.GetDockingManager(owner);
+    }
+    if (!manager) return FALSE;
+    auto* tabbedWindow = static_cast<CWnd*>(FromHandlePermanent(restore->tabGroup));
+    auto* group = tabbedWindow && tabbedWindow->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))
+        ? static_cast<CBaseTabbedPane*>(tabbedWindow) : nullptr;
+    const HWND miniWindow = mini->m_hWnd;
+    RECT floating{};
+    ::GetWindowRect(miniWindow, &floating);
+    if (group && !group->InsertTab(this, restore->tabIndex, TRUE, TRUE, restore->detachable)) return FALSE;
+    const HWND parent = ::IsWindow(restore->parent) && !restore->tabGroup ? restore->parent : restore->owner;
+    if (!group && !ReparentPane(m_hWnd, parent)) return FALSE;
+
+    m_recentDockInfo.m_layout.m_rectRecentFloatingRect = floating;
+    m_recentDockInfo.m_layout.m_hRecentMiniFrame = nullptr;
+    m_dwStyle = restore->style;
+    m_bRecentFloatingState = FALSE;
+    if (!group) mini->RemovePane(this);
+    if (group) {
+        RemoveDockingPane(manager, this);
+        ::ShowWindow(group->m_hWnd, SW_SHOWNOACTIVATE);
+    } else {
+        auto* parentWindow = static_cast<CWnd*>(FromHandlePermanent(parent));
+        const auto& bounds = restore->bounds;
+        ::SetWindowPos(m_hWnd, nullptr, bounds.left, bounds.top, bounds.right - bounds.left,
+            bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        if (auto* divider = DockDivider(restore->divider); divider && IsKindOf(RUNTIME_CLASS(CDockablePane))) {
+            divider->AddPane(static_cast<CDockablePane*>(this));
+            if (restore->dividerVisible) ::ShowWindow(divider->m_hWnd, SW_SHOWNOACTIVATE);
+        }
+        if (parentWindow && parentWindow->IsKindOf(RUNTIME_CLASS(CDockSite))) {
+            auto* site = static_cast<CDockSite*>(parentWindow);
+            CDockingPanesRow* row = nullptr;
+            for (auto pos = site->m_lstDockBarRows.GetHeadPosition(); pos != nullptr;) {
+                auto* candidate = reinterpret_cast<CDockingPanesRow*>(site->m_lstDockBarRows.GetNext(pos));
+                if (candidate == restore->row) { row = candidate; break; }
+            }
+            if (!row) {
+                const bool horizontal = (m_dwStyle & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM)) != 0;
+                row = static_cast<CDockingPanesRow*>(impl__AddRow_CDockSite__QEAAPEAVCDockingPanesRow__PEAU__POSITION__H_Z(
+                    site, nullptr, horizontal ? bounds.bottom - bounds.top : bounds.right - bounds.left));
+            }
+            if (row) {
+                m_pParentDockBar = reinterpret_cast<CDockBar*>(site);
+                site->m_lstControlBars.AddTail(this);
+                impl__AddPaneFromRow_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(row, this, kDockMethodDblClick);
+            }
+        }
+        manager->DockPane(this);
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        g_paneCoreState_Mfccore[this].parent = parentWindow;
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[this];
+        state.floatingFrame = nullptr;
+        state.floatRestore.reset();
+        state.visible = TRUE;
+    }
+    ::SendMessageW(miniWindow, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
+    return TRUE;
+}
+
 // Symbol: ?FloatPane@CPane@@UEAAHVCRect@@W4AFX_DOCK_METHOD@@_N@Z
-// STUB: disas.py --u resolves the retail mfc140u entry at RVA 0xa0430.  This
-// ~340-instruction body first tests docking/tabbing and CanFloat, then creates a
-// mini-frame through CPane vtable slot 135 and performs extensive state transfer
-// and virtual dispatch through that frame and its docking manager.  OpenMFC's
-// CPaneFrameWnd and CDockingManager declarations use padding in place of the
-// retail layouts/vtables (include/openmfc/afxmfc.h), and
-// CreateDefaultMiniframe is itself unavailable for that reason; implementing
-// this against those layouts would be speculative.
 extern "C" int MS_ABI impl__FloatPane_CPane__UEAAHVCRect__W4AFX_DOCK_METHOD___N_Z(
-    CPane* pThis, const RECT* pRectFloat, int dockMethod, bool bShow) {
-    (void)pThis;
-    (void)pRectFloat;
-    (void)dockMethod;
-    (void)bShow;
-    return FALSE;
+    CPane* pane, const RECT* rect, int method, bool show) {
+    return pane && rect && pane->FloatPaneWindow(*rect, method, show);
 }
 
 // Symbol: ?GetAvailableExpandSize@CPane@@UEBAHXZ
@@ -1844,10 +2089,8 @@ extern "C" void MS_ABI impl__RemoveFromMiniframe_CPane__MEAAXPEAVCWnd__W4AFX_DOC
             ::SendMessage(hWndMini, WM_LBUTTONUP, 0, 0);
         }
     }
-    if (pNewParent != nullptr) {
-        (void)impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
-            ::SetParent(pThis->m_hWnd, pNewParent->m_hWnd));
-    }
+    if (pNewParent && ReparentPane(pThis->m_hWnd, pNewParent->m_hWnd) && pMiniFrame)
+        pThis->ReleaseFloatingFrame();
     impl__OnAfterChangeParent_CPane__UEAAXPEAVCWnd___Z(pThis, pOldParent);
 }
 

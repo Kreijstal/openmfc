@@ -6,12 +6,25 @@
 #include "detail/CbarcoreSupport.h"
 #include "detail/CPaneFrameWndSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/Pane16MsgmapSupport.h"
 
 #include <cstdlib>
 #include <new>
 
-static_assert(sizeof(CPaneFrameWnd) == 0x278,
-              "preserve the existing compact CPaneFrameWnd allocation");
+static_assert(sizeof(CPaneFrameWnd) == 0x258);
+
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
+extern "C" int MS_ABI impl__AddMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(
+    CDockingManager*, void*);
+extern "C" int MS_ABI impl__RemoveMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(
+    CDockingManager*, void*);
+extern "C" void MS_ABI impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+    CString*, void*, const wchar_t*);
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[];
+extern "C" unsigned int impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
+extern "C" void MS_ABI impl__Init_CMFCDragFrameImpl__QEAAXPEAVCWnd___Z(void*, CWnd*);
+extern "C" void MS_ABI impl__OnDockToRecentPos_CPaneFrameWnd__UEAAXXZ(void*);
+extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(void*, int);
 
 // ---------------------------------------------------------------------------
 // Retail decode notes for the handlers added in this file.
@@ -27,29 +40,8 @@ static_assert(sizeof(CPaneFrameWnd) == 0x278,
 // dispatch (__guard_dispatch_icall_fptr), i.e. an ordinary indirect call
 // through RAX -- it is not a USER32 import.
 //
-// OpenMFC does NOT reproduce the retail CPaneFrameWnd object layout (the
-// public class in include/openmfc/afxmfc.h is a CMiniFrameWnd subclass with a
-// different base layout), so retail offsets are represented by the pThis-keyed
-// PaneFrameState side table rather than applied to this allocation. That table
-// now covers the constructor-established member state from +0xe8 through
-// +0x250, including the hosted-pane/owner HWNDs, timers, caption-button list
-// model, tooltip, drag-frame POD, docking-manager association and pre-dock
-// enum. The caption list and tooltip tools use semantic side storage; the
-// retail CObList/CToolTipCtrl internals are not overlaid on this object. Bodies
-// that need additional external collaborators still document those omissions.
-//
-// Retail CPaneFrameWnd vtable (mfc140.dll; read out of .rdata VA 0x1802f5ad8,
-// the address constructor entry RVA 0xad6d0 (mfc140.dll) stores at +0):
-//   0x2e0 IsRollDown            0x2e8 IsRollUp
-//   0x2f0 <unexported> `return m_nCaptionHeight;` (0x92350)
-//   0x358 <unexported> visible-pane count (0xad610)
-//   0x360 GetPane              0x368 GetFirstVisiblePane
-//   0x370 GetDockingMode       0x388 CalcBorderSize
-//   0x3a0 GetCaptionRect       0x3e8 HitTest
-//   0x428 OnCapture            0x450 OnCloseMiniFrame
-//   0x458 CloseMiniFrame       0x478 OnTrackCaptionButtons
-//   0x490 OnCheckRollState     0x498 RecalcCaptionHeight
-// ---------------------------------------------------------------------------
+// CPaneFrameWnd reserves the retail member region. Its handlers use the
+// state owned by CPaneFrameWndSupport for fields in that region.
 
 // Sibling exports defined later in this translation unit or in other phase4
 // translation units.  Declared here so the handlers below can call the thunk
@@ -170,25 +162,16 @@ bool EnsureCaptionButtonCapacity(PaneFrameState& state) {
 // Symbol: ?Create@CPaneFrameWnd@@UEAAHPEB_WKAEBUtagRECT@@PEAVCWnd@@PEAUCCreateContext@@@Z
 extern "C" int MS_ABI impl__Create_CPaneFrameWnd__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__PEAUCCreateContext___Z(
     void* pThis, const wchar_t* lpszClassName, unsigned long dwStyle, const RECT& rect, CWnd* pParentWnd, CCreateContext* pContext) {
-    if (pThis == nullptr) return FALSE;
-    CRect useRect = NormalizeRect(&rect, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        PaneState& state = g_framePanes[pThis];
-        state.parent = pParentWnd;
-        state.recentRect = useRect;
-        if (state.minSize.cx <= 0) state.minSize.cx = kPaneFrameDefaultMinWidth;
-        if (state.minSize.cy <= 0) state.minSize.cy = kPaneFrameDefaultMinHeight;
-        state.rollUp = FALSE;
-    }
-    return TryCreatePaneWindow(reinterpret_cast<CWnd*>(pThis), lpszClassName, dwStyle, useRect, pParentWnd, 0, pContext);
+    return pThis && static_cast<CPaneFrameWnd*>(pThis)->CreatePopup(
+        0, lpszClassName, dwStyle, rect, pParentWnd, pContext);
 }
 // Symbol: ?AddPane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@@Z
 // Retail mfc140.dll (ANSI twin) entry RVA 0xaf330 stores pPane->m_hWnd at
 // CPaneFrameWnd +0x148 before adding the pane to its list. Keep the equivalent
 // side-table handle in sync with the pane-pointer list used by GetPane().
 extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane) {
-    const HWND paneHwnd = pPane ? reinterpret_cast<CWnd*>(pPane)->GetSafeHwnd() : nullptr;
+    if (!pThis || !pPane) return;
+    const HWND paneHwnd = static_cast<CBasePane*>(pPane)->GetSafeHwnd();
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         GetState(pThis).paneHwnd = paneHwnd;
@@ -199,24 +182,45 @@ extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void*
         AddUniquePane(state, pPane);
         state.rollUp = FALSE;
     }
+    impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pPane, TRUE);
 }
 // Symbol: ?RemovePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
 // Retail mfc140.dll (ANSI twin) entry RVA 0xaf680 clears +0x148 only when it
 // still matches the pane being removed.
-extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int, int) {
-    const HWND paneHwnd = pPane ? reinterpret_cast<CWnd*>(pPane)->GetSafeHwnd() : nullptr;
+extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(
+    void* pThis, void* pPane, int destroy, int delay) {
+    if (!pThis || !pPane) return;
+    bool empty = false;
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        PaneState& state = g_framePanes[pThis];
-        RemovePane(state, pPane);
-        if (state.panes.empty()) {
-            state.rollUp = FALSE;
-        }
+        auto it = g_framePanes.find(pThis);
+        if (it == g_framePanes.end() ||
+            std::find(it->second.panes.begin(), it->second.panes.end(), pPane) == it->second.panes.end()) return;
+        RemovePane(it->second, pPane);
+        empty = it->second.panes.empty();
+        if (empty) it->second.rollUp = FALSE;
     }
+    impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pPane, FALSE);
+    HWND paneHwnd = nullptr;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState& state = GetState(pThis);
-        if (state.paneHwnd == paneHwnd) state.paneHwnd = nullptr;
+        if (auto* state = FindStatePtr(pThis)) {
+            state->noDelayedDestroy = delay != 0;
+            if (empty) paneHwnd = std::exchange(state->paneHwnd, nullptr);
+        }
+    }
+    if (paneHwnd) {
+        std::lock_guard<std::mutex> lock(FloatingPaneMutex());
+        auto& panes = FloatingPaneMap();
+        for (auto it = panes.begin(); it != panes.end();) {
+            if (it->second == paneHwnd) it = panes.erase(it);
+            else ++it;
+        }
+    }
+    const HWND hwnd = HwndOf(pThis);
+    if (empty && hwnd) {
+        if (destroy) ::DestroyWindow(hwnd);
+        else ::PostMessageW(hwnd, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
     }
 }
 // Symbol: ?AdjustLayout@CPaneFrameWnd@@UEAAXXZ
@@ -281,12 +285,20 @@ extern "C" void MS_ABI impl__GetCaptionText_CPaneFrameWnd__UEAA_AV__CStringT__WV
 // Symbol: ?GetFirstVisiblePane@CPaneFrameWnd@@UEBAPEAVCWnd@@XZ
 extern "C" void* MS_ABI impl__GetFirstVisiblePane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThis) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    return FirstPane(g_framePanes[pThis]);
+    const auto entry = g_framePanes.find(pThis);
+    if (entry != g_framePanes.end()) {
+        for (auto* pane : entry->second.panes) {
+            auto* window = static_cast<CWnd*>(pane);
+            if (window && ::IsWindowVisible(window->m_hWnd)) return window;
+        }
+    }
+    return nullptr;
 }
 // Symbol: ?GetPane@CPaneFrameWnd@@UEBAPEAVCWnd@@XZ
 extern "C" void* MS_ABI impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThis) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    return FirstPane(g_framePanes[pThis]);
+    const auto it = g_framePanes.find(pThis);
+    return it != g_framePanes.end() ? FirstPane(it->second) : nullptr;
 }
 // Symbol: ?IsRollDown@CPaneFrameWnd@@UEBAHXZ
 extern "C" int MS_ABI impl__IsRollDown_CPaneFrameWnd__UEBAHXZ(void* pThis) {
@@ -604,13 +616,9 @@ extern "C" void MS_ABI impl__OnChar_CPaneFrameWnd__IEAAXIII_Z(
     impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
 }
 // Symbol: ?OnCheckEmptyState@CPaneFrameWnd@@IEAA_J_K_J@Z
-// Retail hides an empty floating frame when its panes are gone (internal
-// vtable 0x350 + window-visible bookkeeping). Not reproducible.
-// TODO(clean-room): transcribed partially.
 extern "C" __int64 MS_ABI impl__OnCheckEmptyState_CPaneFrameWnd__IEAA_J_K_J_Z(
-    void* pThis, unsigned __int64 /*wParam*/, __int64 /*lParam*/) {
-    if (pThis == nullptr) return 0;
-    return 0;
+    void* pThis, unsigned __int64 wParam, __int64 lParam) {
+    return pThis ? static_cast<CPaneFrameWnd*>(pThis)->OnCheckEmptyState(wParam, lParam) : 0;
 }
 // Symbol: ?OnCheckRollState@CPaneFrameWnd@@MEAAXXZ
 // Retail resizes the frame to the caption strip when the pane requests a
@@ -662,47 +670,15 @@ extern "C" int MS_ABI impl__OnCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___
     return 0;
 }
 // Symbol: ?OnDestroy@CPaneFrameWnd@@IEAAXXZ
-// Retail: if dragging, release capture + internal virtual; kill the docking
-// and roll-up timers; remove from docking manager and the global miniframe
-// list; destroy the tooltip; then tail-call CWnd::OnDestroy.
-// TODO(clean-room): transcribed partially (manager/global-list/tooltip steps
-// need internals we do not model). The OpenMFC side-array allocation is freed
-// when its state record is dropped; retail has no such side storage.
 extern "C" void MS_ABI impl__OnDestroy_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    HWND hwnd = HwndOf(pThis);
-    {
-        std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState* st = FindStatePtr(pThis);
-        if (st && st->dragging) {
-            st->dragging = false;
-            ::ReleaseCapture();
-        }
-    }
-    impl__KillDockingTimer_CPaneFrameWnd__QEAAXXZ(pThis);
-    {
-        std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState* st = FindStatePtr(pThis);
-        if (st && st->rollupTimerID != 0) {
-            if (hwnd) ::KillTimer(hwnd, static_cast<UINT_PTR>(st->rollupTimerID));
-            st->rollupTimerID = 0;
-        }
-        auto it = g_other6State.find(pThis);
-        if (it != g_other6State.end()) {
-            std::free(it->second.captionButtons);
-            it->second.captionButtons = nullptr;
-            g_other6State.erase(it);
-        }
-    }
-    impl__OnDestroy_CWnd__IEAAXXZ(AsCwnd(pThis));
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnDestroy();
 }
 // Symbol: ?OnDockToRecentPos@CPaneFrameWnd@@UEAAXXZ
-// Retail docks the hosted CDockablePane to its recent position (vtable 0x400)
-// and ForceAdjustLayout()s the manager; requires CDockablePane virtuals +
-// manager state that are not modeled. Safe no-op.
-// TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnDockToRecentPos_CPaneFrameWnd__UEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
+    auto* pane = frame ? frame->GetPane() : nullptr;
+    if (pane && pane->IsKindOf(RUNTIME_CLASS(CPane)))
+        static_cast<CPane*>(pane)->DockToRecentPosition();
 }
 // Symbol: ?OnDrawBorder@CPaneFrameWnd@@MEAAXPEAVCDC@@@Z
 // Retail paints the frame border via the visual manager using docking-manager
@@ -873,18 +849,149 @@ extern "C" void MS_ABI impl__OnLButtonUp_CPaneFrameWnd__IEAAXIVCPoint___Z(
     if (pThis == nullptr) return;
     impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
 }
-CPaneFrameWnd::CPaneFrameWnd() {
-    memset(_paneframewnd_padding, 0, sizeof(_paneframewnd_padding));
-    std::lock_guard<std::mutex> lock(g_other6Mutex);
-    g_other6State.try_emplace(this);
-}
+CPaneFrameWnd::CPaneFrameWnd() = default;
+
 CPaneFrameWnd::~CPaneFrameWnd() {
-    std::lock_guard<std::mutex> lock(g_other6Mutex);
-    auto it = g_other6State.find(this);
-    if (it != g_other6State.end()) {
-        std::free(it->second.captionButtons);
-        g_other6State.erase(it);
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(this)) state->destroyWithWindow = false;
     }
+    if (m_hWnd) DestroyWindow();
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto it = g_other6State.find(this);
+        if (it != g_other6State.end()) {
+            std::free(it->second.captionButtons);
+            g_other6State.erase(it);
+        }
+    }
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_framePanes.erase(this);
+}
+
+const AFX_MSGMAP* AFXAPI CPaneFrameWnd::GetThisMessageMap() {
+    return &openmfc::detail::pane16msgmap::classCPaneFrameWnd_msgmap;
+}
+
+const AFX_MSGMAP* CPaneFrameWnd::GetMessageMap() const {
+    return GetThisMessageMap();
+}
+
+BOOL CPaneFrameWnd::CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD style,
+                               const RECT& rect, CWnd* owner, CCreateContext* context) {
+    if (m_hWnd || (owner && (!owner->m_hWnd || !owner->IsKindOf(RUNTIME_CLASS(CFrameWnd))))) return FALSE;
+    CDockingManager* manager = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        manager = GetState(this).dockManager;
+    }
+    if (owner && !manager) {
+        CGlobalUtils utils;
+        manager = utils.GetDockingManager(owner);
+        if (!manager) return FALSE;
+    }
+    if (owner) extendedStyle |= ::GetWindowLongPtrW(owner->m_hWnd, GWL_EXSTYLE) & WS_EX_LAYOUTRTL;
+
+    alignas(CString) unsigned char storage[sizeof(CString)];
+    auto* className = reinterpret_cast<CString*>(storage);
+    impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+        className, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, L"Afx:PaneFrame");
+    const CRect bounds = NormalizeRect(&rect, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
+    style = (style & ~WS_CHILD) | WS_POPUP | WS_CLIPCHILDREN;
+    const BOOL created = CWnd::CreateEx(extendedStyle, className->GetString(), title, style, *static_cast<const RECT*>(bounds), owner, 0, context);
+    className->~CString();
+    if (!created) return FALSE;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto& state = GetState(this);
+        state.ownerHwnd = owner ? owner->m_hWnd : nullptr;
+        state.dockManager = manager;
+        state.recentFloatingRect = *static_cast<const RECT*>(bounds);
+        impl__Init_CMFCDragFrameImpl__QEAAXPEAVCWnd___Z(&state.dragFrame, this);
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        auto& state = g_framePanes[this];
+        state.parent = owner;
+        state.recentRect = bounds;
+    }
+    if (manager) impl__AddMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(manager, this);
+    return TRUE;
+}
+
+void CPaneFrameWnd::SetDockingManager(CDockingManager* manager) {
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    GetState(this).dockManager = manager;
+}
+
+void CPaneFrameWnd::AutoDestroyWithWindow() {
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    GetState(this).destroyWithWindow = true;
+}
+
+void CPaneFrameWnd::PostNcDestroy() {
+    bool destroy = false;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto it = g_other6State.find(this);
+        if (it != g_other6State.end()) {
+            destroy = it->second.destroyWithWindow;
+            std::free(it->second.captionButtons);
+            g_other6State.erase(it);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        g_framePanes.erase(this);
+    }
+    CWnd::PostNcDestroy();
+    if (destroy) delete this;
+}
+
+void CPaneFrameWnd::OnClose() {
+    impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(this);
+}
+
+void CPaneFrameWnd::OnDestroy() {
+    CDockingManager* manager = nullptr;
+    bool dragging = false;
+    HWND pane = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(this)) {
+            manager = state->dockManager;
+            state->dockManager = nullptr;
+            dragging = state->dragging;
+            state->dragging = false;
+            pane = state->paneHwnd;
+            if (state->rollupTimerID) ::KillTimer(m_hWnd, state->rollupTimerID);
+        }
+    }
+    if (dragging && ::GetCapture() == m_hWnd) ::ReleaseCapture();
+    impl__KillDockingTimer_CPaneFrameWnd__QEAAXXZ(this);
+    if (manager && FindDockingState(manager))
+        impl__RemoveMiniFrame_CDockingManager__UEAAHPEAVCPaneFrameWnd___Z(manager, this);
+    if (auto* window = static_cast<CWnd*>(FromHandlePermanent(pane)); window && window->IsKindOf(RUNTIME_CLASS(CBasePane)))
+        impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(window, FALSE);
+    CWnd::OnDestroy();
+}
+
+LRESULT CPaneFrameWnd::OnCheckEmptyState(WPARAM, LPARAM) {
+    if (GetPane()) return 0;
+    bool hide = false;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(this)) hide = state->noDelayedDestroy;
+    }
+    if (hide) ::ShowWindow(m_hWnd, SW_HIDE);
+    else DestroyWindow();
+    return 0;
+}
+
+LRESULT CPaneFrameWnd::OnCaptionDoubleClick(WPARAM hit, LPARAM) {
+    if (hit != HTCAPTION) return Default();
+    impl__OnDockToRecentPos_CPaneFrameWnd__UEAAXXZ(this);
+    return 0;
 }
 BOOL CPaneFrameWnd::Create(CWnd* pParentWnd, DWORD dwStyle, UINT) {
     CRect rect(0, 0, 320, 220);
@@ -897,7 +1004,7 @@ BOOL CPaneFrameWnd::Create(CWnd* pParentWnd, DWORD dwStyle, UINT) {
         }
     }
     RECT createRect{rect.left, rect.top, rect.right, rect.bottom};
-    return Create(L"STATIC", dwStyle, createRect, pParentWnd, nullptr);
+    return Create(nullptr, dwStyle, createRect, pParentWnd, nullptr);
 }
 void CPaneFrameWnd::AddPane(CBasePane* pBar) {
     impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(this, pBar);
@@ -940,43 +1047,27 @@ extern "C" void MS_ABI impl__AddButton_CPaneFrameWnd__MEAAXI_Z(void* pThis, unsi
 }
 
 // Symbol: ?AddRemovePaneFromGlobalList@CPaneFrameWnd@@SAHPEAVCBasePane@@H@Z
-// Retail (0xaf740):
-//     int nID = pPane->GetDlgCtrlID();
-//     if (nID != -1) {
-//         if (bAdd) m_mapFloatingBars.SetAt(nID, pPane ? pPane->m_hWnd : NULL);
-//         else      m_mapFloatingBars.RemoveKey(nID);
-//         return TRUE;
-//     }
-//     if (!pPane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return FALSE;
-//     // ... else walk the tabbed pane's children (its vtable +0x758 count /
-//     //     +0x7a8 accessor) and add/remove each child by its own ctrl id
-//     return TRUE;
-// Implemented here against the private registry.  Deviations, both documented:
-//   * retail calls GetDlgCtrlID on pPane before its NULL test, so a NULL pPane
-//     faults there; this returns FALSE instead.
-//   * the CBaseTabbedPane branch needs the pane's unexported child-enumeration
-//     virtuals, so a tabbed pane with ctrl id -1 returns FALSE here where
-//     retail enumerates its children and returns TRUE.
-// TODO(clean-room): transcribed partially (tabbed-pane branch).
 extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(
     void* pPane, int bAdd) {
     if (pPane == nullptr) return FALSE;
-    CWnd* pWnd = reinterpret_cast<CWnd*>(pPane);
-    const int nID = impl__GetDlgCtrlID_CWnd__QEBAHXZ(pWnd);
-    if (nID != -1) {
+    auto* window = static_cast<CWnd*>(pPane);
+    const int id = window->m_hWnd ? ::GetDlgCtrlID(window->m_hWnd) : -1;
+    if (id != -1) {
         std::lock_guard<std::mutex> lock(FloatingPaneMutex());
-        if (bAdd) {
-            FloatingPaneMap()[nID] = pWnd->GetSafeHwnd();
-        } else {
-            FloatingPaneMap().erase(nID);
-        }
+        if (bAdd) FloatingPaneMap()[id] = window->m_hWnd;
+        else if (const auto found = FloatingPaneMap().find(id);
+                 found != FloatingPaneMap().end() && found->second == window->m_hWnd)
+            FloatingPaneMap().erase(found);
         return TRUE;
     }
-    CRuntimeClass* pTabbed = impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ();
-    if (pTabbed == nullptr ||
-        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-            reinterpret_cast<const CObject*>(pPane), pTabbed)) {
-        return FALSE;
+    if (!window->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return FALSE;
+    auto* tabs = static_cast<CBaseTabbedPane*>(window)->GetTabs();
+    if (tabs) {
+        for (int i = 0; i < tabs->GetTabsCount(); ++i) {
+            auto* page = tabs->GetTabWnd(i);
+            if (page && page->IsKindOf(RUNTIME_CLASS(CBasePane)))
+                impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(page, bAdd);
+        }
     }
     return TRUE;
 }
@@ -1045,11 +1136,17 @@ extern "C" int MS_ABI impl__CanBeDockedToPane_CPaneFrameWnd__UEBAHPEBVCDockableP
 extern "C" void MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
     if (!impl__OnCloseMiniFrame_CPaneFrameWnd__MEAAHXZ(pThis)) return;
-    HWND hwnd = HwndOf(pThis);
-    if (hwnd) ::ShowWindow(hwnd, SW_HIDE);
-    CWnd* pPane = reinterpret_cast<CWnd*>(
-        impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(pThis));
-    if (pPane && pPane->GetSafeHwnd()) ::ShowWindow(pPane->GetSafeHwnd(), SW_HIDE);
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
+    auto* pane = frame->GetPane();
+    CDockingManager* manager = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(pThis)) manager = state->dockManager;
+    }
+    if (manager && pane && pane->IsKindOf(RUNTIME_CLASS(CBasePane)))
+        manager->HidePane(static_cast<CBasePane*>(pane));
+    if (pane && pane->m_hWnd) ::ShowWindow(pane->m_hWnd, SW_HIDE);
+    if (frame->m_hWnd) ::ShowWindow(frame->m_hWnd, SW_HIDE);
 }
 
 // Symbol: ?ConvertToTabbedDocument@CPaneFrameWnd@@UEAAXXZ
@@ -1072,44 +1169,10 @@ extern "C" void MS_ABI impl__ConvertToTabbedDocument_CPaneFrameWnd__UEAAXXZ(void
 }
 
 // Symbol: ?CreateEx@CPaneFrameWnd@@UEAAHKPEB_WKAEBUtagRECT@@PEAVCWnd@@PEAUCCreateContext@@@Z
-// Retail (0xad920) is the creation primitive -- CPaneFrameWnd::Create (0xad8f0)
-// is a two-line forwarder that calls it with dwStyleEx = 0:
-//     dwStyle |= WS_POPUP;
-//     if (pParentWnd) {
-//         if (pParentWnd->GetExStyle() & WS_EX_LAYOUTRTL) dwStyleEx |= WS_EX_LAYOUTRTL;
-//         m_hwndOwner /*0x130*/ = pParentWnd->m_hWnd;
-//     } else m_hwndOwner = NULL;
-//     CString cls = afxGlobalData.RegisterWindowClass("<private class name>");
-//     if (!CWnd::CreateEx(dwStyleEx, cls, lpszClassName /*as the WINDOW name*/,
-//                         dwStyle, rect, pParentWnd, 0, pContext)) return FALSE;
-//     if (pParentWnd) {
-//         if (!pParentWnd->IsKindOf(RUNTIME_CLASS(CFrameWnd))) return FALSE;
-//         CDockingManager* p = m_pDockManager /*0x248*/;
-//         if (!p) { p = afxGlobalUtils.GetDockingManager(pParentWnd); if (!p) return FALSE; }
-//         p->vtable[0x48](this);                       // add this mini frame
-//     }
-//     CMFCDragFrameImpl::Init(&m_dragFrameImpl /*0x1c8*/, this);
-//     return TRUE;
-// Here the private window-class registration and the docking-manager
-// registration are unavailable, so window creation is delegated to this file's
-// own Create path (which owns the side-table bookkeeping) with WS_POPUP added,
-// after applying retail's CFrameWnd-parent rejection.  Deviations: dwStyleEx is
-// dropped (the Create path takes no extended style), and the docking manager is
-// not told about the new frame.
-// TODO(clean-room): transcribed partially.
 extern "C" int MS_ABI impl__CreateEx_CPaneFrameWnd__UEAAHKPEB_WKAEBUtagRECT__PEAVCWnd__PEAUCCreateContext___Z(
-    void* pThis, unsigned long /*dwStyleEx*/, const wchar_t* lpszClassName, unsigned long dwStyle,
-    const RECT& rect, CWnd* pParentWnd, CCreateContext* pContext) {
-    if (pThis == nullptr) return FALSE;
-    if (pParentWnd != nullptr) {
-        CRuntimeClass* pFrameClass = impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ();
-        if (pFrameClass == nullptr ||
-            !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pParentWnd, pFrameClass)) {
-            return FALSE;
-        }
-    }
-    return impl__Create_CPaneFrameWnd__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__PEAUCCreateContext___Z(
-        pThis, lpszClassName, dwStyle | WS_POPUP, rect, pParentWnd, pContext);
+    void* pThis, unsigned long extendedStyle, const wchar_t* title, unsigned long style,
+    const RECT& rect, CWnd* owner, CCreateContext* context) {
+    return pThis && static_cast<CPaneFrameWnd*>(pThis)->CreatePopup(extendedStyle, title, style, rect, owner, context);
 }
 
 // Symbol: ?DockPane@CPaneFrameWnd@@UEAAPEAVCDockablePane@@AEAH@Z
@@ -1497,25 +1560,8 @@ extern "C" int MS_ABI impl__OnNcCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW_
 }
 
 // Symbol: ?OnNcDestroy@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140.dll entry RVA 0xb1e40 calls OnCancelMode, then CWnd::OnNcDestroy,
-// then the scalar deleting destructor. The semantic side-array allocation is
-// freed before deleting this compact wrapper; that cleanup is OpenMFC-only.
 extern "C" void MS_ABI impl__OnNcDestroy_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    impl__OnCancelMode_CPaneFrameWnd__IEAAXXZ(pThis);
-    impl__OnNcDestroy_CWnd__IEAAXXZ(AsCwnd(pThis));
-    {
-        std::lock_guard<std::mutex> lock(g_other6Mutex);
-        auto it = g_other6State.find(pThis);
-        if (it != g_other6State.end()) {
-            std::free(it->second.captionButtons);
-            it->second.captionButtons = nullptr;
-            it->second.captionButtonCount = 0;
-            it->second.captionButtonCapacity = 0;
-            g_other6State.erase(it);
-        }
-    }
-    delete reinterpret_cast<CPaneFrameWnd*>(pThis);
+    if (pThis) impl__OnNcDestroy_CWnd__IEAAXXZ(AsCwnd(pThis));
 }
 
 // Symbol: ?OnNcHitTest@CPaneFrameWnd@@IEAA_JVCPoint@@@Z
@@ -1797,33 +1843,17 @@ extern "C" void MS_ABI impl__OnSettingChange_CPaneFrameWnd__IEAAXIPEB_W_Z(
 }
 
 // Symbol: ?OnSize@CPaneFrameWnd@@IEAAXIHH@Z
-// Retail (0xb0a40):
-//     CWnd::Default();
-//     CWnd* p = CWnd::FromHandlePermanent(m_hwndPane /*0x148*/);
-//     if (p && p->IsKindOf(RUNTIME_CLASS(CPane))) p->vtable[0x430]();
-//     CRect rect; ::GetWindowRect(m_hWnd, &rect);
-//     afxGlobalUtils.AdjustRectToWorkArea(rect, NULL);
-//     SetWindowPos(NULL, rect.left, rect.top, 0, 0,
-//                  SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-//     ArrangeCaptionButtons();                     // direct call to 0xb1990
-//     ::SendMessage(m_hWnd, WM_NCPAINT /*0x85, the immediate at 0xb0b05*/, 0, 0);
-// TODO(clean-room): transcribed partially -- the hosted pane's unexported
-// layout virtual (+0x430) is skipped; everything else is reproduced.
 extern "C" void MS_ABI impl__OnSize_CPaneFrameWnd__IEAAXIHH_Z(
-    void* pThis, unsigned int /*nType*/, int /*cx*/, int /*cy*/) {
-    if (pThis == nullptr) return;
-    impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
-    HWND hwnd = HwndOf(pThis);
-    if (hwnd == nullptr) return;
-    RECT wr = {};
-    ::GetWindowRect(hwnd, &wr);
-    CRect rect(wr);
-    impl__AdjustRectToWorkArea_CGlobalUtils__QEAAXAEAVCRect__PEAV2__Z(
-        impl__afxGlobalUtils__3VCGlobalUtils__A, &rect, nullptr);
-    ::SetWindowPos(hwnd, nullptr, rect.left, rect.top, 0, 0,
-                   SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-    impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
-    ::SendMessage(hwnd, WM_NCPAINT, 0, 0);
+    void* pThis, unsigned int type, int width, int height) {
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnSize(type, width, height);
+}
+
+void CPaneFrameWnd::OnSize(UINT type, int width, int height) {
+    Default();
+    if (type == SIZE_MINIMIZED) return;
+    if (auto* pane = GetPane(); pane && ::GetParent(pane->m_hWnd) == m_hWnd) {
+        ::SetWindowPos(pane->m_hWnd, nullptr, 0, 0, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+    }
 }
 
 // Symbol: ?OnSizing@CPaneFrameWnd@@IEAAXIPEAUtagRECT@@@Z

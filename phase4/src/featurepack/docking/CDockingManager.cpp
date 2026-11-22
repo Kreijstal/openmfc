@@ -960,6 +960,11 @@ CDockingManager::CDockingManager(CFrameWnd* pParentFrameWnd)
 CDockingManager::~CDockingManager() {
     if (const DockingManagerState* found = FindDockingState(this)) {
         DockingManagerState& state = const_cast<DockingManagerState&>(*found);
+        while (!state.miniFrames.empty()) {
+            auto* frame = static_cast<CWnd*>(state.miniFrames.back());
+            state.miniFrames.pop_back();
+            if (frame && frame->m_hWnd) frame->DestroyWindow();
+        }
         while (!state.autoHideBars.empty()) {
             auto bar = std::move(state.autoHideBars.back());
             state.autoHideBars.pop_back();
@@ -1034,31 +1039,38 @@ void openmfc::detail::mfccore::ForgetDockSite(CDockingManager* manager, CDockSit
         enabled &= ~removed.alignment;
     }
 }
-void CDockingManager::FloatPane(CBasePane* pBar, CPoint, DWORD) {
-    AddDockingPane(this, pBar);
-    DockingManagerState& state = EnsureDockingState(this);
-    state.hiddenPanes.erase(pBar);
-    state.floatingPanes.insert(pBar);
-    if (pBar) {
-        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-        PaneCoreState& paneState = g_paneCoreState_Mfccore[pBar];
-        paneState.canFloat = TRUE;
-        paneState.visible = TRUE;
-    }
+void CDockingManager::FloatPane(CBasePane* pane, CPoint offset, DWORD) {
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CPane))) return;
+    RECT bounds{};
+    if (!::GetWindowRect(pane->m_hWnd, &bounds)) return;
+    ::OffsetRect(&bounds, offset.x, offset.y);
+    static_cast<CPane*>(pane)->FloatPaneWindow(bounds, 5 /* DM_STANDARD */, true, this);
 }
 void CDockingManager::HidePane(CBasePane* pBar) {
     if (!pBar) return;
     AddDockingPane(this, pBar);
     EnsureDockingState(this).hiddenPanes.insert(pBar);
-    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-    g_paneCoreState_Mfccore[pBar].visible = FALSE;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        g_paneCoreState_Mfccore[pBar].visible = FALSE;
+    }
+    if (EnsureDockingState(this).floatingPanes.count(pBar) && pBar->m_hWnd) {
+        ::ShowWindow(pBar->m_hWnd, SW_HIDE);
+        ::ShowWindow(::GetParent(pBar->m_hWnd), SW_HIDE);
+    }
 }
 void CDockingManager::ShowPane(CBasePane* pBar, BOOL) {
     if (!pBar) return;
     AddDockingPane(this, pBar);
     EnsureDockingState(this).hiddenPanes.erase(pBar);
-    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-    g_paneCoreState_Mfccore[pBar].visible = TRUE;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        g_paneCoreState_Mfccore[pBar].visible = TRUE;
+    }
+    if (EnsureDockingState(this).floatingPanes.count(pBar) && pBar->m_hWnd) {
+        ::ShowWindow(pBar->m_hWnd, SW_SHOWNOACTIVATE);
+        ::ShowWindow(::GetParent(pBar->m_hWnd), SW_SHOWNOACTIVATE);
+    }
 }
 void CDockingManager::RecalcLayout() {
     DockingManagerState& state = EnsureDockingState(this);
@@ -1074,16 +1086,18 @@ void CDockingManager::RecalcLayout() {
         ::GetClientRect(parent, &client);
         LayoutDockSites(*this, state, client);
     }
-    int visibleCount = 0;
-    for (CBasePane* pane : state.panes) {
-        if (IsPaneVisibleForDocking(state, pane)) ++visibleCount;
-    }
-    if (visibleCount <= 0) return;
+    const auto canTile = [&state](CBasePane* pane) {
+        if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane)) return false;
+        auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(pane->m_hWnd)));
+        return !parent || !parent->IsKindOf(RUNTIME_CLASS(CDockSite));
+    };
+    const int visibleCount = static_cast<int>(std::count_if(state.panes.begin(), state.panes.end(), canTile));
+    if (visibleCount == 0) return;
 
     int index = 0;
-    int width = (client.right > client.left) ? (client.right - client.left) / visibleCount : 0;
+    const int width = (client.right > client.left) ? (client.right - client.left) / visibleCount : 0;
     for (CBasePane* pane : state.panes) {
-        if (!IsPaneVisibleForDocking(state, pane)) continue;
+        if (!canTile(pane)) continue;
         CRect rect(client.left + index * width, client.top,
                    index == visibleCount - 1 ? client.right : client.left + (index + 1) * width,
                    client.bottom);

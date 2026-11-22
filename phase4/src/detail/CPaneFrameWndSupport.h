@@ -5,10 +5,8 @@
 namespace openmfc { namespace detail { namespace cpaneframewnd {} } }
 using namespace openmfc::detail::cpaneframewnd;
 // CPaneFrameWnd message handlers and helpers, wave "other-6".
-// Retail CPaneFrameWnd is 0x258 bytes and derives from CWnd; the OpenMFC public
-// declaration remains a smaller CMiniFrameWnd-derived object. Consequently all
-// retail fields below are pThis-keyed side-table state, never raw offsets into
-// the OpenMFC allocation. The base constructor entry RVA 0xad110 (mfc140u)
+// The window object has the retail size and CWnd base. The fields below are
+// held in a side table rather than overlaid on its reserved storage. The base constructor entry RVA 0xad110 (mfc140u)
 // establishes the member stores, while AddButton entry RVA 0xb0f50 and
 // ArrangeCaptionButtons entry RVA 0xb13d0 (mfc140u) establish the caption list
 // representation and button fields. Existing CWnd storage (m_hWnd +0x40) is
@@ -41,6 +39,7 @@ using namespace openmfc::detail::cpaneframewnd;
 
 namespace openmfc { namespace detail { namespace cpaneframewnd {
 struct PaneFrameState {
+    bool destroyWithWindow = false;
     bool blockMove = false;                 // m_bBlockMove +0x0e8
     HWND exitSizeMoveHwnd = nullptr;        // m_hLastFocusWnd +0x140
     HWND paneHwnd = nullptr;                // m_hEmbeddedBar +0x148

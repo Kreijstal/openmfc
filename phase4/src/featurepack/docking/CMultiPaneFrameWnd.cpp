@@ -39,12 +39,7 @@
 // the CRuntimeClass at .data 0x3aa2f8 ("CMultiPaneFrameWnd") records
 // m_nObjectSize 0x300 (docking/RuntimeClasses.cpp records the same 768).
 //
-// The two derived-class fields are reached at their retail offsets.  This is
-// memory-safe for every CMultiPaneFrameWnd that can exist in this build:
-// nothing in the DLL allocates one (CPane::CreateDefaultMiniframe is a stub and
-// CreateObject below allocates exactly 0x300 bytes), so any instance was either
-// allocated by CreateObject or by a client compiled against the shipping MFC
-// headers, i.e. sizeof 0x300 either way.
+// The derived fields use their retail offsets in the 0x300-byte allocation.
 //
 // Retail CPaneFrameWnd member names used in this file follow the shipping
 // atlmfc afxpaneframewnd.h member order laid over the constructor's stores
@@ -53,19 +48,8 @@
 // m_rectRecentFloatingRect 0x150, m_dragFrameImpl 0x1c8 (its m_bDockToTab at
 // +0x30 == 0x1f8 and m_pFinalTargetBar at +0x40 == 0x208), m_pDockManager 0x248.
 //
-// The CPaneFrameWnd sub-object is NOT retail-shaped: as the note at the top of
-// docking/CPaneFrameWnd.cpp says, OpenMFC's CPaneFrameWnd is a CMiniFrameWnd
-// subclass with a 128-byte padding blob (sizeof 632 == 0x278 under the phase4
-// mingw flags), and that file keeps retail's CPaneFrameWnd members in side
-// tables (g_framePanes for the pane list / 0x150 rectangle, the
-// CPaneFrameWndSupport.h PaneFrameState for 0x140/timers).  Bodies here that
-// need a CPaneFrameWnd member therefore go through that file's exports, and
-// each such spot says which retail offset it stands in for.  The 632-byte
-// OpenMFC base overlaps the first 0x20 bytes of m_barContainerManager; that is
-// harmless because the only code that touches `_paneframewnd_padding` is the
-// CPaneFrameWnd constructor's memset (docking/CPaneFrameWnd.cpp:775), which runs
-// BEFORE the manager's constructor in the order below, and the static_assert
-// below keeps the base inside the 0x300-byte allocation.
+// The base occupies the retail 0x258 bytes. Fields mentioned above are
+// accessed through the CPaneFrameWnd exports and their side tables.
 //
 // The embedded manager has no retail vtable here (OpenMFC's
 // ??0CPaneContainerManager@@ zero-fills the object and sets no vfptr), so every

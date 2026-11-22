@@ -135,7 +135,6 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 PANE_DESC(CPaneContainer,        248,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
 PANE_DESC(CPaneContainerManager, 160,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
 PANE_DESC(CPaneDialog,           1264, 0x80000001, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
-PANE_DESC(CPaneFrameWnd,         600,  0x80000002, &CWnd::classCWnd);                 // DECLARE_SERIAL
 #undef PANE_DESC
 
 // Two exported getters per class via a macro; the literal "// Symbol:" marker
@@ -272,9 +271,12 @@ PANE_GETTERS(CPaneDialog,
 
 // Symbol: ?GetThisClass@CPaneFrameWnd@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CPaneFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
-PANE_GETTERS(CPaneFrameWnd,
-             impl__GetThisClass_CPaneFrameWnd__SAPEAUCRuntimeClass__XZ,
-             impl__GetRuntimeClass_CPaneFrameWnd__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPaneFrameWnd__SAPEAUCRuntimeClass__XZ() {
+    return CPaneFrameWnd::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPaneFrameWnd__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CPaneFrameWnd::GetThisClass();
+}
 
 #undef PANE_GETTERS
 #undef PANE_GETTERS

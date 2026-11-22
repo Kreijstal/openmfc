@@ -78,6 +78,10 @@ void CBaseTabbedPane::RecalcLayout() {
 }
 
 BOOL CBaseTabbedPane::AddTab(CWnd* window, BOOL visible, BOOL activate, BOOL detachable) {
+    return InsertTab(window, -1, visible, activate, detachable);
+}
+
+BOOL CBaseTabbedPane::InsertTab(CWnd* window, int index, BOOL visible, BOOL activate, BOOL detachable) {
     if (!m_pTabWnd || !m_pTabWnd->m_hWnd || !window || window == this || !window->m_hWnd) return FALSE;
     const int existing = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(m_pTabWnd, window->m_hWnd);
     if (existing >= 0) return ShowTab(window, visible, activate);
@@ -86,11 +90,12 @@ BOOL CBaseTabbedPane::AddTab(CWnd* window, BOOL visible, BOOL activate, BOOL det
         ::SetLastError(ERROR_SUCCESS);
         if (!::SetParent(window->m_hWnd, m_pTabWnd->m_hWnd) && ::GetLastError() != ERROR_SUCCESS) return FALSE;
     }
-    const int index = m_pTabWnd->GetTabsCount();
+    if (index < 0 || index > m_pTabWnd->GetTabsCount()) index = m_pTabWnd->GetTabsCount();
     if (!m_pTabWnd->InsertTab(window, nullptr, index, static_cast<UINT>(-1), detachable)) {
         if (oldParent != m_pTabWnd->m_hWnd) ::SetParent(window->m_hWnd, oldParent);
         return FALSE;
     }
+    if (window->IsKindOf(RUNTIME_CLASS(CPane))) static_cast<CPane*>(window)->ReleaseFloatingFrame();
     RecordTabMembership(window, m_pTabWnd, TRUE);
     m_pTabWnd->ShowTab(index, visible, TRUE, FALSE);
     if (visible && activate) m_pTabWnd->ActivateTab(index);
@@ -190,20 +195,21 @@ extern "C" CWnd* MS_ABI impl__FindPaneByID_CBaseTabbedPane__UEAAPEAVCWnd__I_Z(
     return nullptr;
 }
 
-// STUB: retail RVA 0x13c30.
 // Symbol: ?FloatPane@CBaseTabbedPane@@MEAAHVCRect@@W4AFX_DOCK_METHOD@@_N@Z
 extern "C" int MS_ABI impl__FloatPane_CBaseTabbedPane__MEAAHVCRect__W4AFX_DOCK_METHOD___N_Z(
-    CBaseTabbedPane* pThis, const CRect* rectFloat, int dockMethod, bool bShow) {
-    (void)pThis; (void)rectFloat; (void)dockMethod; (void)bShow;
-    return 0;
+    CBaseTabbedPane* group, const CRect* bounds, int method, bool show) {
+    return group && bounds && group->FloatPaneWindow(*static_cast<const RECT*>(*bounds), method, show);
 }
 
-// STUB: retail RVA 0x13950.
 // Symbol: ?FloatTab@CBaseTabbedPane@@UEAAHPEAVCWnd@@HW4AFX_DOCK_METHOD@@H@Z
 extern "C" int MS_ABI impl__FloatTab_CBaseTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK_METHOD__H_Z(
-    CBaseTabbedPane* pThis, CWnd* pBar, int nTabID, int dockMethod, int bHide) {
-    (void)pThis; (void)pBar; (void)nTabID; (void)dockMethod; (void)bHide;
-    return 0;
+    CBaseTabbedPane* group, CWnd* window, int index, int method, int hide) {
+    auto* tabs = group ? group->GetTabs() : nullptr;
+    if (!tabs || !window || !window->IsKindOf(RUNTIME_CLASS(CPane))) return FALSE;
+    if (index < 0) index = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(tabs, window->m_hWnd);
+    if (tabs->GetTabWnd(index) != window || !tabs->IsTabDetachable(index)) return FALSE;
+    auto* pane = static_cast<CPane*>(window);
+    return pane->FloatPaneWindow(pane->m_recentDockInfo.m_layout.m_rectRecentFloatingRect, method, !hide);
 }
 
 // Symbol: ?GetFirstVisibleTab@CBaseTabbedPane@@UEAAPEAVCWnd@@AEAH@Z

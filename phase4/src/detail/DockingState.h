@@ -44,6 +44,19 @@ struct PaneAutoHideRestore {
     bool tabActive = false;
 };
 
+struct PaneFloatRestore {
+    HWND parent = nullptr;
+    HWND owner = nullptr;
+    HWND divider = nullptr;
+    HWND tabGroup = nullptr;
+    CDockingPanesRow* row = nullptr;
+    RECT bounds{};
+    DWORD style = 0;
+    int tabIndex = -1;
+    bool detachable = true;
+    bool dividerVisible = false;
+};
+
 // pThis-keyed fallback state for members that the compact public pane classes
 // cannot hold. Retail offsets are recorded beside each value; these fields are
 // not overlays and must be accessed through this map, never by adding the
@@ -51,6 +64,8 @@ struct PaneAutoHideRestore {
 struct PaneCoreState {
     CWnd* parent = nullptr;
     HWND tabWindow = nullptr;
+    HWND floatingFrame = nullptr;
+    std::optional<PaneFloatRestore> floatRestore;
     CSize minSize = CSize(0, 0);
     CRect recentRect = CRect(0, 0, 0, 0);
     BOOL visible = FALSE;

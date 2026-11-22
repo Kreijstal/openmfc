@@ -553,6 +553,13 @@ public:
     virtual BOOL CanFloat() const override;
     virtual void RecalcLayout() override;
 
+    BOOL FloatPaneWindow(const RECT& bounds, int dockMethod, bool show, CDockingManager* manager = nullptr);
+    BOOL DockToRecentPosition();
+    void ReleaseFloatingFrame();
+
+protected:
+    void PostNcDestroy() override;
+
 public:
     // Retail member layout, harvested with /d1reportSingleClassLayoutCPane.
     // The CBasePane subobject occupies 0..423; own members start at 424.
@@ -1298,6 +1305,7 @@ public:
     ~CBaseTabbedPane() override;
     CMFCTabCtrl* GetTabs() const { return m_pTabWnd; }
     BOOL AddTab(CWnd* window, BOOL visible, BOOL activate, BOOL detachable);
+    BOOL InsertTab(CWnd* window, int index, BOOL visible, BOOL activate, BOOL detachable);
     BOOL RemovePane(CWnd* window);
     BOOL ShowTab(CWnd* window, BOOL show, BOOL activate);
     void RecalcLayout() override;
@@ -1560,8 +1568,8 @@ protected:
 //=============================================================================
 // CPaneFrameWnd - Floating pane frame window
 //=============================================================================
-class CPaneFrameWnd : public CMiniFrameWnd {
-    DECLARE_DYNAMIC(CPaneFrameWnd)
+class CPaneFrameWnd : public CWnd {
+    OPENMFC_DECLARE_MFC_SERIAL(CPaneFrameWnd)
 public:
     CPaneFrameWnd();
     virtual ~CPaneFrameWnd();
@@ -1580,11 +1588,22 @@ public:
     virtual BOOL IsRollDown() const;
     virtual BOOL IsRollUp() const;
 
+    BOOL CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD style, const RECT& rect,
+                     CWnd* owner, CCreateContext* context);
+    void SetDockingManager(CDockingManager* manager);
+    void AutoDestroyWithWindow();
+    void OnClose();
+    void OnDestroy();
+    void OnSize(UINT type, int width, int height);
+    LRESULT OnCheckEmptyState(WPARAM, LPARAM);
+    LRESULT OnCaptionDoubleClick(WPARAM hit, LPARAM);
+
 protected:
-    // Retail CPaneFrameWnd state at +0x118..+0x250 is not overlaid here: this
-    // is an OpenMFC CMiniFrameWnd-derived object with a different base layout.
-    // The verified fields are held in detail/CPaneFrameWndSupport.h's side table.
-    char _paneframewnd_padding[128];
+    char _paneFrameState[0x170]{};
+
+    void PostNcDestroy() override;
+    DECLARE_MESSAGE_MAP()
+
 };
 
 //=============================================================================

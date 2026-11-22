@@ -39,13 +39,14 @@ extern "C" int MS_ABI impl__DetachPane_CTabbedPane__UEAAHPEAVCWnd__H_Z(CTabbedPa
 extern "C" void MS_ABI impl__EnableTabAutoColor_CTabbedPane__SAXH_Z(int enable) {
     impl__m_bIsTabsAutoColor_CTabbedPane__1HA = enable;
 }
+extern "C" int MS_ABI impl__FloatTab_CBaseTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK_METHOD__H_Z(
+    CBaseTabbedPane*, CWnd*, int, int, int);
+
 // Symbol: ?FloatTab@CTabbedPane@@UEAAHPEAVCWnd@@HW4AFX_DOCK_METHOD@@H@Z
 extern "C" int MS_ABI impl__FloatTab_CTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK_METHOD__H_Z(
-    void* pThis, void* pane, int, int, int) {
-    std::lock_guard<std::mutex> lock(g_tabbedPaneMutex);
-    auto& tabs = g_tabbedPanes[pThis].tabs;
-    tabs.erase(std::remove(tabs.begin(), tabs.end(), pane), tabs.end());
-    return TRUE;
+    CTabbedPane* group, CWnd* pane, int index, int method, int hide) {
+    if (!group || !group->GetTabs() || group->GetTabs()->GetTabsCount() <= 1) return FALSE;
+    return impl__FloatTab_CBaseTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK_METHOD__H_Z(group, pane, index, method, hide);
 }
 // GetMessageMap/GetThisMessageMap/GetRuntimeClass/GetThisClass for CTabbedPane live in
 // featurepack/docking/MessageMaps.cpp and featurepack/docking/RuntimeClasses.cpp, whose
