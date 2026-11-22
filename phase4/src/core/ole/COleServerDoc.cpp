@@ -6,6 +6,9 @@
 #include "detail/OlecoreSupport.h"
 #include "openmfc/afxdocob.h"
 #include "detail/CCmdTargetVirtualsSupport.h"
+#include "detail/COleCntrFrameWndSupport.h"
+#include "detail/ControlBarLayoutSupport.h"
+#include "detail/FrameLifetimeSupport.h"
 #include "detail/WindowCreationSupport.h"
 #include <memory>
 #include <utility>
@@ -118,6 +121,12 @@ template<class Interface>
 using SiteRef = std::unique_ptr<Interface, ReleaseInterface>;
 
 struct ServerInPlaceState {
+    struct ControlBarFrame {
+        std::unique_ptr<COleCntrFrameWnd> wrapper;
+        bool resizing = false;
+        bool reserved = false;
+    };
+
     struct ReparentedView {
         HWND window = nullptr;
         HWND parent = nullptr;
@@ -131,6 +140,8 @@ struct ServerInPlaceState {
     SiteRef<IOleInPlaceSite> site;
     SiteRef<IOleInPlaceFrame> frame;
     SiteRef<IOleInPlaceUIWindow> document;
+    ControlBarFrame mainBars;
+    ControlBarFrame documentBars;
     BOOL uiActive = FALSE;
     BOOL activeObjectSet = FALSE;
     bool windowActive = false;
@@ -152,6 +163,15 @@ struct ServerDocAccess {
     }
     static void NotifyDocWindowActivate(COleServerDoc* doc, BOOL active) {
         doc->OnDocWindowActivate(active);
+    }
+    static void ResizeBorder(COleServerDoc* doc, LPCRECT border, IOleInPlaceUIWindow* window, BOOL main) {
+        doc->COleServerDoc::OnResizeBorder(border, window, main);
+    }
+    static void NotifyResizeBorder(COleServerDoc* doc, LPCRECT border, IOleInPlaceUIWindow* window, BOOL main) {
+        doc->OnResizeBorder(border, window, main);
+    }
+    static void ShowControlBars(COleServerDoc* doc, CFrameWnd* frame, BOOL show) {
+        doc->COleServerDoc::OnShowControlBars(frame, show);
     }
 };
 }
@@ -194,10 +214,11 @@ inline LONG volatile* RefWord(COleServerDoc* pDoc) {
 }
 class InPlaceTransition {
 public:
-    explicit InPlaceTransition(BOOL& active) : active_(active) { active_ = TRUE; }
-    ~InPlaceTransition() { active_ = FALSE; }
+    explicit InPlaceTransition(BOOL& active) : active_(active), previous_(std::exchange(active, TRUE)) {}
+    ~InPlaceTransition() { active_ = previous_; }
 private:
     BOOL& active_;
+    BOOL previous_;
 };
 
 SiteRef<IOleInPlaceSite> QueryInPlaceSite(IOleClientSite* client) {
@@ -206,14 +227,18 @@ SiteRef<IOleInPlaceSite> QueryInPlaceSite(IOleClientSite* client) {
     return SiteRef<IOleInPlaceSite>(site);
 }
 
-CFrameWnd* FindFrame(HWND window) {
-    auto* wrapper = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
-    return wrapper && wrapper->IsFrameWnd() ? static_cast<CFrameWnd*>(wrapper) : nullptr;
+std::unique_ptr<COleCntrFrameWnd> CreateContainerBarFrame(COleIPFrameWnd* frame, IOleWindow* window) {
+    HWND handle = nullptr;
+    if (!window || window->GetWindow(&handle) != S_OK || !::IsWindow(handle)) return {};
+    auto wrapper = std::make_unique<COleCntrFrameWnd>(frame);
+    wrapper->m_hWnd = handle;
+    return wrapper;
 }
 
-CFrameWnd* GetContainerFrame(IOleWindow* window) {
-    HWND handle = nullptr;
-    return window && SUCCEEDED(window->GetWindow(&handle)) ? FindFrame(handle) : nullptr;
+void LayoutInPlaceBars(COleCntrFrameWnd* frame, RECT* remaining, const RECT* available) {
+    using namespace openmfc::detail::dock;
+    const UINT mode = remaining ? CWnd::reposQuery : CWnd::reposDefault;
+    RepositionControlBars(frame, 0, 0xffff, 0, mode, remaining, available, TRUE, frame);
 }
 
 HRESULT InPlaceResult(HRESULT status) {
@@ -369,9 +394,20 @@ HRESULT COleServerDoc::ActivateInPlace(IOleInPlaceSite* site, bool docObject) {
         }
 
         if (creating) {
-            if (!frame->OnCreateAggregates() ||
-                !frame->OnCreateControlBars(GetContainerFrame(state.frame.get()),
-                                            GetContainerFrame(state.document.get()))) return E_FAIL;
+            if (!frame->OnCreateAggregates()) return E_FAIL;
+            state.mainBars.wrapper = CreateContainerBarFrame(frame, state.frame.get());
+            state.documentBars.wrapper = CreateContainerBarFrame(frame, state.document.get());
+            auto* mainBars = state.mainBars.wrapper.get();
+            auto* documentBars = state.documentBars.wrapper.get();
+            if (mainBars && documentBars && mainBars->m_hWnd == documentBars->m_hWnd) {
+                state.documentBars.wrapper.reset();
+                documentBars = mainBars;
+            }
+            frame->SetInPlaceControlBarFrames(mainBars, documentBars, state.document.get(), info);
+            {
+                openmfc::detail::colecntrframewnd::InPlaceBarCreation creatingBars(mainBars, documentBars);
+                if (!frame->OnCreateControlBars(mainBars, documentBars)) return E_FAIL;
+            }
             OnSetItemRects(&position, &clip);
         }
         if (!::IsWindow(frame->m_hWnd)) return E_FAIL;
@@ -382,6 +418,8 @@ HRESULT COleServerDoc::ActivateInPlace(IOleInPlaceSite* site, bool docObject) {
         const HRESULT menu = frame->InstallSharedMenu(state.frame.get(), docObject);
         if (menu != S_OK) return menu;
         state.windowActive = true;
+        if (state.mainBars.wrapper) RecalcContainerControlBars(state.mainBars.wrapper.get());
+        if (state.documentBars.wrapper) RecalcContainerControlBars(state.documentBars.wrapper.get());
         ::ShowWindow(frame->m_hWnd, SW_SHOWNA);
         if (auto* view = frame->GetActiveView()) ::SetFocus(view->m_hWnd);
         return S_OK;
@@ -1047,6 +1085,10 @@ void COleServerDoc::OnDeactivate() {
 void COleServerDoc::DeactivateInPlace() {
     auto& tail = m_retailTail;
     DeactivateInPlaceUI(FALSE);
+    if (auto* state = tail.m_inPlaceState) {
+        if (state->mainBars.wrapper) state->mainBars.wrapper->DestroyControlBars();
+        if (state->documentBars.wrapper) state->documentBars.wrapper->DestroyControlBars();
+    }
     if (auto* frame = std::exchange(tail.m_pInPlaceFrame, nullptr)) DestroyInPlaceFrame(frame);
     std::unique_ptr<ServerInPlaceState> state(std::exchange(tail.m_inPlaceState, nullptr));
     if (state && state->site) state->site->OnInPlaceDeactivate();
@@ -1069,6 +1111,7 @@ void COleServerDoc::DeactivateInPlaceUI(BOOL undoable) {
     auto* state = m_retailTail.m_inPlaceState;
     if (!state || !std::exchange(state->uiActive, FALSE)) return;
     state->windowActive = false;
+    ReleaseInPlaceBorders();
     if (auto* frame = m_retailTail.m_pInPlaceFrame) frame->DestroySharedMenu();
     if (std::exchange(state->activeObjectSet, FALSE)) {
         if (state->document) state->document->SetActiveObject(nullptr, nullptr);
@@ -1097,10 +1140,39 @@ void COleServerDoc::OnDocWindowActivate(BOOL active) {
         return;
     }
     state->windowActive = active != FALSE;
-    if (!active) {
+    if (active) {
+        if (state->mainBars.wrapper) RecalcContainerControlBars(state->mainBars.wrapper.get());
+        if (state->documentBars.wrapper) RecalcContainerControlBars(state->documentBars.wrapper.get());
+    } else {
+        ReleaseInPlaceBorders();
         if (auto* view = frame->GetActiveView()) view->OnActivateView(FALSE, view, view);
     }
     ::SendMessageW(frame->m_hWnd, WM_ACTIVATE, active ? WA_ACTIVE : WA_INACTIVE, 0);
+}
+
+void COleServerDoc::RecalcContainerControlBars(CFrameWnd* frame) {
+    auto* state = m_retailTail.m_inPlaceState;
+    if (!state || !frame) return;
+    if (frame == state->mainBars.wrapper.get())
+        OnResizeBorder(nullptr, state->frame.get(), TRUE);
+    else if (frame == state->documentBars.wrapper.get())
+        OnResizeBorder(nullptr, state->document.get(), FALSE);
+}
+
+void COleServerDoc::ReleaseInPlaceBorders() {
+    auto* state = m_retailTail.m_inPlaceState;
+    if (!state) return;
+    auto hide = [this](ServerInPlaceState::ControlBarFrame& bars, IOleInPlaceUIWindow* window) {
+        auto* wrapper = bars.wrapper.get();
+        if (!wrapper) return;
+        if (!openmfc::detail::frame::ControlBars(wrapper).IsEmpty()) {
+            OnShowControlBars(wrapper, FALSE);
+            LayoutInPlaceBars(wrapper, nullptr, nullptr);
+        }
+        if (bars.reserved && window && window->SetBorderSpace(nullptr) == S_OK) bars.reserved = false;
+    };
+    hide(state->mainBars, state->frame.get());
+    hide(state->documentBars, state->document.get());
 }
 
 // COleServerDoc::OnExecOleCmd(const GUID*, DWORD, DWORD, VARIANTARG*,
@@ -1246,14 +1318,53 @@ extern "C" int MS_ABI impl__OnReactivateAndUndo_COleServerDoc__MEAAHXZ(COleServe
     return FALSE;
 }
 
-// COleServerDoc::OnResizeBorder(LPCRECT, IOleInPlaceUIWindow*, BOOL) — retail
-// 0x2668f0 forwards the border negotiation to m_pInPlaceFrame@0x250 and to the
-// frame's control-bar list; without the in-place frame there is nothing to
-// resize.  Left a no-op.
 // Symbol: ?OnResizeBorder@COleServerDoc@@UEAAXPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z
 extern "C" void MS_ABI impl__OnResizeBorder_COleServerDoc__UEAAXPEBUtagRECT__PEAUIOleInPlaceUIWindow__H_Z(
-    COleServerDoc* pThis, const RECT* lpRectBorder, void* lpUIWindow, int bFrame) {
-    (void)pThis; (void)lpRectBorder; (void)lpUIWindow; (void)bFrame;
+    COleServerDoc* document, LPCRECT border, IOleInPlaceUIWindow* window, BOOL main) {
+    if (document) ServerDocAccess::ResizeBorder(document, border, window, main);
+}
+
+void COleServerDoc::OnResizeBorder(LPCRECT border, IOleInPlaceUIWindow* window, BOOL main) {
+    auto& tail = m_retailTail;
+    auto* state = tail.m_inPlaceState;
+    if (!state || !state->uiActive || !state->windowActive || !window) return;
+    auto& bars = main ? state->mainBars : state->documentBars;
+    auto* wrapper = bars.wrapper.get();
+    if (!wrapper || !::IsWindow(wrapper->m_hWnd) || bars.resizing) return;
+    if (openmfc::detail::frame::ControlBars(wrapper).IsEmpty() && !bars.reserved) return;
+
+    InPlaceTransition transition(tail.m_inPlaceTransition);
+    bars.resizing = true;
+    struct ResetResize {
+        bool& flag;
+        ~ResetResize() { flag = false; }
+    } reset{bars.resizing};
+
+    RECT available{};
+    if (border) available = *border;
+    const auto hide = [&] {
+        OnShowControlBars(wrapper, FALSE);
+        LayoutInPlaceBars(wrapper, nullptr, nullptr);
+        if (window->SetBorderSpace(nullptr) == S_OK) bars.reserved = false;
+    };
+    if ((!border && window->GetBorder(&available) != S_OK) || ::IsRectEmpty(&available) ||
+        static_cast<long long>(available.right) - available.left > LONG_MAX ||
+        static_cast<long long>(available.bottom) - available.top > LONG_MAX) {
+        hide();
+        return;
+    }
+
+    OnShowControlBars(wrapper, TRUE);
+    RECT remaining{};
+    LayoutInPlaceBars(wrapper, &remaining, &available);
+    const RECT widths{remaining.left - available.left, remaining.top - available.top,
+                      available.right - remaining.right, available.bottom - remaining.bottom};
+    if (window->RequestBorderSpace(&widths) != S_OK || window->SetBorderSpace(&widths) != S_OK) {
+        hide();
+        return;
+    }
+    bars.reserved = widths.left || widths.top || widths.right || widths.bottom;
+    LayoutInPlaceBars(wrapper, nullptr, &available);
 }
 
 // COleServerDoc::OnSaveDocument(LPCTSTR) — retail 0x265390:
@@ -1320,15 +1431,29 @@ void COleServerDoc::OnSetItemRects(LPCRECT position, LPCRECT clip) {
     if (frame && position && clip) frame->RepositionFrame(position, clip);
 }
 
-// COleServerDoc::OnShowControlBars(CFrameWnd*, BOOL) — retail 0x266850 walks
-// the frame's control-bar list (pFrameWnd+0x130) and shows/hides each bar,
-// consulting m_pInPlaceFrame@0x250 (+0x26c) to decide whether a bar may be
-// shown.  The control-bar list walk and the in-place frame are not modeled;
-// left a no-op.
 // Symbol: ?OnShowControlBars@COleServerDoc@@UEAAXPEAVCFrameWnd@@H@Z
 extern "C" void MS_ABI impl__OnShowControlBars_COleServerDoc__UEAAXPEAVCFrameWnd__H_Z(
-    COleServerDoc* pThis, CFrameWnd* pFrameWnd, int bShow) {
-    (void)pThis; (void)pFrameWnd; (void)bShow;
+    COleServerDoc* document, CFrameWnd* frame, BOOL show) {
+    if (document) ServerDocAccess::ShowControlBars(document, frame, show);
+}
+
+void COleServerDoc::OnShowControlBars(CFrameWnd* frame, BOOL show) {
+    if (!frame) return;
+    constexpr int hiddenForInPlace = 0x04;
+    auto* node = openmfc::detail::frame::ControlBars(frame).m_pNodeHead;
+    while (node) {
+        auto* bar = static_cast<CControlBar*>(node->data);
+        node = node->pNext;
+        if (!bar || bar->m_pDockSite != frame) continue;
+        if (show) {
+            if (!(bar->m_nStateFlags & hiddenForInPlace)) continue;
+            bar->m_nStateFlags &= ~hiddenForInPlace;
+        } else {
+            if (!bar->IsVisible() || (bar->GetBarStyle() & CBRS_FLOATING)) continue;
+            bar->m_nStateFlags |= hiddenForInPlace;
+        }
+        frame->ShowControlBar(bar, show, TRUE);
+    }
 }
 
 // COleServerDoc::OnShowDocument(BOOL) — retail 0x265540 is the show/hide of
@@ -2167,20 +2292,23 @@ extern "C" long MS_ABI impl__ReactivateAndUndo_XOleInPlaceObject_COleServerDoc__
     return (long)0x800401A0L;               // INPLACE_E_NOTUNDOABLE
 }
 
-// COleServerDoc::XOleInPlaceActiveObject::ResizeBorder(LPCRECT,
-// IOleInPlaceUIWindow*, BOOL) -- retail 0x268af0, transcribed in full:
-//     COleServerDoc* pThis = this - 0x290;
-//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
-//     pThis->OnResizeBorder(prcBorder, pUIWindow, fFrameWindow);
-//                                       // vtable slot 101 (0x328)
-//     return S_OK;
-// Stubbed: needs the document; the S_OK return value already matches.
 // Symbol: ?ResizeBorder@XOleInPlaceActiveObject@COleServerDoc@@UEAAJPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z
 extern "C" long MS_ABI impl__ResizeBorder_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEBUtagRECT__PEAUIOleInPlaceUIWindow__H_Z(
-    void* pThisItf, const RECT* prcBorder, void* pUIWindow, int fFrameWindow)
-{
-    (void)pThisItf; (void)prcBorder; (void)pUIWindow; (void)fFrameWindow;
-    return 0;
+    void* part, LPCRECT border, IOleInPlaceUIWindow* window, BOOL main) {
+    if (!part || !window) return E_POINTER;
+    auto* document = DocFromPart(part, kOff_m_xOleInPlaceActiveObject);
+    try {
+        openmfc::detail::CmdTargetModuleScope state(document->m_pModuleState);
+        ServerDocAccess::NotifyResizeBorder(document, border, window, main);
+        return S_OK;
+    } catch (CException* error) {
+        if (!error) return E_UNEXPECTED;
+        const auto result = impl__Process_COleException__SAJPEBVCException___Z(error);
+        error->Delete();
+        return result;
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
 }
 
 // COleServerDoc::XPersistStorage::Save(IStorage*, BOOL) -- retail 0x2670d0,

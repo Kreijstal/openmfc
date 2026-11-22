@@ -25,6 +25,7 @@
 #include "detail/ClassicDockingSupport.h"
 #include "detail/FrameLifetimeSupport.h"
 #include "detail/OlecoreSupport.h"
+#include "detail/COleCntrFrameWndSupport.h"
 #include <uxtheme.h>
 #include <cstddef>
 #include <cstring>
@@ -1051,10 +1052,13 @@ extern "C" int MS_ABI impl__OnCreate_CControlBar__QEAAHPEAUtagCREATESTRUCTW___Z(
     if (pThis->m_dwStyle & kCBRS_TOOLTIPS) {
         impl__EnableToolTips_CWnd__QEAAHH_Z(pThis, TRUE);
     }
-    CWnd* pFrameWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_hWnd));
+    const HWND parent = ::GetParent(pThis->m_hWnd);
+    auto* inPlace = openmfc::detail::colecntrframewnd::InPlaceBarCreation::FindFrame(parent);
+    CWnd* pFrameWnd = inPlace ? static_cast<CWnd*>(inPlace) : impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(parent);
     if (pFrameWnd && pFrameWnd->IsFrameWnd()) {
         openmfc::detail::frame::RegisterControlBar(static_cast<CFrameWnd*>(pFrameWnd), pThis);
         pThis->m_pDockSite = pFrameWnd;
+        if (inPlace) pThis->m_pInPlaceOwner = inPlace->m_pInPlaceFrame;
     }
     if (IsToolBarOrDockBar(pThis)) {
         if (::IsAppThemed()) {

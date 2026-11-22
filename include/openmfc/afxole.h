@@ -1283,13 +1283,18 @@ protected:
     virtual COleIPFrameWnd* CreateInPlaceFrame(CWnd* parent);
     virtual void DestroyInPlaceFrame(COleIPFrameWnd* frame);
     virtual void OnDocWindowActivate(BOOL active);
+    virtual void OnResizeBorder(LPCRECT border, IOleInPlaceUIWindow* window, BOOL frame);
+    virtual void OnShowControlBars(CFrameWnd* frame, BOOL show);
 
 private:
     friend class CDocObjectServer;
+    friend class COleIPFrameWnd;
     friend struct openmfc::detail::olecore::ServerDocAccess;
     HRESULT ActivateInPlace(IOleInPlaceSite* site, bool docObject);
     void DeactivateInPlace();
     void DeactivateInPlaceUI(BOOL undoable);
+    void RecalcContainerControlBars(CFrameWnd* frame);
+    void ReleaseInPlaceBorders();
 
 public:
     BOOL m_bEmbedded;
@@ -1929,6 +1934,7 @@ protected:
 // COleIPFrameWnd - OLE In-place Frame Window
 //=============================================================================
 extern "C" int __cdecl impl__OnCreate_COleIPFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(COleIPFrameWnd*, CREATESTRUCTW*);
+extern "C" void __cdecl impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(COleIPFrameWnd*);
 class COleIPFrameWnd : public CFrameWnd {
     DECLARE_DYNCREATE(COleIPFrameWnd)
 public:
@@ -1942,6 +1948,9 @@ public:
     HRESULT BuildSharedMenu(BOOL docObject = FALSE);
     HRESULT InstallSharedMenu(IOleInPlaceFrame* container, BOOL docObject);
     HRESULT SetSharedMenuActive(BOOL active);
+    void SetInPlaceControlBarFrames(COleCntrFrameWnd* main, COleCntrFrameWnd* document,
+                                    IOleInPlaceUIWindow* documentWindow, const OLEINPLACEFRAMEINFO& info);
+    void RecalcContainerControlBars(CFrameWnd* frame);
     static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
     const AFX_MSGMAP* GetMessageMap() const override;
 
@@ -1958,7 +1967,9 @@ public:
 
 protected:
     friend int __cdecl impl__OnCreate_COleIPFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(COleIPFrameWnd*, CREATESTRUCTW*);
+    friend void __cdecl impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(COleIPFrameWnd*);
     int OnCreate(CREATESTRUCTW* creation);
+    LRESULT OnInPlaceIdleUpdate(WPARAM, LPARAM);
     char _oleipframewnd_padding[160];
 };
 

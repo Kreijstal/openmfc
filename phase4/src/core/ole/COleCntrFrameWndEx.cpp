@@ -48,8 +48,7 @@
 // slot 116 being OnMoveMiniFrame at +0x3a0) in both the constructor and
 // destructor.  OpenMFC builds no vtable for this class (it is
 // not declared in include/openmfc/), so the vfptr is left as the base
-// COleCntrFrameWnd constructor sets it (g_COleCntrFrameWnd_vtbl, 10 slots, see
-// detail/COleCntrFrameWndSupport.h).  Consequently the virtual calls retail
+// COleCntrFrameWnd constructor sets the base vtable. Consequently calls retail
 // makes on `this` (slot 115 = AdjustDockingLayout at vtable +0x398, slot 96 =
 // RecalcLayout at +0x300) are made as direct calls to this file's own thunks:
 // the dynamic type is always exactly COleCntrFrameWndEx on retail's creation
@@ -67,6 +66,8 @@
 #include <type_traits>
 
 namespace {
+
+using openmfc::detail::colecntrframewnd::S_Colecntrframewnd;
 
 // ---- retail layout view --------------------------------------------------
 enum : size_t {
@@ -130,8 +131,7 @@ enum { kWM_IDLEUPDATECMDUI = 0x363 };   // afxpriv.h WM_IDLEUPDATECMDUI (edx in 
 // ---- sibling impl_ exports we delegate to (all definitions verified by grep) ----
 // COleCntrFrameWnd (core/ole/COleCntrFrameWnd.cpp)
 extern "C" void* MS_ABI impl___0COleCntrFrameWnd__QEAA_PEAVCOleIPFrameWnd___Z(void* pThis, void* pInPlaceFrame);
-// (impl___1COleCntrFrameWnd__UEAA_XZ is declared by detail/COleCntrFrameWndSupport.h;
-//  both it and OnIdleUpdateCmdUI are defined in COleCntrFrameWnd.cpp)
+extern "C" void MS_ABI impl___1COleCntrFrameWnd__UEAA_XZ(void* pThis);
 extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_COleCntrFrameWnd__QEAAXXZ(void* pThis);
 // CDockingManager (featurepack/docking/Thunks.cpp, featurepack/docking/CDockingManager.cpp)
 extern "C" void* MS_ABI impl___0CDockingManager__QEAA_XZ(void* pThis);

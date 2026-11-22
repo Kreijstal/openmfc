@@ -182,7 +182,9 @@ void CFrameWnd::RemoveControlBar(CControlBar* bar) {
 void CFrameWnd::ShowControlBar(CControlBar* bar, BOOL show, BOOL delay) {
     if (!bar) AfxThrowInvalidArgException();
     if (!bar->m_hWnd) return;
-    auto* frame = bar->GetParentFrame();
+    auto* dockSite = static_cast<CFrameWnd*>(bar->m_pDockSite);
+    auto* frame = bar->m_pInPlaceOwner && dockSite && dockSite->m_hWnd == ::GetParent(bar->m_hWnd)
+        ? dockSite : bar->GetParentFrame();
     if (!frame) frame = bar->m_pDockSite ? static_cast<CFrameWnd*>(bar->m_pDockSite) : this;
 
     const bool floating = impl__IsFloating_CControlBar__QEBAHXZ(bar) != FALSE;

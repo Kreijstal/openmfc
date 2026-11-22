@@ -173,7 +173,6 @@ extern "C" DWORD MS_ABI impl__GetStyle_CWnd__QEBAKXZ(const CWnd* pThis);
 extern "C" void* MS_ABI impl___1COleDocIPFrameWnd__UEAA_XZ(void* pThis);
 extern "C" void MS_ABI impl__RecalcLayout_COleDocIPFrameWnd__MEAAXH_Z(void* pThis, int bNotify);
 extern "C" void MS_ABI impl__OnDestroy_COleIPFrameWnd__IEAAXXZ(void* pThis);
-extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(void* pThis);
 // CFrameWnd (core/frame/CFrameWnd.cpp, core/frame/Thunks.cpp)
 extern "C" int MS_ABI impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateContext___Z(
     CFrameWnd* pThis, UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParentWnd, CCreateContext* pContext);
@@ -737,7 +736,7 @@ extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_COleDocIPFrameWndEx__IEAA_J_K_
     void* pThis, unsigned __int64 wParam, __int64 lParam) {
     (void)wParam; (void)lParam;
     if (!pThis) return 0;
-    impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(pThis);
+    impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(static_cast<COleIPFrameWnd*>(pThis));
     // TODO(clean-room): transcribed partially — the mini-frame broadcast and the
     // container-frame forward need this+0x428 / this+0x210.
     return 0;

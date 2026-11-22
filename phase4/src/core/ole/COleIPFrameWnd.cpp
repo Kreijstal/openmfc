@@ -99,6 +99,8 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include "detail/COleCntrFrameWndSupport.h"
+#include "detail/ClassicDockingSupport.h"
 
 #include <cstddef>
 #include <cstring>
@@ -306,7 +308,38 @@ COleIPFrameWnd::~COleIPFrameWnd() {
 
 BEGIN_MESSAGE_MAP(COleIPFrameWnd, CFrameWnd)
     ON_WM_CREATE()
+    ON_MESSAGE(0x0363, &ThisClass::OnInPlaceIdleUpdate)
 END_MESSAGE_MAP()
+
+void COleIPFrameWnd::SetInPlaceControlBarFrames(COleCntrFrameWnd* main, COleCntrFrameWnd* document,
+                                                IOleInPlaceUIWindow* documentWindow,
+                                                const OLEINPLACEFRAMEINFO& info) {
+    auto* state = Tail(this);
+    state->m_pMainFrame = main;
+    state->m_pDocFrame = document;
+    state->m_lpDocFrame = documentWindow;
+    state->m_frameInfo = info;
+}
+
+void COleIPFrameWnd::RecalcContainerControlBars(CFrameWnd* frame) {
+    if (auto* document = dynamic_cast<COleServerDoc*>(GetActiveDocument()))
+        document->RecalcContainerControlBars(frame);
+}
+
+LRESULT COleIPFrameWnd::OnInPlaceIdleUpdate(WPARAM, LPARAM) {
+    using namespace openmfc::detail::dock;
+    auto* state = Tail(this);
+    for (auto* frame : {state->m_pMainFrame, state->m_pDocFrame}) {
+        if (frame && (frame->m_retailTail.m_dwBorderFlags & (idleLayout | idleNotify)))
+            frame->RecalcLayout(TRUE);
+    }
+    return OnIdleUpdateCmdUIMessage(0, 0);
+}
+
+// Symbol: ?OnIdleUpdateCmdUI@COleIPFrameWnd@@IEAAXXZ
+extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(COleIPFrameWnd* frame) {
+    if (frame) frame->OnInPlaceIdleUpdate(0, 0);
+}
 
 BOOL COleIPFrameWnd::OnCreateAggregates() {
     return TRUE;

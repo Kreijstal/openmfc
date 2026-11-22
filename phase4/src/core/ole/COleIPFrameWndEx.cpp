@@ -69,7 +69,6 @@ extern "C" void MS_ABI impl___1COleIPFrameWnd__UEAA_XZ(void* pThis);
 // COleIPFrameWnd.cpp.)  Declaring a `this` parameter that the definition does
 // not have is harmless under MS x64: `this` rides in RCX and the callee simply
 // ignores it.
-extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__OnDestroy_COleIPFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__RecalcLayout_COleIPFrameWnd__UEAAXH_Z(void* pThis, int bNotify);
 // CFrameWnd (core/frame/CFrameWnd.cpp, core/frame/Thunks.cpp)
@@ -547,7 +546,7 @@ extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_COleIPFrameWndEx__IEAA_J_K_J_Z
     void* pThis, unsigned __int64 wParam, __int64 lParam) {
     (void)wParam; (void)lParam;
     if (!pThis) return 0;
-    impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(pThis);
+    impl__OnIdleUpdateCmdUI_COleIPFrameWnd__IEAAXXZ(static_cast<COleIPFrameWnd*>(pThis));
     // TODO(clean-room): transcribed partially — the mini-frame broadcast and the
     // container-frame forward need this+0x428 / this+0x210.
     return 0;
