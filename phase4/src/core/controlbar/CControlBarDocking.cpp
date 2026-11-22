@@ -6,7 +6,6 @@
 #include <utility>
 
 using openmfc::detail::dock::DockContext;
-using openmfc::detail::dock::IsFloatingBar;
 using openmfc::detail::frame::RegisterControlBar;
 using openmfc::detail::frame::UnregisterControlBar;
 
@@ -68,8 +67,7 @@ BOOL CControlBar::Create(CWnd* parent, DWORD style, UINT id) {
 
 BOOL CControlBar::DestroyWindow() {
     if (!m_hWnd) return CWnd::DestroyWindow();
-    const bool isDockBar = IsKindOf(impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ());
-    if (IsFloatingBar(isDockBar ? this : m_pDockBar)) {
+    if (impl__IsFloating_CControlBar__QEBAHXZ(this)) {
         auto* frame = GetParentFrame();
         if (!frame) frame = static_cast<CFrameWnd*>(m_pDockSite);
         if (frame) return frame->DestroyWindow();

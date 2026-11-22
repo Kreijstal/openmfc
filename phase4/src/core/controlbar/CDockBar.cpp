@@ -60,18 +60,9 @@
 extern "C" void* MS_ABI impl___0CControlBar__IEAA_XZ(void* pThis);                                    // core/controlbar/Thunks.cpp
 extern "C" void MS_ABI impl___1CControlBar__UEAA_XZ(void* pThis);                                     // core/controlbar/Thunks.cpp
 extern "C" void MS_ABI impl__SetBarStyle_CControlBar__QEAAXK_Z(CControlBar* pThis, DWORD dwStyle);   // core/controlbar/CControlBar.cpp
-extern "C" int MS_ABI impl__IsVisible_CControlBar__UEBAHXZ(const CControlBar* pThis);                 // core/controlbar/CControlBar.cpp
-extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARENTPARAMS___Z(CControlBar* pThis, void* lpLayout); // CControlBar.cpp
-extern "C" void MS_ABI impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(const CControlBar* pThis, CRect& rect, int bHorz);  // CControlBar.cpp
-extern "C" void* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(void* pRet, CControlBar* pThis, int nLength, DWORD dwMode); // CControlBar.cpp
-extern "C" void MS_ABI impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(
-    CSize* pRet, CToolBar* pThis, int nLength, unsigned long dwMode);                                 // core/controlbar/CToolBar.cpp
 extern "C" void MS_ABI impl__EraseNonClient_CControlBar__QEAAXXZ(CControlBar* pThis);                 // core/controlbar/CControlBar.cpp
 extern "C" void MS_ABI impl__OnWindowPosChanging_CControlBar__QEAAXPEAUtagWINDOWPOS___Z(CControlBar* pThis, WINDOWPOS* pWndPos); // CControlBar.cpp
 extern "C" __int64 MS_ABI impl__OnSizeParent_CControlBar__QEAA_J_K_J_Z(CControlBar* pThis, UINT64 wParam, __int64 lParam);       // CControlBar.cpp
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ();              // core/controlbar/RuntimeClasses.cpp
-extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-    const CObject* pThis, const CRuntimeClass* pClass);                                               // core/runtime/CObject.cpp
 extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
     CWnd* pThis, const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
     const RECT& rect, CWnd* pParentWnd, UINT nID, CCreateContext* pContext);                          // core/window/CWnd.cpp
@@ -101,6 +92,8 @@ extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();                  
 // Thunks defined further down in this file that earlier bodies call.
 extern "C" CControlBar* MS_ABI impl__GetDockedControlBar_CDockBar__IEBAPEAVCControlBar__H_Z(const void* pThis, int nPos);
 extern "C" int MS_ABI impl__GetDockedCount_CDockBar__QEBAHXZ(const void* pThis);
+extern "C" int MS_ABI impl__Create_CDockBar__UEAAHPEAVCWnd__KI_Z(
+    void* pThis, CWnd* parent, DWORD style, UINT id);
 extern "C" int MS_ABI impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(const void* pThis);
 extern "C" int MS_ABI impl__FindBar_CDockBar__QEAAHPEAVCControlBar__H_Z(void* pThis, CControlBar* pBar, int nPosExclude);
 extern "C" int MS_ABI impl__Insert_CDockBar__IEAAHPEAVCControlBar__VCRect__VCPoint___Z(void* pThis, CControlBar* pBar, const RECT* pRect, long long ptMid);
@@ -308,23 +301,6 @@ inline void* BarAt(void* pThis, INT_PTR nIndex) {
     return t.m_arrBars_pData[nIndex];
 }
 
-inline int KindOf(const CControlBar* pBar, CRuntimeClass* pClass) {
-    return impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(static_cast<const CObject*>(pBar), pClass);
-}
-// vslot 92 (CalcDynamicLayout) on a docked bar, devirtualised the way
-// CControlBar.cpp's CallCalcDynamicLayout does: CToolBar's override carries a
-// correctly typed thunk, everything else gets CControlBar's.  (CReBar's
-// override is still a placeholder; a client-derived override is not honoured.)
-inline CSize CallCalcDynamicLayout(CControlBar* pBar, int nLength, DWORD dwMode) {
-    CSize size(0, 0);
-    if (KindOf(pBar, impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ())) {
-        impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(&size, static_cast<CToolBar*>(pBar), nLength, dwMode);
-    } else {
-        impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(&size, pBar, nLength, dwMode);
-    }
-    return size;
-}
-
 // GetDockingFrame() as every retail body in this file inlines it:
 //     CFrameWnd* pFrame = GetParentFrame();      // 0x28e200
 //     if (pFrame == NULL) pFrame = m_pDockSite;  // +0x130
@@ -406,7 +382,16 @@ public:
         return impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();
     }
 
+    virtual BOOL Create(CWnd* parent, DWORD style, UINT id);
+    virtual int GetDockedVisibleCount() const;
+    CSize CalcFixedLayout(BOOL stretch, BOOL horizontal) override;
+    BOOL IsDockBar() const override { return TRUE; }
+    void DoPaint(CDC*) override {}
+
     static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
+
+protected:
+    void OnUpdateCmdUI(CFrameWnd*, BOOL) override {}
 
 private:
     const AFX_MSGMAP* GetMessageMap() const override;
@@ -534,21 +519,10 @@ bool IsFloatingBar(const void* bar) {
 //     return sizeFixed;
 // The invisible-bar path skips the end-of-row block (pVoid == pBar != NULL), as
 // does a place-holder element (pVoid != NULL); only a genuine NULL separator or
-// a just-inserted wrap reaches it.  vslots 94/102/103 go to the CControlBar.cpp
-// thunks, vslot 92 through CallCalcDynamicLayout.  The base CalcFixedLayout is
-// written out inline as retail has it (OpenMFC's CControlBar thunk returns the
-// window size instead, so it is deliberately not called).  DEVIATION: retail writes
-// m_pDockContext->m_rectMRUDockPos without a NULL test; OpenMFC's
-// CControlBar::EnableDocking never creates a CDockContext, so the store is
-// skipped when m_pDockContext is NULL.  The afxData reads are folded in as
-// literals (see the constants above).  KNOWN GAP (not introduced here): retail
-// reaches this slot from CControlBar::CalcDynamicLayout (0x1d61d0, mfc140u),
-// which is just `return CalcFixedLayout(dwMode & LM_STRETCH, dwMode & LM_HORZ)`
-// through vslot 91; OpenMFC's CControlBar.cpp CalcDynamicLayout thunk returns
-// the window size instead and never dispatches slot 91, so this body only runs
-// when a client calls the export directly.
+// a just-inserted wrap reaches it. A bar without a dock context has no
+// saved dock position to update.
 // Symbol: ?CalcFixedLayout@CDockBar@@UEAA?AVCSize@@HH@Z
-extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void* pRet, void* pThis, int bStretch, int bHorz) {
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(CDockBar* pThis, CSize* pRet, int bStretch, int bHorz) {
     CSize* pSize = new (pRet) CSize(0, 0);
     if (pThis == nullptr) {
         impl__AfxThrowInvalidArgException__YAXXZ();
@@ -562,7 +536,7 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*
     SIZE sizeMax;
     if (!::IsRectEmpty(&t.m_rectLayout)) {
         CRect rect(t.m_rectLayout);
-        impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(pSelf, rect, bHorz);   // vslot 94
+        pSelf->CalcInsideRect(rect, bHorz);   // vslot 94
         sizeMax.cx = rect.right - rect.left;
         sizeMax.cy = rect.bottom - rect.top;
     } else {
@@ -587,7 +561,7 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*
         CControlBar* pBar = impl__GetDockedControlBar_CDockBar__IEBAPEAVCControlBar__H_Z(pThis, nPos);
         void* pVoid = BarAt(pThis, nPos);
         if (pBar != nullptr) {
-            if (impl__IsVisible_CControlBar__UEBAHXZ(pBar)) {   // vslot 102
+            if (pBar->IsVisible()) {   // vslot 102
                 DWORD dwMode;
                 if ((pBar->m_dwStyle & (kCBRS_SIZE_DYNAMIC | kCBRS_FLOATING)) == (kCBRS_SIZE_DYNAMIC | kCBRS_FLOATING)) {
                     dwMode = kLM_HORZ | kLM_MRUWIDTH;
@@ -596,7 +570,7 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*
                 } else {
                     dwMode = kLM_VERTDOCK;
                 }
-                CSize sizeBar = CallCalcDynamicLayout(pBar, -1, dwMode);   // vslot 92
+                CSize sizeBar = pBar->CalcDynamicLayout(-1, dwMode);   // vslot 92
                 RECT rect = { pt.x, pt.y, pt.x + sizeBar.cx, pt.y + sizeBar.cy };
                 RECT rectBar = {};
                 ::GetWindowRect(pBar->m_hWnd, &rectBar);
@@ -661,7 +635,7 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*
                 }
             }
             if (!bWrapped) {
-                impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARENTPARAMS___Z(pBar, &layout);   // vslot 103
+                pBar->RecalcDelayShow(&layout);   // vslot 103
             }
         }
         if (pBar == nullptr && pVoid == nullptr && nWidth != 0) {
@@ -686,11 +660,25 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*
 
     CRect rect;
     ::SetRectEmpty(static_cast<RECT*>(rect));
-    impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(pSelf, rect, bHorz);   // vslot 94
+    pSelf->CalcInsideRect(rect, bHorz);   // vslot 94
     if ((!bStretch || !bHorz) && sizeFixed.cx != 0) sizeFixed.cx += rect.left - rect.right;
     if ((!bStretch || bHorz) && sizeFixed.cy != 0) sizeFixed.cy += rect.top - rect.bottom;
     *pSize = sizeFixed;
     return pRet;
+}
+
+CSize CDockBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
+    CSize result;
+    impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(this, &result, stretch, horizontal);
+    return result;
+}
+
+BOOL CDockBar::Create(CWnd* parent, DWORD style, UINT id) {
+    return impl__Create_CDockBar__UEAAHPEAVCWnd__KI_Z(this, parent, style, id);
+}
+
+int CDockBar::GetDockedVisibleCount() const {
+    return impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(this);
 }
 
 // Transcribed from retail RVA 0x1d81b0 (mfc140u; vslot 108):
@@ -937,7 +925,7 @@ extern "C" int MS_ABI impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(const void* 
     int nCount = 0;
     for (int i = 0; i < Tail(pThis).m_arrBars_nSize; i++) {
         CControlBar* pBar = impl__GetDockedControlBar_CDockBar__IEBAPEAVCControlBar__H_Z(pThis, i);
-        if (pBar != nullptr && impl__IsVisible_CControlBar__UEBAHXZ(pBar)) nCount++;
+        if (pBar != nullptr && pBar->IsVisible()) nCount++;
     }
     return nCount;
 }
@@ -989,7 +977,7 @@ extern "C" int MS_ABI impl__Insert_CDockBar__IEAAHPEAVCControlBar__VCRect__VCPoi
     for (int nPos = 0; nPos < t.m_arrBars_nSize; nPos++) {
         CControlBar* pBar = impl__GetDockedControlBar_CDockBar__IEBAPEAVCControlBar__H_Z(pThis, nPos);
         if (pBar != nullptr) {
-            if (impl__IsVisible_CControlBar__UEBAHXZ(pBar)) {   // vslot 102
+            if (pBar->IsVisible()) {   // vslot 102
                 RECT rectBar = {};
                 ::GetWindowRect(pBar->m_hWnd, &rectBar);
                 impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(AsWnd(pThis), &rectBar);
@@ -1080,7 +1068,7 @@ extern "C" void MS_ABI impl__OnNcCalcSize_CDockBar__IEAAXHPEAUtagNCCALCSIZE_PARA
     if (pThis == nullptr || lpncsp == nullptr) return;   // deviation: retail has no NULL checks
     CRect rect;
     ::SetRectEmpty(static_cast<RECT*>(rect));
-    impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(AsBar(pThis), rect,
+    AsBar(pThis)->CalcInsideRect(rect,
         static_cast<int>(AsBar(pThis)->m_dwStyle & kCBRS_ORIENT_HORZ));   // vslot 94
     lpncsp->rgrc[0].left += rect.left;
     lpncsp->rgrc[0].top += rect.top;
@@ -1112,9 +1100,9 @@ extern "C" void MS_ABI impl__OnPaint_CDockBar__IEAAXXZ(void* pThis) {
     alignas(void*) unsigned char dcStorage[sizeof(CPaintDC)] = {};
     CPaintDC* pDC = reinterpret_cast<CPaintDC*>(dcStorage);
     impl___0CPaintDC__QEAA_PEAVCWnd___Z(pDC, AsWnd(pThis));
-    if (impl__IsVisible_CControlBar__UEBAHXZ(AsBar(pThis)) &&                 // vslot 102
-        impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(pThis) != 0) {           // vslot 109
-        impl__DoPaint_CDockBar__UEAAXPEAVCDC___Z(pThis, pDC);                  // vslot 95
+    if (AsBar(pThis)->IsVisible() &&                 // vslot 102
+        static_cast<CDockBar*>(pThis)->GetDockedVisibleCount() != 0) {           // vslot 109
+        AsBar(pThis)->DoPaint(pDC);                  // vslot 95
     }
     impl___1CPaintDC__UEAA_XZ(pDC);
 }
@@ -1314,7 +1302,7 @@ extern "C" int MS_ABI impl__RemoveControlBar_CDockBar__QEAAHPEAVCControlBar__HH_
 
     CFrameWnd* pFrame = DockingFrame(pThis);
     if (pFrame == nullptr) return FALSE;   // deviation: retail would fault here
-    if (t.m_bFloating && impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(pThis) == 0) {   // vslot 109
+    if (t.m_bFloating && static_cast<CDockBar*>(pThis)->GetDockedVisibleCount() == 0) {   // vslot 109
         if (impl__GetDockedCount_CDockBar__QEBAHXZ(pThis) == 0) {
             impl__DestroyWindow_CWnd__UEAAHXZ(pFrame);   // CWnd vslot 26
             return TRUE;

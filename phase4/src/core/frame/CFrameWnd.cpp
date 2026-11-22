@@ -464,7 +464,7 @@ __int64 CFrameWnd::OnActivateTopLevel(unsigned __int64 wParam, __int64 lParam) {
 }
 int CFrameWnd::OnBarCheck(unsigned int nID) {
     CControlBar* pBar = GetControlBar(nID);
-    return pBar && impl__IsVisible_CControlBar__UEBAHXZ(pBar);
+    return pBar && pBar->IsVisible();
 }
 BOOL CFrameWnd::OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult) {
     (void)nIndex;

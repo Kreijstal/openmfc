@@ -55,8 +55,6 @@ extern "C" int MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
 extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
     CWnd* pThis, const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
     const RECT& rect, CWnd* pParentWnd, UINT nID, CCreateContext* pContext);                             // core/window/CWnd.cpp
-extern "C" int MS_ABI impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(
-    CWnd* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam, __int64* pResult);      // core/window/Thunks.cpp
 extern "C" void MS_ABI impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(
     CWnd* pThis, CCmdTarget* pTarget, int bDisableIfNoHndler);                                          // core/window/Thunks.cpp
 extern "C" int MS_ABI impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
@@ -277,12 +275,6 @@ const void* const g_msCmdUIVtbl[4] = {
     reinterpret_cast<const void*>(&CmdUI_SetRadio),
     reinterpret_cast<const void*>(&CmdUI_SetText),
 };
-// CCmdTarget::OnCmdMsg is MSVC vtable slot 5 (retail calls it as `mov
-// 0x28(%rax),%rax` at 0x1dad60 inside OnUpdateCmdUI); the target is a
-// client-constructed frame with an MSVC vtable, so it is reached by raw slot,
-// as featurepack/controls/CMFCStatusBar.cpp does.
-constexpr size_t kVtOnCmdMsgSlot = 5;
-using OnCmdMsgFn = int (MS_ABI*)(void* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
 
 } // namespace
 
@@ -331,9 +323,9 @@ CStatusBar::~CStatusBar() {
     impl__AllocElements_CStatusBar__QEAAHHH_Z(this, 0, 0);
 }
 // Retail RVA 0x1d9e40 (mfc140u): `return CreateEx(pParentWnd, 0, dwStyle, nID);`
-// through vslot 109, devirtualised to this file's thunk.
+// through vslot 109.
 BOOL CStatusBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
-    return impl__CreateEx_CStatusBar__UEAAHPEAVCWnd__KKI_Z(this, pParentWnd, 0, dwStyle, nID) != 0;
+    return CreateEx(pParentWnd, 0, dwStyle, nID);
 }
 // Transcribed from retail CStatusBar::SetIndicators, RVA 0x1d9f70 (mfc140u):
 //     if (!AllocElements(nIDCount, sizeof(AFX_STATUSPANE) /*0x18*/)) return FALSE;
@@ -687,7 +679,7 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CStatusBar__UEAA_AVCSize__HH_Z(CS
     }
     CRect rectSize;
     rectSize.SetRectEmpty();
-    impl__CalcInsideRect_CStatusBar__UEBAXAEAVCRect__H_Z(pThis, rectSize, bHorz);   // vslot 94
+    pThis->CalcInsideRect(rectSize, bHorz);   // vslot 94
     int rgBorders[3];
     GetSbBorders(pThis, rgBorders);
     int cy = static_cast<int>(tm.tmHeight) - 1
@@ -787,15 +779,13 @@ extern "C" void MS_ABI impl__OnBarStyleChange_CStatusBar__UEAAXKK_Z(CStatusBar* 
 //         return CWnd::OnChildNotify(message, wParam, lParam, pResult);   // tail jump 0x28f0d0
 //     DrawItem((LPDRAWITEMSTRUCT)lParam);                                // vslot 110
 //     return TRUE;
-// vslot 110 is devirtualised to this file's DrawItem thunk (retail's slot is
-// the empty 0x27d0); a client override of DrawItem is therefore not reached.
 // Symbol: ?OnChildNotify@CStatusBar@@MEAAHI_K_JPEA_J@Z
 extern "C" int MS_ABI impl__OnChildNotify_CStatusBar__MEAAHI_K_JPEA_J_Z(CStatusBar* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam, __int64* pResult) {
     if (pThis == nullptr) return FALSE;
     if (message != WM_DRAWITEM) {
-        return impl__OnChildNotify_CWnd__MEAAHI_K_JPEA_J_Z(pThis, message, wParam, lParam, pResult);
+        return pThis->CWnd::OnChildNotify(message, wParam, lParam, pResult);
     }
-    impl__DrawItem_CStatusBar__UEAAXPEAUtagDRAWITEMSTRUCT___Z(pThis, reinterpret_cast<DRAWITEMSTRUCT*>(lParam));
+    pThis->DrawItem(reinterpret_cast<DRAWITEMSTRUCT*>(lParam));
     return TRUE;
 }
 
@@ -968,9 +958,7 @@ extern "C" void MS_ABI impl__OnUpdateCmdUI_CStatusBar__UEAAXPEAVCFrameWnd__H_Z(C
         if (state.m_nID == 0 || static_cast<WORD>(state.m_nID) == 0xFFFF) continue;
         if (pTarget == nullptr) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
         state.m_bEnableChanged = FALSE;
-        void** vtbl = *reinterpret_cast<void***>(pTarget);
-        OnCmdMsgFn fnOnCmdMsg = reinterpret_cast<OnCmdMsgFn>(vtbl[kVtOnCmdMsgSlot]);
-        fnOnCmdMsg(pTarget, state.m_nID, kCN_UPDATE_COMMAND_UI, &state, nullptr);
+        pTarget->OnCmdMsg(state.m_nID, kCN_UPDATE_COMMAND_UI, &state, nullptr);
     }
     impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(pThis, pTarget, bDisableIfNoHndler);
 }
@@ -1050,7 +1038,7 @@ extern "C" void MS_ABI impl__UpdateAllPanes_CStatusBar__IEAAXHH_Z(CStatusBar* pT
         ::GetWindowRect(pThis->m_hWnd, &rect);
         ::OffsetRect(&rect, -rect.left, -rect.top);
         CRect rectInside(rect);
-        impl__CalcInsideRect_CStatusBar__UEBAXAEAVCRect__H_Z(pThis, rectInside, TRUE);   // vslot 94
+        pThis->CalcInsideRect(rectInside, TRUE);   // vslot 94
         int rgBorders[3];
         GetSbBorders(pThis, rgBorders);
         int cxExtra = rectInside.Width() + rgBorders[2];
@@ -1086,4 +1074,33 @@ extern "C" void MS_ABI impl__UpdateAllPanes_CStatusBar__IEAAXHH_Z(CStatusBar* pT
             }
         }
     }
+}
+
+CSize CStatusBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
+    CSize result;
+    impl__CalcFixedLayout_CStatusBar__UEAA_AVCSize__HH_Z(this, &result, stretch, horizontal);
+    return result;
+}
+
+void CStatusBar::CalcInsideRect(CRect& rect, BOOL horizontal) const {
+    impl__CalcInsideRect_CStatusBar__UEBAXAEAVCRect__H_Z(this, rect, horizontal);
+}
+
+BOOL CStatusBar::CreateEx(CWnd* parent, DWORD controlStyle, DWORD style, UINT id) {
+    return impl__CreateEx_CStatusBar__UEAAHPEAVCWnd__KKI_Z(this, parent, controlStyle, style, id);
+}
+
+void CStatusBar::DrawItem(DRAWITEMSTRUCT*) {
+}
+
+void CStatusBar::OnBarStyleChange(DWORD oldStyle, DWORD newStyle) {
+    impl__OnBarStyleChange_CStatusBar__UEAAXKK_Z(this, oldStyle, newStyle);
+}
+
+void CStatusBar::OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) {
+    impl__OnUpdateCmdUI_CStatusBar__UEAAXPEAVCFrameWnd__H_Z(this, target, disableIfNoHandler);
+}
+
+BOOL CStatusBar::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* result) {
+    return impl__OnChildNotify_CStatusBar__MEAAHI_K_JPEA_J_Z(this, message, wParam, lParam, result);
 }

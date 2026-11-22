@@ -25,37 +25,8 @@
 //  108 Create (0x1dde60).  Slot 94 (CalcInsideRect) and 102 (IsVisible) are
 //  CControlBar's; slot 73 (DefWindowProc) is CWnd's (0x28bb80).
 //
-// Layout: OpenMFC declares no CReBar class, so `this` is typed CControlBar*
-// (retail afxext.h: `class CReBar : public CControlBar`) and the one member
-// CReBar adds, `UINT m_nReBarBandInfoSize`, is read at +0x148 == sizeof
-// (CControlBar), the offset every retail body uses.  sizeof(CReBar) == 0x150
-// (336, pinned in core/controlbar/RuntimeClasses.cpp).
+// CReBar adds UINT m_nReBarBandInfoSize at +0x148 and has size 0x150.
 //
-// Deviations shared by the bodies (each site repeats the ones it makes):
-//  * DefWindowProc (CWnd vslot 73).  Retail's CWnd::DefWindowProc
-//    (0x28bb80) calls ::CallWindowProc through m_pfnSuper (+0xb0) when it is
-//    set, else through *GetSuperWndProcAddr() (vslot 65), else
-//    ::DefWindowProc.  For a rebar created by retail's CWnd::Create, MFC's
-//    creation hook has subclassed the window and parked comctl32's
-//    ReBarWindow32 procedure there (standard MFC behaviour, not disassembled
-//    for this file), so RB_* reaches comctl32.  OpenMFC's
-//    CWnd::Create (core/window/CWnd.cpp) does not subclass, and its
-//    CWnd::DefWindowProc thunk calls ::DefWindowProcW, which would drop every
-//    RB_* message.  RbDefWindowProc below therefore does what
-//    core/controlbar/CStatusBar.cpp's SbDefWindowProc does: CallWindowProc
-//    through m_pfnSuper when a window WAS subclassed, otherwise ::SendMessage
-//    straight to the HWND (whose own procedure is still comctl32's).
-//  * CWnd::Default is called through its thunk exactly where retail calls it
-//    (OnNcCreate, OnPaint, OnEraseBkgnd, OnShowBand).  NOTE: OpenMFC's
-//    CWnd::Default (core/window/CWnd.cpp) re-sends the current message to
-//    ::DefWindowProcW (the thunk at core/window/CWnd.cpp), not to the rebar
-//    procedure, so on a non-subclassed rebar those four do not reach comctl32.
-//    That gap is CWnd's and is not patched here.
-//  * Virtual calls on OTHER objects cannot go through their vtables (OpenMFC
-//    objects carry mingw vtables); each site says which exported body it calls
-//    instead.  Virtual calls on `this` go straight to the body retail's own
-//    CReBar vftable holds in that slot, so only a client subclass override is
-//    lost.
 //  * Every REBARBANDINFOW local is zero-initialised; retail sets only the
 //    members named at each site and leaves the rest indeterminate.
 //  * Retail's ENSURE()s call AfxThrowInvalidArgException (0x227720); the
@@ -66,6 +37,7 @@
 //    not MFC's value (afxres.h: 0x0008), so the retail literals are spelled
 //    out as k* constants below.
 
+#define OPENMFC_APPCORE_IMPL
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include <commctrl.h>
 #include <cstddef>
@@ -75,44 +47,42 @@
 // Sibling thunks (declared with the signature their mangled name describes;
 // every definition was located with grep before use).
 // ---------------------------------------------------------------------------
-extern "C" void* MS_ABI impl___0CControlBar__IEAA_XZ(void* pThis);                                     // core/controlbar/Thunks.cpp
 extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);                                  // core/window/Thunks.cpp
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);                     // core/window/CWnd.cpp
 extern "C" CWnd* MS_ABI impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);            // core/window/CWnd.cpp
 extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* pThis);     // core/window/Thunks.cpp
 extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int bNotify);         // core/frame/Thunks.cpp
-extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
-    CWnd* pThis, const wchar_t* lpszClassName, const wchar_t* lpszWindowName, DWORD dwStyle,
-    const RECT& rect, CWnd* pParentWnd, UINT nID, CCreateContext* pContext);                             // core/window/CWnd.cpp
-extern "C" void MS_ABI impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(
-    CWnd* pThis, CCmdTarget* pTarget, int bDisableIfNoHndler);                                          // core/window/Thunks.cpp
-extern "C" LONGLONG MS_ABI impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
-    const CWnd* pThis, CPoint point, TOOLINFOW* pTI);                                                   // core/window/CWnd.cpp
 extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis, const CRuntimeClass* pClass);                                                 // core/runtime/CObject.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CControlBar__SAPEAUCRuntimeClass__XZ();           // core/controlbar/RuntimeClasses.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CReBar__SAPEAUCRuntimeClass__XZ();                // core/controlbar/RuntimeClasses.cpp
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CStatusBar__SAPEAUCRuntimeClass__XZ();            // core/controlbar/RuntimeClasses.cpp
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ();              // core/controlbar/CToolBar.cpp
-extern "C" int MS_ABI impl__IsVisible_CControlBar__UEBAHXZ(const CControlBar* pThis);                 // core/controlbar/CControlBar.cpp
 extern "C" void MS_ABI impl__EraseNonClient_CControlBar__QEAAXXZ(CControlBar* pThis);                 // core/controlbar/CControlBar.cpp
-extern "C" void MS_ABI impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(
-    const CControlBar* pThis, CRect& rect, int bHorz);                                                  // core/controlbar/CControlBar.cpp
-extern "C" __int64 MS_ABI impl__WindowProc_CControlBar__UEAA_JI_K_J_Z(
-    CControlBar* pThis, unsigned int msg, UINT64 wParam, __int64 lParam);                               // core/controlbar/CControlBar.cpp
-extern "C" CSize* MS_ABI impl__CalcFixedLayout_CStatusBar__UEAA_AVCSize__HH_Z(
-    CStatusBar* pThis, CSize* pRet, int bStretch, int bHorz);                                           // core/controlbar/CStatusBar.cpp
-extern "C" __int64 MS_ABI impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
-    const CToolBar* pThis, CPoint point, TOOLINFOW* pTI);                                               // core/controlbar/CToolBar.cpp
-extern "C" int MS_ABI impl__AfxEndDeferRegisterClass__YAHJ_Z(long fToRegister);                         // featurepack/CMFC_misc_stubs.cpp
 extern "C" long MS_ABI impl__GetCommCtrlVersion__YAJPEAK0_Z(unsigned long* pdwMajor, unsigned long* pdwMinor); // featurepack/CMFC_misc_stubs.cpp
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();                                    // detail/MfcExceptionsSupport.cpp
 
-// Thunks defined further down in this file that earlier bodies call.
-extern "C" CSize* MS_ABI impl__CalcFixedLayout_CReBar__UEAA_AVCSize__HH_Z(
-    CControlBar* pThis, CSize* pRet, int bStretch, int bHorz);
-extern "C" __int64 MS_ABI impl__OnToolHitTest_CReBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
-    const CControlBar* pThis, CPoint point, TOOLINFOW* pTI);
+class CReBar;
+extern "C" LRESULT MS_ABI impl__WindowProc_CReBar__MEAA_JI_K_J_Z(
+    CReBar*, UINT, WPARAM, LPARAM);
+
+class CReBar : public CControlBar {
+public:
+    CReBar();
+    CRuntimeClass* GetRuntimeClass() const override {
+        return impl__GetThisClass_CReBar__SAPEAUCRuntimeClass__XZ();
+    }
+    virtual BOOL Create(CWnd* parent, DWORD controlStyle, DWORD style, UINT id);
+    void OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) override;
+    INT_PTR OnToolHitTest(CPoint point, TOOLINFOW* info) const override;
+    CSize CalcFixedLayout(BOOL stretch, BOOL horizontal) override;
+    CSize CalcDynamicLayout(int length, DWORD mode) override;
+
+    UINT m_nReBarBandInfoSize;
+
+protected:
+    LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+    friend LRESULT MS_ABI impl__WindowProc_CReBar__MEAA_JI_K_J_Z(
+        CReBar*, UINT, WPARAM, LPARAM);
+};
 
 namespace {
 
@@ -120,7 +90,8 @@ namespace {
 constexpr std::size_t kOffReBarBandInfoSize = 0x148;   // UINT m_nReBarBandInfoSize
 constexpr std::size_t kSizeofCReBar         = 0x150;
 static_assert(sizeof(CControlBar) == kOffReBarBandInfoSize, "CReBar::m_nReBarBandInfoSize follows the 0x148-byte CControlBar base");
-static_assert(kOffReBarBandInfoSize + sizeof(UINT) <= kSizeofCReBar, "sizeof(CReBar) == 0x150");
+static_assert(sizeof(CReBar) == kSizeofCReBar);
+static_assert(offsetof(CReBar, m_nReBarBandInfoSize) == kOffReBarBandInfoSize);
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd");
 static_assert(offsetof(CWnd, m_pfnSuper) == 0xb0, "native CWnd superclass procedure");
 static_assert(offsetof(CControlBar, m_cxLeftBorder) == 0xf4 && offsetof(CControlBar, m_cxRightBorder) == 0xf8 &&
@@ -129,13 +100,8 @@ static_assert(offsetof(CControlBar, m_cxLeftBorder) == 0xf4 && offsetof(CControl
 static_assert(offsetof(CControlBar, m_dwStyle) == 0x124, "CControlBar::m_dwStyle");
 static_assert(offsetof(CGdiObject, m_hObject) == 0x08, "CGdiObject::m_hObject (AddBar reads pbmp+8)");
 
-inline UINT& BandInfoSizeOf(CControlBar* pThis) {
-    return *reinterpret_cast<UINT*>(reinterpret_cast<unsigned char*>(pThis) + kOffReBarBandInfoSize);
-}
-inline UINT BandInfoSizeOf(const CControlBar* pThis) {
-    UINT n = 0;
-    std::memcpy(&n, reinterpret_cast<const unsigned char*>(pThis) + kOffReBarBandInfoSize, sizeof(n));
-    return n;
+inline UINT BandInfoSizeOf(const CControlBar* bar) {
+    return static_cast<const CReBar*>(bar)->m_nReBarBandInfoSize;
 }
 
 // Native owner handle, shared with client-inlined CWnd::SetOwner.
@@ -193,13 +159,10 @@ constexpr UINT  kAFX_IDW_REBAR      = 0xe804;
 constexpr UINT  kWM_SETMESSAGESTRING = 0x0362;
 constexpr UINT  kWM_POPMESSAGESTRING = 0x0375;
 constexpr UINT  kWM_RECALCPARENT     = 0x0368;
-constexpr DWORD kLM_STRETCH         = 0x01;
-constexpr DWORD kLM_HORZ            = 0x02;
 // The bit retail passes to AfxEndDeferRegisterClass in Create.  Its branch in
 // retail AfxEndDeferRegisterClass (0x2918f0, mfc140u; the test at 0x291ba2)
 // hands dwICC = 0x400 (ICC_COOL_CLASSES) to the common-controls initialiser
 // at 0x29334c.  (afximpl.h, which names it, is not shipped.)
-constexpr long  kAFX_WNDCOMMCTL_COOL_REG = 0x8000;
 // _afxComCtlVersion threshold in _AddBar: VERSION_IE401 = MAKELONG(72, 4).
 constexpr long  kVERSION_IE401      = 0x40048;
 // The two m_nReBarBandInfoSize values the retail constructor computes.  0x70
@@ -236,11 +199,11 @@ DWORD ComCtlVersion() {
 }
 
 // this->DefWindowProc(msg, wParam, lParam): CWnd vslot 73 (+0x248) in retail.
-// See the header comment for why this is not the CWnd::DefWindowProc thunk.
-inline LRESULT RbDefWindowProc(const CControlBar* pThis, UINT msg, WPARAM wParam, LPARAM lParam) {
+// Preserve direct common-control access for windows created before subclassing.
+inline LRESULT RbDefWindowProc(CControlBar* pThis, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (pThis->m_hWnd == nullptr) return 0;
     if (pThis->m_pfnSuper != nullptr) {
-        return ::CallWindowProcW(pThis->m_pfnSuper, pThis->m_hWnd, msg, wParam, lParam);
+        return pThis->DefWindowProcW(msg, wParam, lParam);
     }
     return ::SendMessageW(pThis->m_hWnd, msg, wParam, lParam);
 }
@@ -257,12 +220,10 @@ inline int KindOf(const CWnd* pWnd, CRuntimeClass* pClass) {
 //         bWindowVisible = pBar->IsVisible();                         // vslot 102 (+0x330)
 //     else
 //         bWindowVisible = (::GetWindowLong(hwndChild, GWL_STYLE) >> 28) & 1;   // WS_VISIBLE
-// DEVIATION: vslot 102 is devirtualised to the exported CControlBar body (no
-// retail control bar overrides it; a client override would not be seen).
 BOOL BandChildIsVisible(HWND hwndChild) {
     CWnd* pWnd = impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(hwndChild);
     if (pWnd != nullptr && KindOf(pWnd, impl__GetThisClass_CControlBar__SAPEAUCRuntimeClass__XZ())) {
-        return impl__IsVisible_CControlBar__UEBAHXZ(static_cast<const CControlBar*>(pWnd));
+        return static_cast<const CControlBar*>(pWnd)->IsVisible();
     }
     return (static_cast<DWORD>(::GetWindowLongW(hwndChild, GWL_STYLE)) >> 28) & 1;
 }
@@ -320,14 +281,6 @@ HWND AfxChildWindowFromPointImpl(HWND hWnd, POINT pt) {
 //     if (!(rbBand.fStyle & RBBS_HIDDEN))
 //         ::SendMessage(m_hWnd, RB_MAXIMIZEBAND, 0, 0);               // IAT SendMessageW
 //     return TRUE;
-// DEVIATIONS: vslot 91 is devirtualised on the runtime class to the two
-// CalcFixedLayout thunks whose parameter order matches the MSVC ABI (this,
-// hidden CSize*, ...): CReBar's (this file) and CStatusBar's.  The CControlBar,
-// CToolBar, CDialogBar and CDockBar thunks take the hidden return pointer
-// FIRST, which is not what their mangled names describe (see headerRequests),
-// so a bar of those classes -- or of a client class -- is sized from its
-// window rectangle, i.e. retail's non-control-bar branch.  RecalcLayout goes
-// through the CFrameWnd thunk, which dispatches to the frame's C++ override.
 // Retail reads the cached global _afxComCtlVersion (0x3b1b94, mfc140u; its
 // static initialiser is -1) directly rather than calling the 0x1db004 getter;
 // ComCtlVersion() below also fills the cache when it is still unset.  The two
@@ -341,35 +294,21 @@ BOOL AddBarImpl(CControlBar* pThis, CWnd* pBar, REBARBANDINFOW* pRBBI) {
     pRBBI->fMask |= RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
     pRBBI->hwndChild = pBar->m_hWnd;
 
-    int cxSize = 0;
-    int cySize = 0;
-    bool bSized = false;
+    CSize size;
     if (KindOf(pBar, impl__GetThisClass_CControlBar__SAPEAUCRuntimeClass__XZ())) {
-        const int bHorz = static_cast<int>(pThis->m_dwStyle & kCBRS_ORIENT_HORZ);
-        CSize size(0, 0);
-        if (KindOf(pBar, impl__GetThisClass_CReBar__SAPEAUCRuntimeClass__XZ())) {
-            impl__CalcFixedLayout_CReBar__UEAA_AVCSize__HH_Z(static_cast<CControlBar*>(pBar), &size, FALSE, bHorz);   // vslot 91
-            bSized = true;
-        } else if (KindOf(pBar, impl__GetThisClass_CStatusBar__SAPEAUCRuntimeClass__XZ())) {
-            impl__CalcFixedLayout_CStatusBar__UEAA_AVCSize__HH_Z(static_cast<CStatusBar*>(pBar), &size, FALSE, bHorz);   // vslot 91
-            bSized = true;
-        }
-        cxSize = size.cx;
-        cySize = size.cy;
-    }
-    if (!bSized) {
+        size = static_cast<CControlBar*>(pBar)->CalcFixedLayout(FALSE, pThis->m_dwStyle & kCBRS_ORIENT_HORZ);
+    } else {
         RECT rect = {};
         ::GetWindowRect(pBar->m_hWnd, &rect);
-        cxSize = rect.right - rect.left;
-        cySize = rect.bottom - rect.top;
+        size = CSize(rect.right - rect.left, rect.bottom - rect.top);
     }
 
-    pRBBI->cyMinChild = cySize;
-    const int cx = cxSize + (static_cast<long>(ComCtlVersion()) < kVERSION_IE401 ? 4 : 0);
+    pRBBI->cyMinChild = size.cy;
+    const int cx = size.cx + (static_cast<long>(ComCtlVersion()) < kVERSION_IE401 ? 4 : 0);
     pRBBI->cxIdeal = cx;
     if (pRBBI->fStyle & RBBS_USECHEVRON) {
         pRBBI->fMask |= RBBIM_IDEALSIZE;
-        pRBBI->cxMinChild = cySize;
+        pRBBI->cxMinChild = size.cy;
     } else {
         pRBBI->cxMinChild = cx;
     }
@@ -395,30 +334,14 @@ BOOL AddBarImpl(CControlBar* pThis, CWnd* pBar, REBARBANDINFOW* pRBBI) {
 
 } // namespace
 
-// Transcribed from retail RVA 0x1dd6e0 (mfc140u):
-//     CControlBar::CControlBar();                                     // 0x1d5ef0
-//     vfptr = &CReBar::`vftable';                                     // 0x322da8 (NOT reproduced)
-//     m_nReBarBandInfoSize = (_AfxGetComCtlVersion() < 0x60001)       // 0x1db004; unsigned `cmp; sbb; and; sub`
-//                          ? 0x70 : 0x80 /* sizeof(REBARBANDINFO) */;   // see kBandInfoSizePreV6
-//     m_cxLeftBorder = m_cxRightBorder = m_cyTopBorder = m_cyBottomBorder = 0;   // 8-byte stores at +0xf4, +0xfc
-// This body used to be `return pThis;`, which left the CControlBar base
-// unconstructed and m_nReBarBandInfoSize indeterminate (every RB_* call below
-// sends it as cbSize).  DEVIATION: the retail vftable store is not reproduced.
-// OpenMFC has no C++ CReBar class, so the object is left with the mingw
-// CControlBar vtable that `new (p) CControlBar()` in the CControlBar
-// constructor thunk (core/controlbar/Thunks.cpp) installs.  The sibling
-// constructor thunks there likewise install mingw vtables (each its own
-// class's) rather than the retail vftables.
+CReBar::CReBar()
+    : m_nReBarBandInfoSize(ComCtlVersion() < kComCtlVersion61 ? kBandInfoSizePreV6 : kBandInfoSizeV6) {
+    m_cxLeftBorder = m_cxRightBorder = m_cyTopBorder = m_cyBottomBorder = 0;
+}
+
 // Symbol: ??0CReBar@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CReBar__QEAA_XZ(void* pThis) {
-    impl___0CControlBar__IEAA_XZ(pThis);
-    CControlBar* pBar = static_cast<CControlBar*>(pThis);
-    BandInfoSizeOf(pBar) = (ComCtlVersion() < kComCtlVersion61) ? kBandInfoSizePreV6 : kBandInfoSizeV6;
-    pBar->m_cxLeftBorder = 0;
-    pBar->m_cxRightBorder = 0;
-    pBar->m_cyTopBorder = 0;
-    pBar->m_cyBottomBorder = 0;
-    return pThis;
+    return new (pThis) CReBar();
 }
 
 // Transcribed from retail RVA 0x1ddb80 (mfc140u):
@@ -474,18 +397,14 @@ extern "C" int MS_ABI impl__AddBar_CReBar__QEAAHPEAVCWnd__PEB_WPEAVCBitmap__K_Z(
     return AddBarImpl(pThis, pBar, &rbBand);
 }
 
-// Retail: the export table resolves this symbol to RVA 0x1d61d0 (mfc140u), the
-// same ICF-folded body as ?CalcDynamicLayout@CControlBar@@, and the CReBar
-// vftable holds 0x1d61d0 in slot 92.  Transcribed:
-//     return CalcFixedLayout(dwMode & LM_STRETCH, dwMode & LM_HORZ);  // vslot 91 (+0x2d8)
-// For a CReBar `this`, slot 91 is CReBar::CalcFixedLayout (0x1ddc00), which is
-// called directly (a client override of CalcFixedLayout would not be seen).
+CSize CReBar::CalcDynamicLayout(int length, DWORD mode) {
+    return CControlBar::CalcDynamicLayout(length, mode);
+}
+
 // Symbol: ?CalcDynamicLayout@CReBar@@UEAA?AVCSize@@HK@Z
 extern "C" CSize* MS_ABI impl__CalcDynamicLayout_CReBar__UEAA_AVCSize__HK_Z(
-    CControlBar* pThis, CSize* pRet, int nLength, unsigned long dwMode) {
-    (void)nLength;
-    return impl__CalcFixedLayout_CReBar__UEAA_AVCSize__HH_Z(
-        pThis, pRet, static_cast<int>(dwMode & kLM_STRETCH), static_cast<int>(dwMode & kLM_HORZ));   // vslot 91
+    CReBar* bar, CSize* result, int length, DWORD mode) {
+    return new (result) CSize(bar->CReBar::CalcDynamicLayout(length, mode));
 }
 
 // Transcribed from retail RVA 0x1ddc00 (mfc140u):
@@ -517,9 +436,6 @@ extern "C" CSize* MS_ABI impl__CalcDynamicLayout_CReBar__UEAA_AVCSize__HK_Z(
 //     }
 //     return CSize((bHorz && bStretch) ? 32767 : rectBound.Width(),
 //                  (!bHorz && bStretch) ? 32767 : rectBound.Height());
-// Slot 94 of the CReBar vftable is CControlBar::CalcInsideRect (0x1d7c50),
-// called here through its thunk; slot 102 inside BandChildIsVisible is
-// devirtualised as that helper describes.
 // Symbol: ?CalcFixedLayout@CReBar@@UEAA?AVCSize@@HH@Z
 extern "C" CSize* MS_ABI impl__CalcFixedLayout_CReBar__UEAA_AVCSize__HH_Z(
     CControlBar* pThis, CSize* pRet, int bStretch, int bHorz) {
@@ -553,7 +469,7 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CReBar__UEAA_AVCSize__HH_Z(
     if (!::IsRectEmpty(&rectBound)) {
         CRect rect;
         rect.SetRectEmpty();
-        impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(pThis, rect, bHorz);   // vslot 94
+        pThis->CalcInsideRect(rect, bHorz);   // vslot 94
         rectBound.right -= rect.Width();
         rectBound.bottom -= rect.Height();
     }
@@ -574,27 +490,30 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CReBar__UEAA_AVCSize__HH_Z(
 //             | CCS_NORESIZE | RBS_VARHEIGHT | dwCtrlStyle;           // `and $0xffbf024e; or; or $0x24e`
 //     return CWnd::Create(REBARCLASSNAME /*L"ReBarWindow32", 0x3406e0*/, NULL,
 //                         dwStyle, rect, pParentWnd, nID, NULL) != 0; // 0x28b690 (direct call)
-// NOTE: OpenMFC's AfxEndDeferRegisterClass (featurepack/CMFC_misc_stubs.cpp)
-// ignores its argument and registers only OpenMFC's own window class, so it
-// does NOT perform the ICC_COOL_CLASSES initialisation retail's 0x8000 branch
-// does (see headerRequests); Create relies on ReBarWindow32 already being
-// registered in the process.
+BOOL CReBar::Create(CWnd* parent, DWORD controlStyle, DWORD style, UINT id) {
+    INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_COOL_CLASSES};
+    if (!::InitCommonControlsEx(&controls)) return FALSE;
+
+    m_dwStyle = style & kCBRS_ALL;
+    if (id == kAFX_IDW_REBAR) m_dwStyle |= kCBRS_HIDE_INPLACE;
+
+    const RECT rect{};
+    const DWORD windowStyle = (style & ~kCBRS_ALL)
+                            | CCS_NOPARENTALIGN | CCS_NOMOVEY | CCS_NODIVIDER
+                            | CCS_NORESIZE | RBS_VARHEIGHT | controlStyle;
+    return CWnd::Create(REBARCLASSNAMEW, nullptr, windowStyle, rect, parent, id, nullptr);
+}
+
 // Symbol: ?Create@CReBar@@UEAAHPEAVCWnd@@KKI@Z
-extern "C" int MS_ABI impl__Create_CReBar__UEAAHPEAVCWnd__KKI_Z(
-    CControlBar* pThis, CWnd* pParentWnd, unsigned long dwCtrlStyle, unsigned long dwStyle, unsigned int nID) {
-    pThis->m_dwStyle = dwStyle & kCBRS_ALL;
-    if (nID == kAFX_IDW_REBAR) {
-        pThis->m_dwStyle |= kCBRS_HIDE_INPLACE;
-    }
-    impl__AfxEndDeferRegisterClass__YAHJ_Z(kAFX_WNDCOMMCTL_COOL_REG);
-    (void)ComCtlVersion();
-    RECT rect;
-    ::SetRectEmpty(&rect);
-    const DWORD dwWinStyle = (dwStyle & ~kCBRS_ALL)
-                           | CCS_NOPARENTALIGN | CCS_NOMOVEY | CCS_NODIVIDER | CCS_NORESIZE | RBS_VARHEIGHT
-                           | dwCtrlStyle;
-    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
-               pThis, REBARCLASSNAMEW, nullptr, dwWinStyle, rect, pParentWnd, nID, nullptr) != 0;
+extern "C" BOOL MS_ABI impl__Create_CReBar__UEAAHPEAVCWnd__KKI_Z(
+    CReBar* bar, CWnd* parent, DWORD controlStyle, DWORD style, UINT id) {
+    return bar->CReBar::Create(parent, controlStyle, style, id);
+}
+
+CSize CReBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
+    CSize result;
+    impl__CalcFixedLayout_CReBar__UEAA_AVCSize__HH_Z(this, &result, stretch, horizontal);
+    return result;
 }
 
 // Retail: WM_ERASEBKGND maps to RVA 0xda30 (mfc140u), `jmp CWnd::Default`
@@ -647,7 +566,7 @@ extern "C" void MS_ABI impl__OnNcCalcSize_CReBar__IEAAXHPEAUtagNCCALCSIZE_PARAMS
     (void)bCalcValidRects;
     CRect rect;
     rect.SetRectEmpty();
-    impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(pThis, rect, (pThis->m_dwStyle & kCBRS_ORIENT_HORZ) != 0);
+    pThis->CControlBar::CalcInsideRect(rect, (pThis->m_dwStyle & kCBRS_ORIENT_HORZ) != 0);
     lpncsp->rgrc[0].left += rect.left;
     lpncsp->rgrc[0].top += rect.top;
     lpncsp->rgrc[0].right += rect.right;
@@ -744,37 +663,30 @@ extern "C" __int64 MS_ABI impl__OnShowBand_CReBar__IEAA_J_K_J_Z(
 //     if (pWnd == NULL)
 //         return CWnd::OnToolHitTest(point, pTI);                     // 0x28bcc0, direct call on this
 //     return pWnd->OnToolHitTest(point, pTI);                         // CWnd vslot 31 (+0xf8) on the child
-// DEVIATION: the child's vslot 31 is devirtualised on its runtime class, as
-// core/controlbar/CControlBar.cpp (CallOnToolHitTest) does: a CToolBar child
-// goes to the CToolBar thunk, a nested CReBar to this one, anything else to
-// CWnd's.  An override in any other class (e.g. a client CControlBar) is not
-// seen.
+INT_PTR CReBar::OnToolHitTest(CPoint point, TOOLINFOW* info) const {
+    const HWND child = AfxChildWindowFromPointImpl(m_hWnd, POINT{point.x, point.y});
+    CWnd* window = impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(child);
+    return window ? window->OnToolHitTest(point, info) : CWnd::OnToolHitTest(point, info);
+}
+
 // Symbol: ?OnToolHitTest@CReBar@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z
-extern "C" __int64 MS_ABI impl__OnToolHitTest_CReBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
-    const CControlBar* pThis, CPoint point, TOOLINFOW* pTI) {
-    POINT pt = { point.x, point.y };
-    HWND hWndChild = AfxChildWindowFromPointImpl(pThis->m_hWnd, pt);
-    CWnd* pWnd = impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(hWndChild);
-    if (pWnd == nullptr) {
-        return impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(pThis, point, pTI);
-    }
-    if (KindOf(pWnd, impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ())) {
-        return impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(static_cast<const CToolBar*>(pWnd), point, pTI);   // vslot 31
-    }
-    if (KindOf(pWnd, impl__GetThisClass_CReBar__SAPEAUCRuntimeClass__XZ())) {
-        return impl__OnToolHitTest_CReBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(static_cast<const CControlBar*>(pWnd), point, pTI); // vslot 31
-    }
-    return impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(pWnd, point, pTI);   // vslot 31
+extern "C" INT_PTR MS_ABI impl__OnToolHitTest_CReBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
+    const CReBar* bar, CPoint point, TOOLINFOW* info) {
+    return bar->CReBar::OnToolHitTest(point, info);
 }
 
 // Retail: vftable slot 93 of CReBar (0x322da8, mfc140u) holds RVA 0xd0d50 --
 // the export table's address for this symbol -- which is a single
 // `jmp CWnd::UpdateDialogControls` (0x291460):
 //     UpdateDialogControls(pTarget, bDisableIfNoHndler);
+void CReBar::OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) {
+    UpdateDialogControls(target, disableIfNoHandler);
+}
+
 // Symbol: ?OnUpdateCmdUI@CReBar@@UEAAXPEAVCFrameWnd@@H@Z
 extern "C" void MS_ABI impl__OnUpdateCmdUI_CReBar__UEAAXPEAVCFrameWnd__H_Z(
-    CControlBar* pThis, CFrameWnd* pTarget, int bDisableIfNoHndler) {
-    impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(pThis, pTarget, bDisableIfNoHndler);
+    CReBar* bar, CFrameWnd* target, BOOL disableIfNoHandler) {
+    bar->CReBar::OnUpdateCmdUI(target, disableIfNoHandler);
 }
 
 // Transcribed from retail RVA 0x1de030 (mfc140u):
@@ -785,20 +697,23 @@ extern "C" void MS_ABI impl__OnUpdateCmdUI_CReBar__UEAAXPEAVCFrameWnd__H_Z(
 //         return ::SendMessage(pOwner->m_hWnd, message, wParam, lParam);   // IAT SendMessageW
 //     }
 //     return CControlBar::WindowProc(message, wParam, lParam);        // 0x1d6810, direct call
-// NOTE: OpenMFC's CControlBar::WindowProc thunk (core/controlbar/CControlBar.cpp)
-// currently just returns ::DefWindowProcW; the call is still made through it.
-// Symbol: ?WindowProc@CReBar@@MEAA_JI_K_J@Z
-extern "C" __int64 MS_ABI impl__WindowProc_CReBar__MEAA_JI_K_J_Z(
-    CControlBar* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam) {
+LRESULT CReBar::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
     if (message == kWM_SETMESSAGESTRING || message == kWM_POPMESSAGESTRING) {
-        HWND hOwner = RawOwnerHwnd(pThis);
-        if (hOwner == nullptr) hOwner = ::GetParent(pThis->m_hWnd);
+        HWND hOwner = RawOwnerHwnd(this);
+        if (hOwner == nullptr) hOwner = ::GetParent(m_hWnd);
         CWnd* pOwner = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(hOwner);
         if (pOwner == nullptr) {
             impl__AfxThrowInvalidArgException__YAXXZ();
             return 0;
         }
-        return ::SendMessage(pOwner->m_hWnd, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam));
+        return ::SendMessage(pOwner->m_hWnd, message, wParam, lParam);
     }
-    return impl__WindowProc_CControlBar__UEAA_JI_K_J_Z(pThis, message, wParam, lParam);
+    return CControlBar::WindowProc(message, wParam, lParam);
+}
+
+
+// Symbol: ?WindowProc@CReBar@@MEAA_JI_K_J@Z
+extern "C" LRESULT MS_ABI impl__WindowProc_CReBar__MEAA_JI_K_J_Z(
+    CReBar* bar, UINT message, WPARAM wParam, LPARAM lParam) {
+    return bar->CReBar::WindowProc(message, wParam, lParam);
 }

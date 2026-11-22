@@ -5,7 +5,6 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/ClassicDockingSupport.h"
-#include <atomic>
 #include <cstddef>
 #include <cstring>
 
@@ -308,64 +307,49 @@ const void* const g_msToolCmdUIVtbl[4] = {
     reinterpret_cast<const void*>(&CmdUI_SetRadio),
     reinterpret_cast<const void*>(&CmdUI_SetText),
 };
-// CCmdTarget::OnCmdMsg is MSVC vtable slot 5 (`mov 0x28(%rax),%rax` on
-// pTarget inside OnUpdateCmdUI); the target frame is reached by raw slot, as
-// core/controlbar/CStatusBar.cpp does.
-constexpr size_t kVtOnCmdMsgSlot = 5;
-using OnCmdMsgFn = int (MS_ABI*)(void* pThis, unsigned int nID, int nCode, void* pExtra, void* pHandlerInfo);
-
-// The vptr OpenMFC's own (g++-compiled) CToolBar constructor installs,
-// captured by CToolBar::CToolBar() further down.  A client that declares a
-// plain `CToolBar m_wndToolBar;` gets exactly this vptr, because the exported
-// ctor (core/controlbar/Thunks.cpp, `new(pThis) CToolBar()`) builds the object
-// with g++'s vtable; a client class DERIVED from CToolBar overwrites it with
-// its own MSVC vftable after that ctor returns.  The exported
-// CCmdTarget::OnCmdMsg thunk (core/runtime/CCmdTarget.cpp) reads
-// GetMessageMap from MSVC vslot 12, and its own comment warns that an object
-// still carrying the g++ vtable must not be handed to it: in g++'s CToolBar
-// vtable (checked with -fdump-lang-class) slot 12 is CWnd::WindowProc, so the
-// call would run WindowProc with garbage arguments and dereference its
-// LRESULT as a message map.  OnUpdateCmdUI uses this to tell the two apart.
-std::atomic<const void*> g_gxxToolBarVptr{nullptr};
-inline bool HasGxxToolBarVtable(const CToolBar* pThis) {
-    return *reinterpret_cast<const void* const*>(pThis) ==
-           g_gxxToolBarVptr.load(std::memory_order_relaxed);
-}
-
 } // namespace
 
-// Symbol: ?CalcDynamicLayout@CToolBar@@UEAA?AVCSize@@HK@Z
-extern "C" void MS_ABI impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(
-    CSize* pRet, CToolBar* pThis, int nLength, unsigned long dwMode) {
-    (void)dwMode;
-    CSize size = ToolbarDefaultSize(pThis);
-    if (nLength > 0) size.cx = nLength;
-    BuildCSizeResult(pRet, size.cx, size.cy);
+CSize CToolBar::CalcDynamicLayout(int length, DWORD mode) {
+    (void)mode;
+    CSize size = ToolbarDefaultSize(this);
+    if (length > 0) size.cx = length;
+    return size;
 }
-// Symbol: ?CalcFixedLayout@CToolBar@@UEAA?AVCSize@@HH@Z
-extern "C" void MS_ABI impl__CalcFixedLayout_CToolBar__UEAA_AVCSize__HH_Z(
-    CSize* pRet, CToolBar* pThis, int bStretch, int bHorz) {
-    CSize size = ToolbarDefaultSize(pThis);
-    if (bStretch && pThis && pThis->GetSafeHwnd()) {
-        RECT rc = {};
-        if (::GetClientRect(::GetParent(pThis->GetSafeHwnd()), &rc)) {
-            if (bHorz) size.cx = rc.right - rc.left;
-            else size.cy = rc.bottom - rc.top;
+
+CSize CToolBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
+    CSize size = ToolbarDefaultSize(this);
+    if (stretch && m_hWnd) {
+        RECT rect = {};
+        if (::GetClientRect(::GetParent(m_hWnd), &rect)) {
+            if (horizontal) size.cx = rect.right - rect.left;
+            else size.cy = rect.bottom - rect.top;
         }
     }
-    BuildCSizeResult(pRet, size.cx, size.cy);
+    return size;
 }
+
+// Symbol: ?CalcDynamicLayout@CToolBar@@UEAA?AVCSize@@HK@Z
+extern "C" CSize* MS_ABI impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(
+    CToolBar* pThis, CSize* result, int length, DWORD mode) {
+    return new (result) CSize(pThis->CToolBar::CalcDynamicLayout(length, mode));
+}
+
+// Symbol: ?CalcFixedLayout@CToolBar@@UEAA?AVCSize@@HH@Z
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CToolBar__UEAA_AVCSize__HH_Z(
+    CToolBar* pThis, CSize* result, BOOL stretch, BOOL horizontal) {
+    return new (result) CSize(pThis->CToolBar::CalcFixedLayout(stretch, horizontal));
+}
+
 // Symbol: ?CalcLayout@CToolBar@@IEAA?AVCSize@@KH@Z
-extern "C" void MS_ABI impl__CalcLayout_CToolBar__IEAA_AVCSize__KH_Z(
-    CSize* pRet, CToolBar* pThis, unsigned long dwMode, int nLength) {
-    impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(pRet, pThis, nLength, dwMode);
+extern "C" CSize* MS_ABI impl__CalcLayout_CToolBar__IEAA_AVCSize__KH_Z(
+    CToolBar* pThis, CSize* result, DWORD mode, int length) {
+    return new (result) CSize(pThis->CToolBar::CalcDynamicLayout(length, mode));
 }
+
 // Symbol: ?CalcSize@CToolBar@@IEAA?AVCSize@@PEAU_TBBUTTON@@H@Z
-extern "C" void MS_ABI impl__CalcSize_CToolBar__IEAA_AVCSize__PEAU_TBBUTTON__H_Z(
-    CSize* pRet, CToolBar* pThis, TBBUTTON* pData, int nCount) {
-    (void)pData;
-    CSize size = ToolbarDefaultSize(pThis, nCount);
-    BuildCSizeResult(pRet, size.cx, size.cy);
+extern "C" CSize* MS_ABI impl__CalcSize_CToolBar__IEAA_AVCSize__PEAU_TBBUTTON__H_Z(
+    CToolBar* pThis, CSize* result, TBBUTTON* /*buttons*/, int count) {
+    return new (result) CSize(ToolbarDefaultSize(pThis, count));
 }
 // Symbol: ?get_accName@CToolBar@@UEAAJUtagVARIANT@@PEAPEA_W@Z
 extern "C" long MS_ABI impl__get_accName_CToolBar__UEAAJUtagVARIANT__PEAPEA_W_Z(
@@ -398,10 +382,18 @@ extern "C" void MS_ABI impl__Layout_CToolBar__IEAAXXZ(CToolBar* pThis) {
         ::SendMessageW(pThis->GetSafeHwnd(), TB_AUTOSIZE, 0, 0);
     }
 }
+void CToolBar::OnBarStyleChange(DWORD oldStyle, DWORD newStyle) {
+    if (m_hWnd && ((oldStyle ^ newStyle) & CBRS_BORDER_ANY)) {
+        ::SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0,
+                       SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
+    m_bDelayedButtonLayout = TRUE;
+}
+
 // Symbol: ?OnBarStyleChange@CToolBar@@UEAAXKK@Z
-extern "C" void MS_ABI impl__OnBarStyleChange_CToolBar__UEAAXKK_Z(CToolBar* pThis, unsigned long oldStyle, unsigned long newStyle) {
-    (void)oldStyle;
-    if (pThis) pThis->SetBarStyle(newStyle);
+extern "C" void MS_ABI impl__OnBarStyleChange_CToolBar__UEAAXKK_Z(
+    CToolBar* pThis, DWORD oldStyle, DWORD newStyle) {
+    if (pThis) pThis->CToolBar::OnBarStyleChange(oldStyle, newStyle);
 }
 // Symbol: ?OnEraseBkgnd@CToolBar@@IEAAHPEAVCDC@@@Z
 extern "C" int MS_ABI impl__OnEraseBkgnd_CToolBar__IEAAHPEAVCDC___Z(CToolBar* pThis, CDC* pDC) {
@@ -515,6 +507,10 @@ extern "C" __int64 MS_ABI impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTO
     }
     return -1;
 }
+INT_PTR CToolBar::OnToolHitTest(CPoint point, TOOLINFOW* info) const {
+    return impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(this, point, info);
+}
+
 // Transcribed from retail CToolBar::OnUpdateCmdUI, RVA 0x1dd4f0 (mfc140u):
 //     CToolCmdUI state;                                  // vftable 0x3227e8; CCmdUI ctor inlined (all zero)
 //     state.m_pOther = this;
@@ -543,17 +539,6 @@ extern "C" __int64 MS_ABI impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTO
 //     // update the dialog controls added to the toolbar
 //     UpdateDialogControls(pTarget, bDisableIfNoHndler);                 // 0x291460
 // Here the vtable is g_msToolCmdUIVtbl, so state.Enable is CmdUI_Enable.
-// DEVIATION: the two "toolbar handles it itself" OnCmdMsg calls are skipped
-// when `this` still carries OpenMFC's g++ CToolBar vtable (a plain,
-// non-derived CToolBar; see g_gxxToolBarVptr).  For such an object retail's
-// calls return FALSE anyway: the retail message maps on that chain --
-// CToolBar 0x322808, CControlBar 0x3212a8, CWnd 0x336c60 (mfc140u; the root
-// CCmdTarget map is never scanned) -- hold no WM_COMMAND entry, so neither
-// the reflected nor the plain CN_UPDATE_COMMAND_UI lookup can match.
-// pTarget is reached through MSVC vslot 5, which is right for a frame whose
-// vftable is MSVC's (any client-derived frame); an OpenMFC-constructed,
-// non-derived frame would carry g++'s vtable instead (same limitation as
-// CStatusBar::OnUpdateCmdUI in core/controlbar/CStatusBar.cpp).
 // Symbol: ?OnUpdateCmdUI@CToolBar@@UEAAXPEAVCFrameWnd@@H@Z
 extern "C" void MS_ABI impl__OnUpdateCmdUI_CToolBar__UEAAXPEAVCFrameWnd__H_Z(CToolBar* pThis, CFrameWnd* pTarget, int bDisableIfNoHndler) {
     if (pThis == nullptr) return;
@@ -562,34 +547,33 @@ extern "C" void MS_ABI impl__OnUpdateCmdUI_CToolBar__UEAAXPEAVCFrameWnd__H_Z(CTo
     state.vfptr = g_msToolCmdUIVtbl;
     state.m_pOther = pThis;
     state.m_nIndexMax = static_cast<UINT>(TbDefWindowProc(pThis, kTB_BUTTONCOUNT, 0, 0));
-    const bool bSelfDispatch = !HasGxxToolBarVtable(pThis);
     for (state.m_nIndex = 0; static_cast<UINT>(state.m_nIndex) < state.m_nIndexMax; ++state.m_nIndex) {
         ::TBBUTTON button;
         TbGetButton(pThis, state.m_nIndex, &button);
         state.m_nID = static_cast<UINT>(button.idCommand);
         if (button.fsStyle & TBSTYLE_SEP) continue;
-        if (bSelfDispatch &&
-            impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(pThis, 0, kReflectUpdateCode, &state, nullptr)) {
+        if (impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(pThis, 0, kReflectUpdateCode, &state, nullptr)) {
             continue;
         }
-        if (bSelfDispatch &&
-            impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(pThis, state.m_nID, kCN_UPDATE_COMMAND_UI, &state, nullptr)) {
+        if (impl__OnCmdMsg_CCmdTarget__UEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(pThis, state.m_nID, kCN_UPDATE_COMMAND_UI, &state, nullptr)) {
             continue;
         }
         if (state.m_nID == 0 || static_cast<WORD>(state.m_nID) == 0xFFFF) continue;
         if (pTarget == nullptr) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }
         state.m_bEnableChanged = FALSE;
-        void** vtbl = *reinterpret_cast<void***>(pTarget);
-        OnCmdMsgFn fnOnCmdMsg = reinterpret_cast<OnCmdMsgFn>(vtbl[kVtOnCmdMsgSlot]);
-        fnOnCmdMsg(pTarget, state.m_nID, kCN_UPDATE_COMMAND_UI, &state, nullptr);
+        pTarget->OnCmdMsg(state.m_nID, kCN_UPDATE_COMMAND_UI, &state, nullptr);
         if (bDisableIfNoHndler && !state.m_bEnableChanged) {
-            void* info[2] = {nullptr, nullptr};   // AFX_CMDHANDLERINFO {pTarget, pmf}; retail zeroes pTarget only
-            const int bHandler = fnOnCmdMsg(pTarget, state.m_nID, kCN_COMMAND, &state, info);
+            AFX_CMDHANDLERINFO info{};
+            const BOOL bHandler = pTarget->OnCmdMsg(state.m_nID, kCN_COMMAND, &state, &info);
             CmdUI_Enable(&state, bHandler);
         }
     }
     impl__UpdateDialogControls_CWnd__QEAAXPEAVCCmdTarget__H_Z(pThis, pTarget, bDisableIfNoHndler);
 }
+void CToolBar::OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) {
+    impl__OnUpdateCmdUI_CToolBar__UEAAXPEAVCFrameWnd__H_Z(this, target, disableIfNoHandler);
+}
+
 // Symbol: ?OnWindowPosChanging@CToolBar@@IEAAXPEAUtagWINDOWPOS@@@Z
 extern "C" void MS_ABI impl__OnWindowPosChanging_CToolBar__IEAAXPEAUtagWINDOWPOS___Z(CToolBar* pThis, WINDOWPOS* lpWndPos) {
     if (!pThis || !pThis->GetSafeHwnd() || !lpWndPos) return;
@@ -644,8 +628,6 @@ extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBAXHAEAV__CStringT__WV__S
 CToolBar::CToolBar()
     : m_hRsrcImageWell(nullptr), m_hInstImageWell(nullptr), m_hbmImageWell(nullptr),
       m_bDelayedButtonLayout(TRUE), m_pStringMap(nullptr) {
-    // Record the g++ vptr this ctor installs (see g_gxxToolBarVptr).
-    g_gxxToolBarVptr.store(*reinterpret_cast<const void* const*>(this), std::memory_order_relaxed);
     // m_nCount and the docking members are inherited from CControlBar (ctor).
     m_sizeButton.cx = 23;
     m_sizeButton.cy = 22;
@@ -888,9 +870,6 @@ CToolTipCtrl* CToolBar::GetToolTips() const {
 }
 void CToolBar::EnableDocking(DWORD dwDockStyle) {
     impl__EnableDocking_CControlBar__QEAAXK_Z(this, dwDockStyle);
-}
-BOOL CToolBar::IsVisible() const {
-    return impl__IsVisible_CControlBar__UEBAHXZ(this);
 }
 BOOL CToolBar::IsFloating() const {
     return impl__IsFloating_CControlBar__QEBAHXZ(this);

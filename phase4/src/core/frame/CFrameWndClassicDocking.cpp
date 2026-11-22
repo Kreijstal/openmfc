@@ -27,7 +27,8 @@ constexpr struct DockSide {
 };
 
 bool IsDockBar(const CWnd* window) {
-    return window->IsKindOf(impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ());
+    return window->IsKindOf(impl__GetThisClass_CControlBar__SAPEAUCRuntimeClass__XZ()) &&
+           static_cast<const CControlBar*>(window)->IsDockBar();
 }
 
 void PositionFloatingFrame(CFrameWnd* frame, CPoint position) {
@@ -129,7 +130,7 @@ void CFrameWnd::DockControlBar(CControlBar* pBar, unsigned int nDockBarID, const
         else if ((bars & alignRight) && GetControlBar(rightBarId)) nDockBarID = rightBarId;
     }
     if (auto* dockBar = GetControlBar(nDockBarID)) {
-        if (dockBar->IsKindOf(impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ())) {
+        if (dockBar->IsDockBar()) {
             DockControlBar(pBar, reinterpret_cast<CDockBar*>(dockBar), lpRect);
             return;
         }
@@ -187,13 +188,13 @@ void CFrameWnd::ShowControlBar(CControlBar* bar, BOOL show, BOOL delay) {
 
     const bool floating = impl__IsFloating_CControlBar__QEBAHXZ(bar) != FALSE;
     if (delay) {
-        impl__DelayShow_CControlBar__UEAAXH_Z(bar, show);
+        bar->DelayShow(show);
         ScheduleLayout(frame);
     } else {
         const UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE;
         ::SetWindowPos(bar->m_hWnd, nullptr, 0, 0, 0, 0,
                        flags | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
-        impl__DelayShow_CControlBar__UEAAXH_Z(bar, show);
+        bar->DelayShow(show);
         if (show || !floating) frame->RecalcLayout(FALSE);
     }
 

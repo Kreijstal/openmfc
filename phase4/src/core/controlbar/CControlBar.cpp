@@ -17,12 +17,6 @@
 // CWnd slots the bodies go through: 31 OnToolHitTest, 69 PreTranslateMessage,
 // 86 IsFrameWnd.
 //
-// Virtual dispatch: OpenMFC's CControlBar objects carry a mingw (Itanium)
-// vtable whose slot numbering is not MSVC's, so wherever retail calls through a
-// vtable slot the bodies below call the CControlBar impl__ thunk directly, or
-// devirtualise on the CRuntimeClass where a correctly typed sibling thunk
-// exists.  Every such site is marked "vslot NN" in its comment.
-
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/DockContextSupport.h"
@@ -48,11 +42,7 @@ extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(
 extern "C" int MS_ABI impl__IsTopParentActive_CWnd__QEBAHXZ(const CWnd* pThis);                       // core/window/Thunks.cpp
 extern "C" void MS_ABI impl__ActivateTopParent_CWnd__QEAAXXZ(CWnd* pThis);                             // core/window/Thunks.cpp
 extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis);                              // core/window/CWnd.cpp
-extern "C" LONGLONG MS_ABI impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
-    const CWnd* pThis, CPoint point, TOOLINFOW* pTI);                                                 // core/window/CWnd.cpp
 extern "C" int MS_ABI impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg);       // core/window/CWnd.cpp
-extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg);    // core/window/CWnd.cpp
-extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(CFrameWnd* pThis, MSG* pMsg); // core/frame/CFrameWnd.cpp
 extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd* pThis);                                    // core/window/Thunks.cpp
 extern "C" int MS_ABI impl__EnableToolTips_CWnd__QEAAHH_Z(CWnd* pThis, int bEnable);                  // core/window/Thunks.cpp
 extern "C" int MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* pThis, LONGLONG* pResult); // core/window/CWnd.cpp
@@ -64,17 +54,8 @@ extern "C" int MS_ABI impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(
 extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis, const CRuntimeClass* pClass);                                               // core/runtime/CObject.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ();              // core/controlbar/CToolBar.cpp
-extern "C" __int64 MS_ABI impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
-    const CToolBar* pThis, CPoint point, TOOLINFOW* pTI);                                             // core/controlbar/CToolBar.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();              // core/controlbar/RuntimeClasses.cpp
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialogBar__SAPEAUCRuntimeClass__XZ();            // core/controlbar/RuntimeClasses.cpp
 extern "C" void MS_ABI impl__RemoveControlBar_CFrameWnd__QEAAXPEAVCControlBar___Z(CFrameWnd* pThis, CControlBar* pBar); // core/frame/Thunks.cpp
-extern "C" void MS_ABI impl__OnUpdateCmdUI_CToolBar__UEAAXPEAVCFrameWnd__H_Z(
-    CToolBar* pThis, CFrameWnd* pTarget, int bDisableIfNoHndler);                                     // core/controlbar/CToolBar.cpp
-extern "C" void MS_ABI impl__OnUpdateCmdUI_CDialogBar__UEAAXPEAVCFrameWnd__H_Z(
-    CDialogBar* pThis, CFrameWnd* pTarget, int bDisableIfNoHndler);                                   // core/controlbar/CDialogBar.cpp
-extern "C" void MS_ABI impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(
-    CSize* pRet, CToolBar* pThis, int nLength, unsigned long dwMode);                                 // core/controlbar/CToolBar.cpp
 extern "C" CWindowDC* MS_ABI impl___0CWindowDC__QEAA_PEAVCWnd___Z(CWindowDC* pThis, CWnd* pWnd);     // core/gdi/CWindowDC.cpp
 extern "C" void MS_ABI impl___1CWindowDC__UEAA_XZ(CWindowDC* pThis);                                  // core/gdi/CWindowDC.cpp
 extern "C" CPaintDC* MS_ABI impl___0CPaintDC__QEAA_PEAVCWnd___Z(CPaintDC* pThis, CWnd* pWnd);        // core/gdi/CPaintDC.cpp
@@ -99,8 +80,6 @@ extern "C" void MS_ABI impl__DoPaint_CControlBar__UEAAXPEAVCDC___Z(CControlBar* 
 extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARENTPARAMS___Z(CControlBar* pThis, void* lpLayout);
 extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CControlBar__QEAA_J_K_J_Z(CControlBar* pThis, UINT64 wParam, __int64 lParam);
 extern "C" void MS_ABI impl__ResetTimer_CControlBar__QEAAX_KI_Z(CControlBar* pThis, UINT64 nIDEvent, UINT uElapse);
-extern "C" void* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(void* pRet, CControlBar* pThis, int nLength, DWORD dwMode);
-extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*, void*, int, int);
 
 namespace {
 
@@ -248,58 +227,6 @@ inline bool IsToolBarOrDockBar(const CControlBar* pThis) {
            KindOf(pThis, impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ());
 }
 
-// vslot 93 (OnUpdateCmdUI, pure in CControlBar), devirtualised on the runtime
-// class.  Only the siblings whose thunks carry a real parameter list are
-// reachable: CToolBar and CDialogBar.  CStatusBar, CReBar, COleResizeBar and
-// CDockBar still define their OnUpdateCmdUI thunk with an auto-generated
-// `(void** p0, int p1)` list (see headerRequests), so for them -- and for any
-// client-derived class -- the call is dropped.
-inline void CallOnUpdateCmdUI(CControlBar* pThis, CFrameWnd* pTarget, int bDisableIfNoHndler) {
-    if (KindOf(pThis, impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ())) {
-        impl__OnUpdateCmdUI_CToolBar__UEAAXPEAVCFrameWnd__H_Z(static_cast<CToolBar*>(pThis), pTarget, bDisableIfNoHndler);
-    } else if (KindOf(pThis, impl__GetThisClass_CDialogBar__SAPEAUCRuntimeClass__XZ())) {
-        impl__OnUpdateCmdUI_CDialogBar__UEAAXPEAVCFrameWnd__H_Z(static_cast<CDialogBar*>(pThis), pTarget, bDisableIfNoHndler);
-    }
-}
-
-// CWnd vslot 31 (OnToolHitTest), devirtualised on the runtime class: CToolBar
-// is the only CControlBar sibling whose override carries a correctly typed
-// thunk (CReBar's is a placeholder, CStatusBar / CDialogBar have none), so
-// everything else goes to CWnd's.  DEVIATION: OpenMFC's CWnd thunk
-// (core/window/CWnd.cpp) returns -1 whenever pTI is NULL, whereas retail's
-// CWnd::OnToolHitTest hit-tests the child windows and only fills pTI when it
-// is given one; the NULL-pTI callers below (OnHelpHitTest, OnTimer,
-// OnLButtonDown, OnLButtonDblClk) therefore see "no tool" on a non-CToolBar.
-inline __int64 CallOnToolHitTest(const CControlBar* pThis, CPoint point, TOOLINFOW* pTI) {
-    if (KindOf(pThis, impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ())) {
-        return impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(static_cast<const CToolBar*>(pThis), point, pTI);
-    }
-    return impl__OnToolHitTest_CWnd__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(pThis, point, pTI);
-}
-
-// vslot 92 (CalcDynamicLayout), devirtualised: CToolBar overrides it with a
-// correctly typed thunk; everything else gets CControlBar's.  (CReBar's
-// override is still a placeholder -- see headerRequests.)
-inline CSize CallCalcDynamicLayout(CControlBar* pThis, int nLength, DWORD dwMode) {
-    CSize size(0, 0);
-    if (KindOf(pThis, impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ())) {
-        impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(&size, static_cast<CToolBar*>(pThis), nLength, dwMode);
-    } else {
-        impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(&size, pThis, nLength, dwMode);
-    }
-    return size;
-}
-
-// vslot 69 (PreTranslateMessage) on the owner chain, devirtualised on
-// IsFrameWnd: a frame owner goes through the CFrameWnd thunk (which dispatches
-// to the repo's C++ overrides), anything else through CWnd's.
-inline int OwnerPreTranslateMessage(CWnd* pOwner, MSG* pMsg) {
-    if (impl__IsFrameWnd_CWnd__UEBAHXZ(pOwner)) {
-        return impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(static_cast<CFrameWnd*>(pOwner), pMsg);
-    }
-    return impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(pOwner, pMsg);
-}
-
 } // namespace
 
 // Retail: vftable slot 104 of the CDialogBar / CStatusBar / CToolBar vftables
@@ -313,9 +240,18 @@ inline int OwnerPreTranslateMessage(CWnd* pOwner, MSG* pMsg) {
 extern "C" int MS_ABI impl__IsDockBar_CControlBar__UEBAHXZ(const CControlBar* /*pThis*/) {
     return FALSE;
 }
+void CControlBar::SetBarStyle(DWORD style) {
+    impl__EnableToolTips_CWnd__QEAAHH_Z(this, (style & kCBRS_TOOLTIPS) != 0);
+    const DWORD oldStyle = m_dwStyle;
+    if (oldStyle != style) {
+        m_dwStyle = style;
+        OnBarStyleChange(oldStyle, style);
+    }
+}
+
 // Symbol: ?SetBarStyle@CControlBar@@QEAAXK@Z
 extern "C" void MS_ABI impl__SetBarStyle_CControlBar__QEAAXK_Z(CControlBar* pThis, DWORD dwStyle) {
-    pThis->m_dwStyle = dwStyle;
+    pThis->SetBarStyle(dwStyle);
 }
 // Symbol: ?GetDockingFrame@CControlBar@@QEBAPEAVCFrameWnd@@XZ
 extern "C" CFrameWnd* MS_ABI impl__GetDockingFrame_CControlBar__QEBAPEAVCFrameWnd__XZ(const CControlBar* pThis) {
@@ -363,12 +299,12 @@ extern "C" void MS_ABI impl__EraseNonClient_CControlBar__QEAAXXZ(CControlBar* pT
     impl__ExcludeClipRect_CDC__QEAAHPEBUtagRECT___Z(pDC, static_cast<const RECT*>(rectClient));
 
     ::OffsetRect(static_cast<RECT*>(rectWindow), -rectWindow.left, -rectWindow.top);
-    impl__DrawBorders_CControlBar__UEAAXPEAVCDC__AEAVCRect___Z(pThis, pDC, rectWindow);   // vslot 96
+    pThis->DrawBorders(pDC, rectWindow);   // vslot 96
 
     impl__IntersectClipRect_CDC__QEAAHPEBUtagRECT___Z(pDC, static_cast<const RECT*>(rectWindow));
     ::SendMessage(pThis->m_hWnd, WM_ERASEBKGND, reinterpret_cast<WPARAM>(pDC->m_hDC), 0);
 
-    impl__DrawNCGripper_CControlBar__UEAAXPEAVCDC__AEBVCRect___Z(pThis, pDC, rectWindow); // vslot 98
+    pThis->DrawNCGripper(pDC, rectWindow); // vslot 98
     impl___1CWindowDC__UEAA_XZ(pDC);
 }
 // Retail: vftable slot 105 in the CDialogBar and CDockBar vftables (mfc140u)
@@ -406,8 +342,8 @@ extern "C" void MS_ABI impl__DoPaint_CControlBar__UEAAXPEAVCDC___Z(CControlBar* 
     if (!pThis) return;
     CRect rect;
     ::GetClientRect(pThis->m_hWnd, static_cast<RECT*>(rect));
-    impl__DrawBorders_CControlBar__UEAAXPEAVCDC__AEAVCRect___Z(pThis, pDC, rect);   // vslot 96
-    impl__DrawGripper_CControlBar__UEAAXPEAVCDC__AEBVCRect___Z(pThis, pDC, rect);   // vslot 97
+    pThis->DrawBorders(pDC, rect);   // vslot 96
+    pThis->DrawGripper(pDC, rect);   // vslot 97
 }
 // Transcribed from retail RVA 0x1d7570 (mfc140u):
 //     DWORD dwStyle = m_dwStyle;                                     // +0x124
@@ -531,7 +467,7 @@ extern "C" int MS_ABI impl__SetStatusText_CControlBar__UEAAHH_Z(CControlBar* /*p
 // Symbol: ?SetStatusText@CControlBar@@UEAAH_J@Z
 extern "C" int MS_ABI impl__SetStatusText_CControlBar__UEAAH_J_Z(CControlBar* pThis, __int64 nHit) {
     if (!pThis) return FALSE;
-    if (impl__SetStatusText_CControlBar__UEAAHH_Z(pThis, nHit > 0 ? 1 : -1)) {   // vslot 106
+    if (pThis->SetStatusText(nHit > 0 ? 1 : -1)) {   // vslot 106
         return TRUE;
     }
     CWnd* pOwner = GetOwnerWnd(pThis);
@@ -555,43 +491,66 @@ extern "C" int MS_ABI impl__SetStatusText_CControlBar__UEAAH_J_Z(CControlBar* pT
     impl__ResetTimer_CControlBar__QEAAX_KI_Z(pThis, kTimerCheck, 200);
     return TRUE;
 }
+LRESULT CControlBar::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+    case WM_DRAWITEM:
+    case WM_MEASUREITEM:
+    case WM_DELETEITEM:
+    case WM_VKEYTOITEM:
+    case WM_CHARTOITEM:
+    case WM_COMPAREITEM:
+    case WM_COMMAND:
+    case WM_NOTIFY: {
+        LRESULT result = 0;
+        if (OnWndMsg(message, wParam, lParam, &result)) return result;
+
+        const HWND owner = message == WM_COMMAND && m_pInPlaceOwner
+            ? static_cast<CWnd*>(m_pInPlaceOwner)->m_hWnd : OwnerHwnd(this);
+        result = ::SendMessageW(owner, message, wParam, lParam);
+        if (message == WM_NOTIFY && lParam) {
+            const NMHDR* header = reinterpret_cast<const NMHDR*>(lParam);
+            if (header->code == TTN_GETDISPINFOA) {
+                const auto* info = reinterpret_cast<const NMTTDISPINFOA*>(header);
+                if (!info->hinst && (!info->lpszText || !*info->lpszText)) break;
+            } else if (header->code == TTN_GETDISPINFOW) {
+                const auto* info = reinterpret_cast<const NMTTDISPINFOW*>(header);
+                if (!info->hinst && (!info->lpszText || !*info->lpszText)) break;
+            }
+        }
+        return result;
+    }
+    }
+    return CWnd::WindowProc(message, wParam, lParam);
+}
+
 // Symbol: ?WindowProc@CControlBar@@UEAA_JI_K_J@Z
-extern "C" __int64 MS_ABI impl__WindowProc_CControlBar__UEAA_JI_K_J_Z(CControlBar* pThis, unsigned int msg, UINT64 wParam, __int64 lParam) {
-    if (!pThis->m_hWnd) return 0;
-    return (__int64)::DefWindowProcW(pThis->m_hWnd, msg, (WPARAM)wParam, (LPARAM)lParam);
+extern "C" LRESULT MS_ABI impl__WindowProc_CControlBar__UEAA_JI_K_J_Z(
+    CControlBar* bar, UINT message, WPARAM wParam, LPARAM lParam) {
+    return bar->CControlBar::WindowProc(message, wParam, lParam);
 }
+
+CSize CControlBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
+    return CSize(stretch && horizontal ? 32767 : 0, stretch && !horizontal ? 32767 : 0);
+}
+
+CSize CControlBar::CalcDynamicLayout(int, DWORD mode) {
+    return CalcFixedLayout(mode & kLM_STRETCH, mode & kLM_HORZ);
+}
+
+void CControlBar::OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) {
+    if (target && m_hWnd) UpdateDialogControls(target, disableIfNoHandler);
+}
+
 // Symbol: ?CalcFixedLayout@CControlBar@@UEAA?AVCSize@@HH@Z
-extern "C" void* MS_ABI impl__CalcFixedLayout_CControlBar__UEAA_AVCSize__HH_Z(void* pRet, CControlBar* pThis, int bStretch, int bHorz) {
-    (void)bStretch;
-    (void)bHorz;
-    if (pThis && pThis->m_hWnd) {
-        RECT rc = {};
-        ::GetWindowRect(pThis->m_hWnd, &rc);
-        HWND hParent = ::GetParent(pThis->m_hWnd);
-        ::ScreenToClient(hParent, (POINT*)&rc.left);
-        ::ScreenToClient(hParent, (POINT*)&rc.right);
-        new(pRet) CSize(rc.right - rc.left, rc.bottom - rc.top);
-    } else {
-        new(pRet) CSize(0, 0);
-    }
-    return pRet;
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CControlBar__UEAA_AVCSize__HH_Z(
+    CControlBar* bar, CSize* result, BOOL stretch, BOOL horizontal) {
+    return ::new (result) CSize(bar->CControlBar::CalcFixedLayout(stretch, horizontal));
 }
+
 // Symbol: ?CalcDynamicLayout@CControlBar@@UEAA?AVCSize@@HK@Z
-extern "C" void* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(void* pRet, CControlBar* pThis, int nLength, DWORD dwMode) {
-    // Dock bars derive their size from the bars in the current layout pass.
-    if (pThis && KindOf(pThis, impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ())) {
-        return impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(
-            pRet, pThis, dwMode & kLM_STRETCH, dwMode & kLM_HORZ);
-    }
-    (void)nLength;
-    if (pThis && pThis->m_hWnd) {
-        RECT rc = {};
-        ::GetWindowRect(pThis->m_hWnd, &rc);
-        new(pRet) CSize(rc.right - rc.left, rc.bottom - rc.top);
-    } else {
-        new(pRet) CSize(0, 0);
-    }
-    return pRet;
+extern "C" CSize* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(
+    CControlBar* bar, CSize* result, int length, DWORD mode) {
+    return ::new (result) CSize(bar->CControlBar::CalcDynamicLayout(length, mode));
 }
 // Transcribed from retail RVA 0x1d6950 (mfc140u; WM_HELPHITTEST (0x366) entry
 // of the class message map at 0x3214a0):
@@ -600,13 +559,12 @@ extern "C" void* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(
 //     if (nID != -1) return HID_BASE_COMMAND /*0x10000*/ + nID;
 //     nID = (UINT)::GetDlgCtrlID(m_hWnd);                       // IAT GetDlgCtrlID, zero-extended
 //     return nID != 0 ? HID_BASE_CONTROL /*0x50000*/ + nID : 0;
-// The vslot is devirtualised by CallOnToolHitTest (see its comment).
 // Symbol: ?OnHelpHitTest@CControlBar@@QEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnHelpHitTest_CControlBar__QEAA_J_K_J_Z(CControlBar* pThis, UINT64 wParam, __int64 lParam) {
     (void)wParam;
     if (!pThis) return 0;
     CPoint point(static_cast<short>(LOWORD(lParam)), static_cast<short>(HIWORD(lParam)));
-    __int64 nID = CallOnToolHitTest(pThis, point, nullptr);   // vslot 31
+    __int64 nID = pThis->OnToolHitTest(point, nullptr);   // vslot 31
     if (nID != -1) {
         return static_cast<__int64>(kHID_BASE_COMMAND) + nID;
     }
@@ -631,8 +589,6 @@ extern "C" __int64 MS_ABI impl__OnHelpHitTest_CControlBar__QEAA_J_K_J_Z(CControl
 //             OnUpdateCmdUI(pTarget, (BOOL)wParam);                      // vslot 93 (pure)
 //     }
 //     return 0;
-// vslot 93 is devirtualised by CallOnUpdateCmdUI (see its comment for which
-// derived classes it can reach).
 // Symbol: ?OnIdleUpdateCmdUI@CControlBar@@QEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CControlBar__QEAA_J_K_J_Z(CControlBar* pThis, UINT64 wParam, __int64 lParam) {
     (void)lParam;
@@ -661,7 +617,7 @@ extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CControlBar__QEAA_J_K_J_Z(CCon
                 pTarget = impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pThis);
             }
             if (pTarget != nullptr) {
-                CallOnUpdateCmdUI(pThis, pTarget, static_cast<int>(wParam));   // vslot 93
+                pThis->OnUpdateCmdUI(pTarget, static_cast<BOOL>(wParam));   // vslot 93
             }
         }
     }
@@ -732,9 +688,7 @@ extern "C" __int64 MS_ABI impl__OnThemeChanged_CControlBar__QEAA_JXZ(CControlBar
 // Note the asymmetry retail has: the "not active / disabled / captured"
 // paths clear nHit without storing m_nLastHit, the "no window under the
 // cursor" paths store -1 too.  OpenMFC has no module tool-tip window
-// (AFX_MODULE_THREAD_STATE::m_pToolTip), so hWndTip is always NULL here; vslot
-// 31 is devirtualised by CallOnToolHitTest and vslot 107 goes to this file's
-// SetStatusText thunk.
+// (AFX_MODULE_THREAD_STATE::m_pToolTip), so hWndTip is always NULL here.
 // Symbol: ?OnTimer@CControlBar@@QEAAX_K@Z
 extern "C" void MS_ABI impl__OnTimer_CControlBar__QEAAX_K_Z(CControlBar* pThis, UINT64 nIDEvent) {
     if (!pThis) return;
@@ -743,7 +697,7 @@ extern "C" void MS_ABI impl__OnTimer_CControlBar__QEAAX_K_Z(CControlBar* pThis, 
     POINT pt = {};
     ::GetCursorPos(&pt);
     ::ScreenToClient(pThis->m_hWnd, &pt);
-    __int64 nHit = CallOnToolHitTest(pThis, CPoint(pt), nullptr);   // vslot 31
+    __int64 nHit = pThis->OnToolHitTest(CPoint(pt), nullptr);   // vslot 31
     if (nHit >= 0) {
         // GetTopLevelParent() / pParent->IsWindowEnabled() (0x2a9b00 =
         // ::IsWindowEnabled(m_hWnd) when m_pCtrlSite is NULL) on the HWND --
@@ -785,12 +739,12 @@ extern "C" void MS_ABI impl__OnTimer_CControlBar__QEAAX_K_Z(CControlBar* pThis, 
 
     if (nHit < 0) {
         if (t_nLastHit == -1) ::KillTimer(pThis->m_hWnd, kTimerCheck);
-        impl__SetStatusText_CControlBar__UEAAH_J_Z(pThis, -1);   // vslot 107
+        pThis->SetStatusText(static_cast<INT_PTR>(-1));   // vslot 107
     }
     if (nIDEvent == kTimerWait) {
         ::KillTimer(pThis->m_hWnd, kTimerWait);
         if (nHit >= 0) {
-            impl__SetStatusText_CControlBar__UEAAH_J_Z(pThis, nHit);   // vslot 107
+            pThis->SetStatusText(static_cast<INT_PTR>(nHit));   // vslot 107
         }
     }
 }
@@ -842,8 +796,7 @@ extern "C" void MS_ABI impl__OnTimer_CControlBar__QEAAX_K_Z(CControlBar* pThis, 
 // the owner frame's accelerators, so that first call is omitted.  (2)
 // CFrameWnd::m_bHelpMode is not modelled in OpenMFC's CFrameWnd, so the
 // Shift+F1 early-out is omitted.  (3) the whole TOOLINFOW is zeroed (retail
-// zeroes the first 0x40 bytes and sets cbSize = 0x48).  The owner loop is
-// devirtualised by OwnerPreTranslateMessage, vslot 31 by CallOnToolHitTest.
+// zeroes the first 0x40 bytes and sets cbSize = 0x48).
 // Symbol: ?PreTranslateMessage@CControlBar@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z(CControlBar* pThis, MSG* pMsg) {
     if (!pThis || !pMsg) return FALSE;
@@ -858,7 +811,7 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z
         TOOLINFOW ti;
         std::memset(&ti, 0, sizeof(ti));
         ti.cbSize = 0x48;
-        __int64 nHit = CallOnToolHitTest(pThis, CPoint(pt), &ti);   // vslot 31
+        __int64 nHit = pThis->OnToolHitTest(CPoint(pt), &ti);   // vslot 31
         if (ti.lpszText != LPSTR_TEXTCALLBACKW) {
             free(ti.lpszText);
         }
@@ -871,14 +824,14 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z
 
         if (nHit < 0 || bNotButton) {
             if (::GetKeyState(VK_LBUTTON) >= 0 || bNotButton) {
-                impl__SetStatusText_CControlBar__UEAAH_J_Z(pThis, -1);   // vslot 107
+                pThis->SetStatusText(static_cast<INT_PTR>(-1));   // vslot 107
                 ::KillTimer(pThis->m_hWnd, kTimerCheck);
             }
         } else if (message == WM_LBUTTONUP) {
-            impl__SetStatusText_CControlBar__UEAAH_J_Z(pThis, -1);       // vslot 107
+            pThis->SetStatusText(static_cast<INT_PTR>(-1));       // vslot 107
             impl__ResetTimer_CControlBar__QEAAX_KI_Z(pThis, kTimerCheck, 200);
         } else if ((pThis->m_nStateFlags & kStatusSet) || ::GetKeyState(VK_LBUTTON) < 0) {
-            impl__SetStatusText_CControlBar__UEAAH_J_Z(pThis, nHit);     // vslot 107
+            pThis->SetStatusText(static_cast<INT_PTR>(nHit));     // vslot 107
         } else if (nHit != t_nLastHit) {
             impl__ResetTimer_CControlBar__QEAAX_KI_Z(pThis, kTimerWait, 300);
         }
@@ -888,7 +841,7 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z
     // (retail: `if (GetTopLevelFrame()->m_bHelpMode) return FALSE;` -- not modelled)
 
     while (pOwner != nullptr) {
-        if (OwnerPreTranslateMessage(pOwner, pMsg)) {   // CWnd vslot 69
+        if (pOwner->PreTranslateMessage(pMsg)) {   // CWnd vslot 69
             return TRUE;
         }
         pOwner = impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pOwner);
@@ -900,6 +853,11 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z
     }
     return FALSE;
 }
+
+BOOL CControlBar::PreTranslateMessage(MSG* message) {
+    return impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z(this, message);
+}
+
 // Transcribed from retail RVA 0x1d6da0 (mfc140u; WM_MOUSEACTIVATE (0x21)
 // entry of the class message map at 0x3213e0):
 //     if (IsFloating()) {                  // 0x2a0e80 (direct call, not a vslot)
@@ -970,7 +928,7 @@ extern "C" void MS_ABI impl__OnDestroy_CControlBar__QEAAXXZ(CControlBar* pThis) 
         }
     }
     if (t_pLastStatus == pThis) {
-        impl__SetStatusText_CControlBar__UEAAH_J_Z(pThis, -1);   // vslot 107
+        pThis->SetStatusText(static_cast<INT_PTR>(-1));   // vslot 107
     }
     if (pThis->m_pDockSite != nullptr) {
         impl__RemoveControlBar_CFrameWnd__QEAAXPEAVCControlBar___Z(static_cast<CFrameWnd*>(pThis->m_pDockSite), pThis);
@@ -1116,8 +1074,8 @@ extern "C" void MS_ABI impl__OnPaint_CControlBar__QEAAXXZ(CControlBar* pThis) {
     alignas(void*) unsigned char dcStorage[sizeof(CPaintDC)] = {};
     CPaintDC* pDC = reinterpret_cast<CPaintDC*>(dcStorage);
     impl___0CPaintDC__QEAA_PEAVCWnd___Z(pDC, pThis);
-    if (impl__IsVisible_CControlBar__UEBAHXZ(pThis)) {           // vslot 102
-        impl__DoPaint_CControlBar__UEAAXPEAVCDC___Z(pThis, pDC);   // vslot 95
+    if (pThis->IsVisible()) {           // vslot 102
+        pThis->DoPaint(pDC);   // vslot 95
     }
     impl___1CPaintDC__UEAA_XZ(pDC);
 }
@@ -1142,7 +1100,7 @@ extern "C" void MS_ABI impl__OnLButtonDown_CControlBar__QEAAXIVCPoint___Z(CContr
     (void)nFlags;
     if (!pThis) return;
     if (pThis->m_pDockBar != nullptr) {
-        if (CallOnToolHitTest(pThis, point, nullptr) == -1) {   // vslot 31
+        if (pThis->OnToolHitTest(point, nullptr) == -1) {   // vslot 31
             POINT pt = { point.x, point.y };
             ::ClientToScreen(pThis->m_hWnd, &pt);
             // retail: m_pDockContext->StartDrag(pt) -- see the comment above
@@ -1169,7 +1127,7 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CControlBar__QEAAXIVCPoint___Z(CCon
     (void)nFlags;
     if (!pThis) return;
     if (pThis->m_pDockBar != nullptr) {
-        if (CallOnToolHitTest(pThis, point, nullptr) == -1) {   // vslot 31
+        if (pThis->OnToolHitTest(point, nullptr) == -1) {   // vslot 31
             // retail: m_pDockContext->ToggleDocking() -- see the comment above
             return;
         }
@@ -1207,14 +1165,12 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CControlBar__QEAAXIVCPoint___Z(CCon
 //         if (lpLayout->hDWP != NULL) AfxRepositionWindow(lpLayout, m_hWnd, &rect);   // +0, 0x28ecc0
 //     }
 //     return 0;
-// vslot 103 goes to this file's RecalcDelayShow thunk; vslot 92 is
-// devirtualised by CallCalcDynamicLayout.
 // Symbol: ?OnSizeParent@CControlBar@@QEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnSizeParent_CControlBar__QEAA_J_K_J_Z(CControlBar* pThis, UINT64 wParam, __int64 lParam) {
     (void)wParam;
     if (!pThis) return 0;
     SizeParentParams* lpLayout = reinterpret_cast<SizeParentParams*>(lParam);
-    const DWORD dwStyle = impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARENTPARAMS___Z(pThis, lpLayout);   // vslot 103
+    const DWORD dwStyle = pThis->RecalcDelayShow(lpLayout);   // vslot 103
     if ((dwStyle & WS_VISIBLE) && (dwStyle & kCBRS_ALIGN_ANY) && lpLayout != nullptr) {
         CRect rect(lpLayout->rect);
         const int cxAvail = rect.Width();
@@ -1229,7 +1185,7 @@ extern "C" __int64 MS_ABI impl__OnSizeParent_CControlBar__QEAA_J_K_J_Z(CControlB
             dwMode |= kLM_VERTDOCK;
         }
 
-        CSize size = CallCalcDynamicLayout(pThis, -1, dwMode);   // vslot 92
+        CSize size = pThis->CalcDynamicLayout(-1, dwMode);   // vslot 92
         if (size.cx > cxAvail) size.cx = cxAvail;
         if (size.cy > cyAvail) size.cy = cyAvail;
 
@@ -1272,8 +1228,8 @@ extern "C" void MS_ABI impl__DrawGripper_CControlBar__UEAAXPEAVCDC__AEBVCRect___
     if (!pThis) return;
     if (pDC == nullptr) impl__AfxThrowInvalidArgException__YAXXZ();
     if ((pThis->m_dwStyle & (kCBRS_GRIPPER | kCBRS_FLOATING)) == kCBRS_GRIPPER) {
-        if (!impl__DrawThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect__H_Z(pThis, pDC, rect, FALSE)) {   // vslot 99
-            impl__DrawNonThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect___Z(pThis, pDC, rect);           // vslot 100
+        if (!pThis->DrawThemedGripper(pDC, rect, FALSE)) {   // vslot 99
+            pThis->DrawNonThemedGripper(pDC, rect);           // vslot 100
         }
     }
 }
@@ -1287,8 +1243,8 @@ extern "C" void MS_ABI impl__DrawNCGripper_CControlBar__UEAAXPEAVCDC__AEBVCRect_
     if (!pThis) return;
     if (pDC == nullptr) impl__AfxThrowInvalidArgException__YAXXZ();
     if ((pThis->m_dwStyle & (kCBRS_GRIPPER | kCBRS_FLOATING)) == kCBRS_GRIPPER) {
-        if (!impl__DrawThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect__H_Z(pThis, pDC, rect, TRUE)) {    // vslot 99
-            impl__DrawNonThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect___Z(pThis, pDC, rect);           // vslot 100
+        if (!pThis->DrawThemedGripper(pDC, rect, TRUE)) {    // vslot 99
+            pThis->DrawNonThemedGripper(pDC, rect);           // vslot 100
         }
     }
 }
@@ -1419,7 +1375,7 @@ extern "C" void MS_ABI impl__GetBarInfo_CControlBar__QEAAXPEAVCControlBarInfo___
     auto& info = *static_cast<S_Ccontrolbarinfo*>(storage);
     info.m_nBarID = static_cast<UINT>(::GetDlgCtrlID(bar->m_hWnd));
     info.m_pBar = bar;
-    info.m_bVisible = impl__IsVisible_CControlBar__UEBAHXZ(bar);
+    info.m_bVisible = bar->IsVisible();
     info.m_nMRUWidth = bar->m_nMRUWidth;
     if (bar->m_pDockBar) {
         RECT rect{};
@@ -1436,20 +1392,20 @@ extern "C" void MS_ABI impl__GetBarInfo_CControlBar__QEAAXPEAVCControlBarInfo___
         }
     }
 
-    if (KindOf(bar, impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ()))
+    if (bar->IsDockBar())
         impl__GetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo___Z(bar, storage);
 }
 
 // Symbol: ?SetBarInfo@CControlBar@@QEAAXPEAVCControlBarInfo@@PEAVCFrameWnd@@@Z
 extern "C" void MS_ABI impl__SetBarInfo_CControlBar__QEAAXPEAVCControlBarInfo__PEAVCFrameWnd___Z(
     CControlBar* bar, void* storage, CFrameWnd* frame) {
-    if (KindOf(bar, impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ())) {
+    if (bar->IsDockBar()) {
         impl__SetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo__PEAVCFrameWnd___Z(bar, storage, frame);
         return;
     }
     const auto& info = *static_cast<const S_Ccontrolbarinfo*>(storage);
     bar->m_nMRUWidth = info.m_nMRUWidth;
-    CallCalcDynamicLayout(bar, 0, 0x40 | kLM_MRUWIDTH | kLM_HORZ);
+    bar->CalcDynamicLayout(0, 0x40 | kLM_MRUWIDTH | kLM_HORZ);
     if (info.m_bDocking) {
         if (auto* context = static_cast<openmfc::detail::dock::DockContext*>(bar->m_pDockContext)) {
             context->m_uMRUDockID = info.m_uMRUDockID;
@@ -1510,6 +1466,52 @@ extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARE
         }
     }
     return dwResult;
+}
+
+BOOL CControlBar::IsDockBar() const {
+    return FALSE;
+}
+
+void CControlBar::CalcInsideRect(CRect& rect, BOOL horizontal) const {
+    impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(this, rect, horizontal);
+}
+
+void CControlBar::DoPaint(CDC* dc) {
+    impl__DoPaint_CControlBar__UEAAXPEAVCDC___Z(this, dc);
+}
+
+void CControlBar::DrawBorders(CDC* dc, CRect& rect) {
+    impl__DrawBorders_CControlBar__UEAAXPEAVCDC__AEAVCRect___Z(this, dc, rect);
+}
+
+void CControlBar::DrawGripper(CDC* dc, const CRect& rect) {
+    impl__DrawGripper_CControlBar__UEAAXPEAVCDC__AEBVCRect___Z(this, dc, rect);
+}
+
+void CControlBar::DrawNCGripper(CDC* dc, const CRect& rect) {
+    impl__DrawNCGripper_CControlBar__UEAAXPEAVCDC__AEBVCRect___Z(this, dc, rect);
+}
+
+BOOL CControlBar::DrawThemedGripper(CDC* dc, const CRect& rect, BOOL nonClient) {
+    return impl__DrawThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect__H_Z(this, dc, rect, nonClient);
+}
+
+BOOL CControlBar::DrawNonThemedGripper(CDC* dc, const CRect& rect) {
+    return impl__DrawNonThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect___Z(this, dc, rect);
+}
+
+DWORD CControlBar::RecalcDelayShow(AFX_SIZEPARENTPARAMS* layout) {
+    return impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARENTPARAMS___Z(this, layout);
+}
+
+void CControlBar::OnBarStyleChange(DWORD, DWORD) {}
+
+BOOL CControlBar::SetStatusText(int hit) {
+    return impl__SetStatusText_CControlBar__UEAAHH_Z(this, hit);
+}
+
+BOOL CControlBar::SetStatusText(INT_PTR hit) {
+    return impl__SetStatusText_CControlBar__UEAAH_J_Z(this, hit);
 }
 
 void CControlBar::OnDestroy() {

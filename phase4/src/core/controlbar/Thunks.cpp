@@ -1176,17 +1176,17 @@ extern "C" int MS_ABI impl__CommandToIndex_CToolBar__QEBAHI_Z(const CToolBar* pT
 // Symbol: ?Create@CDialogBar@@UEAAHPEAVCWnd@@PEB_WII@Z
 // CDialogBar::Create
 extern "C" int MS_ABI impl__Create_CDialogBar__UEAAHPEAVCWnd__PEB_WII_Z(CDialogBar* pThis, CWnd* p0, const wchar_t* p1, unsigned int p2, unsigned int p3) {
-    return (int)pThis->Create(p0, p1, p2, p3);
+    return (int)pThis->CDialogBar::Create(p0, p1, p2, p3);
 }
 // Symbol: ?Create@COleResizeBar@@UEAAHPEAVCWnd@@KI@Z
 // COleResizeBar::Create
 extern "C" int MS_ABI impl__Create_COleResizeBar__UEAAHPEAVCWnd__KI_Z(COleResizeBar* pThis, CWnd* p0, unsigned long p1, unsigned int p2) {
-    return (int)pThis->Create(p0, p1, p2);
+    return (int)pThis->COleResizeBar::Create(p0, p1, p2);
 }
 // Symbol: ?Create@CStatusBar@@UEAAHPEAVCWnd@@KI@Z
 // CStatusBar::Create
 extern "C" int MS_ABI impl__Create_CStatusBar__UEAAHPEAVCWnd__KI_Z(CStatusBar* pThis, CWnd* p0, unsigned long p1, unsigned int p2) {
-    return (int)pThis->Create(p0, p1, p2);
+    return (int)pThis->CStatusBar::Create(p0, p1, p2);
 }
 // Symbol: ?GetButtonStyle@CToolBar@@QEBAIH@Z
 // CToolBar::GetButtonStyle
@@ -1211,7 +1211,7 @@ extern "C" void MS_ABI impl__GetItemRect_CStatusBar__QEBAXHPEAUtagRECT___Z(const
 // Symbol: ?GetItemRect@CToolBar@@UEBAXHPEAUtagRECT@@@Z
 // CToolBar::GetItemRect
 extern "C" void MS_ABI impl__GetItemRect_CToolBar__UEBAXHPEAUtagRECT___Z(const CToolBar* pThis, int p0, RECT* p1) {
-    pThis->GetItemRect(p0, p1);
+    pThis->CToolBar::GetItemRect(p0, p1);
 }
 // Symbol: ?GetPaneStyle@CStatusBar@@QEBAIH@Z
 // CStatusBar::GetPaneStyle

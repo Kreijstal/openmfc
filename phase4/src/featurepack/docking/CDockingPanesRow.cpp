@@ -110,13 +110,6 @@ extern "C" void MS_ABI impl__UpdateVirtualRect_CPane__QEAAXXZ(CPane* pThis);
 extern "C" int MS_ABI impl__ResizeRow_CDockSite__QEAAHPEAVCDockingPanesRow__HH_Z(
     void* pThis, void* pRow, int nNewSize, int bAdjustLayout);
 extern "C" void MS_ABI impl__RemoveRow_CDockSite__QEAAXPEAVCDockingPanesRow___Z(void* pThis, void* pRow);
-// Retail dispatches the per-pane fixed layout through CPane vslot 0x4d0, which
-// is CControlBar::CalcFixedLayout.  NOTE the OpenMFC thunk takes the CSize
-// return slot FIRST and `this` second (phase4/src/core/controlbar/CControlBar.cpp:116);
-// it is called below in that declared order, not in the retail register order.
-extern "C" void* MS_ABI impl__CalcFixedLayout_CControlBar__UEAA_AVCSize__HH_Z(
-    void* pRet, void* pThis, int bStretch, int bHorz);
-
 // Further thunks the bodies below call.  CPane::GetVirtualRect,
 // GetAvailableExpandSize and GetAvailableStretchSize all have real bodies in
 // phase4/src/featurepack/docking/CPane.cpp (lines 699, 627 and 649).
@@ -949,10 +942,10 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CDockingPanesRow__UEAA_AVCSize__H
         }
         if (!PaneCounts(s, pBar)) continue;
 
-        CSize sizeBar(0, 0);
-        // NOTE the argument order: this thunk declares the CSize return slot
-        // first and `this` second (core/controlbar/CControlBar.cpp).
-        impl__CalcFixedLayout_CControlBar__UEAA_AVCSize__HH_Z(&sizeBar, pBar, bStretch, bHorz);
+        // Use the window dimensions until CPane has its fixed-layout virtual.
+        RECT rect = {};
+        ::GetWindowRect(pBar->m_hWnd, &rect);
+        const CSize sizeBar(rect.right - rect.left, rect.bottom - rect.top);
 
         if (bRowHorz) {
             cx += sizeBar.cx;

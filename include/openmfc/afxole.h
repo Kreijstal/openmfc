@@ -63,7 +63,8 @@ typedef DWORD OLE_APPTYPE;
 #define OAT_DOC_OBJECT_SERVER 4
 #endif
 
-// MFC OLE-related base classes not yet in our main headers
+struct AFX_SIZEPARENTPARAMS;
+
 class CControlBar : public CWnd {
     DECLARE_DYNAMIC(CControlBar)
 public:
@@ -72,8 +73,31 @@ public:
     BOOL DestroyWindow() override;
     void PostNcDestroy() override;
     BOOL PreCreateWindow(CREATESTRUCTW& create) override;
-    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
+    BOOL PreTranslateMessage(MSG* message) override;
+    LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+    BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
+    DWORD GetBarStyle() const { return m_dwStyle; }
+    void SetBarStyle(DWORD style);
     static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
+
+    // Release x64 slots 91–107. The two status-text overloads have distinct slots.
+    virtual CSize CalcFixedLayout(BOOL stretch, BOOL horizontal);
+    virtual CSize CalcDynamicLayout(int length, DWORD mode);
+    virtual void OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler);
+    virtual void CalcInsideRect(CRect& rect, BOOL horizontal) const;
+    virtual void DoPaint(CDC* dc);
+    virtual void DrawBorders(CDC* dc, CRect& rect);
+    virtual void DrawGripper(CDC* dc, const CRect& rect);
+    virtual void DrawNCGripper(CDC* dc, const CRect& rect);
+    virtual BOOL DrawThemedGripper(CDC* dc, const CRect& rect, BOOL nonClient);
+    virtual BOOL DrawNonThemedGripper(CDC* dc, const CRect& rect);
+    virtual void DelayShow(BOOL show);
+    virtual BOOL IsVisible() const;
+    virtual DWORD RecalcDelayShow(AFX_SIZEPARENTPARAMS* layout);
+    virtual BOOL IsDockBar() const;
+    virtual void OnBarStyleChange(DWORD oldStyle, DWORD newStyle);
+    virtual BOOL SetStatusText(INT_PTR hit);
+    virtual BOOL SetStatusText(int hit);
 
 protected:
     const AFX_MSGMAP* GetMessageMap() const override;
@@ -194,7 +218,8 @@ public:
     void GetButtonInfo(int nIndex, UINT& nID, UINT& nStyle, int& iImage) const;
     int CommandToIndex(UINT nIDFind) const;
     UINT GetItemID(int nIndex) const;
-    void GetItemRect(int nIndex, LPRECT lpRect) const;
+    INT_PTR OnToolHitTest(CPoint point, TOOLINFOW* info) const override;
+    virtual void GetItemRect(int nIndex, LPRECT lpRect) const;
     int GetButtonCount() const { return m_nCount; }
 
     // Sizing
@@ -221,10 +246,11 @@ public:
     void DockControlBar(UINT nBarID, DWORD dwFlags = 0);
 
     // State
-    BOOL IsVisible() const;
     BOOL IsFloating() const;
-    DWORD GetBarStyle() const { return m_dwStyle; }
-    void SetBarStyle(DWORD dwStyle) { m_dwStyle = dwStyle; }
+    CSize CalcFixedLayout(BOOL stretch, BOOL horizontal) override;
+    CSize CalcDynamicLayout(int length, DWORD mode) override;
+    void OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) override;
+    void OnBarStyleChange(DWORD oldStyle, DWORD newStyle) override;
 
     // Internal access
     HWND GetToolBarCtrl() const { return m_hWnd; }
@@ -271,6 +297,15 @@ public:
     // Creation
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_BOTTOM,
                         UINT nID = AFX_IDW_STATUS_BAR);
+    virtual BOOL CreateEx(CWnd* pParentWnd, DWORD controlStyle = 0,
+                          DWORD style = WS_CHILD | WS_VISIBLE | CBRS_BOTTOM,
+                          UINT id = AFX_IDW_STATUS_BAR);
+    virtual void DrawItem(DRAWITEMSTRUCT* item);
+
+    CSize CalcFixedLayout(BOOL stretch, BOOL horizontal) override;
+    void CalcInsideRect(CRect& rect, BOOL horizontal) const override;
+    void OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) override;
+    void OnBarStyleChange(DWORD oldStyle, DWORD newStyle) override;
 
     // Pane management
     BOOL SetIndicators(const UINT* lpIDArray, int nIDCount);
@@ -300,6 +335,9 @@ public:
     void EnableDocking(DWORD dwDockStyle);
     BOOL IsSimple() const;
 
+protected:
+    BOOL OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* result) override;
+
 public:
     // CStatusBar adds only m_nMinHeight (size 336; begins where CControlBar
     // ends @328). m_nCount/m_pData/m_cxLeftBorder/m_cxRightBorder are inherited
@@ -317,25 +355,21 @@ public:
     virtual ~CDialogBar();
 
     // Creation
-    virtual BOOL Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle,
-                        UINT nID = AFX_IDW_DIALOGBAR);
     virtual BOOL Create(CWnd* pParentWnd, const wchar_t* lpszTemplateName,
                         UINT nStyle, UINT nID = AFX_IDW_DIALOGBAR);
+    virtual BOOL Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle,
+                        UINT nID = AFX_IDW_DIALOGBAR);
 
     // Dialog data
     void UpdateData(BOOL bSaveAndValidate = TRUE);
-    BOOL IsVisible() const;
-    void SetOccDialogInfo(void* pDialogInfo);
-
-public:
-    BOOL m_bAutoDelete;
-    void* m_pOccDialogInfo;
+    CSize CalcFixedLayout(BOOL stretch, BOOL horizontal) override;
+    void OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) override;
+    BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO* dialogInfo) override;
+    CSize m_sizeDefault;
 
 protected:
-    // Re-tuned from [16] to [8]: the faithful CControlBar no longer has tail
-    // padding for mingw's Itanium ABI to fold m_bAutoDelete into, so the base
-    // now packs like MSVC. Total 352 to match mfc140u.
-    char _dialogbar_padding[8];
+    _AFX_OCC_DIALOG_INFO* m_pOccDialogInfo;
+    const wchar_t* m_lpszTemplateName;
 };
 
 //=============================================================================
@@ -960,6 +994,7 @@ public:
     virtual ~COleResizeBar();
 
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE, UINT nID = AFX_IDW_RESIZE_BAR);
+    void OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) override;
 
 public:
     COleClientItem* m_pClientItem;

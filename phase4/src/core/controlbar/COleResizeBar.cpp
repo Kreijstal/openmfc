@@ -317,6 +317,9 @@ extern "C" __int64 MS_ABI impl__OnSizeParent_COleResizeBar__IEAA_J_K_J_Z(
     return 0;
 }
 
+void COleResizeBar::OnUpdateCmdUI(CFrameWnd*, BOOL) {
+}
+
 // Retail: slot 93 (OnUpdateCmdUI, +0x2e8) of COleResizeBar's vftable (mfc140u
 // VA 0x18032b990, installed by the constructor at RVA 0x243de0) points at
 // RVA 0x27d0 (mfc140u), a COMDAT-folded bare `ret` -- the retail override does

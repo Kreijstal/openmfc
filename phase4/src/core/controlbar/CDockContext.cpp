@@ -68,16 +68,6 @@
 // vtable (retail does not either: StartDrag calls Track, Move, CanDock etc.
 // directly).
 //
-// Virtual dispatch on OTHER objects.  Retail calls m_pBar->CalcDynamicLayout
-// through CControlBar vslot 92 (`call *0x2e0(%rax)`) and m_pDockSite->
-// RecalcLayout through CFrameWnd vslot 96 (`call *0x300(%rax)`).  OpenMFC's
-// CControlBar / CFrameWnd objects carry a mingw vtable whose numbering is not
-// MSVC's, so these go through impl__ thunks instead: CalcDynamicLayout is
-// devirtualised on the runtime class exactly as core/controlbar/CDockBar.cpp
-// and CControlBar.cpp do (CToolBar's thunk, else CControlBar's; a client-
-// derived override is not honoured), and RecalcLayout goes to the CFrameWnd
-// thunk, which dispatches C++-virtually to the repo's overrides.
-//
 // Inlined MFC helpers.  Retail inlines several small CWnd/CFrameWnd members;
 // the bodies below expand them the way the disassembly does and name the IAT
 // import each one resolves to (iatu.py, mfc140u).
@@ -105,12 +95,6 @@ extern "C" void MS_ABI impl__FloatControlBar_CFrameWnd__QEAAXPEAVCControlBar__VC
 extern "C" CControlBar* MS_ABI impl__GetControlBar_CFrameWnd__QEAAPEAVCControlBar__I_Z(CFrameWnd* pThis, unsigned int nID); // core/frame/Thunks.cpp
 extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int bNotify);        // core/frame/Thunks.cpp
 extern "C" int MS_ABI impl__IsFloating_CControlBar__QEBAHXZ(const CControlBar* pThis);                 // core/controlbar/CControlBar.cpp
-extern "C" void* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(void* pRet, CControlBar* pThis, int nLength, DWORD dwMode); // CControlBar.cpp
-extern "C" void MS_ABI impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(
-    CSize* pRet, CToolBar* pThis, int nLength, unsigned long dwMode);                                 // core/controlbar/CToolBar.cpp
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ();              // core/controlbar/CToolBar.cpp
-extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-    const CObject* pThis, const CRuntimeClass* pClass);                                               // core/runtime/CObject.cpp
 extern "C" void MS_ABI impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* pThis, RECT* lpRect); // core/window/Thunks.cpp
 extern "C" void MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWnd* pThis, RECT* lpRect); // core/window/Thunks.cpp
 extern "C" void MS_ABI impl__DockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRECT___Z(void* pThis, CControlBar* pBar, const RECT* lpRect);     // CDockBar.cpp
@@ -237,24 +221,6 @@ inline POINT UnpackPoint(long long pt) {
     p.x = static_cast<LONG>(static_cast<unsigned long long>(pt) & 0xffffffffu);
     p.y = static_cast<LONG>(static_cast<unsigned long long>(pt) >> 32);
     return p;
-}
-
-inline int KindOf(const CControlBar* pBar, CRuntimeClass* pClass) {
-    return impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(static_cast<const CObject*>(pBar), pClass);
-}
-
-// vslot 92 (CalcDynamicLayout) on m_pBar, devirtualised the way CDockBar.cpp
-// and CControlBar.cpp do it: CToolBar's override has a correctly typed thunk,
-// everything else gets CControlBar's.
-inline SIZE CallCalcDynamicLayout(CControlBar* pBar, int nLength, DWORD dwMode) {
-    CSize size(0, 0);
-    if (KindOf(pBar, impl__GetThisClass_CToolBar__SAPEAUCRuntimeClass__XZ())) {
-        impl__CalcDynamicLayout_CToolBar__UEAA_AVCSize__HK_Z(&size, static_cast<CToolBar*>(pBar), nLength, dwMode);
-    } else {
-        impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(&size, pBar, nLength, dwMode);
-    }
-    SIZE s = { size.cx, size.cy };
-    return s;
 }
 
 // CFrameWnd::CanDock(CRect, DWORD, CDockBar**) -- 0x2a1990 (mfc140u).
@@ -512,7 +478,7 @@ extern "C" void MS_ABI impl__EndDrag_CDockContext__QEAAXXZ(void* pThis) {
 extern "C" void MS_ABI impl__EndResize_CDockContext__QEAAXXZ(void* pThis) {
     DockContext& c = Ctx(pThis);
     impl__CancelLoop_CDockContext__QEAAXXZ(pThis);
-    (void)CallCalcDynamicLayout(c.m_pBar, c.m_rectDragVert.right - c.m_rectDragVert.left,
+    (void)c.m_pBar->CalcDynamicLayout(c.m_rectDragVert.right - c.m_rectDragVert.left,
                                 kLM_HORZ | kLM_COMMIT);   // vslot 92
     impl__FloatControlBar_CFrameWnd__QEAAXPEAVCControlBar__VCPoint__K_Z(
         c.m_pDockSite, c.m_pBar, CPoint(c.m_rectFrameDragHorz.left, c.m_rectFrameDragHorz.top),
@@ -687,9 +653,9 @@ extern "C" void MS_ABI impl__StartDrag_CDockContext__UEAAXVCPoint___Z(void* pThi
     if (dwBarStyle & kCBRS_SIZE_DYNAMIC) {
         ::GetWindowRect(pBar->m_hWnd, &rect);
         c.m_ptLast = pt;
-        const SIZE sizeHorz  = CallCalcDynamicLayout(pBar, 0, kLM_HORZ | kLM_HORZDOCK);   // vslot 92
-        const SIZE sizeVert  = CallCalcDynamicLayout(pBar, 0, kLM_VERTDOCK);
-        const SIZE sizeFloat = CallCalcDynamicLayout(pBar, 0, kLM_HORZ | kLM_MRUWIDTH);
+        const SIZE sizeHorz  = pBar->CalcDynamicLayout(0, kLM_HORZ | kLM_HORZDOCK);   // vslot 92
+        const SIZE sizeVert  = pBar->CalcDynamicLayout(0, kLM_VERTDOCK);
+        const SIZE sizeFloat = pBar->CalcDynamicLayout(0, kLM_HORZ | kLM_MRUWIDTH);
         SetRectXYWH(c.m_rectDragHorz, rect.left, rect.top, sizeHorz.cx, sizeHorz.cy);
         SetRectXYWH(c.m_rectDragVert, rect.left, rect.top, sizeVert.cx, sizeVert.cy);
         SetRectXYWH(c.m_rectFrameDragHorz, rect.left, rect.top, sizeFloat.cx, sizeFloat.cy);
@@ -697,8 +663,8 @@ extern "C" void MS_ABI impl__StartDrag_CDockContext__UEAAXVCPoint___Z(void* pThi
     } else if (dwBarStyle & kCBRS_SIZE_FIXED) {
         ::GetWindowRect(pBar->m_hWnd, &rect);
         c.m_ptLast = pt;
-        const SIZE sizeHorz = CallCalcDynamicLayout(pBar, -1, kLM_HORZ | kLM_HORZDOCK);   // vslot 92
-        const SIZE sizeVert = CallCalcDynamicLayout(pBar, -1, kLM_VERTDOCK);
+        const SIZE sizeHorz = pBar->CalcDynamicLayout(-1, kLM_HORZ | kLM_HORZDOCK);   // vslot 92
+        const SIZE sizeVert = pBar->CalcDynamicLayout(-1, kLM_VERTDOCK);
         SetRectXYWH(c.m_rectDragHorz, rect.left, rect.top, sizeHorz.cx, sizeHorz.cy);
         c.m_rectFrameDragHorz = c.m_rectDragHorz;
         SetRectXYWH(c.m_rectDragVert, rect.left, rect.top, sizeVert.cx, sizeVert.cy);
@@ -707,7 +673,7 @@ extern "C" void MS_ABI impl__StartDrag_CDockContext__UEAAXVCPoint___Z(void* pThi
         ::GetWindowRect(pBar->m_hWnd, &rect);
         const DWORD bHorz = c.m_dwStyle & kCBRS_ORIENT_HORZ;
         c.m_ptLast = pt;
-        const SIZE size = CallCalcDynamicLayout(pBar, -1, bHorz ? kLM_VERTDOCK : (kLM_HORZ | kLM_HORZDOCK));   // vslot 92
+        const SIZE size = pBar->CalcDynamicLayout(-1, bHorz ? kLM_VERTDOCK : (kLM_HORZ | kLM_HORZDOCK));   // vslot 92
         if (bHorz) {
             c.m_rectDragHorz = rect;
             const int x = pt.x - (rect.bottom - rect.top) / 2;
@@ -771,7 +737,7 @@ extern "C" void MS_ABI impl__StartResize_CDockContext__UEAAXHVCPoint___Z(void* p
     ::GetWindowRect(c.m_pBar->m_hWnd, &rectBar);
     c.m_ptLast = pt;
     c.m_nHitTest = nHitTest;
-    const SIZE size = CallCalcDynamicLayout(c.m_pBar, 0, kLM_HORZ | kLM_MRUWIDTH);   // vslot 92
+    const SIZE size = c.m_pBar->CalcDynamicLayout(0, kLM_HORZ | kLM_MRUWIDTH);   // vslot 92
 
     SetRectXYWH(c.m_rectDragHorz, rectBar.left, rectBar.top, size.cx, size.cy);
     c.m_rectDragVert = c.m_rectDragHorz;
@@ -847,7 +813,7 @@ extern "C" void MS_ABI impl__Stretch_CDockContext__QEAAXVCPoint___Z(void* pThis,
     }
     if (nLength < 0) nLength = 0;
 
-    const SIZE size = CallCalcDynamicLayout(c.m_pBar, nLength, dwMode);   // vslot 92
+    const SIZE size = c.m_pBar->CalcDynamicLayout(nLength, dwMode);   // vslot 92
 
     RECT rectDesk;
     rectDesk.left = ::GetSystemMetrics(SM_XVIRTUALSCREEN);
