@@ -12,20 +12,15 @@ extern "C" void MS_ABI impl__FreeNode_CStringList__IEAAXPEAUCNode_1___Z(CStringL
 extern "C" void* MS_ABI impl__NewNode_CObList__IEAAPEAUCNode_1__PEAU21_0_Z(CObList* /*pThis*/, void* pPrev, void* pNext);
 extern "C" void* MS_ABI impl__NewNode_CStringList__IEAAPEAUCNode_1__PEAU21_0_Z(CStringList* /*pThis*/, void* pPrev, void* pNext);
 
-IMPLEMENT_DYNAMIC(CUIntArray, CObject)
-IMPLEMENT_SERIAL(CDWordArray, CObject, 0)
 IMPLEMENT_DYNAMIC(CMapPtrToWord, CObject)
 IMPLEMENT_SERIAL(CMapStringToOb, CObject, 0)
 IMPLEMENT_DYNAMIC(CMapStringToPtr, CObject)
 IMPLEMENT_SERIAL(CMapStringToString, CObject, 0)
 IMPLEMENT_DYNAMIC(CMapWordToPtr, CObject)
-OPENMFC_DEFINE_ARRAY_METHODS(CUIntArray, unsigned int, unsigned int)
-OPENMFC_DEFINE_ARRAY_METHODS(CDWordArray, DWORD, DWORD)
 OPENMFC_DEFINE_MAP_METHODS(CMapPtrToWord, void*, void*, WORD, WORD)
 OPENMFC_DEFINE_MAP_METHODS(CMapWordToPtr, WORD, WORD, void*, void*)
 #undef OPENMFC_DEFINE_LIST_METHODS
 #undef OPENMFC_DEFINE_MAP_METHODS
-#undef OPENMFC_DEFINE_ARRAY_METHODS
 namespace openmfc { namespace detail { namespace filecore {
 UINT HashCStringKey(const CString& key) {
     UINT hash = 0;

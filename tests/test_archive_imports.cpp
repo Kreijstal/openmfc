@@ -162,6 +162,45 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
   }
  }
  {
+  static_assert(sizeof(CDWordArray)==40 && sizeof(CUIntArray)==40);
+  auto* dwordType = CRuntimeClass::FromName("CDWordArray");
+  check(dwordType == RUNTIME_CLASS(CDWordArray) && dwordType->m_wSchema == 0 &&
+        dwordType->m_pClassInit);
+  CUIntArray uints;
+  auto* uintType = uints.GetRuntimeClass();
+  check(uintType == RUNTIME_CLASS(CUIntArray) && uintType->m_nObjectSize == 40 &&
+        uintType->m_wSchema == 0xffff && !uintType->m_pfnCreateObject);
+  uints.Add(0xfedcba98);
+
+  CMemFile graph;
+  CDWordArray dwords;
+  dwords.Add(0xfedcba98);
+  dwords.SetAtGrow(2, 0x12345678);
+  {
+   CArchive store(&graph,CArchive::store,128);
+   uints.Serialize(store);
+   store << &dwords << &dwords;
+   store.Close();
+  }
+  const BYTE expected[] = {0xff,0xff,0,0,11,0,'C','D','W','o','r','d','A','r','r','a','y',
+                           3,0,0x98,0xba,0xdc,0xfe,0,0,0,0,0x78,0x56,0x34,0x12,2,0};
+  BYTE actual[sizeof(expected)] = {};
+  graph.Seek(0,CFile::begin);
+  check(graph.GetLength() == sizeof(expected) && graph.Read(actual,sizeof(actual)) == sizeof(actual) &&
+        !memcmp(actual,expected,sizeof(expected)));
+  graph.Seek(0,CFile::begin);
+  {
+   CArchive load(&graph,CArchive::load,128);
+   CDWordArray* restored = nullptr;
+   CDWordArray* repeated = nullptr;
+   load >> restored >> repeated;
+   check(restored && restored->GetRuntimeClass() == dwordType && restored == repeated &&
+         restored->GetSize() == 3 && restored->GetAt(0) == 0xfedcba98 &&
+         restored->GetAt(1) == 0 && restored->GetAt(2) == 0x12345678);
+   delete restored;
+  }
+ }
+ {
   static_assert(sizeof(CPtrArray)==40,"native pointer array ABI");
   CPtrArray a,b;check(a.IsEmpty()&&a.GetUpperBound()==-1);
   a.SetSize(1,17);INT_PTR capacity=0;memcpy(&capacity,reinterpret_cast<const char*>(&a)+24,8);check(capacity==1);

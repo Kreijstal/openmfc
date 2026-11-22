@@ -3206,13 +3206,7 @@ extern "C" int MS_ABI impl__OnGetPredefinedStrings_COleControl__UEAAHJPEAVCStrin
     if (!pThis || !pStringArray || !pCookieArray) return FALSE;
     if (dispid != -504) return FALSE;   // DISPID_BORDERSTYLE
 
-    // Retail appends at the arrays' current size (SetAtGrow(m_nSize, ...)).
-    // CStringArray/CDWordArray keep their elements in a side table, not in the
-    // object, and OpenMFC publishes no GetSize *thunk* for either -- the plain
-    // C++ CStringArray::GetSize() does exist (core/collections/CStringArray.cpp)
-    // but calling it from here trips the campaign's link audit, which rejects
-    // every newly undefined C++ method. So the two entries are staged in scratch
-    // arrays and appended in one go: same resulting order, same indices.
+    // Stage both entries before appending them to the caller's arrays.
     alignas(16) unsigned char scratchStrings[sizeof(CStringArray)];
     alignas(16) unsigned char scratchCookies[sizeof(CDWordArray)];
     CStringArray* pTmpStrings = reinterpret_cast<CStringArray*>(scratchStrings);

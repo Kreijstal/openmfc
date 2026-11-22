@@ -131,6 +131,8 @@ void plainArraySnapshot(Array& a, const char* name) {
 }
 void snapshot(CPtrArray& a) { plainArraySnapshot(a, "CPtrArray"); }
 void snapshot(CWordArray& a) { plainArraySnapshot(a, "CWordArray"); }
+void snapshot(CDWordArray& a) { plainArraySnapshot(a, "CDWordArray"); }
+void snapshot(CUIntArray& a) { plainArraySnapshot(a, "CUIntArray"); }
 template<class ARRAY,class F>void operation(ARRAY& a,int label,F fn) {
     active=&a;event(20,label);
     try {fn();event(21);}
@@ -252,6 +254,8 @@ void largeArithmetic(int scenario) {
 }
 template<class Array, class Element>
 void plainArray(int scenario, int failure, Element value) {
+    static_assert(sizeof(Array) == 40 && std::is_base_of_v<CObject, Array>);
+    static_assert(!std::is_copy_constructible_v<Array> && !std::is_copy_assignable_v<Array>);
     AllocationHook hook;
     alignas(Array) unsigned char first[sizeof(Array)],second[sizeof(Array)];
     active=first;Array& a=*::new(first) Array;active=second;Array& b=*::new(second) Array;
@@ -310,16 +314,18 @@ void plainArray(int scenario, int failure, Element value) {
     operation(a,70,[&]{CMemFile file;CArchive store(&file,CArchive::store,128);static_cast<CObject*>(&a)->Serialize(store);store.Close();event(71,file.GetLength());});
     active=&a;a.~Array();active=&b;b.~Array();active=nullptr;
 }
-void wordArchive(int scenario, int failure) {
+template<class Array>
+void scalarArrayArchive(int scenario, int failure) {
+    using Element = std::remove_pointer_t<decltype(std::declval<Array&>().GetData())>;
     const INT_PTR sizes[] = {0, 1, 63, 64, 65, 65534, 65535, 65536};
     const INT_PTR count = sizes[scenario];
     CMemFile file;
-    CWordArray words;
-    words.SetSize(count);
-    for (INT_PTR i = 0; i < count; ++i) words[i] = WORD(i * 4357 + 0xfedc);
+    Array values;
+    values.SetSize(count);
+    for (INT_PTR i = 0; i < count; ++i) values[i] = static_cast<Element>(i * 4357 + 0x8765fedc);
     {
         CArchive store(&file, CArchive::store, 128);
-        words.Serialize(store);
+        values.Serialize(store);
         store.Close();
     }
     event(30, file.GetLength());
@@ -334,7 +340,7 @@ void wordArchive(int scenario, int failure) {
         file.SetLength(file.GetLength() - failure);
     file.Seek(0, CFile::begin);
 
-    CWordArray restored;
+    Array restored;
     restored.SetSize(3, 9);
     restored[0] = 0xf123;
     CArchive load(&file, CArchive::load, 128);
@@ -852,9 +858,14 @@ extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int 
     failAllocation=failConstructor=failAssignment=0;
     archiveActive=failAsInteger=allocationNull=false;
     for(auto& anchor:anchors)anchor=nullptr;
-    if(kind==10) {
+    if(kind==12) plainArray<CUIntArray>(scenario, failure, UINT(0x89abfedc));
+    else if(kind==11) {
+        if (scenario < 16) plainArray<CDWordArray>(scenario, failure, DWORD(0x89abfedc));
+        else scalarArrayArchive<CDWordArray>(scenario - 16, failure);
+    }
+    else if(kind==10) {
         if (scenario < 16) plainArray<CWordArray>(scenario, failure, WORD(0xfedc));
-        else wordArchive(scenario - 16, failure);
+        else scalarArrayArchive<CWordArray>(scenario - 16, failure);
     }
     else if(kind==9) {
         if(scenario<14)lengthCodec(scenario,failure);

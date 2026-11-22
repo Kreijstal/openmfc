@@ -74,8 +74,6 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
 extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { \
     return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; \
 }
-// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDWordArray@@@Z
-OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDWordArray___Z, CDWordArray)
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCByteArray@@@Z
 OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCByteArray___Z, CByteArray)
 #undef OPENMFC_WRAP_SERIAL_EXTRACT

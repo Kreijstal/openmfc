@@ -15,8 +15,8 @@ int main() {
     if(!run||!oracle||!sdkRun)return 1;
     auto left=std::make_unique<ArrayReport>(),right=std::make_unique<ArrayReport>();
     int cases=0,failures=0;
-    const int scenarios[]={16,16,16,6,2,16,30,39,32,46,24};
-    const int failureModes[]={10,10,10,1,1,4,10,10,10,10,4};
+    const int scenarios[]={16,16,16,6,2,16,30,39,32,46,24,24,16};
+    const int failureModes[]={10,10,10,1,1,4,10,10,10,10,4,4,4};
     for(int client=0;client<2;++client)for(int kind=0;kind<int(sizeof(scenarios)/sizeof(*scenarios));++kind)for(int scenario=0;scenario<scenarios[kind];++scenario)for(int failure=0;failure<failureModes[kind];++failure) {
         (client?sdkRun:run)(kind,scenario,failure,left.get());oracle(kind,scenario,failure,right.get());++cases;
         if(left->overflow||right->overflow||left->count!=right->count||memcmp(left->events,right->events,left->count*sizeof(ArrayEvent))) {

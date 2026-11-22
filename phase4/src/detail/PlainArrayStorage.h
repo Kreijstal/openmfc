@@ -1,4 +1,4 @@
-// Storage operations shared by native CPtrArray and CWordArray.
+// Storage operations shared by the native arrays of scalars and pointers.
 #pragma once
 
 #include "openmfc/afx.h"
@@ -115,6 +115,23 @@ struct PlainArrayStorage {
                                    array.m_pData + end, Bytes(remaining)))
             AfxThrowInvalidArgException();
         array.m_nSize -= count;
+    }
+
+    static void Serialize(Array& array, CArchive& ar) {
+        const bool storing = ar.IsStoring();
+        if (storing) ar.WriteCount(array.m_nSize);
+        else array.SetSize(static_cast<INT_PTR>(ar.ReadCount()));
+
+        constexpr UINT maxElements = 0x7fffffff / sizeof(Element);
+        Element* data = array.m_pData;
+        for (DWORD_PTR remaining = array.m_nSize; remaining;) {
+            const UINT count = remaining < maxElements ? static_cast<UINT>(remaining) : maxElements;
+            const UINT bytes = count * sizeof(Element);
+            if (storing) ar.Write(data, bytes);
+            else ar.EnsureRead(data, bytes);
+            data += count;
+            remaining -= count;
+        }
     }
 
 private:

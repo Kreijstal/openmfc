@@ -1570,37 +1570,6 @@ typedef CList<WORD, WORD> CWordList;
 typedef CList<DWORD, DWORD> CDWordList;
 typedef CList<void*, void*> CPtrList;
 
-#define OPENMFC_DECLARE_ARRAY_WRAPPER(class_name, element_type, arg_type, class_decl) \
-class class_name : public CObject { \
-    class_decl(class_name) \
-public: \
-    class_name(); \
-    virtual ~class_name(); \
-    INT_PTR GetSize() const; \
-    INT_PTR GetCount() const; \
-    BOOL IsEmpty() const; \
-    INT_PTR GetUpperBound() const; \
-    void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1); \
-    void FreeExtra(); \
-    void RemoveAll(); \
-    element_type GetAt(INT_PTR nIndex) const; \
-    void SetAt(INT_PTR nIndex, arg_type newElement); \
-    element_type& ElementAt(INT_PTR nIndex); \
-    const element_type& ElementAt(INT_PTR nIndex) const; \
-    element_type operator[](INT_PTR nIndex) const; \
-    element_type& operator[](INT_PTR nIndex); \
-    element_type* GetData(); \
-    const element_type* GetData() const; \
-    void SetAtGrow(INT_PTR nIndex, arg_type newElement); \
-    INT_PTR Add(arg_type newElement); \
-    INT_PTR Append(const class_name& src); \
-    void Copy(const class_name& src); \
-    void InsertAt(INT_PTR nIndex, arg_type newElement, INT_PTR nCount = 1); \
-    void RemoveAt(INT_PTR nIndex, INT_PTR nCount = 1); \
-    void InsertAt(INT_PTR nStartIndex, class_name* pNewArray); \
-    virtual void Serialize(CArchive& ar) override; \
-};
-
 #define OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(class_name, element_type, arg_type, class_decl) \
 class class_name : public CObject { \
     class_decl(class_name) \
@@ -1708,8 +1677,6 @@ public: \
     virtual void Serialize(CArchive& ar) override; \
 };
 
-OPENMFC_DECLARE_ARRAY_WRAPPER(CUIntArray, unsigned int, unsigned int, DECLARE_DYNAMIC)
-OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, OPENMFC_DECLARE_MFC_SERIAL)
 OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, OPENMFC_DECLARE_MFC_SERIAL)
 
 namespace openmfc::detail {
@@ -1761,63 +1728,82 @@ private:
 };
 OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, OPENMFC_DECLARE_MFC_SERIAL)
 
-class CWordArray : public CObject {
+#define OPENMFC_DECLARE_PLAIN_ARRAY_RUNTIME(class_name) \
+public: \
+    static OPENMFC_ARCHIVE_API CRuntimeClass* GetThisClass(); \
+    virtual OPENMFC_ARCHIVE_API CRuntimeClass* GetRuntimeClass() const override;
+
 #if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
-    OPENMFC_DECLARE_MFC_SERIAL(CWordArray)
+#define OPENMFC_DECLARE_PLAIN_ARRAY_METADATA(class_name) OPENMFC_DECLARE_PLAIN_ARRAY_RUNTIME(class_name)
 #else
-public:
-    static CRuntimeClass classCWordArray;
+#define OPENMFC_DECLARE_PLAIN_ARRAY_METADATA(class_name) \
+    OPENMFC_DECLARE_PLAIN_ARRAY_RUNTIME(class_name) \
+    static CRuntimeClass class##class_name; \
     static CRuntimeClass* AFXAPI _GetBaseClass();
-    static CRuntimeClass* GetThisClass();
-    CRuntimeClass* GetRuntimeClass() const override;
-    static CObject* AFXAPI CreateObject();
-    friend CArchive& AFXAPI operator>>(CArchive& ar, CWordArray*& array);
 #endif
-public:
-    OPENMFC_ARCHIVE_API CWordArray();
-    OPENMFC_ARCHIVE_API ~CWordArray() override;
-    INT_PTR GetSize() const { return m_nSize; }
-    INT_PTR GetCount() const { return m_nSize; }
-    BOOL IsEmpty() const { return m_nSize == 0; }
-    INT_PTR GetUpperBound() const { return m_nSize - 1; }
-    OPENMFC_ARCHIVE_API void SetSize(INT_PTR size, INT_PTR grow = -1);
-    OPENMFC_ARCHIVE_API void FreeExtra();
-    void RemoveAll() { SetSize(0); }
-    WORD GetAt(INT_PTR index) const {
-        if (index < 0 || index >= m_nSize) AfxThrowInvalidArgException();
-        return m_pData[index];
-    }
-    WORD& ElementAt(INT_PTR index) {
-        if (index < 0 || index >= m_nSize) AfxThrowInvalidArgException();
-        return m_pData[index];
-    }
-    void SetAt(INT_PTR index, WORD value) { ElementAt(index) = value; }
-    WORD operator[](INT_PTR index) const { return GetAt(index); }
-    WORD& operator[](INT_PTR index) { return ElementAt(index); }
-    WORD* GetData() { return m_pData; }
-    const WORD* GetData() const { return m_pData; }
-    OPENMFC_ARCHIVE_API void SetAtGrow(INT_PTR index, WORD value);
-    INT_PTR Add(WORD value) {
-        INT_PTR index = m_nSize;
-        SetAtGrow(index, value);
-        return index;
-    }
-    OPENMFC_ARCHIVE_API INT_PTR Append(const CWordArray& source);
-    OPENMFC_ARCHIVE_API void Copy(const CWordArray& source);
-    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR index, WORD value, INT_PTR count = 1);
-    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR index, CWordArray* source);
-    OPENMFC_ARCHIVE_API void RemoveAt(INT_PTR index, INT_PTR count = 1);
+
+#define OPENMFC_DECLARE_PLAIN_ARRAY_SERIAL(class_name) \
+    static OPENMFC_ARCHIVE_API CObject* AFXAPI CreateObject(); \
+    friend CArchive& AFXAPI operator>>(CArchive& ar, class_name*& array); \
     OPENMFC_ARCHIVE_API void Serialize(CArchive& ar) override;
-protected:
-    WORD* m_pData;
-    INT_PTR m_nSize;
-    INT_PTR m_nMaxSize;
-    INT_PTR m_nGrowBy;
-private:
-    friend struct openmfc::detail::PlainArrayStorage<CWordArray, WORD>;
-    CWordArray(const CWordArray&) = delete;
-    CWordArray& operator=(const CWordArray&) = delete;
+
+#define OPENMFC_DECLARE_PLAIN_ARRAY(class_name, element_type, archive_decl) \
+class class_name : public CObject { \
+    OPENMFC_DECLARE_PLAIN_ARRAY_METADATA(class_name) \
+public: \
+    OPENMFC_ARCHIVE_API class_name(); \
+    OPENMFC_ARCHIVE_API ~class_name() override; \
+    INT_PTR GetSize() const { return m_nSize; } \
+    INT_PTR GetCount() const { return m_nSize; } \
+    BOOL IsEmpty() const { return m_nSize == 0; } \
+    INT_PTR GetUpperBound() const { return m_nSize - 1; } \
+    OPENMFC_ARCHIVE_API void SetSize(INT_PTR size, INT_PTR grow = -1); \
+    OPENMFC_ARCHIVE_API void FreeExtra(); \
+    void RemoveAll() { SetSize(0); } \
+    element_type GetAt(INT_PTR index) const { return ElementAt(index); } \
+    element_type& ElementAt(INT_PTR index) { \
+        return const_cast<element_type&>(static_cast<const class_name&>(*this).ElementAt(index)); \
+    } \
+    const element_type& ElementAt(INT_PTR index) const { \
+        if (index < 0 || index >= m_nSize) AfxThrowInvalidArgException(); \
+        return m_pData[index]; \
+    } \
+    void SetAt(INT_PTR index, element_type value) { ElementAt(index) = value; } \
+    element_type operator[](INT_PTR index) const { return GetAt(index); } \
+    element_type& operator[](INT_PTR index) { return ElementAt(index); } \
+    element_type* GetData() { return m_pData; } \
+    const element_type* GetData() const { return m_pData; } \
+    OPENMFC_ARCHIVE_API void SetAtGrow(INT_PTR index, element_type value); \
+    INT_PTR Add(element_type value) { \
+        INT_PTR index = m_nSize; \
+        SetAtGrow(index, value); \
+        return index; \
+    } \
+    OPENMFC_ARCHIVE_API INT_PTR Append(const class_name& source); \
+    OPENMFC_ARCHIVE_API void Copy(const class_name& source); \
+    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR index, element_type value, INT_PTR count = 1); \
+    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR index, class_name* source); \
+    OPENMFC_ARCHIVE_API void RemoveAt(INT_PTR index, INT_PTR count = 1); \
+    archive_decl \
+protected: \
+    element_type* m_pData; \
+    INT_PTR m_nSize; \
+    INT_PTR m_nMaxSize; \
+    INT_PTR m_nGrowBy; \
+private: \
+    friend struct openmfc::detail::PlainArrayStorage<class_name, element_type>; \
+    class_name(const class_name&) = delete; \
+    class_name& operator=(const class_name&) = delete; \
 };
+
+OPENMFC_DECLARE_PLAIN_ARRAY(CWordArray, WORD, OPENMFC_DECLARE_PLAIN_ARRAY_SERIAL(CWordArray))
+OPENMFC_DECLARE_PLAIN_ARRAY(CDWordArray, DWORD, OPENMFC_DECLARE_PLAIN_ARRAY_SERIAL(CDWordArray))
+OPENMFC_DECLARE_PLAIN_ARRAY(CUIntArray, UINT, )
+
+#undef OPENMFC_DECLARE_PLAIN_ARRAY
+#undef OPENMFC_DECLARE_PLAIN_ARRAY_SERIAL
+#undef OPENMFC_DECLARE_PLAIN_ARRAY_METADATA
+#undef OPENMFC_DECLARE_PLAIN_ARRAY_RUNTIME
 
 class CStringArray : public CObject {
     OPENMFC_DECLARE_MFC_SERIAL(CStringArray)
@@ -2070,7 +2056,6 @@ public:
 };
 
 #undef OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER
-#undef OPENMFC_DECLARE_ARRAY_WRAPPER
 #undef OPENMFC_DECLARE_LIST_WRAPPER
 #undef OPENMFC_DECLARE_MAP_WRAPPER
 

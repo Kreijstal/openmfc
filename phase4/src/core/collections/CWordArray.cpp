@@ -11,7 +11,7 @@ CRuntimeClass* CWordArray::GetThisClass() { return &classCWordArray; }
 // Symbol: ?GetRuntimeClass@CWordArray@@UEBAPEAUCRuntimeClass@@XZ
 CRuntimeClass* CWordArray::GetRuntimeClass() const { return GetThisClass(); }
 
-using Storage = openmfc::detail::PlainArrayStorage<CWordArray, WORD>;
+using WordArrayStorage = openmfc::detail::PlainArrayStorage<CWordArray, WORD>;
 
 // Symbol: ??0CWordArray@@QEAA@XZ
 CWordArray::CWordArray() : m_pData(nullptr), m_nSize(0), m_nMaxSize(0), m_nGrowBy(0) {}
@@ -19,23 +19,23 @@ CWordArray::CWordArray() : m_pData(nullptr), m_nSize(0), m_nMaxSize(0), m_nGrowB
 CWordArray::~CWordArray() { free(m_pData); }
 
 // Symbol: ?SetSize@CWordArray@@QEAAX_J0@Z
-void CWordArray::SetSize(INT_PTR size, INT_PTR grow) { Storage::SetSize(*this, size, grow); }
+void CWordArray::SetSize(INT_PTR size, INT_PTR grow) { WordArrayStorage::SetSize(*this, size, grow); }
 // Symbol: ?FreeExtra@CWordArray@@QEAAXXZ
-void CWordArray::FreeExtra() { Storage::FreeExtra(*this); }
+void CWordArray::FreeExtra() { WordArrayStorage::FreeExtra(*this); }
 // Symbol: ?SetAtGrow@CWordArray@@QEAAX_JG@Z
-void CWordArray::SetAtGrow(INT_PTR index, WORD value) { Storage::SetAtGrow(*this, index, value); }
+void CWordArray::SetAtGrow(INT_PTR index, WORD value) { WordArrayStorage::SetAtGrow(*this, index, value); }
 // Symbol: ?Append@CWordArray@@QEAA_JAEBV1@@Z
-INT_PTR CWordArray::Append(const CWordArray& source) { return Storage::Append(*this, source); }
+INT_PTR CWordArray::Append(const CWordArray& source) { return WordArrayStorage::Append(*this, source); }
 // Symbol: ?Copy@CWordArray@@QEAAXAEBV1@@Z
-void CWordArray::Copy(const CWordArray& source) { Storage::Copy(*this, source); }
+void CWordArray::Copy(const CWordArray& source) { WordArrayStorage::Copy(*this, source); }
 // Symbol: ?InsertAt@CWordArray@@QEAAX_JG0@Z
 void CWordArray::InsertAt(INT_PTR index, WORD value, INT_PTR count) {
-    Storage::InsertAt(*this, index, value, count);
+    WordArrayStorage::InsertAt(*this, index, value, count);
 }
 // Symbol: ?InsertAt@CWordArray@@QEAAX_JPEAV1@@Z
-void CWordArray::InsertAt(INT_PTR index, CWordArray* source) { Storage::InsertAt(*this, index, source); }
+void CWordArray::InsertAt(INT_PTR index, CWordArray* source) { WordArrayStorage::InsertAt(*this, index, source); }
 // Symbol: ?RemoveAt@CWordArray@@QEAAX_J0@Z
-void CWordArray::RemoveAt(INT_PTR index, INT_PTR count) { Storage::RemoveAt(*this, index, count); }
+void CWordArray::RemoveAt(INT_PTR index, INT_PTR count) { WordArrayStorage::RemoveAt(*this, index, count); }
 
 // Symbol: ?CreateObject@CWordArray@@SAPEAVCObject@@XZ
 CObject* AFXAPI CWordArray::CreateObject() {
@@ -45,17 +45,5 @@ CObject* AFXAPI CWordArray::CreateObject() {
 
 // Symbol: ?Serialize@CWordArray@@UEAAXAEAVCArchive@@@Z
 void CWordArray::Serialize(CArchive& ar) {
-    const bool storing = ar.IsStoring();
-    if (storing) ar.WriteCount(m_nSize);
-    else SetSize(static_cast<INT_PTR>(ar.ReadCount()));
-
-    WORD* data = m_pData;
-    for (DWORD_PTR remaining = m_nSize; remaining;) {
-        const UINT count = remaining < 0x3fffffff ? static_cast<UINT>(remaining) : 0x3fffffff;
-        const UINT bytes = count * sizeof(WORD);
-        if (storing) ar.Write(data, bytes);
-        else ar.EnsureRead(data, bytes);
-        data += count;
-        remaining -= count;
-    }
+    WordArrayStorage::Serialize(*this, ar);
 }
