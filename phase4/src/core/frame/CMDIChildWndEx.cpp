@@ -196,9 +196,6 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(
 extern "C" void MS_ABI impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
     CDockingManager* pThis, CBasePane* pPane, int bDestroy, int bAdjustLayout, int bAutoHide,
     CBasePane* pBarReplacement);
-extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
-    const CDockingManager* pThis, long long point, int nSensitivity, unsigned long* pdwAlignment,
-    CRuntimeClass* pRTCBarType, const CDockingManager* pDockManager);
 // (the H_N PaneFromPoint variant is declared by detail/MfccoreSupport.h)
 // CFrameImpl ctor/dtor and OnChangeVisualManager (core/frame/CFrameImpl.cpp;
 // that file keys every member on the object pointer, so a heap block of the
@@ -1076,7 +1073,8 @@ extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CMDIChildWndEx__QEBAPEAVCBasePa
     unsigned long* dwAlignment, CRuntimeClass* pRTCBarType) {
     if (!pThis) return nullptr;
     return impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
-        DockManagerOf(const_cast<CMDIChildWndEx*>(pThis)), static_cast<long long>(pt),
+        DockManagerOf(const_cast<CMDIChildWndEx*>(pThis)),
+        CPoint(static_cast<int>(pt & 0xffffffffu), static_cast<int>(pt >> 32)),
         nSensitivity, dwAlignment, pRTCBarType, nullptr);
 }
 // CMDIChildWndEx::PaneFromPoint(CPoint, int, bool, CRuntimeClass*) const —

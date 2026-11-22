@@ -106,6 +106,12 @@ struct DockingManagerState {
     std::vector<void*> miniFrames;                   // mini-frame list at +0x180
     std::unordered_set<CBasePane*> hiddenPanes;
     std::unordered_set<CBasePane*> floatingPanes;
+    struct EdgePane {
+        HWND divider;
+        LONG thickness;
+        bool outer;
+    };
+    std::unordered_map<CBasePane*, EdgePane> edgePanes;
     DWORD enabledAlignment = 0;
     DWORD enabledAutoHideAlignment = 0;
     bool lockUpdate = false;
@@ -165,6 +171,17 @@ DockingManagerState& EnsureDockingState(const CDockingManager* pManager);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
+enum DockingChange { NoDockingChange, DockImmediately, DelayDock, DelayDockToTab };
+struct DockingDrop {
+    CDockablePane* pane = nullptr;
+    DWORD alignment = 0;
+    DockingChange change = NoDockingChange;
+    bool outerEdge = false;
+};
+DockingDrop DockingTarget(const CDockingManager* manager, CPoint point, int sensitivity,
+                          DWORD allowedAlignment, const CBasePane* ignore, const CBasePane* source);
+CDockablePane* DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked);
+
 const DockingManagerState* FindDockingState(const CDockingManager* pManager);
 CDockingManager* DockingManagerForFrame(CWnd* frame);
 CDockingManager* DockingManagerForMdiFrame(CMDIFrameWndEx* frame);
@@ -1353,8 +1370,11 @@ extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(
 
 
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-    const CDockingManager* pThis, CPoint point, int bIncludeHidden, int bCheckForPoint,
-    CRuntimeClass* pRTCFilter, int, const CDockingManager* pDockManager);
+    const CDockingManager* manager, CPoint point, int sensitivity, bool exact,
+    CRuntimeClass* filter, BOOL checkVisibility, const CBasePane* ignore);
+extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
+    const CDockingManager* manager, CPoint point, int sensitivity, DWORD* alignment,
+    CRuntimeClass* filter, const CBasePane* ignore);
 extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
     const CDockingManager* manager, CPoint point, DWORD* alignment, BOOL* outerEdge);
 extern "C" BOOL MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* manager, DWORD sides);

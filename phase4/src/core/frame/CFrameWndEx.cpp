@@ -116,12 +116,6 @@ extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(
     CDockingManager* pThis, CWnd* pFrame);
 extern "C" int MS_ABI impl__SendMessageToMiniFrames_CDockingManager__QEAAHI_K_J_Z(
     CDockingManager* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam);
-extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-    const CDockingManager* pThis, CPoint point, int nSensitivity, int bExactBar,
-    CRuntimeClass* pRTCBarType, int bCheckVisibility, const CDockingManager* pDockManager);
-extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
-    const CDockingManager* pThis, CPoint point, int nSensitivity, unsigned long* dwAlignment,
-    CRuntimeClass* pRTCBarType, const CDockingManager* pDockManager);
 // CBasePane (featurepack/docking/CBasePane.cpp)
 extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(
     CBasePane* pThis, int bShow, int bDelay, int bActivate);

@@ -1592,6 +1592,16 @@ public:
                      CWnd* owner, CCreateContext* context);
     void SetDockingManager(CDockingManager* manager);
     void AutoDestroyWithWindow();
+    void BeginPaneDrag();
+    void OnMouseMove(UINT flags, CPoint point);
+    void OnLButtonUp(UINT flags, CPoint point);
+    void OnMoving(UINT side, RECT* proposed);
+    LRESULT OnEnterSizeMove(WPARAM, LPARAM);
+    LRESULT OnExitSizeMove(WPARAM, LPARAM);
+    LRESULT OnCaptionButtonDown(WPARAM hit, LPARAM);
+    LRESULT OnPaneDragKey(WPARAM key, LPARAM);
+    LRESULT OnCaptureChanged(WPARAM, LPARAM);
+    LRESULT OnCancelPaneDrag(WPARAM, LPARAM);
     void OnClose();
     void OnDestroy();
     void OnSize(UINT type, int width, int height);

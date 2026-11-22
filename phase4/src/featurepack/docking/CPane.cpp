@@ -966,7 +966,8 @@ BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDocki
         return FALSE;
     }
 
-    if (method == kDockMethodMouse && ::GetCapture() == pane) {
+    const bool continueDrag = method == kDockMethodMouse && ::GetCapture() == pane;
+    if (continueDrag) {
         m_bCaptured = FALSE;
         m_bDragMode = FALSE;
         ::ReleaseCapture();
@@ -1007,6 +1008,7 @@ BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDocki
     docking.floatingPanes.insert(this);
     if (show) manager->ShowPane(this);
     else manager->HidePane(this);
+    if (show && continueDrag) mini->BeginPaneDrag();
     return TRUE;
 }
 
@@ -1192,17 +1194,51 @@ extern "C" void MS_ABI impl__GetVirtualRect_CPane__QEBAXAEAVCRect___Z(
 }
 
 // Symbol: ?IsChangeState@CPane@@UEBA?AW4AFX_CS_STATUS@@HPEAPEAVCBasePane@@@Z
-// NOT IMPLEMENTED.  Retail mfc140 RVA 0xa1710 is a ~270 instruction body that
-// walks the owning CDockingPanesRow's pane list to decide between CS_NOTHING,
-// CS_DOCK_IMMEDIATELY, CS_DELAY_DOCK and CS_DELAY_DOCK_TO_TAB.  OpenMFC models
-// neither CDockingPanesRow's layout nor its pane list, so there is nothing to
-// walk.
 extern "C" int MS_ABI impl__IsChangeState_CPane__UEBA_AW4AFX_CS_STATUS__HPEAPEAVCBasePane___Z(
-    const CPane* pThis, int nOffset, CBasePane** ppTargetBar) {
-    (void)pThis;
-    (void)nOffset;
-    if (ppTargetBar != nullptr) *ppTargetBar = nullptr;
-    return 0;  // CS_NOTHING
+    const CPane* pane, int tolerance, CBasePane** target) {
+    if (!target) return NoDockingChange;
+    *target = nullptr;
+    if (!pane || !pane->m_hWnd) return NoDockingChange;
+    tolerance = (std::clamp)(tolerance, 0, 32767);
+    POINT point{};
+    RECT actual{};
+    if (!::GetCursorPos(&point) || !::GetWindowRect(pane->m_hWnd, &actual)) return NoDockingChange;
+    RECT intended = *static_cast<const RECT*>(pane->m_rectVirtual);
+    ::MapWindowPoints(::GetParent(pane->m_hWnd), nullptr, reinterpret_cast<POINT*>(&intended), 2);
+    if (::IsRectEmpty(&intended)) intended = actual;
+    CFrameWnd* owner = nullptr;
+    auto* manager = PaneDockingManager(*pane, owner);
+    *target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+        manager, point, tolerance, false, RUNTIME_CLASS(CDockSite), TRUE, pane);
+
+    if (pane->m_pParentDockBar) {
+        RECT site{};
+        auto* bar = reinterpret_cast<const CWnd*>(pane->m_pParentDockBar);
+        if (!::GetWindowRect(bar->m_hWnd, &site)) return NoDockingChange;
+        RECT intersect{};
+        if (!::IntersectRect(&intersect, &site, &intended)) return DockImmediately;
+        const bool horizontal = PaneIsHorizontal(pane);
+        const LONG outside = horizontal ? (std::max)(site.left - intended.left, intended.right - site.right)
+                                        : (std::max)(site.top - intended.top, intended.bottom - site.bottom);
+        return outside > 2 * tolerance && !::PtInRect(&site, point) ? DockImmediately : NoDockingChange;
+    }
+
+    if (!*target || !pane->CanAcceptPane(*target)) return NoDockingChange;
+    RECT site{};
+    if (!::GetWindowRect((*target)->m_hWnd, &site)) return NoDockingChange;
+    if (::PtInRect(&site, point)) return DockImmediately;
+    const auto withinScaledTolerance = [tolerance](LONG cursor, LONG low, LONG high, LONG start, LONG end) {
+        if (cursor >= low && cursor <= high) return false;
+        const double extent = (std::max)(1L, end - start);
+        const double distanceFromOppositeEdge = cursor < low ? end - cursor : cursor - start;
+        const LONG gap = cursor < low ? low - cursor : cursor - high;
+        return gap <= tolerance * distanceFromOppositeEdge / extent;
+    };
+    if (point.x < site.left || point.x > site.right)
+        return withinScaledTolerance(point.x, site.left, site.right, actual.left, actual.right)
+            ? DockImmediately : NoDockingChange;
+    return withinScaledTolerance(point.y, site.top, site.bottom, actual.top, actual.bottom)
+        ? DockImmediately : NoDockingChange;
 }
 
 // Symbol: ?IsLeftOf@CPane@@QEBA_NVCRect@@_N@Z

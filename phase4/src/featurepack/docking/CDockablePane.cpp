@@ -426,9 +426,6 @@ const int kCsDelayDock      = 2;   // CS_DELAY_DOCK
 const int kCsDelayDockToTab = 3;   // CS_DELAY_DOCK_TO_TAB
 // AFX_DOCK_TYPE bits from atlmfc/include/afxglobals.h:38.
 const int kDockTypeSmart = 0x80;   // DT_SMART
-// CSmartDockingStandaloneGuide::sdCMIDDLE from atlmfc/include/afxsmartdockingguide.h:74
-// (sdLEFT == 0 ... sdCBOTTOM == 7, sdCMIDDLE == 8).
-const int kSdCMiddle = 8;
 // Timer ids from atlmfc/include/afxres.h:157-159.
 const unsigned __int64 kTimerAutoHideSlideIn  = 0xEC01;  // AFX_TIMER_ID_AUTO_HIDE_SLIDE_IN_EVENT
 const unsigned __int64 kTimerAutoHideSlideOut = 0xEC02;  // AFX_TIMER_ID_AUTO_HIDE_SLIDE_OUT_EVENT
@@ -610,13 +607,71 @@ extern "C" int MS_ABI impl__OnBeforeFloat_CDockablePane__UEAAHAEAVCRect__W4AFX_D
 }
 // Symbol: ?DockToFrameWindow@CDockablePane@@UEAAHKPEBUtagRECT@@KPEAVCBasePane@@HH@Z
 extern "C" int MS_ABI impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__KPEAVCBasePane__HH_Z(
-    CDockablePane* pThis, unsigned long, const RECT* lpRect, unsigned long, CBasePane* pTargetBar, int, int) {
-    if (pThis == nullptr) return FALSE;
-    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Cbarcore);
-    PaneCoreState& state = g_paneCoreState_Cbarcore[pThis];
-    state.parent = pTargetBar != nullptr ? static_cast<CWnd*>(pTargetBar) : state.parent;
-    state.recentRect = NormalizeRect(lpRect, 240, 140);
-    state.tabbed = FALSE;
+    CDockablePane* pane, DWORD alignment, const RECT* requested, DWORD, CBasePane* relative, int, int outer) {
+    if (!pane || !pane->m_hWnd || pane->IsAutoHideMode() || !pane->CanBeDocked() ||
+        (alignment != CBRS_ALIGN_LEFT && alignment != CBRS_ALIGN_RIGHT &&
+         alignment != CBRS_ALIGN_TOP && alignment != CBRS_ALIGN_BOTTOM)) return FALSE;
+    auto* manager = FindPaneDockingManager(pane);
+    if (!manager) return FALSE;
+    auto& state = EnsureDockingState(manager);
+    auto* owner = state.parentFrame;
+    if (!owner || !owner->m_hWnd || !(pane->m_dwEnabledAlignment & alignment)) return FALSE;
+
+    RECT bounds{};
+    if (requested && !::IsRectEmpty(requested)) bounds = *requested;
+    else if (!::GetWindowRect(pane->m_hWnd, &bounds)) return FALSE;
+    const bool vertical = alignment == CBRS_ALIGN_LEFT || alignment == CBRS_ALIGN_RIGHT;
+    const LONG thickness = vertical ? bounds.right - bounds.left : bounds.bottom - bounds.top;
+    auto* divider = impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
+        alignment, owner, nullptr);
+    if (!divider) return FALSE;
+    auto* oldGroup = static_cast<CBaseTabbedPane*>(
+        impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(pane));
+    auto* oldDivider = static_cast<CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pane));
+    const HWND previous = ::GetParent(pane->m_hWnd);
+    if (previous != owner->m_hWnd) {
+        ::SetLastError(ERROR_SUCCESS);
+        if (!::SetParent(pane->m_hWnd, owner->m_hWnd) && ::GetLastError() != ERROR_SUCCESS) {
+            divider->DestroyWindow();
+            return FALSE;
+        }
+    }
+
+    if (oldGroup) oldGroup->RemovePane(pane);
+    if (pane->m_pParentDockBar) {
+        impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(pane, owner, FALSE);
+        pane->m_pParentDockBar = nullptr;
+        pane->m_pDockBarRow = nullptr;
+    }
+    pane->ReleaseFloatingFrame();
+    divider->AddPane(pane);
+    if (oldDivider && !oldDivider->GetFirstPane()) ::ShowWindow(oldDivider->m_hWnd, SW_HIDE);
+    pane->m_pDockSite = reinterpret_cast<CDockSite*>(owner);
+    pane->m_dwStyle = (pane->m_dwStyle & ~(CBRS_FLOATING | CBRS_ALIGN_ANY)) | alignment;
+    pane->SetPaneAlignment(alignment);
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& record = g_paneCoreState_Mfccore[pane];
+        record.parent = owner;
+        record.visible = TRUE;
+        record.tabbed = FALSE;
+        record.tabWindow = nullptr;
+    }
+    manager->DockPane(pane);
+    if (relative && relative != pane) {
+        const auto before = std::find(state.panes.begin(), state.panes.end(), relative);
+        if (before != state.panes.end()) {
+            const auto index = before - state.panes.begin();
+            auto existing = std::find(state.panes.begin(), state.panes.end(), pane);
+            state.panes.erase(existing);
+            state.panes.insert(state.panes.begin() + (std::min)(index, static_cast<decltype(index)>(state.panes.size())), pane);
+        }
+    }
+    state.edgePanes[pane] = {divider->m_hWnd, (std::max)(1L, thickness), outer != 0};
+    ::ShowWindow(pane->m_hWnd, SW_SHOWNOACTIVATE);
+    ::ShowWindow(divider->m_hWnd, SW_SHOWNOACTIVATE);
+    manager->RecalcLayout();
     return TRUE;
 }
 // Symbol: ?ShowPane@CDockablePane@@UEAAXHHH@Z
@@ -1005,6 +1060,9 @@ extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AF
 
     const bool createGroup = group == nullptr;
     const HWND targetParent = ::GetParent(target->m_hWnd);
+    auto* oldParent = static_cast<CWnd*>(CWnd::FromHandlePermanent(targetParent));
+    auto* targetFrame = createGroup && oldParent && oldParent->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))
+        ? static_cast<CPaneFrameWnd*>(oldParent) : nullptr;
     const auto targetStyle = ::GetWindowLongPtrW(target->m_hWnd, GWL_STYLE);
     RECT targetBounds{};
     if (createGroup) {
@@ -1035,8 +1093,37 @@ extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AF
             if (impl__ReplacePane_CPaneDivider__UEAAHPEAVCDockablePane__0_Z(divider, target, group))
                 impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(target, nullptr);
         }
-        if (auto* manager = FindPaneDockingManager(group))
-            impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(manager, target, group);
+        auto* manager = FindPaneDockingManager(group);
+        if (manager) impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(manager, target, group);
+        if (targetFrame && targetFrame->GetPane() == target) {
+            targetFrame->RemovePane(target);
+            target->m_dwStyle &= ~CBRS_FLOATING;
+            group->m_dwStyle |= CBRS_FLOATING;
+            group->m_recentDockInfo.m_layout = target->m_recentDockInfo.m_layout;
+            group->m_recentDockInfo.m_layout.m_pBar = group;
+            group->m_recentDockInfo.m_layout.m_nRecentTabNumber = -1;
+            {
+                std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+                const auto targetRecord = g_paneCoreState_Mfccore.find(target);
+                if (targetRecord != g_paneCoreState_Mfccore.end()) {
+                    auto restore = std::exchange(targetRecord->second.floatRestore, std::nullopt);
+                    targetRecord->second.floatingFrame = nullptr;
+                    if (restore) {
+                        // The combined group returns to the floating target's original dock.
+                        if (restore->tabGroup) restore->parent = restore->owner;
+                        restore->tabGroup = nullptr;
+                        restore->tabIndex = -1;
+                        g_paneCoreState_Mfccore[group].floatRestore = restore;
+                    }
+                }
+                g_paneCoreState_Mfccore[group].floatingFrame = targetParent;
+            }
+            if (manager) {
+                AddDockingPane(manager, group);
+                EnsureDockingState(manager).floatingPanes.insert(group);
+            }
+            targetFrame->AddPane(group);
+        }
         ::ShowWindow(group->m_hWnd, SW_SHOWNOACTIVATE);
     }
     impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(pane, nullptr);
@@ -1531,7 +1618,8 @@ extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPan
     RECT bounds{};
     if (!group || !::GetWindowRect(pane->m_hWnd, &bounds)) return nullptr;
     ::MapWindowPoints(nullptr, parentHwnd, reinterpret_cast<POINT*>(&bounds), 2);
-    const DWORD alignment = pane->m_dwStyle & CBRS_ALIGN_ANY;
+    DWORD alignment = pane->GetPaneAlignment() & CBRS_ALIGN_ANY;
+    if (!alignment) alignment = pane->m_dwStyle & CBRS_ALIGN_ANY;
     std::wstring caption(::GetWindowTextLengthW(pane->m_hWnd) + 1, L'\0');
     ::GetWindowTextW(pane->m_hWnd, caption.data(), static_cast<int>(caption.size()));
     group->m_pDockSite = pane->m_pDockSite;
@@ -1581,19 +1669,39 @@ extern "C" int MS_ABI impl__DockPaneContainer_CDockablePane__UEAAHAEAVCPaneConta
     return 0;
 }
 
-// STUB. Retail entry RVA 0x45c90 (mfc140u; 0x45ae0 in mfc140). It reads
-// GetDockingMode() (vtable slot 0x380), then computes `nSensitivity = (mode &
-// DT_SMART) ? -1 : <global at mfc140 RVA 0x3aaacc>` (DT_SMART == 0x80) and
-// calls IsChangeState (vtable slot 0x578) with it and a CBasePane*
-// out-parameter; the remainder was not transcribed. Blocked: the decision
-// comes from this file's IsChangeState, which is itself blocked on the retail
-// CDockingManager vtable (see above), so no docking target can ever be found.
-// Signature corrected to carry `this`.
+extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT___Z(
+    CDockablePane*, CDockablePane*, DWORD, const RECT*);
+extern "C" int impl__m_nDockSensitivity_CDockingManager__2HA;
+
+CDockablePane* openmfc::detail::mfccore::DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked) {
+    docked = FALSE;
+    const auto drop = DockingTarget(FindPaneDockingManager(&pane), point,
+        impl__m_nDockSensitivity_CDockingManager__2HA, pane.m_dwEnabledAlignment, &pane, &pane);
+    if (drop.change == DelayDockToTab && drop.pane) {
+        auto* group = static_cast<CDockablePane*>(
+            impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AFX_DOCK_METHOD__HPEAPEAV1__Z(
+                &pane, drop.pane, 1 /* DM_MOUSE */, TRUE, nullptr));
+        docked = group != nullptr;
+        return group;
+    }
+    if (drop.change != DelayDock || !drop.alignment) return nullptr;
+    if (drop.pane) {
+        docked = impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT___Z(
+            &pane, drop.pane, drop.alignment, nullptr);
+    } else {
+        docked = impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__KPEAVCBasePane__HH_Z(
+            &pane, drop.alignment, nullptr, 0, nullptr, -1, drop.outerEdge);
+    }
+    return docked ? &pane : nullptr;
+}
+
 // Symbol: ?DockPaneStandard@CDockablePane@@UEAAPEAVCPane@@AEAH@Z
-extern "C" void* MS_ABI impl__DockPaneStandard_CDockablePane__UEAAPEAVCPane__AEAH_Z(CDockablePane* pThis, int* pbWasDocked) {
-    (void)pThis;
-    (void)pbWasDocked;
-    return nullptr;
+extern "C" void* MS_ABI impl__DockPaneStandard_CDockablePane__UEAAPEAVCPane__AEAH_Z(
+    CDockablePane* pane, int* docked) {
+    if (!docked) return nullptr;
+    *docked = FALSE;
+    POINT point{};
+    return pane && ::GetCursorPos(&point) ? DockPaneAtPoint(*pane, point, *docked) : nullptr;
 }
 
 // CDockablePane::DockToWindow -- transcribed from retail entry RVA 0x443d0
@@ -1640,18 +1748,12 @@ extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT_
         impl__ShowWindow_CWnd__QEAAHH_Z(static_cast<CWnd*>(pThis), SW_SHOW);
         return FALSE;
     }
-    const HWND hOldSlider = ExtraOf(pThis).hDefaultSlider;
-    if (hOldSlider != nullptr && ::IsWindow(hOldSlider)) {
-        impl__UndockPane_CDockablePane__UEAAXH_Z(pThis, FALSE);
-    }
+    if (!impl__InsertPane_CPaneDivider__UEAAHPEAVCDockablePane__0KPEBUtagRECT___Z(
+            pSlider, pThis, pTargetWindow, dwAlignment, lpRect)) return FALSE;
     impl__RemoveFromMiniframe_CPane__MEAAXPEAVCWnd__W4AFX_DOCK_METHOD___Z(
         static_cast<CPane*>(pThis),
         static_cast<CWnd*>(impl__AFXGetParentFrame__YAPEAVCFrameWnd__PEBVCWnd___Z(static_cast<const CWnd*>(pThis))),
-        0 /*DM_UNKNOWN*/);
-    if (!impl__InsertPane_CPaneDivider__UEAAHPEAVCDockablePane__0KPEBUtagRECT___Z(
-            pSlider, pThis, pTargetWindow, dwAlignment, lpRect)) {
-        return FALSE;
-    }
+        0 /* DM_UNKNOWN */);
     impl__InsertPane_CBasePane__QEAAHPEAV1_0H_Z(
         static_cast<CBasePane*>(pThis), static_cast<CBasePane*>(pThis), static_cast<CBasePane*>(pTargetWindow), TRUE);
     SetDefaultSliderOf(pThis, static_cast<CWnd*>(pSlider)->m_hWnd);
@@ -1865,16 +1967,7 @@ extern "C" void* MS_ABI impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPane
 // non-exported body at RVA 0x3fc20, which just ::SetRectEmpty()s both
 // arguments -- CDockablePane::GetTabArea's inline default; CTabbedPane
 // overrides it.)
-// Deviations: (1) the DT_SMART marker probe is dropped -- OpenMFC's
-// CDockingManager has no smart-docking manager pointer and CSmartDockingManager
-// is not modelled -- so nMarker stays -1 and a drag over the centre guide
-// reports CS_DELAY_DOCK instead of CS_DELAY_DOCK_TO_TAB; (2) GetTabArea is
-// folded to its CDockablePane default (both rects empty), so a CTabbedPane's
-// tab-strip areas are not honoured; (3) HitTest / GetCaptionHeight dispatch
-// statically to this file's thunks. Everything else is retail's.
-// Signature corrected: the generated 12-parameter list was garbage. The
-// by-value CPoint occupies one register and is copied into a POINT as HitTest
-// above does.
+// The live tab control supplies the strip geometry for CBaseTabbedPane.
 // Symbol: ?GetDockingStatus@CDockablePane@@UEAA?AW4AFX_CS_STATUS@@VCPoint@@H@Z
 extern "C" int MS_ABI impl__GetDockingStatus_CDockablePane__UEAA_AW4AFX_CS_STATUS__VCPoint__H_Z(
     CDockablePane* pThis, void* point, int nSensitivity) {
@@ -1882,30 +1975,22 @@ extern "C" int MS_ABI impl__GetDockingStatus_CDockablePane__UEAA_AW4AFX_CS_STATU
     POINT pt;
     memcpy(&pt, &point, sizeof(pt));
 
-    // Retail evaluates these two even though only the DT_SMART arm (dropped
-    // here, see above) consumes them; kept so the side effects match.
-    (void)impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(static_cast<const CBasePane*>(pThis));
-    (void)impl__GetDockingManager_CGlobalUtils__QEAAPEAVCDockingManager__PEAVCWnd___Z(
-        reinterpret_cast<CGlobalUtils*>(impl__afxGlobalUtils__3VCGlobalUtils__A),
-        impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(static_cast<const CBasePane*>(pThis)));
-    const int nMarker = -1;
-
-    const int nHit = impl__HitTest_CDockablePane__UEAAHVCPoint__H_Z(pThis, point, TRUE);
-    RECT rectTabTop = {0, 0, 0, 0};      // GetTabArea(): CDockablePane's default empties both
-    RECT rectTabBottom = {0, 0, 0, 0};
-    if (nHit == HTCAPTION || ::PtInRect(&rectTabTop, pt) || ::PtInRect(&rectTabBottom, pt) ||
-        nMarker == kSdCMiddle) {
-        return kCsDelayDockToTab;
+    const int hit = impl__HitTest_CDockablePane__UEAAHVCPoint__H_Z(pThis, point, TRUE);
+    CRect strip;
+    if (pThis->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) {
+        auto* tabs = static_cast<CBaseTabbedPane*>(pThis)->GetTabs();
+        if (const auto* state = tabs ? FindTabCtrlState(tabs) : nullptr) {
+            strip = state->strip;
+            ::MapWindowPoints(tabs->m_hWnd, nullptr, reinterpret_cast<POINT*>(static_cast<RECT*>(strip)), 2);
+        }
     }
+    if (hit == HTCAPTION || ::PtInRect(strip, pt)) return kCsDelayDockToTab;
 
     RECT rectWnd = {0, 0, 0, 0};
     ::GetWindowRect(pThis->m_hWnd, &rectWnd);
-    rectWnd.top += (rectTabTop.bottom - rectTabTop.top) + impl__GetCaptionHeight_CDockablePane__UEBAHXZ(pThis);
-    rectWnd.bottom -= (rectTabBottom.bottom - rectTabBottom.top);
-    if (nSensitivity == -1) {
-        return ::PtInRect(&rectWnd, pt) ? kCsDelayDock : kCsNothing;
-    }
-    ::InflateRect(&rectWnd, -nSensitivity, -nSensitivity);
+    rectWnd.top += impl__GetCaptionHeight_CDockablePane__UEBAHXZ(pThis);
+    const int margin = (std::clamp)(nSensitivity, 0, 32767);
+    ::InflateRect(&rectWnd, -margin, -margin);
     return ::PtInRect(&rectWnd, pt) ? kCsDelayDock : kCsNothing;
 }
 
@@ -1995,29 +2080,18 @@ extern "C" int MS_ABI impl__IsButtonEnabled_CDockablePane__IEBAHI_Z(const CDocka
     return FALSE;
 }
 
-// STUB. Retail entry RVA 0x41050 (mfc140; 0x41200 in mfc140u), fully decoded:
-//     if (ppTargetBar == NULL) AfxThrowInvalidArgException();       // RVA 0x225b80
-//     *ppTargetBar = NULL;
-//     CPoint pt; ::GetCursorPos(&pt);                               // 0x1802c5348
-//     CWnd* pWnd = CWnd::FromHandle(::GetParent(m_hWnd));           // 0x1802c5300, RVA 0x289180
-//     if (pWnd->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))             // RTC 0x3aa418, unchecked for NULL
-//         pWnd = CWnd::FromHandlePermanent(((CPaneFrameWnd*)pWnd)->{+0x130});   // RVA 0x2891d0
-//     CDockingManager* pMgr = afxGlobalUtils.GetDockingManager(pWnd);          // RVA 0x6ccc0
-//     if (pMgr == NULL) return CS_NOTHING;                          // %eax is the NULL
-//     return pMgr->{slot 0x40}(pt, nOffset, IsFloating() /*slot 0x340*/, ppTargetBar, this, this);
-// Blocked: the decision is a virtual at slot 0x40 of the retail CDockingManager
-// vftable; OpenMFC's CDockingManager is a CObject with a padding blob and no
-// retail-shaped vtable, and the CPaneFrameWnd HWND at +0x130 is not modelled
-// either.
-// Signature corrected: the generated 12-parameter list was garbage; the enum is
-// returned in %eax.
 // Symbol: ?IsChangeState@CDockablePane@@UEBA?AW4AFX_CS_STATUS@@HPEAPEAVCBasePane@@@Z
 extern "C" int MS_ABI impl__IsChangeState_CDockablePane__UEBA_AW4AFX_CS_STATUS__HPEAPEAVCBasePane___Z(
-    const CDockablePane* pThis, int nOffset, CBasePane** ppTargetBar) {
-    (void)pThis;
-    (void)nOffset;
-    if (ppTargetBar != nullptr) *ppTargetBar = nullptr;   // retail's first store; the rest is not reproduced
-    return kCsNothing;
+    const CDockablePane* pane, int sensitivity, CBasePane** target) {
+    if (!target) return NoDockingChange;
+    *target = nullptr;
+    if (!pane || !pane->m_hWnd) return NoDockingChange;
+    POINT cursor{};
+    if (!::GetCursorPos(&cursor)) return NoDockingChange;
+    const auto result = DockingTarget(FindPaneDockingManager(pane), cursor, sensitivity,
+        pane->m_dwEnabledAlignment, pane, pane);
+    *target = result.pane;
+    return result.change;
 }
 
 // CDockablePane::IsDocked -- transcribed from retail entry RVA 0xb300:

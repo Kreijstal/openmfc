@@ -56,6 +56,11 @@ struct PaneFrameState {
     bool delayShow = false;                 // m_bDelayShow +0x108
     bool tabDragRectDisplayed = false;       // m_bTabDragRectDisplayed +0x10c
     bool dragging = false;                  // m_bCaptured +0x10d
+    bool systemMoveStarted = false;
+    bool movedBySystem = false;
+    RECT dragStartBounds{};
+    POINT dragStartPoint{};
+
     UINT heightBeforeRollUp = 0;             // m_nHeightBeforeRollUp +0x110
     UINT captionHeight = 0;                  // m_nCaptionHeight +0x114
 

@@ -1516,20 +1516,18 @@ extern "C" void MS_ABI impl__OnSize_CBasePane__IEAAXIHH_Z(
     }
 }
 
-// STUB. The ANSI twin's entry RVA 0xbad0 (mfc140) dispatches PaneFromPoint
-// through the dock-site frame's RTTI-selected frame/docking-manager paths.
-// Those embedded frame manager layouts are not modeled here. CPoint is passed
-// by value in the MS ABI.
 // Symbol: ?PaneFromPoint@CBasePane@@QEBAPEAV1@VCPoint@@H_NPEAUCRuntimeClass@@@Z
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CBasePane__QEBAPEAV1_VCPoint__H_NPEAUCRuntimeClass___Z(
-    const CBasePane* pThis, long long point, int nSensitivity, bool bExactBar,
-    CRuntimeClass* pRTCBarType) {
-    (void)pThis;
-    (void)point;
-    (void)nSensitivity;
-    (void)bExactBar;
-    (void)pRTCBarType;
-    return nullptr;
+    const CBasePane* pane, long long packedPoint, int sensitivity, bool exact, CRuntimeClass* filter) {
+    if (!pane) return nullptr;
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(
+        static_cast<CWnd*>(impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(pane)));
+    if (!manager) manager = utils.GetDockingManager(pane->GetParentFrame());
+    CPoint point;
+    std::memcpy(&point, &packedPoint, sizeof(point));
+    return impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+        manager, point, sensitivity, exact, filter, FALSE, nullptr);
 }
 
 // STUB. The ANSI twin's entry RVA 0xcbb0 (mfc140) first calls

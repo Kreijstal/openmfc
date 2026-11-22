@@ -74,12 +74,6 @@ extern "C" int   MS_ABI impl__DockPaneLeftOf_CDockingManager__QEAAHPEAVCPane__0_
 extern "C" int   MS_ABI impl__EnableDocking_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwDockStyle);
 extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
     CDockingManager* pThis, unsigned int nID, int bSearchMiniFrames);
-extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-    const CDockingManager* pThis, CPoint point, int nSensitivity, int bExactBar,
-    CRuntimeClass* pRTCBarType, int bCheckVisibility, const CDockingManager* pDockManager);
-extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
-    const CDockingManager* pThis, CPoint point, int nSensitivity, unsigned long* pdwAlignment,
-    CRuntimeClass* pRTCBarType, const CDockingManager* pDockManager);
 extern "C" void  MS_ABI impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(CDockingManager* pThis, void* hdwp);
 extern "C" void  MS_ABI impl__RecalcLayout_CDockingManager__UEAAXH_Z(CDockingManager* pThis, int bNotify);
 extern "C" int   MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(CDockingManager* pThis, CWnd* pFrame);

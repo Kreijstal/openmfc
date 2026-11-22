@@ -95,7 +95,8 @@ BOOL CBaseTabbedPane::InsertTab(CWnd* window, int index, BOOL visible, BOOL acti
         if (oldParent != m_pTabWnd->m_hWnd) ::SetParent(window->m_hWnd, oldParent);
         return FALSE;
     }
-    if (window->IsKindOf(RUNTIME_CLASS(CPane))) static_cast<CPane*>(window)->ReleaseFloatingFrame();
+    if (oldParent != ::GetParent(m_hWnd) && window->IsKindOf(RUNTIME_CLASS(CPane)))
+        static_cast<CPane*>(window)->ReleaseFloatingFrame();
     RecordTabMembership(window, m_pTabWnd, TRUE);
     m_pTabWnd->ShowTab(index, visible, TRUE, FALSE);
     if (visible && activate) m_pTabWnd->ActivateTab(index);

@@ -570,19 +570,8 @@ extern "C" int MS_ABI impl__OnBeforeDock_CPaneFrameWnd__UEAAHXZ(void* pThis) {
     return TRUE;
 }
 // Symbol: ?OnCancelMode@CPaneFrameWnd@@IEAAXXZ
-// Retail ends an in-progress drag (drag-frame virtuals + capture). Only the
-// capture release is reproducible here.
-// TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnCancelMode_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    {
-        std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState& st = GetState(pThis);
-        if (st.dragging) {
-            st.dragging = false;
-            ::ReleaseCapture();
-        }
-    }
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnCancelPaneDrag(0, 0);
 }
 // Symbol: ?OnCapture@CPaneFrameWnd@@MEAAXH@Z
 // Retail mfc140.dll entry RVA 0xb26a0 resolves the pane HWND at +0x148 and, if
@@ -840,14 +829,9 @@ extern "C" void MS_ABI impl__OnLButtonDown_CPaneFrameWnd__IEAAXIVCPoint___Z(
     impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
 }
 // Symbol: ?OnLButtonUp@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
-// Retail completes a caption-button click (toggle roll-up, close) or ends a
-// drag; both paths end in Default(). Semantic button IDs exist, but native
-// hit-test/action routing and CDockablePane virtuals do not -> Default() only.
-// TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnLButtonUp_CPaneFrameWnd__IEAAXIVCPoint___Z(
-    void* pThis, unsigned int /*nFlags*/, CPoint /*point*/) {
-    if (pThis == nullptr) return;
-    impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
+    void* pThis, unsigned int flags, CPoint point) {
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnLButtonUp(flags, point);
 }
 CPaneFrameWnd::CPaneFrameWnd() = default;
 
@@ -1175,72 +1159,167 @@ extern "C" int MS_ABI impl__CreateEx_CPaneFrameWnd__UEAAHKPEB_WKAEBUtagRECT__PEA
     return pThis && static_cast<CPaneFrameWnd*>(pThis)->CreatePopup(extendedStyle, title, style, rect, owner, context);
 }
 
+namespace {
+CDockablePane* DropFramePane(CPaneFrameWnd* frame, BOOL& docked) {
+    docked = FALSE;
+    auto* pane = frame ? frame->GetPane() : nullptr;
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CDockablePane)) || ::GetKeyState(VK_CONTROL) < 0)
+        return nullptr;
+    POINT point{};
+    return ::GetCursorPos(&point) ? DockPaneAtPoint(*static_cast<CDockablePane*>(pane), point, docked) : nullptr;
+}
+}
+
 // Symbol: ?DockPane@CPaneFrameWnd@@UEAAPEAVCDockablePane@@AEAH@Z
-// Retail (0xae190) takes GetPane(), requires it to be a CDockablePane, clears
-// *pbWasDocked, reads GetDockingMode() and then drives the CDockingManager
-// (0x248, or afxGlobalUtils.GetDockingManager(this)) through several of its
-// unexported virtuals to find a dock site and re-dock the pane.
-// STUB: the docking manager is not modelled; returning a fabricated pane
-// pointer would corrupt the caller's docking state.
-extern "C" void* MS_ABI impl__DockPane_CPaneFrameWnd__UEAAPEAVCDockablePane__AEAH_Z(
-    void* pThis, int* pbWasDocked) {
-    (void)pThis;
-    if (pbWasDocked) *pbWasDocked = FALSE;   // retail clears it at 0xae1e8
-    return nullptr;
+extern "C" void* MS_ABI impl__DockPane_CPaneFrameWnd__UEAAPEAVCDockablePane__AEAH_Z(void* frame, int* docked) {
+    return docked ? DropFramePane(static_cast<CPaneFrameWnd*>(frame), *docked) : nullptr;
 }
 
 // Symbol: ?DockPaneStandard@CPaneFrameWnd@@MEAAPEAVCDockablePane@@AEAH@Z
-// Retail (0xae4c0):
-//     CWnd* p = GetPane();                                  // vtable 0x360
-//     if (!p || !p->IsKindOf(RUNTIME_CLASS(CDockablePane))) return NULL;
-//     if (!this->vtable[0x348]() /*OnBeforeDock*/) return NULL;
-//     if (!::IsWindowVisible(p->m_hWnd) && (p->GetDockingMode() & 2))
-//         p->ShowWindow(SW_SHOW);
-//     CDockablePane* r = p->vtable[0x570](pbWasDocked);     // pane's own dock step
-//     return (r && r->IsKindOf(RUNTIME_CLASS(CDockablePane))) ? r : NULL;
-// STUB: the docking step is an unexported CDockablePane virtual.
-extern "C" void* MS_ABI impl__DockPaneStandard_CPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(
-    void* pThis, int* pbWasDocked) {
-    (void)pThis;
-    (void)pbWasDocked;
-    return nullptr;
+extern "C" void* MS_ABI impl__DockPaneStandard_CPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(void* frame, int* docked) {
+    return docked ? DropFramePane(static_cast<CPaneFrameWnd*>(frame), *docked) : nullptr;
 }
 
 // Symbol: ?EnterDragMode@CPaneFrameWnd@@MEAAXPEAUHWND__@@@Z
-// Retail (0xadd70):
-//     if (m_bDragging /*0x10d*/) return;
-//     CWnd::FromHandle(::SetCapture(m_hWnd));               // result discarded
-//     if (m_hwndDragHelper /*0x138*/ == NULL) m_hwndDragHelper = hwndCaptured;
-//     m_bDragging = TRUE;
-//     OnCapture(TRUE);                                      // vtable 0x428
-//     ::GetCursorPos(&m_ptDrag /*0x1d0*/);
-//     if ((GetDockingMode() & 1) && !(GetDockingMode() & 0x80))
-//         ::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
-//     ::GetCursorPos(&m_ptDragStart /*0x178*/);
-//     CDockingManager* p = m_pDockManager /*0x248*/;
-//     if (!p) p = afxGlobalUtils.GetDockingManager(this);
-//     p-><unexported> (0x4d910);
-// Reproduced: the re-entry guard, mouse capture, side-table dragging flag,
-// OnCapture(TRUE) notification, and drag cursor. The helper HWND at +0x138 is
-// represented by destroyOnReleaseHwnd, and the +0x178 hot point has a side slot.
-// TODO(clean-room): the separate anchor at +0x1d0 and final docking-manager
-// virtual call are not modeled.
-extern "C" void MS_ABI impl__EnterDragMode_CPaneFrameWnd__MEAAXPEAUHWND_____Z(
-    void* pThis, HWND /*hwndCaptured*/) {
-    if (pThis == nullptr) return;
-    HWND hwnd = HwndOf(pThis);
+extern "C" void MS_ABI impl__EnterDragMode_CPaneFrameWnd__MEAAXPEAUHWND_____Z(void* frame, HWND) {
+    if (frame) static_cast<CPaneFrameWnd*>(frame)->BeginPaneDrag();
+}
+
+void CPaneFrameWnd::BeginPaneDrag() {
+    RECT bounds{};
+    POINT point{};
+    if (!::GetWindowRect(m_hWnd, &bounds) || !::GetCursorPos(&point)) return;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState& st = GetState(pThis);
-        if (st.dragging) return;
-        st.dragging = true;
+        auto& state = GetState(this);
+        if (state.dragging) return;
+        state.dragging = true;
+        state.dragStartBounds = bounds;
+        state.dragStartPoint = point;
     }
-    if (hwnd) ::SetCapture(hwnd);
-    impl__OnCapture_CPaneFrameWnd__MEAAXH_Z(pThis, 1);
-    const int nDockMode = impl__GetDockingMode_CPaneFrameWnd__UEBA_AW4AFX_DOCK_TYPE__XZ(pThis);
-    if ((nDockMode & 1) != 0 && (nDockMode & 0x80) == 0) {
-        ::SetCursor(::LoadCursor(nullptr, IDC_SIZEALL));
+    ::SetCapture(m_hWnd);
+    ::SetCursor(::LoadCursorW(nullptr, IDC_SIZEALL));
+}
+
+void CPaneFrameWnd::OnMouseMove(UINT, CPoint) {
+    const HWND frame = m_hWnd;
+    if (::GetCapture() != frame) {
+        Default();
+        return;
     }
+    RECT original{};
+    POINT start{};
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(this);
+        if (!state || !state->dragging) return;
+        original = state->dragStartBounds;
+        start = state->dragStartPoint;
+    }
+    POINT point{};
+    if (!::GetCursorPos(&point)) return;
+    ::SetWindowPos(frame, nullptr, original.left + point.x - start.x, original.top + point.y - start.y,
+        0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+void CPaneFrameWnd::OnLButtonUp(UINT, CPoint) {
+    bool dragging = false;
+    RECT startingBounds{};
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(this)) {
+            dragging = std::exchange(state->dragging, false);
+            startingBounds = state->dragStartBounds;
+        }
+    }
+    if (!dragging) {
+        Default();
+        return;
+    }
+    if (::GetCapture() == m_hWnd) ::ReleaseCapture();
+    RECT current{};
+    if (::GetWindowRect(m_hWnd, &current) && !::EqualRect(&current, &startingBounds)) {
+        BOOL docked = FALSE;
+        DropFramePane(this, docked);
+    }
+}
+
+LRESULT CPaneFrameWnd::OnCaptionButtonDown(WPARAM hit, LPARAM) {
+    if (hit != HTCAPTION || !GetPane()) return Default();
+    ::SetActiveWindow(m_hWnd);
+    BeginPaneDrag();
+    return 0;
+}
+
+LRESULT CPaneFrameWnd::OnPaneDragKey(WPARAM key, LPARAM) {
+    if (key == VK_ESCAPE && ::GetCapture() == m_hWnd) return OnCancelPaneDrag(0, 0);
+    return Default();
+}
+
+LRESULT CPaneFrameWnd::OnEnterSizeMove(WPARAM, LPARAM) {
+    RECT bounds{};
+    ::GetWindowRect(m_hWnd, &bounds);
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto& state = GetState(this);
+        state.systemMoveStarted = true;
+        state.movedBySystem = false;
+        state.dragStartBounds = bounds;
+    }
+    return Default();
+}
+
+void CPaneFrameWnd::OnMoving(UINT, RECT*) {
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    if (auto* state = FindStatePtr(this); state && state->systemMoveStarted) state->movedBySystem = true;
+}
+
+LRESULT CPaneFrameWnd::OnExitSizeMove(WPARAM, LPARAM) {
+    const LRESULT result = Default();
+    RECT original{};
+    bool moved = false;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(this)) {
+            original = state->dragStartBounds;
+            state->systemMoveStarted = false;
+            moved = std::exchange(state->movedBySystem, false);
+        }
+    }
+    RECT bounds{};
+    // Windows restores the starting rectangle when Escape cancels a move.
+    if (moved && ::GetWindowRect(m_hWnd, &bounds) && !::EqualRect(&bounds, &original)) {
+        BOOL docked = FALSE;
+        DropFramePane(this, docked);
+    }
+    return result;
+}
+
+LRESULT CPaneFrameWnd::OnCaptureChanged(WPARAM, LPARAM) {
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(this)) state->dragging = false;
+    }
+    return Default();
+}
+
+LRESULT CPaneFrameWnd::OnCancelPaneDrag(WPARAM, LPARAM) {
+    bool dragging = false;
+    RECT bounds{};
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(this)) {
+            dragging = std::exchange(state->dragging, false);
+            bounds = state->dragStartBounds;
+            state->systemMoveStarted = state->movedBySystem = false;
+        }
+    }
+    if (dragging) {
+        if (::GetCapture() == m_hWnd) ::ReleaseCapture();
+        ::SetWindowPos(m_hWnd, nullptr, bounds.left, bounds.top, 0, 0,
+            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+    return Default();
 }
 
 // Symbol: ?FindButton@CPaneFrameWnd@@IEBAPEAVCMFCCaptionButton@@I@Z
@@ -1417,18 +1496,9 @@ extern "C" int MS_ABI impl__OnMouseActivate_CPaneFrameWnd__IEAAHPEAVCWnd__II_Z(
 }
 
 // Symbol: ?OnMouseMove@CPaneFrameWnd@@IEAAXIVCPoint@@@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xae5a0 is the drag loop: it uses
-// the re-entry/moving/dragging flags, hot-point anchor, drag-frame state, and
-// docking-manager hit testing while the frame is being dragged. Those scalar
-// and POD fields are now represented in PaneFrameState. STUB: the full loop
-// still depends on unexported pane/manager virtuals, live docking-site state,
-// and the absent CMFCDragFrameImpl::MoveDragFrame implementation; a partial
-// move without those collaborators could desynchronize the native frame.
 extern "C" void MS_ABI impl__OnMouseMove_CPaneFrameWnd__IEAAXIVCPoint___Z(
-    void* pThis, unsigned int nFlags, CPoint point) {
-    (void)pThis;
-    (void)nFlags;
-    (void)point;
+    void* frame, unsigned int flags, CPoint point) {
+    if (frame) static_cast<CPaneFrameWnd*>(frame)->OnMouseMove(flags, point);
 }
 
 // Symbol: ?OnMovePane@CPaneFrameWnd@@UEAAXPEAVCPane@@VCPoint@@@Z
@@ -1448,14 +1518,9 @@ extern "C" void MS_ABI impl__OnMovePane_CPaneFrameWnd__UEAAXPEAVCPane__VCPoint__
 }
 
 // Symbol: ?OnMoving@CPaneFrameWnd@@IEAAXIPEAUtagRECT@@@Z
-// Retail (0xaf080), transcribed in full -- it is two calls and neither argument
-// is read:  CWnd::Default(); then a direct (non-virtual) tail jump to
-// CPaneFrameWnd::MoveMiniFrame (0xb1080), whose BOOL result is discarded.
 extern "C" void MS_ABI impl__OnMoving_CPaneFrameWnd__IEAAXIPEAUtagRECT___Z(
-    void* pThis, unsigned int /*nSide*/, RECT* /*lpRect*/) {
-    if (pThis == nullptr) return;
-    impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
-    impl__MoveMiniFrame_CPaneFrameWnd__IEAAHXZ(pThis);
+    void* frame, unsigned int side, RECT* bounds) {
+    if (frame) static_cast<CPaneFrameWnd*>(frame)->OnMoving(side, bounds);
 }
 
 // Symbol: ?OnNcActivate@CPaneFrameWnd@@IEAAHH@Z

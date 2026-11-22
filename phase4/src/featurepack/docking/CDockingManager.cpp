@@ -41,6 +41,12 @@ extern "C" BOOL MS_ABI impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBas
     const void*, long long, CBasePane*, int, const CDockingManager*, BOOL, DWORD*, DWORD, const RECT*);
 
 namespace {
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ();
+extern "C" void* MS_ABI impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(
+    const CDockingManager* manager, CPoint point, const CPaneFrameWnd* ignore, int multiOnly);
+extern "C" int MS_ABI impl__GetDockingStatus_CDockablePane__UEAA_AW4AFX_CS_STATUS__VCPoint__H_Z(
+    CDockablePane* pane, void* point, int sensitivity);
+
 struct DockSiteInfoShadow {
     DWORD alignment;
     CRuntimeClass* dockSiteRuntimeClass;
@@ -394,103 +400,124 @@ extern "C" void MS_ABI impl__BuildPanesMenu_CDockingManager__QEAAXAEAVCMenu__H_Z
 }
 // Symbol: ?CalcExpectedDockedRect@CDockingManager@@QEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__CalcExpectedDockedRect_CDockingManager__QEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
-    CDockingManager* pThis, CWnd* pWnd, CPoint ptMouse, CRect* rectResult, int* pnAlignment, CDockablePane** ppTargetBar) {
-    if (!rectResult) return;
+    CDockingManager* manager, CWnd* dragged, CPoint point, CRect* expected, BOOL* drawTab, CDockablePane** target) {
+    if (drawTab) *drawTab = FALSE;
+    if (target) *target = nullptr;
+    if (!expected) return;
+    expected->SetRectEmpty();
+    if (!manager || !dragged || ::GetKeyState(VK_CONTROL) < 0) return;
+    CWnd* window = dragged;
+    if (window->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))) window = static_cast<CPaneFrameWnd*>(window)->GetPane();
+    if (!window || !window->IsKindOf(RUNTIME_CLASS(CBasePane))) return;
+    auto* source = static_cast<CBasePane*>(window);
+    const auto drop = DockingTarget(manager, point, impl__m_nDockSensitivity_CDockingManager__2HA,
+        source->m_dwEnabledAlignment, source, source);
+    if (drop.change == NoDockingChange) return;
 
-    CRect bestRect;
-    int alignment = 0;
-    CDockablePane* targetBar = nullptr;
+    RECT bounds{};
+    if (drop.pane) {
+        if (!::GetWindowRect(drop.pane->m_hWnd, &bounds)) return;
+        if (target) *target = drop.pane;
+        if (drop.change == DelayDockToTab) {
+            *expected = bounds;
+            if (drawTab) *drawTab = TRUE;
+            return;
+        }
+    } else {
+        const auto* state = FindDockingState(manager);
+        if (!state || !state->parentFrame || !::GetClientRect(state->parentFrame->m_hWnd, &bounds)) return;
+        ::MapWindowPoints(state->parentFrame->m_hWnd, nullptr, reinterpret_cast<POINT*>(&bounds), 2);
+    }
 
-    const DockingManagerState* state = FindDockingState(pThis);
-    if (state && !state->panes.empty()) {
-        CBasePane* target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-            pThis, ptMouse, FALSE, FALSE, nullptr, FALSE, nullptr);
-        if (!target) target = FirstDockingPane(pThis, true);
-        if (target) {
-            RECT rect{};
-            target->GetWindowRect(&rect);
-            targetBar = static_cast<CDockablePane*>(target);
+    RECT moving{};
+    if (!::GetWindowRect(source->m_hWnd, &moving)) return;
+    const LONG width = (std::min)(moving.right - moving.left, bounds.right - bounds.left);
+    const LONG height = (std::min)(moving.bottom - moving.top, bounds.bottom - bounds.top);
+    switch (drop.alignment) {
+    case CBRS_ALIGN_LEFT: bounds.right = bounds.left + width; break;
+    case CBRS_ALIGN_RIGHT: bounds.left = bounds.right - width; break;
+    case CBRS_ALIGN_TOP: bounds.bottom = bounds.top + height; break;
+    case CBRS_ALIGN_BOTTOM: bounds.top = bounds.bottom - height; break;
+    default: return;
+    }
+    *expected = bounds;
+}
+namespace {
+long long PackedDockPoint(CPoint point) {
+    long long packed;
+    std::memcpy(&packed, &point, sizeof(packed));
+    return packed;
+}
 
-            int left = rect.left;
-            int right = rect.right;
-            int top = rect.top;
-            int bottom = rect.bottom;
-            const int cx = right - left;
-            const int cy = bottom - top;
-            const int midX = left + cx / 2;
-            const int midY = top + cy / 2;
+const CPaneFrameWnd* ParentPaneFrame(const CBasePane* pane) {
+    for (HWND window = pane ? ::GetParent(pane->m_hWnd) : nullptr;
+         window; window = ::GetParent(window)) {
+        auto* owner = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+        if (owner && owner->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
+            return static_cast<CPaneFrameWnd*>(owner);
+    }
+    return nullptr;
+}
+}
 
-            if (cx > cy) {
-                if (ptMouse.x < midX) {
-                    alignment = 2;
-                    right = midX;
-                } else {
-                    alignment = 3;
-                    left = midX;
-                }
-            } else {
-                if (ptMouse.y < midY) {
-                    alignment = 4;
-                    bottom = midY;
-                } else {
-                    alignment = 5;
-                    top = midY;
-                }
+DockingDrop openmfc::detail::mfccore::DockingTarget(const CDockingManager* manager, CPoint point, int sensitivity,
+    DWORD allowedAlignment, const CBasePane* ignore, const CBasePane* source) {
+    if (!manager || (source && !source->CanBeDocked())) return {};
+    const int tolerance = sensitivity >= 0 ? (std::min)(sensitivity, 32767) : 0;
+    const auto* ignoredFrame = ParentPaneFrame(ignore ? ignore : source);
+    auto* frame = static_cast<CPaneFrameWnd*>(
+        impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(manager, point, ignoredFrame, FALSE));
+    if (frame) {
+        RECT client{};
+        ::GetClientRect(frame->m_hWnd, &client);
+        ::MapWindowPoints(frame->m_hWnd, nullptr, reinterpret_cast<POINT*>(&client), 2);
+        auto* window = frame->GetFirstVisiblePane();
+        // A single floating pane can accept a tab through its caption.
+        if (window && window != ignore && window != source && point.y < client.top &&
+            window->IsKindOf(RUNTIME_CLASS(CDockablePane)) &&
+            (!source || static_cast<CBasePane*>(window)->CanAcceptPane(source)))
+            return {static_cast<CDockablePane*>(window), 0, DelayDockToTab};
+    }
+
+    auto* target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+        manager, point, tolerance, false, RUNTIME_CLASS(CDockablePane), TRUE, ignore ? ignore : source);
+    if (target && target != source && (!source || target->CanAcceptPane(source))) {
+        auto* pane = static_cast<CDockablePane*>(target);
+        if (!pane->IsAutoHideMode()) {
+            const auto* paneFrame = ParentPaneFrame(pane);
+            const bool acceptsSplit = !paneFrame || (source &&
+                (source->m_dwStyle & CBRS_FLOAT_MULTI) && (pane->m_dwStyle & CBRS_FLOAT_MULTI));
+            const DWORD alignment = (pane->GetPaneAlignment() | pane->m_dwStyle) & CBRS_ALIGN_ANY;
+            if (acceptsSplit && (paneFrame || (allowedAlignment & alignment))) {
+                const auto packed = PackedDockPoint(point);
+                void* pointValue;
+                std::memcpy(&pointValue, &packed, sizeof(pointValue));
+                const int status = impl__GetDockingStatus_CDockablePane__UEAA_AW4AFX_CS_STATUS__VCPoint__H_Z(
+                    pane, pointValue, sensitivity);
+                if (status == DelayDockToTab) return {pane, 0, DelayDockToTab};
+                DWORD side = 0;
+                impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(
+                    nullptr, packed, pane, tolerance, manager, FALSE, &side, allowedAlignment, nullptr);
+                if (status == DelayDock || side) return {pane, side, DelayDock};
             }
-
-            bestRect.SetRect(left, top, right, bottom);
         }
     }
 
-    if (bestRect.IsRectEmpty() && pWnd && pWnd->GetSafeHwnd()) {
-        RECT r{};
-        pWnd->GetWindowRect(&r);
-        bestRect.SetRect(r.left, r.top, r.right, r.bottom);
-        alignment = 0;
-    } else if (bestRect.IsRectEmpty()) {
-        bestRect = CRect(ptMouse.x, ptMouse.y, ptMouse.x, ptMouse.y);
-    }
-
-    if (pnAlignment) *pnAlignment = alignment;
-    if (ppTargetBar) *ppTargetBar = targetBar;
-    *rectResult = bestRect;
+    DWORD side = 0;
+    BOOL outer = FALSE;
+    if (impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, &side, &outer) &&
+        (allowedAlignment & side)) return {nullptr, side, DelayDock, outer != FALSE};
+    return {};
 }
+
 // Symbol: ?DeterminePaneAndStatus@CDockingManager@@UEAA?AW4AFX_CS_STATUS@@VCPoint@@HKPEAPEAVCBasePane@@PEBV4@2@Z
 extern "C" int MS_ABI impl__DeterminePaneAndStatus_CDockingManager__UEAA_AW4AFX_CS_STATUS__VCPoint__HKPEAPEAVCBasePane__PEBV4_2_Z(
-    CDockingManager* pThis, CPoint point, int nAlignment, unsigned long, CBasePane** ppTargetBar, const CDockingManager*, const CDockingManager*) {
-    if (!pThis || !ppTargetBar) return 0;
-    const DockingManagerState* state = FindDockingState(pThis);
-    if (!state || state->panes.empty()) return 0;
-
-    CPoint pt = point;
-    CBasePane* bestPane = nullptr;
-    for (CBasePane* pane : state->panes) {
-        if (!pane || !pane->GetSafeHwnd()) continue;
-        RECT rect{};
-        pane->GetWindowRect(&rect);
-        if (::PtInRect(&rect, pt)) {
-            bestPane = pane;
-            break;
-        }
-    }
-
-    if (!bestPane) {
-        bestPane = FirstDockingPane(pThis, true);
-        if (!bestPane) return 0;
-    }
-
-    *ppTargetBar = bestPane;
-    RECT rect{};
-    bestPane->GetWindowRect(&rect);
-    int status = 1;
-    if (nAlignment & 1) {
-        status = pt.x < (rect.left + rect.right) / 2 ? 2 : 3;
-    } else if (nAlignment & 2) {
-        status = pt.y < (rect.top + rect.bottom) / 2 ? 4 : 5;
-    } else if (!state->panes.empty()) {
-        status = 1;
-    }
-    return status;
+    CDockingManager* manager, CPoint point, int sensitivity, DWORD allowedAlignment, CBasePane** target,
+    const CBasePane* ignore, const CBasePane* source) {
+    if (!target) return NoDockingChange;
+    const auto result = DockingTarget(manager, point, sensitivity, allowedAlignment, ignore, source);
+    *target = result.pane;
+    return result.change;
 }
 // Symbol: ?EnableAutoHidePanes@CDockingManager@@QEAAHK@Z
 extern "C" BOOL MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* manager, DWORD sides) {
@@ -567,29 +594,25 @@ extern "C" void MS_ABI impl__FloatPane_CDockingManager__QEAAXPEAVCBasePane__VCPo
 }
 // Symbol: ?FrameFromPoint@CDockingManager@@UEBAPEAVCPaneFrameWnd@@VCPoint@@PEAV2@H@Z
 extern "C" void* MS_ABI impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(
-    const CDockingManager* pThis, CPoint point, void*, int) {
-    const DockingManagerState* state = FindDockingState(pThis);
-    if (!pThis || !state || state->miniFrames.empty()) return nullptr;
-
-    void* bestFrame = nullptr;
+    const CDockingManager* manager, CPoint point, const CPaneFrameWnd* ignore, int multiOnly) {
+    const auto* state = FindDockingState(manager);
+    if (!state) return nullptr;
+    const auto* multiType = multiOnly ? impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ() : nullptr;
+    CPaneFrameWnd* bestFrame = nullptr;
     int bestRank = INT_MAX;
-    CPoint pt = point;
-    for (void* frame : state->miniFrames) {
-        if (!frame) continue;
-        CWnd* wnd = static_cast<CWnd*>(frame);
-        HWND hWnd = wnd ? wnd->GetSafeHwnd() : nullptr;
-        if (!hWnd) continue;
+    for (void* value : state->miniFrames) {
+        auto* frame = static_cast<CPaneFrameWnd*>(value);
+        if (!frame || frame == ignore || !::IsWindowVisible(frame->m_hWnd)) continue;
+        if (multiOnly && (!multiType || !frame->IsKindOf(multiType))) continue;
         RECT rect{};
-        ::GetWindowRect(hWnd, &rect);
-        if (!::PtInRect(&rect, pt)) continue;
-        int rank = MiniFrameZRank(hWnd);
-        if (rank < bestRank) {
+        if (!::GetWindowRect(frame->m_hWnd, &rect) || !::PtInRect(&rect, point)) continue;
+        const int rank = MiniFrameZRank(frame->m_hWnd);
+        if (!bestFrame || rank < bestRank) {
             bestRank = rank;
             bestFrame = frame;
         }
     }
-
-    return bestFrame ? bestFrame : state->miniFrames.front();
+    return bestFrame;
 }
 // Symbol: ?GetPaneList@CDockingManager@@QEAAXAEAVCObList@@HPEAUCRuntimeClass@@H@Z
 extern "C" void MS_ABI impl__GetPaneList_CDockingManager__QEAAXAEAVCObList__HPEAUCRuntimeClass__H_Z(
@@ -728,56 +751,51 @@ extern "C" void MS_ABI impl__OnPaneContextMenu_CDockingManager__QEAAXVCPoint___Z
 }
 // Symbol: ?PaneFromPoint@CDockingManager@@UEBAPEAVCBasePane@@VCPoint@@H_NPEAUCRuntimeClass@@HPEBV2@@Z
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-    const CDockingManager* pThis, CPoint point, int bIncludeHidden, int, CRuntimeClass* pRTCFilter, int, const CDockingManager*) {
-    const DockingManagerState* state = FindDockingState(pThis);
+    const CDockingManager* manager, CPoint point, int sensitivity, bool exact,
+    CRuntimeClass* filter, BOOL checkVisibility, const CBasePane* ignore) {
+    const auto* state = FindDockingState(manager);
     if (!state) return nullptr;
-
-    CBasePane* bestPane = nullptr;
-    int bestArea = INT_MAX;
-    for (CBasePane* pane : state->panes) {
-        if (!pane || !pane->GetSafeHwnd()) continue;
-        if (!bIncludeHidden && state->hiddenPanes.find(pane) != state->hiddenPanes.end()) continue;
-        if (pRTCFilter && !pane->IsKindOf(pRTCFilter)) continue;
-        RECT r;
-        pane->GetWindowRect(&r);
-        if (!::PtInRect(&r, point)) continue;
-        CRect rect(r);
-        const int area = rect.Width() * rect.Height();
-        if (!bestPane || area < bestArea) {
-            bestPane = pane;
-            bestArea = area;
-        }
+    const auto* ignoredFrame = ParentPaneFrame(ignore);
+    const auto matches = [point, filter, checkVisibility, ignore, &state](CWnd* candidate, int margin) {
+        if (!candidate || candidate == ignore || !candidate->m_hWnd ||
+            !candidate->IsKindOf(RUNTIME_CLASS(CBasePane)) || (filter && !candidate->IsKindOf(filter)))
+            return false;
+        if (ignore && ::IsChild(ignore->m_hWnd, candidate->m_hWnd)) return false;
+        if (checkVisibility && (!::IsWindowVisible(candidate->m_hWnd) ||
+            state->hiddenPanes.count(static_cast<CBasePane*>(candidate)))) return false;
+        RECT bounds{};
+        if (!::GetWindowRect(candidate->m_hWnd, &bounds)) return false;
+        if (margin) ::InflateRect(&bounds, margin, margin);
+        return ::PtInRect(&bounds, point) != FALSE;
+    };
+    auto* frame = static_cast<CPaneFrameWnd*>(
+        impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(manager, point, ignoredFrame, FALSE));
+    if (frame) {
+        auto* pane = frame->GetPane();
+        if (matches(pane, 0)) return static_cast<CBasePane*>(pane);
     }
-
-    return bestPane ? bestPane : FirstDockingPane(pThis, !bIncludeHidden);
+    const int margin = exact || sensitivity < 0 ? 0 : (std::min)(sensitivity, 32767);
+    for (auto* pane : state->panes) {
+        if (!state->floatingPanes.count(pane) && matches(pane, margin)) return pane;
+    }
+    for (const auto& entry : state->dockSites) {
+        if (!entry.autoHide && matches(entry.site, margin)) return entry.site;
+    }
+    return nullptr;
 }
+
 // Symbol: ?PaneFromPoint@CDockingManager@@UEBAPEAVCBasePane@@VCPoint@@HAEAKPEAUCRuntimeClass@@PEBV2@@Z
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
-    const CDockingManager* pThis, CPoint point, int bIncludeHidden, unsigned long* dwAlignment, CRuntimeClass* pRTCFilter, const CDockingManager* pDockManager) {
-    if (!pThis) return nullptr;
-    if (dwAlignment) *dwAlignment = 0;
-    CBasePane* target = nullptr;
-    if (pDockManager) {
-        target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-            pDockManager, point, bIncludeHidden, FALSE, pRTCFilter, FALSE, pThis);
-    }
-
-    if (!target) {
-        target = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
-            pThis, point, bIncludeHidden, FALSE, pRTCFilter, FALSE, pDockManager);
-    }
-
-    if (!target) return nullptr;
-    if (!dwAlignment) return target;
-
-    CBasePane* targetFromManager = nullptr;
-    const int status = impl__DeterminePaneAndStatus_CDockingManager__UEAA_AW4AFX_CS_STATUS__VCPoint__HKPEAPEAVCBasePane__PEBV4_2_Z(
-        const_cast<CDockingManager*>(pThis), point, 0, 0, &targetFromManager, pThis, pDockManager);
-    *dwAlignment = status;
-    if (targetFromManager && targetFromManager != target) {
-        return targetFromManager;
-    }
-    return target;
+    const CDockingManager* manager, CPoint point, int sensitivity, DWORD* alignment,
+    CRuntimeClass* filter, const CBasePane* ignore) {
+    if (!alignment) return nullptr;
+    *alignment = 0;
+    auto* pane = impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+        manager, point, sensitivity, true, filter, FALSE, ignore);
+    if (!pane || !impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(
+        nullptr, PackedDockPoint(point), pane, (std::clamp)(sensitivity, 0, 32767), manager,
+        FALSE, alignment, CBRS_ALIGN_ANY, nullptr)) return nullptr;
+    return pane;
 }
 // Symbol: ?ProcessPaneContextMenuCommand@CDockingManager@@QEAAHIHPEAXPEAUAFX_CMDHANDLERINFO@@@Z
 extern "C" int MS_ABI impl__ProcessPaneContextMenuCommand_CDockingManager__QEAAHIHPEAXPEAUAFX_CMDHANDLERINFO___Z(
@@ -832,6 +850,7 @@ extern "C" void MS_ABI impl__ReleaseEmptyPaneContainers_CDockingManager__QEAAXXZ
         if (!pane || isAlive(pane)) continue;
         state.hiddenPanes.erase(pane);
         state.floatingPanes.erase(pane);
+        state.edgePanes.erase(pane);
         g_paneCoreState_Mfccore.erase(pane);
     }
 
@@ -868,6 +887,10 @@ extern "C" int MS_ABI impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane_
     auto it = std::find(state.panes.begin(), state.panes.end(), static_cast<CBasePane*>(pOldPane));
     if (it == state.panes.end()) return FALSE;
     *it = pNewPane;
+    if (auto edge = state.edgePanes.extract(pOldPane); !edge.empty()) {
+        edge.key() = pNewPane;
+        state.edgePanes.insert(std::move(edge));
+    }
     state.hiddenPanes.erase(pOldPane);
     state.floatingPanes.erase(pOldPane);
     return TRUE;
@@ -1046,32 +1069,99 @@ void CDockingManager::FloatPane(CBasePane* pane, CPoint offset, DWORD) {
     ::OffsetRect(&bounds, offset.x, offset.y);
     static_cast<CPane*>(pane)->FloatPaneWindow(bounds, 5 /* DM_STANDARD */, true, this);
 }
-void CDockingManager::HidePane(CBasePane* pBar) {
-    if (!pBar) return;
-    AddDockingPane(this, pBar);
-    EnsureDockingState(this).hiddenPanes.insert(pBar);
-    {
-        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-        g_paneCoreState_Mfccore[pBar].visible = FALSE;
-    }
-    if (EnsureDockingState(this).floatingPanes.count(pBar) && pBar->m_hWnd) {
-        ::ShowWindow(pBar->m_hWnd, SW_HIDE);
-        ::ShowWindow(::GetParent(pBar->m_hWnd), SW_HIDE);
+namespace {
+void ShowDockingWindows(DockingManagerState& state, CBasePane* pane, int command) {
+    if (!pane->m_hWnd) return;
+    if (state.floatingPanes.count(pane)) {
+        ::ShowWindow(pane->m_hWnd, command);
+        ::ShowWindow(::GetParent(pane->m_hWnd), command);
+    } else if (const auto edge = state.edgePanes.find(pane); edge != state.edgePanes.end()) {
+        ::ShowWindow(pane->m_hWnd, command);
+        ::ShowWindow(edge->second.divider, command);
     }
 }
-void CDockingManager::ShowPane(CBasePane* pBar, BOOL) {
-    if (!pBar) return;
-    AddDockingPane(this, pBar);
-    EnsureDockingState(this).hiddenPanes.erase(pBar);
+}
+
+void CDockingManager::HidePane(CBasePane* pane) {
+    if (!pane) return;
+    AddDockingPane(this, pane);
+    auto& state = EnsureDockingState(this);
+    state.hiddenPanes.insert(pane);
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-        g_paneCoreState_Mfccore[pBar].visible = TRUE;
+        g_paneCoreState_Mfccore[pane].visible = FALSE;
     }
-    if (EnsureDockingState(this).floatingPanes.count(pBar) && pBar->m_hWnd) {
-        ::ShowWindow(pBar->m_hWnd, SW_SHOWNOACTIVATE);
-        ::ShowWindow(::GetParent(pBar->m_hWnd), SW_SHOWNOACTIVATE);
+    ShowDockingWindows(state, pane, SW_HIDE);
+}
+
+void CDockingManager::ShowPane(CBasePane* pane, BOOL) {
+    if (!pane) return;
+    AddDockingPane(this, pane);
+    auto& state = EnsureDockingState(this);
+    state.hiddenPanes.erase(pane);
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        g_paneCoreState_Mfccore[pane].visible = TRUE;
+    }
+    ShowDockingWindows(state, pane, SW_SHOWNOACTIVATE);
+}
+
+namespace {
+void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining) {
+    if (state.edgePanes.empty() || !state.parentFrame) return;
+    const HWND host = state.parentFrame->m_hWnd;
+    struct Placement { HWND pane; HWND divider; RECT bounds; RECT sash; };
+    std::vector<Placement> positions;
+    for (bool outer : {true, false}) {
+        for (auto* pane : state.panes) {
+            const auto it = state.edgePanes.find(pane);
+            if (it == state.edgePanes.end() || it->second.outer != outer) continue;
+            const auto& dock = it->second;
+            if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane) ||
+                !pane->m_hWnd || ::GetParent(pane->m_hWnd) != host) continue;
+
+            RECT sash{};
+            ::GetWindowRect(dock.divider, &sash);
+            const DWORD side = pane->GetPaneAlignment();
+            const bool vertical = side == CBRS_ALIGN_LEFT || side == CBRS_ALIGN_RIGHT;
+            const LONG span = vertical ? remaining.right - remaining.left : remaining.bottom - remaining.top;
+            const LONG sashSize = (std::clamp)(vertical ? sash.right - sash.left : sash.bottom - sash.top, 0L, span);
+            const LONG thickness = (std::min)(dock.thickness, span - sashSize);
+            RECT bounds = remaining;
+            sash = remaining;
+            switch (side) {
+            case CBRS_ALIGN_LEFT:
+                bounds.right = sash.left = remaining.left + thickness;
+                sash.right = remaining.left = sash.left + sashSize;
+                break;
+            case CBRS_ALIGN_RIGHT:
+                bounds.left = sash.right = remaining.right - thickness;
+                sash.left = remaining.right = sash.right - sashSize;
+                break;
+            case CBRS_ALIGN_TOP:
+                bounds.bottom = sash.top = remaining.top + thickness;
+                sash.bottom = remaining.top = sash.top + sashSize;
+                break;
+            case CBRS_ALIGN_BOTTOM:
+                bounds.top = sash.bottom = remaining.bottom - thickness;
+                sash.top = remaining.bottom = sash.bottom - sashSize;
+                break;
+            default: continue;
+            }
+            positions.push_back({pane->m_hWnd, dock.divider, bounds, sash});
+        }
+    }
+    for (const auto& position : positions) {
+        const auto place = [](HWND window, const RECT& rect) {
+            ::SetWindowPos(window, nullptr, rect.left, rect.top, (std::max)(0L, rect.right - rect.left),
+                (std::max)(0L, rect.bottom - rect.top), SWP_NOZORDER | SWP_NOACTIVATE);
+        };
+        place(position.pane, position.bounds);
+        place(position.divider, position.sash);
     }
 }
+}
+
 void CDockingManager::RecalcLayout() {
     DockingManagerState& state = EnsureDockingState(this);
     if (state.lockUpdate) return;
@@ -1084,10 +1174,14 @@ void CDockingManager::RecalcLayout() {
     HWND parent = m_pParentWnd ? m_pParentWnd->GetSafeHwnd() : nullptr;
     if (parent) {
         ::GetClientRect(parent, &client);
-        LayoutDockSites(*this, state, client);
+        const RECT frameBounds = client;
+        ArrangeEdgePanes(state, client);
+        state.clientAreaBounds = client;
+        LayoutDockSites(*this, state, frameBounds);
     }
     const auto canTile = [&state](CBasePane* pane) {
-        if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane)) return false;
+        if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane) ||
+            state.edgePanes.count(pane)) return false;
         auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(pane->m_hWnd)));
         return !parent || !parent->IsKindOf(RUNTIME_CLASS(CDockSite));
     };
@@ -1401,7 +1495,7 @@ extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__
     if (!::GetClientRect(frame->m_hWnd, &client)) return FALSE;
 
     RECT outer = state->inPlaceBounds.value_or(client);
-    RECT inner = state->inPlaceBounds ? state->clientAreaBounds : client;
+    RECT inner = state->inPlaceBounds || !state->edgePanes.empty() ? state->clientAreaBounds : client;
     long long packedPoint;
     static_assert(sizeof(packedPoint) == sizeof(point));
     std::memcpy(&packedPoint, &point, sizeof(point));

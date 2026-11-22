@@ -160,9 +160,6 @@ extern "C" int MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
 extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
     CDockingManager* pThis, unsigned int nID, int bSearchMiniFrames);
 // (impl__PaneFromPoint_CDockingManager ...H_N... is declared in detail/MfccoreSupport.h with CPoint by value)
-extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
-    const CDockingManager* pThis, long long point, int nSensitivity, unsigned long* pdwAlignment,
-    CRuntimeClass* pRTCBarType, const CDockingManager* pDockManager);
 extern "C" void MS_ABI impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
     CDockingManager* pThis, CBasePane* pPane, int bDestroy, int bAdjustLayout, int bAutoHide, CBasePane* pBarReplacement);
 extern "C" void MS_ABI impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(CDockingManager* pThis);
@@ -2267,7 +2264,8 @@ extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CMDIFrameWndEx__QEBAPEAVCBasePa
     const CMDIFrameWndEx* pThis, unsigned long long point, int nSensitivity, unsigned long* pdwAlignment, CRuntimeClass* pRTCBarType) {
     if (!pThis) return nullptr;
     return impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
-        DockManagerOf(const_cast<CMDIFrameWndEx*>(pThis)), static_cast<long long>(point), nSensitivity, pdwAlignment,
+        DockManagerOf(const_cast<CMDIFrameWndEx*>(pThis)),
+        CPoint(static_cast<int>(point & 0xffffffffu), static_cast<int>(point >> 32)), nSensitivity, pdwAlignment,
         pRTCBarType, nullptr);
 }
 
