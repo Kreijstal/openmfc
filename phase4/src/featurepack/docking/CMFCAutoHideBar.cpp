@@ -3,6 +3,7 @@
 #include "detail/CMFCAutoHideButtonSupport.h"
 #include "detail/Mfc02MsgmapSupport.h"
 #include "detail/DockingState.h"
+#include "detail/FeaturePackDockSite.h"
 
 #include <algorithm>
 #include <memory>
@@ -18,6 +19,8 @@ extern "C" BOOL AFXAPI impl__Create_CPane__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__IKP
 extern "C" void AFXAPI impl__OnLButtonDown_CPane__IEAAXIVCPoint___Z(CWnd*, UINT, CPoint);
 extern "C" BOOL AFXAPI impl__AfxIsExtendedFrameClass__YAHPEAVCWnd___Z(CWnd*);
 extern "C" void AFXAPI impl__OnNcDestroy_CWnd__IEAAXXZ(CWnd*);
+extern "C" void AFXAPI impl__RemovePane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(void*, CPane*, int);
+extern "C" void AFXAPI impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(void*, CRect*);
 extern "C" void AFXAPI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" int impl__m_nShowAHWndDelay_CMFCAutoHideBar__2HA;
 extern "C" void* impl__m_pAutoHideButtonRTS_CMFCAutoHideBar__2PEAUCRuntimeClass__EA;
@@ -42,6 +45,7 @@ const AFX_MSGMAP* CMFCAutoHideBar::GetMessageMap() const {
 }
 
 CMFCAutoHideBar::~CMFCAutoHideBar() {
+    if (m_hWnd) DestroyWindow();
     CleanUpAutoHideButtons();
 }
 
@@ -92,7 +96,10 @@ BOOL CMFCAutoHideBar::RemoveAutoHideWindow(CDockablePane* pane) {
     if (m_pLastActiveButton == button) m_pLastActiveButton = nullptr;
     m_lstAutoHideButtons.RemoveAt(m_lstAutoHideButtons.Find(button));
     delete button;
-    UpdateVisibleState();
+    if (!m_bDestroying) {
+        if (m_bManagerOwned && m_lstAutoHideButtons.IsEmpty() && m_hWnd) DestroyWindow();
+        else UpdateVisibleState();
+    }
     return TRUE;
 }
 
@@ -161,9 +168,14 @@ void CMFCAutoHideBar::SetActiveInGroup(BOOL active) {
 }
 
 void CMFCAutoHideBar::UpdateVisibleState() {
-    LayoutButtons();
+    const CSize size = LayoutButtons();
     if (m_hWnd) {
         ::ShowWindow(m_hWnd, GetVisibleCount() ? SW_SHOWNOACTIVATE : SW_HIDE);
+        if (m_bManagerOwned && m_pParentDockBar && size.cx > 0 && size.cy > 0) {
+            ::SetWindowPos(m_hWnd, nullptr, 0, 0, size.cx, size.cy,
+                SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+            impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(m_pParentDockBar, nullptr);
+        }
         InvalidateRect(nullptr, FALSE);
     }
 }
@@ -180,6 +192,27 @@ void CMFCAutoHideBar::UnSetAutoHideMode(CDockablePane* firstInGroup) {
 void CMFCAutoHideBar::OnPaint() {
     CPaintDC dc(this);
     DoPaint(&dc);
+}
+
+int CMFCAutoHideBar::OnCreate(CREATESTRUCTW*) {
+    m_bDestroying = false;
+    return Default() == -1 ? -1 : 0;
+}
+
+void CMFCAutoHideBar::OnDestroy() {
+    m_bDestroying = true;
+    if (m_bManagerOwned) {
+        UnSetAutoHideMode(nullptr);
+        if (m_pParentDockBar) {
+            auto* site = reinterpret_cast<CAutoHideDockSite*>(m_pParentDockBar);
+            impl__RemovePane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(site, this, 0);
+            m_pParentDockBar = nullptr;
+            if (site->m_lstControlBars.IsEmpty()) ::ShowWindow(site->m_hWnd, SW_HIDE);
+            else impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(site, nullptr);
+        }
+    }
+    CleanUpAutoHideButtons();
+    CWnd::OnDestroy();
 }
 
 void CMFCAutoHideBar::DoPaint(CDC* dc) {
@@ -308,8 +341,8 @@ extern "C" void AFXAPI impl__DoPaint_CMFCAutoHideBar__MEAAXPEAVCDC___Z(CMFCAutoH
     if (bar) bar->DoPaint(dc);
 }
 // Symbol: ?OnCreate@CMFCAutoHideBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
-extern "C" int AFXAPI impl__OnCreate_CMFCAutoHideBar__IEAAHPEAUtagCREATESTRUCTW___Z(CMFCAutoHideBar* bar, CREATESTRUCTW*) {
-    return bar && bar->Default() != -1 ? 0 : -1;
+extern "C" int AFXAPI impl__OnCreate_CMFCAutoHideBar__IEAAHPEAUtagCREATESTRUCTW___Z(CMFCAutoHideBar* bar, CREATESTRUCTW* create) {
+    return bar ? bar->OnCreate(create) : -1;
 }
 // Symbol: ?OnLButtonDown@CMFCAutoHideBar@@IEAAXIVCPoint@@@Z
 extern "C" void AFXAPI impl__OnLButtonDown_CMFCAutoHideBar__IEAAXIVCPoint___Z(CMFCAutoHideBar* bar, UINT flags, CPoint point) {

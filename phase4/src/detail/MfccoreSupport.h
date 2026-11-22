@@ -15,6 +15,9 @@ using namespace openmfc::detail::mfccore;
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
+#include <memory>
+
+class CAutoHideDockSite;
 #include "detail/DockingState.h"
 #include "detail/RibbonState.h"
 #include <algorithm>
@@ -123,6 +126,7 @@ struct DockingManagerState {
         bool autoHide;
     };
     std::vector<DockSiteEntry> dockSites;
+    std::vector<std::unique_ptr<CMFCAutoHideBar>> autoHideBars;
     CBasePane** hiddenMDITabbedBars = nullptr;       // m_lstHiddenMDITabbedBars +0x2d0, side storage
     std::size_t hiddenMDITabbedBarCount = 0;
     std::size_t hiddenMDITabbedBarCapacity = 0;
@@ -192,6 +196,10 @@ void AddDockingPane(CDockingManager* pManager, CBasePane* pPane);
 
 namespace openmfc { namespace detail { namespace mfccore {
 void RemoveDockingPane(CDockingManager* pManager, CBasePane* pPane);
+CAutoHideDockSite* FindAutoHideDockSite(const CDockingManager& manager, DWORD alignment);
+CMFCAutoHideBar* AttachAutoHideBar(CDockingManager& manager, CAutoHideDockSite& site,
+                                CDockablePane& pane, CMFCAutoHideBar* bar, DWORD alignment);
+void PruneAutoHideBars(CDockingManager& manager);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {

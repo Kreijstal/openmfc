@@ -6,11 +6,15 @@
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/CMFCAutoHideButtonSupport.h"
+#include "detail/FeaturePackDockSite.h"
+#include "detail/Pane15MsgmapSupport.h"
+#include "openmfc/afxole.h"
 
 #include <cstddef>   // offsetof (static_asserts below)
 #include <cstring>   // memcpy
 #include <cwchar>    // wcscmp
 #include <memory>
+#include <utility>
 #include <mutex>
 #include <new>
 #include <unordered_map>
@@ -265,7 +269,7 @@ extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChT
 extern "C" void MS_ABI impl__HideAutoHidePanes_CDockingManager__QEAAXPEAVCDockablePane__H_Z(
     CDockingManager* pThis, CDockablePane* pPane, int bHide);
 extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
-    CDockingManager* pThis, void* pDivider, int nAlignment);
+    CDockingManager*, CPaneDivider*, BOOL positionAtEdge);
 extern "C" void MS_ABI impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(
     CDockingManager* pThis, unsigned long dwFlags, int bActivate);
 // Sibling thunks defined further down in THIS file (their definitions carry the
@@ -300,6 +304,12 @@ extern "C" CRect* MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__
 extern "C" BOOL MS_ABI impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(
     void*, DWORD, DWORD, const RECT&, CWnd*, UINT, CCreateContext*);
 extern "C" int impl__m_nDefaultWidth_CPaneDivider__2HA;
+extern "C" UINT impl__m_ahSlideModeGlobal_CDockingManager__2IA;
+extern "C" CPaneDivider* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
+    DWORD, CWnd*, CRuntimeClass*);
+extern "C" void MS_ABI impl__UnSetAutoHideMode_CAutoHideDockSite__QEAAXPEAVCMFCAutoHideBar___Z(void*, CMFCAutoHideBar*);
+extern "C" void MS_ABI impl__OnTimer_CDockablePane__IEAAX_K_Z(CDockablePane*, UINT_PTR);
+
 extern "C" void* impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA;
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CMultiPaneFrameWnd__UEAAXPEAVCPane___Z(void* pThis, void* pBar);
 extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__0_Z(
@@ -424,16 +434,18 @@ const unsigned __int64 kTimerAutoHideSlideIn  = 0xEC01;  // AFX_TIMER_ID_AUTO_HI
 const unsigned __int64 kTimerAutoHideSlideOut = 0xEC02;  // AFX_TIMER_ID_AUTO_HIDE_SLIDE_OUT_EVENT
 const unsigned __int64 kTimerCheckAutoHide    = 0xEC03;  // AFX_TIMER_ID_CHECK_AUTO_HIDE_CONDITION
 
-// m_pAutoHideBar (+0x480) has no storage in the 1144-byte object (see the note
-// above), but this file's C++ CDockablePane::SetAutoHideMode already records
-// the bar it is handed in the shared docking side table
-// (openmfc::docking_state::PaneCoreState::autoHideBar, which
-// g_paneCoreState_Mfccore and g_paneCoreState_Cbarcore both alias). The bodies
-// below that retail drives off m_pAutoHideBar read it from there.
+// The button registration stores the bar in the shared docking state.
 inline void* AutoHideBarOf(const CDockablePane* pThis) {
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
     auto it = g_paneCoreState_Mfccore.find(pThis);
     return it != g_paneCoreState_Mfccore.end() ? it->second.autoHideBar : nullptr;
+}
+
+CDockingManager* AutoHideManagerOf(const CDockablePane* pane) {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+    const auto found = g_paneCoreState_Mfccore.find(pane);
+    return found != g_paneCoreState_Mfccore.end() && found->second.autoHideRestore
+        ? found->second.autoHideRestore->manager : nullptr;
 }
 
 // --- File-private side table for retail fields with no storage here ---------
@@ -615,6 +627,7 @@ CDockablePane::CDockablePane() {
     state.hasGripper = TRUE;
 }
 CDockablePane::~CDockablePane() {
+    EndAutoHide(FALSE);
     CMFCAutoHideButton* button = nullptr;
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
@@ -640,14 +653,177 @@ void CDockablePane::EnableAutohideAll() {
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
     g_paneCoreState_Mfccore[this].canAutoHide = TRUE;
 }
-CMFCAutoHideBar* CDockablePane::SetAutoHideMode(int bAutoHideMode, unsigned long dwAlignment, void* pAutoHideBar, int) {
-    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-    PaneCoreState& state = g_paneCoreState_Mfccore[this];
-    state.autoHideMode = bAutoHideMode ? TRUE : FALSE;
-    state.autoHideAlignment = bAutoHideMode ? dwAlignment : 0;
-    state.autoHideBar = bAutoHideMode ? pAutoHideBar : nullptr;
-    state.canAutoHide = TRUE;
-    return reinterpret_cast<CMFCAutoHideBar*>(state.autoHideBar);
+const AFX_MSGMAP* AFXAPI CDockablePane::GetThisMessageMap() {
+    return &openmfc::detail::pane15msgmap::classCDockablePane_msgmap;
+}
+
+const AFX_MSGMAP* CDockablePane::GetMessageMap() const {
+    return GetThisMessageMap();
+}
+
+void CDockablePane::OnTimer(UINT_PTR timer) {
+    impl__OnTimer_CDockablePane__IEAAX_K_Z(this, timer);
+}
+
+void CDockablePane::PostNcDestroy() {
+    EndAutoHide(FALSE);
+    CPane::PostNcDestroy();
+}
+
+CMFCAutoHideBar* CDockablePane::BeginAutoHide(
+    CDockingManager& manager, DWORD alignment, CMFCAutoHideBar* bar, BOOL useTimer) {
+    if (IsAutoHideMode()) return static_cast<CMFCAutoHideBar*>(AutoHideBarOf(this));
+    if (!m_hWnd || !CanAutoHide()) return nullptr;
+    auto& managerState = EnsureDockingState(&manager);
+    auto* frame = managerState.parentFrame;
+    if (!frame || !frame->m_hWnd) return nullptr;
+    alignment &= CBRS_ALIGN_ANY;
+    auto* site = FindAutoHideDockSite(manager, alignment);
+    if (!site) return nullptr;
+
+    openmfc::docking_state::PaneAutoHideRestore restore;
+    restore.manager = &manager;
+    restore.parent = ::GetParent(m_hWnd);
+    restore.frame = frame->m_hWnd;
+    restore.previousDivider = ExtraOf(this).hDefaultSlider;
+    restore.dividerVisible = ::IsWindowVisible(restore.previousDivider);
+    restore.alignment = m_dwStyle & CBRS_ALIGN_ANY;
+    restore.hasGripper = HasGripper();
+    restore.visible = (::GetWindowLongPtrW(m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0;
+    restore.registered = ContainsPtr(managerState.panes, static_cast<CBasePane*>(this));
+    restore.hidden = managerState.hiddenPanes.count(this) != 0;
+    restore.floating = managerState.floatingPanes.count(this) != 0;
+    if (!::GetWindowRect(m_hWnd, &restore.bounds)) return nullptr;
+    ::MapWindowPoints(nullptr, restore.parent, reinterpret_cast<POINT*>(&restore.bounds), 2);
+
+    auto* divider = impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
+        alignment, frame, nullptr);
+    if (!divider) return nullptr;
+    const HWND slider = divider->m_hWnd;
+    ::ShowWindow(slider, SW_HIDE);
+    bar = AttachAutoHideBar(manager, *site, *this, bar, alignment);
+    if (!bar || (restore.parent != restore.frame && !::SetParent(m_hWnd, restore.frame))) {
+        if (bar) bar->RemoveAutoHideWindow(this);
+        ::DestroyWindow(slider);
+        PruneAutoHideBars(manager);
+        return nullptr;
+    }
+
+    restore.divider = slider;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[this];
+        state.autoHideMode = TRUE;
+        state.autoHideAlignment = alignment;
+        state.autoHideRestore = restore;
+        state.parent = frame;
+        state.hasGripper = FALSE;
+    }
+    m_pDockSite = reinterpret_cast<CDockSite*>(frame);
+    m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | alignment;
+    SetPaneAlignment(alignment);
+    m_bPinState = TRUE;
+    m_ahSlideMode = impl__m_ahSlideModeGlobal_CDockingManager__2IA;
+    m_rectRestored = restore.bounds;
+    impl__EnableGripper_CDockablePane__UEAAXH_Z(this, FALSE);
+
+    divider->m_dividerData.bAutoHideMode = TRUE;
+    auto* previous = static_cast<CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(this));
+    divider->AddPane(this);
+    if (previous && !previous->GetFirstPane()) ::ShowWindow(previous->m_hWnd, SW_HIDE);
+    manager.HidePane(this);
+    managerState.floatingPanes.erase(this);
+    impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(&manager, divider, TRUE);
+    if (useTimer) {
+        ::ShowWindow(slider, SW_SHOWNOACTIVATE);
+        ::ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
+        impl__Slide_CDockablePane__UEAAXHH_Z(this, FALSE, TRUE);
+        ::SetFocus(frame->m_hWnd);
+    } else {
+        impl__Slide_CDockablePane__UEAAXHH_Z(this, FALSE, FALSE);
+    }
+    return bar;
+}
+
+void CDockablePane::EndAutoHide(BOOL restoreWindow) {
+    std::optional<openmfc::docking_state::PaneAutoHideRestore> restore;
+    CMFCAutoHideBar* bar = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& states = g_paneCoreState_Mfccore;
+        const auto found = states.find(this);
+        if (found == states.end() || !found->second.autoHideRestore) return;
+        auto& state = found->second;
+        restore = std::exchange(state.autoHideRestore, std::nullopt);
+        bar = static_cast<CMFCAutoHideBar*>(state.autoHideBar);
+        state.autoHideMode = FALSE;
+        state.autoHideAlignment = 0;
+        state.hasGripper = restore->hasGripper;
+    }
+    m_bPinState = FALSE;
+    if (m_nSlideTimer) ::KillTimer(m_hWnd, m_nSlideTimer);
+    if (m_nAutoHideConditionTimerID) ::KillTimer(m_hWnd, m_nAutoHideConditionTimerID);
+    m_nSlideTimer = m_nAutoHideConditionTimerID = 0;
+    m_bIsSliding = m_bIsHiding = FALSE;
+    if (bar) bar->RemoveAutoHideWindow(this);
+
+    impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(this, nullptr);
+    if (::IsWindow(restore->divider)) ::DestroyWindow(restore->divider);
+    if (!restoreWindow || !m_hWnd) {
+        RemoveDockingPane(restore->manager, this);
+        return;
+    }
+
+    const HWND parent = ::IsWindow(restore->parent) ? restore->parent : restore->frame;
+    if (parent && parent != ::GetParent(m_hWnd)) ::SetParent(m_hWnd, parent);
+    m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | restore->alignment;
+    SetPaneAlignment(restore->alignment);
+    if (auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(restore->previousDivider));
+        window && window->IsKindOf(RUNTIME_CLASS(CPaneDivider))) {
+        auto* divider = static_cast<CPaneDivider*>(window);
+        divider->AddPane(this);
+        ::ShowWindow(divider->m_hWnd, restore->dividerVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
+    }
+    const RECT& bounds = restore->bounds;
+    SetWindowPos(nullptr, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top,
+        SWP_NOACTIVATE | SWP_NOZORDER, nullptr);
+    auto* parentWindow = static_cast<CWnd*>(CWnd::FromHandlePermanent(parent));
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        g_paneCoreState_Mfccore[this].parent = parentWindow;
+        g_paneCoreState_Mfccore[this].visible = restore->visible;
+    }
+    impl__EnableGripper_CDockablePane__UEAAXH_Z(this, restore->hasGripper);
+    if (restore->registered) {
+        auto& state = EnsureDockingState(restore->manager);
+        if (restore->hidden) state.hiddenPanes.insert(this);
+        else state.hiddenPanes.erase(this);
+        if (restore->floating) state.floatingPanes.insert(this);
+    } else {
+        RemoveDockingPane(restore->manager, this);
+    }
+    ::ShowWindow(m_hWnd, restore->visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+}
+
+CMFCAutoHideBar* CDockablePane::SetAutoHideMode(BOOL mode, DWORD alignment, CMFCAutoHideBar* requestedBar, BOOL useTimer) {
+    if (!!mode == !!IsAutoHideMode()) return requestedBar;
+    if (mode) {
+        CGlobalUtils utils;
+        auto* manager = utils.GetDockingManager(impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(this));
+        for (HWND parent = ::GetParent(m_hWnd); !manager && parent; parent = ::GetParent(parent))
+            manager = utils.GetDockingManager(static_cast<CWnd*>(CWnd::FromHandlePermanent(parent)));
+        return manager ? BeginAutoHide(*manager, alignment, requestedBar, useTimer) : nullptr;
+    }
+
+    auto* manager = AutoHideManagerOf(this);
+    auto* bar = static_cast<CMFCAutoHideBar*>(AutoHideBarOf(this));
+    if (bar && bar->m_pParentDockBar)
+        impl__UnSetAutoHideMode_CAutoHideDockSite__QEAAXPEAVCMFCAutoHideBar___Z(bar->m_pParentDockBar, bar);
+    else
+        EndAutoHide(TRUE);
+    if (manager) PruneAutoHideBars(*manager);
+    return requestedBar;
 }
 BOOL CDockablePane::IsAutoHideMode() const {
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
@@ -1034,22 +1210,7 @@ extern "C" int MS_ABI impl__CanAcceptMiniFrame_CDockablePane__UEBAHPEAVCPaneFram
 //     if (::PtInRect(&rectButton, pt)) return FALSE;
 //     Slide(FALSE, TRUE);                                   // vtable slot 0x698, `xor %edx,%edx ; lea 0x1(%rsi),%r8d`
 //     return TRUE;
-// Slot 0x698 of the CDockablePane vftable (mfc140 RVA 0x2e3068) holds
-// ?Slide@CDockablePane@@UEAAXHH@Z (RVA 0x42d30), exported by this file (still a
-// stub -- see `stubbed`). m_bActive / m_bIsResizing are inside the reachable
-// padding window; m_pAutoHideBar comes from the docking side table
-// (AutoHideBarOf) and m_pAutoHideButton / m_hDefaultSlider from the
-// file-private DockablePaneExtra table. The button rect is read through the
-// CMFCAutoHideButton layout mirror in detail/CMFCAutoHideButtonSupport.h
-// (RECT m_rect at +0x1c), duplicated here as a local offset because that
-// header is not included by this unit.
-// Deviations: NULL checks on `this`, the button and the bar (retail
-// dereferences them unchecked; note OpenMFC's CMFCAutoHideButton::CreateObject
-// still returns NULL, so today the button is NULL and this returns FALSE at
-// that check); ::GetWindowRect on a NULL m_hDefaultSlider is skipped, leaving
-// rectSlider empty -- the API fails and leaves the zeroed rect untouched in
-// retail too, so the union is the same. The tooltip visibility test uses the
-// PaneCoreState pointer rather than retail's in-object +0x4b8 member.
+// The runtime links come from the docking state and the pane's saved divider.
 // Signature corrected to carry `this` (OnTimer below calls it).
 // Symbol: ?CheckAutoHideCondition@CDockablePane@@MEAAHXZ
 extern "C" int MS_ABI impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(CDockablePane* pThis) {
@@ -1065,9 +1226,7 @@ extern "C" int MS_ABI impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(CDocka
     const DockablePaneExtra extra = ExtraOf(pThis);
     CWnd* pBar = static_cast<CWnd*>(static_cast<CBasePane*>(AutoHideBarOf(pThis)));
     if (extra.pAutoHideButton == nullptr || pBar == nullptr) return FALSE;   // deviation: retail faults
-    const size_t kOffAutoHideButtonRect = 0x1c;   // CMFCAutoHideButton::m_rect (CMFCAutoHideButtonSupport.h)
-    RECT rectButton;
-    memcpy(&rectButton, reinterpret_cast<const char*>(extra.pAutoHideButton) + kOffAutoHideButtonRect, sizeof(rectButton));
+    RECT rectButton = *static_cast<const RECT*>(static_cast<CMFCAutoHideButton*>(extra.pAutoHideButton)->m_rect);
     impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(static_cast<const CWnd*>(pBar), &rectButton);
 
     POINT pt = {0, 0};
@@ -1105,16 +1264,14 @@ extern "C" int MS_ABI impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(CDocka
 // from that frame, and branches on GetCurrentAlignment() and
 // m_ahSlideMode (+0x474). For slide mode 1 the four alignment arms compare the
 // pane edges against the corresponding dock-site edge (left/right arms also
-// branch on RTL); other slide modes test pane width/height against
-// m_rectRestored (+0x458), except the top-alignment arm which returns FALSE.
+// branch on RTL). Resizing transitions compare width or height with the
+// restored size on the active edge.
 // GetWindowRect is the call through IAT slot 0x1802c6c08, resolved by iatu.py
 // as USER32!GetWindowRect. The dock-site pointer is the auto-hide bar's
 // CBasePane::m_pParentDockBar (+0x128).
 // Deviation: retail's GetDockSiteFrameWnd/GetCurrentAlignment virtual calls
 // and its CWnd::ScreenToClient/GetExStyle calls are routed through stock thunks
-// here, so pane/frame subclass overrides do not run. The bar pointer and frame
-// are dereferenced without NULL checks, as retail does on this path. The bar
-// member itself is held in PaneCoreState rather than at retail +0x480.
+// here. A missing frame, auto-hide bar or site ends a pending slide.
 // Signature corrected to carry `this` (OnTimer below calls it).
 // Symbol: ?CheckStopSlideCondition@CDockablePane@@MEAAHH@Z
 extern "C" int MS_ABI impl__CheckStopSlideCondition_CDockablePane__MEAAHH_Z(CDockablePane* pThis, int bDirection) {
@@ -1126,10 +1283,11 @@ extern "C" int MS_ABI impl__CheckStopSlideCondition_CDockablePane__MEAAHH_Z(CDoc
     ::GetWindowRect(pThis->m_hWnd, &rectPane);
     CWnd* pFrame = impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(
         static_cast<const CBasePane*>(pThis));
+    CBasePane* pAutoHideBar = static_cast<CBasePane*>(AutoHideBarOf(pThis));
+    if (!pFrame || !pAutoHideBar || !pAutoHideBar->m_pParentDockBar) return TRUE;
     impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pFrame, &rectPane);
     const BOOL bRTL = (impl__GetExStyle_CWnd__QEBAKXZ(pFrame) & WS_EX_LAYOUTRTL) != 0;
 
-    CBasePane* pAutoHideBar = static_cast<CBasePane*>(AutoHideBarOf(pThis));
     CWnd* pDockSite = reinterpret_cast<CWnd*>(pAutoHideBar->m_pParentDockBar);
     RECT rectDockSite = {0, 0, 0, 0};
     ::GetWindowRect(pDockSite->m_hWnd, &rectDockSite);
@@ -1169,7 +1327,6 @@ extern "C" int MS_ABI impl__CheckStopSlideCondition_CDockablePane__MEAAHH_Z(CDoc
         return bDirection ? paneWidth >= rectRestored.right - rectRestored.left
                           : paneWidth <= 0;
     case kAlignTop:
-        return FALSE;
     case kAlignBottom:
         return bDirection ? paneHeight >= rectRestored.bottom - rectRestored.top
                           : paneHeight <= 0;
@@ -2822,7 +2979,12 @@ extern "C" void MS_ABI impl__OnSlide_CDockablePane__MEAAXH_Z(CDockablePane* pThi
 // Symbol: ?OnTimer@CDockablePane@@IEAAX_K@Z
 extern "C" void MS_ABI impl__OnTimer_CDockablePane__IEAAX_K_Z(CDockablePane* pThis, unsigned __int64 nIDEvent) {
     if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    if (!pThis->IsAutoHideMode()) {
+        (void)impl__Default_CWnd__IEAA_JXZ(pThis);
+        return;
+    }
     if (nIDEvent == kTimerAutoHideSlideIn || nIDEvent == kTimerAutoHideSlideOut) {
+        if (DockablePaneField<UINT_PTR>(pThis, kOffSlideTimer) != nIDEvent) return;
         const int bSlideOut = (nIDEvent == kTimerAutoHideSlideOut) ? TRUE : FALSE;
         DockablePaneField<int>(pThis, kOffIsHiding) = bSlideOut ? FALSE : TRUE;
         impl__OnSlide_CDockablePane__MEAAXH_Z(pThis, bSlideOut);
@@ -2832,6 +2994,11 @@ extern "C" void MS_ABI impl__OnTimer_CDockablePane__IEAAX_K_Z(CDockablePane* pTh
             DockablePaneField<UINT_PTR>(pThis, kOffSlideTimer) = 0;
             DockablePaneField<int>(pThis, kOffSlideStep) = 0;
             if (bSlideOut) {
+                // A whole timer step can cross the target edge. Finish at the dock site.
+                auto* divider = static_cast<CPaneDivider*>(
+                    impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pThis));
+                impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
+                    AutoHideManagerOf(pThis), divider, TRUE);
                 ::RedrawWindow(pThis->m_hWnd, nullptr, nullptr,
                                RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW | RDW_FRAME);
                 const HWND hSlider = ExtraOf(pThis).hDefaultSlider;
@@ -2857,6 +3024,7 @@ extern "C" void MS_ABI impl__OnTimer_CDockablePane__IEAAX_K_Z(CDockablePane* pTh
         return;
     }
     if (nIDEvent == kTimerCheckAutoHide) {
+        if (DockablePaneField<UINT_PTR>(pThis, kOffAutoHideConditionTimerID) != nIDEvent) return;
         if (impl__CheckAutoHideCondition_CDockablePane__MEAAHXZ(pThis)) {
             ::KillTimer(pThis->m_hWnd, DockablePaneField<UINT_PTR>(pThis, kOffAutoHideConditionTimerID));
             DockablePaneField<UINT_PTR>(pThis, kOffAutoHideConditionTimerID) = 0;
@@ -3382,7 +3550,10 @@ extern "C" void MS_ABI impl__Slide_CDockablePane__UEAAXHH_Z(CDockablePane* pThis
 
     UINT_PTR& slideTimer = DockablePaneField<UINT_PTR>(pThis, kOffSlideTimer);
     UINT_PTR& conditionTimer = DockablePaneField<UINT_PTR>(pThis, kOffAutoHideConditionTimerID);
-    if (slideTimer != 0) ::KillTimer(pThis->m_hWnd, slideTimer);
+    if (slideTimer != 0) {
+        ::KillTimer(pThis->m_hWnd, slideTimer);
+        slideTimer = 0;
+    }
     if (conditionTimer != 0) {
         ::KillTimer(pThis->m_hWnd, conditionTimer);
         conditionTimer = 0;
@@ -3413,29 +3584,31 @@ extern "C" void MS_ABI impl__Slide_CDockablePane__UEAAXHH_Z(CDockablePane* pThis
         impl__OnSlide_CDockablePane__MEAAXH_Z(pThis, FALSE);
         impl__ShowWindow_CWnd__QEAAHH_Z(static_cast<CWnd*>(pThis), SW_HIDE);
         ::ShowWindow(ExtraOf(pThis).hDefaultSlider, SW_HIDE);
+        DockablePaneField<BOOL>(pThis, kOffIsSliding) = FALSE;
         return;
     }
 
     CWnd* pFrame = impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(
         static_cast<const CBasePane*>(pThis));
-    CDockingManager* pManager = impl__GetDockingManager_CGlobalUtils__QEAAPEAVCDockingManager__PEAVCWnd___Z(
-        reinterpret_cast<CGlobalUtils*>(impl__afxGlobalUtils__3VCGlobalUtils__A), pFrame);
+    CDockingManager* pManager = AutoHideManagerOf(pThis);
     const HWND hSlider = ExtraOf(pThis).hDefaultSlider;
     if (bSlideOut) {
         if (pManager != nullptr) {
             impl__HideAutoHidePanes_CDockingManager__QEAAXPEAVCDockablePane__H_Z(
                 pManager, pThis, FALSE);
+            auto* divider = static_cast<CPaneDivider*>(
+                impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pThis));
             impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
-                pManager, impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pThis), FALSE);
+                pManager, divider, FALSE);
         }
         impl__ShowWindow_CWnd__QEAAHH_Z(static_cast<CWnd*>(pThis), SW_SHOW);
         ::ShowWindow(hSlider, SW_SHOW);
     }
-    ::BringWindowToTop(pThis->m_hWnd);
-    ::BringWindowToTop(hSlider);
     if (DockablePaneField<UINT>(pThis, kOffAHSlideMode) == 1 && pManager != nullptr) {
         impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(pManager, 0, TRUE);
     }
+    ::BringWindowToTop(pThis->m_hWnd);
+    ::BringWindowToTop(hSlider);
 
     slideTimer = ::SetTimer(pThis->m_hWnd,
         static_cast<UINT_PTR>(kTimerAutoHideSlideIn + (bSlideOut ? 1 : 0)),
@@ -3652,15 +3825,15 @@ extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CDockablePane__MEAAXXZ(CD
     }
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x462c0 obtains the default
-// pane divider, checks CanAutoHide(), and, when both conditions pass, calls
-// SetAutoHideMode(!m_bPinState, pDivider->GetCurrentAlignment(), NULL, TRUE).
-// OpenMFC declares CPaneDivider as CObject rather than its retail CBasePane
-// base class, so there is no safe GetCurrentAlignment dispatch/layout for the
-// divider; substituting this pane's alignment would not transcribe retail.
 // Symbol: ?ToggleAutoHide@CDockablePane@@UEAAXXZ
-extern "C" void MS_ABI impl__ToggleAutoHide_CDockablePane__UEAAXXZ(CDockablePane* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl__ToggleAutoHide_CDockablePane__UEAAXXZ(CDockablePane* pane) {
+    if (!pane || !pane->CanAutoHide()) return;
+    auto* divider = static_cast<const CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pane));
+    if (divider) {
+        const DWORD alignment = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(divider);
+        pane->SetAutoHideMode(!pane->IsAutoHideMode(), alignment, nullptr, TRUE);
+    }
 }
 
 // STUB. Retail mfc140.dll ANSI-twin entry RVA 0x44d20; not transcribed. Signature corrected to
@@ -3671,20 +3844,10 @@ extern "C" void MS_ABI impl__UndockPane_CDockablePane__UEAAXH_Z(CDockablePane* p
     (void)bDelay;
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x42150 clears m_bPinState,
-// kills the auto-hide/slide timers, removes the pane from its CMFCAutoHideBar,
-// clears its default divider, and then performs docking/frame updates through
-// several virtual slots. Those final operations depend on retail-shaped
-// CPaneDivider/CPaneFrameWnd dispatch and the bar's embedded layout, which this
-// build does not provide; keep the thunk honest rather than applying a partial
-// sequence with different docking side effects.
-// Signature corrected from the placeholder list using the mangled export: this
-// plus the CDockablePane* pFirstBarInGroup argument.
 // Symbol: ?UnSetAutoHideMode@CDockablePane@@UEAAXPEAV1@@Z
 extern "C" void MS_ABI impl__UnSetAutoHideMode_CDockablePane__UEAAXPEAV1__Z(
-    CDockablePane* pThis, CDockablePane* pFirstBarInGroup) {
-    (void)pThis;
-    (void)pFirstBarInGroup;
+    CDockablePane* pane, CDockablePane*) {
+    if (pane) pane->EndAutoHide(TRUE);
 }
 
 // CDockablePane::UpdateTooltips -- transcribed from the ANSI-twin entry

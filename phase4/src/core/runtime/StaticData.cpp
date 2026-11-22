@@ -24,7 +24,7 @@
 
 
 // Symbol: ?m_pAutoHideToolbarRTC@CDockingManager@@2PEAUCRuntimeClass@@EA
-extern "C" void* impl__m_pAutoHideToolbarRTC_CDockingManager__2PEAUCRuntimeClass__EA = nullptr;
+extern "C" void* impl__m_pAutoHideToolbarRTC_CDockingManager__2PEAUCRuntimeClass__EA = &CMFCAutoHideBar::classCMFCAutoHideBar;
 // Symbol: ?m_hAccelDefaultLast@CKeyboardManager@@1PEAUHACCEL__@@EA
 extern "C" void* impl__m_hAccelDefaultLast_CKeyboardManager__1PEAUHACCEL____EA = nullptr;
 // Symbol: ?m_hAccelLast@CKeyboardManager@@1PEAUHACCEL__@@EA

@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -25,6 +26,22 @@ struct DockingTooltipState {
     std::wstring text;
 };
 
+struct PaneAutoHideRestore {
+    CDockingManager* manager = nullptr;
+    HWND parent = nullptr;
+    HWND frame = nullptr;
+    HWND divider = nullptr;
+    HWND previousDivider = nullptr;
+    RECT bounds{};
+    DWORD alignment = 0;
+    BOOL hasGripper = FALSE;
+    BOOL visible = FALSE;
+    BOOL dividerVisible = FALSE;
+    bool registered = false;
+    bool hidden = false;
+    bool floating = false;
+};
+
 // pThis-keyed fallback state for members that the compact public pane classes
 // cannot hold. Retail offsets are recorded beside each value; these fields are
 // not overlays and must be accessed through this map, never by adding the
@@ -44,6 +61,7 @@ struct PaneCoreState {
     BOOL tabbed = FALSE;
     void* autoHideBar = nullptr;                  // retail CMFCAutoHideBar* m_pAutoHideBar +0x480
     CMFCAutoHideButton* autoHideButton = nullptr; // m_pAutoHideButton +0x478
+    std::optional<PaneAutoHideRestore> autoHideRestore;
 
     CaptionButtonState* captionButtons = nullptr;  // semantic CObArray payload; retail m_arrButtons starts +0x488, m_pData +0x490
     INT_PTR captionButtonCount = 0;                // CArray m_nSize +0x498

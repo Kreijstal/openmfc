@@ -1195,8 +1195,9 @@ extern "C" void MS_ABI impl__RecalcLayout_CPane__UEAAXXZ(CPane* pThis) {
 }
 // Symbol: ?SetAutoHideMode@CDockablePane@@UEAAPEAVCMFCAutoHideBar@@HKPEAV2@H@Z
 // CDockablePane::SetAutoHideMode
-extern "C" CMFCAutoHideBar* MS_ABI impl__SetAutoHideMode_CDockablePane__UEAAPEAVCMFCAutoHideBar__HKPEAV2_H_Z(CDockablePane* pThis, int p0, unsigned long p1, void* p2, int p3) {
-    return (CMFCAutoHideBar*)pThis->SetAutoHideMode(p0, p1, p2, p3);
+extern "C" CMFCAutoHideBar* MS_ABI impl__SetAutoHideMode_CDockablePane__UEAAPEAVCMFCAutoHideBar__HKPEAV2_H_Z(
+    CDockablePane* pane, BOOL mode, DWORD alignment, CMFCAutoHideBar* bar, BOOL useTimer) {
+    return pane ? pane->SetAutoHideMode(mode, alignment, bar, useTimer) : nullptr;
 }
 // Symbol: ?SetDockState@CDockingManager@@UEAAXXZ
 // CDockingManager::SetDockState

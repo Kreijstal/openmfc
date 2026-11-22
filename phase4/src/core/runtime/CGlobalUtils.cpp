@@ -326,6 +326,16 @@ CDockingManager* openmfc::detail::mfccore::DockingManagerForFrame(CWnd* frame) {
     return nullptr;
 }
 
+// Symbol: ?AfxIsExtendedFrameClass@@YAHPEAVCWnd@@@Z
+extern "C" BOOL MS_ABI impl__AfxIsExtendedFrameClass__YAHPEAVCWnd___Z(CWnd* window) {
+    using namespace openmfc::detail::olecore;
+    return window && (window->IsKindOf(RUNTIME_CLASS(CFrameWndEx)) ||
+        window->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx)) ||
+        window->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx)) ||
+        window->IsKindOf(impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ()) ||
+        window->IsKindOf(impl__GetThisClass_COleDocIPFrameWndEx__SAPEAUCRuntimeClass__XZ()));
+}
+
 CDockingManager* CGlobalUtils::GetDockingManager(CWnd* window) {
     while (window) {
         if (auto* manager = openmfc::detail::mfccore::DockingManagerForFrame(window))

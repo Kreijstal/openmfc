@@ -37,7 +37,7 @@ extern "C" std::int32_t impl__m_nSlideSteps_CDockablePane__2HA = 12;          //
 // Symbol: ?m_nTimeOutBeforeAutoHide@CDockablePane@@2HA
 extern "C" std::int32_t impl__m_nTimeOutBeforeAutoHide_CDockablePane__2HA = 700; // retail .data (mfc140 RVA 0x3aaac4)
 // Symbol: ?m_ahSlideModeGlobal@CDockingManager@@2IA
-extern "C" std::uint32_t impl__m_ahSlideModeGlobal_CDockingManager__2IA = 0;
+extern "C" std::uint32_t impl__m_ahSlideModeGlobal_CDockingManager__2IA = 1;
 // Symbol: ?m_bDisableRecalcLayout@CDockingManager@@2HA
 extern "C" std::int32_t impl__m_bDisableRecalcLayout_CDockingManager__2HA = 0;
 // Symbol: ?m_bDockBarMenu@CDockingManager@@1HA

@@ -603,11 +603,18 @@ public:
     virtual BOOL CanBeAttached() const override;
     virtual BOOL CanAutoHide() const override;
     void EnableAutohideAll();
-    virtual CMFCAutoHideBar* SetAutoHideMode(int bAutoHideMode, unsigned long dwAlignment, void* pAutoHideBar = nullptr, int bSetFocus = 0);
+    virtual CMFCAutoHideBar* SetAutoHideMode(BOOL mode, DWORD alignment, CMFCAutoHideBar* bar = nullptr,
+                                            BOOL useTimer = TRUE);
     BOOL IsAutoHideMode() const;
     BOOL IsTabbed() const;
+    CMFCAutoHideBar* BeginAutoHide(CDockingManager& manager, DWORD alignment, CMFCAutoHideBar* bar, BOOL useTimer);
+    void EndAutoHide(BOOL restoreWindow);
+    void OnTimer(UINT_PTR timer);
 
 protected:
+    void PostNcDestroy() override;
+    DECLARE_MESSAGE_MAP()
+
     // The retail prefix through m_ahSlideMode fits in the existing 0x80-byte
     // tail. The explicit alignment keeps this storage on the native eight-byte
     // boundary at +0x3f8. The byte array is retained
@@ -1995,6 +2002,8 @@ public:
     CSize LayoutButtons();
 
     void OnPaint();
+    int OnCreate(CREATESTRUCTW* create);
+    void OnDestroy();
     void DoPaint(CDC* dc);
     void OnLButtonDown(UINT flags, CPoint point);
     void OnMouseMove(UINT flags, CPoint point);
@@ -2010,6 +2019,8 @@ public:
     BOOL m_bReadyToDisplayAHWnd = FALSE;
     UINT_PTR m_nDisplayAHWndTimerID = 0;
     BOOL m_bTracked = FALSE;
+    bool m_bManagerOwned = false;
+    bool m_bDestroying = false;
 
     DECLARE_MESSAGE_MAP()
 };

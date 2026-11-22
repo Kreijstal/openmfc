@@ -15,6 +15,8 @@ const AFX_MSGMAP classCMFCAcceleratorKeyAssignCtrl_msgmap = { gbm_CMFCAccelerato
 namespace {
 using ThisClass = CMFCAutoHideBar;
 const AFX_MSGMAP_ENTRY autoHideBarEntries[] = {
+    ON_WM_CREATE()
+    ON_WM_DESTROY()
     ON_WM_PAINT()
     ON_WM_MOUSEMOVE()
     ON_WM_LBUTTONDOWN()

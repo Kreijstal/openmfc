@@ -6,6 +6,7 @@
 #include "detail/MfccoreSupport.h"
 #include "detail/CSmartDockingInfoSupport.h"
 #include "detail/FeaturePackDockSite.h"
+#include "detail/CMFCAutoHideButtonSupport.h"
 #include "detail/ClassicDockingSupport.h"
 #include "openmfc/afxole.h"
 
@@ -22,6 +23,18 @@ extern "C" std::uint32_t impl__m_dockModeGlobal_CDockingManager__1W4AFX_DOCK_TYP
 extern "C" int impl__m_nDockSensitivity_CDockingManager__2HA;
 extern "C" unsigned long MS_ABI impl__GetCurrentAlignment_CBasePane__UEBAKXZ(const CBasePane*);
 extern "C" int MS_ABI impl__GetDlgCtrlID_CWnd__QEBAHXZ(const CWnd*);
+extern "C" void* impl__m_pAutoHideToolbarRTC_CDockingManager__2PEAUCRuntimeClass__EA;
+extern "C" BOOL MS_ABI impl__AfxIsExtendedFrameClass__YAHPEAVCWnd___Z(CWnd*);
+extern "C" BOOL MS_ABI impl__Create_CMFCAutoHideBar__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__IKPEAUCCreateContext___Z(
+    CMFCAutoHideBar*, const wchar_t*, DWORD, const RECT&, CWnd*, UINT, DWORD, CCreateContext*);
+extern "C" void MS_ABI impl__DockPane_CAutoHideDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT___Z(
+    void*, CPane*, int, const RECT*);
+extern "C" void MS_ABI impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(void*, CRect*);
+extern "C" void MS_ABI impl__Slide_CDockablePane__UEAAXHH_Z(CDockablePane*, BOOL, BOOL);
+extern "C" void* MS_ABI impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(const CDockablePane*);
+extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
+    CDockingManager*, CPaneDivider*, BOOL);
+
 extern "C" void* MS_ABI impl__FindPaneByID_CDockSite__QEAAPEAVCPane__I_Z(void*, unsigned int);
 extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd*);
 extern "C" BOOL MS_ABI impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(
@@ -74,16 +87,42 @@ CDockSite* CreateDockSiteForManager(CDockingManager* manager, const DockSiteInfo
 
 constexpr DWORD dockingEdges[]{CBRS_ALIGN_TOP, CBRS_ALIGN_BOTTOM, CBRS_ALIGN_LEFT, CBRS_ALIGN_RIGHT};
 
-void LayoutEmptyDockSites(const DockingManagerState& state, const RECT& available) {
+void LayoutDockSites(CDockingManager& manager, const DockingManagerState& state, const RECT& available) {
     if (state.dockSites.empty()) return;
     HDWP layout = ::BeginDeferWindowPos(static_cast<int>(state.dockSites.size()));
     for (const auto& entry : state.dockSites) {
-        if (!layout || !entry.site->m_hWnd || !entry.site->m_lstDockBarRows.IsEmpty()) continue;
-        const RECT bounds = EmptyDockSiteBounds(available, entry.alignment);
+        if (!layout || !entry.site->m_hWnd) continue;
+        const bool occupied = !entry.site->m_lstDockBarRows.IsEmpty();
+        if (occupied && !entry.autoHide) continue;
+        RECT bounds = EmptyDockSiteBounds(available, entry.alignment);
+        if (occupied) {
+            RECT current{};
+            ::GetWindowRect(entry.site->m_hWnd, &current);
+            switch (entry.alignment) {
+            case CBRS_ALIGN_LEFT: bounds.right += current.right - current.left; break;
+            case CBRS_ALIGN_RIGHT: bounds.left -= current.right - current.left; break;
+            case CBRS_ALIGN_TOP: bounds.bottom += current.bottom - current.top; break;
+            case CBRS_ALIGN_BOTTOM: bounds.top -= current.bottom - current.top; break;
+            }
+        }
         layout = ::DeferWindowPos(layout, entry.site->m_hWnd, nullptr, bounds.left, bounds.top,
             bounds.right - bounds.left, bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE);
     }
     if (layout) ::EndDeferWindowPos(layout);
+    for (const auto& entry : state.dockSites) {
+        if (entry.autoHide && !entry.site->m_lstDockBarRows.IsEmpty())
+            impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(entry.site, nullptr);
+    }
+    for (const auto& bar : state.autoHideBars) {
+        for (auto pos = bar->m_lstAutoHideButtons.GetHeadPosition(); pos != nullptr;) {
+            const auto* button = static_cast<const CMFCAutoHideButton*>(bar->m_lstAutoHideButtons.GetNext(pos));
+            const auto* pane = button->m_pAutoHideWindow;
+            if (!pane || !::IsWindowVisible(pane->m_hWnd)) continue;
+            auto* divider = static_cast<CPaneDivider*>(
+                impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pane));
+            impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(&manager, divider, TRUE);
+        }
+    }
 }
 } // namespace
 
@@ -167,46 +206,124 @@ extern "C" int MS_ABI impl__AdjustRectToClientArea_CDockingManager__UEAAHAEAVCRe
     *pRect = original;
     return TRUE;
 }
+CAutoHideDockSite* openmfc::detail::mfccore::FindAutoHideDockSite(const CDockingManager& manager, DWORD alignment) {
+    const auto* state = FindDockingState(&manager);
+    if (!state) return nullptr;
+    for (auto it = state->dockSites.rbegin(); it != state->dockSites.rend(); ++it) {
+        if (it->autoHide && it->alignment == alignment && it->site->m_hWnd)
+            return static_cast<CAutoHideDockSite*>(it->site);
+    }
+    return nullptr;
+}
+
+void openmfc::detail::mfccore::PruneAutoHideBars(CDockingManager& manager) {
+    auto& bars = EnsureDockingState(&manager).autoHideBars;
+    bars.erase(std::remove_if(bars.begin(), bars.end(), [](const auto& bar) {
+        return !bar->m_hWnd;
+    }), bars.end());
+}
+
+CMFCAutoHideBar* openmfc::detail::mfccore::AttachAutoHideBar(
+    CDockingManager& manager, CAutoHideDockSite& site, CDockablePane& pane, CMFCAutoHideBar* bar, DWORD alignment) {
+    auto& state = EnsureDockingState(&manager);
+    auto* frame = state.parentFrame;
+    if (!frame || !frame->m_hWnd) return nullptr;
+    if (bar) {
+        if (::GetParent(bar->m_hWnd) != site.m_hWnd || site.m_lstControlBars.Find(bar) == nullptr ||
+            !bar->AddAutoHideWindow(&pane, alignment)) return nullptr;
+        bar->UpdateVisibleState();
+        return bar;
+    }
+
+    PruneAutoHideBars(manager);
+    if (!impl__AfxIsExtendedFrameClass__YAHPEAVCWnd___Z(frame)) return nullptr;
+    auto* type = static_cast<CRuntimeClass*>(impl__m_pAutoHideToolbarRTC_CDockingManager__2PEAUCRuntimeClass__EA);
+    if (!type) type = CMFCAutoHideBar::GetThisClass();
+    if (!type->IsDerivedFrom(RUNTIME_CLASS(CMFCAutoHideBar))) return nullptr;
+    std::unique_ptr<CMFCAutoHideBar> toolbar(static_cast<CMFCAutoHideBar*>(type->CreateObject()));
+    if (!toolbar || !impl__Create_CMFCAutoHideBar__UEAAHPEB_WKAEBUtagRECT__PEAVCWnd__IKPEAUCCreateContext___Z(
+            toolbar.get(), nullptr, WS_CHILD | WS_CLIPSIBLINGS, RECT{0, 0, 1, 1}, frame, 1, 0, nullptr))
+        return nullptr;
+    const HWND window = toolbar->m_hWnd;
+    if (!::SetParent(window, site.m_hWnd)) return nullptr;
+    toolbar->m_dwStyle = alignment;
+    toolbar->SetPaneAlignment(alignment);
+    toolbar->m_pDockSite = reinterpret_cast<CDockSite*>(frame);
+    toolbar->m_bFirstInGroup = toolbar->m_bLastInGroup = TRUE;
+    toolbar->SetActiveInGroup(TRUE);
+    if (!toolbar->AddAutoHideWindow(&pane, alignment)) return nullptr;
+    const CSize size = toolbar->LayoutButtons();
+    ::SetWindowPos(window, nullptr, 0, 0, size.cx, size.cy, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    toolbar->m_bManagerOwned = true;
+    impl__DockPane_CAutoHideDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT___Z(
+        &site, toolbar.get(), 4 /* DM_RECT */, nullptr);
+    if (!toolbar->m_pDockBarRow) return nullptr;
+    bar = toolbar.get();
+    state.autoHideBars.push_back(std::move(toolbar));
+    return bar;
+}
+
 // Symbol: ?AlignAutoHidePane@CDockingManager@@QEAAXPEAVCPaneDivider@@H@Z
 extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
-    CDockingManager* pThis, void* pDivider, int nAlignment) {
-    if (!pThis || !pDivider) return;
-    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-    DockingManagerState& state = EnsureDockingState(pThis);
-    for (CBasePane* pane : state.panes) {
-        if (!pane) continue;
-        auto& paneState = g_paneCoreState_Mfccore[pane];
-        paneState.autoHideMode = TRUE;
-        paneState.autoHideAlignment = static_cast<DWORD>(nAlignment);
-        paneState.autoHideBar = pDivider;
+    CDockingManager* manager, CPaneDivider* divider, BOOL positionAtEdge) {
+    const auto* state = FindDockingState(manager);
+    if (!state || !state->parentFrame || !divider || !divider->m_hWnd) return;
+    auto* pane = static_cast<const CDockablePane*>(divider->GetFirstPane());
+    if (!pane || !pane->m_hWnd || !pane->IsAutoHideMode()) return;
+    const DWORD alignment = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(divider);
+    const auto* site = FindAutoHideDockSite(*manager, alignment);
+    if (!site) return;
+
+    const HWND parent = state->parentFrame->m_hWnd;
+    RECT bounds = state->clientAreaBounds;
+    if (::IsRectEmpty(&bounds)) ::GetClientRect(parent, &bounds);
+    RECT edge{}, paneRect{}, dividerRect{};
+    ::GetWindowRect(site->m_hWnd, &edge);
+    ::GetWindowRect(pane->m_hWnd, &paneRect);
+    ::MapWindowPoints(nullptr, parent, reinterpret_cast<POINT*>(&edge), 2);
+    ::MapWindowPoints(nullptr, parent, reinterpret_cast<POINT*>(&paneRect), 2);
+    const LONG width = paneRect.right - paneRect.left;
+    const LONG height = paneRect.bottom - paneRect.top;
+    const int thickness = divider->m_dividerData.nWidth;
+
+    if (alignment & CBRS_ORIENT_HORZ) {
+        paneRect.left = bounds.left;
+        paneRect.right = bounds.right;
+        if (positionAtEdge && alignment == CBRS_ALIGN_TOP) {
+            paneRect.top = edge.bottom;
+            paneRect.bottom = paneRect.top + height;
+        } else if (positionAtEdge) {
+            paneRect.bottom = edge.top;
+            paneRect.top = paneRect.bottom - height;
+        }
+        const LONG y = alignment == CBRS_ALIGN_TOP ? paneRect.bottom : paneRect.top - thickness;
+        dividerRect = {paneRect.left, y, paneRect.right, y + thickness};
+    } else {
+        paneRect.top = bounds.top;
+        paneRect.bottom = bounds.bottom;
+        if (positionAtEdge && alignment == CBRS_ALIGN_LEFT) {
+            paneRect.left = edge.right;
+            paneRect.right = paneRect.left + width;
+        } else if (positionAtEdge) {
+            paneRect.right = edge.left;
+            paneRect.left = paneRect.right - width;
+        }
+        const LONG x = alignment == CBRS_ALIGN_LEFT ? paneRect.right : paneRect.left - thickness;
+        dividerRect = {x, paneRect.top, x + thickness, paneRect.bottom};
     }
-    (void)state;
+    constexpr UINT flags = SWP_NOACTIVATE | SWP_NOZORDER;
+    ::SetWindowPos(pane->m_hWnd, nullptr, paneRect.left, paneRect.top,
+        paneRect.right - paneRect.left, paneRect.bottom - paneRect.top, flags);
+    ::SetWindowPos(divider->m_hWnd, nullptr, dividerRect.left, dividerRect.top,
+        dividerRect.right - dividerRect.left, dividerRect.bottom - dividerRect.top, flags);
 }
+
 // Symbol: ?AutoHidePane@CDockingManager@@QEAAPEAVCMFCAutoHideBar@@PEAVCDockablePane@@PEAV2@@Z
 extern "C" CMFCAutoHideBar* MS_ABI impl__AutoHidePane_CDockingManager__QEAAPEAVCMFCAutoHideBar__PEAVCDockablePane__PEAV2__Z(
-    CDockingManager* pThis, CDockablePane* pPane, CDockablePane*) {
-    if (!pThis || !pPane) return nullptr;
-    AddDockingPane(pThis, pPane);
-    pThis->HidePane(pPane);
-
-    DockingManagerState& state = EnsureDockingState(pThis);
-    state.floatingPanes.erase(pPane);
-    state.hiddenPanes.insert(pPane);
-
-    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-    PaneCoreState& paneState = g_paneCoreState_Mfccore[pPane];
-    if (!paneState.autoHideAlignment) {
-        paneState.autoHideAlignment = state.enabledAlignment ? state.enabledAlignment : 0;
-    }
-
-    CMFCAutoHideBar* bar = static_cast<CMFCAutoHideBar*>(paneState.autoHideBar);
-    if (!bar) {
-        bar = new (std::nothrow) CMFCAutoHideBar();
-        if (!bar) return nullptr;
-        paneState.autoHideBar = bar;
-    }
-    pPane->SetAutoHideMode(TRUE, paneState.autoHideAlignment, bar, FALSE);
-    return bar;
+    CDockingManager* manager, CDockablePane* pane, CMFCAutoHideBar* bar) {
+    if (!manager || !pane) return nullptr;
+    const DWORD alignment = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(pane);
+    return pane->BeginAutoHide(*manager, alignment, bar, FALSE);
 }
 // Symbol: ?BringBarsToTop@CDockingManager@@QEAAXKH@Z
 extern "C" void MS_ABI impl__BringBarsToTop_CDockingManager__QEAAXKH_Z(
@@ -490,8 +607,22 @@ extern "C" void MS_ABI impl__GetPaneList_CDockingManager__QEAAXAEAVCObList__HPEA
 }
 // Symbol: ?HideAutoHidePanes@CDockingManager@@QEAAXPEAVCDockablePane@@H@Z
 extern "C" void MS_ABI impl__HideAutoHidePanes_CDockingManager__QEAAXPEAVCDockablePane__H_Z(
-    CDockingManager* pThis, CDockablePane* pPane, int) {
-    if (pThis && pPane) pThis->HidePane(pPane);
+    CDockingManager* manager, CDockablePane* exclude, BOOL immediately) {
+    const auto* state = FindDockingState(manager);
+    if (!state) return;
+    std::vector<HWND> windows;
+    for (const auto& bar : state->autoHideBars) {
+        for (auto pos = bar->m_lstAutoHideButtons.GetHeadPosition(); pos != nullptr;) {
+            const auto* button = static_cast<const CMFCAutoHideButton*>(bar->m_lstAutoHideButtons.GetNext(pos));
+            const auto* pane = button->m_pAutoHideWindow;
+            if (pane && pane != exclude && ::IsWindowVisible(pane->m_hWnd)) windows.push_back(pane->m_hWnd);
+        }
+    }
+    for (HWND window : windows) {
+        auto* pane = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+        if (pane && pane->IsKindOf(RUNTIME_CLASS(CDockablePane)))
+            impl__Slide_CDockablePane__UEAAXHH_Z(static_cast<CDockablePane*>(pane), FALSE, !immediately);
+    }
 }
 // Symbol: ?InsertPane@CDockingManager@@QEAAHPEAVCBasePane@@0H@Z
 extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
@@ -829,6 +960,11 @@ CDockingManager::CDockingManager(CFrameWnd* pParentFrameWnd)
 CDockingManager::~CDockingManager() {
     if (const DockingManagerState* found = FindDockingState(this)) {
         DockingManagerState& state = const_cast<DockingManagerState&>(*found);
+        while (!state.autoHideBars.empty()) {
+            auto bar = std::move(state.autoHideBars.back());
+            state.autoHideBars.pop_back();
+            bar.reset();
+        }
         while (!state.dockSites.empty()) {
             auto* site = state.dockSites.back().site;
             state.dockSites.pop_back();
@@ -936,7 +1072,7 @@ void CDockingManager::RecalcLayout() {
     HWND parent = m_pParentWnd ? m_pParentWnd->GetSafeHwnd() : nullptr;
     if (parent) {
         ::GetClientRect(parent, &client);
-        LayoutEmptyDockSites(state, client);
+        LayoutDockSites(*this, state, client);
     }
     int visibleCount = 0;
     for (CBasePane* pane : state.panes) {
@@ -1015,7 +1151,7 @@ RECT openmfc::detail::mfccore::LayoutInPlacePanes(CDockingManager* manager, cons
         ::EndDeferWindowPos(layout);
         state.positioningInPlace = false;
     }
-    if (moveWindows) LayoutEmptyDockSites(state, available);
+    if (moveWindows) LayoutDockSites(*manager, state, available);
     return remaining;
 }
 void CDockingManager::SetDockState() {
