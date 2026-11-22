@@ -544,13 +544,12 @@ protected:
 };
 
 // CDocItem - base for OLE client/server items
-class CDocItem : public CObject {
+class CDocItem : public CCmdTarget {
     DECLARE_DYNAMIC(CDocItem)
 public:
     CDocItem();
     virtual ~CDocItem();
     CDocument* m_pDocument;
-    char _docitem_padding[56];
 };
 
 // COleDocument forward (needed by CDocItem subclasses)
@@ -1286,7 +1285,6 @@ public:
                   LPCRECT lpRect = nullptr, LPCRECT lpClipRect = nullptr,
                   BOOL bSplit = FALSE);
     void Deactivate();
-    int DoVerb(LONG nVerb, CView* pView = nullptr, MSG* lpMsg = nullptr);
     BOOL IsInPlaceActive() const;
 
     // State
@@ -1354,6 +1352,16 @@ public:
     void SetControlSite(COleControlSite* pSite);
     COleControlSite* GetControlSite() const;
     void AttachDataObject(COleDataObject& dataObject) const;
+    virtual int DoVerb(LONG nVerb, CView* pView = nullptr, MSG* lpMsg = nullptr);
+
+protected:
+    virtual IOleClientSite* GetClientSite();
+    virtual void OnGetClipRect(CRect& clip);
+    virtual BOOL OnGetWindowContext(CFrameWnd** frame, CFrameWnd** document, OLEINPLACEFRAMEINFO* info);
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
+
+private:
+    HRESULT InvokeOleVerb(LONG verb, CView* view, MSG* message, HWND parent, LPCRECT position);
 
 public:
     COleDocument* m_pContainerDoc;
@@ -1374,6 +1382,46 @@ protected:
     char _oleclientitem_padding[96];
 #else
 public:
+    struct XOleClientSite : IOleClientSite {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE SaveObject() override;
+        HRESULT STDMETHODCALLTYPE GetMoniker(DWORD, DWORD, IMoniker**) override;
+        HRESULT STDMETHODCALLTYPE GetContainer(IOleContainer**) override;
+        HRESULT STDMETHODCALLTYPE ShowObject() override;
+        HRESULT STDMETHODCALLTYPE OnShowWindow(BOOL) override;
+        HRESULT STDMETHODCALLTYPE RequestNewObjectLayout() override;
+    };
+    struct XAdviseSink : IAdviseSink {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        void STDMETHODCALLTYPE OnDataChange(FORMATETC*, STGMEDIUM*) override;
+        void STDMETHODCALLTYPE OnViewChange(DWORD, LONG) override;
+        void STDMETHODCALLTYPE OnRename(IMoniker*) override;
+        void STDMETHODCALLTYPE OnSave() override;
+        void STDMETHODCALLTYPE OnClose() override;
+    };
+    struct XOleIPSite : IOleInPlaceSite {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE GetWindow(HWND*) override;
+        HRESULT STDMETHODCALLTYPE ContextSensitiveHelp(BOOL) override;
+        HRESULT STDMETHODCALLTYPE CanInPlaceActivate() override;
+        HRESULT STDMETHODCALLTYPE OnInPlaceActivate() override;
+        HRESULT STDMETHODCALLTYPE OnUIActivate() override;
+        HRESULT STDMETHODCALLTYPE GetWindowContext(IOleInPlaceFrame**, IOleInPlaceUIWindow**,
+                                                   RECT*, RECT*, OLEINPLACEFRAMEINFO*) override;
+        HRESULT STDMETHODCALLTYPE Scroll(SIZE) override;
+        HRESULT STDMETHODCALLTYPE OnUIDeactivate(BOOL) override;
+        HRESULT STDMETHODCALLTYPE OnInPlaceDeactivate() override;
+        HRESULT STDMETHODCALLTYPE DiscardUndoState() override;
+        HRESULT STDMETHODCALLTYPE DeactivateAndUndo() override;
+        HRESULT STDMETHODCALLTYPE OnPosRectChange(LPCRECT) override;
+    };
+
     // Retail fields that fit this class's current tail. Earlier retail
     // members whose offsets overlap the existing OpenMFC declarations are
     // represented in the COleClientItem side table (OlecoreSupport.h). The
@@ -1394,15 +1442,12 @@ public:
         void* m_ClassesAllowedInStorage;         // union +0xc8; retail afxole.h member order
         DWORD m_nClassesAllowedInStorage;        // +0xd0; ctor RVA 0x244200 (mfc140u)
         DWORD m_reserved_d4;                     // +0xd4; alignment before interface part, ctor RVA 0x244200 (mfc140u)
-        void* m_xOleClientSiteVftable;           // interface part +0xd8; ctor RVA 0x244200 (mfc140u)
-        void* m_xAdviseSinkVftable;              // interface part +0xe0; ctor RVA 0x244200 (mfc140u)
-        void* m_xOleIPSiteVftable;               // interface part +0xe8; ctor RVA 0x244200 (mfc140u)
+        XOleClientSite m_xOleClientSite;          // interface part +0xd8
+        XAdviseSink m_xAdviseSink;                // interface part +0xe0
+        XOleIPSite m_xOleIPSite;                  // interface part +0xe8
     };
 #pragma pack(pop)
-    union {
-        RetailTailStorage m_retailTail;
-        char _oleclientitem_padding[100];
-    };
+    RetailTailStorage m_retailTail{};
 #endif
 };
 

@@ -7,6 +7,9 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include "detail/CCmdTargetVirtualsSupport.h"
+#include <new>
+#include <utility>
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
@@ -49,12 +52,6 @@ extern "C" int MS_ABI impl__OnScrollBy_CView__UEAAHVCSize__H_Z(
         CView* pThis, long long sizeExtent, int bDoScroll);
 extern "C" void MS_ABI impl__OnShowItem_COleClientItem__MEAAXXZ(
         COleClientItem* pThis);
-extern "C" int MS_ABI impl__CanActivate_COleClientItem__MEAAHXZ(
-        COleClientItem* pThis);
-extern "C" void MS_ABI impl__OnActivate_COleClientItem__UEAAXXZ(
-        COleClientItem* pThis);
-extern "C" void MS_ABI impl__OnDeactivate_COleClientItem__UEAAXXZ(
-        COleClientItem* pThis);
 extern "C" void MS_ABI impl__OnDeactivateAndUndo_COleClientItem__MEAAXXZ(
         COleClientItem* pThis);
 extern "C" void MS_ABI impl__OnDiscardUndoState_COleClientItem__MEAAXXZ(
@@ -63,6 +60,14 @@ extern "C" int MS_ABI impl__OnChangeItemPosition_COleClientItem__MEAAHAEBVCRect_
         COleClientItem* pThis, const CRect* pRect);
 
 namespace {
+void ReleaseFrameHook(COleFrameHook*& holder) {
+    auto* hook = std::exchange(holder, nullptr);
+    if (!hook) return;
+    hook->m_pActiveItem = nullptr;
+    hook->m_retailTail.m_xOleInPlaceFrame.SetActiveObject(nullptr, nullptr);
+    impl__InternalRelease_CCmdTarget__QEAAKXZ(hook);
+}
+
 void FormatClientItemName(wchar_t* buffer, unsigned int cchBuffer, DWORD itemNumber) {
     if (!buffer || cchBuffer == 0) return;
 
@@ -95,9 +100,7 @@ void FormatClientItemName(wchar_t* buffer, unsigned int cchBuffer, DWORD itemNum
 // "// Symbol:" comments below and excludes those symbols from the generated
 // weak stubs, so these strong definitions take effect.
 //
-// Layout caveat: include/openmfc/afxole.h declares CDocItem as CObject-derived,
-// whereas the retail afxole.h declares CDocItem as CCmdTarget-derived; the
-// COleClientItem state model and member order also differ from retail. In
+// The COleClientItem state model and member order still differ from retail. In
 // particular, do not treat the public member names here as proof that a field
 // is at its retail offset. Retail-only state that collides with live members is
 // kept in pThis-keyed ClientItemState; non-conflicting tail state is named in
@@ -455,14 +458,7 @@ extern "C" int MS_ABI impl__FinishCreate_COleClientItem__MEAAHJ_Z(
 extern "C" void MS_ABI impl__Activate_COleClientItem__QEAAXJPEAVCView__PEAUtagMSG___Z(
         COleClientItem* pThis, long nVerb, CView* pView, tagMSG* lpMsg) {
     if (!pThis || !pThis->m_lpObject) return;
-    HWND hwndParent = pView ? pView->GetSafeHwnd() : nullptr;
-    CRect rect;
-    pThis->OnGetItemPosition(rect);
-    HRESULT hr = pThis->m_lpObject->DoVerb(nVerb, lpMsg, nullptr, 0, hwndParent, rect);
-    if (SUCCEEDED(hr)) {
-        pThis->m_nStatus = OLE_RUNNING;
-        pThis->OnActivate();
-    }
+    pThis->DoVerb(nVerb, pView, lpMsg);
 }
 // Symbol: ?ActivateAs@COleClientItem@@UEAAHPEB_WAEBU_GUID@@1@Z
 // TODO(clean-room): transcribed partially.  Retail re-registers the object's
@@ -684,13 +680,12 @@ extern "C" int MS_ABI impl__GetCachedExtent_COleClientItem__QEAAHPEAUtagSIZE__W4
     return TRUE;
 }
 // Symbol: ?GetClientSite@COleClientItem@@MEAAPEAUIOleClientSite@@XZ
-// TODO(clean-room): transcribed partially.  Retail returns the container's
-// IOleClientSite wrapper; OpenMFC does not yet model a client site object.
 extern "C" IOleClientSite* MS_ABI impl__GetClientSite_COleClientItem__MEAAPEAUIOleClientSite__XZ(
-        COleClientItem* pThis) {
-    if (!pThis) return nullptr;
-    // TODO(clean-room): return a real IOleClientSite when modeled.
-    return nullptr;
+        COleClientItem* item) {
+    return item ? &item->m_retailTail.m_xOleClientSite : nullptr;
+}
+IOleClientSite* COleClientItem::GetClientSite() {
+    return impl__GetClientSite_COleClientItem__MEAAPEAUIOleClientSite__XZ(this);
 }
 // Symbol: ?GetIconFromRegistry@COleClientItem@@QEBAPEAUHICON__@@XZ
 // Delegates to the static registry lookup using this item's class id.
@@ -1049,15 +1044,15 @@ extern "C" void MS_ABI impl__WriteItemFlat_COleClientItem__QEAAXAEAVCArchive___Z
 }
 // Symbol: ??0COleClientItem@@QEAA@PEAVCOleDocument@@@Z
 // COleClientItem::COleClientItem(COleDocument* pContainerDoc)
-extern "C" void* MS_ABI impl___0COleClientItem__QEAA_PEAVCOleDocument___Z(COleDocument* pContainerDoc) {
-    return new COleClientItem(pContainerDoc);
+extern "C" void* MS_ABI impl___0COleClientItem__QEAA_PEAVCOleDocument___Z(
+    void* storage, COleDocument* document) {
+    return new (storage) COleClientItem(document);
 }
 COleClientItem::COleClientItem(COleDocument* pContainerDoc)
     : m_pContainerDoc(pContainerDoc), m_lpObject(nullptr), m_lpLink(nullptr),
       m_lpInPlaceObject(nullptr), m_nStatus(OLE_EMPTY), m_nDrawAspect(DVASPECT_CONTENT),
       m_pControlSite(nullptr), m_lpFrame(nullptr), m_lpDocFrame(nullptr),
       m_bInPlaceActive(FALSE) {
-    memset(_oleclientitem_padding, 0, sizeof(_oleclientitem_padding));
     m_pDocument = pContainerDoc;
     GetClientItemState(this, true);
     if (pContainerDoc) AddDocumentItem(pContainerDoc, this);
@@ -1146,7 +1141,7 @@ void COleClientItem::Activate(LONG nVerb, CView* pView, HWND hwndParent, LPCRECT
         rect.bottom = itemRect.bottom;
         rectToUse = &rect;
     }
-    HRESULT hr = m_lpObject->DoVerb(nVerb, nullptr, nullptr, 0, parent, rectToUse);
+    const HRESULT hr = InvokeOleVerb(nVerb, pView, nullptr, parent, rectToUse);
     if (SUCCEEDED(hr)) {
         ClientItemState* state = GetClientItemState(this, true);
         if (state) state->activeVerb = nVerb;
@@ -1158,7 +1153,6 @@ void COleClientItem::Activate(LONG nVerb, CView* pView, HWND hwndParent, LPCRECT
             m_bInPlaceActive = TRUE;
         }
         m_nStatus = OLE_RUNNING;
-        OnActivate();
     }
 }
 void COleClientItem::Deactivate() {
@@ -1172,7 +1166,7 @@ int COleClientItem::DoVerb(LONG nVerb, CView* pView, MSG* lpMsg) {
     HWND parent = pView ? pView->GetSafeHwnd() : nullptr;
     CRect rect;
     OnGetItemPosition(rect);
-    HRESULT hr = m_lpObject->DoVerb(nVerb, lpMsg, nullptr, 0, parent, rect);
+    const HRESULT hr = InvokeOleVerb(nVerb, pView, lpMsg, parent, rect);
     if (FAILED(hr)) return static_cast<int>(hr);
     ClientItemState* state = GetClientItemState(this, true);
     if (state) state->activeVerb = nVerb;
@@ -1185,6 +1179,23 @@ int COleClientItem::DoVerb(LONG nVerb, CView* pView, MSG* lpMsg) {
     }
     m_nStatus = OLE_RUNNING;
     return 0;
+}
+HRESULT COleClientItem::InvokeOleVerb(LONG verb, CView* view, MSG* message, HWND parent, LPCRECT position) {
+    auto& tail = m_retailTail;
+    auto* previousView = std::exchange(tail.m_pView, view);
+    const auto previousStatus = m_nStatus;
+    const auto wasInPlaceActive = m_bInPlaceActive;
+    const bool hadFrame = tail.m_pInPlaceFrame != nullptr;
+    const bool hadDocumentFrame = tail.m_pInPlaceDoc != nullptr;
+    const HRESULT result = m_lpObject->DoVerb(verb, message, COleClientItem::GetClientSite(), 0, parent, position);
+    if (FAILED(result)) {
+        tail.m_pView = previousView;
+        if (!hadFrame) ReleaseFrameHook(tail.m_pInPlaceFrame);
+        if (!hadDocumentFrame) ReleaseFrameHook(tail.m_pInPlaceDoc);
+        m_nStatus = previousStatus;
+        m_bInPlaceActive = wasInPlaceActive;
+    }
+    return result;
 }
 BOOL COleClientItem::IsInPlaceActive() const {
     return m_bInPlaceActive;
@@ -1209,6 +1220,9 @@ void COleClientItem::Close(OLE_CLOSE dwCloseOption) {
         m_lpInPlaceObject->Release();
         m_lpInPlaceObject = nullptr;
     }
+    ReleaseFrameHook(m_retailTail.m_pInPlaceFrame);
+    ReleaseFrameHook(m_retailTail.m_pInPlaceDoc);
+    m_retailTail.m_pView = nullptr;
     m_bInPlaceActive = FALSE;
     m_nStatus = OLE_EMPTY;
 }
@@ -1663,9 +1677,9 @@ ASSERT_CLIENTITEM_TAIL(m_reserved_c4, 0xc4);
 ASSERT_CLIENTITEM_TAIL(m_ClassesAllowedInStorage, 0xc8);
 ASSERT_CLIENTITEM_TAIL(m_nClassesAllowedInStorage, 0xd0);
 ASSERT_CLIENTITEM_TAIL(m_reserved_d4, 0xd4);
-ASSERT_CLIENTITEM_TAIL(m_xOleClientSiteVftable, 0xd8);
-ASSERT_CLIENTITEM_TAIL(m_xAdviseSinkVftable, 0xe0);
-ASSERT_CLIENTITEM_TAIL(m_xOleIPSiteVftable, 0xe8);
+ASSERT_CLIENTITEM_TAIL(m_xOleClientSite, 0xd8);
+ASSERT_CLIENTITEM_TAIL(m_xAdviseSink, 0xe0);
+ASSERT_CLIENTITEM_TAIL(m_xOleIPSite, 0xe8);
 #undef ASSERT_CLIENTITEM_TAIL
 #endif
 
@@ -1736,10 +1750,8 @@ extern "C" void MS_ABI impl__GetItemStorageFlat_COleClientItem__QEAAXXZ(
 // Retail entry: RVA 0x2471f0 (mfc140u). Retail obtains an IOleLink source
 // moniker, or asks GetClientSite()->GetMoniker when the object is not linked;
 // it serializes the moniker and object's CLSID into an IStream and returns it
-// in a TYMED_ISTREAM medium. This body preserves that operation for linked
-// objects, but remains incomplete: GetClientSite still returns null, and
-// colliding base members retain their compact OpenMFC offsets. Added null
-// guards also avoid retail's unchecked dereferences.
+// in a TYMED_ISTREAM medium. The non-link case depends on the implementation
+// of GetMoniker on the client site.
 extern "C" int MS_ABI impl__GetLinkSourceData_COleClientItem__IEAAHPEAUtagSTGMEDIUM___Z(
         COleClientItem* pThis, STGMEDIUM* lpMedium) {
     if (!pThis || !lpMedium) return FALSE;
@@ -2103,21 +2115,32 @@ extern "C" void MS_ABI impl__OnGetClipRect_COleClientItem__MEAAXAEAVCRect___Z(
     }
     if (hWnd) ::GetClientRect(hWnd, static_cast<RECT*>(rClipRect));
 }
+void COleClientItem::OnGetClipRect(CRect& clip) {
+    impl__OnGetClipRect_COleClientItem__MEAAXAEAVCRect___Z(this, clip);
+}
 
 // Symbol: ?OnGetWindowContext@COleClientItem@@MEAAHPEAPEAVCFrameWnd@@0PEAUtagOIFI@@@Z
-// Retail entry RVA 0x248970 (mfc140u; ordinal-resolved). It rejects null frame
-// out-parameters with E_POINTER, gets top-level and parent frames from the
-// modeled m_pView, optionally fills frame info from the document template's
-// accelerator table, and returns TRUE. CDocTemplate accelerator state remains
-// unmodeled, so this stays a stub; it also avoids returning E_POINTER through
-// this BOOL-typed result, which would be nonzero to Boolean callers.
-extern "C" int MS_ABI impl__OnGetWindowContext_COleClientItem__MEAAHPEAPEAVCFrameWnd__0PEAUtagOIFI___Z(
-        COleClientItem* pThis, CFrameWnd** ppMainFrame, CFrameWnd** ppDocFrame,
-        void* lpFrameInfo) {
-    (void)pThis; (void)lpFrameInfo;
-    if (ppMainFrame) *ppMainFrame = nullptr;
-    if (ppDocFrame) *ppDocFrame = nullptr;
-    return FALSE;
+extern "C" BOOL MS_ABI impl__OnGetWindowContext_COleClientItem__MEAAHPEAPEAVCFrameWnd__0PEAUtagOIFI___Z(
+    COleClientItem* item, CFrameWnd** mainFrame, CFrameWnd** docFrame, OLEINPLACEFRAMEINFO* info) {
+    if (!mainFrame || !docFrame) return FALSE;
+    CWnd* view = item ? item->m_retailTail.m_pView : nullptr;
+    *mainFrame = view ? view->GetTopLevelFrame() : nullptr;
+    *docFrame = nullptr;
+    if (!*mainFrame) return FALSE;
+
+    auto* parent = view->GetParentFrame();
+    if (parent != *mainFrame) *docFrame = parent;
+    if (info) {
+        info->hwndFrame = (*mainFrame)->GetSafeHwnd();
+        info->fMDIApp = *docFrame != nullptr;
+        info->haccel = nullptr;
+        info->cAccelEntries = 0;
+    }
+    return TRUE;
+}
+BOOL COleClientItem::OnGetWindowContext(CFrameWnd** frame, CFrameWnd** document, OLEINPLACEFRAMEINFO* info) {
+    return impl__OnGetWindowContext_COleClientItem__MEAAHPEAPEAVCFrameWnd__0PEAUtagOIFI___Z(
+        this, frame, document, info);
 }
 
 // Symbol: ?OnInsertMenus@COleClientItem@@UEAAXPEAVCMenu@@PEAUtagOleMenuGroupWidths@@@Z
@@ -2329,6 +2352,9 @@ extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
         pThis->m_lpInPlaceObject->Release();
         pThis->m_lpInPlaceObject = nullptr;
     }
+    ReleaseFrameHook(pThis->m_retailTail.m_pInPlaceFrame);
+    ReleaseFrameHook(pThis->m_retailTail.m_pInPlaceDoc);
+    pThis->m_retailTail.m_pView = nullptr;
     pThis->m_bInPlaceActive = FALSE;
 }
 
@@ -2343,13 +2369,6 @@ extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
 // subobject offset and establish module state; some methods (for example
 // GetContainer and ContextSensitiveHelp) have no such prologue.
 //
-// OpenMFC now reserves raw pointer-sized storage at the same three offsets,
-// but it does not install compatible nested-interface vtables or expose an
-// interface map; GetClientSite also currently returns null. Given a valid
-// nested-interface pointer, the outer item address is recoverable by the
-// documented offset subtraction. Most callbacks still remain conservative
-// because their retail module-state prologue reads CCmdTarget state absent from
-// OpenMFC's CObject-derived CDocItem, and the raw slots are not active COM parts.
 // The legacy vftable addresses 0x329b80 and 0x329e20 and associated body RVAs
 // discussed below belong to mfc140.dll (ANSI twin), not mfc140u.dll.
 //=============================================================================
@@ -2357,9 +2376,7 @@ extern "C" void MS_ABI impl__Release_COleClientItem__UEAAXW4tagOLECLOSE___Z(
 // Symbol: ?CanInPlaceActivate@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x249d20 (mfc140u). After the module-state prologue it
 // dispatches CanActivate through vtable byte offset 0x128, returning S_OK when
-// true and S_FALSE otherwise. The owner offset is represented and the callback
-// is dispatched through its impl__ thunk; deviation: no retail module-state
-// switch is made, and this raw part has no installed interface vtable.
+// true and S_FALSE otherwise.
 extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
     if (!pThisItf) return E_UNEXPECTED;
@@ -2367,25 +2384,26 @@ extern "C" long MS_ABI impl__CanInPlaceActivate_XOleIPSite_COleClientItem__UEAAJ
     auto* item = reinterpret_cast<COleClientItem*>(
         const_cast<unsigned char*>(part) -
         offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
-    return impl__CanActivate_COleClientItem__MEAAHXZ(item) ? S_OK : S_FALSE;
+    openmfc::detail::CmdTargetModuleScope state(item->m_pModuleState);
+    return item->CanActivate() ? S_OK : S_FALSE;
 }
 
 // Symbol: ?ContextSensitiveHelp@XOleIPSite@COleClientItem@@UEAAJH@Z
-// COleClientItem::XOleIPSite::ContextSensitiveHelp(BOOL) — retail 0x248130.
+// COleClientItem::XOleIPSite::ContextSensitiveHelp(BOOL) — retail mfc140u 0x249cf0.
 // This one has no module-state prologue; the whole body is:
 //     COleFrameHook* pFrame = pThis->[item+0xa8];   // mov -0x40(%rcx),%rcx
 //     if (pFrame == NULL) return E_UNEXPECTED;      // 0x8000ffff
 //     return (pFrame + 0x80)->vftable[0x20](fEnterMode);
 //         // a tail jump into the frame hook's own embedded interface,
 //         // IOleWindow::ContextSensitiveHelp at slot 4
-// The outer item can be recovered from the represented +0xe8 part offset, and
-// its frame-hook pointer is named at +0xa8. This conservative result covers
-// the null-hook case; dispatch for a non-null hook is unavailable because no
-// compatible COleFrameHook interface part is installed.
 extern "C" long MS_ABI impl__ContextSensitiveHelp_XOleIPSite_COleClientItem__UEAAJH_Z(
-        void* pThisItf, int fEnterMode) {
-    (void)pThisItf; (void)fEnterMode;
-    return E_UNEXPECTED;   // retail: the [item+0xa8] == NULL path, 0x248139
+        void* part, BOOL entering) {
+    if (!part) return E_UNEXPECTED;
+    auto* item = reinterpret_cast<COleClientItem*>(static_cast<BYTE*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+    auto* hook = item->m_retailTail.m_pInPlaceFrame;
+    return hook ? hook->m_retailTail.m_xOleInPlaceFrame.ContextSensitiveHelp(entering)
+                : E_UNEXPECTED;
 }
 
 // Symbol: ?DeactivateAndUndo@XOleIPSite@COleClientItem@@UEAAJXZ
@@ -2477,33 +2495,57 @@ extern "C" long MS_ABI impl__GetWindow_XOleIPSite_COleClientItem__UEAAJPEAPEAUHW
 }
 
 // Symbol: ?GetWindowContext@XOleIPSite@COleClientItem@@UEAAJPEAPEAUIOleInPlaceFrame@@PEAPEAUIOleInPlaceUIWindow@@PEAUtagRECT@@2PEAUtagOIFI@@@Z
-// COleClientItem::XOleIPSite::GetWindowContext(IOleInPlaceFrame**,
-// IOleInPlaceUIWindow**, LPRECT lprcPosRect, LPRECT lprcClipRect,
-// LPOLEINPLACEFRAMEINFO) — retail 0x248270, after the module-state prologue:
-//     if (ppFrame == NULL || ppDoc == NULL) return E_POINTER;  // 0x248464
-//     *ppFrame = NULL; *ppDoc = NULL;                          // 0x2482df
-//     CRect rect(0,0,0,0);
-//     pThis->OnGetItemPosition(rect);      // vftable 0x0f0 (0x002820, `ret`)
-//     CopyRect(lprcPosRect, &rect);                            // 0x248330
-//     pThis->OnGetClipRect(rect);          // vftable 0x120 (0x244b70)
-//     CopyRect(lprcClipRect, &rect);                           // 0x248358
-//     pThis->OnGetWindowContext(&pMainFrame, &pDocFrame, lpFrameInfo);
-//                                          // vftable 0x148 (0x246dd0)
-//     ... then publishes the two frame windows' IOleInPlaceFrame /
-//     IOleInPlaceUIWindow interfaces through the COleFrameHook objects at
-//     item+0xa8 / item+0xb0, creating them if needed.
-// The owner, m_pView and frame-hook storage are now represented, but the nested
-// part and compatible COleFrameHook interface vtables are not installed. The
-// two interface out-parameters are nulled and E_UNEXPECTED reported so the
-// caller is not handed uninitialised pointers.
-extern "C" long MS_ABI impl__GetWindowContext_XOleIPSite_COleClientItem__UEAAJPEAPEAUIOleInPlaceFrame__PEAPEAUIOleInPlaceUIWindow__PEAUtagRECT__2PEAUtagOIFI___Z(
-        void* pThisItf, void** ppFrame, void** ppDoc, RECT* lprcPosRect,
-        RECT* lprcClipRect, void* lpFrameInfo) {
-    (void)pThisItf; (void)lprcPosRect; (void)lprcClipRect; (void)lpFrameInfo;
-    if (!ppFrame || !ppDoc) return E_POINTER;
-    *ppFrame = nullptr;
-    *ppDoc = nullptr;
-    return E_UNEXPECTED;
+extern "C" HRESULT MS_ABI impl__GetWindowContext_XOleIPSite_COleClientItem__UEAAJPEAPEAUIOleInPlaceFrame__PEAPEAUIOleInPlaceUIWindow__PEAUtagRECT__2PEAUtagOIFI___Z(
+    void* part, IOleInPlaceFrame** frame, IOleInPlaceUIWindow** document,
+    RECT* position, RECT* clip, OLEINPLACEFRAMEINFO* info) {
+    if (!part) return E_UNEXPECTED;
+    auto* site = static_cast<COleClientItem::XOleIPSite*>(part);
+    return site->COleClientItem::XOleIPSite::GetWindowContext(frame, document, position, clip, info);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::GetWindowContext(
+    IOleInPlaceFrame** frame, IOleInPlaceUIWindow** document, RECT* position,
+    RECT* clip, OLEINPLACEFRAMEINFO* info) {
+    if (frame) *frame = nullptr;
+    if (document) *document = nullptr;
+    if (!frame || !document || !position || !clip || !info) return E_POINTER;
+    auto* item = reinterpret_cast<COleClientItem*>(reinterpret_cast<BYTE*>(this) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
+
+    try {
+        openmfc::detail::CmdTargetModuleScope state(item->m_pModuleState);
+        CRect bounds(0, 0, 0, 0);
+        item->OnGetItemPosition(bounds);
+        *position = *static_cast<RECT*>(bounds);
+        item->OnGetClipRect(bounds);
+        *clip = *static_cast<RECT*>(bounds);
+
+        CFrameWnd* mainFrame = nullptr;
+        CFrameWnd* docFrame = nullptr;
+        if (!item->OnGetWindowContext(&mainFrame, &docFrame, info) || !mainFrame)
+            return E_UNEXPECTED;
+
+        auto& mainHook = item->m_retailTail.m_pInPlaceFrame;
+        auto& docHook = item->m_retailTail.m_pInPlaceDoc;
+        if (!mainHook) mainHook = new COleFrameHook(mainFrame, item);
+        if (docFrame && !docHook) docHook = new COleFrameHook(docFrame, item);
+        mainHook->m_retailTail.m_hAccelTable = info->haccel;
+
+        auto& framePart = mainHook->m_retailTail.m_xOleInPlaceFrame;
+        framePart.AddRef();
+        *frame = &framePart;
+        if (docFrame) {
+            auto& docPart = docHook->m_retailTail.m_xOleInPlaceFrame;
+            docPart.AddRef();
+            *document = &docPart;
+        }
+        return S_OK;
+    } catch (CException* error) {
+        if (error) error->Delete();
+        return E_UNEXPECTED;
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
 }
 
 // Symbol: ?OnClose@XAdviseSink@COleClientItem@@UEAAXXZ
@@ -2536,8 +2578,6 @@ extern "C" void MS_ABI impl__OnDataChange_XAdviseSink_COleClientItem__UEAAXPEAUt
 // Symbol: ?OnInPlaceActivate@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x2481b0 (mfc140.dll, ANSI twin; --u lookup unresolved).
 // It dispatches OnActivate at vtable byte offset 0x130 and then returns S_OK.
-// The owner offset is represented, but the interface part is not installed and
-// its retail module-state prologue has no compatible backing.
 extern "C" long MS_ABI impl__OnInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
     if (!pThisItf) return E_UNEXPECTED;
@@ -2545,15 +2585,14 @@ extern "C" long MS_ABI impl__OnInPlaceActivate_XOleIPSite_COleClientItem__UEAAJX
     auto* item = reinterpret_cast<COleClientItem*>(
         const_cast<unsigned char*>(part) -
         offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
-    impl__OnActivate_COleClientItem__UEAAXXZ(item);
+    openmfc::detail::CmdTargetModuleScope state(item->m_pModuleState);
+    item->OnActivate();
     return S_OK;
 }
 
 // Symbol: ?OnInPlaceDeactivate@XOleIPSite@COleClientItem@@UEAAJXZ
 // Retail entry: RVA 0x248590 (mfc140.dll, ANSI twin; --u lookup unresolved).
 // It dispatches OnDeactivate at vtable byte offset 0x140 and then returns S_OK.
-// The owner offset is represented, but the interface part is not installed and
-// its retail module-state prologue has no compatible backing.
 extern "C" long MS_ABI impl__OnInPlaceDeactivate_XOleIPSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
     if (!pThisItf) return E_UNEXPECTED;
@@ -2561,7 +2600,11 @@ extern "C" long MS_ABI impl__OnInPlaceDeactivate_XOleIPSite_COleClientItem__UEAA
     auto* item = reinterpret_cast<COleClientItem*>(
         const_cast<unsigned char*>(part) -
         offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleIPSiteVftable));
-    impl__OnDeactivate_COleClientItem__UEAAXXZ(item);
+    openmfc::detail::CmdTargetModuleScope state(item->m_pModuleState);
+    item->OnDeactivate();
+    ReleaseFrameHook(item->m_retailTail.m_pInPlaceFrame);
+    ReleaseFrameHook(item->m_retailTail.m_pInPlaceDoc);
+    item->m_retailTail.m_pView = nullptr;
     return S_OK;
 }
 
@@ -2773,4 +2816,139 @@ extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ(
         offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleClientSiteVftable));
     impl__OnShowItem_COleClientItem__MEAAXXZ(item);
     return S_OK;
+}
+
+namespace {
+template<size_t Offset>
+COleClientItem* ClientItemFromPart(void* part) {
+    return reinterpret_cast<COleClientItem*>(static_cast<BYTE*>(part) - Offset);
+}
+
+using ClientItemLayout = openmfc::detail::olecore::RetailCOleClientItemLayout;
+constexpr size_t clientSiteOffset = offsetof(ClientItemLayout, m_xOleClientSiteVftable);
+constexpr size_t adviseSinkOffset = offsetof(ClientItemLayout, m_xAdviseSinkVftable);
+constexpr size_t inPlaceSiteOffset = offsetof(ClientItemLayout, m_xOleIPSiteVftable);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleClientSite::QueryInterface(REFIID iid, void** result) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(
+        ClientItemFromPart<clientSiteOffset>(this), &iid, result);
+}
+ULONG STDMETHODCALLTYPE COleClientItem::XOleClientSite::AddRef() {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(ClientItemFromPart<clientSiteOffset>(this));
+}
+ULONG STDMETHODCALLTYPE COleClientItem::XOleClientSite::Release() {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(ClientItemFromPart<clientSiteOffset>(this));
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XAdviseSink::QueryInterface(REFIID iid, void** result) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(
+        ClientItemFromPart<adviseSinkOffset>(this), &iid, result);
+}
+ULONG STDMETHODCALLTYPE COleClientItem::XAdviseSink::AddRef() {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(ClientItemFromPart<adviseSinkOffset>(this));
+}
+ULONG STDMETHODCALLTYPE COleClientItem::XAdviseSink::Release() {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(ClientItemFromPart<adviseSinkOffset>(this));
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::QueryInterface(REFIID iid, void** result) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(
+        ClientItemFromPart<inPlaceSiteOffset>(this), &iid, result);
+}
+ULONG STDMETHODCALLTYPE COleClientItem::XOleIPSite::AddRef() {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(ClientItemFromPart<inPlaceSiteOffset>(this));
+}
+ULONG STDMETHODCALLTYPE COleClientItem::XOleIPSite::Release() {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(ClientItemFromPart<inPlaceSiteOffset>(this));
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleClientSite::GetContainer(IOleContainer** container) {
+    return impl__GetContainer_XOleClientSite_COleClientItem__UEAAJPEAPEAUIOleContainer___Z(this, container);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleClientSite::GetMoniker(DWORD assign, DWORD which, IMoniker** moniker) {
+    return impl__GetMoniker_XOleClientSite_COleClientItem__UEAAJKKPEAPEAUIMoniker___Z(this, assign, which, moniker);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleClientSite::OnShowWindow(BOOL show) {
+    return impl__OnShowWindow_XOleClientSite_COleClientItem__UEAAJH_Z(this, show);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleClientSite::RequestNewObjectLayout() {
+    return impl__RequestNewObjectLayout_XOleClientSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleClientSite::SaveObject() {
+    return impl__SaveObject_XOleClientSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleClientSite::ShowObject() {
+    return impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ(this);
+}
+
+void STDMETHODCALLTYPE COleClientItem::XAdviseSink::OnClose() {
+    impl__OnClose_XAdviseSink_COleClientItem__UEAAXXZ(this);
+}
+
+void STDMETHODCALLTYPE COleClientItem::XAdviseSink::OnDataChange(FORMATETC* format, STGMEDIUM* medium) {
+    impl__OnDataChange_XAdviseSink_COleClientItem__UEAAXPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(this, format, medium);
+}
+
+void STDMETHODCALLTYPE COleClientItem::XAdviseSink::OnRename(IMoniker* moniker) {
+    impl__OnRename_XAdviseSink_COleClientItem__UEAAXPEAUIMoniker___Z(this, moniker);
+}
+
+void STDMETHODCALLTYPE COleClientItem::XAdviseSink::OnSave() {
+    impl__OnSave_XAdviseSink_COleClientItem__UEAAXXZ(this);
+}
+
+void STDMETHODCALLTYPE COleClientItem::XAdviseSink::OnViewChange(DWORD aspect, LONG index) {
+    impl__OnViewChange_XAdviseSink_COleClientItem__UEAAXKJ_Z(this, aspect, index);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::CanInPlaceActivate() {
+    return impl__CanInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::ContextSensitiveHelp(BOOL entering) {
+    return impl__ContextSensitiveHelp_XOleIPSite_COleClientItem__UEAAJH_Z(this, entering);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::DeactivateAndUndo() {
+    return impl__DeactivateAndUndo_XOleIPSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::DiscardUndoState() {
+    return impl__DiscardUndoState_XOleIPSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::GetWindow(HWND* window) {
+    return impl__GetWindow_XOleIPSite_COleClientItem__UEAAJPEAPEAUHWND_____Z(this, window);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::OnInPlaceActivate() {
+    return impl__OnInPlaceActivate_XOleIPSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::OnInPlaceDeactivate() {
+    return impl__OnInPlaceDeactivate_XOleIPSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::OnPosRectChange(LPCRECT position) {
+    return impl__OnPosRectChange_XOleIPSite_COleClientItem__UEAAJPEBUtagRECT___Z(this, position);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::OnUIActivate() {
+    return impl__OnUIActivate_XOleIPSite_COleClientItem__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::OnUIDeactivate(BOOL undoable) {
+    return impl__OnUIDeactivate_XOleIPSite_COleClientItem__UEAAJH_Z(this, undoable);
+}
+
+HRESULT STDMETHODCALLTYPE COleClientItem::XOleIPSite::Scroll(SIZE extent) {
+    long long packedExtent;
+    std::memcpy(&packedExtent, &extent, sizeof(extent));
+    return impl__Scroll_XOleIPSite_COleClientItem__UEAAJUtagSIZE___Z(this, packedExtent);
 }

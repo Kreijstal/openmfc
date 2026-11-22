@@ -13,5 +13,6 @@ extern "C" CObject* MS_ABI impl__CreateObject_CDocItem__SAPEAVCObject__XZ() {
 extern "C" int MS_ABI impl__IsBlank_CDocItem__UEBAHXZ(const CDocItem* pThis) {
     return pThis == nullptr || pThis->m_pDocument == nullptr;
 }
-CDocItem::CDocItem() : m_pDocument(nullptr) { memset(_docitem_padding, 0, sizeof(_docitem_padding)); }
+static_assert(sizeof(CDocItem) == 0x48 && offsetof(CDocItem, m_pDocument) == 0x40);
+CDocItem::CDocItem() : m_pDocument(nullptr) {}
 CDocItem::~CDocItem() {}

@@ -29,6 +29,7 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_CHtmlControlSite
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleClientItem__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleClientItem; }
 // Symbol: ?GetInterfaceMap@COleClientItem@@MEBAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleClientItem__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleClientItem; }
+const AFX_INTERFACEMAP* COleClientItem::GetInterfaceMap() const { return &g_imap_COleClientItem; }
 // Symbol: ?GetThisInterfaceMap@COleControl@@KAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleControl__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleControl; }
 // Symbol: ?GetInterfaceMap@COleControl@@MEBAPEBUAFX_INTERFACEMAP@@XZ

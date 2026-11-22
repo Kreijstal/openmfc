@@ -16,7 +16,21 @@ const AFX_INTERFACEMAP g_imap_CHtmlControlSite = { gib_CHtmlControlSite, g_iface
 const AFX_INTERFACEMAP* AFXAPI gib_CMFCBaseAccessibleObject() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_CMFCBaseAccessibleObject = { gib_CMFCBaseAccessibleObject, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleClientItem() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_COleClientItem = { gib_COleClientItem, g_ifaceEnd };
+namespace {
+constexpr size_t itemTail = offsetof(COleClientItem, m_retailTail);
+constexpr size_t clientSite = itemTail + offsetof(COleClientItem::RetailTailStorage, m_xOleClientSite);
+constexpr size_t adviseSink = itemTail + offsetof(COleClientItem::RetailTailStorage, m_xAdviseSink);
+constexpr size_t inPlaceSite = itemTail + offsetof(COleClientItem::RetailTailStorage, m_xOleIPSite);
+static_assert(clientSite == 0xd8 && adviseSink == 0xe0 && inPlaceSite == 0xe8);
+const AFX_INTERFACEMAP_ENTRY clientItemInterfaces[] = {
+    { &IID_IOleClientSite, clientSite },
+    { &IID_IAdviseSink, adviseSink },
+    { &IID_IOleWindow, inPlaceSite },
+    { &IID_IOleInPlaceSite, inPlaceSite },
+    { nullptr, static_cast<size_t>(-1) }
+};
+}
+const AFX_INTERFACEMAP g_imap_COleClientItem = { gib_COleClientItem, clientItemInterfaces };
 const AFX_INTERFACEMAP* AFXAPI gib_COleControl() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleControl = { gib_COleControl, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleControlContainer() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }

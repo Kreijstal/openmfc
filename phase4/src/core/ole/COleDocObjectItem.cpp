@@ -785,11 +785,8 @@ extern "C" int MS_ABI impl__SupportsIPrint_COleDocObjectItem__IEAAHXZ(COleDocObj
 // UIActivate(FALSE), Show(FALSE) and Release, m_pIPrint is released unless it
 // is NULL or -1 and is then set to NULL; the new view is stored in
 // m_pActiveView, ActivateAndShow is called, and S_OK is returned.
-// Blocked: the +0x110 XOleDocumentSite slot is named but no compatible vtable
-// is installed there, and OpenMFC's GetClientSite thunk returns NULL. m_pView
-// and m_pActiveView are now modeled. E_FAIL is what retail itself returns when
-// it cannot obtain the client site; S_OK would claim an activation that did
-// not happen.
+// The base client item supplies its client site and in-place site. The
+// XOleDocumentSite slot at +0x110 still needs a vtable and view activation.
 extern "C" long MS_ABI impl__ActivateMe_XOleDocumentSite_COleDocObjectItem__UEAAJPEAUIOleDocumentView___Z(
         void* pThisSite, IOleDocumentView* pViewToActivate) {
     (void)pThisSite;
