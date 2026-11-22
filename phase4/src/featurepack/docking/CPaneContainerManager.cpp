@@ -9,6 +9,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/PaneContainerLayout.h"
+#include "detail/CPlexSupport.h"
 #include "detail/MultiPaneFrameSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/CRecentPaneContainerInfoSupport.h"
@@ -228,6 +229,14 @@ extern "C" void* MS_ABI impl__FindSubPaneContainer_CPaneContainer__QEAAPEAV1_PEB
 extern "C" void MS_ABI impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(
     void* pThis, void* pPane, int bLeftPane);
 
+extern "C" void MS_ABI impl__FreeDataChain_CPlex__QEAAXXZ(CPlex*);
+extern "C" void MS_ABI impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(void*, CArchive&);
+extern "C" CDockablePane* MS_ABI impl__LoadTabbedPane_CPaneContainer__IEAAPEAVCDockablePane__AEAVCArchive__AEAV__CList_II___Z(
+    CPaneContainer*, CArchive&, CList<UINT, UINT>&);
+extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__PEAVCDockablePane___Z(
+    CPaneContainer*, CArchive&, CDockablePane*);
+extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(CDockingManager*, UINT, int);
+
 extern "C" void MS_ABI impl__NotifyAboutRelease_CPaneDivider__UEAAXXZ(void* pThis);
 
 extern "C" void MS_ABI impl__CheckPaneDividerVisibility_CPaneContainer__QEAAXXZ(void* pThis);
@@ -338,6 +347,12 @@ void SetLeaf(S_CPaneContainer& node, bool first, void* pane) {
     }
 }
 
+void ClearSiblingIds(S_CListUINT& ids) {
+    impl__FreeDataChain_CPlex__QEAAXXZ(static_cast<CPlex*>(ids.m_pBlocks));
+    ids = {};
+    ids.m_nBlockSize = 10;
+}
+
 void DestroySplitDivider(S_CPaneContainer& node) {
     auto* divider = static_cast<CPaneDivider*>(node.m_pSlider);
     if (!divider) return;
@@ -385,8 +400,14 @@ void openmfc::detail::CleanUpPaneContainer(S_CPaneContainer& container) {
     if (divider && !divider->m_dividerData.bDefaultDivider) DestroySplitDivider(container);
 }
 
+void openmfc::detail::SetContainerLeaf(S_CPaneContainer& node, bool leading, void* pane) {
+    SetLeaf(node, leading, pane);
+}
+
 void openmfc::detail::DestroyPaneContainerState(S_CPaneContainer& container) {
     CleanUpPaneContainer(container);
+    ClearSiblingIds(container.m_lstLeftSiblingIDs);
+    ClearSiblingIds(container.m_lstRightSiblingIDs);
     container.m_bReleased = TRUE;
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     for (void* pane : {container.m_pLeftPane, container.m_pRightPane}) {
@@ -2697,56 +2718,275 @@ extern "C" void MS_ABI impl__ResizePaneContainers_CPaneContainerManager__UEAAXVC
     impl__Resize_CPaneContainer__UEAAXVCRect__AEAPEAXH_Z(pRoot, &rectCopy, phdwp, FALSE);
 }
 
+namespace {
+
+constexpr unsigned maxArchiveDepth = 128;
+constexpr unsigned maxArchiveNodes = 16384;
+
+class ArchivedSiblingIds : public CList<UINT, UINT> {
+public:
+    void TransferTo(S_CListUINT& ids) {
+        ClearSiblingIds(ids);
+        ids.m_pNodeHead = std::exchange(m_pNodeHead, nullptr);
+        ids.m_pNodeTail = std::exchange(m_pNodeTail, nullptr);
+        ids.m_nCount = std::exchange(m_nCount, 0);
+        ids.m_pNodeFree = std::exchange(m_pNodeFree, nullptr);
+        ids.m_pBlocks = std::exchange(m_pBlocks, nullptr);
+        ids.m_nBlockSize = m_nBlockSize;
+    }
+};
+
+struct ArchivedLeaf {
+    int id = 0;
+    ArchivedSiblingIds siblingIds;
+    std::unique_ptr<CDockablePane> tabbed;
+    CDockablePane* pane = nullptr;
+};
+
+struct ArchivedContainer {
+    ArchivedLeaf leaves[2];
+    int dividerId = 0;
+    std::unique_ptr<CPaneDivider> divider;
+    std::unique_ptr<ArchivedContainer> children[2];
+    std::unique_ptr<S_CPaneContainer> storage;
+};
+
+int FirstStoredTabId(CDockablePane* pane) {
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return 0;
+    auto* tabs = static_cast<CBaseTabbedPane*>(pane)->GetTabs();
+    const auto* state = openmfc::detail::mfccore::FindTabCtrlState(tabs);
+    if (!state) return 0;
+    for (const auto& tab : state->tabs) {
+        const HWND hwnd = tab.window ? tab.window->m_hWnd : nullptr;
+        if (!hwnd || tab.temporary) continue;
+        const int id = ::GetDlgCtrlID(hwnd);
+        if (id && id != -1) return id;
+    }
+    return 0;
+}
+
+void WriteContainer(const S_CPaneContainer& node, CArchive& ar, unsigned depth, unsigned& remaining) {
+    if (depth == maxArchiveDepth || !remaining)
+        AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    --remaining;
+    for (auto* leaf : {node.m_pLeftPane, node.m_pRightPane}) {
+        auto* pane = static_cast<CDockablePane*>(leaf);
+        const int id = pane && pane->m_hWnd ? ::GetDlgCtrlID(pane->m_hWnd) : 0;
+        if (id == -1 && FirstStoredTabId(pane))
+            impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__PEAVCDockablePane___Z(nullptr, ar, pane);
+        else
+            ar << (id == -1 ? 0 : id);
+    }
+    auto* divider = static_cast<CPaneDivider*>(node.m_pSlider);
+    const int dividerId = divider && divider->m_hWnd && !divider->m_dividerData.bDefaultDivider
+        ? ::GetDlgCtrlID(divider->m_hWnd) : 0;
+    ar << dividerId;
+    if (dividerId) impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(divider, ar);
+    for (auto* child : {node.m_pLeftPaneContainer, node.m_pRightPaneContainer}) {
+        ar << int(child != nullptr);
+        if (child) WriteContainer(*child, ar, depth + 1, remaining);
+    }
+}
+
+void ReadContainer(ArchivedContainer& draft, S_CPaneContainer& context, CArchive& ar,
+                   unsigned depth, unsigned& remaining) {
+    if (depth == maxArchiveDepth || !remaining)
+        AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    --remaining;
+    for (auto& leaf : draft.leaves) {
+        ar >> leaf.id;
+        if (leaf.id == -1) {
+            leaf.tabbed.reset(
+                impl__LoadTabbedPane_CPaneContainer__IEAAPEAVCDockablePane__AEAVCArchive__AEAV__CList_II___Z(
+                    reinterpret_cast<CPaneContainer*>(&context), ar, leaf.siblingIds));
+            leaf.pane = leaf.tabbed.get();
+        }
+    }
+    ar >> draft.dividerId;
+    if (draft.dividerId) {
+        auto* host = PaneContainerDockSite(context.m_pContainerManager);
+        if (!host || !host->m_hWnd) AfxThrowInvalidArgException();
+        auto* type = static_cast<CRuntimeClass*>(impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA);
+        if (!type) type = RUNTIME_CLASS(CPaneDivider);
+        std::unique_ptr<CObject> object(type->CreateObject());
+        if (!object || !object->IsKindOf(RUNTIME_CLASS(CPaneDivider)))
+            AfxThrowArchiveException(CArchiveException::badClass, nullptr);
+        draft.divider.reset(static_cast<CPaneDivider*>(object.release()));
+        LoadSplitPaneDivider(*draft.divider, ar, *host, static_cast<UINT>(draft.dividerId));
+    }
+    for (unsigned side = 0; side < 2; ++side) {
+        int present = 0;
+        ar >> present;
+        if (!present) continue;
+        if (present != TRUE || draft.leaves[side].id)
+            AfxThrowArchiveException(CArchiveException::badFormat, nullptr);
+        auto& child = draft.children[side];
+        child = std::make_unique<ArchivedContainer>();
+        child->storage = std::make_unique<S_CPaneContainer>();
+        ReadContainer(*child, context, ar, depth + 1, remaining);
+    }
+}
+
+void IndexLeaves(ArchivedContainer& draft, std::unordered_map<int, ArchivedLeaf*>& panes,
+                 std::unordered_map<int, CDockablePane*>& groups) {
+    for (auto& leaf : draft.leaves) {
+        if (leaf.id == -1) {
+            auto position = leaf.siblingIds.GetHeadPosition();
+            while (position != nullptr)
+                groups.emplace(static_cast<int>(leaf.siblingIds.GetNext(position)), leaf.tabbed.get());
+        } else if (leaf.id) {
+            if (!panes.emplace(leaf.id, &leaf).second)
+                AfxThrowArchiveException(CArchiveException::badFormat, nullptr);
+        }
+    }
+    for (auto& child : draft.children)
+        if (child) IndexLeaves(*child, panes, groups);
+}
+
+void CollectEmptyArchivedGroups(const S_CPaneContainer& node, std::vector<HWND>& empty) {
+    const void* panes[] = {node.m_pLeftPane, node.m_pRightPane};
+    const S_CListUINT* ids[] = {&node.m_lstLeftSiblingIDs, &node.m_lstRightSiblingIDs};
+    for (unsigned side = 0; side < 2; ++side) {
+        const auto* pane = static_cast<const CDockablePane*>(panes[side]);
+        if (!ids[side]->m_nCount || !pane || !pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) continue;
+        auto* tabs = static_cast<const CBaseTabbedPane*>(pane)->GetTabs();
+        if (tabs && !tabs->GetTabsCount()) empty.push_back(pane->m_hWnd);
+    }
+    for (auto* child : {node.m_pLeftPaneContainer, node.m_pRightPaneContainer})
+        if (child) CollectEmptyArchivedGroups(*child, empty);
+}
+
+void InstallContainer(S_CPaneContainer& node, ArchivedContainer& draft) {
+    node.m_nField44 = draft.leaves[0].id;
+    node.m_nField48 = draft.leaves[1].id;
+    node.m_nField4C = draft.dividerId;
+    node.m_pSlider = draft.divider.get();
+    node.m_nPercent = 50;
+    node.m_bRestoreDividerPosition = draft.divider != nullptr;
+    node.m_nField60 = draft.divider ? draft.divider->m_dividerData.dwDividerStyle : 0;
+    node.m_bDividerHorz = (node.m_nField60 & kSliderStyleHorz) != 0;
+    if (draft.divider) {
+        if (node.m_pContainerManager) {
+            std::lock_guard<std::mutex> lock(g_wave2Mutex);
+            SliderList(node.m_pContainerManager).push_back(draft.divider.get());
+            draft.divider->m_dividerData.pContainerManager = node.m_pContainerManager;
+        }
+        draft.divider.release();
+    }
+    S_CListUINT* siblingLists[] = {&node.m_lstLeftSiblingIDs, &node.m_lstRightSiblingIDs};
+    S_CPaneContainer** links[] = {&node.m_pLeftPaneContainer, &node.m_pRightPaneContainer};
+    for (unsigned side = 0; side < 2; ++side) {
+        auto& leaf = draft.leaves[side];
+        leaf.siblingIds.TransferTo(*siblingLists[side]);
+        SetLeaf(node, side == 0, leaf.pane);
+        leaf.tabbed.release();
+        auto& child = draft.children[side];
+        if (!child) {
+            *links[side] = nullptr;
+            continue;
+        }
+        auto* storage = child->storage.get();
+        storage->m_pContainerManager = node.m_pContainerManager;
+        storage->m_pParentContainer = &node;
+        {
+            std::lock_guard<std::mutex> lock(g_wave2Mutex);
+            OwnedSplitNodes().insert(storage);
+        }
+        *links[side] = child->storage.release();
+        InstallContainer(*storage, *child);
+    }
+}
+
+void ReplaceContainer(S_CPaneContainer& node, ArchivedContainer& draft) {
+    std::vector<HWND> emptyGroups;
+    CollectEmptyArchivedGroups(node, emptyGroups);
+    CleanUpPaneContainer(node);
+    InstallContainer(node, draft);
+    for (HWND hwnd : emptyGroups) if (::IsWindow(hwnd)) ::DestroyWindow(hwnd);
+}
+
+}
+
+void openmfc::detail::SerializePaneContainer(S_CPaneContainer& node, CArchive& ar) {
+    unsigned remaining = maxArchiveNodes;
+    if (ar.IsStoring()) {
+        WriteContainer(node, ar, 0, remaining);
+        return;
+    }
+    ArchivedContainer draft;
+    ReadContainer(draft, node, ar, 0, remaining);
+    ReplaceContainer(node, draft);
+}
+
 // Symbol: ?Serialize@CPaneContainerManager@@UEAAXAEAVCArchive@@@Z
-// STUB. Retail entry RVA 0xa9f40 (mfc140.dll). (An earlier revision of this
-// comment cited "310 instructions" -- the print-until-next-export count -- and
-// named a CPaneContainer::SetUpByID dependency that does not appear in the body.)
-// The two halves, split on `test $1,ar.m_nMode` at 0xa9f64 -- MFC spells
-// CArchive::store as 0 and load as 1, so the FALL-THROUGH is the storing path:
-//
-//   store (0xa9f6e):
-//       m_pRootContainer->ReleaseEmptyPaneContainer();      // 0xa4e90
-//       m_pRootContainer->Serialize(ar);                    // vtable +0x10
-//       ar << m_lstControlBars.GetCount();                  // inlined buffer write
-//       for (each o in m_lstControlBars) {
-//           int nID = ((CWnd*)o)->GetDlgCtrlID();           // 0x2a78b0
-//           if (nID != -1) ar << nID;
-//           else {
-//               CBaseTabbedPane* t = DYNAMIC_DOWNCAST(CBaseTabbedPane, o); // 0x1802db168
-//               CWnd* w = t->{vtable +0x7a8}(NULL, 0);
-//               if (w != NULL) { ar << (int)-1; ar << w->GetDlgCtrlID(); }
-//           }
-//       }
-//   load (0xaa0c3):
-//       m_pRootContainer->Serialize(ar);                    // vtable +0x10
-//       CWnd* w;
-//       if (m_pDefaultSlider != NULL)                                  // +0x88
-//           w = m_pDefaultSlider->GetDockSiteFrameWnd();               // vtable +0x348
-//       else {
-//           // 0xaa0f7: not a CPaneFrameWnd -> throw, there is no fallback
-//           if (!m_pDockSite->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))) throw;
-//           w = CWnd::FromHandlePermanent(m_pDockSite->{+0x130});      // 0x2891d0
-//       }
-//       CDockingManager* pMgr = afxGlobalUtils.GetDockingManager(w);   // 0x6ccc0
-//       if (pMgr == NULL) throw;    // both bail-outs land on 0xaa288, which
-//                                   // allocates a 0x20-byte exception object and
-//                                   // hands it to _CxxThrowException
-//       int nCount; ar >> nCount;
-//       for (nCount times) { int nID; ar >> nID; if (nID != -1) pMgr->{vt +0x58}(nID, TRUE); ... }
-//
-// Left a stub. Retail Serialize (entry RVA 0xa9f40, mfc140.dll) reads
-// CArchive::m_nMode at +0x20 and writes through m_lpBufCur / m_lpBufMax at
-// +0x38 / +0x40, with inlined bounds checks against Flush and FillBuffer. The
-// current include/openmfc/afx.h CArchive shadow places those fields at +0x10,
-// +0x20 and +0x28 respectively, so accessing them here would use the wrong
-// layout. Both halves also first call ?Serialize@CPaneContainer@@, whose body
-// in docking/CPaneContainer.cpp is currently empty; the stream would be
-// truncated on the first container. A half-written dock-state stream is worse
-// than none, because it would be read back.
 extern "C" void MS_ABI impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(
-    void* pThis, CArchive& ar) {
-    (void)pThis; (void)ar;
-    // STUB: CPaneContainer::Serialize is unavailable; an incomplete dock-state stream is unsafe.
+    void* manager, CArchive& ar) {
+    auto* root = Root(manager);
+    if (!root) return;
+    unsigned remaining = maxArchiveNodes;
+    if (ar.IsStoring()) {
+        std::vector<std::pair<int, int>> ordered;
+        for (auto* pane : ContainerPanes(manager)) {
+            if (!pane || !pane->m_hWnd) continue;
+            const int id = ::GetDlgCtrlID(pane->m_hWnd);
+            if (id == -1) {
+                const int sibling = FirstStoredTabId(pane);
+                if (sibling) ordered.emplace_back(id, sibling);
+            } else if (id) {
+                ordered.emplace_back(id, 0);
+            }
+        }
+        if (ordered.size() > maxArchiveNodes * 2)
+            AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+        WriteContainer(*root, ar, 0, remaining);
+        ar << static_cast<int>(ordered.size());
+        for (const auto& [id, sibling] : ordered) {
+            ar << id;
+            if (id == -1) ar << sibling;
+        }
+        return;
+    }
+
+    ArchivedContainer draft;
+    ReadContainer(draft, *root, ar, 0, remaining);
+    std::unordered_map<int, ArchivedLeaf*> panes;
+    std::unordered_map<int, CDockablePane*> groups;
+    IndexLeaves(draft, panes, groups);
+
+    auto* host = PaneContainerDockSite(manager);
+    CGlobalUtils utils;
+    auto* docking = utils.GetDockingManager(host);
+    if (!docking && host) docking = utils.GetDockingManager(host->GetParentFrame());
+    if (!docking) AfxThrowArchiveException(CArchiveException::generic, nullptr);
+    int count = 0;
+    ar >> count;
+    if (count < 0 || count > int(maxArchiveNodes * 2))
+        AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    PaneState ordered;
+    for (int index = 0; index < count; ++index) {
+        int id = 0;
+        ar >> id;
+        if (id == -1) {
+            ar >> id;
+            const auto found = groups.find(id);
+            if (found != groups.end()) AddUniquePane(ordered, found->second);
+        } else if (const auto found = panes.find(id); found != panes.end()) {
+            auto* pane = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(docking, id, TRUE);
+            if (pane && pane->IsKindOf(RUNTIME_CLASS(CDockablePane))) {
+                found->second->pane = static_cast<CDockablePane*>(pane);
+                AddUniquePane(ordered, pane);
+            }
+        }
+    }
+
+    auto* divider = Field<CPaneDivider*>(manager, kOffDefaultSlider);
+    PaneState dividerOrder;
+    if (divider) dividerOrder = ordered;
+    ForgetManagerReservations(manager);
+    ReplaceContainer(*root, draft);
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    if (divider) g_dividerPanes[divider] = std::move(dividerOrder);
+    g_containerManagerPanes[manager] = std::move(ordered);
 }
 
 // Symbol: ?SetDefaultPaneDividerForPanes@CPaneContainerManager@@QEAAXPEAVCPaneDivider@@@Z

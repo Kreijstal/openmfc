@@ -302,7 +302,7 @@ extern "C" void* MS_ABI impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__
         p->m_nField4C = -1;
         p->m_nRefCount = 0;
         p->m_bDividerHorz = 0;
-        p->m_nField58 = 0;
+        p->m_bRestoreDividerPosition = FALSE;
         p->m_bReleased = 0;
         p->m_nField60 = 0;
         ::SetRectEmpty(&p->m_rect64);
@@ -2019,7 +2019,17 @@ void ResizeContainer(S_CPaneContainer& node, const RECT& bounds, void** hdwp, UI
         const int available = span - thickness;
         int low, high;
         SplitLimits(node, available, low, high);
-        const int extent = (std::clamp)(::MulDiv(available, node.m_nPercent, 100), low, high);
+        int requested = ::MulDiv(available, node.m_nPercent, 100);
+        if (node.m_bRestoreDividerPosition && divider && available > 0) {
+            RECT stored{};
+            if (::GetWindowRect(divider->m_hWnd, &stored)) {
+                ::MapWindowPoints(nullptr, ::GetParent(divider->m_hWnd), reinterpret_cast<POINT*>(&stored), 2);
+                requested = horizontal ? stored.top - bounds.top : stored.left - bounds.left;
+                node.m_nPercent = ::MulDiv((std::clamp)(requested, low, high), 100, available);
+            }
+            node.m_bRestoreDividerPosition = FALSE;
+        }
+        const int extent = (std::clamp)(requested, low, high);
         RECT sash = bounds;
         if (horizontal) {
             left.bottom = sash.top = bounds.top + extent;
@@ -2253,67 +2263,10 @@ extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__P
     impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z(group, archive);
 }
 
-// STUB. Retail ?Serialize@CPaneContainer@@UEAAXAEAVCArchive@@@Z, entry RVA
-// 0xa7290 (mfc140.dll).  Every `ar << int` / `ar >> int` below is the inline
-// CArchive operator: the mode bit `test %r15b,0x20(ar)` (r15b == 1, wrong mode
-// -> AfxThrowArchiveException 0x1d15a0), m_lpBufCur at CArchive +0x38 against
-// m_lpBufMax at +0x40, topped up by CArchive::Flush 0x1cfb90 (store) or
-// CArchive::FillBuffer 0x1cfc70 (load).  Transcribed from that body:
-//
-//   if (ar.IsStoring()) {                          // bit clear at 0xa72a6
-//       // left pane (0xa72b0..0xa7324), then the same for m_pRightPane:
-//       if (m_pLeftPane == NULL) ar << 0;
-//       else {
-//           int nID = m_pLeftPane->GetDlgCtrlID();          // CWnd, 0x2a78b0
-//           if (nID == -1) SaveTabbedPane(ar, m_pLeftPane); // direct call 0xa78d0
-//           else ar << nID;
-//       }
-//       if (m_pSlider == NULL) ar << 0;                     // 0xa73f1
-//       else { ar << m_pSlider->GetDlgCtrlID(); m_pSlider-><vftable byte 0x10>(ar); }
-//       ar << (m_pLeftPaneContainer != NULL);               // setne at 0xa7446
-//       if (m_pLeftPaneContainer) m_pLeftPaneContainer-><vftable byte 0x10>(ar);
-//       ar << (m_pRightPaneContainer != NULL);              // setne at 0xa7494
-//       if (m_pRightPaneContainer) m_pRightPaneContainer-><vftable byte 0x10>(ar);
-//   } else {                                       // 0xa74bf
-//       ar >> m_nField44;                                   // +0x44
-//       if (m_nField44 == -1) m_pLeftPane = LoadTabbedPane(ar, m_lstLeftSiblingIDs);
-//       ar >> m_nField48;                                   // +0x48
-//       if (m_nField48 == -1) m_pRightPane = LoadTabbedPane(ar, m_lstRightSiblingIDs);
-//       ar >> m_nField4C;                                   // +0x4c: divider id
-//       if (m_nField4C != 0) {                              // 0xa7594
-//           m_pSlider = DYNAMIC_DOWNCAST(CPaneDivider,
-//               CPaneDivider::m_pSliderRTC->CreateObject()); // 0x3aab10, 0x233380,
-//                                                            // IsKindOf vs 0x2f4b58
-//           m_pSlider->Init(FALSE, m_pContainerManager->m_pDockSite); // 0xab720,
-//                                                            // no NULL test
-//           m_pSlider-><vftable byte 0x10>(ar);              // Serialize
-//           m_pSlider-><+0x208> = m_pContainerManager;       // 0xa75f5
-//           m_pContainerManager-><+0x40 list>.AddTail(m_pSlider); // 0x230490
-//       }
-//       int bLeft; ar >> bLeft;                              // read at 0xa7638
-//       CRuntimeClass* pRTC = m_pContainerManager->m_pContainerRTC; // +0x80, 0xa7645
-//                                        // loaded once, reused for bRight
-//       if (bLeft) {
-//           if (pRTC == NULL)
-//               m_pLeftPaneContainer = new CPaneContainer(m_pContainerManager,
-//                                                         NULL, NULL, NULL); // 0xf8
-//           else {
-//               m_pLeftPaneContainer = pRTC->CreateObject();
-//               m_pLeftPaneContainer->m_pContainerManager = m_pContainerManager;
-//           }
-//           m_pLeftPaneContainer-><vftable byte 0x10>(ar);   // Serialize
-//           m_pLeftPaneContainer->m_pParentContainer = this;
-//       }
-//       ... the same for bRight / m_pRightPaneContainer (0xa76bb..0xa7758) ...
-//   }
-//
-// Loading must register recreated children, dividers and pane membership
-// with the manager once the complete tree has been read.
 // Symbol: ?Serialize@CPaneContainer@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CPaneContainer__UEAAXAEAVCArchive___Z(
-    CPaneContainer* pThis, CArchive& archive) {
-    (void)pThis;
-    (void)archive;
+    CPaneContainer* container, CArchive& archive) {
+    if (container) openmfc::detail::SerializePaneContainer(*PC(container), archive);
 }
 
 // Decoded from retail ?SetPane@CPaneContainer@@QEAAXPEAVCDockablePane@@H@Z,
@@ -2399,14 +2352,14 @@ extern "C" void MS_ABI impl__SetPaneContainerManager_CPaneContainer__IEAAXPEAVCP
 extern "C" int MS_ABI impl__SetUpByID_CPaneContainer__QEAAHIPEAVCDockablePane___Z(
     void* pThis, unsigned int nID, void* pPane) {
     S_CPaneContainer* p = PC(pThis);
-    if (p == nullptr) return 0;
+    if (!p || !nID || nID == UINT(-1)) return FALSE;
     if (static_cast<unsigned int>(p->m_nField44) == nID) {
-        p->m_pLeftPane = pPane;
+        openmfc::detail::SetContainerLeaf(*p, true, pPane);
         return 1;
     }
     for (;;) {
         if (static_cast<unsigned int>(p->m_nField48) == nID) {
-            p->m_pRightPane = pPane;
+            openmfc::detail::SetContainerLeaf(*p, false, pPane);
             return 1;
         }
         if (p->m_pLeftPaneContainer != nullptr &&
@@ -2415,9 +2368,9 @@ extern "C" int MS_ABI impl__SetUpByID_CPaneContainer__QEAAHIPEAVCDockablePane___
             return 1;
         }
         p = p->m_pRightPaneContainer;
-        if (p == nullptr) return 0;
+        if (!p || !nID || nID == UINT(-1)) return FALSE;
         if (static_cast<unsigned int>(p->m_nField44) == nID) {
-            p->m_pLeftPane = pPane;
+            openmfc::detail::SetContainerLeaf(*p, true, pPane);
             return 1;
         }
     }

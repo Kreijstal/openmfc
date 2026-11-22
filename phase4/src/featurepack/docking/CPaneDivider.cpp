@@ -1507,11 +1507,8 @@ extern "C" void MS_ABI impl__RepositionPanes_CPaneDivider__UEAAXAEAVCRect__AEAPE
 // and `>>` cannot fire once the IsStoring branch has been taken; they are not
 // reproduced. A short read of one of the ints is turned into the same
 // endOfFile exception CArchive::FillBuffer raises in retail.)
-// ?Serialize@CBasePane@@ (CBasePane.cpp:1436) and
-// ?Serialize@CPaneContainerManager@@ (CPaneContainerManager.cpp:2086) are both
-// placeholders (empty bodies).
-extern "C" void MS_ABI impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(void* pThis, CArchive& ar) {
-    if (pThis == nullptr) return;   // deviation: retail has no NULL check
+namespace {
+void SerializeDivider(void* pThis, CArchive& ar, UINT splitId) {
     impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(AsBasePane(pThis), ar);
     RECT rect = {0, 0, 0, 0};
     if (ar.IsStoring()) {
@@ -1549,6 +1546,8 @@ extern "C" void MS_ABI impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(void*
         s.bDefaultDivider = read4();
         s.nMinOffset = read4();
         s.nMaxOffset = read4();
+        if (splitId && (s.bDefaultDivider || s.nID != splitId))
+            AfxThrowArchiveException(CArchiveException::badFormat, nullptr);
         if (bVisible) s.dwDividerStyle |= WS_VISIBLE;
         else          s.dwDividerStyle &= ~static_cast<DWORD>(WS_VISIBLE);
         WithState(pThis, [&](DividerState& st) {
@@ -1560,13 +1559,26 @@ extern "C" void MS_ABI impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(void*
             st.nMinOffset = s.nMinOffset;
             st.nMaxOffset = s.nMaxOffset;
         });
-        impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(
+        const BOOL created = impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(
             pThis, 0, s.dwDividerStyle, rect, s.pParentWndForSerialize, s.nID, nullptr);
+        if (splitId && !created)
+            AfxThrowArchiveException(CArchiveException::generic, nullptr);
     }
     const DividerState s = LoadState(pThis);
     if (s.pContainerManager != nullptr && s.bDefaultDivider) {
         impl__Serialize_CPaneContainerManager__UEAAXAEAVCArchive___Z(s.pContainerManager, ar);
     }
+}
+
+} // namespace
+
+extern "C" void MS_ABI impl__Serialize_CPaneDivider__UEAAXAEAVCArchive___Z(void* pThis, CArchive& ar) {
+    if (pThis) SerializeDivider(pThis, ar, 0);
+}
+
+void openmfc::detail::LoadSplitPaneDivider(CPaneDivider& divider, CArchive& archive, CWnd& parent, UINT id) {
+    impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(&divider, FALSE, &parent);
+    SerializeDivider(&divider, archive, id);
 }
 
 // Symbol: ?ShowWindow@CPaneDivider@@QEAAXH@Z

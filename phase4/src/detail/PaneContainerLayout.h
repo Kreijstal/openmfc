@@ -43,7 +43,7 @@ struct S_CPaneContainer {
     int    m_nField4C;                         // 0x4c ctor stores -1
     int    m_nRefCount;                        // 0x50 AddRef/Release
     int    m_bDividerHorz;                     // 0x54 cached CPaneDivider orientation
-    int    m_nField58;                         // 0x58
+    BOOL   m_bRestoreDividerPosition;           // 0x58 local restore state
     int    m_bReleased;                        // 0x5c FreeReleasedPaneContainer sets 1
     int    m_nField60;                         // 0x60
     RECT   m_rect64;                           // 0x64 ctor ::SetRectEmpty's it
@@ -67,7 +67,7 @@ static_assert(offsetof(S_CPaneContainer, m_nField48) == 0x48, "CPaneContainer fi
 static_assert(offsetof(S_CPaneContainer, m_nField4C) == 0x4c, "CPaneContainer field 0x4c");
 static_assert(offsetof(S_CPaneContainer, m_nRefCount) == 0x50, "CPaneContainer m_nRefCount");
 static_assert(offsetof(S_CPaneContainer, m_bDividerHorz) == 0x54, "CPaneContainer m_bDividerHorz");
-static_assert(offsetof(S_CPaneContainer, m_nField58) == 0x58, "CPaneContainer field 0x58");
+static_assert(offsetof(S_CPaneContainer, m_bRestoreDividerPosition) == 0x58, "CPaneContainer field 0x58");
 static_assert(offsetof(S_CPaneContainer, m_bReleased) == 0x5c, "CPaneContainer m_bReleased");
 static_assert(offsetof(S_CPaneContainer, m_nField60) == 0x60, "CPaneContainer field 0x60");
 static_assert(offsetof(S_CPaneContainer, m_rect64) == 0x64, "CPaneContainer m_rect64");
@@ -91,6 +91,9 @@ void ForgetDividerPane(CPane& pane);
 void TransferDividerPane(CPane& previous, CPane& replacement);
 std::vector<CDockablePane*> ContainerPanes(const void* manager);
 CWnd* PaneContainerDockSite(const void* manager);
+void SerializePaneContainer(S_CPaneContainer& container, CArchive& archive);
+void LoadSplitPaneDivider(CPaneDivider& divider, CArchive& archive, CWnd& parent, UINT id);
+void SetContainerLeaf(S_CPaneContainer& node, bool leading, void* pane);
 bool ContainerHasPane(const void* manager, const CDockablePane* pane);
 bool DetachContainerPane(void* manager, CDockablePane& pane);
 S_CPaneContainer* CopyVisiblePaneContainer(S_CPaneContainer& source, S_CPaneContainer* parent);
