@@ -49,8 +49,6 @@
 // CBaseTabbedPane before CTabbedPane so the latter can take its address.
 DT_DESC(CDockingPanesRow,     112,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
 DT_DESC(CDockablePaneAdapter, 1280, 0x80000002, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
-DT_DESC(CBaseTabbedPane,      1304, 0xFFFF,     &CDockablePane::classCDockablePane); // DECLARE_DYNAMIC
-DT_DESC(CTabbedPane,          1304, 0x80000002, &classCBaseTabbedPane);           // DECLARE_SERIAL
 #undef DT_DESC
 
 // Two exported getters per class via a macro; the literal "// Symbol:" marker
@@ -205,18 +203,22 @@ DT_GETTERS(CDockablePaneAdapter,
 
 // Symbol: ?GetThisClass@CBaseTabbedPane@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CBaseTabbedPane@@UEBAPEAUCRuntimeClass@@XZ
-DT_GETTERS(CBaseTabbedPane,
-           impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CBaseTabbedPane__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ() {
+    return CBaseTabbedPane::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CBaseTabbedPane__UEBAPEAUCRuntimeClass__XZ(const CBaseTabbedPane*) {
+    return CBaseTabbedPane::GetThisClass();
+}
 
 // Symbol: ?GetThisClass@CTabbedPane@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CTabbedPane@@UEBAPEAUCRuntimeClass@@XZ
-DT_GETTERS(CTabbedPane,
-           impl__GetThisClass_CTabbedPane__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CTabbedPane__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CTabbedPane__SAPEAUCRuntimeClass__XZ() {
+    return CTabbedPane::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTabbedPane__UEBAPEAUCRuntimeClass__XZ(const CTabbedPane*) {
+    return CTabbedPane::GetThisClass();
+}
 
-
-#undef DT_GETTERS
 #undef DT_GETTERS
 #define FRAMES_DOCS_PREVIEW_GETTERS(Cls, GetThisSym, GetRtSym) \
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \

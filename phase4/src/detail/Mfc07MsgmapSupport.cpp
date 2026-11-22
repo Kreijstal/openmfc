@@ -1,4 +1,5 @@
 #include "Mfc07MsgmapSupport.h"
+#include "openmfc/afxmfc.h"
 
 namespace openmfc { namespace detail { namespace mfc07msgmap {
 const AFX_MSGMAP_ENTRY g_emptyMsgEntries_Mfc07Msgmap[] = { {0,0,0,0, AfxSig_end, (AFX_PMSG)0} };
@@ -16,6 +17,15 @@ const AFX_MSGMAP classCMFCShellTreeCtrl_msgmap = { gbm_CMFCShellTreeCtrl, g_empt
 const AFX_MSGMAP classCMFCSpinButtonCtrl_msgmap = { gbm_CMFCSpinButtonCtrl, g_emptyMsgEntries_Mfc07Msgmap };
 const AFX_MSGMAP classCMFCStandardColorsPropertyPage_msgmap = { gbm_CMFCStandardColorsPropertyPage, g_emptyMsgEntries_Mfc07Msgmap };
 const AFX_MSGMAP classCMFCStatusBar_msgmap = { gbm_CMFCStatusBar, g_emptyMsgEntries_Mfc07Msgmap };
-const AFX_MSGMAP classCMFCTabCtrl_msgmap = { gbm_CMFCTabCtrl, g_emptyMsgEntries_Mfc07Msgmap };
+namespace {
+using ThisClass = CMFCTabCtrl;
+const AFX_MSGMAP_ENTRY tabCtrlEntries[] = {
+    ON_WM_PAINT()
+    ON_WM_LBUTTONDOWN()
+    ON_WM_SIZE()
+    {0, 0, 0, 0, AfxSig_end, nullptr}
+};
+}
+const AFX_MSGMAP classCMFCTabCtrl_msgmap = { gbm_CMFCTabCtrl, tabCtrlEntries };
 const AFX_MSGMAP classCMFCTasksPane_msgmap = { gbm_CMFCTasksPane, g_emptyMsgEntries_Mfc07Msgmap };
 } } }  // namespace openmfc::detail::mfc07msgmap

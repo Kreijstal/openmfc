@@ -1349,6 +1349,21 @@ extern "C" int MS_ABI impl__ReplacePane_CPaneDivider__UEAAHPEAVCDockablePane__0_
             static_cast<CDockablePane*>(pBarToReplaceWith), HwndOf(pThis));
     }
     const int bResult = impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockablePane__0_Z(pManager, pBarToReplace, pBarToReplaceWith);
+    if (bResult) {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        auto& state = g_dividerPanes[pThis];
+        auto found = std::find(state.panes.begin(), state.panes.end(), pBarToReplace);
+        if (found != state.panes.end()) {
+            if (pBarToReplaceWith) *found = pBarToReplaceWith;
+            else state.panes.erase(found);
+        } else if (pBarToReplaceWith) {
+            AddUniquePane(state, pBarToReplaceWith);
+        }
+        if (static_cast<CPaneDivider*>(pThis)->m_dividerData.bDefaultDivider) {
+            if (void* root = Field<void*>(pManager, kOffManagerRootContainer))
+                impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(root, FirstPane(state), TRUE);
+        }
+    }
     impl__CheckVisibility_CPaneDivider__UEAAHXZ(pThis);
     return bResult;
 }

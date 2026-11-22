@@ -2134,14 +2134,8 @@ extern "C" int MS_ABI impl__RemovePaneFromPaneContainer_CPaneContainerManager__U
 // The two container stores are exactly what ?SetPane@CPaneContainer@@ (entry RVA
 // 0xa5200, mfc140.dll) does, so they go through that export here.
 //
-// NOTE: this file's FindPaneContainer always reports bLeftBar == FALSE, so the
-// left-pane store is currently unreachable. That imprecision is in
-// FindPaneContainer, not here.
-//
-// DEVIATION: FindPaneContainer is called directly rather than through vtable
-// slot +0x128 (for an unsubclassed manager that slot is this same body), and the
-// g_paneToContainer side table is re-pointed at pBarNew so the rest of this
-// file's container lookups stay consistent; retail has no such table.
+// The pane list is also used by default dividers whose root pane has no
+// g_paneToContainer entry, so update the list independently of the node lookup.
 extern "C" int MS_ABI impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockablePane__0_Z(
     void* pThis, void* pBarOld, void* pBarNew) {
     if (pThis == nullptr) return TRUE;
@@ -2158,17 +2152,22 @@ extern "C" int MS_ABI impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockabl
     int bLeftBar = FALSE;
     void* pContainer = impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
         pThis, pBarOld, &bLeftBar);
-    if (pContainer == nullptr) return TRUE;
-    impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(pContainer, pBarNew, bLeftBar);
+    if (pContainer)
+        impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(pContainer, pBarNew, bLeftBar);
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
         std::vector<void*>* panes = PaneListLocked(pThis);
-        if (panes != nullptr) {
+        if (panes) {
             auto pos = std::find(panes->begin(), panes->end(), pBarOld);
-            if (pos != panes->end()) *pos = pBarNew;
+            if (pos != panes->end()) {
+                if (pBarNew) *pos = pBarNew;
+                else panes->erase(pos);
+            }
         }
-        g_paneToContainer.erase(pBarOld);
-        if (pBarNew != nullptr) g_paneToContainer[pBarNew] = pContainer;
+        if (pContainer) {
+            g_paneToContainer.erase(pBarOld);
+            if (pBarNew) g_paneToContainer[pBarNew] = pContainer;
+        }
     }
     return TRUE;
 }

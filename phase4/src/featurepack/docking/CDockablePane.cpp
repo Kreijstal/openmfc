@@ -503,6 +503,35 @@ inline void SetDockablePaneToolTip(const CDockablePane* pThis, CToolTipCtrl* pTo
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
     g_paneCoreState_Mfccore[pThis].toolTip = pToolTip;
 }
+CDockingManager* FindPaneDockingManager(const CDockablePane* pane) {
+    CGlobalUtils utils;
+    if (auto* manager = utils.GetDockingManager(impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(pane)))
+        return manager;
+    for (HWND parent = ::GetParent(pane->m_hWnd); parent; parent = ::GetParent(parent)) {
+        if (auto* manager = utils.GetDockingManager(static_cast<CWnd*>(CWnd::FromHandlePermanent(parent))))
+            return manager;
+    }
+    return nullptr;
+}
+
+CMFCTabCtrl* TabControlForWindow(HWND hwnd) {
+    auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(hwnd));
+    return window && window->IsKindOf(RUNTIME_CLASS(CMFCTabCtrl)) ? static_cast<CMFCTabCtrl*>(window) : nullptr;
+}
+
+extern "C" int MS_ABI impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl*, int);
+
+int FindPaneTab(const CMFCTabCtrl* tabs, const CDockablePane* pane) {
+    if (tabs) {
+        for (int i = 0; i < tabs->GetTabsCount(); ++i)
+            if (tabs->GetTabWnd(i) == pane) return i;
+    }
+    return -1;
+}
+
+void RemovePaneTab(CDockablePane* pane, HWND tabWindow) {
+    if (auto* tabs = TabControlForWindow(tabWindow)) tabs->RemoveTab(FindPaneTab(tabs, pane));
+}
 }  // namespace
 
 namespace {
@@ -627,7 +656,12 @@ CDockablePane::CDockablePane() {
     state.hasGripper = TRUE;
 }
 CDockablePane::~CDockablePane() {
+    if (m_hWnd) RemovePaneTab(this, ::GetParent(m_hWnd));
     EndAutoHide(FALSE);
+    if (auto* toolTip = DockablePaneToolTipOf(this)) {
+        SetDockablePaneToolTip(this, nullptr);
+        impl__DeleteToolTip_CTooltipManager__SAXAEAPEAVCToolTipCtrl___Z(&toolTip);
+    }
     CMFCAutoHideButton* button = nullptr;
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
@@ -667,6 +701,20 @@ void CDockablePane::OnTimer(UINT_PTR timer) {
 
 void CDockablePane::PostNcDestroy() {
     EndAutoHide(FALSE);
+    HWND tabWindow = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[this];
+        tabWindow = std::exchange(state.tabWindow, nullptr);
+        if (tabWindow) {
+            state.tabbed = FALSE;
+            state.parent = nullptr;
+        }
+    }
+    RemovePaneTab(this, tabWindow);
+    if (m_pDockSite) {
+        if (auto* manager = FindPaneDockingManager(this)) RemoveDockingPane(manager, this);
+    }
     CPane::PostNcDestroy();
 }
 
@@ -693,6 +741,12 @@ CMFCAutoHideBar* CDockablePane::BeginAutoHide(
     restore.registered = ContainsPtr(managerState.panes, static_cast<CBasePane*>(this));
     restore.hidden = managerState.hiddenPanes.count(this) != 0;
     restore.floating = managerState.floatingPanes.count(this) != 0;
+    auto* tabs = TabControlForWindow(restore.parent);
+    const int tab = FindPaneTab(tabs, this);
+    if (tab >= 0) {
+        restore.tabVisible = impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(tabs, tab) != FALSE;
+        restore.tabActive = tabs->GetActiveTab() == tab;
+    }
     if (!::GetWindowRect(m_hWnd, &restore.bounds)) return nullptr;
     ::MapWindowPoints(nullptr, restore.parent, reinterpret_cast<POINT*>(&restore.bounds), 2);
 
@@ -717,8 +771,10 @@ CMFCAutoHideBar* CDockablePane::BeginAutoHide(
         state.autoHideAlignment = alignment;
         state.autoHideRestore = restore;
         state.parent = frame;
+        state.tabbed = FALSE;
         state.hasGripper = FALSE;
     }
+    if (tab >= 0) tabs->ShowTab(tab, FALSE, FALSE, FALSE);
     m_pDockSite = reinterpret_cast<CDockSite*>(frame);
     m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | alignment;
     SetPaneAlignment(alignment);
@@ -771,10 +827,13 @@ void CDockablePane::EndAutoHide(BOOL restoreWindow) {
     impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(this, nullptr);
     if (::IsWindow(restore->divider)) ::DestroyWindow(restore->divider);
     if (!restoreWindow || !m_hWnd) {
+        RemovePaneTab(this, restore->parent);
         RemoveDockingPane(restore->manager, this);
         return;
     }
 
+    auto* tabs = TabControlForWindow(restore->parent);
+    const int tab = FindPaneTab(tabs, this);
     const HWND parent = ::IsWindow(restore->parent) ? restore->parent : restore->frame;
     if (parent && parent != ::GetParent(m_hWnd)) ::SetParent(m_hWnd, parent);
     m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | restore->alignment;
@@ -791,8 +850,11 @@ void CDockablePane::EndAutoHide(BOOL restoreWindow) {
     auto* parentWindow = static_cast<CWnd*>(CWnd::FromHandlePermanent(parent));
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-        g_paneCoreState_Mfccore[this].parent = parentWindow;
-        g_paneCoreState_Mfccore[this].visible = restore->visible;
+        auto& state = g_paneCoreState_Mfccore[this];
+        state.parent = parentWindow;
+        state.visible = restore->visible;
+        state.tabbed = tab >= 0;
+        state.tabWindow = tab >= 0 ? parent : nullptr;
     }
     impl__EnableGripper_CDockablePane__UEAAXH_Z(this, restore->hasGripper);
     if (restore->registered) {
@@ -803,16 +865,18 @@ void CDockablePane::EndAutoHide(BOOL restoreWindow) {
     } else {
         RemoveDockingPane(restore->manager, this);
     }
-    ::ShowWindow(m_hWnd, restore->visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+    if (tab >= 0) {
+        tabs->ShowTab(tab, restore->tabVisible, TRUE, FALSE);
+        if (restore->tabActive) tabs->ActivateTab(tab);
+    } else {
+        ::ShowWindow(m_hWnd, restore->visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+    }
 }
 
 CMFCAutoHideBar* CDockablePane::SetAutoHideMode(BOOL mode, DWORD alignment, CMFCAutoHideBar* requestedBar, BOOL useTimer) {
     if (!!mode == !!IsAutoHideMode()) return requestedBar;
     if (mode) {
-        CGlobalUtils utils;
-        auto* manager = utils.GetDockingManager(impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(this));
-        for (HWND parent = ::GetParent(m_hWnd); !manager && parent; parent = ::GetParent(parent))
-            manager = utils.GetDockingManager(static_cast<CWnd*>(CWnd::FromHandlePermanent(parent)));
+        auto* manager = FindPaneDockingManager(this);
         return manager ? BeginAutoHide(*manager, alignment, requestedBar, useTimer) : nullptr;
     }
 
@@ -921,27 +985,64 @@ extern "C" void MS_ABI impl__AdjustPaneToPaneContainer_CDockablePane__MEAAXPEAVC
         SWP_NOZORDER | SWP_NOACTIVATE, nullptr);
 }
 
-// STUB. Retail entry RVA 0x436e0 (mfc140u; 0x43530 in mfc140), ~1088 bytes,
-// the largest body in this class; not transcribed. It uses m_nSlideStep
-// (+0x450), the modeled m_pTabbedControlBarRTC side-state (+0x4b0), and the
-// modeled default-slider HWND, then creates/attaches a CTabbedPane and invokes
-// CPaneDivider ReplacePane/AddPane operations. The runtime-class field is now
-// available, but CreateTabbedPane below still cannot reproduce CTabbedPane's
-// retail Create dispatch/layout, and the divider attach/replace virtual slots
-// are not modeled; calling through the path would therefore fabricate docking
-// effects.
-// Signature corrected: the generated list dropped `this` and the first two
-// parameters; the export returns the CDockablePane* the caller was attached to.
+extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPane__XZ(CDockablePane*);
+extern "C" int MS_ABI impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(
+    CDockingManager*, CDockablePane*, CDockablePane*);
+
 // Symbol: ?AttachToTabWnd@CDockablePane@@UEAAPEAV1@PEAV1@W4AFX_DOCK_METHOD@@HPEAPEAV1@@Z
 extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AFX_DOCK_METHOD__HPEAPEAV1__Z(
-    CDockablePane* pThis, CDockablePane* pTabControlBarAttachTo, int dockMethod, int bSetActive,
-    CDockablePane** ppTabbedControlBar) {
-    (void)pThis;
-    (void)pTabControlBarAttachTo;
-    (void)dockMethod;
-    (void)bSetActive;
-    (void)ppTabbedControlBar;
-    return nullptr;
+    CDockablePane* pane, CDockablePane* target, int, int activate, CDockablePane** result) {
+    if (result) *result = nullptr;
+    if (!pane || !target || pane == target || !pane->m_hWnd || !target->m_hWnd ||
+        pane->IsAutoHideMode() || target->IsAutoHideMode()) return nullptr;
+
+    auto* sourceManager = FindPaneDockingManager(pane);
+    auto* sourceGroup = static_cast<CBaseTabbedPane*>(
+        impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(pane));
+    auto* group = target->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane)) ? static_cast<CBaseTabbedPane*>(target) :
+        static_cast<CBaseTabbedPane*>(impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(target));
+    if (group == pane || (group && ::IsChild(pane->m_hWnd, group->m_hWnd))) return nullptr;
+
+    const bool createGroup = group == nullptr;
+    const HWND targetParent = ::GetParent(target->m_hWnd);
+    const auto targetStyle = ::GetWindowLongPtrW(target->m_hWnd, GWL_STYLE);
+    RECT targetBounds{};
+    if (createGroup) {
+        ::GetWindowRect(target->m_hWnd, &targetBounds);
+        ::MapWindowPoints(nullptr, targetParent, reinterpret_cast<POINT*>(&targetBounds), 2);
+        group = static_cast<CTabbedPane*>(impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPane__XZ(target));
+        if (!group) return nullptr;
+        if (!group->AddTab(target, (targetStyle & WS_VISIBLE) != 0, TRUE, TRUE)) {
+            group->DestroyWindow();
+            return nullptr;
+        }
+    }
+
+    if (!group->AddTab(pane, TRUE, activate, TRUE)) {
+        if (createGroup) {
+            group->RemovePane(target);
+            ::SetWindowPos(target->m_hWnd, nullptr, targetBounds.left, targetBounds.top,
+                targetBounds.right - targetBounds.left, targetBounds.bottom - targetBounds.top,
+                SWP_NOACTIVATE | SWP_NOZORDER | (targetStyle & WS_VISIBLE ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
+            group->DestroyWindow();
+        }
+        return nullptr;
+    }
+
+    if (sourceGroup && sourceGroup != group) sourceGroup->RemovePane(pane);
+    if (createGroup) {
+        if (auto* divider = impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(target)) {
+            if (impl__ReplacePane_CPaneDivider__UEAAHPEAVCDockablePane__0_Z(divider, target, group))
+                impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(target, nullptr);
+        }
+        if (auto* manager = FindPaneDockingManager(group))
+            impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(manager, target, group);
+        ::ShowWindow(group->m_hWnd, SW_SHOWNOACTIVATE);
+    }
+    impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(pane, nullptr);
+    if (sourceManager) RemoveDockingPane(sourceManager, pane);
+    if (result) *result = group;
+    return group;
 }
 
 // CDockablePane::CalcCorrectOffset -- transcribed from retail entry RVA 0x42c10
@@ -1413,19 +1514,37 @@ extern "C" CPaneDivider* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SA
     return divider.release();
 }
 
-// STUB. Transcribed from function entry RVA 0x43be0 (mfc140u): retail gets
-// this pane's window rectangle, converts it to the parent's client coordinates,
-// creates a CTabbedPane through m_pTabbedControlBarRTC, sets the new pane's
-// field at +0x4e0, calls Create with CBRS_FLOAT_MULTI and the retail style
-// arguments, then copies 16-byte regions from this+0x370, +0x308 and +0x2c0.
-// The +0x4b0 runtime-class pointer is now represented in PaneCoreState, but
-// the retail-shaped CTabbedPane Create dispatch and its +0x4e0/+0x2c0/+0x308/
-// +0x370 layout are not modeled, so the object cannot be safely constructed.
-// Signature corrected to carry `this`.
 // Symbol: ?CreateTabbedPane@CDockablePane@@UEAAPEAVCTabbedPane@@XZ
-extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPane__XZ(CDockablePane* pThis) {
-    (void)pThis;
-    return nullptr;
+extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPane__XZ(CDockablePane* pane) {
+    if (!pane || !pane->m_hWnd) return nullptr;
+    const HWND parentHwnd = ::GetParent(pane->m_hWnd);
+    auto* parent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(parentHwnd);
+    if (!parent) return nullptr;
+    CRuntimeClass* type = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        type = g_paneCoreState_Mfccore[pane].tabbedControlBarRTC;
+    }
+    if (!type) type = CTabbedPane::GetThisClass();
+    if (!type->IsDerivedFrom(RUNTIME_CLASS(CTabbedPane))) return nullptr;
+    std::unique_ptr<CTabbedPane> group(static_cast<CTabbedPane*>(type->CreateObject()));
+    RECT bounds{};
+    if (!group || !::GetWindowRect(pane->m_hWnd, &bounds)) return nullptr;
+    ::MapWindowPoints(nullptr, parentHwnd, reinterpret_cast<POINT*>(&bounds), 2);
+    const DWORD alignment = pane->m_dwStyle & CBRS_ALIGN_ANY;
+    std::wstring caption(::GetWindowTextLengthW(pane->m_hWnd) + 1, L'\0');
+    ::GetWindowTextW(pane->m_hWnd, caption.data(), static_cast<int>(caption.size()));
+    group->m_pDockSite = pane->m_pDockSite;
+    if (!group->m_pDockSite) {
+        if (auto* manager = FindPaneDockingManager(pane))
+            group->m_pDockSite = reinterpret_cast<CDockSite*>(EnsureDockingState(manager).parentFrame);
+    }
+    group->m_dwStyle = alignment | CBRS_FLOAT_MULTI;
+    group->SetPaneAlignment(alignment);
+    if (!group->Create(L"STATIC", caption.c_str(), WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+            bounds, parent, static_cast<UINT>(-1))) return nullptr;
+    group->AutoDestroyWithWindow();
+    return group.release();
 }
 
 // STUB. Retail entry RVA 0x44540 (mfc140u; 0x44390 in mfc140), fully decoded

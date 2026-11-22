@@ -1266,14 +1266,26 @@ public:
     virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
     int GetTabsCount() const;
     void AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId = (UINT)-1, BOOL bDetachable = TRUE);
+    BOOL InsertTab(CWnd* window, const wchar_t* label, int index, UINT image, BOOL detachable);
     int RemoveTab(int nIndex, int nOption = 0);
     void SetActiveTab(int nIndex);
+    BOOL ShowTab(int index, BOOL show, BOOL keepActive, BOOL activate);
     int GetActiveTab() const;
     CWnd* GetTabWnd(int nIndex) const;
     BOOL IsTabDetachable(int nIndex) const;
+    void SetLocation(int location);
+    void HideSingleTab(BOOL hide);
+    void RefreshTabs();
 
 protected:
-    char _mfcbasetabctrl_padding[128];
+    char _baseTabCtrlPrefix[0x10]{};
+    int m_location = 0;
+    char _baseTabCtrlArrays[0x54]{};
+    int m_iTabsNum = 0;
+    int m_iActiveTab = -1;
+    char _baseTabCtrlOptions[0x9c]{};
+    BOOL m_bHideSingleTab = FALSE;
+    char _baseTabCtrlTail[0x1c8]{};
 };
 
 //=============================================================================
@@ -1283,23 +1295,35 @@ class CBaseTabbedPane : public CDockablePane {
     DECLARE_DYNAMIC(CBaseTabbedPane)
 public:
     CBaseTabbedPane(int iStyle = 0);
-    virtual ~CBaseTabbedPane();
+    ~CBaseTabbedPane() override;
+    CMFCTabCtrl* GetTabs() const { return m_pTabWnd; }
+    BOOL AddTab(CWnd* window, BOOL visible, BOOL activate, BOOL detachable);
+    BOOL RemovePane(CWnd* window);
+    BOOL ShowTab(CWnd* window, BOOL show, BOOL activate);
+    void RecalcLayout() override;
+    void OnSize(UINT type, int width, int height);
 
 protected:
-    // This local object ends at +0x4d8, before retail m_pTabWnd (+0x4e8) and
-    // m_arDefaultTabsOrder (+0x4f0). Keep the ABI size unchanged; both values
-    // live in the existing openmfc::docking_state::PaneCoreState side table.
-    char _basetabbedpane_padding[96];
+    char _tabbedPaneBaseTail[0x68]{};
+    BOOL m_bAutoDestroy = FALSE;
+    BOOL m_bSetCaptionTextToTabName = FALSE;
+    CMFCTabCtrl* m_pTabWnd = nullptr;
+    char _defaultTabOrderStorage[0x28]{};
+
+    void PostNcDestroy() override;
+    DECLARE_MESSAGE_MAP()
 };
 
 class CTabbedPane : public CBaseTabbedPane {
     OPENMFC_DECLARE_MFC_SERIAL(CTabbedPane)
 public:
     CTabbedPane(int iStyle = 0);
-    virtual ~CTabbedPane();
+    ~CTabbedPane() override;
+    int OnCreate(CREATESTRUCTW* create);
+    void AutoDestroyWithWindow() { m_bAutoDestroy = TRUE; }
 
 protected:
-    char _tabbedpane_padding[96];
+    DECLARE_MESSAGE_MAP()
 };
 
 class CUserTool : public CObject {
@@ -1344,7 +1368,7 @@ protected:
 // CMFCTabCtrl - Feature Pack tab control
 //=============================================================================
 class CMFCTabCtrl : public CMFCBaseTabCtrl {
-    DECLARE_DYNAMIC(CMFCTabCtrl)
+    DECLARE_DYNCREATE(CMFCTabCtrl)
 public:
     CMFCTabCtrl();
     virtual ~CMFCTabCtrl();
@@ -1352,9 +1376,17 @@ public:
     void EnableTabSwap(BOOL bEnable = TRUE);
     void SetTabBorderSize(int nTabBorderSize);
     void SetTabsHeight(int nTabHeight);
+    BOOL CreateTabs(int style, const RECT& rect, CWnd* parent, UINT id, int location, BOOL closeButton);
+    void RecalcLayout();
+    BOOL ActivateTab(int index);
+    void DrawTabs(CDC* dc);
+    void OnPaint();
+    void OnLButtonDown(UINT flags, CPoint point);
+    void OnSize(UINT type, int width, int height);
 
 protected:
-    char _mfctabctrl_padding[64];
+    char _mfctabctrl_padding[0x39a8]{};
+    DECLARE_MESSAGE_MAP()
 };
 
 //=============================================================================

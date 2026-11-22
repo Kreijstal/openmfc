@@ -6,39 +6,9 @@
 #include "detail/CMFCBaseTabCtrlSupport.h"
 #include "detail/MfccoreSupport.h"
 
-// OpenMFC: CMFCBaseTabCtrl exports.
-//
-// All 57 exports are implemented here, transcribed from the retail mfc140u.dll
-// (14.51.36231, x64) by decoding the export table (ordinal -> RVA -> objdump
-// of the retail body).
-//
-// The class in include/openmfc/afxmfc.h is a thin CWnd subclass with 128 bytes
-// of opaque padding, so none of the retail member offsets the disassembly
-// touches are named in the headers: the internal tab array +0x108/+0x110, the
-// tab count +0x150, the active tab +0x154, the per-tab CMFCBaseTabInfo records
-// (label CString +0x8, icon index +0x10, hicon +0x18, tab rect +0x20, ID +0x3c,
-// text color +0x40, bk color +0x44, visible flag +0x48, icon-only flag +0x50,
-// detach flag +0x58, full width +0x38), the image-list state +0x160..+0x180,
-// the tooltip helper +0x1b8/+0x1c8, the flags +0x1f4/+0x1f8/+0x230/+0x234, the
-// drag state +0x238/+0x240, the in-place edit window +0x228/+0x230, the
-// auto-color array +0x300..+0x32c, the accessibility block +0x360..+0x3a8 and
-// the registered "change/changing active tab" message ids.
-//
-// Bodies that only read such unmodeled state are emitted as type-correct
-// conservative versions that keep the safe visible side effects available
-// through the declared public API (GetTabsCount / GetActiveTab / GetTabWnd /
-// GetTabNumberToDetach / RemoveTab), the bounds checks, the base IAccessible
-// validation and the redraws, and return the retail terminal values, with a
-// `// TODO(clean-room)` marker.  No member offsets are invented and no header
-// files are touched.
-//
-// The side table backing the declared methods (GetTabsCount / GetActiveTab /
-// GetTabWnd, established in mfccore.cpp) is the only tab storage OpenMFC has.
-// GetActiveWnd and GetTabNumberToDetach are fully transcribed through it;
-// GetFirstVisibleTab / GetLastVisibleTab / GetVisibleTabsNum scan it through
-// the sibling IsTabVisible (which reports every tab invisible because the
-// per-tab +0x48 flag is unmodeled), matching the retail structure exactly.
-//
+// The tab model owns each record's caption, image index, stable ID and visibility.
+// The location, count and active index also mirror the inline retail fields.
+
 // ABI note for GetMaxWindowSize: the retail MSVC x64 convention for a member
 // function returning CSize passes `this` in %rcx and the hidden CSize* return
 // slot in %rdx (verified in the retail body, which writes the accumulated size
@@ -511,6 +481,23 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(
 //=============================================================================
 // CMFCBaseTabCtrl::SetTabHicon
 //=============================================================================
+namespace {
+const TabEntry* TabAt(const CMFCBaseTabCtrl* control, int index) {
+    const auto* state = FindTabCtrlState(control);
+    if (!state || index < 0 || index >= static_cast<int>(state->tabs.size())) return nullptr;
+    return &state->tabs[index];
+}
+
+int FirstVisibleTab(const TabCtrlState& state, int preferred) {
+    const int count = static_cast<int>(state.tabs.size());
+    for (int offset = 0; offset < count; ++offset) {
+        const int index = (preferred + offset) % count;
+        if (state.tabs[index].visible) return index;
+    }
+    return -1;
+}
+}
+
 // Symbol: ?AddTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@IIH@Z
 extern "C" void MS_ABI impl__AddTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__IIH_Z(
     CMFCBaseTabCtrl* pThis, CWnd* pTabWnd, unsigned int uiResTabLabel,
@@ -883,11 +870,13 @@ extern "C" int MS_ABI impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(
 // unmodeled, so the "no tab found" terminal is returned.
 // Symbol: ?GetTabFromPoint@CMFCBaseTabCtrl@@UEBAHAEAVCPoint@@@Z
 extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(
-    const CMFCBaseTabCtrl* pThis, CPoint& /*point*/)
+    const CMFCBaseTabCtrl* pThis, CPoint& point)
 {
     if (!pThis) return -1;
-    // TODO(clean-room): not transcribed -- needs the per-tab rects (+0x20) and
-    // the visible flag (+0x48) of the tab records; not modeled.
+    for (int i = 0; i < pThis->GetTabsCount(); ++i) {
+        const auto* tab = TabAt(pThis, i);
+        if (tab && tab->visible && ::PtInRect(tab->rect, point)) return i;
+    }
     return -1;
 }
 // Retail (0x180019b10): bounds-checks and returns the full width stored at
@@ -897,11 +886,8 @@ extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z
 extern "C" int MS_ABI impl__GetTabFullWidth_CMFCBaseTabCtrl__UEBAHH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
-    if (!pThis) return 0;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return 0;
-    // TODO(clean-room): partially transcribed -- the per-tab full width
-    // (record +0x38) is not modeled.
-    return 0;
+    const auto* tab = TabAt(pThis, iTab);
+    return tab ? tab->rect.Width() : 0;
 }
 // Retail (0x180016bb0): bounds-checks and returns the HICON stored at +0x18
 // of the tab record; out of bounds returns NULL. The per-tab record is
@@ -923,11 +909,8 @@ extern "C" HICON MS_ABI impl__GetTabHicon_CMFCBaseTabCtrl__UEBAPEAUHICON____H_Z(
 extern "C" int MS_ABI impl__GetTabID_CMFCBaseTabCtrl__QEBAHH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
-    if (!pThis) return -1;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return -1;
-    // TODO(clean-room): partially transcribed -- the per-tab ID (record +0x3c,
-    // set by AddTab's uiId) is not exposed by the declared API.
-    return -1;
+    const auto* tab = TabAt(pThis, iTab);
+    return tab ? tab->id : -1;
 }
 // Retail (0x180016b00): bounds-checks and returns the icon index stored at
 // +0x10 of the tab record; out of bounds returns 0xffffffff. The per-tab
@@ -936,11 +919,8 @@ extern "C" int MS_ABI impl__GetTabID_CMFCBaseTabCtrl__QEBAHH_Z(
 extern "C" unsigned int MS_ABI impl__GetTabIcon_CMFCBaseTabCtrl__UEBAIH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
-    if (!pThis) return (unsigned int)-1;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return (unsigned int)-1;
-    // TODO(clean-room): partially transcribed -- the per-tab icon index
-    // (record +0x10) is not modeled.
-    return (unsigned int)-1;
+    const auto* tab = TabAt(pThis, iTab);
+    return tab ? tab->image : static_cast<UINT>(-1);
 }
 // Retail (0x1800168a0): bounds-checks, then copies the tab label CString
 // (record +0x8) into strLabel -- or loads the default "Tab" label when the
@@ -952,12 +932,9 @@ extern "C" int MS_ABI
 impl__GetTabLabel_CMFCBaseTabCtrl__UEBAHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     const CMFCBaseTabCtrl* pThis, int iTab, CString& strLabel)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    strLabel.Empty();
-    // TODO(clean-room): partially transcribed -- the per-tab label (record
-    // +0x8) and the icon-only flag (+0x50) are not modeled, so the label
-    // cannot be populated.
+    const auto* tab = TabAt(pThis, iTab);
+    if (!tab) return FALSE;
+    strLabel = tab->label.c_str();
     return TRUE;
 }
 // Retail (0x180017040): when iTab is -1 it substitutes the active tab
@@ -983,13 +960,10 @@ extern "C" int MS_ABI impl__GetTabNumberToDetach_CMFCBaseTabCtrl__MEBAHH_Z(
 extern "C" int MS_ABI impl__GetTabRect_CMFCBaseTabCtrl__UEBAHHAEAVCRect___Z(
     const CMFCBaseTabCtrl* pThis, int iTab, CRect& rect)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    rect.SetRectEmpty();
-    // TODO(clean-room): partially transcribed -- the per-tab visible flag
-    // (+0x48) and tab rect (+0x20) are not modeled, so no in-bounds tab can
-    // report a rect (retail returns 0/empty while the flag is clear).
-    return FALSE;
+    const auto* tab = TabAt(pThis, iTab);
+    if (!tab) return FALSE;
+    rect = tab->rect;
+    return tab->visible;
 }
 // Retail (0x180019a90): bounds-checks and returns the text color stored at
 // +0x40 of the tab record; out of bounds returns 0xffffffff. The per-tab
@@ -1058,14 +1032,9 @@ extern "C" int MS_ABI impl__HasImage_CMFCBaseTabCtrl__UEBAHH_Z(
 // kept (mirroring the sibling CMFCTabCtrl::HideSingleTab at +0x1f4).
 // Symbol: ?HideSingleTab@CMFCBaseTabCtrl@@UEAAXH@Z
 extern "C" void MS_ABI impl__HideSingleTab_CMFCBaseTabCtrl__UEAAXH_Z(
-    CMFCBaseTabCtrl* pThis, int /*bHide*/)
+    CMFCBaseTabCtrl* pThis, int bHide)
 {
-    if (!pThis) return;
-    if (!pThis->GetSafeHwnd()) return;
-    // TODO(clean-room): partially transcribed -- the m_bHideSingleTab flag
-    // (retail +0x1f4) has no declared member, so the change detection and
-    // storage are skipped.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
+    if (pThis) pThis->HideSingleTab(bHide);
 }
 // Retail (0x18001a220): when the +0x32c auto-color flag is set, clears the
 // internal auto-color array (+0x300) and refills it with the eight default
@@ -1088,12 +1057,13 @@ extern "C" void MS_ABI impl__InitAutoColors_CMFCBaseTabCtrl__MEAAXXZ(
 // no image support).
 // Symbol: ?InsertTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@IHIH@Z
 extern "C" void MS_ABI impl__InsertTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__IHIH_Z(
-    CMFCBaseTabCtrl* pThis, CWnd* /*pWnd*/, unsigned int /*uiImageID*/,
-    int /*nIndex*/, unsigned int /*uiID*/, int /*bDetachable*/)
+    CMFCBaseTabCtrl* pThis, CWnd* window, UINT labelId,
+    int index, UINT image, int detachable)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the CMFCBaseTabInfo records,
-    // the +0x180 image map and the vslot-0x598 insertion virtual.
+    wchar_t label[kMaxTabLabel];
+    const bool haveLabel = LoadTabLabel(labelId, label, kMaxTabLabel);
+    pThis->InsertTab(window, haveLabel ? label : nullptr, index, image, detachable);
 }
 // Retail (0x180015d60): validates/normalizes the insertion index, resolves
 // the insert-position state (vslot 0x430), allocates a CMFCBaseTabInfo record
@@ -1102,13 +1072,10 @@ extern "C" void MS_ABI impl__InsertTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__IHIH_Z(
 // to the side table) cannot honor the nIndex position, so no tab is inserted.
 // Symbol: ?InsertTab@CMFCBaseTabCtrl@@UEAAXPEAVCWnd@@PEB_WHIH@Z
 extern "C" void MS_ABI impl__InsertTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__PEB_WHIH_Z(
-    CMFCBaseTabCtrl* pThis, CWnd* /*pWnd*/, const wchar_t* /*lpszLabel*/,
-    int /*nIndex*/, unsigned int /*uiID*/, int /*bDetachable*/)
+    CMFCBaseTabCtrl* pThis, CWnd* window, const wchar_t* label,
+    int index, UINT image, int detachable)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the CMFCBaseTabInfo records
-    // and the vslot-0x598/vslot-0x338 insertion virtuals; the declared AddTab
-    // path cannot honor the insertion index.
+    if (pThis) pThis->InsertTab(window, label, index, image, detachable);
 }
 // Retail (0x180018270): returns immediately for iTab < 0, otherwise runs the
 // vslot-0x380 GetTabRect(iTab, &rect) virtual and, on a hit, CWnd::
@@ -1190,21 +1157,12 @@ extern "C" int MS_ABI
 impl__SetTabLabel_CMFCBaseTabCtrl__UEAAHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     CMFCBaseTabCtrl* pThis, int iTab, const CString& strLabel)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // Retail (0x18001695e) also fails when the label CString is uninitialized
-    // (refcount gate on the label data); not modeled here.
-    CWnd* pTabWnd = pThis->GetTabWnd(iTab);
-    if (pTabWnd && pTabWnd->GetSafeHwnd()) {
-        // Retail mirrors the new label into the tab window text
-        // (CWnd::SetWindowTextW at 0x1802a9790).
-        pTabWnd->SetWindowTextW(strLabel.GetString());
-    }
-    // TODO(clean-room): partially transcribed -- the per-tab label store (+0x8
-    // of the tab record), the tooltip refresh (+0x1b8/+0x1c8) and the
-    // active-tab frame update are not modeled; the vslot-0x318 relayout is
-    // kept as a redraw.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
+    if (!TabAt(pThis, iTab)) return FALSE;
+    auto& tab = EnsureTabCtrlState(pThis).tabs[iTab];
+    tab.label = strLabel.GetString();
+    const HWND window = tab.window ? tab.window->GetSafeHwnd() : nullptr;
+    if (window) ::SetWindowTextW(window, strLabel.GetString());
+    pThis->RefreshTabs();
     return TRUE;
 }
 // Retail (0x180019ad0): bounds-checks and stores the color at +0x40 of the
@@ -1245,15 +1203,10 @@ extern "C" int MS_ABI impl__SetTabsOrder_CMFCBaseTabCtrl__QEAAHAEBV__CArray_HH__
 // bounds gate and the terminal values are kept.
 // Symbol: ?ShowTab@CMFCBaseTabCtrl@@UEAAHHHHH@Z
 extern "C" int MS_ABI impl__ShowTab_CMFCBaseTabCtrl__UEAAHHHHH_Z(
-    CMFCBaseTabCtrl* pThis, int iTab, int /*bShow*/, int /*bDontShowActive*/,
-    int /*bChangeActiveTab*/)
+    CMFCBaseTabCtrl* pThis, int iTab, int bShow, int bDontShowActive,
+    int bChangeActiveTab)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab visible flag
-    // (+0x48), the active tab (+0x154) and the relayout/activation virtuals
-    // (vslot 0x318/0x438/0x4f0) are not modeled.
-    return TRUE;
+    return pThis && pThis->ShowTab(iTab, bShow, bDontShowActive, bChangeActiveTab);
 }
 // Retail (0x1800194a0): returns 0 when the +0x230 in-place-edit flag is clear,
 // when iTab is out of bounds or when the tab rect (+0x20) is empty; otherwise
@@ -1573,12 +1526,8 @@ extern "C" int MS_ABI impl__IsTabIconOnly_CMFCBaseTabCtrl__UEBAHH_Z(
 extern "C" int MS_ABI impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- retail reads the per-tab
-    // "visible" flag at +0x48 of the tab record (tab array +0x108/+0x110);
-    // the per-tab records are not modeled, so no tab can report TRUE.
-    return FALSE;
+    const auto* tab = TabAt(pThis, iTab);
+    return tab && tab->visible;
 }
 // Retail (0x180018ec0): validates both indices against the tab array
 // (+0x100/+0x110) and the active tab (+0x154), then reorders the per-tab
@@ -1958,13 +1907,9 @@ extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHPEAU_IMAGELIST___
 // member is not declared; the relayout redraw (vslot 0x318) is kept.
 // Symbol: ?SetLocation@CMFCBaseTabCtrl@@UEAAXW4Location@1@@Z
 extern "C" void MS_ABI impl__SetLocation_CMFCBaseTabCtrl__UEAAXW4Location_1__Z(
-    CMFCBaseTabCtrl* pThis, int /*location*/)
+    CMFCBaseTabCtrl* pThis, int location)
 {
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the +0xf8 location member
-    // (m_location) is not declared, and the registered-message post (0x185)
-    // is skipped.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
+    if (pThis) pThis->SetLocation(location);
 }
 // Retail (0x180019a50): bounds-checks `0 <= iTab < tabs count (+0x150)` and
 // stores the color at +0x44 of the tab record; returns 1 when applied, 0 when
@@ -1997,59 +1942,114 @@ extern "C" int MS_ABI impl__SetTabHicon_CMFCBaseTabCtrl__UEAAHHPEAUHICON_____Z(
     // (+0x178/+0x17c) are not modeled.
     return TRUE;
 }
+static_assert(sizeof(CMFCBaseTabCtrl) == 0x3c0);
+
 CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
-    memset(_mfcbasetabctrl_padding, 0, sizeof(_mfcbasetabctrl_padding));
+    static_assert(offsetof(CMFCBaseTabCtrl, m_location) == 0xf8);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_iTabsNum) == 0x150);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_iActiveTab) == 0x154);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_bHideSingleTab) == 0x1f4);
 }
+
 CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {
     RemoveTabCtrlState(this);
 }
-BOOL CMFCBaseTabCtrl::Create(DWORD, const RECT&, CWnd*, UINT) { return TRUE; }
+
+BOOL CMFCBaseTabCtrl::Create(DWORD style, const RECT& rect, CWnd* parent, UINT id) {
+    return parent && CWnd::Create(L"STATIC", L"", style | WS_CHILD | WS_CLIPCHILDREN, rect, parent, id);
+}
+
 int CMFCBaseTabCtrl::GetTabsCount() const {
     const TabCtrlState* state = FindTabCtrlState(this);
     return state ? static_cast<int>(state->tabs.size()) : 0;
 }
-void CMFCBaseTabCtrl::AddTab(CWnd* pWnd, const wchar_t* lpszLabel, UINT uiId, BOOL bDetachable) {
-    if (!pWnd) {
-        return;
-    }
 
-    TabCtrlState& state = EnsureTabCtrlState(this);
-    state.tabs.push_back({
-        pWnd,
-        lpszLabel ? lpszLabel : L"",
-        uiId,
-        bDetachable,
-    });
-    if (state.activeTab < 0) {
-        state.activeTab = 0;
-    }
+void CMFCBaseTabCtrl::RefreshTabs() {
+    const auto* state = FindTabCtrlState(this);
+    if (state && state->liveLayout && m_hWnd) static_cast<CMFCTabCtrl*>(this)->RecalcLayout();
 }
-int CMFCBaseTabCtrl::RemoveTab(int nIndex, int) {
-    TabCtrlState& state = EnsureTabCtrlState(this);
-    if (nIndex < 0 || nIndex >= static_cast<int>(state.tabs.size())) {
-        return 0;
-    }
 
-    state.tabs.erase(state.tabs.begin() + nIndex);
-
-    if (state.tabs.empty()) {
-        state.activeTab = -1;
-    } else if (state.activeTab == nIndex) {
-        state.activeTab = (nIndex == 0) ? 0 : nIndex - 1;
-    } else if (state.activeTab > nIndex) {
-        --state.activeTab;
-    }
-
-    return 1;
+void CMFCBaseTabCtrl::HideSingleTab(BOOL hide) {
+    if (m_bHideSingleTab == hide) return;
+    m_bHideSingleTab = hide;
+    EnsureTabCtrlState(this).hideSingleTab = hide;
+    RefreshTabs();
 }
-void CMFCBaseTabCtrl::SetActiveTab(int nIndex) {
-    TabCtrlState& state = EnsureTabCtrlState(this);
-    if (nIndex < 0 || nIndex >= static_cast<int>(state.tabs.size())) {
-        state.activeTab = -1;
-        return;
-    }
-    state.activeTab = nIndex;
+
+void CMFCBaseTabCtrl::SetLocation(int location) {
+    m_location = location == 1 ? 1 : 0;
+    EnsureTabCtrlState(this).location = m_location;
+    RefreshTabs();
 }
+
+void CMFCBaseTabCtrl::AddTab(CWnd* window, const wchar_t* label, UINT image, BOOL detachable) {
+    InsertTab(window, label, GetTabsCount(), image, detachable);
+}
+
+BOOL CMFCBaseTabCtrl::InsertTab(CWnd* window, const wchar_t* label, int index, UINT image, BOOL detachable) {
+    if (!window || window == this) return FALSE;
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    if (std::any_of(state.tabs.begin(), state.tabs.end(), [window](const TabEntry& tab) { return tab.window == window; }))
+        return FALSE;
+
+    const int count = static_cast<int>(state.tabs.size());
+    if (index < 0 || index > count) index = count;
+    TabEntry entry;
+    entry.window = window;
+    entry.image = image;
+    entry.detachable = detachable;
+    if (label) {
+        entry.label = label;
+    } else if (HWND hwnd = window->GetSafeHwnd()) {
+        entry.label.resize(::GetWindowTextLengthW(hwnd) + 1);
+        entry.label.resize(::GetWindowTextW(hwnd, entry.label.data(), static_cast<int>(entry.label.size())));
+    }
+    entry.id = state.nextTabId++;
+    state.tabs.insert(state.tabs.begin() + index, std::move(entry));
+    if (state.activeTab < 0) state.activeTab = index;
+    else if (state.activeTab >= index) ++state.activeTab;
+    m_iTabsNum = count + 1;
+    m_iActiveTab = state.activeTab;
+    RefreshTabs();
+    return TRUE;
+}
+
+int CMFCBaseTabCtrl::RemoveTab(int index, int) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    if (index < 0 || index >= static_cast<int>(state.tabs.size())) return FALSE;
+    CWnd* page = state.tabs[index].window;
+    if (state.liveLayout && m_hWnd && page && ::GetParent(page->GetSafeHwnd()) == m_hWnd)
+        ::ShowWindow(page->GetSafeHwnd(), SW_HIDE);
+    state.tabs.erase(state.tabs.begin() + index);
+    if (state.activeTab == index) state.activeTab = FirstVisibleTab(state, index > 0 ? index - 1 : 0);
+    else if (state.activeTab > index) --state.activeTab;
+    m_iTabsNum = static_cast<int>(state.tabs.size());
+    m_iActiveTab = state.activeTab;
+    RefreshTabs();
+    return TRUE;
+}
+
+BOOL CMFCBaseTabCtrl::ShowTab(int index, BOOL show, BOOL keepActive, BOOL activate) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    if (index < 0 || index >= static_cast<int>(state.tabs.size())) return FALSE;
+    state.tabs[index].visible = show;
+    if (!show && state.activeTab == index)
+        state.activeTab = FirstVisibleTab(state, index);
+    else if (show && (state.activeTab < 0 || (activate && !keepActive)))
+        state.activeTab = index;
+    m_iActiveTab = state.activeTab;
+    RefreshTabs();
+    return TRUE;
+}
+
+void CMFCBaseTabCtrl::SetActiveTab(int index) {
+    TabCtrlState& state = EnsureTabCtrlState(this);
+    const auto* tab = TabAt(this, index);
+    state.activeTab = tab && tab->visible ? index : -1;
+    m_iActiveTab = state.activeTab;
+    RefreshTabs();
+}
+
 int CMFCBaseTabCtrl::GetActiveTab() const {
     const TabCtrlState* state = FindTabCtrlState(this);
     return state ? state->activeTab : -1;

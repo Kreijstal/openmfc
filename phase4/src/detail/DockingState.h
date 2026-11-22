@@ -40,6 +40,8 @@ struct PaneAutoHideRestore {
     bool registered = false;
     bool hidden = false;
     bool floating = false;
+    bool tabVisible = false;
+    bool tabActive = false;
 };
 
 // pThis-keyed fallback state for members that the compact public pane classes
@@ -48,6 +50,7 @@ struct PaneAutoHideRestore {
 // retail offset to a local CBasePane/CDockablePane allocation.
 struct PaneCoreState {
     CWnd* parent = nullptr;
+    HWND tabWindow = nullptr;
     CSize minSize = CSize(0, 0);
     CRect recentRect = CRect(0, 0, 0, 0);
     BOOL visible = FALSE;

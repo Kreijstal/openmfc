@@ -33,21 +33,19 @@ TABCTRL_RENDERER_LIST_DESC(CMFCAutoHideBar, 1112, 0xFFFF, &CPane::classCPane);
 TABCTRL_RENDERER_LIST_DESC(CMFCAutoHideButton, 64, 0xFFFF, &CObject::classCObject);
 #undef TABCTRL_RENDERER_LIST_DESC
 
-#define TABCTRL_RENDERER_LIST_GETTERS(Cls, GetThisSym, GetRtSym) \
-    extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
-    extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
-
-#define TABCTRL_RENDERER_LIST_GETTERS(Cls, GetThisSym, GetRtSym) \
-    extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
-    extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
 // Symbol: ?GetThisClass@CMFCBaseTabCtrl@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCBaseTabCtrl@@UEBAPEAUCRuntimeClass@@XZ
-TABCTRL_RENDERER_LIST_GETTERS(CMFCBaseTabCtrl,
-           impl__GetThisClass_CMFCBaseTabCtrl__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCBaseTabCtrl__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCBaseTabCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CMFCBaseTabCtrl::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCBaseTabCtrl__UEBAPEAUCRuntimeClass__XZ(const CMFCBaseTabCtrl*) {
+    return CMFCBaseTabCtrl::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCTabCtrl@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCTabCtrl@@UEBAPEAUCRuntimeClass@@XZ
-TABCTRL_RENDERER_LIST_GETTERS(CMFCTabCtrl,
-           impl__GetThisClass_CMFCTabCtrl__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCTabCtrl__UEBAPEAUCRuntimeClass__XZ)
-#undef TABCTRL_RENDERER_LIST_GETTERS
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCTabCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CMFCTabCtrl::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCTabCtrl__UEBAPEAUCRuntimeClass__XZ(const CMFCTabCtrl*) {
+    return CMFCTabCtrl::GetThisClass();
+}

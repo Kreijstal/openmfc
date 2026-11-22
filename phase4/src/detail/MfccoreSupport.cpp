@@ -53,7 +53,7 @@ IMPLEMENT_DYNAMIC(CMFCButton, CButton)
 IMPLEMENT_DYNAMIC(CMFCPopupMenu, CMiniFrameWnd)
 IMPLEMENT_DYNAMIC(CMFCPopupMenuBar, CMFCToolBar)
 IMPLEMENT_DYNAMIC(CMFCBaseTabCtrl, CWnd)
-IMPLEMENT_DYNAMIC(CMFCTabCtrl, CMFCBaseTabCtrl)
+IMPLEMENT_DYNCREATE(CMFCTabCtrl, CMFCBaseTabCtrl)
 void SetPropertyGridOwnerRecursive(CMFCPropertyGridProperty* pProp, CMFCPropertyGridCtrl* pOwner) {
     if (!pProp) return;
     auto& state = EnsurePropertyGridPropertyState(pProp);

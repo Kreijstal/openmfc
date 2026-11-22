@@ -312,8 +312,11 @@ namespace openmfc { namespace detail { namespace mfccore {
 struct TabEntry {
     CWnd* window = nullptr;
     std::wstring label;
-    UINT id = static_cast<UINT>(-1);
+    UINT image = static_cast<UINT>(-1);
     BOOL detachable = TRUE;
+    int id = -1;
+    BOOL visible = TRUE;
+    CRect rect{};
 };
 } } }
 
@@ -321,6 +324,13 @@ namespace openmfc { namespace detail { namespace mfccore {
 struct TabCtrlState {
     std::vector<TabEntry> tabs;
     int activeTab = -1;
+    int nextTabId = 0;
+    int location = 0;
+    BOOL hideSingleTab = FALSE;
+    BOOL hideNoTabs = FALSE;
+    bool liveLayout = false;
+    CRect strip{};
+    CRect page{};
     BOOL tabSwapEnabled = TRUE;
     int tabBorderSize = 0;
     int tabsHeight = 0;

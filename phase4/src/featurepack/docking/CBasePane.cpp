@@ -972,9 +972,7 @@ extern "C" void* MS_ABI impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWn
 //     return (CBaseTabbedPane*)p;
 // (The descriptor at RVA 0x2db168 reads "CBaseTabbedPane", m_nObjectSize 1304.)
 // Deviations: IsTabbed is called through this file's own thunk, so a derived
-// override is not seen. GetParentTabWnd's adapter-to-CBaseTabbedPane route also
-// returns NULL because its unexported slot-234 accessor is not modeled; this
-// method consequently returns NULL on that route instead of the retail pane.
+// override is not seen.
 // Symbol: ?GetParentTabbedPane@CBasePane@@QEBAPEAVCBaseTabbedPane@@XZ
 extern "C" void* MS_ABI impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(
     const CBasePane* pThis) {
@@ -1008,10 +1006,6 @@ extern "C" void* MS_ABI impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbed
 //     return r->{CBaseTabbedPane vtable slot 234}();
 // (Descriptors: 0x3aa1a8 "CDockablePaneAdapter", 0x2dba98 "CMFCBaseTabCtrl",
 // 0x2db168 "CBaseTabbedPane".)
-// Deviation: the final call is CBaseTabbedPane vtable slot 234 (+0x750), an
-// unexported accessor that hands back the tab control inside a tabbed pane.
-// OpenMFC reproduces neither that vtable nor an equivalent export, so that last
-// path returns NULL here.  Everything before it is faithful.
 // Symbol: ?GetParentTabWnd@CBasePane@@QEBAPEAVCMFCBaseTabCtrl@@AEAPEAUHWND__@@@Z
 extern "C" void* MS_ABI impl__GetParentTabWnd_CBasePane__QEBAPEAVCMFCBaseTabCtrl__AEAPEAUHWND_____Z(
     const CBasePane* pThis, HWND* phWndTab) {
@@ -1032,6 +1026,8 @@ extern "C" void* MS_ABI impl__GetParentTabWnd_CBasePane__QEBAPEAVCMFCBaseTabCtrl
             impl__GetThisClass_CMFCBaseTabCtrl__SAPEAUCRuntimeClass__XZ())) {
         return pTabCandidate;
     }
+    if (pTabCandidate && pTabCandidate->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane)))
+        return static_cast<CBaseTabbedPane*>(pTabCandidate)->GetTabs();
     return nullptr;
 }
 

@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+#include "detail/Mfc07MsgmapSupport.h"
 
 // CMFCTabCtrl exports, wave "mfc-feature-8".
 //
@@ -70,6 +71,10 @@ extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHIHK_Z(
     CMFCBaseTabCtrl* pThis, unsigned int nBitmapID, int cx, unsigned long clrTransparent);
 extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHPEAU_IMAGELIST___Z(
     CMFCBaseTabCtrl* pThis, HIMAGELIST hImageList);
+extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(const CMFCBaseTabCtrl*, CPoint&);
+extern "C" UINT impl__AFX_WM_CHANGING_ACTIVE_TAB__3IA;
+extern "C" UINT impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA;
+
 
 //=============================================================================
 // CMFCTabCtrl::DrawResizeDragRect
@@ -296,11 +301,7 @@ extern "C" HICON MS_ABI impl__GetDocumentIcon_CMFCTabCtrl__SAPEAUHICON____I_Z(
 extern "C" int MS_ABI impl__GetTabFromPoint_CMFCTabCtrl__UEBAHAEAVCPoint___Z(
     const CMFCTabCtrl* pThis, CPoint& point)
 {
-    (void)point;
-    if (!pThis) return -1;
-    // TODO(clean-room): not transcribed -- needs the tab-area rect (+0x44c)
-    // and the per-tab rect array (+0x108/+0x110); not modeled.
-    return -1;
+    return impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(pThis, point);
 }
 // Retail (0x18013b5f0): resolves the active tab window (vslot 0x430) and, when
 // the flag at +0x3d0 is set, calls ShowScrollBar(hwnd, SB_HORZ, FALSE) and
@@ -328,13 +329,9 @@ extern "C" void MS_ABI impl__HideActiveWindowHorzScrollBar_CMFCTabCtrl__QEAAXXZ(
 extern "C" void MS_ABI impl__HideNoTabs_CMFCTabCtrl__QEAAXH_Z(
     CMFCTabCtrl* pThis, int bHide)
 {
-    (void)bHide;
     if (!pThis) return;
-    if (!pThis->GetSafeHwnd()) return;
-    // TODO(clean-room): partially transcribed -- the m_bHideNoTabs flag
-    // (retail +0x3f4) has no declared member, so the change-detection and
-    // storage are skipped.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
+    EnsureTabCtrlState(pThis).hideNoTabs = bHide;
+    pThis->RecalcLayout();
 }
 // Retail (0x18013c190): early-returns when the flag at +0x1f4 already equals
 // bHide; otherwise stores it and, when m_hWnd is valid, triggers a relayout/
@@ -344,13 +341,7 @@ extern "C" void MS_ABI impl__HideNoTabs_CMFCTabCtrl__QEAAXH_Z(
 extern "C" void MS_ABI impl__HideSingleTab_CMFCTabCtrl__UEAAXH_Z(
     CMFCTabCtrl* pThis, int bHide)
 {
-    (void)bHide;
-    if (!pThis) return;
-    if (!pThis->GetSafeHwnd()) return;
-    // TODO(clean-room): partially transcribed -- the m_bHideSingleTab flag
-    // (retail +0x1f4) has no declared member, so the change-detection and
-    // storage are skipped.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
+    if (pThis) pThis->HideSingleTab(bHide);
 }
 // Retail (0x18013ce50) resolves the parent window (FromHandlePermanent of
 // GetParent(m_hWnd)) and returns whether it IsKindOf(CMDIClientAreaWnd)
@@ -496,11 +487,9 @@ impl__OnDragOver_CMFCTabCtrl__UEAAKPEAVCOleDataObject__KVCPoint___Z(
 // the whole header geometry -- none of which is modeled.
 // Symbol: ?OnDraw@CMFCTabCtrl@@UEAAXPEAVCDC@@@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCTabCtrl__UEAAXPEAVCDC___Z(
-    CMFCTabCtrl* pThis, CDC* /*pDC*/)
+    CMFCTabCtrl* pThis, CDC* pDC)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- the tab-strip painter depends on
-    // AFX_GLOBAL_DATA, CDrawingManager and the header-rect members.
+    if (pThis) pThis->DrawTabs(pDC);
 }
 // Retail (0x180139df0) returns TRUE immediately when either the +0x3e8 flag or
 // the vslot-0x358 printing query is set; otherwise it fills the client rect
@@ -547,11 +536,9 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCTabCtrl__IEAAXIVCPoint___Z(
 // the clicked tab. The rect members and capture flag are unmodeled.
 // Symbol: ?OnLButtonDown@CMFCTabCtrl@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCTabCtrl__IEAAXIVCPoint___Z(
-    CMFCTabCtrl* pThis, unsigned int /*nFlags*/, CPoint /*point*/)
+    CMFCTabCtrl* pThis, UINT flags, CPoint point)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the strip-rect (+0x42c) and
-    // drag-rect (+0x46c/+0x48c) members and the +0x3dc capture flag.
+    if (pThis) pThis->OnLButtonDown(flags, point);
 }
 // Retail (0x18013ad40) resets the capture flags (+0x3dc/+0x40c) and releases
 // the mouse capture when a capture or drag is active, then runs the
@@ -599,27 +586,163 @@ extern "C" int MS_ABI impl__OnNotify_CMFCTabCtrl__MEAAH_K_JPEA_J_Z(
         static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam),
         reinterpret_cast<LRESULT*>(pResult));
 }
-// Retail (0x180137280) constructs a CPaintDC, draws the strip via OnDraw
-// (vslot 0x5c0) and lets the paint DC end the paint. The OnDraw virtual is
-// unmodeled, so the conservative version keeps only the BeginPaint/EndPaint
-// bracket that validates the update region (preventing repaint loops).
 // Symbol: ?OnPaint@CMFCTabCtrl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnPaint_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
 {
-    if (!pThis) return;
-    HWND hWnd = pThis->GetSafeHwnd();
-    if (!hWnd) return;
-    PAINTSTRUCT ps;
-    HDC hdc = ::BeginPaint(hWnd, &ps);
-    (void)hdc;
-    // TODO(clean-room): partially transcribed -- retail calls the OnDraw
-    // virtual (vslot 0x5c0) to paint the tabs; not modeled.
-    ::EndPaint(hWnd, &ps);
+    if (pThis) pThis->OnPaint();
 }
-CMFCTabCtrl::CMFCTabCtrl() {
-    memset(_mfctabctrl_padding, 0, sizeof(_mfctabctrl_padding));
+static_assert(sizeof(CMFCTabCtrl) == 0x3d68);
+
+CMFCTabCtrl::CMFCTabCtrl() = default;
+
+CMFCTabCtrl::~CMFCTabCtrl() {
+    if (m_hWnd) DestroyWindow();
 }
-CMFCTabCtrl::~CMFCTabCtrl() {}
+
+const AFX_MSGMAP* AFXAPI CMFCTabCtrl::GetThisMessageMap() {
+    return &openmfc::detail::mfc07msgmap::classCMFCTabCtrl_msgmap;
+}
+
+const AFX_MSGMAP* CMFCTabCtrl::GetMessageMap() const {
+    return GetThisMessageMap();
+}
+
+BOOL CMFCTabCtrl::CreateTabs(int, const RECT& rect, CWnd* parent, UINT id, int location, BOOL) {
+    if (m_hWnd || !parent || !parent->GetSafeHwnd()) return FALSE;
+    SetLocation(location);
+    if (!CMFCBaseTabCtrl::Create(WS_VISIBLE | WS_CLIPSIBLINGS, rect, parent, id)) return FALSE;
+    EnsureTabCtrlState(this).liveLayout = true;
+    RecalcLayout();
+    return TRUE;
+}
+
+void CMFCTabCtrl::RecalcLayout() {
+    if (!m_hWnd) return;
+    auto& state = EnsureTabCtrlState(this);
+    RECT client{};
+    if (!::GetClientRect(m_hWnd, &client)) return;
+
+    const int inset = (std::clamp)(state.tabBorderSize, 0,
+        static_cast<int>((std::min)(client.right, client.bottom)) / 2);
+    ::InflateRect(&client, -inset, -inset);
+    const int count = static_cast<int>(std::count_if(state.tabs.begin(), state.tabs.end(),
+        [](const TabEntry& tab) { return tab.visible != FALSE; }));
+    int height = state.tabsHeight > 0 ? state.tabsHeight : ::GetSystemMetrics(SM_CYSMCAPTION) + 7;
+    height = (std::min)(height, static_cast<int>(client.bottom - client.top));
+    if ((state.hideNoTabs && count == 0) || (state.hideSingleTab && count <= 1)) height = 0;
+
+    state.page = CRect(client);
+    state.strip = CRect(client);
+    if (state.location == 1) {
+        state.page.top += height;
+        state.strip.bottom = state.page.top;
+    } else {
+        state.page.bottom -= height;
+        state.strip.top = state.page.bottom;
+    }
+    const CRect page = state.page;
+    const HWND control = m_hWnd;
+
+    const HDC dc = ::GetDC(control);
+    const auto font = dc ? ::SelectObject(dc, ::GetStockObject(DEFAULT_GUI_FONT)) : nullptr;
+    int x = state.strip.left;
+    int remaining = count;
+    std::vector<std::pair<HWND, BOOL>> windows;
+    for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
+        auto& tab = state.tabs[i];
+        tab.rect.SetRectEmpty();
+        if (height > 0 && tab.visible) {
+            SIZE text{};
+            if (dc) ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
+            const int space = state.strip.right - x;
+            const int wanted = (std::max)(32, static_cast<int>(text.cx) + 20);
+            const int width = (std::min)(wanted, space - (std::min)(space / 2, remaining - 1));
+            tab.rect.SetRect(x, state.strip.top, x + width, state.strip.bottom);
+            x += width;
+            --remaining;
+        }
+        if (tab.window && tab.window->GetSafeHwnd())
+            windows.emplace_back(tab.window->GetSafeHwnd(), tab.visible && state.activeTab == i);
+    }
+    if (dc) {
+        if (font) ::SelectObject(dc, font);
+        ::ReleaseDC(control, dc);
+    }
+    for (const auto& [window, show] : windows) {
+        if (CWnd::FromHandlePermanent(control) != this) return;
+        if (::GetParent(window) != control) continue;
+        ::SetWindowPos(window, nullptr, page.left, page.top, page.Width(), page.Height(),
+            SWP_NOACTIVATE | SWP_NOZORDER | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
+    }
+    ::InvalidateRect(control, nullptr, FALSE);
+}
+
+BOOL CMFCTabCtrl::ActivateTab(int index) {
+    const auto* state = FindTabCtrlState(this);
+    if (!state || index < 0 || index >= static_cast<int>(state->tabs.size()) || !state->tabs[index].visible)
+        return FALSE;
+    if (state->activeTab == index) return TRUE;
+    const HWND control = m_hWnd;
+    const HWND parent = control ? ::GetParent(control) : nullptr;
+    const int id = state->tabs[index].id;
+    if (parent && ::SendMessageW(parent, impl__AFX_WM_CHANGING_ACTIVE_TAB__3IA,
+            index, reinterpret_cast<LPARAM>(this))) return FALSE;
+    if (control && CWnd::FromHandlePermanent(control) != this) return FALSE;
+    state = FindTabCtrlState(this);
+    if (!state || index >= static_cast<int>(state->tabs.size()) || state->tabs[index].id != id ||
+        !state->tabs[index].visible) return FALSE;
+    SetActiveTab(index);
+    if (parent && CWnd::FromHandlePermanent(control) == this)
+        ::SendMessageW(parent, impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA, index, reinterpret_cast<LPARAM>(this));
+    return TRUE;
+}
+
+void CMFCTabCtrl::DrawTabs(CDC* dc) {
+    const auto* state = FindTabCtrlState(this);
+    const HDC handle = dc ? dc->GetSafeHdc() : nullptr;
+    if (!handle || !state) return;
+    RECT client{};
+    ::GetClientRect(m_hWnd, &client);
+    ::FillRect(handle, &client, ::GetSysColorBrush(COLOR_BTNFACE));
+    auto* visualManager = CMFCVisualManager::GetInstance();
+    const int saved = ::SaveDC(handle);
+    ::SelectObject(handle, ::GetStockObject(DEFAULT_GUI_FONT));
+    ::SetBkMode(handle, TRANSPARENT);
+    ::SetTextColor(handle, ::GetSysColor(COLOR_BTNTEXT));
+    for (int i = 0; i < static_cast<int>(state->tabs.size()); ++i) {
+        const auto& tab = state->tabs[i];
+        if (!tab.visible || tab.rect.IsRectEmpty()) continue;
+        visualManager->OnDrawTab(dc, tab.rect, i, state->activeTab == i, this);
+        CRect text = tab.rect;
+        text.DeflateRect(6, 0);
+        ::DrawTextW(handle, tab.label.c_str(), static_cast<int>(tab.label.size()), text,
+            DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
+    }
+    if (saved) ::RestoreDC(handle, saved);
+}
+
+void CMFCTabCtrl::OnPaint() {
+    CPaintDC dc(this);
+    DrawTabs(&dc);
+}
+
+void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
+    const int index = impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(this, point);
+    if (index >= 0) {
+        const HWND control = m_hWnd;
+        if (ActivateTab(index) && CWnd::FromHandlePermanent(control) == this) {
+            if (auto* page = GetTabWnd(GetActiveTab()); page && ::IsWindowVisible(page->GetSafeHwnd()))
+                ::SetFocus(page->GetSafeHwnd());
+        }
+    } else {
+        Default();
+    }
+}
+
+void CMFCTabCtrl::OnSize(UINT, int, int) {
+    Default();
+    if (const auto* state = FindTabCtrlState(this); state && state->liveLayout) RecalcLayout();
+}
 void CMFCTabCtrl::EnableTabSwap(BOOL bEnable) {
     TabCtrlState& state = EnsureTabCtrlState(this);
     state.tabSwapEnabled = bEnable != FALSE;
@@ -627,10 +750,12 @@ void CMFCTabCtrl::EnableTabSwap(BOOL bEnable) {
 void CMFCTabCtrl::SetTabBorderSize(int nTabBorderSize) {
     TabCtrlState& state = EnsureTabCtrlState(this);
     state.tabBorderSize = nTabBorderSize;
+    RefreshTabs();
 }
 void CMFCTabCtrl::SetTabsHeight(int nTabHeight) {
     TabCtrlState& state = EnsureTabCtrlState(this);
     state.tabsHeight = nTabHeight;
+    RefreshTabs();
 }
 // Stub placeholder for the static CMap<UINT, UINT, HICON, HICON> export. No
 // retail-compatible map storage is available in this implementation.
@@ -651,7 +776,7 @@ extern "C" void MS_ABI impl__ActivateMDITab_CMFCTabCtrl__QEAAXH_Z(
 // Symbol: ?AdjustTabs@CMFCTabCtrl@@MEAAXXZ
 extern "C" void MS_ABI impl__AdjustTabs_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* pThis)
 {
-    (void)pThis;
+    if (pThis) pThis->RecalcLayout();
 }
 
 // STUB: Retail RVA 0x13af90 (mfc140 ANSI twin) updates the strip scroll
@@ -677,9 +802,7 @@ extern "C" int MS_ABI impl__Create_CMFCTabCtrl__QEAAHW4Style_1_AEBUtagRECT__PEAV
     CMFCTabCtrl* pThis, int style, const RECT* pRect, CWnd* pParentWnd,
     unsigned int nID, int location, int bCloseBtn)
 {
-    (void)pThis; (void)style; (void)pRect; (void)pParentWnd;
-    (void)nID; (void)location; (void)bCloseBtn;
-    return FALSE;
+    return pThis && pRect && pThis->CreateTabs(style, *pRect, pParentWnd, nID, location, bCloseBtn);
 }
 
 // STUB: Retail RVA 0x139f70 (mfc140 ANSI twin) checks style/rectangle
@@ -762,11 +885,7 @@ extern "C" void MS_ABI impl__OnShowTabDocumentsMenu_CMFCTabCtrl__UEAAXVCPoint___
 extern "C" void MS_ABI impl__OnSize_CMFCTabCtrl__IEAAXIHH_Z(
     CMFCTabCtrl* pThis, unsigned int nType, int cx, int cy)
 {
-    (void)nType; (void)cx; (void)cy;
-    if (!pThis) return;
-    (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(pThis));
-    // TODO(clean-room): the subsequent sizing, field updates and scrollbar
-    // synchronization require the retail geometry members, which are absent.
+    if (pThis) pThis->OnSize(nType, cx, cy);
 }
 
 // Retail RVA 0x13c0c0 (mfc140 ANSI twin) calls the base tab handler and then
@@ -835,7 +954,7 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCTabCtrl__UEAAHPEAUtagMSG___Z
 // Symbol: ?RecalcLayout@CMFCTabCtrl@@UEAAXXZ
 extern "C" void MS_ABI impl__RecalcLayout_CMFCTabCtrl__UEAAXXZ(CMFCTabCtrl* pThis)
 {
-    (void)pThis;
+    if (pThis) pThis->RecalcLayout();
 }
 
 // STUB: Retail RVA 0x13cc20 (mfc140 ANSI twin) repositions internal buttons
@@ -854,8 +973,7 @@ extern "C" void MS_ABI impl__ReposButtons_CMFCTabCtrl__IEAAXVCPoint__VCSize__HH_
 extern "C" int MS_ABI impl__SetActiveTab_CMFCTabCtrl__UEAAHH_Z(
     CMFCTabCtrl* pThis, int iTab)
 {
-    (void)pThis; (void)iTab;
-    return FALSE;
+    return pThis && pThis->ActivateTab(iTab);
 }
 
 // STUB: Retail RVA 0x13cdd0 (mfc140 ANSI twin) stores the bold-font flag at

@@ -12,7 +12,13 @@ const AFX_MSGMAP* AFXAPI gbm_CBasePane() { return impl__GetThisMessageMap_CWnd__
 const AFX_MSGMAP* AFXAPI gbm_CDockablePane() { return impl__GetThisMessageMap_CPane__KAPEBUAFX_MSGMAP__XZ(); }
 const AFX_MSGMAP classCAutoHideDockSite_msgmap = { gbm_CAutoHideDockSite, g_emptyMsgEntries_Pane15Msgmap };
 const AFX_MSGMAP classCBasePane_msgmap = { gbm_CBasePane, g_emptyMsgEntries_Pane15Msgmap };
-const AFX_MSGMAP classCBaseTabbedPane_msgmap = { gbm_CBaseTabbedPane, g_emptyMsgEntries_Pane15Msgmap };
+namespace {
+const AFX_MSGMAP_ENTRY baseTabbedPaneEntries[] = {
+    OPENMFC_MAP_ENTRY(WM_SIZE, 0, 0, 0, AfxSig_v_u_ii, &CBaseTabbedPane::OnSize)
+    {0, 0, 0, 0, AfxSig_end, nullptr}
+};
+}
+const AFX_MSGMAP classCBaseTabbedPane_msgmap = { gbm_CBaseTabbedPane, baseTabbedPaneEntries };
 const AFX_MSGMAP classCDockSite_msgmap = { gbm_CDockSite, g_emptyMsgEntries_Pane15Msgmap };
 namespace {
 using ThisClass = CDockablePane;

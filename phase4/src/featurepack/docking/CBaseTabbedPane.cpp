@@ -4,9 +4,10 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+#include "detail/Pane15MsgmapSupport.h"
+#include <utility>
 
-static_assert(sizeof(CBaseTabbedPane) == 0x4d8,
-              "preserve the existing compact CBaseTabbedPane allocation");
+static_assert(sizeof(CBaseTabbedPane) == 0x518);
 
 // The existing thunk calls the virtual CanFloat method on this object.
 extern "C" int MS_ABI impl__CanFloat_CBasePane__UEBAHXZ(const CBasePane* pThis);
@@ -19,29 +20,115 @@ extern "C" void MS_ABI impl__OnSize_CBasePane__IEAAXIHH_Z(
 extern "C" void MS_ABI impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(
     CDockablePane* pThis, CArchive& archive);
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(CDockablePane* pThis);
+extern "C" int MS_ABI impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(const CMFCBaseTabCtrl*, HWND);
+extern "C" int MS_ABI impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl*, int);
+
+namespace {
+void RecordTabMembership(CWnd* window, CWnd* parent, BOOL tabbed) {
+    if (!window->IsKindOf(RUNTIME_CLASS(CDockablePane))) return;
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+    auto& state = g_paneCoreState_Mfccore[window];
+    state.tabbed = tabbed;
+    state.tabWindow = tabbed && parent ? parent->m_hWnd : nullptr;
+    state.parent = parent;
+}
+}
+
 
 // Symbol: ??0CBaseTabbedPane@@QEAA@H@Z
 extern "C" void* MS_ABI impl___0CBaseTabbedPane__QEAA_H_Z(void* pThis, int iStyle) { return new (pThis) CBaseTabbedPane(iStyle); }
 // Symbol: ??1CBaseTabbedPane@@UEAA@XZ
 extern "C" void MS_ABI impl___1CBaseTabbedPane__UEAA_XZ(CBaseTabbedPane* pThis) { if (pThis) pThis->~CBaseTabbedPane(); }
-CBaseTabbedPane::CBaseTabbedPane(int iStyle) {
-    // Retail m_pTabWnd (+0x4e8) and m_arDefaultTabsOrder (+0x4f0) exceed this
-    // local 0x4d8-byte object. Their semantic fields are held in PaneCoreState;
-    // this constructor does not construct retail's in-object CArray storage.
-    memset(_basetabbedpane_padding, 0, sizeof(_basetabbedpane_padding));
-    (void)iStyle;
+CBaseTabbedPane::CBaseTabbedPane(int) {
+    static_assert(offsetof(CBaseTabbedPane, m_bAutoDestroy) == 0x4e0);
+    static_assert(offsetof(CBaseTabbedPane, m_pTabWnd) == 0x4e8);
 }
-CBaseTabbedPane::~CBaseTabbedPane() {}
 
-// STUB: retail RVA 0x131a0 (mfc140u) reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
+CBaseTabbedPane::~CBaseTabbedPane() {
+    m_bAutoDestroy = FALSE;
+    if (m_hWnd) DestroyWindow();
+    delete m_pTabWnd;
+}
+
+const AFX_MSGMAP* AFXAPI CBaseTabbedPane::GetThisMessageMap() {
+    return &openmfc::detail::pane15msgmap::classCBaseTabbedPane_msgmap;
+}
+
+const AFX_MSGMAP* CBaseTabbedPane::GetMessageMap() const {
+    return GetThisMessageMap();
+}
+
+void CBaseTabbedPane::PostNcDestroy() {
+    CDockablePane::PostNcDestroy();
+    delete std::exchange(m_pTabWnd, nullptr);
+    if (m_bAutoDestroy) delete this;
+}
+
+void CBaseTabbedPane::OnSize(UINT, int, int) {
+    Default();
+    RecalcLayout();
+}
+
+void CBaseTabbedPane::RecalcLayout() {
+    if (!m_pTabWnd || !m_pTabWnd->m_hWnd) return;
+    RECT client{};
+    ::GetClientRect(m_hWnd, &client);
+    ::SetWindowPos(m_pTabWnd->m_hWnd, nullptr, 0, 0, client.right, client.bottom,
+        SWP_NOACTIVATE | SWP_NOZORDER);
+}
+
+BOOL CBaseTabbedPane::AddTab(CWnd* window, BOOL visible, BOOL activate, BOOL detachable) {
+    if (!m_pTabWnd || !m_pTabWnd->m_hWnd || !window || window == this || !window->m_hWnd) return FALSE;
+    const int existing = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(m_pTabWnd, window->m_hWnd);
+    if (existing >= 0) return ShowTab(window, visible, activate);
+    const HWND oldParent = ::GetParent(window->m_hWnd);
+    if (oldParent != m_pTabWnd->m_hWnd) {
+        ::SetLastError(ERROR_SUCCESS);
+        if (!::SetParent(window->m_hWnd, m_pTabWnd->m_hWnd) && ::GetLastError() != ERROR_SUCCESS) return FALSE;
+    }
+    const int index = m_pTabWnd->GetTabsCount();
+    if (!m_pTabWnd->InsertTab(window, nullptr, index, static_cast<UINT>(-1), detachable)) {
+        if (oldParent != m_pTabWnd->m_hWnd) ::SetParent(window->m_hWnd, oldParent);
+        return FALSE;
+    }
+    RecordTabMembership(window, m_pTabWnd, TRUE);
+    m_pTabWnd->ShowTab(index, visible, TRUE, FALSE);
+    if (visible && activate) m_pTabWnd->ActivateTab(index);
+    return TRUE;
+}
+
+BOOL CBaseTabbedPane::RemovePane(CWnd* window) {
+    if (!m_pTabWnd || !window || !window->m_hWnd) return FALSE;
+    const int index = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(m_pTabWnd, window->m_hWnd);
+    if (!m_pTabWnd->RemoveTab(index)) return FALSE;
+    if (::GetParent(window->m_hWnd) == m_pTabWnd->m_hWnd) {
+        const HWND parent = ::GetParent(m_hWnd);
+        RECT bounds{};
+        ::GetWindowRect(window->m_hWnd, &bounds);
+        ::MapWindowPoints(nullptr, parent, reinterpret_cast<POINT*>(&bounds), 2);
+        ::SetParent(window->m_hWnd, parent);
+        ::SetWindowPos(window->m_hWnd, nullptr, bounds.left, bounds.top, bounds.right - bounds.left,
+            bounds.bottom - bounds.top, SWP_NOACTIVATE | SWP_NOZORDER);
+        RecordTabMembership(window, static_cast<CWnd*>(CWnd::FromHandlePermanent(parent)), FALSE);
+    }
+    return TRUE;
+}
+
+BOOL CBaseTabbedPane::ShowTab(CWnd* window, BOOL show, BOOL activate) {
+    if (!m_pTabWnd || !window || !window->m_hWnd) return FALSE;
+    const int index = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(m_pTabWnd, window->m_hWnd);
+    if (!m_pTabWnd->ShowTab(index, show, TRUE, FALSE)) return FALSE;
+    if (show && activate) m_pTabWnd->ActivateTab(index);
+    return TRUE;
+}
+
 // Symbol: ?AddTab@CBaseTabbedPane@@UEAAHPEAVCWnd@@HHH@Z
 extern "C" int MS_ABI impl__AddTab_CBaseTabbedPane__UEAAHPEAVCWnd__HHH_Z(
     CBaseTabbedPane* pThis, CWnd* pNewBar, int bVisible, int bSetActive, int bDetachable) {
-    (void)pThis; (void)pNewBar; (void)bVisible; (void)bSetActive; (void)bDetachable;
-    return 0;
+    return pThis && pThis->AddTab(pNewBar, bVisible, bSetActive, bDetachable);
 }
 
-// STUB: retail RVA 0x14060 (mfc140u) reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
+// STUB: retail RVA 0x14060.
 // Symbol: ?ApplyRestoredTabInfo@CBaseTabbedPane@@UEAAXH@Z
 extern "C" void MS_ABI impl__ApplyRestoredTabInfo_CBaseTabbedPane__UEAAXH_Z(
     CBaseTabbedPane* pThis, int bUseTabIndexes) {
@@ -54,22 +141,22 @@ extern "C" int MS_ABI impl__CanFloat_CBaseTabbedPane__UEBAHXZ(const CBaseTabbedP
     return impl__CanFloat_CBasePane__UEBAHXZ(static_cast<const CBasePane*>(pThis));
 }
 
-// STUB: retail RVA 0x14cf0 (mfc140u) reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
+// STUB: retail RVA 0x14cf0.
 // Symbol: ?ConvertToTabbedDocument@CBaseTabbedPane@@UEAAXH@Z
 extern "C" void MS_ABI impl__ConvertToTabbedDocument_CBaseTabbedPane__UEAAXH_Z(
     CBaseTabbedPane* pThis, int bActiveTabOnly) {
     (void)pThis; (void)bActiveTabOnly;
 }
 
-// STUB: retail RVA 0x136d0 (mfc140u) dispatches through m_pTabWnd at +0x4e8; this declaration has no pinned member there.
 // Symbol: ?DetachPane@CBaseTabbedPane@@UEAAHPEAVCWnd@@H@Z
 extern "C" int MS_ABI impl__DetachPane_CBaseTabbedPane__UEAAHPEAVCWnd__H_Z(
     CBaseTabbedPane* pThis, CWnd* pBar, int bHide) {
-    (void)pThis; (void)pBar; (void)bHide;
-    return 0;
+    if (!pThis || !pThis->RemovePane(pBar)) return FALSE;
+    ::ShowWindow(pBar->m_hWnd, bHide ? SW_HIDE : SW_SHOWNOACTIVATE);
+    return TRUE;
 }
 
-// STUB: retail RVA 0x147b0 (mfc140u) reads m_pTabWnd at +0x4e8 and performs tab-control virtual dispatches; the field layout is not modeled here.
+// STUB: retail RVA 0x147b0.
 // Symbol: ?Dock@CBaseTabbedPane@@MEAAHPEAVCBasePane@@PEBUtagRECT@@W4AFX_DOCK_METHOD@@@Z
 extern "C" int MS_ABI impl__Dock_CBaseTabbedPane__MEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
     CBaseTabbedPane* pThis, CBasePane* pTargetBar, const RECT* pRect, int dockMethod) {
@@ -77,29 +164,33 @@ extern "C" int MS_ABI impl__Dock_CBaseTabbedPane__MEAAHPEAVCBasePane__PEBUtagREC
     return 0;
 }
 
-// STUB: retail RVA 0x14b10 (mfc140u) reads m_pTabWnd at +0x4e8 and the CArray at +0x4f0. The fields exist in PaneCoreState, but safe synchronized lookup adds std::__throw_system_error rejected by checkfile.sh; the existing GetTabID thunk also returns -1 for valid indices, leaving no complete safe C-ABI path here.
+// STUB: retail RVA 0x14b10 stores tab IDs in m_arDefaultTabsOrder.
 // Symbol: ?FillDefaultTabsOrderArray@CBaseTabbedPane@@QEAAXXZ
 extern "C" void MS_ABI impl__FillDefaultTabsOrderArray_CBaseTabbedPane__QEAAXXZ(CBaseTabbedPane* pThis) {
     (void)pThis;
 }
 
-// STUB: retail RVA 0x13610 (mfc140u) reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
 // Symbol: ?FindBarByTabNumber@CBaseTabbedPane@@UEAAPEAVCWnd@@HH@Z
 extern "C" CWnd* MS_ABI impl__FindBarByTabNumber_CBaseTabbedPane__UEAAPEAVCWnd__HH_Z(
     CBaseTabbedPane* pThis, int nTabNum, int bGetWrappedBar) {
-    (void)pThis; (void)nTabNum; (void)bGetWrappedBar;
-    return nullptr;
+    (void)bGetWrappedBar;
+    return pThis && pThis->GetTabs() ? pThis->GetTabs()->GetTabWnd(nTabNum) : nullptr;
 }
 
-// STUB: retail RVA 0x13590 (mfc140u) reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
 // Symbol: ?FindPaneByID@CBaseTabbedPane@@UEAAPEAVCWnd@@I@Z
 extern "C" CWnd* MS_ABI impl__FindPaneByID_CBaseTabbedPane__UEAAPEAVCWnd__I_Z(
     CBaseTabbedPane* pThis, unsigned int uBarID) {
-    (void)pThis; (void)uBarID;
+    auto* tabs = pThis ? pThis->GetTabs() : nullptr;
+    if (!tabs) return nullptr;
+    for (int i = 0; i < tabs->GetTabsCount(); ++i) {
+        auto* pane = tabs->GetTabWnd(i);
+        if (pane && pane->m_hWnd && static_cast<UINT>(::GetDlgCtrlID(pane->m_hWnd)) == uBarID)
+            return pane;
+    }
     return nullptr;
 }
 
-// STUB: retail RVA 0x13c30 (mfc140u) reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
+// STUB: retail RVA 0x13c30.
 // Symbol: ?FloatPane@CBaseTabbedPane@@MEAAHVCRect@@W4AFX_DOCK_METHOD@@_N@Z
 extern "C" int MS_ABI impl__FloatPane_CBaseTabbedPane__MEAAHVCRect__W4AFX_DOCK_METHOD___N_Z(
     CBaseTabbedPane* pThis, const CRect* rectFloat, int dockMethod, bool bShow) {
@@ -107,7 +198,7 @@ extern "C" int MS_ABI impl__FloatPane_CBaseTabbedPane__MEAAHVCRect__W4AFX_DOCK_M
     return 0;
 }
 
-// STUB: retail RVA 0x13950 (mfc140u) reads m_pTabWnd at +0x4e8 and performs tab-control virtual dispatches; the field layout is not modeled here.
+// STUB: retail RVA 0x13950.
 // Symbol: ?FloatTab@CBaseTabbedPane@@UEAAHPEAVCWnd@@HW4AFX_DOCK_METHOD@@H@Z
 extern "C" int MS_ABI impl__FloatTab_CBaseTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK_METHOD__H_Z(
     CBaseTabbedPane* pThis, CWnd* pBar, int nTabID, int dockMethod, int bHide) {
@@ -115,22 +206,29 @@ extern "C" int MS_ABI impl__FloatTab_CBaseTabbedPane__UEAAHPEAVCWnd__HW4AFX_DOCK
     return 0;
 }
 
-// STUB: retail RVA 0x145d0 (mfc140u) reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
 // Symbol: ?GetFirstVisibleTab@CBaseTabbedPane@@UEAAPEAVCWnd@@AEAH@Z
 extern "C" CWnd* MS_ABI impl__GetFirstVisibleTab_CBaseTabbedPane__UEAAPEAVCWnd__AEAH_Z(
     CBaseTabbedPane* pThis, int* pTabNumber) {
-    (void)pThis; (void)pTabNumber;
+    if (pTabNumber) *pTabNumber = -1;
+    auto* tabs = pThis ? pThis->GetTabs() : nullptr;
+    if (!tabs) return nullptr;
+    for (int i = 0; i < tabs->GetTabsCount(); ++i) {
+        if (impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(tabs, i)) {
+            if (pTabNumber) *pTabNumber = i;
+            return tabs->GetTabWnd(i);
+        }
+    }
     return nullptr;
 }
 
-// STUB: retail RVA 0x14ba0 (mfc140u) conditionally reads m_pTabWnd at +0x4e8; this declaration has no pinned member there.
+// STUB: retail RVA 0x14ba0.
 // Symbol: ?GetMinSize@CBaseTabbedPane@@UEBAXAEAVCSize@@@Z
 extern "C" void MS_ABI impl__GetMinSize_CBaseTabbedPane__UEBAXAEAVCSize___Z(
     const CBaseTabbedPane* pThis, CSize* pSize) {
     (void)pThis; (void)pSize;
 }
 
-// STUB: at retail RVA 0x14600 (mfc140u), passes the inherited HWND at +0x40 to an indirect helper and tests its result; the null-result path then reads m_pTabWnd at +0x4e8, which is not modeled here.
+// STUB: at retail RVA 0x14600.
 // Symbol: ?GetPaneIcon@CBaseTabbedPane@@UEAAPEAUHICON__@@H@Z
 extern "C" HICON MS_ABI impl__GetPaneIcon_CBaseTabbedPane__UEAAPEAUHICON____H_Z(
     CBaseTabbedPane* pThis, int bBigIcon) {
@@ -138,11 +236,15 @@ extern "C" HICON MS_ABI impl__GetPaneIcon_CBaseTabbedPane__UEAAPEAUHICON____H_Z(
     return nullptr;
 }
 
-// STUB: retail RVA 0x14c30 (mfc140u) enumerates tab contents through m_pTabWnd at +0x4e8; this declaration has no pinned member there.
 // Symbol: ?GetPaneList@CBaseTabbedPane@@UEAAXAEAVCObList@@PEAUCRuntimeClass@@@Z
 extern "C" void MS_ABI impl__GetPaneList_CBaseTabbedPane__UEAAXAEAVCObList__PEAUCRuntimeClass___Z(
     CBaseTabbedPane* pThis, CObList* pList, CRuntimeClass* pRTCFilter) {
-    (void)pThis; (void)pList; (void)pRTCFilter;
+    auto* tabs = pThis ? pThis->GetTabs() : nullptr;
+    if (!tabs || !pList) return;
+    for (int i = 0; i < tabs->GetTabsCount(); ++i) {
+        auto* pane = tabs->GetTabWnd(i);
+        if (pane && (!pRTCFilter || pane->IsKindOf(pRTCFilter))) pList->AddTail(pane);
+    }
 }
 
 // STUB: retail RVA 0x13d10 (mfc140u) parses CArchive's internal buffer and mutates the CList through a private helper; no verified typed archive/list path is available in this file.
@@ -152,7 +254,7 @@ extern "C" void MS_ABI impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive
     (void)archive; (void)barIDs;
 }
 
-// STUB: retail RVA 0x13ee0 (mfc140u) builds tab order and iterates m_pTabWnd at +0x4e8; this declaration has no pinned member there.
+// STUB: retail RVA 0x13ee0.
 // Symbol: ?LoadState@CBaseTabbedPane@@MEAAHPEB_WHI@Z
 extern "C" int MS_ABI impl__LoadState_CBaseTabbedPane__MEAAHPEB_WHI_Z(
     CBaseTabbedPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
@@ -160,7 +262,7 @@ extern "C" int MS_ABI impl__LoadState_CBaseTabbedPane__MEAAHPEB_WHI_Z(
     return 0;
 }
 
-// STUB: retail RVA 0x14680 (mfc140u) uses m_pTabWnd at +0x4e8 and other tabbed-pane state not represented by the public declaration.
+// STUB: retail RVA 0x14680.
 // Symbol: ?OnChangeActiveTab@CBaseTabbedPane@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnChangeActiveTab_CBaseTabbedPane__IEAA_J_K_J_Z(
     CBaseTabbedPane* pThis, unsigned __int64 wParam, __int64 lParam) {
@@ -176,11 +278,8 @@ extern "C" int MS_ABI impl__OnEraseBkgnd_CBaseTabbedPane__IEAAHPEAVCDC___Z(
     return 0;
 }
 
-// OpenMFC approximation from the mfc140.dll ANSI-twin entry RVA 0x13110:
-// preserve CPane cleanup. Retail first destroys m_pTabWnd, then calls
-// CPane::OnNcDestroy, and dispatches scalar-deleting-destructor slot 1 when
-// m_bAutoDestroy (+0x4e0) is set. The tab pointer is side-table state and the
-// auto-destroy flag is not modeled, so those two retail actions are omitted.
+// CWnd::OnNcDestroy invokes PostNcDestroy after detaching the HWND. The
+// tab control and any window-owned pane are released there.
 // Symbol: ?OnNcDestroy@CBaseTabbedPane@@IEAAXXZ
 extern "C" void MS_ABI impl__OnNcDestroy_CBaseTabbedPane__IEAAXXZ(CBaseTabbedPane* pThis) {
     if (pThis) impl__OnNcDestroy_CPane__IEAAXXZ(static_cast<CPane*>(pThis));
@@ -200,43 +299,26 @@ extern "C" void MS_ABI impl__OnSetFocus_CBaseTabbedPane__IEAAXPEAVCWnd___Z(
     }
 }
 
-// OpenMFC approximation from mfc140.dll ANSI-twin entry RVA 0x13060:
-// retain CBasePane::OnSize. Retail then calls private vslot +0x750 to get the
-// tab control and sizes it from the pane's client rectangle; that accessor is
-// not modeled in OpenMFC.
 // Symbol: ?OnSize@CBaseTabbedPane@@IEAAXIHH@Z
 extern "C" void MS_ABI impl__OnSize_CBaseTabbedPane__IEAAXIHH_Z(
     CBaseTabbedPane* pThis, unsigned int nType, int cx, int cy) {
-    if (pThis) {
-        impl__OnSize_CBasePane__IEAAXIHH_Z(
-            static_cast<CBasePane*>(pThis), nType, cx, cy);
-    }
+    if (pThis) pThis->OnSize(nType, cx, cy);
 }
 
-// OpenMFC approximation from the mfc140.dll ANSI-twin entry RVA 0x14060:
-// retain the CPane::RecalcLayout call. Retail then dispatches CMFCTabCtrl
-// vslot +0x318 when m_pTabWnd (+0x4e8) is non-null; that side-table state
-// cannot be read here without adding a C++ runtime symbol rejected by the
-// per-file link audit, so the tab-control branch is omitted.
 // Symbol: ?RecalcLayout@CBaseTabbedPane@@UEAAXXZ
 extern "C" void MS_ABI impl__RecalcLayout_CBaseTabbedPane__UEAAXXZ(CBaseTabbedPane* pThis) {
-    if (pThis) impl__RecalcLayout_CPane__UEAAXXZ(static_cast<CPane*>(pThis));
+    if (pThis) pThis->RecalcLayout();
 }
 
-// STUB: the mfc140.dll ANSI-twin entry RVA 0x13710 reads m_pTabWnd (+0x4e8),
-// removes a tab by virtual dispatch, then performs further pane/tab-control
-// virtual calls. The side-table tab pointer and required operations have no
-// safe C-ABI access path in this file.
 // Symbol: ?RemovePane@CBaseTabbedPane@@UEAAHPEAVCWnd@@@Z
 extern "C" int MS_ABI impl__RemovePane_CBaseTabbedPane__UEAAHPEAVCWnd___Z(
     CBaseTabbedPane* pThis, CWnd* pBar) {
-    (void)pThis; (void)pBar;
-    return 0;
+    return pThis && pThis->RemovePane(pBar);
 }
 
 // STUB: the mfc140.dll ANSI-twin entry RVA 0x13d90 writes a tab count and
 // per-tab IDs through CArchive's internal buffer, using m_pTabWnd (+0x4e8).
-// Neither the tab list nor a verified typed archive path is available here.
+// The archive format remains unimplemented.
 // Symbol: ?SaveSiblingBarIDs@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
     CBaseTabbedPane* pThis, CArchive& archive) {
@@ -285,14 +367,11 @@ extern "C" CMFCAutoHideBar* MS_ABI impl__SetAutoHideMode_CBaseTabbedPane__UEAAPE
     return nullptr;
 }
 
-// STUB: the mfc140.dll ANSI-twin entry RVA 0x13850 uses m_pTabWnd (+0x4e8)
-// for tab-index lookup, visibility/activation updates, and pane notifications.
-// Its required tab-control state and virtual operations are unavailable here.
 // Symbol: ?ShowTab@CBaseTabbedPane@@UEAAHPEAVCWnd@@HHH@Z
 extern "C" int MS_ABI impl__ShowTab_CBaseTabbedPane__UEAAHPEAVCWnd__HHH_Z(
     CBaseTabbedPane* pThis, CWnd* pBar, int bShow, int bDelay, int bActivate) {
-    (void)pThis; (void)pBar; (void)bShow; (void)bDelay; (void)bActivate;
-    return 0;
+    (void)bDelay;
+    return pThis && pThis->ShowTab(pBar, bShow, bActivate);
 }
 
 // OpenMFC approximation from the mfc140.dll ANSI-twin entry RVA 0x13b70:
