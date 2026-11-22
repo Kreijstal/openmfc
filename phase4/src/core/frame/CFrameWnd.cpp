@@ -43,11 +43,6 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFrameWnd__KAPEBUAFX
 extern "C" int MS_ABI impl__OnCommand_CFrameWnd__MEAAH_K_J_Z(CFrameWnd* pThis, WPARAM wParam, LPARAM lParam) {
     return pThis ? pThis->OnCommand(wParam, lParam) : FALSE;
 }
-// Symbol: ?PreTranslateMessage@CFrameWnd@@UEAAHPEAUtagMSG@@@Z
-// CFrameWnd::PreTranslateMessage
-extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(CFrameWnd* pThis, MSG* pMsg) {
-    return pThis ? pThis->PreTranslateMessage(pMsg) : FALSE;
-}
 // Symbol: ?rectDefault@CFrameWnd@@2VCRect@@B
 // Retail data is {CW_USEDEFAULT, CW_USEDEFAULT, 0, 0}; mfc140 RVA 0x3ab470
 // contains bytes 00 00 00 80 00 00 00 80 00 00 00 00 00 00 00 00.
@@ -983,27 +978,6 @@ void CFrameWnd::OnVScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* p
 }
 void CFrameWnd::PostNcDestroy() {
     RemoveFrameWnd();
-}
-int CFrameWnd::PreTranslateMessage(MSG* pMsg) {
-    if (!pMsg) {
-        return FALSE;
-    }
-
-    if (!m_hWnd) {
-        return FALSE;
-    }
-
-    if (m_hAccelTable && pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) {
-        if (::TranslateAccelerator(m_hWnd, m_hAccelTable, pMsg)) {
-            return TRUE;
-        }
-    }
-
-    if (CWnd::WalkPreTranslateTree(m_hWnd, pMsg)) {
-        return TRUE;
-    }
-
-    return CWnd_PreTranslateMessageCompat(this, pMsg);
 }
 int CFrameWnd::ProcessHelpMsg(MSG& msg, DWORD* pContext) {
     (void)pContext;

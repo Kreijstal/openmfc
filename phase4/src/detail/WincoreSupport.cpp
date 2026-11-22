@@ -103,15 +103,6 @@ extern "C" void MS_ABI impl__UpdateWindow_CWnd__QEAAXXZ(CWnd* pThis) {
 extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd* pThis) {
     return pThis ? pThis->m_hWnd : nullptr;
 }
-int CWnd_PreTranslateMessageCompat(CWnd* pThis, MSG* pMsg) {
-    if (!pThis || !pMsg || !pThis->m_hWnd) {
-        return FALSE;
-    }
-    if (!::IsWindow(pThis->m_hWnd)) {
-        return FALSE;
-    }
-    return ::IsDialogMessageW(pThis->m_hWnd, pMsg) ? TRUE : FALSE;
-}
 } } }  // namespace openmfc::detail::wincore
 
 CWnd* OpenMfcAttachCWnd(HWND handle) { return CWnd::FromHandle(handle); }

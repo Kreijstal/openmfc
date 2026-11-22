@@ -872,15 +872,6 @@ extern "C" void MS_ABI impl__AfxAutosaveTimerProc__YAXPEAUHWND____I_KK_Z(void* /
     // no-op stub), so there is no live subsystem for this proc to drive.
     (void)p0; (void)p1; (void)p2; (void)p3;
 }
-// Symbol: ?AfxCancelModes@@YAXPEAUHWND__@@@Z
-extern "C" void MS_ABI impl__AfxCancelModes__YAXPEAUHWND_____Z(void* /*struct*/* p0) {
-    HWND hWndRcvr = reinterpret_cast<HWND>(p0);
-    HWND hWndCapture = ::GetCapture();
-    if (hWndCapture && hWndCapture != hWndRcvr &&
-        !(hWndRcvr && ::IsChild(hWndRcvr, hWndCapture))) {
-        ::SendMessageW(hWndCapture, WM_CANCELMODE, 0, 0);
-    }
-}
 // Symbol: ?AfxCheckError@@YAXJ@Z
 extern "C" void MS_ABI impl__AfxCheckError__YAXJ_Z(long p0) {
     const HRESULT hr = static_cast<HRESULT>(p0);

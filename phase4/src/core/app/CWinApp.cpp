@@ -248,10 +248,6 @@ extern "C" void MS_ABI impl__DevModeChange_CWinApp__QEAAXPEA_W_Z(CWinApp* pThis,
         state.printerDevNames = nullptr;
     }
 }
-// Symbol: ?DoEnableModeless@CWinApp@@SAXH@Z
-extern "C" void MS_ABI impl__DoEnableModeless_CWinApp__SAXH_Z(int enable) {
-    if (auto* app=AfxGetApp()) g_appRuntimeStates[app].modelessEnabled = enable != FALSE;
-}
 // Symbol: ?ShowAppMessageBox@CWinApp@@SAHPEAV1@PEB_WII@Z
 extern "C" int MS_ABI impl__ShowAppMessageBox_CWinApp__SAHPEAV1_PEB_WII_Z(
     CWinApp* app, const wchar_t* prompt, unsigned int type, unsigned int) {
@@ -275,10 +271,6 @@ extern "C" int MS_ABI impl__EnableD2DSupport_CWinApp__QEAAHW4D2D1_FACTORY_TYPE__
     if (!pThis) return FALSE;
     g_appRuntimeStates[pThis].d2dEnabled = true;
     return TRUE;
-}
-// Symbol: ?EnableModeless@CWinApp@@QEAAXH@Z
-extern "C" void MS_ABI impl__EnableModeless_CWinApp__QEAAXH_Z(CWinApp* pThis, int enable) {
-    if (pThis) g_appRuntimeStates[pThis].modelessEnabled = enable != FALSE;
 }
 // Symbol: ?EnableShellOpen@CWinApp@@IEAAXXZ
 extern "C" void MS_ABI impl__EnableShellOpen_CWinApp__IEAAXXZ(CWinApp* pThis) {

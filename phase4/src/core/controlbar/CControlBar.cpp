@@ -42,7 +42,6 @@ extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(
 extern "C" int MS_ABI impl__IsTopParentActive_CWnd__QEBAHXZ(const CWnd* pThis);                       // core/window/Thunks.cpp
 extern "C" void MS_ABI impl__ActivateTopParent_CWnd__QEAAXXZ(CWnd* pThis);                             // core/window/Thunks.cpp
 extern "C" int MS_ABI impl__IsFrameWnd_CWnd__UEBAHXZ(const CWnd* pThis);                              // core/window/CWnd.cpp
-extern "C" int MS_ABI impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg);       // core/window/CWnd.cpp
 extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd* pThis);                                    // core/window/Thunks.cpp
 extern "C" int MS_ABI impl__EnableToolTips_CWnd__QEAAHH_Z(CWnd* pThis, int bEnable);                  // core/window/Thunks.cpp
 extern "C" int MS_ABI impl__SendChildNotifyLastMsg_CWnd__QEAAHPEA_J_Z(CWnd* pThis, LONGLONG* pResult); // core/window/CWnd.cpp
@@ -761,7 +760,7 @@ extern "C" void MS_ABI impl__OnTimer_CControlBar__QEAAX_K_Z(CControlBar* pThis, 
 }
 // Transcribed from retail RVA 0x1d6550 (mfc140u; CWnd vftable slot 69 in the
 // CDialogBar / CStatusBar / CToolBar vftables):
-//     if (CWnd::PreTranslateMessage(pMsg)) return TRUE;   // 0x28bc00 -- see below
+//     if (CWnd::PreTranslateMessage(pMsg)) return TRUE;   // 0x28bc00
 //     UINT message = pMsg->message;
 //     CWnd* pOwner = GetOwner();                                             // +0xa0 / IAT GetParent, 0x28ad70
 //     if (((m_dwStyle & CBRS_FLYBY /*0x20*/) &&
@@ -801,16 +800,11 @@ extern "C" void MS_ABI impl__OnTimer_CControlBar__QEAAX_K_Z(CControlBar* pThis, 
 //     if ((message >= WM_KEYFIRST && message <= 0x109) || (message >= 0x200 && message <= 0x209))
 //         return IsDialogMessage(pMsg);                                      // 0x2a9630
 //     return FALSE;
-// DEVIATIONS: (1) retail's CWnd::PreTranslateMessage (0x28bc00) only invokes
-// m_pModuleState->m_pfnFilterToolTipMessage and always returns 0; OpenMFC has
-// no such hook and its CWnd thunk is an IsDialogMessage wrapper that would eat
-// the owner frame's accelerators, so that first call is omitted.  (2)
-// CFrameWnd::m_bHelpMode is not modelled in OpenMFC's CFrameWnd, so the
-// Shift+F1 early-out is omitted.  (3) the whole TOOLINFOW is zeroed (retail
-// zeroes the first 0x40 bytes and sets cbSize = 0x48).
+// Zero the entire TOOLINFOW before passing it to a client override.
 // Symbol: ?PreTranslateMessage@CControlBar@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z(CControlBar* pThis, MSG* pMsg) {
     if (!pThis || !pMsg) return FALSE;
+    if (pThis->CWnd::PreTranslateMessage(pMsg)) return TRUE;
     const UINT message = pMsg->message;
     CWnd* pOwner = GetOwnerWnd(pThis);
 
@@ -849,7 +843,8 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z
         t_nLastHit = nHit;
     }
 
-    // (retail: `if (GetTopLevelFrame()->m_bHelpMode) return FALSE;` -- not modelled)
+    const auto* frame = pThis->GetTopLevelFrame();
+    if (frame && frame->m_retailMiddle.m_bHelpMode) return FALSE;
 
     while (pOwner != nullptr) {
         if (pOwner->PreTranslateMessage(pMsg)) {   // CWnd vslot 69
@@ -859,10 +854,7 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CControlBar__UEAAHPEAUtagMSG___Z
     }
 
     if (!::IsWindow(pThis->m_hWnd)) return FALSE;
-    if ((message >= WM_KEYFIRST && message <= 0x109) || (message >= 0x200 && message <= 0x209)) {
-        return impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(pThis, pMsg);
-    }
-    return FALSE;
+    return pThis->PreTranslateInput(pMsg);
 }
 
 BOOL CControlBar::PreTranslateMessage(MSG* message) {

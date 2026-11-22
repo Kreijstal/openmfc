@@ -1490,11 +1490,6 @@ extern "C" int MS_ABI impl__PaintWindowlessControls_CWnd__QEAAHPEAVCDC___Z(CWnd*
 extern "C" void MS_ABI impl__PrepareForHelp_CWnd__QEAAXXZ(CWnd* pThis) {
     pThis->PrepareForHelp();
 }
-// Symbol: ?PreTranslateInput@CWnd@@QEAAHPEAUtagMSG@@@Z
-// CWnd::PreTranslateInput
-extern "C" int MS_ABI impl__PreTranslateInput_CWnd__QEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* p0) {
-    return (int)pThis->PreTranslateInput(p0);
-}
 // Symbol: ?ReflectChildNotify@CWnd@@IEAAHI_K_JPEA_J@Z
 // CWnd::ReflectChildNotify
 extern "C" int MS_ABI impl__ReflectChildNotify_CWnd__IEAAHI_K_JPEA_J_Z(CWnd* pThis, unsigned int p0, unsigned __int64 p1, __int64 p2, __int64* p3) {

@@ -2266,16 +2266,6 @@ BOOL CWnd::PaintWindowlessControls(CDC* p0)
     }
     return ::InvalidateRect(m_hWnd, nullptr, FALSE);
 }
-BOOL CWnd::PreTranslateInput(MSG* p0)
-{
-    if (!m_hWnd || !p0) {
-        return FALSE;
-    }
-
-    // Translate system-level input to the same path used for MFC's
-    // CWnd::PreTranslateMessage().
-    return CWnd_PreTranslateMessageCompat(this, p0);
-}
 // CWnd::PrepareForHelp -- transcribed from retail mfc140u RVA 0x28cf60 (the
 // non-virtual helper WinHelp calls first; the u symbol map has no name for it,
 // the byte-identical ANSI export ?PrepareForHelp@CWnd@@QEAAXXZ sits at

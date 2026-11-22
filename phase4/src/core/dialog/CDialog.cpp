@@ -117,17 +117,28 @@ extern "C" int MS_ABI impl__CheckAutoCenter_CDialog__UEAAHXZ(CDialog* pThis) {
     return (x == 0 && y == 0) ? TRUE : FALSE;
 }
 // Symbol: ?PreTranslateMessage@CDialog@@UEAAHPEAUtagMSG@@@Z
-// Ordinal: 11861
-extern "C" int MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
-    CDialog* pThis, MSG* pMsg)
-{
-    if (pThis && pThis->m_hWnd && pMsg) {
-        // Handle dialog navigation keys
-        if (IsDialogMessageW(pThis->m_hWnd, pMsg)) {
-            return TRUE;
+extern "C" BOOL MS_ABI impl__PreTranslateMessage_CDialog__UEAAHPEAUtagMSG___Z(
+    CDialog* dialog, MSG* message) {
+    if (!dialog || !message) return FALSE;
+    if (dialog->CWnd::PreTranslateMessage(message)) return TRUE;
+
+    const auto* frame = dialog->GetTopLevelFrame();
+    if (frame && frame->m_retailMiddle.m_bHelpMode) return FALSE;
+
+    if (message->message == WM_KEYDOWN &&
+        (message->wParam == VK_ESCAPE || message->wParam == VK_CANCEL) &&
+        (::GetWindowLongW(message->hwnd, GWL_STYLE) & ES_MULTILINE)) {
+        wchar_t className[32]{};
+        if (::GetClassNameW(message->hwnd, className, _countof(className)) &&
+            ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, className, -1, L"Edit", -1) == CSTR_EQUAL) {
+            const HWND cancel = ::GetDlgItem(dialog->m_hWnd, IDCANCEL);
+            if (!cancel || ::IsWindowEnabled(cancel)) {
+                ::SendMessageW(dialog->m_hWnd, WM_COMMAND, IDCANCEL, 0);
+                return TRUE;
+            }
         }
     }
-    return FALSE;
+    return dialog->PreTranslateInput(message);
 }
 namespace {
 BOOL CreateIndirectWindow(CDialog* self,const DLGTEMPLATE* data,CWnd* parent,HINSTANCE module) {

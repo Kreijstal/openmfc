@@ -1,5 +1,6 @@
 // Focus, OLE dialog navigation, and the base tooltip-filter callback.
 #define OPENMFC_APPCORE_IMPL
+#include "detail/RegcoreSupport.h"
 #include "detail/WindowMessageSupport.h"
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND);
 // Symbol: ?SetFocus@CWnd@@QEAAPEAV1@XZ
@@ -26,10 +27,48 @@ extern "C" BOOL MS_ABI impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(CWnd* se
 }
 // Symbol: ?PreTranslateMessage@CWnd@@UEAAHPEAUtagMSG@@@Z
 extern "C" BOOL MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* self,MSG* message) {
-    using Filter=void (MS_ABI*)(MSG*,CWnd*);
-    auto filter=*reinterpret_cast<Filter*>(reinterpret_cast<char*>(self->m_pModuleState)+0x80);
-    if(filter)filter(message,self);
+    if (auto* module = self->m_pModuleState) {
+        if (auto filter = module->m_pfnFilterToolTipMessage) filter(message, self);
+    }
     return FALSE;
 }
+
+BOOL CWnd::PreTranslateInput(MSG* message) {
+    if (!message) return FALSE;
+    const UINT id = message->message;
+    const bool keyboard = id >= WM_KEYFIRST && id <= WM_KEYLAST;
+    const bool mouse = id >= WM_MOUSEFIRST && id <= WM_MBUTTONDBLCLK;
+    return (keyboard || mouse) ? IsDialogMessageW(message) : FALSE;
+}
+
+// Symbol: ?PreTranslateInput@CWnd@@QEAAHPEAUtagMSG@@@Z
+extern "C" BOOL MS_ABI impl__PreTranslateInput_CWnd__QEAAHPEAUtagMSG___Z(CWnd* self, MSG* message) {
+    return self->PreTranslateInput(message);
+}
+
+namespace {
+bool IsComboBox(HWND window, DWORD type) {
+    if (!window || (static_cast<DWORD>(::GetWindowLongW(window, GWL_STYLE)) & 0xf) != type) {
+        return false;
+    }
+    wchar_t name[10]{};
+    return ::GetClassNameW(window, name, _countof(name)) &&
+           ::CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE, name, -1, L"ComboBox", -1) == CSTR_EQUAL;
+}
+}
+
+// Symbol: ?AfxCancelModes@@YAXPEAUHWND__@@@Z
+extern "C" void MS_ABI impl__AfxCancelModes__YAXPEAUHWND_____Z(HWND receiver) {
+    HWND combo = ::GetFocus();
+    if (!combo || combo == receiver) return;
+    if (!IsComboBox(combo, CBS_DROPDOWNLIST)) {
+        combo = ::GetParent(combo);
+        if (combo == receiver || !IsComboBox(combo, CBS_DROPDOWN)) return;
+    }
+    if (receiver && (::GetWindowLongW(receiver, GWL_STYLE) & WS_CHILD) &&
+        ::GetParent(receiver) == ::GetDesktopWindow()) return;
+    ::SendMessageW(combo, CB_SHOWDROPDOWN, FALSE, 0);
+}
+
 CWnd* CWnd::SetFocus() { return impl__SetFocus_CWnd__QEAAPEAV1_XZ(this); }
 BOOL CWnd::IsDialogMessageW(MSG* message) { return impl__IsDialogMessageW_CWnd__QEAAHPEAUtagMSG___Z(this,message); }

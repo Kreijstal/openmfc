@@ -956,8 +956,21 @@ public:
     COleFrameHook(CFrameWnd* pFrameWnd, COleClientItem* pItem);
     virtual ~COleFrameHook();
 
+    // Release x64 frame notification slots 22 through 33.
+    virtual void OnRecalcLayout();
+    virtual BOOL OnPreTranslateMessage(MSG* message);
+    virtual void OnActivate(BOOL active);
     virtual BOOL OnDocActivate(BOOL bActivate);
-    virtual BOOL OnContextHelp();
+    virtual BOOL OnContextHelp(BOOL entering);
+    virtual void OnEnableModeless(BOOL enable);
+    virtual BOOL OnUpdateFrameTitle();
+    virtual void OnPaletteChanged(CWnd* focus);
+    virtual BOOL OnQueryNewPalette();
+    virtual BOOL OnInitMenuPopup(CMenu* menu, int index, BOOL systemMenu);
+    virtual void OnInitMenu(CMenu* menu);
+    virtual BOOL OnMenuSelect(UINT item, UINT flags, HMENU menu);
+
+    BOOL OnContextHelp();
     virtual BOOL OnResizeBorder(LPCRECT lpRect, LPOLEINPLACEUIWINDOW lpUIWindow, BOOL bMainWindow);
     virtual BOOL OnGetClipboardData(COleDataSource* pDataSource);
 

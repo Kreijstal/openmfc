@@ -355,7 +355,6 @@ struct AppRuntimeState {
     std::unordered_map<std::wstring, std::vector<unsigned char>> profileBinary;
     std::wstring registryRoot;
     std::wstring appId;
-    bool modelessEnabled = true;
     bool shellOpenEnabled = false;
     bool taskbarEnabled = false;
     bool d2dEnabled = false;

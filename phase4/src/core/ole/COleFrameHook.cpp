@@ -499,12 +499,6 @@ BOOL COleFrameHook::OnDocActivate(BOOL bActivate) {
     (void)bActivate;
     return TRUE;
 }
-// Retail's override is `BOOL OnContextHelp(BOOL bEnter)`
-// (?OnContextHelp@COleFrameHook@@UEAAHH@Z, vftable slot 26).  OpenMFC's
-// afxole.h declares it with no parameter, so this typed overload cannot be
-// given retail's body -- there is no bEnter to forward.  The real behaviour is
-// implemented in the exported thunk below; a headerRequest asks for the
-// declaration to take BOOL bEnter.
 BOOL COleFrameHook::OnContextHelp() {
     return FALSE;
 }
@@ -868,6 +862,30 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(COleFrameH
     if (!ActiveForThisFrame(pThis))
         return FALSE;
     return impl__OnUpdateFrameTitle_COleClientItem__UEAAHXZ(ActiveItem(pThis));
+}
+
+void COleFrameHook::OnRecalcLayout() { impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(this); }
+BOOL COleFrameHook::OnPreTranslateMessage(MSG* message) {
+    return impl__OnPreTranslateMessage_COleFrameHook__UEAAHPEAUtagMSG___Z(this, message);
+}
+void COleFrameHook::OnActivate(BOOL active) { impl__OnActivate_COleFrameHook__UEAAXH_Z(this, active); }
+BOOL COleFrameHook::OnContextHelp(BOOL entering) {
+    return impl__OnContextHelp_COleFrameHook__UEAAHH_Z(this, entering);
+}
+void COleFrameHook::OnEnableModeless(BOOL enable) {
+    impl__OnEnableModeless_COleFrameHook__UEAAXH_Z(this, enable);
+}
+BOOL COleFrameHook::OnUpdateFrameTitle() { return impl__OnUpdateFrameTitle_COleFrameHook__UEAAHXZ(this); }
+void COleFrameHook::OnPaletteChanged(CWnd* focus) {
+    impl__OnPaletteChanged_COleFrameHook__UEAAXPEAVCWnd___Z(this, focus);
+}
+BOOL COleFrameHook::OnQueryNewPalette() { return impl__OnQueryNewPalette_COleFrameHook__UEAAHXZ(this); }
+BOOL COleFrameHook::OnInitMenuPopup(CMenu* menu, int index, BOOL systemMenu) {
+    return impl__OnInitMenuPopup_COleFrameHook__UEAAHPEAVCMenu__HH_Z(this, menu, index, systemMenu);
+}
+void COleFrameHook::OnInitMenu(CMenu* menu) { impl__OnInitMenu_COleFrameHook__UEAAXPEAVCMenu___Z(this, menu); }
+BOOL COleFrameHook::OnMenuSelect(UINT item, UINT flags, HMENU menu) {
+    return impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(this, item, flags, menu);
 }
 
 // ---------------------------------------------------------------------------

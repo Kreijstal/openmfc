@@ -302,7 +302,6 @@ extern const AFX_MSGMAP g_cwndMessageMap;
 } } }
 
 namespace openmfc { namespace detail { namespace wincore {
-int CWnd_PreTranslateMessageCompat(CWnd* pThis, MSG* pMsg);
 } } }
 
 
