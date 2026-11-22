@@ -103,7 +103,6 @@ CONTROLBAR_KEYFRAME_DESC(CPreviewViewEx, 5536, 0xFFFF, &classCPreviewView);
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // CBaseTabbedPane before CTabbedPane so the latter can take its address.
-DT_DESC(CDockState,           96,   0x00000000, &CObject::classCObject);          // DECLARE_SERIAL, schema 0
 DT_DESC(CDockingPanesRow,     112,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
 DT_DESC(CDockablePaneAdapter, 1280, 0x80000002, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
 DT_DESC(CBaseTabbedPane,      1304, 0xFFFF,     &CDockablePane::classCDockablePane); // DECLARE_DYNAMIC
@@ -173,16 +172,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDialogBar__UEBAPEAUCRunt
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDialogBar__SAPEAUCRuntimeClass__XZ() {
     return CDialogBar::GetThisClass();
 }
-#define DT_GETTERS(Cls, GetThisSym, GetRtSym) \
-    extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
-    extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
-// Symbol: ?GetThisClass@CDockState@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetRuntimeClass@CDockState@@UEBAPEAUCRuntimeClass@@XZ
-DT_GETTERS(CDockState,
-           impl__GetThisClass_CDockState__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CDockState__UEBAPEAUCRuntimeClass__XZ)
-
-#undef DT_GETTERS
 // Implemented in cbarcore.cpp; this unit had a second, unlinked copy.
 // Symbol: ?GetThisClass@CToolBar@@SAPEAUCRuntimeClass@@XZ
 // Implemented in cbarcore.cpp; this unit had a second, unlinked copy.

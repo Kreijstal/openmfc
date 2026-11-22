@@ -24,6 +24,10 @@ def sources():
         'phase4/src/detail/CThreadSlotDataSupport.cpp',
         'phase4/src/detail/RegcoreSupport.cpp',
         'phase4/src/core/app/CurrentApplication.cpp',
+        'phase4/src/core/app/CWinAppProfile.cpp',
+        'phase4/src/core/controlbar/CControlBarInfo.cpp',
+        'phase4/src/core/controlbar/CDockState.cpp',
+        'phase4/src/detail/CControlBarInfoSupport.cpp',
         'phase4/src/core/runtime/NativeMemoryOperators.cpp',
         'phase4/src/core/runtime/CObjectMetadata.cpp',
         'phase4/src/core/runtime/AfxFormatStrings.cpp',
@@ -101,7 +105,9 @@ def main():
         for name in ('vcruntime140.dll','vcruntime140_1.dll','msvcp140.dll'):
             for source in (args.sdk/'VC/Redist/MSVC').glob('*/x64/Microsoft.VC*.CRT/'+name):shutil.copy2(source,out/name)
         env.setdefault('WINEDLLOVERRIDES','vcruntime140,vcruntime140_1,msvcp140=n')
-    def execute(name):run(([str(out/name)] if os.name=='nt' else (['xvfb-run','-a'] if not env.get('DISPLAY') else [])+['wine',str(out/name)]))
+    def executable(name):
+        return [str(out/name)] if os.name=='nt' else (['xvfb-run','-a'] if not env.get('DISPLAY') else [])+['wine',str(out/name)]
+    def execute(name):run(executable(name))
     oracle=compile_one('tests/test_archive_storage.cpp')
     link_response('oracle',['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF','/OUT:'+str(out/'test_archive_storage.exe'),*libraries,*objects,oracle,*libs])
     execute('test_archive_storage.exe')
@@ -115,5 +121,31 @@ def main():
         imports=build_string_imports.pe_imports(out/(name+'.exe'));assert not any(d.startswith('mfc') for d in imports)
         print(name+': '+str(len(imports['openmfc_archive.dll']))+' production DLL imports',flush=True)
         execute(name+'.exe')
+
+    if args.sdk:
+        runtime_roots = (args.sdk/'VC/Redist/MSVC').glob('*/x64/Microsoft.VC*.MFC')
+    else:
+        runtime_roots = (Path(os.environ['VCToolsRedistDir'])/'x64').glob('Microsoft.VC*.MFC')
+    for runtime in runtime_roots:
+        for dll in runtime.glob('*.dll'):shutil.copy2(dll,out/dll.name)
+    env['WINEDLLOVERRIDES']=env.get('WINEDLLOVERRIDES','')+';mfc140u=n'
+    reports=[]
+    for native in (False,True):
+        name='dock_native' if native else 'dock_source'
+        obj=out/(name+'.obj')
+        run([args.compiler,*flags,*system,'/I'+str(mfc),'/D_AFXDLL',
+             *(['/DOPENMFC_NATIVE_DOCK'] if native else []),'/c',
+             str(ROOT/'tests/test_archive_dock.cpp'),'/Fo'+str(obj)])
+        mfc_lib=mfc.parent/'lib/x64'
+        link_response(name,['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF','/OUT:'+str(out/(name+'.exe')),
+                           *libraries,obj,mfc_lib/'mfc140u.lib' if native else out/'openmfc_archive.lib',
+                           mfc_lib/'atls.lib',*libs])
+        imports=build_string_imports.pe_imports(out/(name+'.exe'))
+        assert ('mfc140u.dll' in imports)==native
+        result=subprocess.check_output(executable(name+'.exe'),cwd=out,env=env)
+        (out/(name+'.txt')).write_bytes(result)
+        reports.append(result)
+    assert reports[0]==reports[1], f'Dock archive/profile outputs differ in {out}'
+    print(reports[0].splitlines()[-1].decode(),flush=True)
 
 if __name__=='__main__':main()

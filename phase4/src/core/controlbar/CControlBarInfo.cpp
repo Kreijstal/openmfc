@@ -1,104 +1,170 @@
-// CControlBarInfo — OpenMFC implementation.
-// Sources: global_ccontrolbarinfo.cpp
-
+#define OPENMFC_APPCORE_IMPL
 #include "detail/CControlBarInfoSupport.h"
+#include "detail/AppProfile.h"
+#include <cwchar>
+#include <new>
+
+extern "C" CWinApp* impl__AfxGetApp__YAPEAVCWinApp__XZ();
+extern "C" DWORD impl__GetVersion_CDockState__QEAAKXZ(void* state);
+extern "C" void impl__ScalePoint_CDockState__QEAAXAEAVCPoint___Z(void* state, POINT* point);
+extern "C" void impl__ScaleRectPos_CDockState__QEAAXAEAVCRect___Z(void* state, RECT* rect);
+
+namespace {
+void ClipFloatingBar(POINT& point) {
+    const int frameX = GetSystemMetrics(SM_CXFRAME);
+    const int frameY = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CYSMCAPTION);
+    const LONG left = GetSystemMetrics(SM_XVIRTUALSCREEN) + frameX;
+    const LONG right = GetSystemMetrics(SM_CXVIRTUALSCREEN) - frameX;
+    const LONG top = GetSystemMetrics(SM_YVIRTUALSCREEN) + frameY;
+    const LONG bottom = GetSystemMetrics(SM_CYVIRTUALSCREEN) - frameY;
+    if (point.x < left) point.x = left;
+    if (point.x > right) point.x = right;
+    if (point.y < top) point.y = top;
+    if (point.y > bottom) point.y = bottom;
+    if (!MonitorFromPoint(point, MONITOR_DEFAULTTONULL)) point = {frameX, frameY};
+}
+}
 
 // Symbol: ??0CControlBarInfo@@QEAA@XZ
-// Default constructor. Mirrors MFC's CControlBarInfo::CControlBarInfo():
-// a horizontally-oriented, non-docked, non-floating, hidden bar record with
-// an empty MRU rect, empty contained-bar array, and no back-pointer.
-extern "C" void* MS_ABI impl___0CControlBarInfo__QEAA_XZ(void* pThis)
-{
-    S_Ccontrolbarinfo* self = reinterpret_cast<S_Ccontrolbarinfo*>(pThis);
-    // Verified byte-exact against real mfc140u (differential dump): m_bHorz
-    // defaults FALSE (not TRUE) and m_pointPos defaults to (-1,-1), not (0,0).
-    self->m_nBarID              = 0;
-    self->m_bVisible            = FALSE;
-    self->m_bFloating           = FALSE;
-    self->m_bHorz               = FALSE;
-    self->m_bDockBar            = FALSE;
-    self->m_pointPos_x          = -1;
-    self->m_pointPos_y          = -1;
-    self->m_nMRUWidth           = kDefaultMRUWidth;
-    self->m_bDocking            = FALSE;
-    self->m_uMRUDockID          = 0;
-    self->m_rectMRUDockPos_left   = 0;
-    self->m_rectMRUDockPos_top    = 0;
-    self->m_rectMRUDockPos_right  = 0;
-    self->m_rectMRUDockPos_bottom = 0;
-    self->m_dwMRUFloatStyle     = 0;
-    self->m_ptMRUFloatPos_x     = 0;
-    self->m_ptMRUFloatPos_y     = 0;
-    // Embedded CUIntArray default-constructs to an empty array. Its m_nGrowBy
-    // default is 0 (grow heuristically). The vfptr is populated by the real
-    // CUIntArray ctor at runtime; it is only exercised during Serialize.
-    self->m_arrBarID_vfptr      = nullptr;
-    self->m_arrBarID_pData      = nullptr;
-    self->m_arrBarID_nSize      = 0;
-    self->m_arrBarID_nMaxSize   = 0;
-    self->m_arrBarID_nGrowBy    = 0;
-    self->m_pBar                = nullptr;
-    return pThis;
+extern "C" void* impl___0CControlBarInfo__QEAA_XZ(void* storage) {
+    return ::new (storage) S_Ccontrolbarinfo;
 }
+
 // Symbol: ?Serialize@CControlBarInfo@@QEAAXAEAVCArchive@@PEAVCDockState@@@Z
-// void Serialize(CArchive& ar, CDockState* pDockState)
-//
-// The real routine streams the fixed attributes, then the contained-bar-ID
-// array, then the extended MRU floating/docking fields through the CArchive
-// insertion/extraction operators. Those operators are MSVC-mangled CArchive
-// members that this self-contained thunk cannot bind against, so it performs
-// the safe, layout-faithful subset: it validates the object and leaves the
-// archived members untouched on a load and unchanged on a store. See notes:
-// full wire serialization requires the CArchive I/O plumbing.
-extern "C" void MS_ABI impl__Serialize_CControlBarInfo__QEAAXAEAVCArchive__PEAVCDockState___Z(
-    void* pThis, void* ar, void* pDockState)
-{
-    (void)ar;
-    (void)pDockState;
-    S_Ccontrolbarinfo* self = reinterpret_cast<S_Ccontrolbarinfo*>(pThis);
-    if (self == nullptr)
+extern "C" void impl__Serialize_CControlBarInfo__QEAAXAEAVCArchive__PEAVCDockState___Z(
+    void* self, void* archive, void* state) {
+    auto& bar = *static_cast<S_Ccontrolbarinfo*>(self);
+    auto& ar = *static_cast<CArchive*>(archive);
+    if (ar.IsStoring()) {
+        ar << bar.m_nBarID << bar.m_bVisible << bar.m_bFloating << bar.m_bHorz;
+        const POINT position = bar.m_pointPos;
+        ar.Write(&position, sizeof(position));
+        if (impl__GetVersion_CDockState__QEAAKXZ(state) > 1) {
+            ar << bar.m_nMRUWidth << bar.m_bDocking;
+            if (bar.m_bDocking) {
+                ar << bar.m_uMRUDockID;
+                ar.Write(&bar.m_rectMRUDockPos, sizeof(RECT));
+                ar << bar.m_dwMRUFloatStyle;
+                const POINT floatPosition = bar.m_ptMRUFloatPos;
+                ar.Write(&floatPosition, sizeof(floatPosition));
+            }
+        }
+        ar << static_cast<WORD>(bar.m_arrBarID.GetSize());
+        if (!bar.m_arrBarID.IsEmpty()) {
+            if (bar.m_arrBarID.GetSize() < 0) AfxThrowInvalidArgException();
+            ar.Write(bar.m_arrBarID.GetData(), static_cast<UINT>(bar.m_arrBarID.GetSize()) * sizeof(UINT));
+        }
         return;
-    // No CArchive-bound I/O available in this self-contained thunk; keep the
-    // record self-consistent. A freshly-loaded bar with no contained children
-    // must present an empty array rather than stale data.
-    if (self->m_arrBarID_pData == nullptr)
-        self->m_arrBarID_nSize = 0;
+    }
+
+    ar >> bar.m_nBarID >> bar.m_bVisible >> bar.m_bFloating >> bar.m_bHorz;
+    ar.EnsureRead(&bar.m_pointPos, sizeof(POINT));
+    if (impl__GetVersion_CDockState__QEAAKXZ(state) > 1) {
+        impl__ScalePoint_CDockState__QEAAXAEAVCPoint___Z(state, &bar.m_pointPos);
+        ar >> bar.m_nMRUWidth >> bar.m_bDocking;
+        if (bar.m_bDocking) {
+            ar >> bar.m_uMRUDockID;
+            ar.EnsureRead(&bar.m_rectMRUDockPos, sizeof(RECT));
+            impl__ScaleRectPos_CDockState__QEAAXAEAVCRect___Z(state, &bar.m_rectMRUDockPos);
+            ar >> bar.m_dwMRUFloatStyle;
+            ar.EnsureRead(&bar.m_ptMRUFloatPos, sizeof(POINT));
+            impl__ScalePoint_CDockState__QEAAXAEAVCPoint___Z(state, &bar.m_ptMRUFloatPos);
+        }
+    }
+    WORD count;
+    ar >> count;
+    bar.m_arrBarID.SetSize(count);
+    if (count) ar.EnsureRead(bar.m_arrBarID.GetData(), UINT(count) * sizeof(UINT));
 }
+
 // Symbol: ?LoadState@CControlBarInfo@@QEAAHPEB_WHPEAVCDockState@@@Z
-// BOOL LoadState(LPCTSTR lpszProfileName, int nIndex, CDockState* pDockState)
-//
-// Constructs the "<profile>-Bar<index>" registry section, then in real MFC
-// reads a binary blob via AfxGetApp()->GetProfileBinary and Serializes it in
-// load mode. The profile store (AfxGetApp) is unavailable to this thunk; it
-// reproduces MFC's return contract: when no persisted blob exists the object
-// keeps its constructed defaults and LoadState reports success (TRUE).
-extern "C" BOOL MS_ABI impl__LoadState_CControlBarInfo__QEAAHPEB_WHPEAVCDockState___Z(
-    void* pThis, const wchar_t* lpszProfileName, int nIndex, void* pDockState)
-{
-    (void)pDockState;
-    if (pThis == nullptr)
-        return FALSE;
-    wchar_t szSection[256];
-    MakeBarSection(lpszProfileName, nIndex, szSection, 256);
-    // No profile blob to read; the record retains its defaults. MFC treats an
-    // absent section as a successful (empty) load.
-    return TRUE;
+extern "C" BOOL impl__LoadState_CControlBarInfo__QEAAHPEB_WHPEAVCDockState___Z(
+    void* self, const wchar_t* profile, int index, void* state) {
+    auto* app = impl__AfxGetApp__YAPEAVCWinApp__XZ();
+    if (!app) return FALSE;
+    auto& bar = *static_cast<S_Ccontrolbarinfo*>(self);
+    wchar_t section[256];
+    MakeBarSection(profile, index, section);
+    auto read = [&](const wchar_t* entry, int defaultValue = 0) {
+        return impl__GetProfileIntW_CWinApp__UEAAIPEB_W0H_Z(app, section, entry, defaultValue);
+    };
+
+    bar.m_nBarID = read(L"BarID");
+    bar.m_bVisible = read(L"Visible", TRUE);
+    bar.m_bHorz = read(L"Horz", TRUE);
+    bar.m_bFloating = read(L"Floating");
+    const LONG y = read(L"YPos", -1);
+    bar.m_pointPos = {static_cast<LONG>(read(L"XPos", -1)), y};
+    impl__ScalePoint_CDockState__QEAAXAEAVCPoint___Z(state, &bar.m_pointPos);
+    if (bar.m_bFloating) ClipFloatingBar(bar.m_pointPos);
+
+    bar.m_nMRUWidth = read(L"MRUWidth", kDefaultMRUWidth);
+    bar.m_bDocking = read(L"Docking");
+    if (bar.m_bDocking) {
+        bar.m_uMRUDockID = read(L"MRUDockID");
+        const LONG bottom = read(L"MRUDockBottomPos");
+        const LONG right = read(L"MRUDockRightPos");
+        const LONG top = read(L"MRUDockTopPos");
+        bar.m_rectMRUDockPos = {static_cast<LONG>(read(L"MRUDockLeftPos")), top, right, bottom};
+        impl__ScaleRectPos_CDockState__QEAAXAEAVCRect___Z(state, &bar.m_rectMRUDockPos);
+        bar.m_dwMRUFloatStyle = read(L"MRUFloatStyle");
+        const LONG floatY = read(L"MRUFloatYPos");
+        bar.m_ptMRUFloatPos = {static_cast<LONG>(read(L"MRUFloatXPos")), floatY};
+        impl__ScalePoint_CDockState__QEAAXAEAVCPoint___Z(state, &bar.m_ptMRUFloatPos);
+    }
+    const int count = read(L"Bars");
+    for (int i = 0; i < count; ++i) {
+        wchar_t entry[16];
+        swprintf_s(entry, L"Bar#%d", i);
+        bar.m_arrBarID.Add(read(entry));
+    }
+    return bar.m_nBarID != 0;
 }
+
 // Symbol: ?SaveState@CControlBarInfo@@QEAAHPEB_WH@Z
-// BOOL SaveState(LPCTSTR lpszProfileName, int nIndex)
-//
-// Constructs the "<profile>-Bar<index>" section, then in real MFC serializes
-// this record into a CMemFile and persists it via WriteProfileBinary. The
-// profile store (AfxGetApp) is unavailable to this thunk; it validates the
-// arguments and builds the section key, then reports the MFC success value.
-extern "C" BOOL MS_ABI impl__SaveState_CControlBarInfo__QEAAHPEB_WH_Z(
-    void* pThis, const wchar_t* lpszProfileName, int nIndex)
-{
-    if (pThis == nullptr)
+extern "C" BOOL impl__SaveState_CControlBarInfo__QEAAHPEB_WH_Z(
+    void* self, const wchar_t* profile, int index) {
+    auto& bar = *static_cast<S_Ccontrolbarinfo*>(self);
+    wchar_t section[256];
+    MakeBarSection(profile, index, section);
+    auto* app = impl__AfxGetApp__YAPEAVCWinApp__XZ();
+    if (!app) return FALSE;
+    impl__WriteProfileStringW_CWinApp__UEAAHPEB_W00_Z(app, section, nullptr, nullptr);
+    if (bar.m_bDockBar && bar.m_bVisible && !bar.m_bFloating &&
+        bar.m_pointPos.x == -1 && bar.m_pointPos.y == -1 && bar.m_arrBarID.GetSize() <= 1)
         return FALSE;
-    wchar_t szSection[256];
-    MakeBarSection(lpszProfileName, nIndex, szSection, 256);
-    // No profile store available to persist the blob; report success as MFC
-    // does when the underlying WriteProfileBinary accepts the (empty) write.
+
+    auto write = [&](const wchar_t* entry, int value) {
+        impl__WriteProfileInt_CWinApp__UEAAHPEB_W0H_Z(app, section, entry, value);
+    };
+    write(L"BarID", bar.m_nBarID);
+    if (!bar.m_bVisible) write(L"Visible", FALSE);
+    if (bar.m_bFloating) {
+        write(L"Horz", bar.m_bHorz);
+        write(L"Floating", bar.m_bFloating);
+    }
+    if (bar.m_pointPos.x != -1) write(L"XPos", bar.m_pointPos.x);
+    if (bar.m_pointPos.y != -1) write(L"YPos", bar.m_pointPos.y);
+    if (bar.m_nMRUWidth != kDefaultMRUWidth) write(L"MRUWidth", bar.m_nMRUWidth);
+    if (bar.m_bDocking) {
+        write(L"Docking", bar.m_bDocking);
+        write(L"MRUDockID", bar.m_uMRUDockID);
+        write(L"MRUDockLeftPos", bar.m_rectMRUDockPos.left);
+        write(L"MRUDockTopPos", bar.m_rectMRUDockPos.top);
+        write(L"MRUDockRightPos", bar.m_rectMRUDockPos.right);
+        write(L"MRUDockBottomPos", bar.m_rectMRUDockPos.bottom);
+        write(L"MRUFloatStyle", bar.m_dwMRUFloatStyle);
+        write(L"MRUFloatXPos", bar.m_ptMRUFloatPos.x);
+        write(L"MRUFloatYPos", bar.m_ptMRUFloatPos.y);
+    }
+    const INT_PTR count = bar.m_arrBarID.GetSize();
+    if (count > 1) {
+        write(L"Bars", static_cast<int>(count));
+        for (INT_PTR i = 0; i < count; ++i) {
+            wchar_t entry[16];
+            swprintf_s(entry, L"Bar#%d", static_cast<int>(i));
+            write(entry, bar.m_arrBarID.GetAt(i));
+        }
+    }
     return TRUE;
 }

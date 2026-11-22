@@ -163,11 +163,6 @@ CArchive& CArchive::operator<<(const void* p) {
 OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDocItem___Z,
                             impl__GetThisClass_CDocItem__SAPEAUCRuntimeClass__XZ)
 
-// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockState@@@Z
-// retail RVA 0x220540
-OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockState___Z,
-                            impl__GetThisClass_CDockState__SAPEAUCRuntimeClass__XZ)
-
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockablePane@@@Z
 // retail RVA 0x3fc80
 OPENMFC_ARCHIVE_EXTRACT_OBJ(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockablePane___Z,

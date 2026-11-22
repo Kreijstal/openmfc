@@ -179,10 +179,8 @@ static_assert(offsetof(CDC, m_hDC) == 0x8, "CDC::m_hDC");
 static_assert(offsetof(S_Ccontrolbarinfo, m_bFloating) == 0x08, "CControlBarInfo::m_bFloating");
 static_assert(offsetof(S_Ccontrolbarinfo, m_bHorz) == 0x0c, "CControlBarInfo::m_bHorz");
 static_assert(offsetof(S_Ccontrolbarinfo, m_bDockBar) == 0x10, "CControlBarInfo::m_bDockBar");
-static_assert(offsetof(S_Ccontrolbarinfo, m_pointPos_x) == 0x14, "CControlBarInfo::m_pointPos");
-static_assert(offsetof(S_Ccontrolbarinfo, m_arrBarID_vfptr) == 0x48, "CControlBarInfo::m_arrBarID");
-static_assert(offsetof(S_Ccontrolbarinfo, m_arrBarID_pData) == 0x50, "CControlBarInfo::m_arrBarID.m_pData");
-static_assert(offsetof(S_Ccontrolbarinfo, m_arrBarID_nSize) == 0x58, "CControlBarInfo::m_arrBarID.m_nSize");
+static_assert(offsetof(S_Ccontrolbarinfo, m_pointPos) == 0x14, "CControlBarInfo::m_pointPos");
+static_assert(offsetof(S_Ccontrolbarinfo, m_arrBarID) == 0x48, "CControlBarInfo::m_arrBarID");
 
 // CFrameWnd::m_nIdleFlags lives at CFrameWnd + 0x1d0: retail
 // CFrameWnd::OnIdleUpdateCmdUI (0x2a0140, mfc140u) tests bits 1/2/8 of
@@ -903,10 +901,6 @@ extern "C" int MS_ABI impl__FindBar_CDockBar__QEAAHPEAVCControlBar__H_Z(void* pT
 //         else                            nID = ::GetDlgCtrlID(((CControlBar*)pVoid)->m_hWnd);   // IAT GetDlgCtrlID
 //         pInfo->m_arrBarID.SetAtGrow(pInfo->m_arrBarID.m_nSize, nID);   // 0x1d4260; +0x48 / +0x58
 //     }
-// The CUIntArray append keeps the retail fields of the embedded array (see the
-// file header on why the exported thunks are not used); the buffer it
-// allocates is not released by OpenMFC's CUIntArray destructor thunk (side
-// table only), so it is leaked rather than cross-freed.
 // Symbol: ?GetBarInfo@CDockBar@@QEAAXPEAVCControlBarInfo@@@Z
 extern "C" void MS_ABI impl__GetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo___Z(void* pThis, void* pInfoRaw) {
     if (pThis == nullptr || pInfoRaw == nullptr) return;   // deviation: retail has no NULL checks
@@ -917,13 +911,11 @@ extern "C" void MS_ABI impl__GetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo___Z(v
     if (t.m_bFloating) {
         RECT rect = {};
         ::GetWindowRect(AsWnd(pThis)->m_hWnd, &rect);
-        pInfo->m_pointPos_x = rect.left;
-        pInfo->m_pointPos_y = rect.top;
+        pInfo->m_pointPos.x = rect.left;
+        pInfo->m_pointPos.y = rect.top;
     }
     pInfo->m_bHorz = (AsBar(pThis)->m_dwStyle & kCBRS_ORIENT_HORZ) ? TRUE : FALSE;
 
-    unsigned int*& pIDs = *reinterpret_cast<unsigned int**>(&pInfo->m_arrBarID_pData);
-    RetailArray<unsigned int> ids{pIDs, pInfo->m_arrBarID_nSize, pInfo->m_arrBarID_nMaxSize, pInfo->m_arrBarID_nGrowBy};
     for (int i = 0; i < t.m_arrBars_nSize; i++) {
         void* pVoid = BarAt(pThis, i);
         unsigned int nID;
@@ -934,7 +926,7 @@ extern "C" void MS_ABI impl__GetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo___Z(v
         } else {
             nID = static_cast<unsigned int>(::GetDlgCtrlID(static_cast<CControlBar*>(pVoid)->m_hWnd));
         }
-        ids.SetAtGrow(pInfo->m_arrBarID_nSize, nID);
+        pInfo->m_arrBarID.Add(nID);
     }
 }
 
@@ -1444,11 +1436,11 @@ extern "C" void MS_ABI impl__SetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo__PEAV
     S_Ccontrolbarinfo* pInfo = static_cast<S_Ccontrolbarinfo*>(pInfoRaw);
     DockBarTail& t = Tail(pThis);
     CControlBar* pSelf = AsBar(pThis);
-    const unsigned int* pIDs = static_cast<const unsigned int*>(pInfo->m_arrBarID_pData);
+    const unsigned int* pIDs = pInfo->m_arrBarID.GetData();
 
-    int nSize = static_cast<int>(pInfo->m_arrBarID_nSize);
+    int nSize = static_cast<int>(pInfo->m_arrBarID.GetSize());
     while (nSize > 0) {
-        if (nSize - 1 >= pInfo->m_arrBarID_nSize) {
+        if (nSize - 1 >= pInfo->m_arrBarID.GetSize()) {
             impl__AfxThrowInvalidArgException__YAXXZ();
             return;
         }
@@ -1457,7 +1449,7 @@ extern "C" void MS_ABI impl__SetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo__PEAV
     }
 
     for (int i = 1; i < nSize; i++) {
-        if (i >= pInfo->m_arrBarID_nSize) {
+        if (i >= pInfo->m_arrBarID.GetSize()) {
             impl__AfxThrowInvalidArgException__YAXXZ();
             return;
         }

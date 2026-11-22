@@ -415,7 +415,6 @@ constexpr int kShellCommandFileDDE = 7;
 } } }
 
 namespace openmfc { namespace detail { namespace cwinapp {
-std::wstring MakeProfileKey(const wchar_t* section, const wchar_t* entry);
 } } }
 
 namespace openmfc { namespace detail { namespace cwinapp {

@@ -37,53 +37,14 @@
 //   sizeof 0x60                 CreateObject `mov $0x60,%ecx` before operator new; the
 //                               retail CRuntimeClass (0x1803b18f8) has m_nObjectSize 0x60
 //
-// ---- m_arrBarInfo ---------------------------------------------------------------------
-// Retail manipulates the array through the exported CPtrArray::SetSize / SetAtGrow and
-// reads m_pData / m_nSize directly.  OpenMFC's CPtrArray (afx.h
-// OPENMFC_DECLARE_ARRAY_WRAPPER) keeps its elements in a side table keyed by the object
-// address and never touches +0x10 / +0x18, so its impl__ thunks would leave the fields MSVC
-// clients read inline (GetSize / operator[] / GetData) permanently empty.  The bodies below
-// therefore keep the retail fields themselves (DockStateArray, reproducing MFC array_p.cpp
-// SetSize / SetAtGrow semantics), exactly as core/controlbar/CDockBar.cpp does for
-// CDockBar::m_arrBars.  The buffer is malloc/free'd only inside this DLL.  DEVIATION: the
-// CPtrArray vfptr at +0x08 is stored as nullptr, not the retail vftable (no MSVC-layout
-// CPtrArray vftable exists in OpenMFC -- the same choice CDockBar.cpp makes); a client that
-// grows m_arrBarInfo itself -- through the exported CPtrArray::SetSize/SetAtGrow, or the
-// inline CPtrArray::Add (not exported; it reads m_nSize and calls the exported SetAtGrow) --
-// updates OpenMFC's side table rather than these fields, so the element is not seen here.
-//
-// ---- vftable ----------------------------------------------------------------------------
-// The retail vftable (0x180328fc0, mfc140u) has five slots, read from the image:
-//   0 GetRuntimeClass 0x222000   1 {vector deleting dtor} 0x2b1a20   2 Serialize 0x220d50
-//   3 AssertValid, 4 Dump: both 0x27d0, a bare `ret`
-// kDockStateVtbl reproduces it and the constructor installs it (as featurepack/customize/
-// CMouseManager.cpp does for its class), so an MSVC client's `delete pState`, virtual
-// Serialize or GetRuntimeClass lands in these bodies.
-// CAVEAT: this is the MSVC slot order.  OpenMFC's own mingw-compiled code that dispatches
-// through CObject (include/openmfc/afx.h) uses the Itanium order -- GetRuntimeClass 0,
-// ~CObject complete 1 / deleting 2, Serialize 3, AssertValid 4, Dump 5 -- so only slot 0
-// agrees.  In particular CArchive::operator<<(const CObject*) / operator>>(CObject*&)
-// (core/runtime/CArchive.cpp) call pOb->Serialize(*this) through slot 3, which here is the
-// AssertValid no-op; they reach that call only when m_pfnCreateObject is non-null, and the
-// CDockState descriptors (core/controlbar/ and featurepack/docking/RuntimeClasses.cpp)
-// currently leave it null.  A mingw-side `delete` of a CObject* that is a CDockState would
-// call slot 2 (Serialize) and must not happen.
-//
-// ---- CControlBarInfo elements -------------------------------------------------------
-// The elements are CControlBarInfo* (sizeof 0x78; layout pinned in
-// detail/CControlBarInfoSupport.h).  CControlBarInfo::Serialize / LoadState / SaveState
-// (core/controlbar/CControlBarInfo.cpp) are currently NOT retail transcriptions: they do no
-// archive or profile I/O.  The CDockState bodies here call them exactly where retail does,
-// so the per-bar records are streamed/persisted once those siblings are implemented; until
-// then Serialize writes/reads only the CDockState header and the bar count, and
-// LoadState/SaveState only the "<profile>-Summary" values.
-
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/CControlBarInfoSupport.h"
+#include "detail/AppProfile.h"
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <new>
 
 // ---------------------------------------------------------------------------
 // Sibling thunks, declared with the signature their mangled name describes; every
@@ -98,14 +59,9 @@ extern "C" BOOL MS_ABI impl__LoadState_CControlBarInfo__QEAAHPEB_WHPEAVCDockStat
 extern "C" BOOL MS_ABI impl__SaveState_CControlBarInfo__QEAAHPEB_WH_Z(
     void* pThis, const wchar_t* lpszProfileName, int nIndex);                                              // core/controlbar/CControlBarInfo.cpp
 extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ();                                           // detail/RegcoreSupport.cpp (internal; not an export)
-extern "C" unsigned int MS_ABI impl__GetProfileIntW_CWinApp__UEAAIPEB_W0H_Z(
-    CWinApp* pThis, const wchar_t* section, const wchar_t* entry, int defaultValue);                       // core/app/CWinApp.cpp
-extern "C" int MS_ABI impl__WriteProfileInt_CWinApp__UEAAHPEB_W0H_Z(
-    CWinApp* pThis, const wchar_t* section, const wchar_t* entry, int value);                              // core/app/CWinApp.cpp
 extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* lpBuf, unsigned int nMax);    // core/runtime/Thunks.cpp
 extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* lpBuf, unsigned int nMax);     // core/runtime/Thunks.cpp
 extern "C" void MS_ABI impl__AfxThrowArchiveException__YAXHPEB_W_Z(int cause, const wchar_t* lpszArchiveName);        // detail/MfcExceptionsSupport.cpp
-extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();                                            // detail/MfcExceptionsSupport.cpp
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);                                            // detail/MemcoreSupport.cpp (malloc)
 
 // Thunks defined further down in this file that earlier bodies call.
@@ -121,22 +77,14 @@ namespace {
 // ---------------------------------------------------------------------------
 struct DockStateLayout {
     void*    vfptr;               // 0x00
-    void*    arr_vfptr;           // 0x08  CPtrArray vfptr (retail 0x180321190; nullptr here)
-    void**   arr_pData;           // 0x10  CPtrArray::m_pData
-    INT_PTR  arr_nSize;           // 0x18  CPtrArray::m_nSize
-    INT_PTR  arr_nMaxSize;        // 0x20  CPtrArray::m_nMaxSize
-    INT_PTR  arr_nGrowBy;         // 0x28  CPtrArray::m_nGrowBy
+    CPtrArray bars;               // 0x08
     int      m_bScaling;          // 0x30
     RECT     m_rectDevice;        // 0x34
     RECT     m_rectClip;          // 0x44
     SIZE     m_sizeLogical;       // 0x54
     DWORD    m_dwVersion;         // 0x5c
 };
-static_assert(offsetof(DockStateLayout, arr_vfptr)     == 0x08, "CDockState::m_arrBarInfo");
-static_assert(offsetof(DockStateLayout, arr_pData)     == 0x10, "CDockState::m_arrBarInfo.m_pData");
-static_assert(offsetof(DockStateLayout, arr_nSize)     == 0x18, "CDockState::m_arrBarInfo.m_nSize");
-static_assert(offsetof(DockStateLayout, arr_nMaxSize)  == 0x20, "CDockState::m_arrBarInfo.m_nMaxSize");
-static_assert(offsetof(DockStateLayout, arr_nGrowBy)   == 0x28, "CDockState::m_arrBarInfo.m_nGrowBy");
+static_assert(offsetof(DockStateLayout, bars) == 0x08, "CDockState::m_arrBarInfo");
 static_assert(offsetof(DockStateLayout, m_bScaling)    == 0x30, "CDockState::m_bScaling");
 static_assert(offsetof(DockStateLayout, m_rectDevice)  == 0x34, "CDockState::m_rectDevice");
 static_assert(offsetof(DockStateLayout, m_rectClip)    == 0x44, "CDockState::m_rectClip");
@@ -163,53 +111,13 @@ inline SIZE DeviceSize(const DockStateLayout* s) {
 // fields (grow-by heuristic max(4, min(1024, size/8)), zero-fill on growth).  Mirrors
 // RetailArray in core/controlbar/CDockBar.cpp.
 // ---------------------------------------------------------------------------
-void ArraySetSize(DockStateLayout* s, INT_PTR nNewSize, INT_PTR nNewGrowBy) {
-    if (nNewGrowBy >= 0) s->arr_nGrowBy = nNewGrowBy;
-    if (nNewSize == 0) {
-        std::free(s->arr_pData);
-        s->arr_pData = nullptr;
-        s->arr_nSize = s->arr_nMaxSize = 0;
-    } else if (s->arr_pData == nullptr) {
-        s->arr_pData = static_cast<void**>(std::malloc(static_cast<size_t>(nNewSize) * sizeof(void*)));
-        if (s->arr_pData == nullptr) impl__AfxThrowMemoryException__YAXXZ();
-        std::memset(s->arr_pData, 0, static_cast<size_t>(nNewSize) * sizeof(void*));
-        s->arr_nSize = s->arr_nMaxSize = nNewSize;
-    } else if (nNewSize <= s->arr_nMaxSize) {
-        if (nNewSize > s->arr_nSize) {
-            std::memset(s->arr_pData + s->arr_nSize, 0,
-                        static_cast<size_t>(nNewSize - s->arr_nSize) * sizeof(void*));
-        }
-        s->arr_nSize = nNewSize;
-    } else {
-        INT_PTR grow = s->arr_nGrowBy;
-        if (grow == 0) {
-            grow = s->arr_nSize / 8;
-            grow = (grow < 4) ? 4 : ((grow > 1024) ? 1024 : grow);
-        }
-        INT_PTR nNewMax = (nNewSize < s->arr_nMaxSize + grow) ? s->arr_nMaxSize + grow : nNewSize;
-        void** pNewData = static_cast<void**>(std::malloc(static_cast<size_t>(nNewMax) * sizeof(void*)));
-        if (pNewData == nullptr) impl__AfxThrowMemoryException__YAXXZ();
-        std::memcpy(pNewData, s->arr_pData, static_cast<size_t>(s->arr_nSize) * sizeof(void*));
-        std::memset(pNewData + s->arr_nSize, 0, static_cast<size_t>(nNewSize - s->arr_nSize) * sizeof(void*));
-        std::free(s->arr_pData);
-        s->arr_pData = pNewData;
-        s->arr_nSize = nNewSize;
-        s->arr_nMaxSize = nNewMax;
-    }
-}
-
-void ArraySetAtGrow(DockStateLayout* s, INT_PTR nIndex, void* value) {
-    if (nIndex >= s->arr_nSize) ArraySetSize(s, nIndex + 1, -1);
-    s->arr_pData[nIndex] = value;
-}
-
 // `delete (CControlBarInfo*)p` as Clear and the destructor inline it: ~CControlBarInfo
 // runs ~CUIntArray on m_arrBarID (+0x48: retail stores the CUIntArray vftable there, then
 // free(m_pData at +0x50)), then operator delete(p, 0x78) -> ucrt free.  The vftable store
 // into memory about to be freed is not reproduced.
 void DeleteBarInfo(void* p) {
     if (p == nullptr) return;
-    std::free(static_cast<S_Ccontrolbarinfo*>(p)->m_arrBarID_pData);
+    static_cast<S_Ccontrolbarinfo*>(p)->~S_Ccontrolbarinfo();
     std::free(p);
 }
 
@@ -307,18 +215,11 @@ void* const kDockStateVtbl[5] = {
 //   m_rectClip.bottom  -= GetSystemMetrics(SM_CYSMCAPTION) + GetSystemMetrics(SM_CYICON)  (0x33, 0xc)
 // (IAT 0x1802c6bd8 -> USER32!GetSystemMetrics.)  Retail really stores the virtual-screen
 // WIDTH/HEIGHT as right/bottom, not left+width; that is transcribed as-is.
-// DEVIATION: the embedded CPtrArray vfptr is nullptr (see the file header).  The
-// OpenMfcResetDockState call is OpenMFC's own: it drops any CFrameWnd::GetDockState
-// snapshot (detail/WincoreSupport.cpp) left keyed to this address by a previous object.
+// Drop any CFrameWnd snapshot left at this address by a previous object.
 extern "C" void* MS_ABI impl___0CDockState__QEAA_XZ(void* pThis) {
-    DockStateLayout* s = DS(pThis);
+    auto* s = ::new (pThis) DockStateLayout;
     s->vfptr = const_cast<void**>(kDockStateVtbl);
     s->m_dwVersion = 2;
-    s->arr_vfptr = nullptr;
-    s->arr_pData = nullptr;
-    s->arr_nSize = 0;
-    s->arr_nMaxSize = 0;
-    s->arr_nGrowBy = 0;
     s->m_bScaling = 0;
     s->m_rectDevice = RECT{0, 0, 0, 0};
     s->m_rectClip = RECT{0, 0, 0, 0};
@@ -342,17 +243,14 @@ extern "C" void* MS_ABI impl___0CDockState__QEAA_XZ(void* pThis) {
 //   for (i = 0; i < m_arrBarInfo.GetSize(); i++)
 //       delete (CControlBarInfo*)m_arrBarInfo[i];      // null-checked; see DeleteBarInfo
 //   ~CPtrArray(): vfptr(+0x08) = CPtrArray vftable; free(m_pData)  (tail `jmp *free`)
-// Unlike Clear it does not call CPtrArray::SetSize and does not null the fields.  The
-// operator[] bounds check (AfxThrowInvalidArgException) cannot fire inside this loop and is
-// not reproduced.  DEVIATION: the CPtrArray vfptr store is omitted (nullptr layout, see the
-// file header); OpenMfcResetDockState is OpenMFC's side-table cleanup.
+// Destroy the embedded array after its records.
 extern "C" void MS_ABI impl___1CDockState__UEAA_XZ(void* pThis) {
     DockStateLayout* s = DS(pThis);
     s->vfptr = const_cast<void**>(kDockStateVtbl);
-    for (INT_PTR i = 0; i < s->arr_nSize; ++i) {
-        DeleteBarInfo(s->arr_pData[i]);
+    for (INT_PTR i = 0; i < s->bars.GetSize(); ++i) {
+        DeleteBarInfo(s->bars[i]);
     }
-    std::free(s->arr_pData);
+    s->~DockStateLayout();
     OpenMfcResetDockState(pThis);
 }
 
@@ -364,18 +262,44 @@ extern "C" void MS_ABI impl___1CDockState__UEAA_XZ(void* pThis) {
 // The operator[] bounds check cannot fire inside this loop and is not reproduced.
 extern "C" void MS_ABI impl__Clear_CDockState__QEAAXXZ(void* pThis) {
     DockStateLayout* s = DS(pThis);
-    for (INT_PTR i = 0; i < s->arr_nSize; ++i) {
-        DeleteBarInfo(s->arr_pData[i]);
+    for (INT_PTR i = 0; i < s->bars.GetSize(); ++i) {
+        DeleteBarInfo(s->bars[i]);
     }
-    ArraySetSize(s, 0, -1);
+    s->bars.RemoveAll();
 }
 
 // Symbol: ?CreateObject@CDockState@@SAPEAVCObject@@XZ
 // Transcribed from retail 0x221fd0 (mfc140u): p = operator new(0x60); return p ?
 // CDockState::CDockState(p) (tail jump) : NULL.
-extern "C" void* MS_ABI impl__CreateObject_CDockState__SAPEAVCObject__XZ() {
+extern "C" CObject* MS_ABI impl__CreateObject_CDockState__SAPEAVCObject__XZ() {
     void* p = impl___2_YAPEAX_K_Z(kDockStateSize);
-    return p ? impl___0CDockState__QEAA_XZ(p) : nullptr;
+    return p ? static_cast<CObject*>(impl___0CDockState__QEAA_XZ(p)) : nullptr;
+}
+
+namespace {
+CRuntimeClass* AFXAPI DockStateBase() { return CObject::GetThisClass(); }
+extern AFX_CLASSINIT dockStateInit;
+CRuntimeClass dockStateType{
+    "CDockState", kDockStateSize, 0, &impl__CreateObject_CDockState__SAPEAVCObject__XZ,
+    &DockStateBase, nullptr, &dockStateInit
+};
+AFX_CLASSINIT dockStateInit(&dockStateType);
+}
+
+// Symbol: ?GetThisClass@CDockState@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetThisClass_CDockState__SAPEAUCRuntimeClass__XZ() {
+    return &dockStateType;
+}
+
+// Symbol: ?GetRuntimeClass@CDockState@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetRuntimeClass_CDockState__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return &dockStateType;
+}
+
+// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockState@@@Z
+extern "C" CArchive* impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDockState___Z(CArchive* ar, CObject** state) {
+    *state = ar->ReadObject(&dockStateType);
+    return ar;
 }
 
 // Symbol: ?GetScreenSize@CDockState@@QEAA?AVCSize@@XZ
@@ -428,13 +352,10 @@ extern "C" void MS_ABI impl__LoadState_CDockState__QEAAXPEB_W_Z(void* pThis, con
     size.cx = static_cast<LONG>(impl__GetProfileIntW_CWinApp__UEAAIPEB_W0H_Z(pApp, szSection, L"ScreenCX", 0));
     size.cy = static_cast<LONG>(impl__GetProfileIntW_CWinApp__UEAAIPEB_W0H_Z(pApp, szSection, L"ScreenCY", 0));
     impl__SetScreenSize_CDockState__QEAAXAEAVCSize___Z(pThis, &size);
-    for (INT_PTR i = 0; i < s->arr_nSize; ++i) {
-        std::free(s->arr_pData[i]);
-    }
-    ArraySetSize(s, 0, -1);
+    impl__Clear_CDockState__QEAAXXZ(pThis);
     for (int i = 0; i < nBars; ++i) {
         void* pInfo = NewBarInfo();
-        ArraySetAtGrow(s, s->arr_nSize, pInfo);
+        s->bars.Add(pInfo);
         impl__LoadState_CControlBarInfo__QEAAHPEB_WHPEAVCDockState___Z(pInfo, lpszProfileName, i, pThis);
     }
 }
@@ -464,8 +385,8 @@ extern "C" void MS_ABI impl__LoadState_CDockState__QEAAXPEB_W_Z(void* pThis, con
 extern "C" void MS_ABI impl__SaveState_CDockState__QEAAXPEB_W_Z(void* pThis, const wchar_t* lpszProfileName) {
     DockStateLayout* s = DS(pThis);
     int nIndex = 0;
-    for (INT_PTR i = 0; i < s->arr_nSize; ++i) {
-        if (impl__SaveState_CControlBarInfo__QEAAHPEB_WH_Z(s->arr_pData[i], lpszProfileName, nIndex))
+    for (INT_PTR i = 0; i < s->bars.GetSize(); ++i) {
+        if (impl__SaveState_CControlBarInfo__QEAAHPEB_WH_Z(s->bars[i], lpszProfileName, nIndex))
             ++nIndex;
     }
     CWinApp* pApp = impl__AfxGetApp__YAPEAVCWinApp__XZ();
@@ -568,9 +489,7 @@ extern "C" void MS_ABI impl__ScaleRectPos_CDockState__QEAAXAEAVCRect___Z(void* p
 // do; the first DWORD store's test is merged with the branch), throwing readOnly (2) /
 // writeOnly (4) with ar.m_strFileName -- unreachable inside the branch that already tested it,
 // and not reproduced; nor are the operator[] bounds checks, which cannot fire in these loops.
-// The primitives go through ArGet/ArPut (see above) because OpenMFC's CArchive layout
-// differs from retail's.  NOTE: the per-bar CControlBarInfo::Serialize is currently a no-op
-// in OpenMFC (see the file header), so no bar records are streamed yet.
+// The archive owns the version and the ordered records following the header.
 extern "C" void MS_ABI impl__Serialize_CDockState__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar) {
     DockStateLayout* s = DS(pThis);
     if (!ar->IsLoading()) {
@@ -579,9 +498,9 @@ extern "C" void MS_ABI impl__Serialize_CDockState__UEAAXAEAVCArchive___Z(void* p
             const SIZE size = DeviceSize(s);
             impl__Write_CArchive__QEAAXPEBXI_Z(ar, &size, sizeof(size));
         }
-        ArPut<WORD>(ar, static_cast<WORD>(s->arr_nSize));
-        for (INT_PTR i = 0; i < s->arr_nSize; ++i) {
-            impl__Serialize_CControlBarInfo__QEAAXAEAVCArchive__PEAVCDockState___Z(s->arr_pData[i], ar, pThis);
+        ArPut<WORD>(ar, static_cast<WORD>(s->bars.GetSize()));
+        for (INT_PTR i = 0; i < s->bars.GetSize(); ++i) {
+            impl__Serialize_CControlBarInfo__QEAAXAEAVCArchive__PEAVCDockState___Z(s->bars[i], ar, pThis);
         }
         return;
     }
@@ -594,10 +513,10 @@ extern "C" void MS_ABI impl__Serialize_CDockState__UEAAXAEAVCArchive___Z(void* p
         impl__SetScreenSize_CDockState__QEAAXAEAVCSize___Z(pThis, &size);
     }
     const WORD nOldSize = ArGet<WORD>(ar);
-    ArraySetSize(s, nOldSize, -1);
-    for (INT_PTR i = 0; i < s->arr_nSize; ++i) {
-        s->arr_pData[i] = NewBarInfo();
-        impl__Serialize_CControlBarInfo__QEAAXAEAVCArchive__PEAVCDockState___Z(s->arr_pData[i], ar, pThis);
+    s->bars.SetSize(nOldSize);
+    for (INT_PTR i = 0; i < s->bars.GetSize(); ++i) {
+        s->bars[i] = NewBarInfo();
+        impl__Serialize_CControlBarInfo__QEAAXAEAVCArchive__PEAVCDockState___Z(s->bars[i], ar, pThis);
     }
     s->m_dwVersion = 2;
 }

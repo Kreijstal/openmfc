@@ -1277,6 +1277,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/MfcExceptionsSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/CMFC_misc_stubs.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/CWinAppSupport.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/app/CWinAppProfile.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/SynccoreSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/InetcoreSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/RegcoreSupport.cpp"
