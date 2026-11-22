@@ -50,6 +50,7 @@
 //    below.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/FeaturePackDockSite.h"
 
 #include <cstring>
 
@@ -80,6 +81,8 @@ extern "C" int MS_ABI impl__IsVisible_CBasePane__UEBAHXZ(const CBasePane* pThis)
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ();
 extern "C" SIZE* MS_ABI impl__CalcFixedLayout_CDockablePane__UEAA_AVCSize__HH_Z(
     CDockablePane* pThis, SIZE* pRet, int bStretch, int bHorz);
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CMFCAutoHideBar__UEAA_AVCSize__HH_Z(
+    CMFCAutoHideBar* bar, CSize* result, BOOL stretch, BOOL horizontal);
 extern "C" void* MS_ABI impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
     CBasePane* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy,
     unsigned int nFlags, void* hdwp);
@@ -261,6 +264,12 @@ inline void PaneSetWindowPos(CPane* pPane, int x, int y, int cx, int cy,
 
 inline CSize PaneFixedLayout(CPane* pPane, bool bHorz) {
     CSize size(0, 0);
+    if (!pPane) return size;
+    if (pPane->IsKindOf(RUNTIME_CLASS(CMFCAutoHideBar))) {
+        impl__CalcFixedLayout_CMFCAutoHideBar__UEAA_AVCSize__HH_Z(
+            static_cast<CMFCAutoHideBar*>(pPane), &size, FALSE, bHorz);
+        return size;
+    }
     if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
             reinterpret_cast<const CObject*>(pPane),
             impl__GetThisClass_CDockablePane__SAPEAUCRuntimeClass__XZ())) {
@@ -417,12 +426,9 @@ extern "C" void MS_ABI impl___1CDockingPanesRow__UEAA_XZ(void* pThis) {
 // Symbol: ?AddPane@CDockingPanesRow@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@H@Z
 // Retail entry RVA 0x4f6c0 (mfc140u). Both rect and fallback paths compute a
 // target origin, then dispatch CalcFixedLayout (slot 0x4d0), SetWindowPos
-// (slot 0x480), OnInsertPane (row slot 0xd8), and UpdateVirtualRect. OpenMFC
-// cannot safely read this retail vtable: CDockablePane-derived objects use the
-// existing CDockablePane fixed-layout thunk; other CPane subclasses use the
-// base FALSE result (0,0). Custom CalcFixedLayout overrides are not reached,
-// including further-derived CDockablePane overrides. SetWindowPos also uses
-// the base thunk. The fallback's shared value is
+// (slot 0x480), OnInsertPane (row slot 0xd8), and UpdateVirtualRect. The
+// fixed-layout call uses the modeled docking pane and auto-hide bar overrides.
+// SetWindowPos uses the base thunk. The fallback's shared value is
 // AFX_GLOBAL_DATA::m_nAutoHideToolBarSpacing (+0x294), whose OpenMFC global blob
 // and initializer are available.  dockMethod is not inspected by retail here.
 extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT__H_Z(
@@ -479,10 +485,6 @@ extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOC
         }
     }
 
-    // The retail call is CBasePane vslot 0x4d0. OpenMFC's CBasePane vtable is
-    // incomplete, so use the verified CDockablePane thunk when applicable;
-    // other CPane subclasses use the retail base result for FALSE (0,0); their
-    // custom overrides are not dispatched.
     const CSize size = PaneFixedLayout(pPane, bHorz);
     PaneSetWindowPos(pPane, x, y, size.cx, size.cy,
                      SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
@@ -701,6 +703,18 @@ extern "C" void MS_ABI impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(
         if (RowIsHorz(s)) x += nSpacing + rectPane.Width();
         else              y += nSpacing + rectPane.Height();
     }
+}
+
+void openmfc::detail::mfccore::ConfigureAutoHideRow(void* row, int extraSpace, BOOL trailingEdge) {
+    Row(row)->m_nExtraSpace = extraSpace;
+    Row(row)->m_nExtraAlignment = trailingEdge;
+}
+
+void openmfc::detail::mfccore::ArrangeAutoHideRow(void* row, int offset) {
+    const int spacing = InitializeAndReadAutoHideToolBarSpacing();
+    int margin = 0;
+    std::memcpy(&margin, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A + 0x298, sizeof(margin));
+    impl__ArrangePanes_CDockingPanesRow__UEAAXHH_Z(row, offset + margin, spacing);
 }
 
 // Symbol: ?ArrangePanes@CDockingPanesRow@@UEAAXPEAVCPane@@@Z

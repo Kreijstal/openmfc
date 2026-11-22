@@ -40,4 +40,6 @@ static_assert(offsetof(CAutoHideDockSite, m_nOffsetLeft) == 0x220);
 namespace openmfc::detail::mfccore {
 RECT EmptyDockSiteBounds(RECT bounds, DWORD alignment);
 void ForgetDockSite(CDockingManager* manager, CDockSite* site);
+void ConfigureAutoHideRow(void* row, int extraSpace, BOOL trailingEdge);
+void ArrangeAutoHideRow(void* row, int offset);
 }

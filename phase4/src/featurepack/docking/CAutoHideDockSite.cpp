@@ -45,9 +45,14 @@
 // featurepack/docking/CDockSite.cpp (real bodies)
 extern "C" void* MS_ABI impl__RowFromPane_CDockSite__IEBAPEAVCDockingPanesRow__PEAVCBasePane___Z(
     const void* pThis, CBasePane* pBar);
+extern "C" void* MS_ABI impl__AddRow_CDockSite__QEAAPEAVCDockingPanesRow__PEAU__POSITION__H_Z(
+    void* site, void* position, int height);
+extern "C" void MS_ABI impl__AdjustDockingLayout_CDockSite__UEAAXXZ(void* site);
 // featurepack/docking/CDockingPanesRow.cpp (real body)
 extern "C" void MS_ABI impl__GetGroupFromPane_CDockingPanesRow__QEAAXPEAVCPane__AEAVCObList___Z(
     void* pThis, CPane* pBar, CObList* pList);
+extern "C" void MS_ABI impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT__H_Z(
+    void* row, CPane* pane, int dockMethod, const RECT* rect, BOOL addLast);
 // featurepack/docking/CBasePane.cpp:841
 extern "C" unsigned long MS_ABI impl__GetCurrentAlignment_CBasePane__UEBAKXZ(const CBasePane* pThis);
 // featurepack/docking/CMFCAutoHideBar.cpp:194 / :423 and RuntimeClasses.cpp:291
@@ -55,6 +60,8 @@ extern "C" void* MS_ABI impl__GetFirstAHWindow_CMFCAutoHideBar__QEAAPEAVCDockabl
 extern "C" void MS_ABI impl__UnSetAutoHideMode_CMFCAutoHideBar__QEAAXPEAVCDockablePane___Z(
     CMFCAutoHideBar* pThis, CDockablePane* pFirstBarInGroup);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCAutoHideBar__SAPEAUCRuntimeClass__XZ();
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CMFCAutoHideBar__UEAA_AVCSize__HH_Z(
+    CMFCAutoHideBar* bar, CSize* result, BOOL stretch, BOOL horizontal);
 // core/runtime/CObject.cpp:49
 extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const CObject* pThis,
                                                                         const CRuntimeClass* pClass);
@@ -78,6 +85,7 @@ extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
 // Same-file thunks used before their definition.
 extern "C" void MS_ABI impl__UnSetAutoHideMode_CAutoHideDockSite__QEAAXPEAVCMFCAutoHideBar___Z(
     void* pThis, CMFCAutoHideBar* pAutohideToolbar);
+extern "C" int impl__m_nExtraSpace_CAutoHideDockSite__1HA;
 
 // ---------------------------------------------------------------------------
 // Shadow layout + local helpers
@@ -170,39 +178,38 @@ extern "C" CObject* MS_ABI impl__CreateObject_CAutoHideDockSite__SAPEAVCObject__
 }
 
 // Symbol: ?DockPane@CAutoHideDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@@Z
-// STUB.  Retail 0xa640 (0xa5c0 in mfc140u), decoded:
-//   BOOL bHorz = IsHorizontal();                               // vslot +0x2d8
-//   CSize size = pWnd->CalcFixedLayout(FALSE, bHorz);          // pane vslot +0x4d0
-//                        // (CMFCAutoHideBar's override, 0x9330: size of ::GetWindowRect)
-//   int nSize = bHorz ? size.cy + m_nExtraSpace : size.cx + m_nExtraSpace;
-//   if (m_lstControlBars.Find(pWnd) != NULL) return;          // open-coded walk from +0x1B0
-//   CDockingPanesRow* pRow;
-//   if (m_lstDockBarRows.GetCount() == 0) {                   // +0x1F8
-//       pRow = AddRow(NULL, nSize);                            // 0x54080, result not NULL-checked
-//       pRow->m_nExtraSpace = m_nExtraSpace;                   // row +0x20
-//       pRow->m_nExtraAlignment =                              // row +0x24
-//           (GetCurrentAlignment() & CBRS_ALIGN_LEFT) ||       // vslot +0x338, bit 0x1000
-//           (GetCurrentAlignment() & CBRS_ALIGN_TOP) ? 0 : 1;  // vslot +0x338, bit 0x2000
-//   } else {
-//       pRow = (CDockingPanesRow*)m_lstDockBarRows.GetHead(); // +0x1E8 head node ->data
-//   }
-//   pRow->AddPane(pWnd, (AFX_DOCK_METHOD)4, lpRect, TRUE);    // row vslot +0x48
-//   (Rows come from the inherited CDockSite::CreateRow, vslot +0x4f0 = 0x53ff0, so
-//    they are CDockingPanesRow; its vftable 0x1802e4148 (mfc140) holds AddPane
-//    0x4f510 at +0x48.)
-//   ShowWindow(SW_SHOW);                                       // 0x2a79e0, edx = 5
-//   m_lstControlBars.AddTail(pWnd);                            // 0x230490
-//   AdjustDockingLayout();                                     // vslot +0x560
-//   CRect rect(0,0,0,0); ::GetClientRect(m_hWnd, &rect);       // import 0x1802c5358
-//   RepositionPanes(rect);                                     // vslot +0x540
-// Not implemented: the row insertion goes through CDockingPanesRow::AddPane,
-// whose thunk in CDockingPanesRow.cpp:343 still carries an auto-generated
-// placeholder parameter list (and an empty body), and the tail of the body
-// dispatches to RepositionPanes below, which is itself blocked.  Parameter
-// list corrected to the mangled shape (this, CPane*, AFX_DOCK_METHOD, LPCRECT).
+// Retail 0xa640 (0xa5c0 in mfc140u) creates a single row for the site's bars.
 extern "C" void MS_ABI impl__DockPane_CAutoHideDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT___Z(
-    void* pThis, CPane* pWnd, int dockMethod, const RECT* lpRect) {
-    (void)pThis; (void)pWnd; (void)dockMethod; (void)lpRect;
+    void* pThis, CPane* pane, int, const RECT* rect) {
+    auto* site = Site(pThis);
+    if (!site || !site->m_hWnd || !site->CanAcceptPane(pane) || !pane->m_hWnd ||
+        ::GetParent(pane->m_hWnd) != site->m_hWnd ||
+        site->m_lstControlBars.Find(pane) != nullptr) return;
+
+    auto* row = site->m_lstDockBarRows.IsEmpty() ? nullptr : site->m_lstDockBarRows.GetHead();
+    if (!row) {
+        const DWORD alignment = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(site);
+        const BOOL horizontal = SiteIsHorz(site);
+        CSize size(0, 0);
+        impl__CalcFixedLayout_CMFCAutoHideBar__UEAA_AVCSize__HH_Z(
+            static_cast<CMFCAutoHideBar*>(pane), &size, FALSE, horizontal);
+        const int padding = impl__m_nExtraSpace_CAutoHideDockSite__1HA;
+        const int thickness = (horizontal ? size.cy : size.cx) + padding;
+        row = static_cast<CObject*>(
+            impl__AddRow_CDockSite__QEAAPEAVCDockingPanesRow__PEAU__POSITION__H_Z(site, nullptr, thickness));
+        if (!row) return;
+        const BOOL trailingEdge = (alignment & (CBRS_ALIGN_RIGHT | CBRS_ALIGN_BOTTOM)) != 0;
+        openmfc::detail::mfccore::ConfigureAutoHideRow(row, padding, trailingEdge);
+    }
+
+    constexpr int dockByRectangle = 4; // AFX_DOCK_METHOD::DM_RECT
+    pane->m_pParentDockBar = reinterpret_cast<CDockBar*>(site);
+    impl__AddPane_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT__H_Z(
+        row, pane, dockByRectangle, rect, TRUE);
+    ::ShowWindow(site->m_hWnd, SW_SHOW);
+    site->m_lstControlBars.AddTail(pane);
+    impl__AdjustDockingLayout_CDockSite__UEAAXXZ(site);
+    openmfc::detail::mfccore::ArrangeAutoHideRow(row, site->m_nOffsetLeft);
 }
 
 // Symbol: ?GetAlignRect@CAutoHideDockSite@@QEBAXAEAVCRect@@@Z
@@ -272,26 +279,11 @@ extern "C" void MS_ABI impl__OnPaint_CAutoHideDockSite__IEAAXXZ(void* pThis) {
 }
 
 // Symbol: ?RepositionPanes@CAutoHideDockSite@@UEAAXAEAVCRect@@@Z
-// STUB.  Retail 0xa7f0 (no mfc140u RVA in the map), decoded -- the argument is
-// never read:
-//   if (m_lstDockBarRows.GetCount() == 0) return;              // +0x1F8
-//   CDockingPanesRow* pRow = (CDockingPanesRow*)m_lstDockBarRows.GetHead();  // +0x1E8 ->data
-//   pRow->ArrangePanes(                                        // row vslot +0x68 = ArrangePanes(int,int), 0x51510
-//       m_nOffsetLeft + GetGlobalData()->m_nAutoHideToolBarMargin,   // +0x220, afxGlobalData+0x298
-//       GetGlobalData()->m_nAutoHideToolBarSpacing);                 // afxGlobalData+0x294
-//       // (GetGlobalData() is the inline `if (!m_bInitialized) { Initialize(); m_bInitialized = 1; }`
-//       //  gate on afxGlobalData 0x1803ba380, Initialize = 0x6a5c0; emitted twice)
-//   if (CMFCVisualManager::GetInstance()->HasOverlappedAutoHideButtons())  // 0x97f4, VM vslot +0x368
-//       pRow->RedrawAll();                                     // 0x52340
-// Not implemented: CDockingPanesRow::ArrangePanes(int,int) (CDockingPanesRow.cpp:472)
-// is still a placeholder `(int p0, int p1) {}` with no `this`, and
-// HasOverlappedAutoHideButtons is an inline virtual (the base CMFCVisualManager
-// vftable 0x180319f78 (mfc140) holds 0x7260, `xor eax,eax; ret`, at +0x368, right
-// after OnDrawControlBorder at +0x360, matching afxvisualmanager.h order) with no export and no counterpart in include/openmfc, so
-// the redraw condition cannot be evaluated.  Parameter list corrected to the
-// mangled shape (this, CRect&).
-extern "C" void MS_ABI impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(void* pThis, CRect* pRectNewClientArea) {
-    (void)pThis; (void)pRectNewClientArea;
+// Retail 0xa7f0 takes the geometry from the existing row and toolbar metrics.
+extern "C" void MS_ABI impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(void* pThis, CRect*) {
+    auto* site = Site(pThis);
+    if (!site || site->m_lstDockBarRows.IsEmpty()) return;
+    openmfc::detail::mfccore::ArrangeAutoHideRow(site->m_lstDockBarRows.GetHead(), site->m_nOffsetLeft);
 }
 
 // Symbol: ?UnSetAutoHideMode@CAutoHideDockSite@@QEAAXPEAVCMFCAutoHideBar@@@Z
