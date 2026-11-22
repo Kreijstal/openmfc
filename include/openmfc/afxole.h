@@ -973,31 +973,50 @@ public:
     BOOL OnContextHelp();
     virtual BOOL OnResizeBorder(LPCRECT lpRect, LPOLEINPLACEUIWINDOW lpUIWindow, BOOL bMainWindow);
     virtual BOOL OnGetClipboardData(COleDataSource* pDataSource);
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 
     CFrameWnd* GetFrameWnd() const { return m_pFrameWnd; }
 
+    struct XOleInPlaceFrame : IOleInPlaceFrame {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE GetWindow(HWND*) override;
+        HRESULT STDMETHODCALLTYPE ContextSensitiveHelp(BOOL) override;
+        HRESULT STDMETHODCALLTYPE GetBorder(LPRECT) override;
+        HRESULT STDMETHODCALLTYPE RequestBorderSpace(LPCBORDERWIDTHS) override;
+        HRESULT STDMETHODCALLTYPE SetBorderSpace(LPCBORDERWIDTHS) override;
+        HRESULT STDMETHODCALLTYPE SetActiveObject(IOleInPlaceActiveObject*, LPCOLESTR) override;
+        HRESULT STDMETHODCALLTYPE InsertMenus(HMENU, LPOLEMENUGROUPWIDTHS) override;
+        HRESULT STDMETHODCALLTYPE SetMenu(HMENU, HOLEMENU, HWND) override;
+        HRESULT STDMETHODCALLTYPE RemoveMenus(HMENU) override;
+        HRESULT STDMETHODCALLTYPE SetStatusText(LPCOLESTR) override;
+        HRESULT STDMETHODCALLTYPE EnableModeless(BOOL) override;
+        HRESULT STDMETHODCALLTYPE TranslateAccelerator(LPMSG, WORD) override;
+    };
+    struct XOleCommandTarget : IOleCommandTarget {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE QueryStatus(const GUID*, ULONG, OLECMD*, OLECMDTEXT*) override;
+        HRESULT STDMETHODCALLTYPE Exec(const GUID*, DWORD, DWORD, VARIANT*, VARIANT*) override;
+    };
+
 public:
     CFrameWnd* m_pFrameWnd;
+    IOleInPlaceActiveObject* m_lpActiveObject;
     COleClientItem* m_pActiveItem;
-    LPOLEINPLACEUIWINDOW m_lpActiveUIWindow;
 
-    // Retail COleFrameHook state that fits the existing 48-byte tail. The
-    // CString and interface members are represented as pointer-sized storage
-    // here because this OpenMFC constructor does not construct those embedded
-    // objects. Their retail offsets are asserted in COleFrameHook.cpp.
     struct RetailTailStorage {
-        HWND m_hWndFrame;                       // +0x58; COleFrameHook ctor RVA 0x247d90 (mfc140u)
-        void* m_unknown_60;                     // +0x60; ctor RVA 0x247d90 (mfc140u)
-        HACCEL m_hAccelTable;                   // +0x68; ctor RVA 0x247d90 (mfc140u)
-        UINT m_nModelessCount;                  // +0x70; ctor RVA 0x247d90 (mfc140u)
-        DWORD m_reserved_74;                    // +0x74; gap before CString, ctor RVA 0x247d90 (mfc140u)
-        void* m_strObjNameStorage;              // CString +0x78; ctor RVA 0x247d90 (mfc140u)
-        void* m_xOleInPlaceFrameVftable;        // interface part +0x80; ctor RVA 0x247d90 (mfc140u)
+        HWND m_hWndFrame = nullptr;                // +0x58
+        void* m_unknown_60 = nullptr;              // +0x60
+        HACCEL m_hAccelTable = nullptr;            // +0x68
+        UINT m_nModelessCount = 0;                 // +0x70
+        CString m_strObjName;                      // +0x78
+        XOleInPlaceFrame m_xOleInPlaceFrame;       // +0x80
+        XOleCommandTarget m_xOleCommandTarget;     // +0x88
     };
-    union {
-        RetailTailStorage m_retailTail;
-        char _oleframehook_padding[48];
-    };
+    RetailTailStorage m_retailTail;
 };
 
 //=============================================================================

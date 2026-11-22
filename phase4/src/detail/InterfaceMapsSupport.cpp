@@ -1,4 +1,6 @@
+#define OPENMFC_APPCORE_IMPL
 #include "InterfaceMapsSupport.h"
+#include "openmfc/afxole.h"
 
 namespace openmfc { namespace detail { namespace interfacemaps {
 const AFX_INTERFACEMAP* AFXAPI gib_CDocObjectServer() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
@@ -24,7 +26,20 @@ const AFX_INTERFACEMAP g_imap_COleControlSite = { gib_COleControlSite, g_ifaceEn
 const AFX_INTERFACEMAP* AFXAPI gib_COleDocObjectItem() { return impl__GetThisInterfaceMap_COleClientItem__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleDocObjectItem = { gib_COleDocObjectItem, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleFrameHook() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_COleFrameHook = { gib_COleFrameHook, g_ifaceEnd };
+namespace {
+constexpr size_t framePart = offsetof(COleFrameHook, m_retailTail) +
+                             offsetof(COleFrameHook::RetailTailStorage, m_xOleInPlaceFrame);
+constexpr size_t commandPart = offsetof(COleFrameHook, m_retailTail) +
+                               offsetof(COleFrameHook::RetailTailStorage, m_xOleCommandTarget);
+const AFX_INTERFACEMAP_ENTRY frameHookInterfaces[] = {
+    { &IID_IOleWindow, framePart },
+    { &IID_IOleInPlaceUIWindow, framePart },
+    { &IID_IOleInPlaceFrame, framePart },
+    { &IID_IOleCommandTarget, commandPart },
+    { nullptr, static_cast<size_t>(-1) }
+};
+}
+const AFX_INTERFACEMAP g_imap_COleFrameHook = { gib_COleFrameHook, frameHookInterfaces };
 const AFX_INTERFACEMAP* AFXAPI gib_COleLinkingDoc() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleLinkingDoc = { gib_COleLinkingDoc, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleMessageFilter() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }

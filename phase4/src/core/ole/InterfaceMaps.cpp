@@ -1,7 +1,9 @@
 // InterfaceMaps — OpenMFC implementation.
 // Sources: global_interface_maps.cpp
 
+#define OPENMFC_APPCORE_IMPL
 #include "detail/InterfaceMapsSupport.h"
+#include "openmfc/afxole.h"
 
 // Symbol: ?GetThisInterfaceMap@CDocObjectServer@@KAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_CDocObjectServer__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_CDocObjectServer; }
@@ -47,6 +49,7 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleDocObjectIte
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleFrameHook__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleFrameHook; }
 // Symbol: ?GetInterfaceMap@COleFrameHook@@MEBAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleFrameHook__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleFrameHook; }
+const AFX_INTERFACEMAP* COleFrameHook::GetInterfaceMap() const { return &g_imap_COleFrameHook; }
 // Symbol: ?GetThisInterfaceMap@COleLinkingDoc@@KAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleLinkingDoc__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleLinkingDoc; }
 // Symbol: ?GetInterfaceMap@COleLinkingDoc@@MEBAPEBUAFX_INTERFACEMAP@@XZ

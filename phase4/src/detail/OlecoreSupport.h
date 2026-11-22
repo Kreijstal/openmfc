@@ -1083,17 +1083,6 @@ struct ClientItemState {
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
-struct FrameHookState {
-    COleFrameHook* hook = nullptr;
-    IOleInPlaceActiveObject* activeObject = nullptr; // borrowed retail +0x48 state
-    COleClientItem* activeItem = nullptr;
-    HWND frameWindow = nullptr;                    // retail +0x58
-    HACCEL acceleratorTable = nullptr;             // retail +0x68
-    UINT modelessCount = 0;                        // retail +0x70
-    CString objectName;                            // retail CString at +0x78
-    void* commandTargetPart = nullptr;             // no room for retail +0x88
-};
-
 // Retail COleFrameHook::OnRecalcLayout entry RVA 0x247ef0 (mfc140u) dispatches
 // CFrameWnd::NegotiateBorderSpace through vtable byte offset +0x348. Keep this
 // slot-preserving path available to OLE implementations; a direct C++ method
@@ -1187,9 +1176,6 @@ extern std::vector<DocumentState> g_documentStates;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern std::vector<ClientItemState> g_clientItemStates;
-} } }
-namespace openmfc { namespace detail { namespace olecore {
-extern std::vector<FrameHookState> g_frameHookStates;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern std::vector<ServerDocState> g_serverDocStates;
@@ -1294,12 +1280,6 @@ ClientItemState* FindClientItemState(const COleClientItem* item);
 
 namespace openmfc { namespace detail { namespace olecore {
 void RemoveClientItemState(COleClientItem* item);
-} } }
-namespace openmfc { namespace detail { namespace olecore {
-extern "C" FrameHookState* GetFrameHookState(COleFrameHook* hook, bool create);
-} } }
-namespace openmfc { namespace detail { namespace olecore {
-extern "C" void RemoveFrameHookState(COleFrameHook* hook);
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
