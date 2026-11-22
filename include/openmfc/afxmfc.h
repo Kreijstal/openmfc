@@ -1580,6 +1580,7 @@ class CPaneFrameWnd : public CWnd {
 public:
     CPaneFrameWnd();
     virtual ~CPaneFrameWnd();
+    void Serialize(CArchive& archive) override;
 
     virtual BOOL Create(const wchar_t* lpszClassName, DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, CCreateContext* pContext = nullptr);
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);

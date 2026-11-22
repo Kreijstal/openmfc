@@ -2551,34 +2551,53 @@ extern "C" int MS_ABI impl__SaveState_CPaneFrameWnd__UEAAHPEB_WI_Z(
         static_cast<CBasePane*>(pPane), lpszProfileName, nIndex, paneUIID);
 }
 
+extern "C" void* impl__m_pParentWndForSerialize_CPaneFrameWnd__1PEAVCFrameWnd__EA;
+
 // Symbol: ?Serialize@CPaneFrameWnd@@UEAAXAEAVCArchive@@@Z
-// Retail (0xb2d20) is a hand-inlined CArchive body (the store/load switch is
-// `test $1, ar.m_nMode` -- bit 0 is CArchive::load, so the fall-through path at
-// 0xb2d5e is the LOAD path).  Six items are serialized, in this order:
-//   store (0xb2ef4): the DWORD CWnd::GetStyle (0x2a75a0) returns, then the
-//     16-byte ::GetWindowRect -- whose bottom is first replaced by
-//     rect.top + <int at 0x110> when the flag at 0xf8 is non-zero, the same
-//     pair OnCheckRollState uses to restore a frame's un-rolled height -- then
-//     ::IsWindowVisible(m_hWnd) as a DWORD, then the hosted pane's
-//     GetDlgCtrlID (0 when 0x148 resolves to nothing), then
-//     m_dwCaptionButtons (0x12c), then the int at 0xfc.
-//   load: style, rect, one skipped DWORD (the visible flag), then 0x128, 0x12c
-//     and 0xfc; it clears bit 28 of the style word and calls its own vtable
-//     +0x418 (CPaneFrameWnd::Create) with the loaded rect and, as the parent,
-//     the global at .data VA 0x1803b6fe0 (mfc140.dll)
-//     (?m_pParentWndForSerialize@CPaneFrameWnd@@1PEAVCFrameWnd@@EA), finally
-//     storing that parent's m_hWnd into 0x130.
-// Those frame members are represented in PaneFrameState, but CArchive's local
-// declaration places m_nMode at +0x10 and its buffer pointers at +0x18/+0x20/+0x28;
-// retail reads mode at +0x20 and buffer pointers at +0x38/+0x40. Reinterpreting
-// this object through the retail inlined archive code would read the wrong data.
-// The parent global exists (phase4/src/core/runtime/StaticData.cpp) but remains
-// null, so load would also recreate the frame without its parent. Keep this a
-// stub until the shared archive ABI and parent-state lifecycle are corrected.
 extern "C" void MS_ABI impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(
-    CPaneFrameWnd* pThis, CArchive& archive) {
-    (void)pThis;
-    (void)archive;
+    CPaneFrameWnd* frame, CArchive& archive) {
+    if (frame) frame->CPaneFrameWnd::Serialize(archive);
+}
+
+void CPaneFrameWnd::Serialize(CArchive& archive) {
+    DWORD style = 0;
+    RECT bounds{};
+    BOOL visible = FALSE;
+    UINT paneId = 0;
+    DWORD buttons = 0;
+    BOOL pinned = FALSE;
+    if (archive.IsStoring()) {
+        style = static_cast<DWORD>(::GetWindowLongPtrW(m_hWnd, GWL_STYLE));
+        ::GetWindowRect(m_hWnd, &bounds);
+        visible = ::IsWindowVisible(m_hWnd);
+        if (auto* pane = GetPane()) paneId = static_cast<UINT>(impl__GetDlgCtrlID_CWnd__QEBAHXZ(pane));
+        {
+            std::lock_guard<std::mutex> lock(g_other6Mutex);
+            if (const auto* state = FindStatePtr(this)) {
+                if (state->rolledUp && state->heightBeforeRollUp)
+                    bounds.bottom = bounds.top + static_cast<LONG>(state->heightBeforeRollUp);
+                buttons = static_cast<DWORD>(state->rollupFlags);
+                pinned = state->pinned;
+            }
+        }
+        archive << style;
+        archive.Write(&bounds, sizeof(bounds));
+        archive << visible << paneId << buttons << pinned;
+        return;
+    }
+
+    archive >> style;
+    archive.EnsureRead(&bounds, sizeof(bounds));
+    archive >> visible >> paneId >> buttons >> pinned;
+    auto* owner = static_cast<CFrameWnd*>(impl__m_pParentWndForSerialize_CPaneFrameWnd__1PEAVCFrameWnd__EA);
+    if (!owner || !owner->m_hWnd || !Create(L"", style & ~static_cast<DWORD>(WS_VISIBLE), bounds, owner, nullptr))
+        AfxThrowArchiveException(CArchiveException::generic, archive.m_strFileName.GetString());
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    auto& state = GetState(this);
+    state.restoredEmbeddedBarID = paneId;
+    state.rollupFlags = static_cast<int>(buttons);
+    state.pinned = pinned != FALSE;
+    state.restoredFrameVisible = visible != FALSE;
 }
 
 // Symbol: ?SetCaptionButtons@CPaneFrameWnd@@UEAAXK@Z
@@ -2664,24 +2683,58 @@ extern "C" void MS_ABI impl__SetDockingTimer_CPaneFrameWnd__QEAAXI_Z(
     }
 }
 
+extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+    CDockingManager*, UINT, int);
+
+void openmfc::detail::FinishFloatingFrameRestore(CPaneFrameWnd& frame, bool show) {
+    DWORD buttons = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto& state = GetState(&frame);
+        buttons = static_cast<DWORD>(state.rollupFlags);
+        show = show && state.restoredFrameVisible;
+        state.delayShow = show;
+    }
+    impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(&frame, buttons);
+    if (auto* pane = frame.GetPane()) {
+        std::wstring caption(::GetWindowTextLengthW(pane->m_hWnd) + 1, L'\0');
+        ::GetWindowTextW(pane->m_hWnd, caption.data(), static_cast<int>(caption.size()));
+        frame.SetWindowTextW(caption.c_str());
+        for (int size : {ICON_SMALL, ICON_BIG}) {
+            const auto icon = ::SendMessageW(pane->m_hWnd, WM_GETICON, size, 0);
+            ::SendMessageW(frame.m_hWnd, WM_SETICON, size, icon);
+        }
+    }
+    frame.AdjustLayout();
+    ::ShowWindow(frame.m_hWnd, show ? SW_SHOWNOACTIVATE : SW_HIDE);
+}
+
 // Symbol: ?SetDockState@CPaneFrameWnd@@UEAAXPEAVCDockingManager@@@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb31c0 restores a floating frame
-// from a saved dock state. It reads the saved pane id at 0x128, asks the
-// CDockingManager argument for the pane
-// with that id (manager vtable +0x58), and then re-parents and re-shows it:
-// USER32 imports GetParent/SetParent are slots 0x1802c5300/0x1802c52b0.
-// ::GetParent / ::SetParent operate on the frame's owner (0x130), followed by a pane virtual at
-// +0x790, a CDockablePane branch (+0x3f0, +0x3c8, +0x6e0), rect fix-ups through
-// +0x460 / +0x408, CWnd::SetWindowPos and finally SetCaptionButtons with the
-// mask at 0x12c.  When the saved id is 0, or the manager cannot produce a pane,
-// it calls its own DestroyWindow (vtable 0xd0) instead.
-// STUB: the saved-id/owner/manager slots now exist in PaneFrameState, but the
-// manager lookup and multiple unexported pane virtuals still decide the restore
-// path. Guessing could destroy a frame or attach a pane it never owned.
 extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManager___Z(
-    void* pThis, void* pDockManager) {
-    (void)pThis;
-    (void)pDockManager;
+    void* self, void* dockManager) {
+    auto* frame = static_cast<CPaneFrameWnd*>(self);
+    auto* manager = static_cast<CDockingManager*>(dockManager);
+    if (!frame || !frame->m_hWnd || !manager) return;
+    UINT id = 0;
+    BOOL visible = FALSE;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(frame)) {
+            id = state->restoredEmbeddedBarID;
+            visible = state->restoredFrameVisible;
+        }
+    }
+    auto* pane = id && id != UINT(-1)
+        ? impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(manager, id, TRUE) : nullptr;
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CPane)) ||
+        !openmfc::detail::RestorePaneInFloatingFrame(*static_cast<CPane*>(pane), *frame, *manager, visible)) {
+        if (!frame->GetPane()) frame->DestroyWindow();
+        return;
+    }
+    RECT client{};
+    if (::GetClientRect(frame->m_hWnd, &client))
+        ::SetWindowPos(pane->m_hWnd, nullptr, 0, 0, client.right, client.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
+    openmfc::detail::FinishFloatingFrameRestore(*frame, visible != FALSE);
 }
 
 // Symbol: ?SetPreDockState@CPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z

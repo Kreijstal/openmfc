@@ -932,6 +932,28 @@ CPaneDivider* DockDivider(HWND hwnd) {
     auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(hwnd));
     return window && window->IsKindOf(RUNTIME_CLASS(CPaneDivider)) ? static_cast<CPaneDivider*>(window) : nullptr;
 }
+
+std::optional<openmfc::docking_state::PaneFloatRestore> CaptureFloatRestore(
+    CPane& pane, CFrameWnd& owner, CDockablePane* dockable, CBaseTabbedPane* group) {
+    openmfc::docking_state::PaneFloatRestore restore;
+    restore.parent = ::GetParent(pane.m_hWnd);
+    restore.owner = owner.m_hWnd;
+    restore.style = pane.m_dwStyle;
+    restore.row = reinterpret_cast<CDockingPanesRow*>(pane.m_pDockBarRow);
+    if (auto* divider = dockable ? static_cast<CPaneDivider*>(
+            impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(dockable)) : nullptr) {
+        restore.divider = divider->m_hWnd;
+        restore.dividerVisible = ::IsWindowVisible(restore.divider) != FALSE;
+    }
+    if (group && group->GetTabs()) {
+        auto* tabs = group->GetTabs();
+        restore.tabGroup = group->m_hWnd;
+        restore.tabIndex = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(tabs, pane.m_hWnd);
+        restore.detachable = tabs->IsTabDetachable(restore.tabIndex) != FALSE;
+    }
+    if (!::GetWindowRect(pane.m_hWnd, &restore.bounds)) return std::nullopt;
+    return restore;
+}
 }
 
 BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDockingManager* manager) {
@@ -948,23 +970,10 @@ BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDocki
     else manager = PaneDockingManager(*this, owner);
     if (!owner || !owner->m_hWnd || !manager) return FALSE;
 
-    openmfc::docking_state::PaneFloatRestore restore;
-    restore.parent = ::GetParent(pane);
-    restore.owner = owner->m_hWnd;
-    restore.style = m_dwStyle;
-    restore.row = reinterpret_cast<CDockingPanesRow*>(m_pDockBarRow);
-    auto* divider = dockable ? static_cast<CPaneDivider*>(
-        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(dockable)) : nullptr;
-    if (divider) {
-        restore.divider = divider->m_hWnd;
-        restore.dividerVisible = ::IsWindowVisible(restore.divider) != FALSE;
-    }
-    if (group && group->GetTabs()) {
-        restore.tabGroup = group->m_hWnd;
-        restore.tabIndex = impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(group->GetTabs(), pane);
-        restore.detachable = group->GetTabs()->IsTabDetachable(restore.tabIndex) != FALSE;
-    }
-    if (!::GetWindowRect(pane, &restore.bounds)) return FALSE;
+    auto saved = CaptureFloatRestore(*this, *owner, dockable, group);
+    if (!saved) return FALSE;
+    auto& restore = *saved;
+    auto* divider = DockDivider(restore.divider);
     CRect bounds(::IsRectEmpty(&requested) ? restore.bounds : requested);
     ::MapWindowPoints(nullptr, restore.tabGroup ? restore.owner : restore.parent,
         reinterpret_cast<POINT*>(&restore.bounds), 2);
@@ -1025,6 +1034,75 @@ BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDocki
     if (restore.reservedDivider) manager->RecalcLayout();
     if (show && continueDrag) mini->BeginPaneDrag();
     return TRUE;
+}
+
+extern "C" CMFCAutoHideBar* MS_ABI impl__SetAutoHideMode_CDockablePane__UEAAPEAVCMFCAutoHideBar__HKPEAV2_H_Z(
+    CDockablePane*, int, DWORD, void*, int);
+
+bool openmfc::detail::RestorePaneInFloatingFrame(
+    CPane& pane, CPaneFrameWnd& frame, CDockingManager& manager, BOOL visible) {
+    auto* owner = EnsureDockingState(&manager).parentFrame;
+    if (!owner || !owner->m_hWnd || !pane.m_hWnd || !frame.m_hWnd) return false;
+    auto* dockable = pane.IsKindOf(RUNTIME_CLASS(CDockablePane)) ? static_cast<CDockablePane*>(&pane) : nullptr;
+    if (dockable && dockable->IsAutoHideMode()) {
+        impl__SetAutoHideMode_CDockablePane__UEAAPEAVCMFCAutoHideBar__HKPEAV2_H_Z(
+            dockable, FALSE, CBRS_ALIGN_ANY, nullptr, FALSE);
+        if (dockable->IsAutoHideMode()) return false;
+    }
+
+    const HWND previous = ::GetParent(pane.m_hWnd);
+    auto* oldFrame = FloatingFrame(previous);
+    auto* oldGroup = static_cast<CBaseTabbedPane*>(impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(&pane));
+    std::optional<openmfc::docking_state::PaneFloatRestore> restore;
+    if (!oldFrame) {
+        restore = CaptureFloatRestore(pane, *owner, dockable, oldGroup);
+        if (restore) ::MapWindowPoints(nullptr, restore->tabGroup ? restore->owner : restore->parent,
+            reinterpret_cast<POINT*>(&restore->bounds), 2);
+    }
+    if (!ReparentPane(pane.m_hWnd, frame.m_hWnd)) return false;
+    if (oldGroup) oldGroup->RemovePane(&pane);
+    else if (oldFrame && oldFrame != &frame) oldFrame->RemovePane(&pane);
+    else if (!oldFrame) impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(&pane, &frame, FALSE);
+    if (dockable && restore && !oldGroup) {
+        if (auto* divider = DockDivider(restore->divider)) {
+            restore->reservedDivider = ReserveDividerPane(*divider, *dockable, restore->bounds);
+            if (!divider->GetFirstPane()) ::ShowWindow(divider->m_hWnd, SW_HIDE);
+        }
+    }
+    if (dockable) impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(dockable, nullptr);
+    pane.m_pDockSite = reinterpret_cast<CDockSite*>(owner);
+    pane.m_dwStyle = (pane.m_dwStyle & ~CBRS_BORDER_ANY) | CBRS_FLOATING;
+    pane.m_bRecentFloatingState = TRUE;
+    auto& recent = pane.m_recentDockInfo.m_layout;
+    recent.m_hRecentMiniFrame = frame.m_hWnd;
+    ::GetWindowRect(frame.m_hWnd, &recent.m_rectRecentFloatingRect);
+    if (restore) {
+        pane.m_rectSavedDockedRect = restore->bounds;
+        recent.m_dwRecentAlignmentToFrame = restore->style & CBRS_ALIGN_ANY;
+        recent.m_hRecentDefaultSlider = restore->divider;
+        recent.m_nRecentTabNumber = restore->tabIndex;
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[&pane];
+        state.parent = &frame;
+        state.tabbed = FALSE;
+        state.tabWindow = nullptr;
+        state.floatingFrame = frame.m_hWnd;
+        state.visible = visible;
+        if (restore) state.floatRestore = *restore;
+    }
+    manager.DockPane(&pane);
+    auto& docking = EnsureDockingState(&manager);
+    docking.floatingPanes.insert(&pane);
+    if (!visible) docking.hiddenPanes.insert(&pane);
+    frame.CPaneFrameWnd::AddPane(&pane);
+    if (previous != frame.m_hWnd)
+        impl__OnAfterChangeParent_CPane__UEAAXPEAVCWnd___Z(&pane,
+            static_cast<CWnd*>(CWnd::FromHandlePermanent(previous)));
+    ::ShowWindow(pane.m_hWnd, visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+    if (restore && restore->reservedDivider) manager.RecalcLayout();
+    return true;
 }
 
 BOOL CPane::DockToRecentPosition() {

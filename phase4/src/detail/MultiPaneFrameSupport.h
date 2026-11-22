@@ -15,6 +15,7 @@ public:
     void AdjustLayout() override;
     CWnd* GetPane() const override;
     CWnd* GetFirstVisiblePane() const override;
+    void Serialize(CArchive& archive) override;
 
     void* GetContainerManager() { return m_containerManager; }
     const void* GetContainerManager() const { return m_containerManager; }
@@ -40,6 +41,8 @@ CDockablePane* MergeContainerTabs(CDockablePane& target, void* sourceManager);
 CDockablePane* AttachContainerTabs(CDockablePane& target, CWnd& sourceHost,
     const std::vector<CDockablePane*>& panes, void* sourceManager);
 void AdoptTransferredPane(CDockablePane& pane, CWnd& host, CWnd* previous, CPaneDivider* divider);
+bool RestorePaneInFloatingFrame(CPane& pane, CPaneFrameWnd& frame, CDockingManager& manager, BOOL visible);
+void FinishFloatingFrameRestore(CPaneFrameWnd& frame, bool show);
 CDockablePane* DockMultiPaneFrameAtPoint(CMultiPaneFrameWnd& frame, CPoint point, BOOL& docked, int method);
 bool EndPaneFrameDockDrag(CPaneFrameWnd& frame);
 void ClearPaneFrameDockPreview(CPaneFrameWnd& frame);

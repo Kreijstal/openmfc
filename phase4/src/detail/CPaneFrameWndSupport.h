@@ -54,6 +54,7 @@ struct PaneFrameState {
     bool noDelayedDestroy = false;          // m_bNoDelayedDestroy +0x100
     bool hostsToolbar = false;               // m_bHostsToolbar +0x104
     bool delayShow = false;                 // m_bDelayShow +0x108
+    bool restoredFrameVisible = true;
     bool tabDragRectDisplayed = false;       // m_bTabDragRectDisplayed +0x10c
     bool dragging = false;                  // m_bCaptured +0x10d
     bool dragOutlineOnly = false;
