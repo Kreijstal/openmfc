@@ -34,9 +34,11 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/OleFeaturePackSupport.h"
 #include "detail/OlecoreSupport.h"
 
 #include <cstddef>
+#include <new>
 
 // The retail allocation for this class (0x790 bytes, see the header comment)
 // must be able to hold the OpenMFC COleIPFrameWnd that the constructor below
@@ -125,64 +127,41 @@ static_assert(sizeof(RetailCOleIPFrameWndExPrefix) == 0x218,
               "retail COleIPFrameWnd prefix through m_pMainFrame");
 }
 
-// COleIPFrameWndEx::OnUpdatePaneMenu(CCmdUI*) — retail mfc140.dll (ANSI) RVA 0x960d0:
-//     pane = CDockingManager vtable slot 0x58 (FindPaneByID)(this+0x428,
-//                                                pCmdUI->[+0x08], TRUE);
-//     if (pane) pCmdUI->vtable[+0x08](pCmdUI, (CWnd::GetStyle(pane) >> 28) & 1);
-//     else      pCmdUI->[+0x2c] = 1;
-// Retail never calls CCmdUI::Enable here — the pane branch calls the CCmdUI
-// virtual at vtable byte offset 8 with the pane's WS_VISIBLE bit (0x10000000,
-// hence the >>28 &1), and the no-pane branch writes 1 to the DWORD at
-// pCmdUI+0x2c.  What was disassembled is the byte offset; naming that slot
-// SetCheck comes from documented MFC's declaration order
-// (Enable/SetCheck/SetRadio/SetText), not from the binary.
-// Documented MFC has CFrameWndEx::OnUpdatePaneMenu call pCmdUI->ContinueRouting()
-// on the no-pane branch, which is consistent with a m_bContinueRouting flag
-// living at +0x2c, but this file did not verify that naming — the write itself
-// is what was disassembled.
-// This thunk reproduces neither branch: the embedded CDockingManager at
-// this+0x428 and a retail-layout CCmdUI are not available to this implementation.
-// OpenMFC's CCmdUI (include/openmfc/afxole.h:68) is not the retail layout — it has a virtual
-// destructor in vtable slot 0 and its offset 0x2c falls inside m_pSubMenu, so
-// both the SetCheck dispatch and the +0x2c write would hit the wrong thing.
-// Symbol: ?OnUpdatePaneMenu@COleIPFrameWndEx@@IEAAXPEAVCCmdUI@@@Z
-extern "C" void MS_ABI impl__OnUpdatePaneMenu_COleIPFrameWndEx__IEAAXPEAVCCmdUI___Z(void* pThis, CCmdUI* pCmdUI) {
-    (void)pThis; (void)pCmdUI;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428 and a
-    // retail-layout CCmdUI.
-}
-// COleIPFrameWndEx::COleIPFrameWndEx() — retail mfc140u RVA 0x95f50:
-//     COleIPFrameWnd::COleIPFrameWnd(this);   // %rcx unchanged
-//     *(void**)this = &COleIPFrameWndEx_vftable;
-//     this->[0x284] = 0; this->[0x290] = nullptr;
-//     CFrameImpl::CFrameImpl(this+0x298, this);
-//     CDockingManager::CDockingManager(this+0x428);
-//     this->[0x5d8] = this;
-//     return this;                            // `mov %rbx,%rax`
-// Only the base construction is reproduced: OpenMFC models neither a
-// COleIPFrameWndEx vtable nor the CFrameImpl / CDockingManager sub-objects, so
-// the object ends up identifying as a COleIPFrameWnd.  Returning `this` (rather
-// than the previous stub's nullptr) is required by the MSVC constructor ABI.
-// Symbol: ??0COleIPFrameWndEx@@IEAA@XZ
-extern "C" void* MS_ABI impl___0COleIPFrameWndEx__IEAA_XZ(void* pThis) {
-    if (!pThis) return nullptr;
-    impl___0COleIPFrameWnd__QEAA_XZ(pThis);
-    // TODO(clean-room): transcribed partially — the derived vptr and the
-    // members at this+0x284/0x290/0x298/0x428/0x5d8 are not modeled.
-    return pThis;
+extern "C" CBasePane* AFXAPI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+    CDockingManager*, UINT, int);
+
+CBasePane* openmfc::detail::olecore::FeaturePackInPlaceFrame::FindPane(UINT id) {
+    return impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(&m_dockManager, id, TRUE);
 }
 
-// COleIPFrameWndEx::~COleIPFrameWndEx() — retail mfc140u RVA 0x96000:
-//     *(void**)this = &COleIPFrameWndEx_vftable;
-//     CDockingManager::~CDockingManager(this+0x428);
-//     CFrameImpl::~CFrameImpl(this+0x298);
-//     jmp COleIPFrameWnd::~COleIPFrameWnd(this);
-// Mirrors the base teardown only; the two sub-objects are not modeled, so
-// nothing is destroyed for them (nothing was constructed either).
+void openmfc::detail::olecore::FeaturePackInPlaceFrame::UpdatePaneMenu(CCmdUI* command) {
+    if (!command) return;
+    if (auto* pane = FindPane(command->m_nID))
+        command->SetCheck((::GetWindowLongW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0);
+    else
+        command->ContinueRouting();
+}
+
+using openmfc::detail::olecore::FeaturePackInPlaceFrame;
+extern "C" int AFXAPI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
+    CDockingManager*, CBasePane*, int, int, int);
+
+// Symbol: ?OnUpdatePaneMenu@COleIPFrameWndEx@@IEAAXPEAVCCmdUI@@@Z
+extern "C" void MS_ABI impl__OnUpdatePaneMenu_COleIPFrameWndEx__IEAAXPEAVCCmdUI___Z(void* frame, CCmdUI* command) {
+    if (frame) static_cast<FeaturePackInPlaceFrame*>(frame)->UpdatePaneMenu(command);
+}
+
+// Symbol: ??0COleIPFrameWndEx@@IEAA@XZ
+extern "C" void* MS_ABI impl___0COleIPFrameWndEx__IEAA_XZ(void* storage) {
+    using namespace openmfc::detail::olecore;
+    return storage ? ::new (storage) FeaturePackInPlaceFrame(
+        impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ()) : nullptr;
+}
+
 // Symbol: ??1COleIPFrameWndEx@@MEAA@XZ
 extern "C" void* MS_ABI impl___1COleIPFrameWndEx__MEAA_XZ(void* pThis) {
-    if (!pThis) return nullptr;
-    impl___1COleIPFrameWnd__UEAA_XZ(pThis);
+    using openmfc::detail::olecore::FeaturePackInPlaceFrame;
+    if (pThis) static_cast<FeaturePackInPlaceFrame*>(pThis)->~FeaturePackInPlaceFrame();
     return pThis;
 }
 
@@ -196,59 +175,26 @@ extern "C" void MS_ABI impl__AddDockSite_COleIPFrameWndEx__QEAAXXZ(void* pThis) 
     (void)pThis;
 }
 
-// COleIPFrameWndEx::AddPane(CBasePane*, BOOL) — retail mfc140.dll (ANSI) RVA 0x95f10:
-//     %rcx += 0x428; [rsp+0x20] = 0; %r9d = 0
-//     CDockingManager::AddPane(&m_dockManager, pPane, bSelect, FALSE, FALSE)
-// The embedded CDockingManager at this+0x428 is not modeled — see the header
-// comment — so no docking manager can be reached from here.
 // Symbol: ?AddPane@COleIPFrameWndEx@@QEAAHPEAVCBasePane@@H@Z
-extern "C" int MS_ABI impl__AddPane_COleIPFrameWndEx__QEAAHPEAVCBasePane__H_Z(void* pThis, void* pPane, int bSelect) {
-    (void)pThis; (void)pPane; (void)bSelect;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" int MS_ABI impl__AddPane_COleIPFrameWndEx__QEAAHPEAVCBasePane__H_Z(void* frame, CBasePane* pane, int select) {
+    return frame && pane && impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
+        &static_cast<FeaturePackInPlaceFrame*>(frame)->m_dockManager, pane, select, FALSE, FALSE);
 }
 
-// COleIPFrameWndEx::AdjustDockingLayout(void*) — retail mfc140.dll (ANSI) RVA 0x95fe0:
-//     w = ::GetWindow(this->m_hWnd, GW_CHILD);             // IAT slot 0x2c4c88
-//     while ((p = CWnd::FromHandle(w)) != nullptr &&       // 0x289180
-//            p->IsKindOf(&classCBasePane))                 // 0x233310
-//         w = ::GetWindow(this->m_hWnd, GW_HWNDNEXT);      // note: m_hWnd, not w
-//     tail-call (this+0x428)->vtable[+0x80](this+0x428, pParam);
-// IAT slot 0x2c4c88 was resolved through the PE import directory: it is
-// USER32.dll!GetWindow; the nCmd values 5 and 2 are GW_CHILD / GW_HWNDNEXT.
-// The CRuntimeClass at 0x2da490 was read straight out of the image: name
-// "CBasePane", m_nObjectSize 424, m_wSchema 0xFFFF — i.e. classCBasePane.
-// The loop advances off `this->m_hWnd` rather than the child handle, so after
-// the first iteration it re-reads the frame's own next sibling forever; that
-// is what the bytes do (retail bug preserved, not a transcription slip — the
-// analogous walk in OnDestroy below does advance off the child handle).
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?AdjustDockingLayout@COleIPFrameWndEx@@UEAAXPEAX@Z
-extern "C" void MS_ABI impl__AdjustDockingLayout_COleIPFrameWndEx__UEAAXPEAX_Z(void* pThis, void* pParam) {
-    (void)pThis; (void)pParam;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
+extern "C" void MS_ABI impl__AdjustDockingLayout_COleIPFrameWndEx__UEAAXPEAX_Z(void* frame, void*) {
+    if (frame) static_cast<FeaturePackInPlaceFrame*>(frame)->m_dockManager.RecalcLayout();
 }
 
-// COleIPFrameWndEx::CreateObject() — retail mfc140u RVA 0x95f00 allocates
-// 0x790 bytes and, when non-null, calls the constructor at RVA 0x95f50.  The
-// constructor implemented here only constructs the COleIPFrameWnd base; it does
-// not install the derived vptr or initialize the CFrameImpl / CDockingManager
-// subobjects that retail initializes.  Returning that allocation would expose
-// an invalid derived instance, so this remains an explicit null stub and does
-// not reproduce retail's successful-allocation path.
 // Symbol: ?CreateObject@COleIPFrameWndEx@@SAPEAVCObject@@XZ
-extern "C" void* MS_ABI impl__CreateObject_COleIPFrameWndEx__SAPEAVCObject__XZ() {
-    return nullptr;
+extern "C" CObject* MS_ABI impl__CreateObject_COleIPFrameWndEx__SAPEAVCObject__XZ() {
+    using namespace openmfc::detail::olecore;
+    return new FeaturePackInPlaceFrame(impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ());
 }
 
-// COleIPFrameWndEx::DockPane(CBasePane*, UINT, LPCRECT) — retail mfc140.dll (ANSI) RVA 0x95f50:
-//     add $0x428,%rcx; jmp CDockingManager::DockPane
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?DockPane@COleIPFrameWndEx@@QEAAXPEAVCBasePane@@IPEBUtagRECT@@@Z
-extern "C" void MS_ABI impl__DockPane_COleIPFrameWndEx__QEAAXPEAVCBasePane__IPEBUtagRECT___Z(
-    void* pThis, void* pPane, unsigned int nDockBarID, const RECT* lpRect) {
-    (void)pThis; (void)pPane; (void)nDockBarID; (void)lpRect;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
+extern "C" void MS_ABI impl__DockPane_COleIPFrameWndEx__QEAAXPEAVCBasePane__IPEBUtagRECT___Z(void* frame, CBasePane* pane, UINT id, LPCRECT bounds) {
+    if (frame) static_cast<FeaturePackInPlaceFrame*>(frame)->m_dockManager.DockPane(pane, id, bounds);
 }
 
 // COleIPFrameWndEx::DockPaneLeftOf(CPane*, CPane*) — retail mfc140.dll (ANSI) RVA 0x961a0:
@@ -272,14 +218,9 @@ extern "C" int MS_ABI impl__EnableAutoHidePanes_COleIPFrameWndEx__QEAAHK_Z(void*
     return 0;
 }
 
-// COleIPFrameWndEx::EnableDocking(DWORD) — retail mfc140.dll (ANSI) RVA 0x96070:
-//     add $0x428,%rcx; jmp CDockingManager::EnableDocking
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?EnableDocking@COleIPFrameWndEx@@QEAAHK@Z
-extern "C" int MS_ABI impl__EnableDocking_COleIPFrameWndEx__QEAAHK_Z(void* pThis, unsigned long dwDockStyle) {
-    (void)pThis; (void)dwDockStyle;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" int MS_ABI impl__EnableDocking_COleIPFrameWndEx__QEAAHK_Z(void* frame, DWORD style) {
+    return frame && static_cast<FeaturePackInPlaceFrame*>(frame)->m_dockManager.EnableDocking(style);
 }
 
 // COleIPFrameWndEx::GetContainerFrameWindow() — the exact export is at mfc140u
@@ -301,15 +242,9 @@ extern "C" void* MS_ABI impl__GetContainerFrameWindow_COleIPFrameWndEx__QEAAPEAV
     return pContainer;
 }
 
-// COleIPFrameWndEx::GetPane(UINT) — retail mfc140.dll (ANSI) RVA 0x960b0:
-//     add $0x428,%rcx; %r8d = 1; tail-call CDockingManager vtable slot 0x58
-//     (FindPaneByID(nID, TRUE))
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?GetPane@COleIPFrameWndEx@@QEAAPEAVCBasePane@@I@Z
-extern "C" void* MS_ABI impl__GetPane_COleIPFrameWndEx__QEAAPEAVCBasePane__I_Z(void* pThis, unsigned int nID) {
-    (void)pThis; (void)nID;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return nullptr;
+extern "C" void* MS_ABI impl__GetPane_COleIPFrameWndEx__QEAAPEAVCBasePane__I_Z(void* frame, UINT id) {
+    return frame ? static_cast<FeaturePackInPlaceFrame*>(frame)->FindPane(id) : nullptr;
 }
 
 // COleIPFrameWndEx::HtmlHelp(DWORD_PTR, UINT) — retail mfc140.dll (ANSI) RVA 0x96610 (the RVA
@@ -482,23 +417,12 @@ extern "C" void MS_ABI impl__OnContextHelp_COleIPFrameWndEx__IEAAXXZ(CFrameWnd* 
     // CMFCToolBar::SetHelpMode bracketing are not modeled.
 }
 
-// COleIPFrameWndEx::OnCreateControlBars(CFrameWnd*, CFrameWnd*) — retail
-// (mfc140.dll ANSI RVA 0x96330): if pWndFrame is not already a COleCntrFrameWndEx it allocates
-// one (operator new(0x548), COleCntrFrameWndEx::COleCntrFrameWndEx(pWndFrame)),
-// moves the HWND from the old this+0x210 frame to it via CWnd::Detach/Attach,
-// releases the old one through its vtable slot 1, stores the new frame at
-// this+0x210 and sets newFrame->[0x390] = newFrame. Normal completion returns
-// 1; the allocation result is not checked before later uses, so allocation
-// failure is not a successful TRUE-return path.
-// A partial COleCntrFrameWndEx constructor thunk exists in
-// core/ole/COleCntrFrameWndEx.cpp (it omits the retail derived-vftable store),
-// and this file pins the +0x210 slot locally. This body remains return-only.
+// Server activation installs the extended container frame before invoking this callback.
 // Symbol: ?OnCreateControlBars@COleIPFrameWndEx@@MEAAHPEAVCFrameWnd@@0@Z
 extern "C" int MS_ABI impl__OnCreateControlBars_COleIPFrameWndEx__MEAAHPEAVCFrameWnd__0_Z(
     void* pThis, void* pWndFrame, void* pWndDoc) {
-    (void)pThis; (void)pWndFrame; (void)pWndDoc;
-    // TODO(clean-room): needs COleCntrFrameWndEx and this+0x210.
-    return TRUE;   // retail's normal return value
+    return pThis && static_cast<COleIPFrameWnd*>(pThis)->COleIPFrameWnd::OnCreateControlBars(
+        static_cast<CFrameWnd*>(pWndFrame), static_cast<CFrameWnd*>(pWndDoc));
 }
 
 // COleIPFrameWndEx::OnDestroy() — retail mfc140.dll (ANSI) RVA 0x95d90:

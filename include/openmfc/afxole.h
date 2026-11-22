@@ -1373,6 +1373,20 @@ public:
     RetailTailStorage m_retailTail{};
 };
 
+class COleServerDocEx : public COleServerDoc {
+public:
+    COleServerDocEx() = default;
+    ~COleServerDocEx() override;
+    static CRuntimeClass* AFXAPI GetThisClass();
+    CRuntimeClass* GetRuntimeClass() const override;
+
+    void Serialize(CArchive& archive) override;
+    BOOL OnNewDocument() override;
+    void OnDocWindowActivate(BOOL active) override;
+    void OnResizeBorder(LPCRECT border, IOleInPlaceUIWindow* window, BOOL main) override;
+    void OnShowControlBars(CFrameWnd* frame, BOOL show) override;
+};
+
 //=============================================================================
 // COleClientItem - OLE Client Item
 //=============================================================================

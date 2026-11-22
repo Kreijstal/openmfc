@@ -7,6 +7,8 @@
 #include "openmfc/afxdocob.h"
 #include "detail/CCmdTargetVirtualsSupport.h"
 #include "detail/COleCntrFrameWndSupport.h"
+#include "detail/OleFeaturePackSupport.h"
+#include "detail/MfccoreSupport.h"
 #include "detail/ControlBarLayoutSupport.h"
 #include "detail/FrameLifetimeSupport.h"
 #include "detail/WindowCreationSupport.h"
@@ -227,18 +229,43 @@ SiteRef<IOleInPlaceSite> QueryInPlaceSite(IOleClientSite* client) {
     return SiteRef<IOleInPlaceSite>(site);
 }
 
-std::unique_ptr<COleCntrFrameWnd> CreateContainerBarFrame(COleIPFrameWnd* frame, IOleWindow* window) {
+std::unique_ptr<COleCntrFrameWnd> CreateContainerBarFrame(COleIPFrameWnd* frame, IOleWindow* window,
+                                                         bool featurePack) {
     HWND handle = nullptr;
     if (!window || window->GetWindow(&handle) != S_OK || !::IsWindow(handle)) return {};
-    auto wrapper = std::make_unique<COleCntrFrameWnd>(frame);
+    std::unique_ptr<COleCntrFrameWnd> wrapper;
+    if (featurePack) wrapper = std::make_unique<COleCntrFrameWndEx>(frame);
+    else wrapper = std::make_unique<COleCntrFrameWnd>(frame);
     wrapper->m_hWnd = handle;
     return wrapper;
+}
+
+CDockingManager* InPlaceDockManager(CFrameWnd* frame) {
+    return frame && frame->IsKindOf(COleCntrFrameWndEx::GetThisClass())
+        ? &static_cast<COleCntrFrameWndEx*>(frame)->m_dockManager : nullptr;
+}
+
+bool HasInPlaceBars(COleCntrFrameWnd* frame) {
+    if (!openmfc::detail::frame::ControlBars(frame).IsEmpty()) return true;
+    auto* manager = InPlaceDockManager(frame);
+    const auto* state = manager ? openmfc::detail::mfccore::FindDockingState(manager) : nullptr;
+    return state && !state->panes.empty();
 }
 
 void LayoutInPlaceBars(COleCntrFrameWnd* frame, RECT* remaining, const RECT* available) {
     using namespace openmfc::detail::dock;
     const UINT mode = remaining ? CWnd::reposQuery : CWnd::reposDefault;
     RepositionControlBars(frame, 0, 0xffff, 0, mode, remaining, available, TRUE, frame);
+    if (auto* manager = InPlaceDockManager(frame)) {
+        RECT bounds{};
+        if (!remaining) {
+            RepositionControlBars(frame, 0, 0xffff, 0, CWnd::reposQuery, &bounds, available, TRUE, frame);
+        } else {
+            bounds = *remaining;
+        }
+        const RECT paneBounds = openmfc::detail::mfccore::LayoutInPlacePanes(manager, bounds, !remaining);
+        if (remaining) *remaining = paneBounds;
+    }
 }
 
 HRESULT InPlaceResult(HRESULT status) {
@@ -395,8 +422,11 @@ HRESULT COleServerDoc::ActivateInPlace(IOleInPlaceSite* site, bool docObject) {
 
         if (creating) {
             if (!frame->OnCreateAggregates()) return E_FAIL;
-            state.mainBars.wrapper = CreateContainerBarFrame(frame, state.frame.get());
-            state.documentBars.wrapper = CreateContainerBarFrame(frame, state.document.get());
+            using namespace openmfc::detail::olecore;
+            const bool featurePack = frame->IsKindOf(impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ()) ||
+                frame->IsKindOf(impl__GetThisClass_COleDocIPFrameWndEx__SAPEAUCRuntimeClass__XZ());
+            state.mainBars.wrapper = CreateContainerBarFrame(frame, state.frame.get(), featurePack);
+            state.documentBars.wrapper = CreateContainerBarFrame(frame, state.document.get(), false);
             auto* mainBars = state.mainBars.wrapper.get();
             auto* documentBars = state.documentBars.wrapper.get();
             if (mainBars && documentBars && mainBars->m_hWnd == documentBars->m_hWnd) {
@@ -1086,8 +1116,10 @@ void COleServerDoc::DeactivateInPlace() {
     auto& tail = m_retailTail;
     DeactivateInPlaceUI(FALSE);
     if (auto* state = tail.m_inPlaceState) {
-        if (state->mainBars.wrapper) state->mainBars.wrapper->DestroyControlBars();
-        if (state->documentBars.wrapper) state->documentBars.wrapper->DestroyControlBars();
+        if (auto* frame = tail.m_pInPlaceFrame)
+            frame->SetInPlaceControlBarFrames(nullptr, nullptr, nullptr, {});
+        state->mainBars.wrapper.reset();
+        state->documentBars.wrapper.reset();
     }
     if (auto* frame = std::exchange(tail.m_pInPlaceFrame, nullptr)) DestroyInPlaceFrame(frame);
     std::unique_ptr<ServerInPlaceState> state(std::exchange(tail.m_inPlaceState, nullptr));
@@ -1165,7 +1197,7 @@ void COleServerDoc::ReleaseInPlaceBorders() {
     auto hide = [this](ServerInPlaceState::ControlBarFrame& bars, IOleInPlaceUIWindow* window) {
         auto* wrapper = bars.wrapper.get();
         if (!wrapper) return;
-        if (!openmfc::detail::frame::ControlBars(wrapper).IsEmpty()) {
+        if (HasInPlaceBars(wrapper)) {
             OnShowControlBars(wrapper, FALSE);
             LayoutInPlaceBars(wrapper, nullptr, nullptr);
         }
@@ -1331,7 +1363,7 @@ void COleServerDoc::OnResizeBorder(LPCRECT border, IOleInPlaceUIWindow* window, 
     auto& bars = main ? state->mainBars : state->documentBars;
     auto* wrapper = bars.wrapper.get();
     if (!wrapper || !::IsWindow(wrapper->m_hWnd) || bars.resizing) return;
-    if (openmfc::detail::frame::ControlBars(wrapper).IsEmpty() && !bars.reserved) return;
+    if (!HasInPlaceBars(wrapper) && !bars.reserved) return;
 
     InPlaceTransition transition(tail.m_inPlaceTransition);
     bars.resizing = true;
@@ -1359,11 +1391,14 @@ void COleServerDoc::OnResizeBorder(LPCRECT border, IOleInPlaceUIWindow* window, 
     LayoutInPlaceBars(wrapper, &remaining, &available);
     const RECT widths{remaining.left - available.left, remaining.top - available.top,
                       available.right - remaining.right, available.bottom - remaining.bottom};
-    if (window->RequestBorderSpace(&widths) != S_OK || window->SetBorderSpace(&widths) != S_OK) {
+    const bool nonempty = widths.left || widths.top || widths.right || widths.bottom;
+    // Retail Ex offers a nonempty border directly to SetBorderSpace.
+    const bool request = !InPlaceDockManager(wrapper) || !nonempty;
+    if ((request && window->RequestBorderSpace(&widths) != S_OK) || window->SetBorderSpace(&widths) != S_OK) {
         hide();
         return;
     }
-    bars.reserved = widths.left || widths.top || widths.right || widths.bottom;
+    bars.reserved = nonempty;
     LayoutInPlaceBars(wrapper, nullptr, &available);
 }
 
@@ -1454,6 +1489,8 @@ void COleServerDoc::OnShowControlBars(CFrameWnd* frame, BOOL show) {
         }
         frame->ShowControlBar(bar, show, TRUE);
     }
+    if (auto* manager = InPlaceDockManager(frame))
+        openmfc::detail::olecore::impl__ShowPanes_CDockingManager__UEAAHH_Z(manager, show);
 }
 
 // COleServerDoc::OnShowDocument(BOOL) — retail 0x265540 is the show/hide of

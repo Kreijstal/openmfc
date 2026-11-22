@@ -5,6 +5,8 @@
 
 #include "detail/MfccoreSupport.h"
 #include "detail/CSmartDockingInfoSupport.h"
+#include "detail/ClassicDockingSupport.h"
+#include "openmfc/afxole.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -886,6 +888,10 @@ void CDockingManager::ShowPane(CBasePane* pBar, BOOL) {
 void CDockingManager::RecalcLayout() {
     DockingManagerState& state = EnsureDockingState(this);
     if (state.lockUpdate) return;
+    if (state.inPlaceBounds) {
+        LayoutInPlacePanes(this, *state.inPlaceBounds, true);
+        return;
+    }
 
     RECT client{0, 0, 0, 0};
     HWND parent = m_pParentWnd ? m_pParentWnd->GetSafeHwnd() : nullptr;
@@ -917,6 +923,59 @@ void CDockingManager::RecalcLayout() {
         }
         ++index;
     }
+}
+
+RECT openmfc::detail::mfccore::LayoutInPlacePanes(CDockingManager* manager, const RECT& available,
+                                                 bool moveWindows) {
+    using namespace openmfc::detail::dock;
+    auto& state = EnsureDockingState(manager);
+    if (state.positioningInPlace || state.lockUpdate) return state.clientAreaBounds;
+    state.inPlaceBounds = available;
+    RECT remaining = available;
+    const HWND parent = state.parentFrame ? state.parentFrame->m_hWnd : nullptr;
+    HDWP layout = nullptr;
+    if (parent && !::IsRectEmpty(&available)) {
+        for (auto* pane : state.panes) {
+            if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane)) continue;
+            const HWND window = pane->m_hWnd;
+            if (!window || ::GetParent(window) != parent || !(::GetWindowLongW(window, GWL_STYLE) & WS_VISIBLE))
+                continue;
+
+            RECT current{};
+            if (!::GetWindowRect(window, &current)) continue;
+            DWORD alignment = pane->GetPaneAlignment() & alignAny;
+            if (!alignment) alignment = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(pane) & alignAny;
+            const bool horizontal = alignment == alignTop || alignment == alignBottom;
+            const LONG currentSize = horizontal ? current.bottom - current.top : current.right - current.left;
+            auto& saved = state.inPlacePaneSizes[pane];
+            if (saved.window != window || saved.alignment != alignment || saved.lastLayout != currentSize)
+                saved = {window, alignment, currentSize, currentSize};
+            const LONG availableSize = horizontal ? remaining.bottom - remaining.top : remaining.right - remaining.left;
+            const LONG thickness = (std::clamp)(saved.preferred, 0L, availableSize);
+            RECT position = remaining;
+            switch (alignment) {
+            case alignLeft: remaining.left += thickness; position.right = remaining.left; break;
+            case alignTop: remaining.top += thickness; position.bottom = remaining.top; break;
+            case alignRight: remaining.right -= thickness; position.left = remaining.right; break;
+            case alignBottom: remaining.bottom -= thickness; position.top = remaining.bottom; break;
+            default: continue;
+            }
+            if (moveWindows) {
+                // Defer the physical moves until the registry walk has completed.
+                if (!layout) layout = ::BeginDeferWindowPos(8);
+                if (layout) layout = ::DeferWindowPos(layout, window, nullptr, position.left, position.top,
+                    position.right - position.left, position.bottom - position.top, SWP_NOZORDER | SWP_NOACTIVATE);
+                if (layout) saved.lastLayout = thickness;
+            }
+        }
+    }
+    state.clientAreaBounds = remaining;
+    if (layout) {
+        state.positioningInPlace = true;
+        ::EndDeferWindowPos(layout);
+        state.positioningInPlace = false;
+    }
+    return remaining;
 }
 void CDockingManager::SetDockState() {
     DockingManagerState& state = EnsureDockingState(this);
@@ -1266,11 +1325,30 @@ extern "C" void MS_ABI impl__ShowDelayShowMiniFrames_CDockingManager__UEAAXH_Z(
     CDockingManager*, int) {}
 
 // Symbol: ?ShowPanes@CDockingManager@@UEAAHH@Z
-// STUB: The ANSI twin's retail entry RVA 0x4d490 (mfc140) has separate show/hide
-// paths over docked-bar and mini-frame lists, saves/restores HWNDs, updates global
-// restoring/saving flags, and toggles +0x354. showPanesMode and basic hidden flags are
-// modeled, but the saved HWND list and global-mode state are not.
-extern "C" int MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(
-    CDockingManager*, int) {
+// mfc140 0x4d490 saves the visible pane HWNDs so intentionally hidden panes stay hidden.
+extern "C" int MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(CDockingManager* manager, int show) {
+    if (!manager) return FALSE;
+    auto& state = EnsureDockingState(manager);
+    if (state.showPanesMode == !show) return FALSE;
+    state.showPanesMode = !show;
+    if (show) {
+        auto hidden = std::move(state.panesHiddenForInPlace);
+        for (HWND window : hidden) {
+            auto* pane = static_cast<CBasePane*>(CWnd::FromHandlePermanent(window));
+            if (::IsWindow(window) && ContainsPtr(state.panes, pane) && IsPaneVisibleForDocking(state, pane))
+                ::ShowWindow(window, SW_SHOWNOACTIVATE);
+        }
+    } else {
+        for (auto* pane : state.panes) {
+            if (!IsPaneVisibleForDocking(state, pane) ||
+                (!state.inPlaceBounds && !(pane->m_dwControlBarStyle & CBRS_HIDE_INPLACE))) continue;
+            const HWND window = pane->m_hWnd;
+            if (window && (::GetWindowLongW(window, GWL_STYLE) & WS_VISIBLE) &&
+                !ContainsPtr(state.panesHiddenForInPlace, window)) state.panesHiddenForInPlace.push_back(window);
+        }
+        const auto hidden = state.panesHiddenForInPlace;
+        for (HWND window : hidden) ::ShowWindow(window, SW_HIDE);
+    }
+    manager->RecalcLayout();
     return FALSE;
 }

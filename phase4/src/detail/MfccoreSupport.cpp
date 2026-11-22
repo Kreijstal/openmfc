@@ -151,6 +151,7 @@ void RemoveDockingPane(CDockingManager* pManager, CBasePane* pPane) {
     state.panes.erase(std::remove(state.panes.begin(), state.panes.end(), pPane), state.panes.end());
     state.hiddenPanes.erase(pPane);
     state.floatingPanes.erase(pPane);
+    state.inPlacePaneSizes.erase(pPane);
 }
 bool IsPaneVisibleForDocking(const DockingManagerState& state, CBasePane* pPane) {
     return pPane != nullptr && state.hiddenPanes.find(pPane) == state.hiddenPanes.end();

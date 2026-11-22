@@ -127,10 +127,12 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
     CRuntimeClass class##Cls = { #Cls, (Size), 0xFFFF, nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 
 // Parents-first so each derived descriptor can take its base's address.
-OLED_DESC(COleDocument,         488, &CDocument::classCDocument);
-OLED_DESC(COleLinkingDoc,       560, &classCOleDocument);
-OLED_DESC(COleServerDoc,        664, &classCOleLinkingDoc);
-OLED_DESC(COleServerDocEx,      664, &classCOleServerDoc);
+extern "C" CObject* AFXAPI impl__CreateObject_COleServerDocEx__SAPEAVCObject__XZ();
+static CRuntimeClass* AFXAPI _openmfc_gb_COleServerDocEx() { return COleServerDoc::GetThisClass(); }
+CRuntimeClass classCOleServerDocEx = {
+    "COleServerDocEx", 664, 0xffff, &impl__CreateObject_COleServerDocEx__SAPEAVCObject__XZ,
+    &_openmfc_gb_COleServerDocEx, nullptr, nullptr
+};
 OLED_DESC(COleServerItem,       224, &CDocItem::classCDocItem);
 OLED_DESC(CDocObjectServerItem, 224, &classCOleServerItem);
 OLED_DESC(COleObjectFactory,    136, &CCmdTarget::classCCmdTarget);
@@ -196,12 +198,20 @@ OF_DESC(COleLinksDialog,        432,  &COleDialog::classCOleDialog);
 OF_DESC(COlePasteSpecialDialog, 480,  &COleDialog::classCOleDialog);
 OF_DESC(COlePropertiesDialog,   720,  &COleDialog::classCOleDialog);
 
-// OLE in-place frame windows (DECLARE_DYNCREATE). COleIPFrameWnd before its
-// derivatives so they can take its address; likewise COleDocIPFrameWnd.
-OF_DESC(COleIPFrameWnd,         640,  &CFrameWnd::classCFrameWnd);
-OF_DESC(COleIPFrameWndEx,       1936, &classCOleIPFrameWnd);
-OF_DESC(COleDocIPFrameWnd,      640,  &classCOleIPFrameWnd);
-OF_DESC(COleDocIPFrameWndEx,    1936, &classCOleDocIPFrameWnd);
+// Extended and classic in-place frames share the typed base descriptor.
+extern "C" CObject* AFXAPI impl__CreateObject_COleIPFrameWndEx__SAPEAVCObject__XZ();
+static CRuntimeClass* AFXAPI _openmfc_gb_COleIPFrameWndEx() { return COleIPFrameWnd::GetThisClass(); }
+CRuntimeClass classCOleIPFrameWndEx = {
+    "COleIPFrameWndEx", 1936, 0xffff, &impl__CreateObject_COleIPFrameWndEx__SAPEAVCObject__XZ,
+    &_openmfc_gb_COleIPFrameWndEx, nullptr, nullptr
+};
+OF_DESC(COleDocIPFrameWnd,      640,  COleIPFrameWnd::GetThisClass());
+extern "C" CObject* AFXAPI impl__CreateObject_COleDocIPFrameWndEx__SAPEAVCObject__XZ();
+static CRuntimeClass* AFXAPI _openmfc_gb_COleDocIPFrameWndEx() { return &classCOleDocIPFrameWnd; }
+CRuntimeClass classCOleDocIPFrameWndEx = {
+    "COleDocIPFrameWndEx", 1936, 0xffff, &impl__CreateObject_COleDocIPFrameWndEx__SAPEAVCObject__XZ,
+    &_openmfc_gb_COleDocIPFrameWndEx, nullptr, nullptr
+};
 #undef OF_DESC
 
 // Two exported getters per class via a macro; the literal "// Symbol:" marker
@@ -326,21 +336,30 @@ FRAMES_DOCS_PREVIEW_GETTERS(CRichEditCntrItem,
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
 // Symbol: ?GetThisClass@COleDocument@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@COleDocument@@UEBAPEAUCRuntimeClass@@XZ
-OLED_GETTERS(COleDocument,
-             impl__GetThisClass_COleDocument__SAPEAUCRuntimeClass__XZ,
-             impl__GetRuntimeClass_COleDocument__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleDocument__SAPEAUCRuntimeClass__XZ() {
+    return COleDocument::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleDocument__UEBAPEAUCRuntimeClass__XZ(const COleDocument*) {
+    return COleDocument::GetThisClass();
+}
 
 // Symbol: ?GetThisClass@COleLinkingDoc@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@COleLinkingDoc@@UEBAPEAUCRuntimeClass@@XZ
-OLED_GETTERS(COleLinkingDoc,
-             impl__GetThisClass_COleLinkingDoc__SAPEAUCRuntimeClass__XZ,
-             impl__GetRuntimeClass_COleLinkingDoc__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleLinkingDoc__SAPEAUCRuntimeClass__XZ() {
+    return COleLinkingDoc::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleLinkingDoc__UEBAPEAUCRuntimeClass__XZ(const COleLinkingDoc*) {
+    return COleLinkingDoc::GetThisClass();
+}
 
 // Symbol: ?GetThisClass@COleServerDoc@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@COleServerDoc@@UEBAPEAUCRuntimeClass@@XZ
-OLED_GETTERS(COleServerDoc,
-             impl__GetThisClass_COleServerDoc__SAPEAUCRuntimeClass__XZ,
-             impl__GetRuntimeClass_COleServerDoc__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleServerDoc__SAPEAUCRuntimeClass__XZ() {
+    return COleServerDoc::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleServerDoc__UEBAPEAUCRuntimeClass__XZ(const COleServerDoc*) {
+    return COleServerDoc::GetThisClass();
+}
 
 // Symbol: ?GetThisClass@COleServerDocEx@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@COleServerDocEx@@UEBAPEAUCRuntimeClass@@XZ
@@ -407,9 +426,12 @@ OF_GETTERS(COlePropertiesDialog,
 
 // Symbol: ?GetThisClass@COleIPFrameWnd@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@COleIPFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
-OF_GETTERS(COleIPFrameWnd,
-           impl__GetThisClass_COleIPFrameWnd__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_COleIPFrameWnd__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleIPFrameWnd__SAPEAUCRuntimeClass__XZ() {
+    return COleIPFrameWnd::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleIPFrameWnd__UEBAPEAUCRuntimeClass__XZ(const COleIPFrameWnd*) {
+    return COleIPFrameWnd::GetThisClass();
+}
 
 // Symbol: ?GetThisClass@COleIPFrameWndEx@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@COleIPFrameWndEx@@UEBAPEAUCRuntimeClass@@XZ

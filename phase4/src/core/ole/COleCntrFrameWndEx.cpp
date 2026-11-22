@@ -35,93 +35,23 @@
 //         +0x1c8  CRect m_rectClientAreaBounds
 //         +0x208  BOOL m_bIsPrintPreviewMode
 //
-// How the sub-object is modelled here.  OpenMFC's CDockingManager
-// (include/openmfc/afxmfc.h:1381) is 144 bytes and keeps its live state in a
-// side table keyed by `this`; it is placement-constructed at the retail offset
-// +0x1e0 through its own export thunk, so the 0x368-byte retail range holds a
-// genuine OpenMFC CDockingManager and every forward below hands
-// (this + 0x1e0) to the CDockingManager export thunks exactly as retail does.
-// The retail members listed above are NOT modelled by that class: where a body
-// needs one, the comment says what retail does with it and what is done instead.
-//
-// vftable: retail stores its own MSVC vtable (0x2f0d78; slots 0..116 were read,
-// slot 116 being OnMoveMiniFrame at +0x3a0) in both the constructor and
-// destructor.  OpenMFC builds no vtable for this class (it is
-// not declared in include/openmfc/), so the vfptr is left as the base
-// COleCntrFrameWnd constructor sets the base vtable. Consequently calls retail
-// makes on `this` (slot 115 = AdjustDockingLayout at vtable +0x398, slot 96 =
-// RecalcLayout at +0x300) are made as direct calls to this file's own thunks:
-// the dynamic type is always exactly COleCntrFrameWndEx on retail's creation
-// path (COleIPFrameWndEx::OnCreateControlBars does `new COleCntrFrameWndEx`),
-// so the direct call resolves to the same body.  Virtual calls on OTHER
-// objects (the in-place frame, the active document) are dispatched through
-// those objects' vtables by MSVC slot index, as retail does: those objects are
-// client-constructed and carry MSVC-layout vtables.
+// The compact docking manager is constructed at the retail member offset.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
-#include "detail/COleCntrFrameWndSupport.h"
+#include "detail/OleFeaturePackSupport.h"
+#include "detail/MfccoreSupport.h"
 
-#include <cstdlib>
-#include <cstring>
+#include <algorithm>
 #include <type_traits>
+#include <new>
 
 namespace {
 
-using openmfc::detail::colecntrframewnd::S_Colecntrframewnd;
-
-// ---- retail layout view --------------------------------------------------
-enum : size_t {
-    kOff_m_dockManager        = 0x1e0,   // ctor 0x949c0: `lea 0x1e0(%rbx),%rcx; call ??0CDockingManager`
-    kSize_COleCntrFrameWndEx  = 0x548,   // classCOleCntrFrameWndEx.m_nObjectSize
-    kSize_CDockingManagerRetail = kSize_COleCntrFrameWndEx - kOff_m_dockManager,   // 0x368
-    kOff_CFrameWnd_m_hWnd     = 0x40,    // dtor 0x94a40: `mov 0x40(%rsi),%rcx` -> GetTopWindow
-    kOff_COleIPFrameWnd_m_lpFrame = 0x200,   // AdjustClientArea 0x95030: `mov 0x200(%r8),%r8`
-};
-
-struct S_COleCntrFrameWndEx {
-    S_Colecntrframewnd base;                                   // 0x000 .. 0x1e0
-    unsigned char      m_dockManager[kSize_CDockingManagerRetail];   // 0x1e0 .. 0x548
-};
-static_assert(sizeof(S_Colecntrframewnd) == kOff_m_dockManager,
-              "COleCntrFrameWnd body must end exactly where retail places m_dockManager");
-static_assert(offsetof(S_COleCntrFrameWndEx, m_dockManager) == kOff_m_dockManager, "m_dockManager @ 0x1e0");
-static_assert(sizeof(S_COleCntrFrameWndEx) == kSize_COleCntrFrameWndEx, "sizeof(COleCntrFrameWndEx) == 0x548");
-static_assert(sizeof(CDockingManager) <= kSize_CDockingManagerRetail,
-              "OpenMFC CDockingManager must fit the retail sub-object range");
-static_assert(offsetof(CWnd, m_hWnd) == kOff_CFrameWnd_m_hWnd, "CWnd::m_hWnd @ 0x40 (matches retail)");
 static_assert(sizeof(CPoint) == 8 && std::is_trivially_copyable<CPoint>::value,
               "CPoint must be an 8-byte register aggregate under MS x64 for the by-value thunks below");
 
-// COleIPFrameWnd retail layout (atlmfc/include/afxole.h:1446-1470): CFrameWnd body
-// 0x1d8, BOOL m_bUIActive 0x1d8 (+4 pad), OLEINPLACEFRAMEINFO m_frameInfo 0x1e0
-// (32 bytes), LPOLEINPLACEFRAME m_lpFrame 0x200.  Only +0x200 is read here.
-inline void* IPFrame_lpFrame(void* pIPFrame) {
-    return *reinterpret_cast<void**>(static_cast<unsigned char*>(pIPFrame) + kOff_COleIPFrameWnd_m_lpFrame);
-}
-
-inline S_COleCntrFrameWndEx* Self(void* pThis) { return static_cast<S_COleCntrFrameWndEx*>(pThis); }
 inline CDockingManager* DockMgr(void* pThis) {
-    return reinterpret_cast<CDockingManager*>(Self(pThis)->m_dockManager);
-}
-inline HWND FrameHwnd(void* pThis) { return static_cast<CWnd*>(static_cast<CFrameWnd*>(pThis))->m_hWnd; }
-
-// Protected-member access to OpenMFC's CDockingManager::m_pParentWnd (the
-// retail m_pParentWnd at sub-object +0x1b0).  The OpenMFC member is what its
-// own RecalcLayout uses for the parent client rectangle, so it is the right
-// thing to seed.  Never instantiated: it exists only for the access rule.
-struct DockingManagerAccess : CDockingManager {
-    static void SetParentFrame(CDockingManager* p, CFrameWnd* pFrame) {
-        static_cast<DockingManagerAccess*>(p)->m_pParentWnd = pFrame;
-    }
-};
-
-// Virtual-slot dispatch on objects that carry MSVC-layout vtables.
-typedef void* (MS_ABI *Fn_GetActiveDocument)(void*);                       // CFrameWnd vtable slot 93 (+0x2e8)
-typedef void  (MS_ABI *Fn_RecalcLayout)(void*, int);                        // CFrameWnd vtable slot 96 (+0x300)
-typedef void  (MS_ABI *Fn_OnResizeBorder)(void*, const RECT*, void*, int);  // COleServerDoc vtable slot 101 (+0x328)
-enum { kSlot_GetActiveDocument = 0x2e8 / 8, kSlot_RecalcLayout = 0x300 / 8, kSlot_OnResizeBorder = 0x328 / 8 };
-template <typename Fn> inline Fn VSlot(void* pObj, int slot) {
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(pObj))[slot]);
+    return &static_cast<COleCntrFrameWndEx*>(pThis)->m_dockManager;
 }
 
 enum { kWM_IDLEUPDATECMDUI = 0x363 };   // afxpriv.h WM_IDLEUPDATECMDUI (edx in OnIdleUpdateCmdUI, 0x94f70)
@@ -129,13 +59,8 @@ enum { kWM_IDLEUPDATECMDUI = 0x363 };   // afxpriv.h WM_IDLEUPDATECMDUI (edx in 
 }  // namespace
 
 // ---- sibling impl_ exports we delegate to (all definitions verified by grep) ----
-// COleCntrFrameWnd (core/ole/COleCntrFrameWnd.cpp)
-extern "C" void* MS_ABI impl___0COleCntrFrameWnd__QEAA_PEAVCOleIPFrameWnd___Z(void* pThis, void* pInPlaceFrame);
-extern "C" void MS_ABI impl___1COleCntrFrameWnd__UEAA_XZ(void* pThis);
 extern "C" void MS_ABI impl__OnIdleUpdateCmdUI_COleCntrFrameWnd__QEAAXXZ(void* pThis);
 // CDockingManager (featurepack/docking/Thunks.cpp, featurepack/docking/CDockingManager.cpp)
-extern "C" void* MS_ABI impl___0CDockingManager__QEAA_XZ(void* pThis);
-extern "C" void  MS_ABI impl___1CDockingManager__UEAA_XZ(void* pThis);
 extern "C" int   MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
     CDockingManager* pThis, CBasePane* pPane, int bTail, int bAutoHide, int bInsertForOuterEdge);
 extern "C" int   MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
@@ -163,16 +88,6 @@ extern "C" int   MS_ABI impl__SendMessageToMiniFrames_CDockingManager__QEAAHI_K_
     CDockingManager* pThis, unsigned int message, unsigned __int64 wParam, __int64 lParam);
 extern "C" void  MS_ABI impl__GetPaneList_CDockingManager__QEAAXAEAVCObList__HPEAUCRuntimeClass__H_Z(
     CDockingManager* pThis, CObList* pList, int bIncludeAutohide, CRuntimeClass* pRTCFilter, int bIncludeTabbed);
-// Two CDockingManager exports that featurepack/docking/CDockingManager.cpp still
-// defines as GENERATED placeholders whose parameter lists omit `this`
-// (`impl__ShowPanes_...(int p0) { return 0; }`,
-// `impl__IsPointNearDockSite_...(void* p0, unsigned long* p1, int* p2) { return 0; }`).
-// Both ignore every argument, so calling them with the real MSVC signature is
-// safe; they are declared with that signature here -- as
-// core/frame/CFrameWndEx.cpp:120-123 already does for both, and
-// core/frame/CMDIFrameWndEx.cpp:181 for IsPointNearDockSite -- so the forwards
-// retail performs are expressed structurally and start working the moment
-// those placeholders get real bodies.
 extern "C" int   MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(CDockingManager* pThis, int bShow);
 extern "C" int   MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
     const CDockingManager* pThis, CPoint point, unsigned long* pdwBarAlignment, int* pbOuterEdge);
@@ -194,91 +109,42 @@ extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(CBasePane* pThis, in
 extern "C" void MS_ABI impl__AdjustClientArea_COleCntrFrameWndEx__QEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__AdjustDockingLayout_COleCntrFrameWndEx__UEAAXPEAX_Z(void* pThis, void* hdwp);
 
-// COleCntrFrameWndEx::COleCntrFrameWndEx(COleIPFrameWnd*) -- retail (RVA 0x949c0):
-//     COleCntrFrameWnd::COleCntrFrameWnd(this, pInPlaceFrame);   // 0x25cd00
-//     *(void**)this = &COleCntrFrameWndEx_vftable;               // 0x2f0d78
-//     CDockingManager::CDockingManager(this + 0x1e0);            // 0x46ef0
-//     return this;
-// Deviations: the vftable store is dropped (see the header); the 0x368-byte
-// sub-object range is zeroed before the OpenMFC CDockingManager (144 bytes) is
-// placement-constructed in it, so the bytes retail's larger CDockingManager
-// would have initialised do not hold caller garbage.  A null `this` returns
-// null instead of faulting.
-// Symbol: ??0COleCntrFrameWndEx@@QEAA@PEAVCOleIPFrameWnd@@@Z
-extern "C" void* MS_ABI impl___0COleCntrFrameWndEx__QEAA_PEAVCOleIPFrameWnd___Z(void* pThis, void* pInPlaceFrame) {
-    if (pThis == nullptr) return nullptr;
-    impl___0COleCntrFrameWnd__QEAA_PEAVCOleIPFrameWnd___Z(pThis, pInPlaceFrame);
-    std::memset(Self(pThis)->m_dockManager, 0, sizeof(Self(pThis)->m_dockManager));
-    impl___0CDockingManager__QEAA_XZ(Self(pThis)->m_dockManager);
-    return pThis;
+extern "C" CRuntimeClass* AFXAPI impl__GetThisClass_COleCntrFrameWndEx__SAPEAUCRuntimeClass__XZ();
+
+COleCntrFrameWndEx::COleCntrFrameWndEx(COleIPFrameWnd* frame)
+    : COleCntrFrameWnd(frame), m_dockManager(this) {
+    EnsureDockingState(&m_dockManager).inPlaceBounds = RECT{};
 }
 
-// COleCntrFrameWndEx::~COleCntrFrameWndEx() -- retail (RVA 0x94a40):
-//     *(void**)this = &COleCntrFrameWndEx_vftable;                       // 0x2f0d78
-//     for (node = m_dockManager.m_lstMiniFrames.head /*this+0x360*/; node; node = node->next) {
-//         CObject* p = node->data;
-//         if (p && p->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd) /*0x3b1418*/))  // 0x234cf0
-//             p->vtable[26](p);                 // CWnd::DestroyWindow, vtable +0xd0
-//     }
-//     CList<HWND, HWND> lstChildren;      // local; vftable 0x2e9248 (slot 0 is CObject::GetRuntimeClass,
-//                                         // i.e. a CList<> instantiation, not CPtrList); block size 10
-//     for (CWnd* w = CWnd::FromHandle(::GetTopWindow(m_hWnd)); w; w = CWnd::FromHandle(::GetWindow(w->m_hWnd, GW_HWNDNEXT)))
-//         lstChildren.AddTail(w->m_hWnd);                                  // 0x7908, the unexported CList<HWND,HWND>::AddTail
-//     for (each HWND h in lstChildren)
-//         if (::IsWindow(h) && ::GetParent(h) == m_hWnd) ::DestroyWindow(h);
-//     for (node = afxAllToolBars.head /*0x3b2098*/; node; ) {              // unexported CObList at 0x3b2090
-//         CWnd* pToolBar = node->data;  if (!pToolBar) AfxThrowInvalidArgException();   // 0x227720
-//         posSave = node; node = node->next;
-//         if (CWnd::FromHandlePermanent(pToolBar->m_hWnd) == NULL)         // 0x28adc0
-//             afxAllToolBars.RemoveAt(posSave);                            // 0x2320d0
-//     }
-//     lstChildren.RemoveAll();                                             // 0x8350 (folded with CObList/CPtrList::RemoveAll)
-//     CDockingManager::~CDockingManager(this + 0x1e0);                     // 0x472a0
-//     jmp COleCntrFrameWnd::~COleCntrFrameWnd(this);                       // 0x25cda0
-// IAT slots resolved with iatu.py: 0x2c6d20 GetTopWindow, 0x2c6c10 GetWindow,
-// 0x2c7138 IsWindow, 0x2c72d8 GetParent, 0x2c6d28 DestroyWindow.
-// Reproduced: the child-window teardown loop, the CDockingManager destruction and
-// the base destructor call.
-// Deviations, each because the state does not exist in this build:
-//   * the mini-frame loop needs m_dockManager.m_lstMiniFrames; OpenMFC's
-//     CDockingManager keeps its mini frames in a side table with no exported
-//     enumerator, so nothing is destroyed here (OpenMFC's own
-//     CDockingManager::~CDockingManager drops that side-table entry);
-//   * afxAllToolBars is not a global in OpenMFC (CMFCToolBar::GetAllToolbars
-//     rebuilds a list from a side table on every call), so there is no list to
-//     prune;
-//   * the child HWNDs are collected in a malloc'd array instead of a
-//     CList<HWND,HWND> and without CWnd::FromHandle's temporary-map side effect -- same handles,
-//     same order (if the allocation fails nothing is destroyed);
-//   * the loop is skipped when m_hWnd is NULL.  Retail would call
-//     ::GetTopWindow(NULL), i.e. enumerate the desktop's top-level windows, and
-//     then destroy every one whose ::GetParent() is NULL; that is judged an
-//     unintended retail hazard, not behaviour to reproduce;
-//   * the vftable store is dropped (see the header) and a null `this` returns.
-// Symbol: ??1COleCntrFrameWndEx@@MEAA@XZ
-extern "C" void MS_ABI impl___1COleCntrFrameWndEx__MEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return;
-
-    const HWND hFrame = FrameHwnd(pThis);
-    if (hFrame != nullptr) {   // deviation: retail has no such guard (see above)
-        size_t count = 0;
-        for (HWND h = ::GetTopWindow(hFrame); h != nullptr; h = ::GetWindow(h, GW_HWNDNEXT))
-            ++count;
-        HWND* children = count ? static_cast<HWND*>(std::malloc(count * sizeof(HWND))) : nullptr;
-        if (children != nullptr) {
-            size_t n = 0;
-            for (HWND h = ::GetTopWindow(hFrame); h != nullptr && n < count; h = ::GetWindow(h, GW_HWNDNEXT))
-                children[n++] = h;
-            for (size_t i = 0; i < n; ++i) {
-                if (::IsWindow(children[i]) && ::GetParent(children[i]) == hFrame)
-                    ::DestroyWindow(children[i]);
-            }
-            std::free(children);
+COleCntrFrameWndEx::~COleCntrFrameWndEx() {
+    if (!m_hWnd) return;
+    auto& state = EnsureDockingState(&m_dockManager);
+    for (HWND window = ::GetTopWindow(m_hWnd); window;) {
+        const HWND next = ::GetWindow(window, GW_HWNDNEXT);
+        const void* child = CWnd::FromHandlePermanent(window);
+        auto pane = std::find(state.panes.begin(), state.panes.end(), child);
+        if (pane != state.panes.end()) {
+            RemoveDockingPane(&m_dockManager, *pane);
+            ::DestroyWindow(window);
         }
+        window = next;
     }
+}
 
-    impl___1CDockingManager__UEAA_XZ(Self(pThis)->m_dockManager);
-    impl___1COleCntrFrameWnd__UEAA_XZ(pThis);
+CRuntimeClass* AFXAPI COleCntrFrameWndEx::GetThisClass() {
+    return impl__GetThisClass_COleCntrFrameWndEx__SAPEAUCRuntimeClass__XZ();
+}
+
+CRuntimeClass* COleCntrFrameWndEx::GetRuntimeClass() const { return GetThisClass(); }
+
+// Symbol: ??0COleCntrFrameWndEx@@QEAA@PEAVCOleIPFrameWnd@@@Z
+extern "C" void* MS_ABI impl___0COleCntrFrameWndEx__QEAA_PEAVCOleIPFrameWnd___Z(void* storage, void* frame) {
+    return storage ? ::new (storage) COleCntrFrameWndEx(static_cast<COleIPFrameWnd*>(frame)) : nullptr;
+}
+
+// Symbol: ??1COleCntrFrameWndEx@@MEAA@XZ
+extern "C" void MS_ABI impl___1COleCntrFrameWndEx__MEAA_XZ(void* frame) {
+    if (frame) static_cast<COleCntrFrameWndEx*>(frame)->COleCntrFrameWndEx::~COleCntrFrameWndEx();
 }
 
 // COleCntrFrameWndEx::AddDockSite() -- retail: export ordinal 1840 resolves to
@@ -299,28 +165,9 @@ extern "C" int MS_ABI impl__AddPane_COleCntrFrameWndEx__QEAAHPEAVCBasePane__H_Z(
     return impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(DockMgr(pThis), pBar, bTail, FALSE, FALSE);
 }
 
-// COleCntrFrameWndEx::AdjustClientArea() -- retail (RVA 0x95030):
-//     CDocument* pDoc = m_pInPlaceFrame->vtable[93](m_pInPlaceFrame);       // CFrameWnd::GetActiveDocument, +0x2e8
-//     if (pDoc)
-//         pDoc->vtable[101](pDoc, NULL, m_pInPlaceFrame->m_lpFrame /*+0x200*/, TRUE);
-//                                          // COleServerDoc::OnResizeBorder(LPCRECT, LPOLEINPLACEUIWINDOW, BOOL), +0x328
-// Slot 101 was read out of the COleServerDocEx vtable at 0x2f1ed8 (+0x328 ->
-// 0x963b0 ?OnResizeBorder@COleServerDocEx@@MEAAXPEBUtagRECT@@PEAUIOleInPlaceUIWindow@@H@Z);
-// slot 93 out of this class's own vtable at 0x2f0d78 (+0x2e8 -> 0x29ede0
-// ?GetActiveDocument@CFrameWnd@@UEAAPEAVCDocument@@XZ).  m_pInPlaceFrame is the
-// COleCntrFrameWnd member at +0x1d8 (S_Colecntrframewnd::m_pInPlaceFrame).
-// Both calls are virtual dispatches by MSVC slot on client-constructed objects,
-// exactly as retail.  Deviation: a null `this` or a null m_pInPlaceFrame
-// returns (retail would fault).
 // Symbol: ?AdjustClientArea@COleCntrFrameWndEx@@QEAAXXZ
-extern "C" void MS_ABI impl__AdjustClientArea_COleCntrFrameWndEx__QEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    void* pIPFrame = Self(pThis)->base.m_pInPlaceFrame;
-    if (pIPFrame == nullptr) return;
-    void* pDoc = VSlot<Fn_GetActiveDocument>(pIPFrame, kSlot_GetActiveDocument)(pIPFrame);
-    if (pDoc != nullptr) {
-        VSlot<Fn_OnResizeBorder>(pDoc, kSlot_OnResizeBorder)(pDoc, nullptr, IPFrame_lpFrame(pIPFrame), TRUE);
-    }
+extern "C" void MS_ABI impl__AdjustClientArea_COleCntrFrameWndEx__QEAAXXZ(void* frame) {
+    if (frame) static_cast<COleCntrFrameWndEx*>(frame)->COleCntrFrameWnd::RecalcLayout(TRUE);
 }
 
 // COleCntrFrameWndEx::AdjustDockingLayout(HDWP) -- retail (RVA 0x94d90):
@@ -504,7 +351,7 @@ extern "C" void MS_ABI impl__OnSizing_COleCntrFrameWndEx__IEAAXIPEAUtagRECT___Z(
     if (pThis == nullptr || pRect == nullptr) return;
     (void)impl__Default_CWnd__IEAA_JXZ(static_cast<CWnd*>(static_cast<CFrameWnd*>(pThis)));
     RECT rcWnd = {0, 0, 0, 0};
-    ::GetWindowRect(FrameHwnd(pThis), &rcWnd);
+    ::GetWindowRect(static_cast<COleCntrFrameWndEx*>(pThis)->m_hWnd, &rcWnd);
     RECT rcNew;
     ::CopyRect(&rcNew, pRect);
     if ((rcWnd.right - rcWnd.left) != (rcNew.right - rcNew.left) ||
@@ -540,49 +387,21 @@ extern "C" CBasePane* MS_ABI impl__PaneFromPoint_COleCntrFrameWndEx__QEBAPEAVCBa
 // COleCntrFrameWndEx::PreCreateWindow(CREATESTRUCT&) -- retail (RVA 0x94c30):
 //     m_dockManager.m_pParentWnd = this;               // this+0x390 == sub-object +0x1b0
 //     jmp CFrameWnd::PreCreateWindow(this, cs);        // 0x29d8d0
-// The parent-frame store goes to OpenMFC's own CDockingManager::m_pParentWnd
-// member (its RecalcLayout lays panes out against that frame's client area).
+// The docking manager's constructor sets its parent frame.
 // Symbol: ?PreCreateWindow@COleCntrFrameWndEx@@MEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_COleCntrFrameWndEx__MEAAHAEAUtagCREATESTRUCTW___Z(void* pThis, CREATESTRUCTW* pcs) {
     if (pThis == nullptr || pcs == nullptr) return FALSE;   // deviation: retail has no guard
-    DockingManagerAccess::SetParentFrame(DockMgr(pThis), static_cast<CFrameWnd*>(pThis));
     return impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(static_cast<CFrameWnd*>(pThis), *pcs);
 }
 
-// COleCntrFrameWndEx::RecalcLayout(BOOL bNotify) -- retail (RVA 0x94de0):
-//     COleCntrFrameWndEx::AdjustClientArea(this);                            // 0x95030
-//     (this + 0x1e0)->vtable[16](this + 0x1e0, NULL);                       // CDockingManager::AdjustDockingLayout, +0x80
-//     (this + 0x1e0)->vtable[15](this + 0x1e0, bNotify);                    // CDockingManager::RecalcLayout, +0x78
-//     CWnd* pView = m_pViewActive;                                          // this+0x170
-//     if (pView && pView->IsKindOf(RUNTIME_CLASS(CPreviewViewEx) /*0x2f98a8*/)   // 0x234cf0
-//         && m_dockManager.m_bIsPrintPreviewMode /*this+0x3e8*/) {
-//         const CRect& r = m_dockManager.m_rectClientAreaBounds;            // this+0x3a8
-//         CWnd::SetWindowPos(pView, NULL, r.left, r.top, r.Width(), r.Height(),
-//                            SWP_NOZORDER | SWP_NOACTIVATE /*0x14*/);        // 0x2a9a60
-//     }
-//     jmp m_pInPlaceFrame->vtable[96](m_pInPlaceFrame, bNotify);            // RecalcLayout on the in-place frame, +0x300
-// The three docking calls are made directly (sub-object dynamic type is exactly
-// CDockingManager); the in-place frame call is a virtual dispatch by MSVC slot
-// on that client-constructed object, as retail.
-// Deviation: the print-preview block (the m_pViewActive / CPreviewViewEx test
-// and the SetWindowPos) is NOT reproduced.  Its effect needs
-// m_dockManager.m_bIsPrintPreviewMode and m_rectClientAreaBounds, neither of
-// which OpenMFC's CDockingManager models.  Retail raises that flag in
-// CDockingManager::SetPrintPreviewMode (RVA 0x4d080 mfc140u; the constructor
-// zeroes it), and OpenMFC's export of SetPrintPreviewMode is a no-op
-// placeholder, so the block could never fire in this build; the IsKindOf test
-// that guards it is dropped with it.
-// Null `this` / null m_pInPlaceFrame return instead of faulting.
+void COleCntrFrameWndEx::RecalcLayout(BOOL notify) {
+    COleCntrFrameWnd::RecalcLayout(notify);
+    if (m_pInPlaceFrame) m_pInPlaceFrame->RecalcLayout(notify);
+}
+
 // Symbol: ?RecalcLayout@COleCntrFrameWndEx@@UEAAXH@Z
-extern "C" void MS_ABI impl__RecalcLayout_COleCntrFrameWndEx__UEAAXH_Z(void* pThis, int bNotify) {
-    if (pThis == nullptr) return;
-    impl__AdjustClientArea_COleCntrFrameWndEx__QEAAXXZ(pThis);
-    impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(DockMgr(pThis), nullptr);
-    impl__RecalcLayout_CDockingManager__UEAAXH_Z(DockMgr(pThis), bNotify);
-    // retail: print-preview repositioning of m_pViewActive -- not modelled (see above)
-    void* pIPFrame = Self(pThis)->base.m_pInPlaceFrame;
-    if (pIPFrame == nullptr) return;
-    VSlot<Fn_RecalcLayout>(pIPFrame, kSlot_RecalcLayout)(pIPFrame, bNotify);
+extern "C" void MS_ABI impl__RecalcLayout_COleCntrFrameWndEx__UEAAXH_Z(void* frame, int notify) {
+    if (frame) static_cast<COleCntrFrameWndEx*>(frame)->COleCntrFrameWndEx::RecalcLayout(notify);
 }
 
 // COleCntrFrameWndEx::RemovePaneFromDockManager(CBasePane*, BOOL, BOOL, BOOL, CBasePane*) -- retail (RVA 0x94c70):

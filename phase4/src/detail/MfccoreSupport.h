@@ -23,6 +23,7 @@ using namespace openmfc::detail::mfccore;
 #include <cstdlib>
 #include <climits>
 #include <new>
+#include <optional>
 #include <shlobj.h>
 #include <string>
 #include <unordered_map>
@@ -91,6 +92,13 @@ extern decltype(openmfc::docking_state::PaneCoreStates()) g_paneCoreState_Mfccor
 
 namespace openmfc { namespace detail { namespace mfccore {
 struct DockingManagerState {
+    struct InPlacePaneSize {
+        HWND window = nullptr;
+        DWORD alignment = 0;
+        LONG preferred = 0;
+        LONG lastLayout = 0;
+    };
+
     std::vector<CBasePane*> panes;                  // m_lstControlBars, head at +0x30
     std::vector<void*> miniFrames;                   // mini-frame list at +0x180
     std::unordered_set<CBasePane*> hiddenPanes;
@@ -104,7 +112,10 @@ struct DockingManagerState {
     // Additional retail state absent from the compact CDockingManager object.
     // These are semantic side-table values, not views over the retail offsets.
     CFrameWnd* parentFrame = nullptr;                // m_pParentWnd +0x1b0
-    RECT boundsAt1c8{};                            // manager rectangle at +0x1c8
+    std::optional<RECT> inPlaceBounds;            // m_rectInPlace +0x14
+    RECT clientAreaBounds{};                      // m_rectClientAreaBounds +0x1c8
+    std::unordered_map<const CBasePane*, InPlacePaneSize> inPlacePaneSizes;
+    bool positioningInPlace = false;
     RECT boundsAt1d8{};                            // manager rectangle at +0x1d8
     void** dockSites = nullptr;                      // entries in m_lstControlBars +0x28, side storage
     std::size_t dockSiteCount = 0;
@@ -116,7 +127,8 @@ struct DockingManagerState {
     std::size_t printPreviewHiddenBarCount = 0;
     std::size_t printPreviewHiddenBarCapacity = 0;
     bool printPreviewMode = false;                   // preview state +0x208
-    bool showPanesMode = false;                       // ShowPanes state +0x298/+0x354
+    bool showPanesMode = false;                       // panes are temporarily hidden
+    std::vector<HWND> panesHiddenForInPlace;
 };
 } } }
 
@@ -178,6 +190,7 @@ void RemoveDockingPane(CDockingManager* pManager, CBasePane* pPane);
 
 namespace openmfc { namespace detail { namespace mfccore {
 bool IsPaneVisibleForDocking(const DockingManagerState& state, CBasePane* pPane);
+RECT LayoutInPlacePanes(CDockingManager* manager, const RECT& available, bool moveWindows);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
