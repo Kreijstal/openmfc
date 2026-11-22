@@ -37,11 +37,6 @@ DEF_MM(CMDIFrameWndEx,
 DEF_MM(CMDITabProxyWnd,
        impl__GetMessageMap_CMDITabProxyWnd__MEBAPEBUAFX_MSGMAP__XZ,
        impl__GetThisMessageMap_CMDITabProxyWnd__KAPEBUAFX_MSGMAP__XZ)
-// Symbol: ?GetMessageMap@CMiniFrameWnd@@MEBAPEBUAFX_MSGMAP@@XZ
-// Symbol: ?GetThisMessageMap@CMiniFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(CMiniFrameWnd,
-       impl__GetMessageMap_CMiniFrameWnd__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_CMiniFrameWnd__KAPEBUAFX_MSGMAP__XZ)
 #undef DEF_MM
 #undef DEF_MM
 #define DEF_MM(Cls, GMSym, GTMSym) \

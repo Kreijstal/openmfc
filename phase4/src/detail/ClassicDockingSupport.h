@@ -9,6 +9,10 @@ extern "C" void impl__DockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRECT
     void*, CControlBar*, const RECT*);
 extern "C" int impl__GetDockedCount_CDockBar__QEBAHXZ(const void*);
 extern "C" int impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(const void*);
+extern "C" int impl__IsFloating_CControlBar__QEBAHXZ(const CControlBar*);
+extern "C" int impl__IsVisible_CControlBar__UEBAHXZ(const CControlBar*);
+extern "C" void impl__DelayShow_CControlBar__UEAAXH_Z(CControlBar*, BOOL);
+extern "C" void impl__EnableDocking_CControlBar__QEAAXK_Z(CControlBar*, DWORD);
 extern "C" CRuntimeClass* impl__GetThisClass_CControlBar__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ();
@@ -30,6 +34,14 @@ constexpr DWORD borderLeft = 0x0100;
 constexpr DWORD borderTop = 0x0200;
 constexpr DWORD borderRight = 0x0400;
 constexpr DWORD borderBottom = 0x0800;
+constexpr int delayHide = 1;
+constexpr int delayShow = 2;
+constexpr DWORD idleNotify = 0x04;
+constexpr DWORD idleLayout = 0x08;
+
+inline void ScheduleLayout(CFrameWnd* frame) {
+    frame->m_retailTail.m_dwBorderFlags |= idleLayout | idleNotify;
+}
 
 CControlBar* NewDockBar();
 bool IsFloatingBar(const void*);

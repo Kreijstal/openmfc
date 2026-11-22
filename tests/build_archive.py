@@ -154,6 +154,7 @@ def main():
         'phase4/src/core/frame/CFrameWndClassicDocking.cpp',
         'phase4/src/core/window/CWndBarLayout.cpp',
         'phase4/src/core/controlbar/CDockContextLifetime.cpp',
+        'phase4/src/core/controlbar/CControlBarVisibility.cpp',
         'phase4/src/detail/CPtrListSupport.cpp',
     ]]
     link_response('dock_frame',['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF',

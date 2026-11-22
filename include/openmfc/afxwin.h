@@ -1154,6 +1154,7 @@ public:
     void OnDDEInitiate(CWnd* pWnd, unsigned int nAtomApp, unsigned int nAtomTopic);
     void OnDDETerminate(CWnd* pWnd);
     void OnIdleUpdateCmdUI();
+    LRESULT OnIdleUpdateCmdUIMessage(WPARAM, LPARAM);
     __int64 OnHelpHitTest(unsigned __int64 wParam, __int64 lParam);
     __int64 OnHelpPromptAddr(unsigned __int64 wParam, __int64 lParam);
     __int64 OnPopMessageString(unsigned __int64 wParam, __int64 lParam);

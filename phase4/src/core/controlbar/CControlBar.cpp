@@ -28,6 +28,7 @@
 #include "detail/DockContextSupport.h"
 #include "detail/CControlBarInfoSupport.h"
 #include "detail/ControlBarLayoutSupport.h"
+#include "detail/ClassicDockingSupport.h"
 #include "detail/FrameLifetimeSupport.h"
 #include "detail/OlecoreSupport.h"
 #include <uxtheme.h>
@@ -95,8 +96,6 @@ extern "C" void MS_ABI impl__DrawNCGripper_CControlBar__UEAAXPEAVCDC__AEBVCRect_
 extern "C" int MS_ABI impl__DrawNonThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect___Z(CControlBar* pThis, CDC* pDC, const CRect& rect);
 extern "C" int MS_ABI impl__DrawThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRect__H_Z(CControlBar* pThis, CDC* pDC, const CRect& rect, int bNCArea);
 extern "C" void MS_ABI impl__DoPaint_CControlBar__UEAAXPEAVCDC___Z(CControlBar* pThis, CDC* pDC);
-extern "C" int MS_ABI impl__IsVisible_CControlBar__UEBAHXZ(const CControlBar* pThis);
-extern "C" int MS_ABI impl__IsFloating_CControlBar__QEBAHXZ(const CControlBar* pThis);
 extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARENTPARAMS___Z(CControlBar* pThis, void* lpLayout);
 extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CControlBar__QEAA_J_K_J_Z(CControlBar* pThis, UINT64 wParam, __int64 lParam);
 extern "C" void MS_ABI impl__ResetTimer_CControlBar__QEAAX_KI_Z(CControlBar* pThis, UINT64 nIDEvent, UINT uElapse);
@@ -130,8 +129,8 @@ constexpr DWORD kCBRS_ORIENT_VERT   = kCBRS_ALIGN_LEFT | kCBRS_ALIGN_RIGHT;   //
 constexpr DWORD kCBRS_GRIPPER       = 0x00400000;
 
 // m_nStateFlags bits (CControlBar::StateFlags; retail tests them at +0x120).
-constexpr int kDelayHide = 1;
-constexpr int kDelayShow = 2;
+using openmfc::detail::dock::delayHide;
+using openmfc::detail::dock::delayShow;
 constexpr int kStatusSet = 8;
 
 // Timer ids retail passes to KillTimer/SetTimer (0xEC09 waits before showing
@@ -318,14 +317,6 @@ inline int OwnerPreTranslateMessage(CWnd* pOwner, MSG* pMsg) {
 extern "C" int MS_ABI impl__IsDockBar_CControlBar__UEBAHXZ(const CControlBar* /*pThis*/) {
     return FALSE;
 }
-// Symbol: ?IsFloating@CControlBar@@QEBAHXZ
-extern "C" int MS_ABI impl__IsFloating_CControlBar__QEBAHXZ(const CControlBar* pThis) {
-    return (pThis->m_dwStyle & CBRS_FLOATING) ? TRUE : FALSE;
-}
-// Symbol: ?IsVisible@CControlBar@@UEBAHXZ
-extern "C" int MS_ABI impl__IsVisible_CControlBar__UEBAHXZ(const CControlBar* pThis) {
-    return (pThis->m_hWnd && ::IsWindowVisible(pThis->m_hWnd)) ? TRUE : FALSE;
-}
 // Symbol: ?SetBarStyle@CControlBar@@QEAAXK@Z
 extern "C" void MS_ABI impl__SetBarStyle_CControlBar__QEAAXK_Z(CControlBar* pThis, DWORD dwStyle) {
     pThis->m_dwStyle = dwStyle;
@@ -408,12 +399,6 @@ extern "C" void MS_ABI impl__CalcInsideRect_CControlBar__UEBAXAEAVCRect__H_Z(con
     rect.right -= pThis->m_cxRightBorder;
     rect.top += pThis->m_cyTopBorder;
     rect.bottom -= pThis->m_cyBottomBorder;
-}
-// Symbol: ?DelayShow@CControlBar@@UEAAXH@Z
-extern "C" void MS_ABI impl__DelayShow_CControlBar__UEAAXH_Z(CControlBar* pThis, int bShow) {
-    if (pThis->m_hWnd) {
-        ::ShowWindow(pThis->m_hWnd, bShow ? SW_SHOWNA : SW_HIDE);
-    }
 }
 // Transcribed from retail RVA 0x1d74e0 (mfc140u):
 //     CRect rect;  ::GetClientRect(m_hWnd, &rect);   // IAT GetClientRect
@@ -658,12 +643,12 @@ extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CControlBar__QEAA_J_K_J_Z(CCon
     if (!pThis) return 0;
     const bool bVis = (impl__GetStyle_CWnd__QEBAKXZ(pThis) & WS_VISIBLE) != 0;
     UINT swpFlags = 0;
-    if ((pThis->m_nStateFlags & kDelayHide) && bVis) {
+    if ((pThis->m_nStateFlags & delayHide) && bVis) {
         swpFlags = SWP_HIDEWINDOW;
-    } else if ((pThis->m_nStateFlags & kDelayShow) && !bVis) {
+    } else if ((pThis->m_nStateFlags & delayShow) && !bVis) {
         swpFlags = SWP_SHOWWINDOW;
     }
-    pThis->m_nStateFlags &= ~(kDelayShow | kDelayHide);
+    pThis->m_nStateFlags &= ~(delayShow | delayHide);
     if (swpFlags != 0) {
         impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(pThis, nullptr, 0, 0, 0, 0,
             swpFlags | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
@@ -1490,9 +1475,9 @@ extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARE
     if (lpLayout == nullptr) impl__AfxThrowInvalidArgException__YAXXZ();
     SizeParentParams* pLayout = static_cast<SizeParentParams*>(lpLayout);
     DWORD dwResult = (impl__GetStyle_CWnd__QEBAKXZ(pThis) & WS_VISIBLE) | (pThis->m_dwStyle & 0xFF00);
-    if (pThis->m_nStateFlags & (kDelayHide | kDelayShow)) {
+    if (pThis->m_nStateFlags & (delayHide | delayShow)) {
         UINT swpFlags = 0;
-        if (pThis->m_nStateFlags & kDelayHide) {
+        if (pThis->m_nStateFlags & delayHide) {
             if (dwResult & WS_VISIBLE) swpFlags = SWP_HIDEWINDOW;
         } else {
             if (!(dwResult & WS_VISIBLE)) swpFlags = SWP_SHOWWINDOW;
@@ -1500,12 +1485,12 @@ extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARE
         if (swpFlags != 0) {
             dwResult ^= WS_VISIBLE;
             if (pLayout != nullptr && pLayout->hDWP != nullptr) {
-                pThis->m_nStateFlags &= ~(kDelayShow | kDelayHide);
+                pThis->m_nStateFlags &= ~(delayShow | delayHide);
                 pLayout->hDWP = ::DeferWindowPos(pLayout->hDWP, pThis->m_hWnd, nullptr, 0, 0, 0, 0,
                     swpFlags | SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
             }
         } else {
-            pThis->m_nStateFlags &= ~(kDelayShow | kDelayHide);
+            pThis->m_nStateFlags &= ~(delayShow | delayHide);
         }
     }
     return dwResult;
@@ -1519,9 +1504,14 @@ LRESULT CControlBar::OnSizeParent(WPARAM wParam, LPARAM lParam) {
     return impl__OnSizeParent_CControlBar__QEAA_J_K_J_Z(this, wParam, lParam);
 }
 
+LRESULT CControlBar::OnIdleUpdateCmdUI(WPARAM wParam, LPARAM lParam) {
+    return impl__OnIdleUpdateCmdUI_CControlBar__QEAA_J_K_J_Z(this, wParam, lParam);
+}
+
 BEGIN_MESSAGE_MAP(CControlBar, CWnd)
     ON_WM_DESTROY()
     ON_MESSAGE(openmfc::detail::dock::sizeParentMessage, &ThisClass::OnSizeParent)
+    ON_MESSAGE(0x0363, &ThisClass::OnIdleUpdateCmdUI)
 END_MESSAGE_MAP()
 
 // Symbol: ?GetMessageMap@CControlBar@@MEBAPEBUAFX_MSGMAP@@XZ

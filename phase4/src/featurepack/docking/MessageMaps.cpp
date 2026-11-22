@@ -58,11 +58,6 @@ DEF_MM(CDummyDockablePane,
 #define DEF_MM(Cls, GMSym, GTMSym) \
     extern "C" const AFX_MSGMAP* MS_ABI GMSym(const void*) { return &class##Cls##_msgmap; } \
     extern "C" const AFX_MSGMAP* MS_ABI GTMSym() { return &class##Cls##_msgmap; }
-// Symbol: ?GetMessageMap@CMiniDockFrameWnd@@MEBAPEBUAFX_MSGMAP@@XZ
-// Symbol: ?GetThisMessageMap@CMiniDockFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(CMiniDockFrameWnd,
-       impl__GetMessageMap_CMiniDockFrameWnd__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_CMiniDockFrameWnd__KAPEBUAFX_MSGMAP__XZ)
 // Symbol: ?GetMessageMap@CMultiPaneFrameWnd@@MEBAPEBUAFX_MSGMAP@@XZ
 // Symbol: ?GetThisMessageMap@CMultiPaneFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
 DEF_MM(CMultiPaneFrameWnd,

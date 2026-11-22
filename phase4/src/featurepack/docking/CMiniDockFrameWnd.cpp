@@ -61,14 +61,11 @@
 // msgmap_u.py) cross-checks the four handler entries above:
 //   WM_CLOSE (0x10) sig 19 -> 0x1d9c10      WM_NCLBUTTONDOWN (0xa1) sig 54 -> 0x1d9c20
 //   WM_NCLBUTTONDBLCLK (0xa3) sig 54 -> 0x1d9d00   WM_MOUSEACTIVATE (0x21) sig 12 -> 0x1d98c0
-// OpenMFC's copy (featurepack/docking/MessageMaps.cpp ->
-// detail/Pane16MsgmapSupport.cpp) has an EMPTY entry table, so the handlers
-// below are reached only when client code calls them (e.g. a derived frame
-// forwarding to CMiniDockFrameWnd::OnNcLButtonDown), never through that map.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/ClassicDockingSupport.h"
 #include <cstdlib>
+#include <cstring>
 #include <new>
 #include <cstddef>
 #include <memory>
@@ -238,9 +235,15 @@ public:
     virtual BOOL Create(CWnd* parent, DWORD style) {
         return impl__Create_CMiniDockFrameWnd__UEAAHPEAVCWnd__K_Z(this, parent, style);
     }
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
     void EnableWindowOwnership() { m_retailTail.m_reserved_1a4 = 1; }
 
 private:
+    const AFX_MSGMAP* GetMessageMap() const override;
+    void OnClose();
+    BOOL OnMouseActivate(CWnd* desktop, UINT hitTest, UINT message);
+    void OnNcLButtonDown(UINT hitTest, CPoint point);
+    void OnNcLButtonDblClk(UINT hitTest, CPoint point);
     bool WindowOwnsObject() const { return m_retailTail.m_reserved_1a4 == 1; }
     alignas(CControlBar) BYTE dockBar[0x190];
 };
@@ -485,4 +488,46 @@ extern "C" void MS_ABI impl__RecalcLayout_CMiniDockFrameWnd__UEAAXH_Z(void* pThi
     static_assert(MAX_PATH == 0x104, "retail passes 0x104");
     impl__GetWindowTextW_CWnd__QEBAHPEA_WH_Z(DockBarAsBar(pThis), szTitle, MAX_PATH);
     impl__AfxSetWindowText__YAXPEAUHWND____PEB_W_Z(Wnd(pThis)->m_hWnd, szTitle);
+}
+
+namespace {
+long long PackPoint(CPoint point) {
+    long long value;
+    static_assert(sizeof(value) == sizeof(point));
+    std::memcpy(&value, &point, sizeof(value));
+    return value;
+}
+}
+
+void CMiniDockFrameWnd::OnClose() {
+    impl__OnClose_CMiniDockFrameWnd__QEAAXXZ(this);
+}
+
+BOOL CMiniDockFrameWnd::OnMouseActivate(CWnd* desktop, UINT hitTest, UINT message) {
+    return impl__OnMouseActivate_CMiniDockFrameWnd__QEAAHPEAVCWnd__II_Z(this, desktop, hitTest, message);
+}
+
+void CMiniDockFrameWnd::OnNcLButtonDown(UINT hitTest, CPoint point) {
+    impl__OnNcLButtonDown_CMiniDockFrameWnd__QEAAXIVCPoint___Z(this, hitTest, PackPoint(point));
+}
+
+void CMiniDockFrameWnd::OnNcLButtonDblClk(UINT hitTest, CPoint point) {
+    impl__OnNcLButtonDblClk_CMiniDockFrameWnd__QEAAXIVCPoint___Z(this, hitTest, PackPoint(point));
+}
+
+BEGIN_MESSAGE_MAP(CMiniDockFrameWnd, CMiniFrameWnd)
+    ON_WM_CLOSE()
+    OPENMFC_MAP_ENTRY(WM_MOUSEACTIVATE, 0, 0, 0, AfxSig_i_W_uu, &ThisClass::OnMouseActivate)
+    OPENMFC_MAP_ENTRY(WM_NCLBUTTONDOWN, 0, 0, 0, AfxSig_v_u_p, &ThisClass::OnNcLButtonDown)
+    OPENMFC_MAP_ENTRY(WM_NCLBUTTONDBLCLK, 0, 0, 0, AfxSig_v_u_p, &ThisClass::OnNcLButtonDblClk)
+END_MESSAGE_MAP()
+
+// Symbol: ?GetMessageMap@CMiniDockFrameWnd@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetMessageMap_CMiniDockFrameWnd__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return CMiniDockFrameWnd::GetThisMessageMap();
+}
+
+// Symbol: ?GetThisMessageMap@CMiniDockFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetThisMessageMap_CMiniDockFrameWnd__KAPEBUAFX_MSGMAP__XZ() {
+    return CMiniDockFrameWnd::GetThisMessageMap();
 }

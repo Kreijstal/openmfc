@@ -121,9 +121,19 @@ public:
                         const RECT& rect, CWnd* parent = nullptr, UINT id = 0);
     virtual BOOL CreateEx(DWORD exStyle, const wchar_t* className, const wchar_t* title,
                           DWORD style, const RECT& rect, CWnd* parent = nullptr, UINT id = 0);
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
 protected:
     BOOL PreCreateWindow(CREATESTRUCTW& create) override;
+    const AFX_MSGMAP* GetMessageMap() const override;
     char _pad[24];
+private:
+    LRESULT OnNcCreateMessage(WPARAM, LPARAM);
+    LRESULT OnNcActivateMessage(WPARAM, LPARAM);
+    LRESULT OnSysCommandMessage(WPARAM, LPARAM);
+    LRESULT OnFloatStatus(WPARAM, LPARAM);
+    LRESULT OnQueryCenterWnd(WPARAM, LPARAM);
+    LRESULT OnNcHitTest(CPoint point);
+    void OnGetMinMaxInfo(MINMAXINFO* info);
 };
 
 // AFX_IDW_RIBBON_BAR — needed before CMFCRibbonBar::Create default arg

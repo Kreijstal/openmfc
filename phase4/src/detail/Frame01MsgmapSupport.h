@@ -53,9 +53,6 @@ const AFX_MSGMAP* AFXAPI gbm_CMDIFrameWndEx();
 namespace openmfc { namespace detail { namespace frame01msgmap {
 const AFX_MSGMAP* AFXAPI gbm_CMDITabProxyWnd();
 } } }
-namespace openmfc { namespace detail { namespace frame01msgmap {
-const AFX_MSGMAP* AFXAPI gbm_CMiniFrameWnd();
-} } }
 
 // The static maps. m_pfnGetBaseMap delegates to the base (or null at the root).
 namespace openmfc { namespace detail { namespace frame01msgmap {
@@ -75,9 +72,6 @@ extern const AFX_MSGMAP classCMDIFrameWndEx_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace frame01msgmap {
 extern const AFX_MSGMAP classCMDITabProxyWnd_msgmap;
-} } }
-namespace openmfc { namespace detail { namespace frame01msgmap {
-extern const AFX_MSGMAP classCMiniFrameWnd_msgmap;
 } } }
 
 #define DEF_MM(Cls, GMSym, GTMSym) \

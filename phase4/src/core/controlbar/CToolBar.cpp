@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/ClassicDockingSupport.h"
 #include <atomic>
 #include <cstddef>
 #include <cstring>
@@ -910,13 +911,13 @@ CToolTipCtrl* CToolBar::GetToolTips() const {
     return reinterpret_cast<CToolTipCtrl*>(CWnd::FromHandle(h));
 }
 void CToolBar::EnableDocking(DWORD dwDockStyle) {
-    m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | (dwDockStyle & CBRS_ALIGN_ANY);
+    impl__EnableDocking_CControlBar__QEAAXK_Z(this, dwDockStyle);
 }
 BOOL CToolBar::IsVisible() const {
-    return m_hWnd && (::GetWindowLongW(m_hWnd, GWL_STYLE) & WS_VISIBLE);
+    return impl__IsVisible_CControlBar__UEBAHXZ(this);
 }
 BOOL CToolBar::IsFloating() const {
-    return (m_dwStyle & CBRS_FLOATING) != 0;
+    return impl__IsFloating_CControlBar__QEBAHXZ(this);
 }
 
 // === Moved from ManualThunks.cpp ===

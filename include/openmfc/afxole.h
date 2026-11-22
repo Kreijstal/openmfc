@@ -78,6 +78,7 @@ protected:
     const AFX_MSGMAP* GetMessageMap() const override;
     void OnDestroy();
     LRESULT OnSizeParent(WPARAM, LPARAM);
+    LRESULT OnIdleUpdateCmdUI(WPARAM, LPARAM);
 
 public:
     // Faithful MSVC mfc140u CControlBar layout (size 328; members begin where

@@ -317,7 +317,7 @@ extern "C" int MS_ABI impl__OnNcCreate_CMiniFrameWnd__QEAAHPEAUtagCREATESTRUCTW_
         WPARAM nState = kFS_DEACTIVATE;
         if (pParentFrame == pActiveWnd) {
             nState = kFS_ACTIVATE;
-        } else if (impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
+        } else if (pActiveWnd && impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
                        ::GetLastActivePopup(pParentFrame->m_hWnd)) == pActiveWnd &&
                    ::SendMessage(pActiveWnd->m_hWnd, kWM_FLOATSTATUS, kFS_SYNCACTIVE, 0) != 0) {
             nState = kFS_ACTIVATE;
@@ -451,4 +451,57 @@ extern "C" int MS_ABI impl__PreCreateWindow_CMiniFrameWnd__MEAAHAEAUtagCREATESTR
 
 BOOL CMiniFrameWnd::PreCreateWindow(CREATESTRUCTW& create) {
     return impl__PreCreateWindow_CMiniFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(this, create);
+}
+
+LRESULT CMiniFrameWnd::OnNcCreateMessage(WPARAM, LPARAM create) {
+    return impl__OnNcCreate_CMiniFrameWnd__QEAAHPEAUtagCREATESTRUCTW___Z(
+        this, reinterpret_cast<CREATESTRUCTW*>(create));
+}
+
+LRESULT CMiniFrameWnd::OnNcActivateMessage(WPARAM active, LPARAM) {
+    return impl__OnNcActivate_CMiniFrameWnd__QEAAHH_Z(this, active != 0);
+}
+
+LRESULT CMiniFrameWnd::OnSysCommandMessage(WPARAM command, LPARAM point) {
+    impl__OnSysCommand_CMiniFrameWnd__QEAAXI_J_Z(this, static_cast<UINT>(command), point);
+    return 0;
+}
+
+LRESULT CMiniFrameWnd::OnFloatStatus(WPARAM flags, LPARAM lParam) {
+    return impl__OnFloatStatus_CMiniFrameWnd__QEAA_J_K_J_Z(this, flags, lParam);
+}
+
+LRESULT CMiniFrameWnd::OnQueryCenterWnd(WPARAM wParam, LPARAM lParam) {
+    return impl__OnQueryCenterWnd_CMiniFrameWnd__QEAA_J_K_J_Z(this, wParam, lParam);
+}
+
+LRESULT CMiniFrameWnd::OnNcHitTest(CPoint point) {
+    long long packed;
+    static_assert(sizeof(packed) == sizeof(point));
+    std::memcpy(&packed, &point, sizeof(packed));
+    return impl__OnNcHitTest_CMiniFrameWnd__QEAA_JVCPoint___Z(this, packed);
+}
+
+void CMiniFrameWnd::OnGetMinMaxInfo(MINMAXINFO* info) {
+    impl__OnGetMinMaxInfo_CMiniFrameWnd__QEAAXPEAUtagMINMAXINFO___Z(this, info);
+}
+
+BEGIN_MESSAGE_MAP(CMiniFrameWnd, CFrameWnd)
+    ON_MESSAGE(WM_NCCREATE, &ThisClass::OnNcCreateMessage)
+    ON_MESSAGE(WM_NCACTIVATE, &ThisClass::OnNcActivateMessage)
+    ON_MESSAGE(WM_SYSCOMMAND, &ThisClass::OnSysCommandMessage)
+    ON_MESSAGE(kWM_FLOATSTATUS, &ThisClass::OnFloatStatus)
+    ON_MESSAGE(kWM_QUERYCENTERWND, &ThisClass::OnQueryCenterWnd)
+    ON_WM_NCHITTEST()
+    ON_WM_GETMINMAXINFO()
+END_MESSAGE_MAP()
+
+// Symbol: ?GetMessageMap@CMiniFrameWnd@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetMessageMap_CMiniFrameWnd__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return CMiniFrameWnd::GetThisMessageMap();
+}
+
+// Symbol: ?GetThisMessageMap@CMiniFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetThisMessageMap_CMiniFrameWnd__KAPEBUAFX_MSGMAP__XZ() {
+    return CMiniFrameWnd::GetThisMessageMap();
 }

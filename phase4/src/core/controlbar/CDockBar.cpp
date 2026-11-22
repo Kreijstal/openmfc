@@ -45,6 +45,7 @@
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/CControlBarInfoSupport.h"
 #include "detail/ControlBarLayoutSupport.h"
+#include "detail/ClassicDockingSupport.h"
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -159,33 +160,6 @@ static_assert(offsetof(S_Ccontrolbarinfo, m_bHorz) == 0x0c, "CControlBarInfo::m_
 static_assert(offsetof(S_Ccontrolbarinfo, m_bDockBar) == 0x10, "CControlBarInfo::m_bDockBar");
 static_assert(offsetof(S_Ccontrolbarinfo, m_pointPos) == 0x14, "CControlBarInfo::m_pointPos");
 static_assert(offsetof(S_Ccontrolbarinfo, m_arrBarID) == 0x48, "CControlBarInfo::m_arrBarID");
-
-// CFrameWnd::m_nIdleFlags lives at CFrameWnd + 0x1d0: retail
-// CFrameWnd::OnIdleUpdateCmdUI (0x2a0140, mfc140u) tests bits 1/2/8 of
-// 0x1d0(%rcx) and calls RecalcLayout (vslot 96) for bit 8 with bNotify =
-// bit 4, and every DelayRecalcLayout() inline in this file is
-// `orl $0xc,0x1d0(%rax)` (idleLayout 8 | idleNotify 4, afxwin.h).  OpenMFC's
-// CFrameWnd does not name the member -- the slot is inside the
-// zero-initialised _framewnd_padding -- so it is written at the retail
-// offset.  KNOWN GAP (not introduced here): OpenMFC's frame idle handler
-// (core/frame/CFrameWnd.cpp OnIdleUpdateCmdUI) never reads these flags, so the
-// deferred RecalcLayout retail performs at idle time does not happen in this
-// tree; the flag is still set exactly as retail sets it.
-constexpr size_t kOffFrameIdleFlags = 0x1d0;
-constexpr unsigned int kIdleNotify = 4;
-constexpr unsigned int kIdleLayout = 8;
-// (_framewnd_padding is protected, so the window is pinned through the last
-// public member before it and the object size.)
-static_assert(offsetof(CFrameWnd, m_nIDHelp) + sizeof(UINT) <= kOffFrameIdleFlags &&
-              kOffFrameIdleFlags + sizeof(unsigned int) <= sizeof(CFrameWnd),
-              "m_nIdleFlags slot must lie inside CFrameWnd's padding");
-inline void DelayRecalcLayout(CFrameWnd* pFrame) {
-    unsigned char* p = reinterpret_cast<unsigned char*>(pFrame) + kOffFrameIdleFlags;
-    unsigned int flags = 0;
-    std::memcpy(&flags, p, sizeof(flags));
-    flags |= kIdleLayout | kIdleNotify;
-    std::memcpy(p, &flags, sizeof(flags));
-}
 
 // CWnd::m_hWndOwner lives at CWnd + 0xa0 (see the note in CControlBar.cpp);
 // SetBarInfo reads and writes it on the floating frame:
@@ -841,7 +815,7 @@ extern "C" void MS_ABI impl__DockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBU
     impl__RemovePlaceHolder_CDockBar__QEAAXPEAVCControlBar___Z(pThis, pBar);
 
     CFrameWnd* pFrame = DockingFrame(pThis);
-    if (pFrame != nullptr) DelayRecalcLayout(pFrame);
+    if (pFrame != nullptr) openmfc::detail::dock::ScheduleLayout(pFrame);
 }
 
 // Retail: the CDockBar vftable (0x321dc8, mfc140u) holds 0x27d0 = `ret` in
@@ -1272,7 +1246,7 @@ extern "C" void MS_ABI impl__ReDockControlBar_CDockBar__QEAAXPEAVCControlBar__PE
     pBar->m_pDockBar = pThis;
 
     CFrameWnd* pFrame = DockingFrame(pThis);
-    if (pFrame != nullptr) DelayRecalcLayout(pFrame);
+    if (pFrame != nullptr) openmfc::detail::dock::ScheduleLayout(pFrame);
 }
 
 // Transcribed from retail RVA 0x1d8a10 (mfc140u):
@@ -1347,7 +1321,7 @@ extern "C" int MS_ABI impl__RemoveControlBar_CDockBar__QEAAHPEAVCControlBar__HH_
         impl__ShowWindow_CWnd__QEAAHH_Z(pFrame, SW_HIDE);
         return FALSE;
     }
-    DelayRecalcLayout(pFrame);
+    openmfc::detail::dock::ScheduleLayout(pFrame);
     return FALSE;
 }
 

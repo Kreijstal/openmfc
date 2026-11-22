@@ -44,11 +44,9 @@ void CFrameWnd::RecalcLayout(BOOL notify) {
         ~ResetLayoutFlag() { flag = FALSE; }
     } reset{m_retailTail.m_bInRecalcLayout};
 
-    constexpr DWORD notifyBorderChange = 0x04;
-    constexpr DWORD layoutPending = 0x08;
     const DWORD flags = m_retailTail.m_dwBorderFlags;
-    m_retailTail.m_dwBorderFlags &= ~(notifyBorderChange | layoutPending);
-    if (notify || (flags & notifyBorderChange)) {
+    m_retailTail.m_dwBorderFlags &= ~(idleNotify | idleLayout);
+    if (notify || (flags & idleNotify)) {
         COleFrameHook* hook = nullptr;
         std::memcpy(&hook, m_retailMiddle.m_pNotifyHook, sizeof(hook));
         if (hook) impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(hook);
@@ -179,6 +177,37 @@ void CFrameWnd::EnableDocking(DWORD dwDockStyle) {
 
 void CFrameWnd::RemoveControlBar(CControlBar* bar) {
     if (bar) UnregisterControlBar(this, bar);
+}
+
+void CFrameWnd::ShowControlBar(CControlBar* bar, BOOL show, BOOL delay) {
+    if (!bar) AfxThrowInvalidArgException();
+    if (!bar->m_hWnd) return;
+    auto* frame = bar->GetParentFrame();
+    if (!frame) frame = bar->m_pDockSite ? static_cast<CFrameWnd*>(bar->m_pDockSite) : this;
+
+    const bool floating = impl__IsFloating_CControlBar__QEBAHXZ(bar) != FALSE;
+    if (delay) {
+        impl__DelayShow_CControlBar__UEAAXH_Z(bar, show);
+        ScheduleLayout(frame);
+    } else {
+        const UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE;
+        ::SetWindowPos(bar->m_hWnd, nullptr, 0, 0, 0, 0,
+                       flags | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
+        impl__DelayShow_CControlBar__UEAAXH_Z(bar, show);
+        if (show || !floating) frame->RecalcLayout(FALSE);
+    }
+
+    if (!floating) return;
+    const int visibleCount = bar->m_pDockBar
+        ? impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(bar->m_pDockBar) : (show != FALSE);
+    if (!visibleCount || (show && visibleCount == 1)) {
+        const int command = visibleCount ? SW_SHOWNA : SW_HIDE;
+        frame->m_retailMiddle.m_nShowDelay = delay ? command : -1;
+        if (!delay) ::ShowWindow(frame->m_hWnd, command);
+        else if (show) frame->RecalcLayout(FALSE);
+    } else if (!delay) {
+        frame->RecalcLayout(FALSE);
+    }
 }
 
 void CFrameWnd::ReDockControlBar(CControlBar* bar, CDockBar* target, const RECT* rect) {

@@ -5,14 +5,17 @@
 
 #include "detail/FrameFontExportsSupport.h"
 #include "detail/FrameLifetimeSupport.h"
+#include "detail/ClassicDockingSupport.h"
 #include "detail/WincoreSupport.h"
 #include <dde.h>
 
 using openmfc::detail::frame::ControlBars;
-using openmfc::detail::frame::RegisterControlBar;
 
 BEGIN_MESSAGE_MAP(CFrameWnd, CWnd)
     ON_WM_SIZE()
+    ON_WM_CLOSE()
+    ON_MESSAGE(0x0363, &ThisClass::OnIdleUpdateCmdUIMessage)
+    ON_MESSAGE(0x0362, &ThisClass::OnSetMessageString)
 END_MESSAGE_MAP()
 
 // Symbol: ?CreateObject@CFrameWnd@@SAPEAVCObject@@XZ
@@ -461,7 +464,7 @@ __int64 CFrameWnd::OnActivateTopLevel(unsigned __int64 wParam, __int64 lParam) {
 }
 int CFrameWnd::OnBarCheck(unsigned int nID) {
     CControlBar* pBar = GetControlBar(nID);
-    return (pBar && pBar->m_hWnd && ::IsWindowVisible(pBar->m_hWnd)) ? TRUE : FALSE;
+    return pBar && impl__IsVisible_CControlBar__UEBAHXZ(pBar);
 }
 BOOL CFrameWnd::OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lResult) {
     (void)nIndex;
@@ -708,12 +711,25 @@ void CFrameWnd::OnHScroll(unsigned int nSBCode, unsigned int nPos, CScrollBar* p
     }
 }
 void CFrameWnd::OnIdleUpdateCmdUI() {
-    if (m_retailTail.m_dwBorderFlags & 0x08) {
-        const BOOL notify = (m_retailTail.m_dwBorderFlags & 0x04) != 0;
-        m_retailTail.m_dwBorderFlags &= ~0x0c;
-        RecalcLayout(notify);
+    using namespace openmfc::detail::dock;
+    constexpr DWORD idleMenu = 0x01;
+    constexpr DWORD idleTitle = 0x02;
+    auto& flags = m_retailTail.m_dwBorderFlags;
+    if (flags & idleMenu) {
+        flags &= ~idleMenu;
+        OnUpdateFrameMenu(m_retailTail.m_hMenuAlt);
     }
-    OnUpdateFrameMenu(nullptr);
+    if (flags & idleTitle) OnUpdateFrameTitle(TRUE);
+    if (flags & idleLayout) {
+        RecalcLayout((flags & idleNotify) != 0);
+        ::UpdateWindow(m_hWnd);
+    }
+    if (m_nIDTracking != m_nIDLastMessage) ::SendMessageW(m_hWnd, 0x0362, m_nIDTracking, 0);
+    flags = 0;
+}
+LRESULT CFrameWnd::OnIdleUpdateCmdUIMessage(WPARAM, LPARAM) {
+    OnIdleUpdateCmdUI();
+    return 0;
 }
 void CFrameWnd::OnInitMenu(CMenu* pMenu) {
     HMENU hMenu = pMenu ? pMenu->m_hMenu : GetMenu() ? GetMenu()->m_hMenu : nullptr;
@@ -806,16 +822,26 @@ void CFrameWnd::OnSetFocus(CWnd* pOldWnd) {
     }
 }
 __int64 CFrameWnd::OnSetMessageString(unsigned __int64 wParam, __int64 lParam) {
-    if (wParam) {
-        SetMessageText(static_cast<unsigned int>(wParam));
-        return 0;
+    const UINT previous = m_nIDLastMessage;
+    UINT id = static_cast<UINT>(wParam);
+    m_nFlags &= ~0x40;
+    if (auto* messageBar = GetMessageBar()) {
+        CString message;
+        auto* text = reinterpret_cast<const wchar_t*>(lParam);
+        if (!text && id) {
+            if (id == 0xef06 && m_retailTail.m_lpfnCloseProc) id += 0xff;
+            GetMessageString(id, message);
+            text = message.GetString();
+        }
+        ::SetWindowTextW(messageBar->m_hWnd, text);
+        if (auto* frame = messageBar->GetParentFrame()) {
+            frame->m_nIDTracking = id;
+            frame->m_nIDLastMessage = id;
+        }
     }
-    if (lParam) {
-        SetMessageText(reinterpret_cast<const wchar_t*>(lParam));
-        return 0;
-    }
-    SetMessageText(L"");
-    return 0;
+    m_nIDTracking = id;
+    m_nIDLastMessage = id;
+    return previous;
 }
 void CFrameWnd::OnSetPreviewMode(int bPreview, CPrintPreviewState* pState) {
     // Entering print preview hides the frame's control bars so the preview view
@@ -847,7 +873,7 @@ void CFrameWnd::OnSysCommand(unsigned int nID, __int64 lParam) {
 
     const unsigned int command = nID & 0xFFF0;
     if (command == SC_CLOSE) {
-        OnClose();
+        ::SendMessageW(m_hWnd, WM_CLOSE, 0, 0);
         return;
     }
 
@@ -1127,16 +1153,6 @@ int CFrameWnd::SetTaskbarOverlayIcon(HICON hIcon, const wchar_t* lpszDescription
     HRESULT hr = taskbar->SetOverlayIcon(m_hWnd, hIcon, lpszDescription);
     taskbar->Release();
     return SUCCEEDED(hr) ? TRUE : FALSE;
-}
-void CFrameWnd::ShowControlBar(CControlBar* pBar, int bShow, int bDelay) {
-    (void)bDelay;
-    if (!pBar || !pBar->m_hWnd) {
-        return;
-    }
-
-    RegisterControlBar(this, pBar);
-
-    ::ShowWindow(pBar->m_hWnd, bShow ? SW_SHOW : SW_HIDE);
 }
 void CFrameWnd::ShowOwnedWindows(int bShow) {
     if (!m_hWnd) {

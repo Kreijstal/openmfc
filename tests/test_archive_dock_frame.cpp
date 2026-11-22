@@ -71,7 +71,6 @@ extern "C" int impl__GetDockedCount_CDockBar__QEBAHXZ(const void* dock) {
 extern "C" int impl__GetDockedVisibleCount_CDockBar__UEBAHXZ(const void* dock) {
     return entry<int(*)(const void*)>(5251)(dock);
 }
-extern "C" void impl__EnableDocking_CControlBar__QEAAXK_Z(CControlBar*, DWORD);
 extern "C" void impl__StartDrag_CDockContext__UEAAXVCPoint___Z(void*, long long) { std::abort(); }
 extern "C" void impl__StartResize_CDockContext__UEAAXHVCPoint___Z(void*, int, long long) { std::abort(); }
 extern "C" void impl__ToggleDocking_CDockContext__UEAAXXZ(void*) { std::abort(); }
@@ -246,6 +245,14 @@ void TestFloating(CFrameWnd* frame, CControlBar* bar) {
 
     frame->DockControlBar(bar, topBarId, nullptr);
     check(bar->m_pDockBar == top && ::GetParent(handle) == top->m_hWnd, "dock the toolbar");
+    frame->ShowControlBar(bar, FALSE, TRUE);
+    check(::IsWindowVisible(handle) && !impl__IsVisible_CControlBar__UEBAHXZ(bar) &&
+          (frame->m_retailTail.m_dwBorderFlags & idleLayout), "defer hiding a docked bar until idle");
+    ::SendMessageW(handle, 0x0363, TRUE, 0);
+    check(!::IsWindowVisible(handle) && !(bar->m_nStateFlags & delayHide),
+          "the bar idle message applies the pending hide");
+    frame->ShowControlBar(bar, TRUE, FALSE);
+
     frame->FloatControlBar(bar, CPoint(245, 140), alignTop);
     auto* dock = static_cast<CControlBar*>(bar->m_pDockBar);
     check(dock && dock != top && IsFloatingBar(dock), "float into a distinct dock bar");
@@ -260,6 +267,23 @@ void TestFloating(CFrameWnd* frame, CControlBar* bar) {
     ::GetWindowRect(originalPopup, &popupRect);
     check(bar->m_pDockBar == dock && popupRect.left == 280 && popupRect.top == 170,
           "repeat float reuses and moves the popup");
+
+    frame->ShowControlBar(bar, FALSE, TRUE);
+    check(::IsWindowVisible(originalPopup) && ::IsWindowVisible(handle) &&
+          !impl__IsVisible_CControlBar__UEBAHXZ(bar) && floating->m_retailMiddle.m_nShowDelay == SW_HIDE,
+          "queue hiding the floating frame when its last bar is hidden");
+    frame->ShowControlBar(bar, TRUE, FALSE);
+    check(floating->m_retailMiddle.m_nShowDelay == -1 && !(bar->m_nStateFlags & (delayShow | delayHide)),
+          "showing a bar cancels a pending popup hide");
+    frame->ShowControlBar(bar, FALSE, FALSE);
+    check(::IsWindow(originalPopup) && !::IsWindowVisible(originalPopup) && !::IsWindowVisible(handle),
+          "hiding the last bar leaves its floating frame available");
+    frame->ShowControlBar(bar, TRUE, TRUE);
+    check(!::IsWindowVisible(originalPopup) && impl__IsVisible_CControlBar__UEBAHXZ(bar) &&
+          floating->m_retailMiddle.m_nShowDelay == SW_SHOWNA, "queue reopening the popup without activation");
+    frame->ShowControlBar(bar, TRUE, FALSE);
+    check(::IsWindowVisible(originalPopup) && ::IsWindowVisible(handle) && bar->m_pDockBar == dock,
+          "reopen the same floating frame on immediate show");
 
     frame->SaveBarState(L"Floating layout");
     const HWND topHandle = top->m_hWnd;

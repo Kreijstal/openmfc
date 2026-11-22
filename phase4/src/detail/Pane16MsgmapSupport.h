@@ -36,7 +36,6 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGM
 
 // __cdecl (AFXAPI) base-map thunks matching AFX_MSGMAP::pfnGetBaseMap exactly.
 namespace openmfc { namespace detail { namespace pane16msgmap {
-const AFX_MSGMAP* AFXAPI gbm_CMiniDockFrameWnd();
 } } }
 const AFX_MSGMAP* AFXAPI gbm_CMultiPaneFrameWnd();  // defined after maps (in-batch base CPaneFrameWnd)
 namespace openmfc { namespace detail { namespace pane16msgmap {
@@ -60,7 +59,6 @@ const AFX_MSGMAP* AFXAPI gbm_CSmartDockingGroupGuidesWnd();
 
 // The static maps. m_pfnGetBaseMap delegates to the base (or null at the root).
 namespace openmfc { namespace detail { namespace pane16msgmap {
-extern const AFX_MSGMAP classCMiniDockFrameWnd_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace pane16msgmap {
 extern const AFX_MSGMAP classCMultiPaneFrameWnd_msgmap;
