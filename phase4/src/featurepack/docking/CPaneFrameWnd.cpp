@@ -25,6 +25,12 @@ extern "C" void MS_ABI impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStri
 extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[];
 extern "C" unsigned int impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
 extern "C" int MS_ABI impl__GetTotalRefCount_CPaneContainerManager__QEBAHXZ(const void*);
+extern "C" void* MS_ABI impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(const CBasePane*, int);
+extern "C" void MS_ABI impl__CalcExpectedDockedRect_CDockingManager__QEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
+    CDockingManager*, CWnd*, CPoint, CRect*, BOOL*, CDockablePane**);
+extern "C" void MS_ABI impl__EnterDragMode_CPane__MEAAXH_Z(CPane*, int);
+extern "C" int MS_ABI impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(const CBasePane*);
+extern "C" void* MS_ABI impl__DockPaneStandard_CMultiPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(void*, int*);
 extern "C" void MS_ABI impl__Init_CMFCDragFrameImpl__QEAAXPEAVCWnd___Z(void*, CWnd*);
 extern "C" void MS_ABI impl__OnDockToRecentPos_CPaneFrameWnd__UEAAXXZ(void*);
 extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(void*, int);
@@ -563,14 +569,19 @@ extern "C" int MS_ABI impl__MoveMiniFrame_CPaneFrameWnd__IEAAHXZ(void* pThis) {
     return FALSE;
 }
 // Symbol: ?OnBeforeDock@CPaneFrameWnd@@UEAAHXZ
-// Retail returns FALSE while Ctrl is held (docking pre-check is skipped), then
-// performs a docking-manager hit test; the manager internals are not modeled,
-// so TRUE (proceed) is the conservative result otherwise.
-// TODO(clean-room): transcribed partially.
 extern "C" int MS_ABI impl__OnBeforeDock_CPaneFrameWnd__UEAAHXZ(void* pThis) {
-    if (pThis == nullptr) return FALSE;
-    if (::GetKeyState(VK_CONTROL) < 0) return FALSE;
-    return TRUE;
+    if (!pThis || ::GetKeyState(VK_CONTROL) < 0) return FALSE;
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(frame);
+    if (!manager) return TRUE;
+    POINT point{};
+    if (!::GetCursorPos(&point)) return FALSE;
+    CRect preview;
+    BOOL drawTab = FALSE;
+    impl__CalcExpectedDockedRect_CDockingManager__QEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
+        manager, frame, CPoint(point), &preview, &drawTab, nullptr);
+    return drawTab || !preview.IsRectEmpty();
 }
 // Symbol: ?OnCancelMode@CPaneFrameWnd@@IEAAXXZ
 extern "C" void MS_ABI impl__OnCancelMode_CPaneFrameWnd__IEAAXXZ(void* pThis) {
@@ -1173,7 +1184,7 @@ extern "C" int MS_ABI impl__CreateEx_CPaneFrameWnd__UEAAHKPEB_WKAEBUtagRECT__PEA
 }
 
 namespace {
-CDockablePane* DropFramePane(CPaneFrameWnd* frame, BOOL& docked) {
+CDockablePane* DropFramePane(CPaneFrameWnd* frame, BOOL& docked, int method = 1) {
     docked = FALSE;
     auto* pane = frame ? frame->GetPane() : nullptr;
     if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CDockablePane)) || ::GetKeyState(VK_CONTROL) < 0)
@@ -1183,9 +1194,9 @@ CDockablePane* DropFramePane(CPaneFrameWnd* frame, BOOL& docked) {
     if (frame->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
         auto* multi = static_cast<CMultiPaneFrameWnd*>(frame);
         if (openmfc::detail::ContainerPanes(multi->GetContainerManager()).size() > 1)
-            return openmfc::detail::DockMultiPaneFrameAtPoint(*multi, CPoint(point), docked);
+            return openmfc::detail::DockMultiPaneFrameAtPoint(*multi, CPoint(point), docked, method);
     }
-    return DockPaneAtPoint(*static_cast<CDockablePane*>(pane), point, docked);
+    return DockPaneAtPoint(*static_cast<CDockablePane*>(pane), point, docked, method);
 }
 }
 
@@ -1196,7 +1207,39 @@ extern "C" void* MS_ABI impl__DockPane_CPaneFrameWnd__UEAAPEAVCDockablePane__AEA
 
 // Symbol: ?DockPaneStandard@CPaneFrameWnd@@MEAAPEAVCDockablePane@@AEAH@Z
 extern "C" void* MS_ABI impl__DockPaneStandard_CPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(void* frame, int* docked) {
-    return docked ? DropFramePane(static_cast<CPaneFrameWnd*>(frame), *docked) : nullptr;
+    if (!docked) return nullptr;
+    *docked = FALSE;
+    return impl__OnBeforeDock_CPaneFrameWnd__UEAAHXZ(frame)
+        ? DropFramePane(static_cast<CPaneFrameWnd*>(frame), *docked, 5 /* DM_STANDARD */) : nullptr;
+}
+
+bool openmfc::detail::EndPaneFrameDockDrag(CPaneFrameWnd& frame) {
+    bool dragging = false;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(&frame)) {
+            dragging = std::exchange(state->dragging, false);
+            state->systemMoveStarted = state->movedBySystem = false;
+        }
+    }
+    if (dragging && ::GetCapture() == frame.m_hWnd) ::ReleaseCapture();
+    return dragging;
+}
+
+namespace {
+void FinishPaneFrameMove(CPaneFrameWnd& frame) {
+    BOOL docked = FALSE;
+    auto* window = frame.GetFirstVisiblePane();
+    if (window && window->IsKindOf(RUNTIME_CLASS(CBasePane)) &&
+        (impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(static_cast<CBasePane*>(window)) & 2 /* DT_STANDARD */)) {
+        if (frame.IsKindOf(CMultiPaneFrameWnd::GetThisClass()))
+            impl__DockPaneStandard_CMultiPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(&frame, &docked);
+        else
+            impl__DockPaneStandard_CPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(&frame, &docked);
+    } else {
+        DropFramePane(&frame, docked);
+    }
+}
 }
 
 // Symbol: ?EnterDragMode@CPaneFrameWnd@@MEAAXPEAUHWND__@@@Z
@@ -1257,10 +1300,8 @@ void CPaneFrameWnd::OnLButtonUp(UINT, CPoint) {
     }
     if (::GetCapture() == m_hWnd) ::ReleaseCapture();
     RECT current{};
-    if (::GetWindowRect(m_hWnd, &current) && !::EqualRect(&current, &startingBounds)) {
-        BOOL docked = FALSE;
-        DropFramePane(this, docked);
-    }
+    if (::GetWindowRect(m_hWnd, &current) && !::EqualRect(&current, &startingBounds))
+        FinishPaneFrameMove(*this);
 }
 
 LRESULT CPaneFrameWnd::OnCaptionButtonDown(WPARAM hit, LPARAM) {
@@ -1307,10 +1348,8 @@ LRESULT CPaneFrameWnd::OnExitSizeMove(WPARAM, LPARAM) {
     }
     RECT bounds{};
     // Windows restores the starting rectangle when Escape cancels a move.
-    if (moved && ::GetWindowRect(m_hWnd, &bounds) && !::EqualRect(&bounds, &original)) {
-        BOOL docked = FALSE;
-        DropFramePane(this, docked);
-    }
+    if (moved && ::GetWindowRect(m_hWnd, &bounds) && !::EqualRect(&bounds, &original))
+        FinishPaneFrameMove(*this);
     return result;
 }
 
@@ -2582,41 +2621,32 @@ extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManage
 }
 
 // Symbol: ?SetPreDockState@CPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z
-// Retail mfc140.dll ANSI twin entry RVA 0xb0d80, transcribed in full. dockMethod
-// (the 4th argument) is
-// never read:
-//     if (preDockState == PDS_NOTHING /*0*/) return TRUE;
-//     if (preDockState == 2 && pBar && !pBar-><vtable +0x328>()) return TRUE;
-//     if (pBar && pBar-><vtable +0x460>(0) != NULL) return TRUE;
-//     BOOL bWasDragging = m_bDragging /*0x10d*/;
-//     if (bWasDragging) {
-//         ::ReleaseCapture();                         // USER32 slot 0x1802c5280
-//         m_bDragging = FALSE;
-//         OnCapture(FALSE);                            // vtable 0x428
-//     }
-//     CPoint pt(0, 0); ::GetCursorPos(&pt);          // USER32 slot 0x1802c5348
-//     ::ScreenToClient(GetPane()->m_hWnd, &pt);        // result discarded
-//     m_preDockState /*0x250*/ = preDockState;
-//     m_pDockBar /*0x1c0*/ = (pBar && pBar->IsKindOf(RUNTIME_CLASS(CDockablePane))) ? pBar : NULL;
-//     BOOL bWasDocked = 0;
-//     CDockablePane* p = DockPane(bWasDocked);         // vtable 0x318
-//     if (p) {
-//         p-><vtable +0x4e0>(0);
-//         if (bWasDragging) p-><vtable +0x638>(0);
-//     }
-//     return FALSE;
-// STUB: the pre-dock state, pane, dragging, and manager slots now exist in
-// PaneFrameState, but the unexported CBasePane virtuals at +0x328/+0x460 gate
-// every early return and later docking requires further pane/frame virtuals.
-// Without those calls, releasing capture or skipping the dock can corrupt the
-// live drag; the current TRUE result is not an implementation of the path.
+// The single-pane frame returns FALSE once it dispatches an accepted request.
 extern "C" int MS_ABI impl__SetPreDockState_CPaneFrameWnd__UEAAHW4AFX_PREDOCK_STATE__PEAVCBasePane__W4AFX_DOCK_METHOD___Z(
-    void* pThis, int preDockState, void* pBar, int dockMethod) {
-    (void)pThis;
-    (void)preDockState;
-    (void)pBar;
-    (void)dockMethod;
-    return TRUE;
+    void* pThis, int request, void* bar, int method) {
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
+    if (!frame || !frame->m_hWnd || (request != PreDockRegular && request != PreDockToTab)) return TRUE;
+    auto* window = frame->GetPane();
+    if (!window || !window->IsKindOf(RUNTIME_CLASS(CDockablePane))) return TRUE;
+    auto* pane = static_cast<CDockablePane*>(window);
+    auto* candidate = static_cast<CBasePane*>(bar);
+    if (candidate && (candidate == pane || !candidate->IsKindOf(RUNTIME_CLASS(CDockablePane)) ||
+            !::IsWindow(candidate->m_hWnd) ||
+            impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(candidate, FALSE) ||
+            (request == PreDockToTab && !candidate->CanBeAttached()))) return TRUE;
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(frame);
+    POINT point{};
+    if (!manager || !::GetCursorPos(&point)) return TRUE;
+    const auto drop = PreDockTarget(manager, CPoint(point), pane->m_dwEnabledAlignment,
+        static_cast<CDockablePane*>(candidate), request);
+
+    const bool wasDragging = openmfc::detail::EndPaneFrameDockDrag(*frame);
+    if (auto* docked = DockPaneToDrop(*pane, drop, method)) {
+        if (wasDragging && ::GetKeyState(VK_LBUTTON) < 0)
+            impl__EnterDragMode_CPane__MEAAXH_Z(docked, FALSE);
+    }
+    return FALSE;
 }
 
 // Symbol: ?SetRollUpTimer@CPaneFrameWnd@@IEAAXXZ

@@ -75,6 +75,7 @@ extern "C" int   MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAV
 extern "C" int   MS_ABI impl__OnCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(void* pThis, CREATESTRUCTW* lpCreateStruct);
 extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CPaneFrameWnd__IEAA_J_K_J_Z(void* pThis, unsigned __int64 wParam, __int64 lParam);
 extern "C" void  MS_ABI impl__OnCancelMode_CPaneFrameWnd__IEAAXXZ(void* pThis);
+extern "C" int   MS_ABI impl__OnBeforeDock_CPaneFrameWnd__UEAAHXZ(void* pThis);
 extern "C" int   MS_ABI impl__OnCloseMiniFrame_CPaneFrameWnd__MEAAHXZ(void* pThis);
 extern "C" void  MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__SetRollUpTimer_CPaneFrameWnd__IEAAXXZ(void* pThis);
@@ -562,12 +563,26 @@ extern "C" void MS_ABI impl__GetCaptionText_CMultiPaneFrameWnd__UEAA_AV__CString
     pRet->Format(L"Pane group (%d)", static_cast<int>(
         openmfc::detail::ContainerPanes(Mgr(pThis)).size()));
 }
+extern "C" void MS_ABI impl__CalcExpectedDockedRect_CGlobalUtils__QEAAXAEAVCPaneContainerManager__PEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
+    void*, void*, CWnd*, long long, RECT*, int*, void**);
+
 // Symbol: ?CalcExpectedDockedRect@CMultiPaneFrameWnd@@UEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
-    void*, void*, CPoint, CRect* pRect, int* pnAlign, void** ppBar) {
-    if (pRect) pRect->SetRectEmpty();
-    if (pnAlign) *pnAlign = 0;
-    if (ppBar) *ppBar = nullptr;
+    void* pThis, CWnd* dragged, CPoint point, CRect* rect, int* drawTab, void** target) {
+    if (drawTab) *drawTab = FALSE;
+    if (target) *target = nullptr;
+    if (!rect) return;
+    rect->SetRectEmpty();
+    if (!pThis || !dragged || !drawTab || !target) return;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(pThis); state && state->rolledUp) return;
+    }
+    long long packed;
+    std::memcpy(&packed, &point, sizeof(packed));
+    CGlobalUtils utils;
+    impl__CalcExpectedDockedRect_CGlobalUtils__QEAAXAEAVCPaneContainerManager__PEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
+        &utils, Mgr(pThis), dragged, packed, static_cast<RECT*>(*rect), drawTab, target);
 }
 
 // Symbol: ?AddRecentPane@CMultiPaneFrameWnd@@UEAAHPEAVCDockablePane@@@Z
@@ -778,24 +793,30 @@ extern "C" int MS_ABI impl__DockPaneContainer_CDockablePane__UEAAHAEAVCPaneConta
     CDockablePane*, void*, unsigned long, int);
 extern "C" CPaneDivider* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
     DWORD, CWnd*, CRuntimeClass*);
+extern "C" int MS_ABI impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(const CBasePane*);
+extern "C" void MS_ABI impl__UpdateVirtualRect_CPane__QEAAXXZ(CPane*);
+extern "C" void MS_ABI impl__EnterDragMode_CPane__MEAAXH_Z(CPane*, int);
 
 namespace {
-CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMultiPaneFrameWnd* receiver) {
-    auto* first = AsDockable(source.GetFirstVisiblePane());
-    if (!first) return nullptr;
-    CGlobalUtils utils;
-    auto* manager = utils.GetDockingManager(&source);
-    const auto* state = FindDockingState(manager);
-    if (!state || !state->parentFrame) return nullptr;
+DWORD AllowedMultiPaneAlignment(CMultiPaneFrameWnd& source) {
     DWORD allowed = CBRS_ALIGN_ANY;
     for (auto* pane : openmfc::detail::ContainerPanes(source.GetContainerManager()))
         if (pane && (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE))
             allowed &= pane->m_dwEnabledAlignment;
-    const auto drop = DockingTarget(manager, point, impl__m_nDockSensitivity_CDockingManager__2HA, allowed, first, first);
+    return allowed;
+}
+
+CDockablePane* DockMultiPaneDrop(CMultiPaneFrameWnd& source, CDockingManager* manager, const DockingDrop& drop,
+    CMultiPaneFrameWnd* receiver, int method) {
     if (drop.change != DelayDockToTab && (drop.change != DelayDock || !drop.alignment)) return nullptr;
+    auto* first = AsDockable(source.GetFirstVisiblePane());
+    if (!first || !first->CanBeDocked()) return nullptr;
     if (drop.pane) {
+        if (!::IsWindow(drop.pane->m_hWnd) || ::IsChild(source.m_hWnd, drop.pane->m_hWnd) ||
+            drop.pane->IsAutoHideMode() || !first->CanAcceptPane(drop.pane) || !drop.pane->CanAcceptPane(first))
+            return nullptr;
         auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(drop.pane->m_hWnd)));
-        if (parent == &source || (receiver && receiver != parent)) return nullptr;
+        if (receiver && receiver != parent) return nullptr;
         if (drop.change == DelayDockToTab)
             return openmfc::detail::MergeContainerTabs(*drop.pane, source.GetContainerManager());
         if (parent && parent->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
@@ -803,10 +824,12 @@ CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMul
             if (impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(
                     mini->GetContainerManager(), drop.pane, drop.alignment, source.GetContainerManager(), TRUE)) return first;
         } else if (impl__DockPaneContainer_CDockablePane__UEAAHAEAVCPaneContainerManager__KW4AFX_DOCK_METHOD___Z(
-                       drop.pane, source.GetContainerManager(), drop.alignment, 5)) return first;
+                       drop.pane, source.GetContainerManager(), drop.alignment, method)) return first;
         return nullptr;
     }
     if (receiver || !drop.alignment) return nullptr;
+    const auto* state = FindDockingState(manager);
+    if (!state || !state->parentFrame) return nullptr;
     auto* divider = impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
         drop.alignment, state->parentFrame, nullptr);
     if (!divider) return nullptr;
@@ -815,10 +838,60 @@ CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMul
     divider->DestroyWindow();
     return nullptr;
 }
+
+CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMultiPaneFrameWnd* receiver, int method) {
+    auto* first = AsDockable(source.GetFirstVisiblePane());
+    if (!first) return nullptr;
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(&source);
+    const auto drop = DockingTarget(manager, point, impl__m_nDockSensitivity_CDockingManager__2HA,
+        AllowedMultiPaneAlignment(source), first, first);
+    return DockMultiPaneDrop(source, manager, drop, receiver, method);
 }
 
-CDockablePane* openmfc::detail::DockMultiPaneFrameAtPoint(CMultiPaneFrameWnd& frame, CPoint point, BOOL& docked) {
-    auto* pane = DropMultiPaneFrame(frame, point, nullptr);
+CDockablePane* CommitMultiPanePreDock(CMultiPaneFrameWnd& source, CDockingManager* manager,
+    const DockingDrop& drop, int method) {
+    const HWND popup = source.m_hWnd;
+    std::vector<HWND> panes;
+    for (auto* pane : openmfc::detail::ContainerPanes(source.GetContainerManager())) {
+        if (pane && (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE)) panes.push_back(pane->m_hWnd);
+    }
+    auto* docked = DockMultiPaneDrop(source, manager, drop, nullptr, method);
+    if (!docked) return nullptr;
+
+    if (CWnd::FromHandlePermanent(popup) == &source) {
+        const bool wasDragging = openmfc::detail::EndPaneFrameDockDrag(source);
+        if (wasDragging && method == 1 && ::GetKeyState(VK_LBUTTON) < 0 && drop.change != DelayDockToTab) {
+            if (auto* receiving = static_cast<CPaneFrameWnd*>(
+                    impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(docked, FALSE)))
+                receiving->BeginPaneDrag();
+            else
+                impl__EnterDragMode_CPane__MEAAXH_Z(docked, FALSE);
+        }
+        if (source.GetPane()) {
+            CRect previous;
+            {
+                std::lock_guard<std::mutex> lock(g_wave2Mutex);
+                const auto entry = g_framePanes.find(&source);
+                if (entry != g_framePanes.end()) previous = entry->second.recentRect;
+            }
+            if (!previous.IsRectEmpty()) {
+                ::SetWindowPos(popup, nullptr, previous.left, previous.top, previous.Width(), previous.Height(),
+                    SWP_NOZORDER | SWP_NOACTIVATE);
+            }
+        }
+    }
+    for (HWND hwnd : panes) {
+        if (auto* pane = AsDockable(CWnd::FromHandlePermanent(hwnd)))
+            impl__UpdateVirtualRect_CPane__QEAAXXZ(pane);
+    }
+    return docked;
+}
+}
+
+CDockablePane* openmfc::detail::DockMultiPaneFrameAtPoint(CMultiPaneFrameWnd& frame, CPoint point, BOOL& docked,
+    int method) {
+    auto* pane = DropMultiPaneFrame(frame, point, nullptr, method);
     docked = pane != nullptr;
     return pane;
 }
@@ -831,7 +904,7 @@ extern "C" int MS_ABI impl__DockFrame_CMultiPaneFrameWnd__UEAAHPEAVCPaneFrameWnd
     if (!pThis || !source || !source->IsKindOf(CMultiPaneFrameWnd::GetThisClass()) ||
         pThis == pDockedFrame || (dockMethod != 1 && dockMethod != 5) || !::GetCursorPos(&cursor)) return TRUE;
     return DropMultiPaneFrame(*static_cast<CMultiPaneFrameWnd*>(source), CPoint(cursor),
-        static_cast<CMultiPaneFrameWnd*>(pThis)) == nullptr;
+        static_cast<CMultiPaneFrameWnd*>(pThis), dockMethod) == nullptr;
 }
 
 // Symbol: ?DockPane@CMultiPaneFrameWnd@@UEAAHPEAVCDockablePane@@@Z
@@ -894,22 +967,30 @@ extern "C" int MS_ABI impl__DockPane_CMultiPaneFrameWnd__UEAAHPEAVCDockablePane_
 }
 
 // Symbol: ?DockPaneStandard@CMultiPaneFrameWnd@@MEAAPEAVCDockablePane@@AEAH@Z
-// STUB.  Retail entry RVA 0x92a40.  Gated on OnBeforeDock() (slot 0x348); then
-// builds two CObLists (AddPanesToList, plus the HWND list of every CWnd entry),
-// reads m_dragFrameImpl.m_pFinalTargetBar (+0x208) and m_dragFrameImpl.
-// m_bDockToTab (+0x1f8), calls the target bar's slot 0x460 with 0 to get its
-// docking target, and either SetPreDockState(m_bDockToTab ? 2 : 1,
-// m_pFinalTargetBar, DM_STANDARD) (slot 0x330) or -- when that target is
-// another CMultiPaneFrameWnd -- that frame's DockFrame(this, DM_STANDARD)
-// (slot 0x4a0); writes `bWasDocked = (result == 0)`, restores the focus, and
-// when bWasDocked calls slot 0x6c8 on every recorded pane whose HWND is still
-// a permanent CDockablePane.  Not reproduced: SetPreDockState and DockFrame
-// are stubs in this file, and m_dragFrameImpl is not modelled in OpenMFC's
-// CPaneFrameWnd.  Retail always returns NULL.
-// Signature corrected: the generated list dropped `this`.
-extern "C" void* MS_ABI impl__DockPaneStandard_CMultiPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(void* pThis, int* pbWasDocked) {
-    (void)pThis;
-    if (pbWasDocked) *pbWasDocked = FALSE;
+// This entry returns NULL. The result flag follows SetPreDockState for a
+// docked target and DockFrame when the target belongs to another multi-frame.
+extern "C" void* MS_ABI impl__DockPaneStandard_CMultiPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(
+    void* pThis, int* wasDocked) {
+    if (!wasDocked) return nullptr;
+    *wasDocked = FALSE;
+    if (!impl__OnBeforeDock_CPaneFrameWnd__UEAAHXZ(pThis)) return nullptr;
+    auto& source = *static_cast<CMultiPaneFrameWnd*>(pThis);
+    auto* first = AsDockable(source.GetFirstVisiblePane());
+    POINT point{};
+    if (!first || !::GetCursorPos(&point)) return nullptr;
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(&source);
+    const auto drop = DockingTarget(manager, CPoint(point), impl__m_nDockSensitivity_CDockingManager__2HA,
+        AllowedMultiPaneAlignment(source), first, first);
+    auto* targetFrame = drop.pane ? static_cast<CPaneFrameWnd*>(
+        impl__GetParentMiniFrame_CBasePane__UEBAPEAVCPaneFrameWnd__H_Z(drop.pane, FALSE)) : nullptr;
+    if (targetFrame && (&source == targetFrame || !targetFrame->IsKindOf(CMultiPaneFrameWnd::GetThisClass())))
+        return nullptr;
+
+    const HWND focus = ::GetFocus();
+    if (CommitMultiPanePreDock(source, manager, drop, 5 /* DM_STANDARD */))
+        *wasDocked = targetFrame || drop.change != DelayDockToTab;
+    if (::IsWindow(focus) && ::GetFocus() != focus) ::SetFocus(focus);
     return nullptr;
 }
 
@@ -1694,70 +1775,34 @@ extern "C" void MS_ABI impl__SetDockState_CMultiPaneFrameWnd__UEAAXPEAVCDockingM
 }
 
 // Symbol: ?SetPreDockState@CMultiPaneFrameWnd@@UEAAHW4AFX_PREDOCK_STATE@@PEAVCBasePane@@W4AFX_DOCK_METHOD@@@Z
-// STUB. The mfc140u vtable +0x330 entry is RVA 0x92e30. The Unicode symbol
-// map does not resolve this name, but the ANSI symbol lookup does: its twin is
-// entry RVA 0x933f0 (mfc140.dll), ~430 instructions; read in full:
-//   * `if (preDockState == PDS_NOTHING /*0*/) return TRUE;`; for
-//     PDS_DOCK_REGULAR (2) it also returns TRUE unless pBarToDock's slot 0x328
-//     is non-zero; pBarToDock is then DYNAMIC_DOWNCAST to CDockablePane.
-//   * needs the docking manager: m_pDockManager (0x248) or, when NULL,
-//     afxGlobalUtils.GetDockingManager(FromHandlePermanent(m_hParentWnd /*0x130*/))
-//     (0x6ccc0) -- NULL means return TRUE.
-//   * snapshots the visible panes (AddPanesToList, 0xaa960) and, for every
-//     CDockablePane among them, calls StoreRecentDockSiteInfo (slot 0x648) and
-//     records its HWND in a second list.
-//   * when pBarToDock is non-NULL: pFirst = m_barContainerManager.GetFirstPane()
-//     (slot 0xf0, NULL -> return TRUE); CanAcceptPane both ways between
-//     pBarToDock and pFirst (slot 0x318, either FALSE -> return TRUE); when
-//     pFirst is hidden, is the only pane (+0x278 == 1) and its GetDockingMode
-//     (slot 0x380) & 2 (DT_STANDARD), ModifyStyle (0x2a7600) adds WS_VISIBLE to
-//     it; then for DM_MOUSE (1)
-//     CGlobalUtils::CheckAlignment (0x6c990, with CDockingManager::
-//     m_nDockSensitivity at 0x3aaacc) followed by pBarToDock->
-//     DockPaneContainer(m_barContainerManager, dwAlignment, DM_MOUSE) (slot
-//     0x6c0), each failure returning TRUE; for DM_DBL_CLICK (2) every visible
-//     pane's AttachToTabWnd(pBarToDock, ...) (slot 0x6a8) after
-//     AddRemovePaneFromGlobalList(pane, FALSE), then ShowWindow(SW_HIDE),
-//     SetWindowPos to the 0x150 rectangle, OnCancelMode (0xb1e80),
-//     ::SendMessage(AFX_WM_CHECKEMPTYMINIFRAME) and return TRUE; any other
-//     method returns TRUE.
-//   * when pBarToDock is NULL: CDockingManager::IsPointNearDockSite (0x48160)
-//     must succeed; CDockablePane::CreateDefaultPaneDivider (0x43110) with the
-//     owner window; the divider's slot 0x3d0 (CBasePane::SetPaneAlignment,
-//     unexported 0x8890); the manager's GetWindowRect (slot 0x68); the docking
-//     manager's slot 0xc8; ResizePaneContainers(rect, hdwp) (mgr slot 0x80);
-//     then CDockingManager::AddPane (0x476b0) and the divider's slot 0x528 in
-//     an order that depends on the alignment.
-//   * a completed dock then ::SendMessage(m_hWnd, AFX_WM_CHECKEMPTYMINIFRAME),
-//     SetWindowPos to the 0x150 rectangle when the frame window still exists,
-//     for DM_MOUSE re-enters drag mode on the first visible pane (slot 0x638)
-//     or synthesises WM_LBUTTONDOWN at the cursor, RecalcLayout (slot 0x430) on
-//     the target or AdjustDockingLayout (slot 0x4e0) on the first pane,
-//     OnSetRollUpTimer, slot 0x6c8 on every recorded pane that is still a
-//     permanent CDockablePane, and returns FALSE.
-// Not reproduced: IsPointNearDockSite is implemented (docking/CDockingManager.cpp),
-// as is CheckAlignment (core/runtime/CGlobalUtils.cpp); neither is a blocker.
-// DockPaneContainer and AttachToTabWnd are documented stubs (docking/CDockablePane.cpp),
-// CreateDefaultPaneDivider cannot create a retail-shaped divider in this build,
-// and no CPaneDivider here has the retail vtable layout. The owner HWND,
-// docking-manager pointer and recent rectangle are represented in PaneFrameState
-// (+0x130/+0x248/+0x150; detail/CPaneFrameWndSupport.h), but this TU has no
-// link-safe impl__ accessors for that state, so it cannot use those values here.
-// TRUE is retail's "nothing was docked" value on every early-out.
-// Signature corrected: the generated 29-parameter list was garbage.
+// The tab arm returns TRUE after attaching its visible panes. Side and edge
+// requests return FALSE after a successful transfer.
 extern "C" int MS_ABI impl__SetPreDockState_CMultiPaneFrameWnd__UEAAHW4AFX_PREDOCK_STATE__PEAVCBasePane__W4AFX_DOCK_METHOD___Z(
-    void* pThis, int preDockState, void* pBarToDock, int dockMethod) {
-    (void)pThis;
-    (void)preDockState;
-    (void)pBarToDock;
-    (void)dockMethod;
-    // Still stubbed: the stateful dock paths are not reproduced. The pane path
-    // reaches DockPaneContainer / AttachToTabWnd stubs, while the NULL-pane path
-    // cannot create its required retail divider; the frame-side manager/owner/
-    // recent-rectangle state also has no link-safe accessor in this TU. TRUE is
-    // the retail result for the understood no-dock early-outs, not a faithful
-    // result for every possible input.
-    return TRUE;
+    void* pThis, int request, void* bar, int method) {
+    auto* source = static_cast<CMultiPaneFrameWnd*>(pThis);
+    if (!source || !source->m_hWnd || (request != PreDockRegular && request != PreDockToTab)) return TRUE;
+    auto* target = AsDockable(bar);
+    if (bar && (!target || ::IsChild(source->m_hWnd, target->m_hWnd))) return TRUE;
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(source);
+    POINT point{};
+    if (!manager || !::GetCursorPos(&point)) return TRUE;
+
+    CDockablePane* hidden = nullptr;
+    if (!source->GetFirstVisiblePane()) {
+        if (request != PreDockRegular || !target ||
+            openmfc::detail::ContainerPanes(source->GetContainerManager()).size() != 1) return TRUE;
+        hidden = AsDockable(source->GetPane());
+        if (!hidden || !(impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(hidden) & 2 /* DT_STANDARD */))
+            return TRUE;
+    }
+    const DWORD allowed = hidden ? hidden->m_dwEnabledAlignment : AllowedMultiPaneAlignment(*source);
+    const auto drop = PreDockTarget(manager, CPoint(point), allowed, target, request);
+    if (drop.change == NoDockingChange) return TRUE;
+    if (hidden) manager->ShowPane(hidden);
+    auto* docked = CommitMultiPanePreDock(*source, manager, drop, method);
+    if (!docked && hidden) manager->HidePane(hidden);
+    return !docked || request == PreDockToTab;
 }
 
 // Symbol: ?StoreRecentDockSiteInfo@CMultiPaneFrameWnd@@UEAAXPEAVCPane@@@Z

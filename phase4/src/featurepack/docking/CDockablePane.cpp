@@ -1893,26 +1893,29 @@ extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT_
     CDockablePane*, CDockablePane*, DWORD, const RECT*);
 extern "C" int impl__m_nDockSensitivity_CDockingManager__2HA;
 
-CDockablePane* openmfc::detail::mfccore::DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked) {
-    docked = FALSE;
-    const auto drop = DockingTarget(FindPaneDockingManager(&pane), point,
-        impl__m_nDockSensitivity_CDockingManager__2HA, pane.m_dwEnabledAlignment, &pane, &pane);
+CDockablePane* openmfc::detail::mfccore::DockPaneToDrop(CDockablePane& pane, const DockingDrop& drop, int method) {
+    if (drop.pane && (drop.pane == &pane || !pane.CanAcceptPane(drop.pane) || !drop.pane->CanAcceptPane(&pane)))
+        return nullptr;
     if (drop.change == DelayDockToTab && drop.pane) {
-        auto* group = static_cast<CDockablePane*>(
+        if (!pane.CanBeAttached() || !drop.pane->CanBeAttached()) return nullptr;
+        return static_cast<CDockablePane*>(
             impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AFX_DOCK_METHOD__HPEAPEAV1__Z(
-                &pane, drop.pane, 1 /* DM_MOUSE */, TRUE, nullptr));
-        docked = group != nullptr;
-        return group;
+                &pane, drop.pane, method, TRUE, nullptr));
     }
     if (drop.change != DelayDock || !drop.alignment) return nullptr;
-    if (drop.pane) {
-        docked = impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT___Z(
-            &pane, drop.pane, drop.alignment, nullptr);
-    } else {
-        docked = impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__KPEAVCBasePane__HH_Z(
-            &pane, drop.alignment, nullptr, 0, nullptr, -1, drop.outerEdge);
-    }
+    const BOOL docked = drop.pane
+        ? impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT___Z(&pane, drop.pane, drop.alignment, nullptr)
+        : impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__KPEAVCBasePane__HH_Z(
+              &pane, drop.alignment, nullptr, 0, nullptr, -1, drop.outerEdge);
     return docked ? &pane : nullptr;
+}
+
+CDockablePane* openmfc::detail::mfccore::DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked, int method) {
+    const auto drop = DockingTarget(FindPaneDockingManager(&pane), point,
+        impl__m_nDockSensitivity_CDockingManager__2HA, pane.m_dwEnabledAlignment, &pane, &pane);
+    auto* result = DockPaneToDrop(pane, drop, method);
+    docked = result != nullptr;
+    return result;
 }
 
 // Symbol: ?DockPaneStandard@CDockablePane@@UEAAPEAVCPane@@AEAH@Z
@@ -1921,7 +1924,7 @@ extern "C" void* MS_ABI impl__DockPaneStandard_CDockablePane__UEAAPEAVCPane__AEA
     if (!docked) return nullptr;
     *docked = FALSE;
     POINT point{};
-    return pane && ::GetCursorPos(&point) ? DockPaneAtPoint(*pane, point, *docked) : nullptr;
+    return pane && ::GetCursorPos(&point) ? DockPaneAtPoint(*pane, point, *docked, 5 /* DM_STANDARD */) : nullptr;
 }
 
 // Symbol: ?DockToWindow@CDockablePane@@UEAAHPEAV1@KPEBUtagRECT@@@Z

@@ -1495,38 +1495,20 @@ extern "C" int MS_ABI impl__CheckAndRemoveNonValidPane_CPaneContainerManager__QE
 }
 
 // Symbol: ?CheckForMiniFrameAndCaption@CPaneContainerManager@@UEAAHVCPoint@@PEAPEAVCDockablePane@@@Z
-// Retail entry RVA 0xaab80 (mfc140.dll), 87 instructions. It writes
-// *ppTargetControlBar = NULL and returns FALSE unless m_pDockSite (+0x98) is a
-// CMultiPaneFrameWnd (IsKindOf against the CRuntimeClass at 0x1803aa2f8), then
-// gives up when GetVisiblePaneCount() (this->vtable +0xb8) is greater than 1,
-// and otherwise asks that mini-frame for its caption geometry through
-// CPaneFrameWnd vtable slots +0x3a0, +0x388 and +0x2f0, offsets the frame's
-// ::GetWindowRect by it and ::PtInRect-tests `point`; on a hit it takes
-// GetFirstVisiblePane() (this->vtable +0x100) and returns it only if it is a
-// CDockablePane (RTTI at 0x1803aa178).
-// OpenMFC does have the CMultiPaneFrameWnd runtime descriptor (its GetThisClass
-// thunk is in docking/RuntimeClasses.cpp), so the retail type guard and visible-
-// pane-count early exit are reproduced below. The earlier comment claiming the
-// runtime class did not exist was false. Retail then uses CPaneFrameWnd slots
-// +0x3a0/+0x388 and the unexported +0x2f0 caption-height getter. The first two
-// have thunks in CPaneFrameWnd.cpp, but its +0x114 caption-height field is not
-// modeled here; this body declines the final geometry hit test rather than read
-// beyond the OpenMFC CPaneFrameWnd object or invent that field.
 extern "C" int MS_ABI impl__CheckForMiniFrameAndCaption_CPaneContainerManager__UEAAHVCPoint__PEAPEAVCDockablePane___Z(
-    void* pThis, long long point, void** ppTargetControlBar) {
-    (void)point;
-    if (ppTargetControlBar != nullptr) *ppTargetControlBar = nullptr;
-    if (pThis == nullptr) return FALSE;
-
-    void* pDockSite = Field<void*>(pThis, kOffDockSite);
-    CRuntimeClass* pMiniFrameClass =
-        impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ();
-    if (DynDowncast(pDockSite, pMiniFrameClass) == nullptr) return FALSE;
-    if (impl__GetVisiblePaneCount_CPaneContainerManager__UEBAHXZ(pThis) > 1) return FALSE;
-
-    // STUB remainder: retail's CPaneFrameWnd caption-height getter reads an
-    // OpenMFC-unmodeled field, so no geometry or pane hit is claimed.
-    return FALSE;
+    void* pThis, long long point, void** target) {
+    if (!target) return FALSE;
+    *target = nullptr;
+    if (!pThis) return FALSE;
+    auto* frame = static_cast<CMultiPaneFrameWnd*>(DynDowncast(
+        Field<CWnd*>(pThis, kOffDockSite), CMultiPaneFrameWnd::GetThisClass()));
+    if (!frame || !::IsWindowVisible(frame->m_hWnd) ||
+        impl__GetVisiblePaneCount_CPaneContainerManager__UEBAHXZ(pThis) != 1) return FALSE;
+    POINT cursor;
+    std::memcpy(&cursor, &point, sizeof(cursor));
+    if (!PaneFrameCaptionContains(*frame, CPoint(cursor))) return FALSE;
+    *target = frame->GetFirstVisiblePane();
+    return *target != nullptr;
 }
 
 // Symbol: ?Create@CPaneContainerManager@@UEAAHPEAVCWnd@@PEAVCPaneDivider@@PEAUCRuntimeClass@@@Z

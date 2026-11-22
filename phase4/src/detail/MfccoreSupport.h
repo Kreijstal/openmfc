@@ -173,6 +173,7 @@ DockingManagerState& EnsureDockingState(const CDockingManager* pManager);
 
 namespace openmfc { namespace detail { namespace mfccore {
 enum DockingChange { NoDockingChange, DockImmediately, DelayDock, DelayDockToTab };
+enum PanePreDockState { NoPreDock = 0, PreDockRegular = 1, PreDockToTab = 2 };
 struct DockingDrop {
     CDockablePane* pane = nullptr;
     DWORD alignment = 0;
@@ -181,7 +182,11 @@ struct DockingDrop {
 };
 DockingDrop DockingTarget(const CDockingManager* manager, CPoint point, int sensitivity,
                           DWORD allowedAlignment, const CBasePane* ignore, const CBasePane* source);
-CDockablePane* DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked);
+bool PaneFrameCaptionContains(const CPaneFrameWnd& frame, CPoint point);
+DockingDrop PreDockTarget(const CDockingManager* manager, CPoint point, DWORD allowedAlignment,
+                          CDockablePane* target, int request);
+CDockablePane* DockPaneToDrop(CDockablePane& pane, const DockingDrop& drop, int method);
+CDockablePane* DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked, int method = 1);
 bool FrameEdgeDividerOffsets(const CPaneDivider& divider, LONG thickness, LONG minThickness, int& low, int& high);
 bool MoveFrameEdgeDivider(CPaneDivider& divider, LONG thickness, LONG minThickness, int offset);
 void AdjustDockedFrameClient(const CDockingManager* manager);

@@ -409,7 +409,8 @@ extern "C" void MS_ABI impl__CalcExpectedDockedRect_CDockingManager__QEAAXPEAVCW
     expected->SetRectEmpty();
     if (!manager || !dragged || ::GetKeyState(VK_CONTROL) < 0) return;
     CWnd* window = dragged;
-    if (window->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))) window = static_cast<CPaneFrameWnd*>(window)->GetPane();
+    if (window->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
+        window = static_cast<CPaneFrameWnd*>(window)->GetFirstVisiblePane();
     if (!window || !window->IsKindOf(RUNTIME_CLASS(CBasePane))) return;
     auto* source = static_cast<CBasePane*>(window);
     const auto drop = DockingTarget(manager, point, impl__m_nDockSensitivity_CDockingManager__2HA,
@@ -462,6 +463,13 @@ const CPaneFrameWnd* ParentPaneFrame(const CBasePane* pane) {
 }
 }
 
+bool openmfc::detail::mfccore::PaneFrameCaptionContains(const CPaneFrameWnd& frame, CPoint point) {
+    RECT bounds{};
+    POINT client{};
+    return ::GetWindowRect(frame.m_hWnd, &bounds) && ::ClientToScreen(frame.m_hWnd, &client) &&
+        ::PtInRect(&bounds, point) && point.y < client.y;
+}
+
 DockingDrop openmfc::detail::mfccore::DockingTarget(const CDockingManager* manager, CPoint point, int sensitivity,
     DWORD allowedAlignment, const CBasePane* ignore, const CBasePane* source) {
     if (!manager || (source && !source->CanBeDocked())) return {};
@@ -469,13 +477,9 @@ DockingDrop openmfc::detail::mfccore::DockingTarget(const CDockingManager* manag
     const auto* ignoredFrame = ParentPaneFrame(ignore ? ignore : source);
     auto* frame = static_cast<CPaneFrameWnd*>(
         impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(manager, point, ignoredFrame, FALSE));
-    if (frame) {
-        RECT client{};
-        ::GetClientRect(frame->m_hWnd, &client);
-        ::MapWindowPoints(frame->m_hWnd, nullptr, reinterpret_cast<POINT*>(&client), 2);
+    if (frame && PaneFrameCaptionContains(*frame, point)) {
         auto* window = frame->GetFirstVisiblePane();
-        // A single floating pane can accept a tab through its caption.
-        if (window && window != ignore && window != source && point.y < client.top &&
+        if (window && window != ignore && window != source &&
             window->IsKindOf(RUNTIME_CLASS(CDockablePane)) &&
             (!source || static_cast<CBasePane*>(window)->CanAcceptPane(source)))
             return {static_cast<CDockablePane*>(window), 0, DelayDockToTab};
@@ -509,6 +513,27 @@ DockingDrop openmfc::detail::mfccore::DockingTarget(const CDockingManager* manag
     BOOL outer = FALSE;
     if (impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, &side, &outer) &&
         (allowedAlignment & side)) return {nullptr, side, DelayDock, outer != FALSE};
+    return {};
+}
+
+DockingDrop openmfc::detail::mfccore::PreDockTarget(const CDockingManager* manager, CPoint point,
+    DWORD allowedAlignment, CDockablePane* target, int request) {
+    if (!manager || (target && (!::IsWindow(target->m_hWnd) || target->IsAutoHideMode()))) return {};
+    if (request == PreDockToTab)
+        return target && target->CanBeAttached() ? DockingDrop{target, 0, DelayDockToTab} : DockingDrop{};
+    if (request != PreDockRegular) return {};
+
+    DWORD side = 0;
+    const auto packed = PackedDockPoint(point);
+    if (target) {
+        if (impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(
+                nullptr, packed, target, impl__m_nDockSensitivity_CDockingManager__2HA, manager, FALSE,
+                &side, allowedAlignment, nullptr)) return {target, side, DelayDock};
+    } else {
+        BOOL outer = FALSE;
+        if (impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, &side, &outer) &&
+            (allowedAlignment & side)) return {nullptr, side, DelayDock, outer != FALSE};
+    }
     return {};
 }
 
