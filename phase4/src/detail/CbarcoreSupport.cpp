@@ -296,11 +296,7 @@ std::unordered_map<void*, PaneState> g_multiFramePanes;
 std::unordered_map<void*, PaneState> g_containerPanes;
 std::unordered_map<void*, PaneState> g_containerManagerPanes;
 std::unordered_map<void*, PaneState> g_dividerPanes;
-std::unordered_map<void*, PaneState> g_autoHideBarWindows;
 std::unordered_map<void*, void*> g_paneToContainer;
-std::unordered_map<void*, void*> g_paneToAutoHideButton;
-std::unordered_map<void*, std::unique_ptr<int>> g_autoHideButtonStorage;
-std::unordered_map<void*, AutoHideButtonState> g_autoHideButtons;
 void AddUniquePane(PaneState& state, void* pane) {
     if (!pane) return;
     if (std::find(state.panes.begin(), state.panes.end(), pane) == state.panes.end()) {

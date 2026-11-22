@@ -1,198 +1,262 @@
 // CMFCAutoHideButton — OpenMFC implementation.
-// Sources: cbarcore.cpp, global_cmfcautohidebutton.cpp
-
 #define OPENMFC_APPCORE_IMPL
-
-#include "detail/CbarcoreSupport.h"
 #include "detail/CMFCAutoHideButtonSupport.h"
+#include "detail/DockingState.h"
 
-extern "C" void MS_ABI impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
-    CDockablePane* pThis, void* pAutoHideBar, void* pAutoHideButton);
+#include <algorithm>
+#include <cstring>
+#include <new>
+#include <string>
 
-// CreateObject's retail allocation size (factory entry RVA 0x97f0, mfc140u).
-static_assert(sizeof(CAutoHideButton) == 0x40,
-              "CMFCAutoHideButton retail allocation size");
+extern "C" void AFXAPI impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
+    CDockablePane*, void*, void*);
+extern "C" void AFXAPI impl__Slide_CDockablePane__UEAAXHH_Z(CDockablePane*, BOOL, BOOL);
+extern "C" void AFXAPI impl__UnSetAutoHideMode_CDockablePane__UEAAXPEAV1__Z(CDockablePane*, CDockablePane*);
+extern "C" void AFXAPI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void*);
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[];
+extern "C" int impl__m_bOverlappingTabs_CMFCAutoHideButton__2HA;
+extern "C" int impl__m_nBorderSize_CMFCAutoHideButton__2HA;
+extern "C" int impl__m_nMarginSize_CMFCAutoHideButton__2HA;
+extern "C" int impl__m_nTextMargin_CMFCAutoHideButton__2HA;
+extern "C" int impl__m_nTextSizeNoIcon_CMFCAutoHideButton__2HA;
+extern "C" void AFXAPI impl__OnFillAutoHideButtonBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCAutoHideButton___Z(
+    CMFCVisualManager*, CDC*, CRect, void*);
+extern "C" COLORREF AFXAPI impl__GetAutoHideButtonTextColor_CMFCVisualManager__UEAAKPEAVCMFCAutoHideButton___Z(
+    CMFCVisualManager*, void*);
 
-// Symbol: ??0CMFCAutoHideButton@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CMFCAutoHideButton__QEAA_XZ(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    g_autoHideButtons[pThis] = { FALSE, FALSE };
-    return pThis;
-}
-// Symbol: ??1CMFCAutoHideButton@@UEAA@XZ
-extern "C" void* MS_ABI impl___1CMFCAutoHideButton__UEAA_XZ(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    g_autoHideButtons.erase(pThis);
-    return pThis;
-}
-// Symbol: ?HighlightButton@CMFCAutoHideButton@@UEAAXH@Z
-extern "C" void MS_ABI impl__HighlightButton_CMFCAutoHideButton__UEAAXH_Z(void* pThis, int bHighlight) {
-    if (!pThis) return;
-    // Retail RVA 0xa470 (mfc140u) stores the raw argument at +0x10.
-    *reinterpret_cast<int*>(static_cast<unsigned char*>(pThis) + 0x10) = bHighlight;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    g_autoHideButtons[pThis].highlighted = bHighlight ? TRUE : FALSE;
-}
-// Retail RVA 0xa3e0 (mfc140u) tests the style bits at +0x14.
-// Symbol: ?IsHorizontal@CMFCAutoHideButton@@QEBAHXZ
-extern "C" int MS_ABI impl__IsHorizontal_CMFCAutoHideButton__QEBAHXZ(void* pThis) {
-    if (!pThis) return FALSE;
-    const CAutoHideButton* s = reinterpret_cast<const CAutoHideButton*>(pThis);
-    return (s->m_dwStyle & 0xa000UL) != 0;
-}
-// Approximation only: retail GetSize at RVA 0x9940 (mfc140u) derives the
-// result from visual-manager, style, pane and bar state; these constants are
-// not a transcription of that calculation.
-// Symbol: ?GetSize@CMFCAutoHideButton@@QEBA?AVCSize@@XZ
-extern "C" void MS_ABI impl__GetSize_CMFCAutoHideButton__QEBA_AVCSize__XZ(CSize* pRet, void* pThis) {
-    if (!pRet) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    const AutoHideButtonState& s = g_autoHideButtons[pThis];
-    pRet->cx = s.highlighted ? 96 : 80;
-    pRet->cy = 22;
-}
-// Approximation only: retail GetTextSize at RVA 0xa230 (mfc140u) uses the
-// attached pane/bar and text metrics; these constants are not a transcription.
-// Symbol: ?GetTextSize@CMFCAutoHideButton@@UEBA?AVCSize@@XZ
-extern "C" void MS_ABI impl__GetTextSize_CMFCAutoHideButton__UEBA_AVCSize__XZ(CSize* pRet, void* pThis) {
-    if (!pRet) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    const AutoHideButtonState& s = g_autoHideButtons[pThis];
-    pRet->cx = s.highlighted ? 88 : 72;
-    pRet->cy = 16;
-}
-// Retail RVA 0x98c0 (mfc140u) stores the bar/pane/style at +0x30/+0x38/+0x14,
-// writes pane back-pointers at +0x480/+0x478, calls GetSize (RVA 0x9940),
-// calls SetRect on this object's +0x1c RECT, then stores 1 at +0x0c. The IAT
-// call here is SetRect, not window creation. OpenMFC redirects the pane links
-// through SetAutoHideParents because those retail offsets exceed its pane
-// storage; the size remains approximate because GetSize is approximate.
-// Symbol: ?Create@CMFCAutoHideButton@@UEAAHPEAVCMFCAutoHideBar@@PEAVCDockablePane@@K@Z
-extern "C" int MS_ABI impl__Create_CMFCAutoHideButton__UEAAHPEAVCMFCAutoHideBar__PEAVCDockablePane__K_Z(
-    void* pThis, CMFCAutoHideBar* pAutoHideBar, CDockablePane* pPane,
-    unsigned long dwControlBarStyle)
-{
-    if (!pThis || !pPane) return FALSE;
-    CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
-    s->m_pAutoHideBar = pAutoHideBar;
-    s->m_pPane = pPane;
-    s->m_dwStyle = dwControlBarStyle;
-    impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
-        pPane, pAutoHideBar, pThis);
+IMPLEMENT_DYNCREATE(CMFCAutoHideButton, CObject)
 
-    CSize size;
-    impl__GetSize_CMFCAutoHideButton__QEBA_AVCSize__XZ(&size, pThis);
-    ::SetRect(&s->m_rect, 0, 0, size.cx, size.cy);
-    s->m_nShow = TRUE;
+namespace {
+std::wstring Title(const CDockablePane* pane) {
+    if (!pane || !pane->m_hWnd) return {};
+    std::wstring title(::GetWindowTextLengthW(pane->m_hWnd) + 1, L'\0');
+    title.resize(::GetWindowTextW(pane->m_hWnd, title.data(), static_cast<int>(title.size())));
+    return title;
+}
+
+HICON PaneIcon(const CDockablePane* pane) {
+    if (!pane || !pane->m_hWnd) return nullptr;
+    return reinterpret_cast<HICON>(::SendMessageW(pane->m_hWnd, WM_GETICON, ICON_SMALL, 0));
+}
+
+HFONT TabFont(BOOL horizontal) {
+    auto* data = impl__afxGlobalData__3UAFX_GLOBAL_DATA__A;
+    int initialized = 0;
+    std::memcpy(&initialized, data, sizeof(initialized));
+    if (!initialized) {
+        impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(data);
+        initialized = 1;
+        std::memcpy(data, &initialized, sizeof(initialized));
+    }
+    // Native fontRegular and fontVert are CFont objects with handles at +8.
+    HFONT font = nullptr;
+    std::memcpy(&font, data + (horizontal ? 0x1b0 : 0x210), sizeof(font));
+    return font ? font : static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT));
+}
+}
+
+BOOL CMFCAutoHideButton::Create(CMFCAutoHideBar* bar, CDockablePane* pane, DWORD alignment) {
+    if (!bar || !pane) return FALSE;
+    m_pParentBar = bar;
+    m_dwAlignment = alignment;
+    ReplacePane(pane);
+    const CSize size = GetSize();
+    m_rect.SetRect(0, 0, size.cx, size.cy);
+    m_bVisible = TRUE;
     return TRUE;
 }
-// The retail factory at RVA 0x97f0 (mfc140u) allocates 0x40 bytes, returns
-// NULL only when allocation fails, and otherwise tail-jumps to the constructor
-// at RVA 0x9830 (mfc140u). That constructor installs a derived-class vftable.
-// OpenMFC has no CMFCAutoHideButton C++ instance type or compatible instance
-// vftable (its runtime-class descriptor is metadata only), and the local
-// constructor thunk does not install one; raw storage cannot safely be returned.
-// Symbol: ?CreateObject@CMFCAutoHideButton@@SAPEAVCObject@@XZ
-extern "C" CObject* MS_ABI impl__CreateObject_CMFCAutoHideButton__SAPEAVCObject__XZ(void)
-{
-    // TODO(clean-room): leave stubbed until a usable CMFCAutoHideButton
-    // vftable/constructor is modeled; returning raw storage would not create
-    // a valid polymorphic object.
-    return nullptr;
+
+CMFCAutoHideButton::~CMFCAutoHideButton() {
+    ReplacePane(nullptr);
 }
-// Retail RVA 0x9920 (mfc140u) offsets the +0x1c RECT with ::OffsetRect:
-// style bits 0xa000 select (nOffset, 0), otherwise it uses (0, nOffset).
-// Symbol: ?Move@CMFCAutoHideButton@@QEAAXH@Z
-extern "C" void MS_ABI impl__Move_CMFCAutoHideButton__QEAAXH_Z(
-    void* pThis, int nOffset)
-{
-    if (!pThis) return; // defensive; retail dereferences this unconditionally
-    CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
-    if (s->m_dwStyle & 0xa000UL)
-        ::OffsetRect(&s->m_rect, nOffset, 0);
-    else
-        ::OffsetRect(&s->m_rect, 0, nOffset);
-}
-// Retail RVA 0x9b90 (mfc140u) obtains the visual manager (RVA 0x9774), calls
-// its vslots 0x368 and 0x380, reads style/rect/bar/pane state, and dispatches
-// through this object's vslots 0x58 and 0x60. It does not write the +0x10
-// highlight field. This body remains a stub because those dispatches and the
-// instance vtable are not modeled.
-// Symbol: ?OnDraw@CMFCAutoHideButton@@UEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCAutoHideButton__UEAAXPEAVCDC___Z(
-    void* pThis, CDC* /*pDC*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the visual-manager and
-    // button-instance virtual dispatches described above.
-}
-// Retail RVA 0xa1d0 (mfc140u) delegates to the visual manager's vslot 0x378,
-// forwarding both RECT arguments. The visual-manager dispatch is not modeled.
-// Symbol: ?OnDrawBorder@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@1@Z
-extern "C" void MS_ABI impl__OnDrawBorder_CMFCAutoHideButton__UEAAXPEAVCDC__VCRect__1_Z(
-    void* pThis, CDC* /*pDC*/, CRect /*rectBorder*/, CRect /*rectBorder2*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the visual-manager vslot-0x378
-    // border routine; not modeled.
-}
-// Retail body at RVA 0xa170 (mfc140u) delegates to the visual manager's
-// vslot 0x370, forwarding the RECT, CDC pointer and button pointer. This body
-// remains a stub because the visual-manager dispatch is not modeled.
-// Symbol: ?OnFillBackground@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@@Z
-extern "C" void MS_ABI impl__OnFillBackground_CMFCAutoHideButton__UEAAXPEAVCDC__VCRect___Z(
-    void* pThis, CDC* /*pDC*/, CRect /*rect*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the visual-manager vslot-0x370
-    // fill routine; not modeled.
-}
-// Retail body at RVA 0xa4b0 (mfc140u) sets this->+0x38 = pNewPane, then
-// writes the bar/button back-pointers at pNewPane+0x480/+0x478. OpenMFC stores
-// those links through CDockablePane's side-table helper instead of raw offsets.
-// Symbol: ?ReplacePane@CMFCAutoHideButton@@QEAAXPEAVCDockablePane@@@Z
-extern "C" void MS_ABI impl__ReplacePane_CMFCAutoHideButton__QEAAXPEAVCDockablePane___Z(
-    void* pThis, CDockablePane* pNewPane)
-{
-    if (!pThis) return;
-    CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
-    s->m_pPane = pNewPane;
-    if (pNewPane != nullptr) {
-        impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
-            pNewPane, s->m_pAutoHideBar, pThis);
+
+void CMFCAutoHideButton::ReplacePane(CDockablePane* pane) {
+    bool ownsPrevious = false;
+    if (m_pAutoHideWindow && m_pAutoHideWindow != pane) {
+        std::lock_guard<std::mutex> lock(openmfc::docking_state::PaneCoreStateMutex());
+        const auto& states = openmfc::docking_state::PaneCoreStates();
+        const auto found = states.find(m_pAutoHideWindow);
+        ownsPrevious = found != states.end() && found->second.autoHideButton == this;
     }
+    if (ownsPrevious)
+        impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
+            m_pAutoHideWindow, nullptr, nullptr);
+    m_pAutoHideWindow = pane;
+    if (pane)
+        impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAutoHideBar__PEAVCMFCAutoHideButton___Z(
+            pane, m_pParentBar, this);
 }
-// Retail body at RVA 0xa3f0 (mfc140u) reads the attached pane at +0x38 and
-// its HWND at +0x40, checks ::IsWindowVisible, conditionally calls the pane's
-// vslot 0x698 with (bShow, TRUE), then tail-calls the bar's vslot 0x530 with
-// bShow. The pane/bar pointers are in the layout mirror, but these virtual
-// dispatches need a usable instance vtable and remain unmodeled.
+
+CSize CMFCAutoHideButton::GetTextSize() const {
+    if (!m_pParentBar || !m_pAutoHideWindow) return CSize(0, 0);
+    const auto title = Title(m_pAutoHideWindow);
+    const HWND window = m_pParentBar->m_hWnd;
+    const HDC dc = title.empty() ? nullptr : ::GetDC(window);
+    SIZE measured{};
+    if (dc) {
+        const auto oldFont = ::SelectObject(dc, TabFont(IsHorizontal()));
+        if (::GetTextExtentPoint32W(dc, title.data(), static_cast<int>(title.size()), &measured)) {
+            measured.cx += impl__m_nMarginSize_CMFCAutoHideButton__2HA;
+            measured.cy += impl__m_nMarginSize_CMFCAutoHideButton__2HA;
+        }
+        if (oldFont) ::SelectObject(dc, oldFont);
+        ::ReleaseDC(window, dc);
+    }
+    if (!m_pParentBar->m_bActiveInGroup && impl__m_bOverlappingTabs_CMFCAutoHideButton__2HA)
+        measured.cx = 0;
+    return IsHorizontal() ? CSize(measured.cx, measured.cy) : CSize(measured.cy, measured.cx);
+}
+
+CSize CMFCAutoHideButton::GetSize() const {
+    const int margin = impl__m_nMarginSize_CMFCAutoHideButton__2HA;
+    const int padding = margin + 2 * impl__m_nBorderSize_CMFCAutoHideButton__2HA;
+    if (!m_pAutoHideWindow) return CSize(padding, padding);
+    const CSize text = GetTextSize();
+    const HICON icon = PaneIcon(m_pAutoHideWindow);
+    const int iconWidth = icon ? ::GetSystemMetrics(SM_CXSMICON) : 0;
+    const int iconHeight = icon ? ::GetSystemMetrics(SM_CYSMICON) : 0;
+    const int length = IsHorizontal() ? text.cx : text.cy;
+    const int gap = !icon ? impl__m_nTextSizeNoIcon_CMFCAutoHideButton__2HA + margin
+        : length > 0 ? (IsHorizontal() ? iconWidth : iconHeight) + impl__m_nTextMargin_CMFCAutoHideButton__2HA
+                     : margin + 1;
+    if (IsHorizontal())
+        return CSize(padding + length + iconWidth + gap, padding + (std::max)(text.cy, iconHeight));
+    return CSize(padding + (std::max)(text.cx, iconWidth), padding + length + iconHeight + gap);
+}
+
+void CMFCAutoHideButton::ShowButton(BOOL show) { m_bVisible = show; }
+void CMFCAutoHideButton::HighlightButton(BOOL highlight) { m_bHighlighted = highlight; }
+
+void CMFCAutoHideButton::Move(int offset) {
+    ::OffsetRect(m_rect, IsHorizontal() ? offset : 0, IsHorizontal() ? 0 : offset);
+}
+
+void CMFCAutoHideButton::ShowAttachedWindow(BOOL show) {
+    if (m_pAutoHideWindow && !!::IsWindowVisible(m_pAutoHideWindow->m_hWnd) != !!show)
+        impl__Slide_CDockablePane__UEAAXHH_Z(m_pAutoHideWindow, show, TRUE);
+    if (m_pParentBar) m_pParentBar->SetActiveInGroup(show);
+}
+
+void CMFCAutoHideButton::UnSetAutoHideMode(CDockablePane* firstInGroup) {
+    if (m_pAutoHideWindow)
+        impl__UnSetAutoHideMode_CDockablePane__UEAAXPEAV1__Z(m_pAutoHideWindow, firstInGroup);
+}
+
+void CMFCAutoHideButton::OnFillBackground(CDC* dc, CRect rect) {
+    impl__OnFillAutoHideButtonBackground_CMFCVisualManager__UEAAXPEAVCDC__VCRect__PEAVCMFCAutoHideButton___Z(
+        CMFCVisualManager::GetInstance(), dc, rect, this);
+}
+
+void CMFCAutoHideButton::OnDrawBorder(CDC* dc, CRect bounds, CRect) {
+    if (dc && dc->GetSafeHdc())
+        ::FrameRect(dc->GetSafeHdc(), bounds, ::GetSysColorBrush(m_bHighlighted ? COLOR_HIGHLIGHT : COLOR_BTNSHADOW));
+}
+
+void CMFCAutoHideButton::OnDraw(CDC* dc) {
+    if (!dc || !dc->GetSafeHdc() || !m_bVisible || m_rect.IsRectEmpty()) return;
+    OnFillBackground(dc, m_rect);
+    OnDrawBorder(dc, m_rect, CRect(1, 1, 1, 1));
+    const auto title = Title(m_pAutoHideWindow);
+    const auto icon = PaneIcon(m_pAutoHideWindow);
+    const int padding = impl__m_nMarginSize_CMFCAutoHideButton__2HA + impl__m_nBorderSize_CMFCAutoHideButton__2HA;
+    CRect content = m_rect;
+    content.DeflateRect(padding, padding);
+    const HDC handle = dc->GetSafeHdc();
+    const int saved = ::SaveDC(handle);
+    if (!saved) return;
+    ::IntersectClipRect(handle, content.left, content.top, content.right, content.bottom);
+    ::SelectObject(handle, TabFont(IsHorizontal()));
+    ::SetBkMode(handle, TRANSPARENT);
+    ::SetTextColor(handle, impl__GetAutoHideButtonTextColor_CMFCVisualManager__UEAAKPEAVCMFCAutoHideButton___Z(
+        CMFCVisualManager::GetInstance(), this));
+    if (icon) {
+        const int width = ::GetSystemMetrics(SM_CXSMICON);
+        const int height = ::GetSystemMetrics(SM_CYSMICON);
+        const int x = IsHorizontal() ? content.left : content.left + (content.Width() - width) / 2;
+        const int y = IsHorizontal() ? content.top + (content.Height() - height) / 2 : content.bottom - height;
+        ::DrawIconEx(handle, x, y, icon, width, height, 0, nullptr, DI_NORMAL);
+        const int gap = impl__m_nTextMargin_CMFCAutoHideButton__2HA;
+        if (IsHorizontal()) content.left += width + gap;
+        else content.bottom -= height + gap;
+    }
+    if (!title.empty()) {
+        const int length = static_cast<int>(title.size());
+        if (IsHorizontal())
+            ::DrawTextW(handle, title.data(), length, content, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
+        else
+            ::TextOutW(handle, content.left, content.bottom, title.data(), length);
+    }
+    ::RestoreDC(handle, saved);
+}
+
+// Symbol: ??0CMFCAutoHideButton@@QEAA@XZ
+extern "C" void* AFXAPI impl___0CMFCAutoHideButton__QEAA_XZ(void* storage) {
+    return storage ? ::new (storage) CMFCAutoHideButton : nullptr;
+}
+// Symbol: ??1CMFCAutoHideButton@@UEAA@XZ
+extern "C" void AFXAPI impl___1CMFCAutoHideButton__UEAA_XZ(CMFCAutoHideButton* button) {
+    if (button) button->CMFCAutoHideButton::~CMFCAutoHideButton();
+}
+// Symbol: ?CreateObject@CMFCAutoHideButton@@SAPEAVCObject@@XZ
+extern "C" CObject* AFXAPI impl__CreateObject_CMFCAutoHideButton__SAPEAVCObject__XZ() {
+    return CMFCAutoHideButton::CreateObject();
+}
+// Symbol: ?Create@CMFCAutoHideButton@@UEAAHPEAVCMFCAutoHideBar@@PEAVCDockablePane@@K@Z
+extern "C" BOOL AFXAPI impl__Create_CMFCAutoHideButton__UEAAHPEAVCMFCAutoHideBar__PEAVCDockablePane__K_Z(
+    CMFCAutoHideButton* button, CMFCAutoHideBar* bar, CDockablePane* pane, DWORD alignment) {
+    return button && button->CMFCAutoHideButton::Create(bar, pane, alignment);
+}
+// Symbol: ?GetSize@CMFCAutoHideButton@@QEBA?AVCSize@@XZ
+extern "C" CSize* AFXAPI impl__GetSize_CMFCAutoHideButton__QEBA_AVCSize__XZ(
+    const CMFCAutoHideButton* button, CSize* result) {
+    return result ? ::new (result) CSize(button ? button->GetSize() : CSize(0, 0)) : nullptr;
+}
+// Symbol: ?GetTextSize@CMFCAutoHideButton@@UEBA?AVCSize@@XZ
+extern "C" CSize* AFXAPI impl__GetTextSize_CMFCAutoHideButton__UEBA_AVCSize__XZ(
+    const CMFCAutoHideButton* button, CSize* result) {
+    return result ? ::new (result) CSize(button ? button->CMFCAutoHideButton::GetTextSize() : CSize(0, 0)) : nullptr;
+}
+// Symbol: ?HighlightButton@CMFCAutoHideButton@@UEAAXH@Z
+extern "C" void AFXAPI impl__HighlightButton_CMFCAutoHideButton__UEAAXH_Z(CMFCAutoHideButton* button, BOOL highlight) {
+    if (button) button->CMFCAutoHideButton::HighlightButton(highlight);
+}
+// Symbol: ?IsHorizontal@CMFCAutoHideButton@@QEBAHXZ
+extern "C" BOOL AFXAPI impl__IsHorizontal_CMFCAutoHideButton__QEBAHXZ(const CMFCAutoHideButton* button) {
+    return button && button->IsHorizontal();
+}
+// Symbol: ?Move@CMFCAutoHideButton@@QEAAXH@Z
+extern "C" void AFXAPI impl__Move_CMFCAutoHideButton__QEAAXH_Z(CMFCAutoHideButton* button, int offset) {
+    if (button) button->Move(offset);
+}
+// Symbol: ?OnDraw@CMFCAutoHideButton@@UEAAXPEAVCDC@@@Z
+extern "C" void AFXAPI impl__OnDraw_CMFCAutoHideButton__UEAAXPEAVCDC___Z(CMFCAutoHideButton* button, CDC* dc) {
+    if (button) button->CMFCAutoHideButton::OnDraw(dc);
+}
+// Symbol: ?OnDrawBorder@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@1@Z
+extern "C" void AFXAPI impl__OnDrawBorder_CMFCAutoHideButton__UEAAXPEAVCDC__VCRect__1_Z(
+    CMFCAutoHideButton* button, CDC* dc, CRect bounds, CRect border) {
+    if (button) button->CMFCAutoHideButton::OnDrawBorder(dc, bounds, border);
+}
+// Symbol: ?OnFillBackground@CMFCAutoHideButton@@UEAAXPEAVCDC@@VCRect@@@Z
+extern "C" void AFXAPI impl__OnFillBackground_CMFCAutoHideButton__UEAAXPEAVCDC__VCRect___Z(
+    CMFCAutoHideButton* button, CDC* dc, CRect rect) {
+    if (button) button->CMFCAutoHideButton::OnFillBackground(dc, rect);
+}
+// Symbol: ?ReplacePane@CMFCAutoHideButton@@QEAAXPEAVCDockablePane@@@Z
+extern "C" void AFXAPI impl__ReplacePane_CMFCAutoHideButton__QEAAXPEAVCDockablePane___Z(
+    CMFCAutoHideButton* button, CDockablePane* pane) {
+    if (button) button->ReplacePane(pane);
+}
 // Symbol: ?ShowAttachedWindow@CMFCAutoHideButton@@QEAAXH@Z
-extern "C" void MS_ABI impl__ShowAttachedWindow_CMFCAutoHideButton__QEAAXH_Z(
-    void* pThis, int /*bShow*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): requires pane/bar instances with usable vtables for
-    // the conditional pane call and final bar call.
+extern "C" void AFXAPI impl__ShowAttachedWindow_CMFCAutoHideButton__QEAAXH_Z(CMFCAutoHideButton* button, BOOL show) {
+    if (button) button->ShowAttachedWindow(show);
 }
-// Retail RVA 0xa460 (mfc140u) stores bShow at +0x0c. The extra null check
-// below is a defensive deviation from retail's unconditional store.
 // Symbol: ?ShowButton@CMFCAutoHideButton@@UEAAXH@Z
-extern "C" void MS_ABI impl__ShowButton_CMFCAutoHideButton__UEAAXH_Z(
-    void* pThis, int bShow)
-{
-    if (!pThis) return;
-    CAutoHideButton* s = reinterpret_cast<CAutoHideButton*>(pThis);
-    s->m_nShow = bShow;
+extern "C" void AFXAPI impl__ShowButton_CMFCAutoHideButton__UEAAXH_Z(CMFCAutoHideButton* button, BOOL show) {
+    if (button) button->CMFCAutoHideButton::ShowButton(show);
 }
-// Retail body at RVA 0xa480 (mfc140u) loads the attached pane from +0x38 and,
-// when non-NULL, calls its vslot 0x6d0. The pane field is in the layout mirror,
-// but the instance vtable dispatch cannot be reproduced safely here.
 // Symbol: ?UnSetAutoHideMode@CMFCAutoHideButton@@UEAAXPEAVCDockablePane@@@Z
-extern "C" void MS_ABI impl__UnSetAutoHideMode_CMFCAutoHideButton__UEAAXPEAVCDockablePane___Z(
-    void* pThis, CDockablePane* /*pPane*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): retail calls the attached pane's vslot 0x6d0; the
-    // instance vtable dispatch is not modeled.
+extern "C" void AFXAPI impl__UnSetAutoHideMode_CMFCAutoHideButton__UEAAXPEAVCDockablePane___Z(
+    CMFCAutoHideButton* button, CDockablePane* firstInGroup) {
+    if (button) button->CMFCAutoHideButton::UnSetAutoHideMode(firstInGroup);
 }

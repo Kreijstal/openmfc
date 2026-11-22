@@ -1944,7 +1944,41 @@ class CMFCRibbonCaptionButton : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(C
 class CMFCRibbonCategoryScroll : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCategoryScroll) public: CMFCRibbonCategoryScroll(); virtual ~CMFCRibbonCategoryScroll(); char _pad[32]; };
 class CMFCRibbonTab : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonTab) public: CMFCRibbonTab(); virtual ~CMFCRibbonTab(); char _pad[32]; };
 class CMFCRibbonContextCaption : public CObject { DECLARE_DYNAMIC(CMFCRibbonContextCaption) public: CMFCRibbonContextCaption(); virtual ~CMFCRibbonContextCaption(); char _pad[32]; };
-class CMFCAutoHideBar : public CPane { DECLARE_DYNAMIC(CMFCAutoHideBar) public: CMFCAutoHideBar(); virtual ~CMFCAutoHideBar(); char _pad[32]; };
+class CMFCAutoHideBar : public CPane {
+    DECLARE_DYNCREATE(CMFCAutoHideBar)
+public:
+    CMFCAutoHideBar() = default;
+    ~CMFCAutoHideBar() override;
+
+    CMFCAutoHideButton* AddAutoHideWindow(CDockablePane* pane, DWORD alignment);
+    BOOL RemoveAutoHideWindow(CDockablePane* pane);
+    BOOL ShowAutoHideWindow(CDockablePane* pane, BOOL show, BOOL delay);
+    int GetVisibleCount() const;
+    CDockablePane* GetFirstAHWindow() const;
+    void UpdateVisibleState();
+    void UnSetAutoHideMode(CDockablePane* firstInGroup);
+    void SetActiveInGroup(BOOL active);
+    CSize LayoutButtons();
+
+    void OnPaint();
+    void DoPaint(CDC* dc);
+    void OnLButtonDown(UINT flags, CPoint point);
+    void OnMouseMove(UINT flags, CPoint point);
+    void OnMouseLeave();
+    void OnTimer(UINT_PTR timer);
+    void CleanUpAutoHideButtons();
+    CMFCAutoHideButton* ButtonFromPoint(CPoint point) const;
+    CMFCAutoHideButton* ButtonFromAutoHideWindow(CDockablePane* pane) const;
+
+    CObList m_lstAutoHideButtons;
+    CMFCAutoHideButton* m_pLastActiveButton = nullptr;
+    CMFCAutoHideButton* m_pHighlightedButton = nullptr;
+    BOOL m_bReadyToDisplayAHWnd = FALSE;
+    UINT_PTR m_nDisplayAHWndTimerID = 0;
+    BOOL m_bTracked = FALSE;
+
+    DECLARE_MESSAGE_MAP()
+};
 class CMFCRibbonCheckBox : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCheckBox) public: CMFCRibbonCheckBox(); CMFCRibbonCheckBox(UINT, const wchar_t*) : CMFCRibbonCheckBox() {} virtual ~CMFCRibbonCheckBox(); char _pad[32]; };
 class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonEdit) public: CMFCRibbonEdit(); CMFCRibbonEdit(UINT nID, int, const wchar_t* lpszText, int) : CMFCRibbonEdit() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonEdit(); char _pad[32]; };
 class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT nID, const wchar_t* lpszText, int, int, UINT, int) : CMFCRibbonGallery() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonGallery(); char _pad[32]; };

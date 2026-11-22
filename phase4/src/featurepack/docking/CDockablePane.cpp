@@ -5,6 +5,7 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/CMFCAutoHideButtonSupport.h"
 
 #include <cstddef>   // offsetof (static_asserts below)
 #include <cstring>   // memcpy
@@ -609,7 +610,19 @@ CDockablePane::CDockablePane() {
     state.hasGripper = TRUE;
 }
 CDockablePane::~CDockablePane() {
-    EraseExtraOf(this);   // drop the file-private m_hDefaultSlider / m_pAutoHideButton mirror
+    CMFCAutoHideButton* button = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        const auto found = g_paneCoreState_Mfccore.find(this);
+        if (found != g_paneCoreState_Mfccore.end()) {
+            button = found->second.autoHideButton;
+        }
+    }
+    if (button) {
+        auto* bar = button->m_pParentBar;
+        if (!bar || !bar->RemoveAutoHideWindow(this)) button->ReplacePane(nullptr);
+    }
+    EraseExtraOf(this);
 }
 BOOL CDockablePane::CanBeAttached() const { return TRUE; }
 BOOL CDockablePane::CanAutoHide() const {
@@ -3280,7 +3293,9 @@ extern "C" void MS_ABI impl__SetAutoHideParents_CDockablePane__QEAAXPEAVCMFCAuto
     if (pThis == nullptr) return;   // deviation: retail has no NULL check
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-        g_paneCoreState_Mfccore[pThis].autoHideBar = pAutoHideBar;
+        auto& state = g_paneCoreState_Mfccore[pThis];
+        state.autoHideBar = pAutoHideBar;
+        state.autoHideButton = static_cast<CMFCAutoHideButton*>(pAutoHideButton);
     }
     SetAutoHideButtonOf(pThis, pAutoHideButton);
 }

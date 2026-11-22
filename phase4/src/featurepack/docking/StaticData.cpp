@@ -61,17 +61,17 @@ extern "C" std::uint32_t impl__m_nTimeOutBeforeDockingBarDock_CDockingManager__2
 // Symbol: ?m_nTimeOutBeforeToolBarDock@CDockingManager@@2IA
 extern "C" std::uint32_t impl__m_nTimeOutBeforeToolBarDock_CDockingManager__2IA = 0;
 // Symbol: ?m_nShowAHWndDelay@CMFCAutoHideBar@@2HA
-extern "C" std::int32_t impl__m_nShowAHWndDelay_CMFCAutoHideBar__2HA = 0;
+extern "C" std::int32_t impl__m_nShowAHWndDelay_CMFCAutoHideBar__2HA = 400;
 // Symbol: ?m_bOverlappingTabs@CMFCAutoHideButton@@2HA
-extern "C" std::int32_t impl__m_bOverlappingTabs_CMFCAutoHideButton__2HA = 0;
+extern "C" std::int32_t impl__m_bOverlappingTabs_CMFCAutoHideButton__2HA = 1;
 // Symbol: ?m_nBorderSize@CMFCAutoHideButton@@2HA
-extern "C" std::int32_t impl__m_nBorderSize_CMFCAutoHideButton__2HA = 0;
+extern "C" std::int32_t impl__m_nBorderSize_CMFCAutoHideButton__2HA = 1;
 // Symbol: ?m_nMarginSize@CMFCAutoHideButton@@2HA
-extern "C" std::int32_t impl__m_nMarginSize_CMFCAutoHideButton__2HA = 0;
+extern "C" std::int32_t impl__m_nMarginSize_CMFCAutoHideButton__2HA = 2;
 // Symbol: ?m_nTextMargin@CMFCAutoHideButton@@2HA
-extern "C" std::int32_t impl__m_nTextMargin_CMFCAutoHideButton__2HA = 0;
+extern "C" std::int32_t impl__m_nTextMargin_CMFCAutoHideButton__2HA = 10;
 // Symbol: ?m_nTextSizeNoIcon@CMFCAutoHideButton@@2HA
-extern "C" std::int32_t impl__m_nTextSizeNoIcon_CMFCAutoHideButton__2HA = 0;
+extern "C" std::int32_t impl__m_nTextSizeNoIcon_CMFCAutoHideButton__2HA = 20;
 // Symbol: ?m_bHandleMinSize@CPane@@2HA
 extern "C" std::int32_t impl__m_bHandleMinSize_CPane__2HA = 0;
 // Symbol: ?m_bMaintainPercentage@CPaneContainer@@2HA

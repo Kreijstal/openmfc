@@ -3,6 +3,7 @@
 
 #include "detail/DeferredRttiSupport.h"
 #include "detail/FeaturePackDockSite.h"
+#include "detail/CMFCAutoHideButtonSupport.h"
 
 // OpenMFC: RTTI getters (GetThisClass / GetRuntimeClass) for a batch of docking
 // state / tabbed-pane wrappers (12 exports, 6 classes).
@@ -174,8 +175,6 @@ TABCTRL_RENDERER_LIST_DESC(CMFCControlRenderer, 512, 0xFFFF, &CObject::classCObj
 TABCTRL_RENDERER_LIST_DESC(CMFCShadowRenderer, 512, 0xFFFF, &classCMFCControlRenderer);
 TABCTRL_RENDERER_LIST_DESC(CMFCListCtrl, 576, 0xFFFF, &CListCtrl::classCListCtrl);
 TABCTRL_RENDERER_LIST_DESC(CMFCShellListCtrl, 632, 0xFFFF, &classCMFCListCtrl);
-TABCTRL_RENDERER_LIST_DESC(CMFCAutoHideBar, 1112, 0xFFFF, &CPane::classCPane);
-TABCTRL_RENDERER_LIST_DESC(CMFCAutoHideButton, 64, 0xFFFF, &CObject::classCObject);
 #undef TABCTRL_RENDERER_LIST_DESC
 
 #define TABCTRL_RENDERER_LIST_GETTERS(Cls, GetThisSym, GetRtSym) \
@@ -279,14 +278,20 @@ PANE_GETTERS(CPaneFrameWnd,
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
 // Symbol: ?GetThisClass@CMFCAutoHideBar@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCAutoHideBar__SAPEAUCRuntimeClass__XZ() {
+    return CMFCAutoHideBar::GetThisClass();
+}
 // Symbol: ?GetRuntimeClass@CMFCAutoHideBar@@UEBAPEAUCRuntimeClass@@XZ
-TABCTRL_RENDERER_LIST_GETTERS(CMFCAutoHideBar,
-           impl__GetThisClass_CMFCAutoHideBar__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCAutoHideBar__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCAutoHideBar__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCAutoHideBar::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCAutoHideButton@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCAutoHideButton__SAPEAUCRuntimeClass__XZ() {
+    return CMFCAutoHideButton::GetThisClass();
+}
 // Symbol: ?GetRuntimeClass@CMFCAutoHideButton@@UEBAPEAUCRuntimeClass@@XZ
-TABCTRL_RENDERER_LIST_GETTERS(CMFCAutoHideButton,
-           impl__GetThisClass_CMFCAutoHideButton__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCAutoHideButton__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCAutoHideButton__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCAutoHideButton::GetThisClass();
+}
 #undef TABCTRL_RENDERER_LIST_GETTERS
 #undef TABCTRL_RENDERER_LIST_GETTERS

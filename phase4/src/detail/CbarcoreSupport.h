@@ -871,13 +871,6 @@ struct PaneState {
 } } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
-struct AutoHideButtonState {
-    BOOL highlighted;
-    BOOL horizontal;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace cbarcore {
 extern std::mutex g_wave2Mutex;
 } } }
 namespace openmfc { namespace detail { namespace cbarcore {
@@ -926,19 +919,7 @@ namespace openmfc { namespace detail { namespace cbarcore {
 extern std::unordered_map<void*, PaneState> g_dividerPanes;
 } } }
 namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_map<void*, PaneState> g_autoHideBarWindows;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
 extern std::unordered_map<void*, void*> g_paneToContainer;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_map<void*, void*> g_paneToAutoHideButton;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_map<void*, std::unique_ptr<int>> g_autoHideButtonStorage;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-extern std::unordered_map<void*, AutoHideButtonState> g_autoHideButtons;
 } } }
 
 namespace openmfc { namespace detail { namespace cbarcore {
