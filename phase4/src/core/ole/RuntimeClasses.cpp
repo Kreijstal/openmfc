@@ -134,7 +134,6 @@ OLED_DESC(COleServerDocEx,      664, &classCOleServerDoc);
 OLED_DESC(COleServerItem,       224, &CDocItem::classCDocItem);
 OLED_DESC(CDocObjectServerItem, 224, &classCOleServerItem);
 OLED_DESC(COleObjectFactory,    136, &CCmdTarget::classCCmdTarget);
-OLED_DESC(COleDocObjectItem,    280, &COleClientItem::classCOleClientItem);
 #undef OLED_DESC
 
 // Two exported getters per class via a macro; the literal "// Symbol:" marker
@@ -368,10 +367,15 @@ OLED_GETTERS(COleObjectFactory,
              impl__GetRuntimeClass_COleObjectFactory__UEBAPEAUCRuntimeClass__XZ)
 
 // Symbol: ?GetThisClass@COleDocObjectItem@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleDocObjectItem__SAPEAUCRuntimeClass__XZ() {
+    return COleDocObjectItem::GetThisClass();
+}
+
 // Symbol: ?GetRuntimeClass@COleDocObjectItem@@UEBAPEAUCRuntimeClass@@XZ
-OLED_GETTERS(COleDocObjectItem,
-             impl__GetThisClass_COleDocObjectItem__SAPEAUCRuntimeClass__XZ,
-             impl__GetRuntimeClass_COleDocObjectItem__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_COleDocObjectItem__UEBAPEAUCRuntimeClass__XZ(
+    const COleDocObjectItem*) {
+    return COleDocObjectItem::GetThisClass();
+}
 
 #undef OLED_GETTERS
 #define OF_GETTERS(Cls, GetThisSym, GetRtSym) \

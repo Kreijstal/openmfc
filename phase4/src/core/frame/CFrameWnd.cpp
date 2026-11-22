@@ -8,6 +8,9 @@
 #include "detail/ClassicDockingSupport.h"
 #include "detail/WincoreSupport.h"
 #include "detail/WindowCreationSupport.h"
+#include "openmfc/afxole.h"
+#include <algorithm>
+#include <cstring>
 #include <dde.h>
 
 using openmfc::detail::frame::ControlBars;
@@ -15,6 +18,9 @@ using openmfc::detail::frame::ControlBars;
 BEGIN_MESSAGE_MAP(CFrameWnd, CWnd)
     ON_WM_SIZE()
     ON_WM_CLOSE()
+    OPENMFC_MAP_ENTRY(WM_INITMENU, 0, 0, 0, AfxSig_v_M_v, &ThisClass::OnInitMenu)
+    OPENMFC_MAP_ENTRY(WM_INITMENUPOPUP, 0, 0, 0, AfxSig_v_M_ub, &ThisClass::OnInitMenuPopup)
+    OPENMFC_MAP_ENTRY(WM_MENUSELECT, 0, 0, 0, AfxSig_v_uu_M, &ThisClass::OnMenuSelect)
     ON_MESSAGE(0x0363, &ThisClass::OnIdleUpdateCmdUIMessage)
     ON_MESSAGE(0x0362, &ThisClass::OnSetMessageString)
 END_MESSAGE_MAP()
@@ -739,19 +745,42 @@ LRESULT CFrameWnd::OnIdleUpdateCmdUIMessage(WPARAM, LPARAM) {
     OnIdleUpdateCmdUI();
     return 0;
 }
+
+namespace {
+COleFrameHook* FrameMenuHook(const CFrameWnd& frame) {
+    COleFrameHook* hook = nullptr;
+    std::memcpy(&hook, frame.m_retailMiddle.m_pNotifyHook, sizeof(hook));
+    return hook;
+}
+}
+
 void CFrameWnd::OnInitMenu(CMenu* pMenu) {
-    HMENU hMenu = pMenu ? pMenu->m_hMenu : GetMenu() ? GetMenu()->m_hMenu : nullptr;
-    if (hMenu) {
-        OnUpdateFrameMenu(hMenu);
-    }
+    if (auto* hook = FrameMenuHook(*this)) hook->OnInitMenu(pMenu);
 }
 void CFrameWnd::OnInitMenuPopup(CMenu* pPopupMenu, unsigned int nIndex, int bSysMenu) {
-    (void)nIndex;
-    (void)bSysMenu;
-    if (!pPopupMenu || !pPopupMenu->m_hMenu) {
+    if (!pPopupMenu || !pPopupMenu->m_hMenu || bSysMenu) return;
+    if (auto* hook = FrameMenuHook(*this); hook && hook->OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu))
         return;
+
+    CCmdUI command;
+    command.m_pMenu = pPopupMenu;
+    int index = 0;
+    while (index < ::GetMenuItemCount(pPopupMenu->m_hMenu)) {
+        const auto count = ::GetMenuItemCount(pPopupMenu->m_hMenu);
+        command.m_nIndex = index;
+        command.m_nIndexMax = count;
+        command.m_nID = ::GetMenuItemID(pPopupMenu->m_hMenu, index);
+        const bool submenu = command.m_nID == UINT(-1);
+        const HMENU popup = submenu ? ::GetSubMenu(pPopupMenu->m_hMenu, index) : nullptr;
+        command.m_pSubMenu = popup ? CMenu::FromHandle(popup) : nullptr;
+        if (popup) command.m_nID = ::GetMenuItemID(popup, 0);
+        if (command.m_nID && command.m_nID != UINT(-1)) {
+            const BOOL autoDisable = !submenu && m_retailPrefix.m_bAutoMenuEnable && command.m_nID < 0xf000;
+            command.DoUpdate(this, autoDisable);
+        }
+        const auto remaining = ::GetMenuItemCount(pPopupMenu->m_hMenu);
+        index = remaining < count ? (std::max)(0, index + 1 - (count - remaining)) : index + 1;
     }
-    OnUpdateFrameMenu(pPopupMenu->m_hMenu);
 }
 __int64 CFrameWnd::OnMenuChar(unsigned int nChar, unsigned int nFlags, CMenu* pMenu) {
     // Base-frame behavior: mnemonic matching against owner-drawn menu items is a
@@ -764,11 +793,11 @@ __int64 CFrameWnd::OnMenuChar(unsigned int nChar, unsigned int nFlags, CMenu* pM
     return static_cast<__int64>(MAKELONG(0, MNC_IGNORE));
 }
 void CFrameWnd::OnMenuSelect(unsigned int nItemID, unsigned int nFlags, HMENU hSysMenu) {
-    (void)nFlags;
-    (void)hSysMenu;
     if (!m_hWnd) {
         return;
     }
+    if (auto* hook = FrameMenuHook(*this); hook && hook->OnMenuSelect(nItemID, nFlags, hSysMenu))
+        return;
     if (nItemID == 0 || nItemID == 0xFFFF) {
         SetMessageText(L"");
         return;

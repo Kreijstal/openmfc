@@ -619,6 +619,7 @@ extern "C" void MS_ABI impl__OnRemoveMenus_COleDocObjectItem__UEAAXPEAVCMenu___Z
 }
 
 void COleDocObjectItem::OnRemoveMenus(CMenu* shared) {
+    m_retailTail.m_bInHelpMenu = FALSE;
     COleClientItem::OnRemoveMenus(shared);
 }
 

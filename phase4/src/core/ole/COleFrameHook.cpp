@@ -92,8 +92,6 @@
 // (C++ methods of other classes exist in this DLL only as impl__ thunks.)
 // core/window/CWnd.cpp:786
 extern "C" int MS_ABI impl__IsWindowEnabled_CWnd__QEBAHXZ(const CWnd* pThis);
-// core/ole/COleClientItem.cpp:654 -- currently a documented stub that always
-// returns NULL; calling it is still the faithful transcription of retail.
 extern "C" CWnd* MS_ABI impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(
     COleClientItem* pThis);
 // core/ole/COleClientItem.cpp:2161
@@ -271,8 +269,12 @@ inline COleDocObjectItem* AsDocObjectItem(COleClientItem* pItem) {
     return static_cast<COleDocObjectItem*>(pItem);
 }
 
-inline CMenu* DocObjectHelpPopupMenu(COleDocObjectItem* pItem) {
-    return pItem->m_retailTail.m_pHelpPopupMenu;
+bool IsDocObjectHelpMenu(COleDocObjectItem* item, HMENU menu) {
+    if (!menu) return false;
+    const auto* state = openmfc::detail::olecore::GetClientItemState(item, false);
+    if (!state) return false;
+    return std::any_of(state->mergedMenus.begin(), state->mergedMenus.end(),
+        [menu](const auto& entry) { return entry.second.help.get() == menu; });
 }
 
 inline BOOL& DocObjectInHelpMenu(COleDocObjectItem* pItem) {
@@ -513,14 +515,10 @@ extern "C" void MS_ABI impl__OnInitMenu_COleFrameHook__UEAAXPEAVCMenu___Z(
 // menu, a missing/non-COleDocObjectItem active item, or a clear m_bInHelpMenu
 // flag (+0x108). Then call GetInPlaceWindow; if non-null, send
 // WM_INITMENUPOPUP to its HWND with pMenu->m_hMenu and LOWORD(nIndex), and
-// return TRUE. pMenu is dereferenced without a retail null check. The Unicode
-// import slot 0x1802c7120 resolves to USER32!SendMessageW (iatu.py); this uses
-// ::SendMessage so UNICODE selects that API. The GetInPlaceWindow thunk is a
-// documented null-returning stub today, so the final send is currently
-// unreachable in this build, but the control flow mirrors retail.
+// return TRUE.
 extern "C" int MS_ABI impl__OnInitMenuPopup_COleFrameHook__UEAAHPEAVCMenu__HH_Z(
     COleFrameHook* pThis, CMenu* pMenu, int nIndex, int bSysMenu) {
-    if (bSysMenu)
+    if (bSysMenu || !pMenu)
         return FALSE;
     COleDocObjectItem* pItem = AsDocObjectItem(ActiveItem(pThis));
     if (pItem == nullptr || !DocObjectInHelpMenu(pItem))
@@ -541,20 +539,14 @@ extern "C" int MS_ABI impl__OnInitMenuPopup_COleFrameHook__UEAAHPEAVCMenu__HH_Z(
 // (+0x108) to (nItemID != 0), and reject nItemID == 0. For a non-popup item,
 // require m_bInHelpMenu. Both paths then require a non-null in-place window,
 // send WM_MENUSELECT with MAKEWPARAM(LOWORD(nItemID), LOWORD(nFlags)) and
-// hSysMenu, and return TRUE. The Unicode import slot 0x1802c7120 resolves to
-// USER32!SendMessageW (iatu.py); ::SendMessage follows UNICODE. The in-place
-// window thunk currently returns NULL, but the menu-selection state update is
-// still performed in the same order as retail.
+// hSysMenu, and return TRUE. The matching popup is tracked by its shared menu.
 extern "C" int MS_ABI impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(
     COleFrameHook* pThis, unsigned int nItemID, unsigned int nFlags, HMENU hSysMenu) {
     COleDocObjectItem* pItem = AsDocObjectItem(ActiveItem(pThis));
     if (pItem == nullptr)
         return FALSE;
-    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pItem);
     if ((nFlags & MF_POPUP) != 0) {
-        CMenu* pHelpMenu = DocObjectHelpPopupMenu(pItem);
-        HMENU hHelpMenu = pHelpMenu ? pHelpMenu->m_hMenu : nullptr;
-        if (hHelpMenu != hSysMenu)
+        if (!IsDocObjectHelpMenu(pItem, hSysMenu))
             return FALSE;
         DocObjectInHelpMenu(pItem) = nItemID != 0 ? TRUE : FALSE;
         if (nItemID == 0)
@@ -562,6 +554,7 @@ extern "C" int MS_ABI impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(
     } else if (!DocObjectInHelpMenu(pItem)) {
         return FALSE;
     }
+    CWnd* pWnd = impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(pItem);
     if (pWnd == nullptr)
         return FALSE;
     ::SendMessage(pWnd->m_hWnd, WM_MENUSELECT,
@@ -582,9 +575,6 @@ extern "C" int MS_ABI impl__OnMenuSelect_COleFrameHook__UEAAHIIPEAUHMENU_____Z(
 // ::SendMessage with UNICODE picking SendMessageW.
 // Deviation: retail loads m_pActiveItem and calls straight through it with no
 // null test; the guard below returns instead of faulting.
-// COleClientItem::GetInPlaceWindow is a documented stub in this tree today
-// (core/ole/COleClientItem.cpp:654 always returns NULL), so this body is a
-// no-op until that lands -- but the composition is retail's.
 extern "C" void MS_ABI impl__OnPaletteChanged_COleFrameHook__UEAAXPEAVCWnd___Z(
     COleFrameHook* pThis, CWnd* pFocusWnd) {
     COleClientItem* activeItem = ActiveItem(pThis);
@@ -636,8 +626,6 @@ extern "C" int MS_ABI impl__OnPreTranslateMessage_COleFrameHook__UEAAHPEAUtagMSG
 //     return ::SendMessage(pWnd->m_hWnd, WM_QUERYNEWPALETTE /* 0x30f */, 0, 0) != 0;
 //                                              // slot mfc140u 0x1802c7120
 // Deviation: the same missing null test on m_pActiveItem as OnPaletteChanged.
-// GetInPlaceWindow is a stub in this tree today, so this returns FALSE until
-// that lands.
 extern "C" int MS_ABI impl__OnQueryNewPalette_COleFrameHook__UEAAHXZ(COleFrameHook* pThis) {
     COleClientItem* activeItem = ActiveItem(pThis);
     if (!activeItem)

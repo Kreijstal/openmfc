@@ -714,14 +714,15 @@ extern "C" HICON MS_ABI impl__GetIconFromRegistry_COleClientItem__SAPEAUHICON___
     return nullptr;
 }
 // Symbol: ?GetInPlaceWindow@COleClientItem@@QEAAPEAVCWnd@@XZ
-// TODO(clean-room): transcribed partially. Retail returns the in-place frame
-// window when the item is open; the frame hook/window are now represented by
-// the item tail and ClientItemState, but this body remains a stub.
+// Retail mfc140u 0x2492a0 returns the live server HWND while the item is UI active.
 extern "C" CWnd* MS_ABI impl__GetInPlaceWindow_COleClientItem__QEAAPEAVCWnd__XZ(
-        COleClientItem* pThis) {
-    if (!pThis) return nullptr;
-    // TODO(clean-room): return the modeled in-place frame HWND.
-    return nullptr;
+        COleClientItem* item) {
+    auto* hook = item ? item->m_retailTail.m_pInPlaceFrame : nullptr;
+    if (!hook || !hook->m_lpActiveObject) return nullptr;
+    HWND window = item->m_retailTail.m_hWndServer;
+    if (!::IsWindow(window) && hook->m_lpActiveObject->GetWindow(&window) != S_OK)
+        return nullptr;
+    return ::IsWindow(window) ? CWnd::FromHandle(window) : nullptr;
 }
 // Symbol: ?GetItemName@COleClientItem@@QEBAXPEA_W@Z
 // Retail reads the item number at +0x58 and sends it with "Embedding %lu" to
@@ -2239,10 +2240,12 @@ void COleClientItem::OnSetMenu(CMenu* shared, HOLEMENU descriptor, HWND activeWi
     const HMENU menu = shared ? shared->m_hMenu : nullptr;
     if (menu) {
         if (document && document->m_pFrameWnd != frame->GetActiveFrame()) return;
+        m_retailTail.m_hWndServer = activeWindow;
         if (!std::exchange(menus.m_bSharedMenuInstalled, TRUE))
             menus.m_hOriginalMenu = ::GetMenu(frame->m_hWnd);
         frame->OnUpdateFrameMenu(menu);
     } else if (std::exchange(menus.m_bSharedMenuInstalled, FALSE)) {
+        m_retailTail.m_hWndServer = nullptr;
         const HMENU original = std::exchange(menus.m_hOriginalMenu, nullptr);
         if (original) frame->OnUpdateFrameMenu(original);
         else {
