@@ -24,6 +24,7 @@ class FeaturePackInPlaceFrame : public COleIPFrameWnd {
 public:
     explicit FeaturePackInPlaceFrame(CRuntimeClass* type) : m_dockManager(this), type_(type) {}
     CRuntimeClass* GetRuntimeClass() const override { return type_; }
+    void OnSetPreviewMode(BOOL preview, CPrintPreviewState* state) override;
     CBasePane* FindPane(UINT id);
     BOOL TogglePane(UINT id);
     void UpdatePaneMenu(CCmdUI* command);

@@ -143,8 +143,8 @@ extern "C" int MS_ABI impl__IsModified_CDocument__UEBAHXZ(const CDocument* pThis
 // CFrameWnd::OnCreateHelper / OnSetPreviewMode (frame/Thunks.cpp)
 extern "C" int MS_ABI impl__OnCreateHelper_CFrameWnd__IEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
     CFrameWnd* pThis, CREATESTRUCTW* pcs, CCreateContext* pContext);
-extern "C" void MS_ABI impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(
-    CFrameWnd* pThis, int bPreview, CPrintPreviewState* pState);
+extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(
+    CDockingManager*, int, CPrintPreviewState*);
 // CMDIFrameWnd::MDIGetActive (frame/Thunks.cpp)
 extern "C" CMDIChildWnd* MS_ABI impl__MDIGetActive_CMDIFrameWnd__QEBAPEAVCMDIChildWnd__PEAH_Z(
     const CMDIFrameWnd* pThis, int* pbMaximized);
@@ -2520,23 +2520,15 @@ extern "C" HICON MS_ABI impl__OnSetIcon_CMDIChildWndEx__IEAAPEAUHICON____HPEAU2_
 //     pState-><+0x10> = dwSaved;
 //     this->vtbl[0x3a8](NULL);                                    // AdjustDockingLayout(NULL)
 //     this->vtbl[0x300](TRUE);                                    // RecalcLayout(TRUE), tail
-// Reproduced: the base OnSetPreviewMode, AdjustDockingLayout(NULL) and
-// RecalcLayout(TRUE), the last two as direct calls to this class's exports.
-// NOT reproduced: the main frame's m_pPrintPreviewFrame back-pointer (a
-// CMDIFrameWndEx member OpenMFC does not model), the embedded
-// CDockingManager's SetPrintPreviewMode (no dock manager at this+0x3a8 here)
-// and the dwStates save/restore (CPrintPreviewState is an incomplete type in
-// OpenMFC and its CFrameWnd::OnSetPreviewMode never touches pState) -- the
-// same three omissions core/frame/CFrameWndEx.cpp makes for its twin.
 // Symbol: ?OnSetPreviewMode@CMDIChildWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z
 extern "C" void MS_ABI impl__OnSetPreviewMode_CMDIChildWndEx__UEAAXHPEAUCPrintPreviewState___Z(
     CMDIChildWndEx* pThis, int bPreview, CPrintPreviewState* pState) {
-    if (!pThis) {
-        return;
-    }
-    // TODO(clean-room): the main frame's m_pPrintPreviewFrame write and
-    // CDockingManager::SetPrintPreviewMode on this+0x3a8 are unmodeled.
-    impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(pThis, bPreview, pState);
-    impl__AdjustDockingLayout_CMDIChildWndEx__UEAAXPEAX_Z(pThis, nullptr);
-    impl__RecalcLayout_CMDIChildWndEx__UEAAXH_Z(pThis, TRUE);
+    if (pThis) pThis->CMDIChildWndEx::OnSetPreviewMode(bPreview, pState);
+}
+
+void CMDIChildWndEx::OnSetPreviewMode(BOOL preview, CPrintPreviewState* state) {
+    impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(DockManagerOf(this), preview, state);
+    CFrameWnd::OnSetPreviewMode(preview, state);
+    impl__AdjustDockingLayout_CMDIChildWndEx__UEAAXPEAX_Z(this, nullptr);
+    impl__RecalcLayout_CMDIChildWndEx__UEAAXH_Z(this, TRUE);
 }

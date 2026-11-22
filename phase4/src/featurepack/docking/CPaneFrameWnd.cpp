@@ -2709,6 +2709,16 @@ void openmfc::detail::FinishFloatingFrameRestore(CPaneFrameWnd& frame, bool show
     ::ShowWindow(frame.m_hWnd, show ? SW_SHOWNOACTIVATE : SW_HIDE);
 }
 
+void openmfc::detail::ApplyDelayedMiniFrameVisibility(CPaneFrameWnd& frame, BOOL show) {
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto* state = FindStatePtr(&frame);
+        if (!state || !std::exchange(state->delayShow, false)) return;
+    }
+    if (::IsWindow(frame.m_hWnd))
+        ::ShowWindow(frame.m_hWnd, show ? SW_SHOWNOACTIVATE : SW_HIDE);
+}
+
 // Symbol: ?SetDockState@CPaneFrameWnd@@UEAAXPEAVCDockingManager@@@Z
 extern "C" void MS_ABI impl__SetDockState_CPaneFrameWnd__UEAAXPEAVCDockingManager___Z(
     void* self, void* dockManager) {

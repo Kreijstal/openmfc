@@ -88,8 +88,8 @@ extern "C" int MS_ABI impl__OnCommand_CFrameWnd__MEAAH_K_J_Z(
 extern "C" void MS_ABI impl__OnContextHelp_CFrameWnd__QEAAXXZ(CFrameWnd* pThis);
 extern "C" __int64 MS_ABI impl__OnMenuChar_CFrameWnd__IEAA_JIIPEAVCMenu___Z(
     CFrameWnd* pThis, unsigned int nChar, unsigned int nFlags, CMenu* pMenu);
-extern "C" void MS_ABI impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(
-    CFrameWnd* pThis, int bPreview, CPrintPreviewState* pState);
+extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(
+    CDockingManager*, int, CPrintPreviewState*);
 extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(
     CFrameWnd* pThis, CREATESTRUCTW& cs);
 extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(
@@ -546,27 +546,16 @@ extern "C" int MS_ABI impl__OnSetMenu_COleIPFrameWndEx__IEAAHPEAUHMENU_____Z(voi
     return 0;   // retail's "no menu bar" result
 }
 
-// COleIPFrameWndEx::OnSetPreviewMode(BOOL, CPrintPreviewState*) — retail
-// (mfc140.dll ANSI RVA 0x961b0):
-//     CDockingManager::SetPrintPreviewMode(this+0x428, bPreview, pState);
-//     saved = pState->[0x10];
-//     CFrameWnd::OnSetPreviewMode(this, bPreview, pState);
-//     pState->[0x10] = saved;
-//     tail-call this->vtable[0x300](this, TRUE);      // RecalcLayout(TRUE)
-// The docking manager and the class vtable are not modeled.  Only the base
-// CFrameWnd::OnSetPreviewMode is performed: the pState->[0x10] save/restore is
-// NOT reproduced (CPrintPreviewState's retail layout is not modeled here, and
-// writing a raw offset into a caller-owned struct would be a guess), and the
-// trailing virtual RecalcLayout(TRUE) is not reachable without a class vtable.
 // Symbol: ?OnSetPreviewMode@COleIPFrameWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z
 extern "C" void MS_ABI impl__OnSetPreviewMode_COleIPFrameWndEx__UEAAXHPEAUCPrintPreviewState___Z(
-    CFrameWnd* pThis, int bPreview, CPrintPreviewState* pState) {
-    if (!pThis) return;
-    // TODO(clean-room): transcribed partially — CDockingManager's print-preview
-    // switch (this+0x428) and the trailing virtual RecalcLayout(TRUE) are not
-    // modeled, and retail's save/restore of pState->[0x10] around the base call
-    // is NOT performed (that offset is not pinned by anything in this tree).
-    impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(pThis, bPreview, pState);
+    FeaturePackInPlaceFrame* frame, int preview, CPrintPreviewState* state) {
+    if (frame) frame->FeaturePackInPlaceFrame::OnSetPreviewMode(preview, state);
+}
+
+void openmfc::detail::olecore::FeaturePackInPlaceFrame::OnSetPreviewMode(BOOL preview, CPrintPreviewState* state) {
+    impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(&m_dockManager, preview, state);
+    CFrameWnd::OnSetPreviewMode(preview, state);
+    RecalcLayout(TRUE);
 }
 
 // Symbol: ?OnShowPanes@COleIPFrameWndEx@@UEAAHH@Z

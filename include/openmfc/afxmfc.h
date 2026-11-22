@@ -1666,6 +1666,7 @@ public:
                         const RECT& rect, CWnd* pParentWnd, const wchar_t* lpszMenuName,
                         DWORD dwExStyle, CCreateContext* pContext) override;
     BOOL LoadFrame(UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParentWnd, CCreateContext* pContext) override;
+    void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) override;
 
     CMFCVisualManager* GetVisualManager() const;
     CDockingManager* GetDockingManager();
@@ -1685,6 +1686,7 @@ class CMDIFrameWndEx : public CMDIFrameWnd {
 public:
     CMDIFrameWndEx();
     virtual ~CMDIFrameWndEx();
+    void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) override;
 
     CMFCVisualManager* GetVisualManager() const;
 
@@ -1701,6 +1703,7 @@ class CMDIChildWndEx : public CMDIChildWnd {
 public:
     CMDIChildWndEx();
     virtual ~CMDIChildWndEx();
+    void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) override;
 
 protected:
     char _mdichildwndex_padding[64];

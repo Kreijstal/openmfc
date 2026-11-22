@@ -210,7 +210,6 @@ extern "C" int MS_ABI impl__PreCreateWindow_CMDIFrameWnd__UEAAHAEAUtagCREATESTRU
 extern "C" int MS_ABI impl__PreTranslateMessage_CMDIFrameWnd__UEAAHPEAUtagMSG___Z(CMDIFrameWnd* pThis, MSG* pMsg);
 extern "C" int MS_ABI impl__SetMenu_CFrameWnd__UEAAHPEAVCMenu___Z(CFrameWnd* pThis, CMenu* pMenu);
 extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int bNotify);
-extern "C" void MS_ABI impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(CFrameWnd* pThis, int bPreview, CPrintPreviewState* pState);
 extern "C" CMenu* MS_ABI impl__FromHandle_CMenu__SAPEAV1_PEAUHMENU_____Z(HMENU hMenu);
 // CMFCRibbonBar (featurepack/ribbon/CMFCRibbonBar.cpp)
 extern "C" void MS_ABI impl__SetActiveMDIChild_CMFCRibbonBar__QEAAXPEAVCWnd___Z(CMFCRibbonBar* pThis, CWnd* pWnd);
@@ -247,9 +246,6 @@ extern "C" void MS_ABI impl___1CMFCToolBarMenuButton__UEAA_XZ(void* pThis);
 extern "C" void MS_ABI impl__AddBasicCommand_CMFCToolBar__SAXI_Z(unsigned int uiCmd);
 extern "C" int MS_ABI impl__OnShowPopupMenu_CFrameImpl__IEAAHPEAVCMFCPopupMenu__PEAVCFrameWnd___Z(
     void* pThis, void* pPopupMenu, CFrameWnd* pWnd);
-// CDockingManager::SetPrintPreviewMode -- the definition in
-// featurepack/docking/CDockingManager.cpp still carries a placeholder list; this
-// is the list the mangled name describes.
 extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(
     CDockingManager* pThis, int bPreview, CPrintPreviewState* pState);
 // AfxFindStringResourceHandle (featurepack/CMFC_misc_stubs.cpp)
@@ -1922,30 +1918,27 @@ extern "C" int MS_ABI impl__OnSetMenu_CMDIFrameWndEx__MEAAHPEAUHMENU_____Z(CMDIF
 //     CMFCRibbonBar* pRibbon = m_Impl.+0x180;               // this+0x710
 //     if (pRibbon && pRibbon->m_bReplaceFrameCaption /* +0x468 */)
 //         ::PostMessage(m_hWnd, AFX_WM_POSTSETPREVIEWFRAME, bPreview, 0);   // slot 0x1802c52d8
-// DEVIATIONS: the MDI-tab arm needs the CMDIClientAreaWnd sub-object, which is
-// not constructed for OpenMFC frames (file header), and is skipped; the
-// docking manager's SetPrintPreviewMode is a generated no-op stub in this
-// tree, so its call is kept but has no effect.  pState->+0x10 is restored the
-// way retail does it (the CFrameWnd body rewrites it).  The AdjustDockingLayout
-// and RecalcLayout calls go through this file's thunks, not the vtable.
 // Symbol: ?OnSetPreviewMode@CMDIFrameWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z
 extern "C" void MS_ABI impl__OnSetPreviewMode_CMDIFrameWndEx__UEAAXHPEAUCPrintPreviewState___Z(
     CMDIFrameWndEx* pThis, int bPreview, CPrintPreviewState* pState) {
-    if (!pThis) return;
-    impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(DockManagerOf(pThis), bPreview, pState);
+    if (pThis) pThis->CMDIFrameWndEx::OnSetPreviewMode(bPreview, pState);
+}
+
+void CMDIFrameWndEx::OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) {
+    impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(DockManagerOf(this), bPreview, pState);
     int saved = 0;
     if (pState != nullptr) {
         memcpy(&saved, reinterpret_cast<unsigned char*>(pState) + 0x10, sizeof(saved));
     }
-    impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(pThis, bPreview, pState);
+    CFrameWnd::OnSetPreviewMode(bPreview, pState);
     if (pState != nullptr) {
         memcpy(reinterpret_cast<unsigned char*>(pState) + 0x10, &saved, sizeof(saved));
     }
-    impl__AdjustDockingLayout_CMDIFrameWndEx__UEAAXPEAX_Z(pThis, nullptr);
-    impl__RecalcLayout_CMDIFrameWndEx__UEAAXH_Z(pThis, TRUE);
-    CMFCRibbonBar* pRibbon = RibbonBarOf(pThis);
+    impl__AdjustDockingLayout_CMDIFrameWndEx__UEAAXPEAX_Z(this, nullptr);
+    impl__RecalcLayout_CMDIFrameWndEx__UEAAXH_Z(this, TRUE);
+    CMFCRibbonBar* pRibbon = RibbonBarOf(this);
     if (pRibbon != nullptr && pRibbon->m_bReplaceFrameCaption != 0) {
-        ::PostMessage(pThis->m_hWnd, impl__AFX_WM_POSTSETPREVIEWFRAME__3IA,
+        ::PostMessage(m_hWnd, impl__AFX_WM_POSTSETPREVIEWFRAME__3IA,
                       static_cast<WPARAM>(bPreview), 0);
     }
 }

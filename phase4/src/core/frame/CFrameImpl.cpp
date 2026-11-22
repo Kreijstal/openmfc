@@ -90,6 +90,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/MfccoreSupport.h"
 // For the CObList side table: OpenMFC's list wrappers keep their contents in a
 // per-object state map (OPENMFC_DECLARE_LIST_WRAPPER, include/openmfc/afx.h), not in
 // the object's own bytes.  FindListStorage below is the header-only accessor for it.
@@ -110,6 +111,7 @@ impl__GetRegSectionPath_CWinAppEx__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__C
     CString* ret, CWinAppEx* pThis, const wchar_t* add);
 extern "C" int MS_ABI impl__LoadLargeIconsState_CMFCToolBar__SAHPEB_W_Z(const wchar_t* lpszProfileName);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ();
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCPrintPreviewToolBar__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIChildWnd__SAPEAUCRuntimeClass__XZ();
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(unsigned int nID);
@@ -519,14 +521,9 @@ BOOL CallDwmDefWindowProc(HWND hWnd, UINT nMsg, WPARAM wParam, LPARAM lParam, LR
     return g_pfnDwmDefWindowProc(hWnd, nMsg, wParam, lParam, plResult);
 }
 
-// The retail +0x208 BOOL of CDockingManager (the print-preview flag that
-// ?IsPrintPreview@CFrameImpl@@ 0x66ab0 and OnMenuChar 0x64490 test).  OpenMFC's
-// CDockingManager (include/openmfc/afxmfc.h) has no such member and its
-// SetPrintPreviewMode export is a stub, so print-preview mode can never be entered
-// on this side: the flag reads as FALSE.
 BOOL DockManagerIsPrintPreview(const CDockingManager* pDockManager) {
-    (void)pDockManager;
-    return FALSE;
+    const auto* state = openmfc::detail::mfccore::FindDockingState(pDockManager);
+    return state && state->printPreviewMode;
 }
 
 // Caption-button list access (retail +0xd0).  The CObList is constructed on first
@@ -2087,13 +2084,7 @@ extern "C" int MS_ABI impl__IsHelpKey_CFrameImpl__KAHPEAUtagMSG___Z(MSG* lpMsg) 
     return TRUE;
 }
 
-// Retail 0x66ab0 is `m_pDockManager (+0x120) != NULL && m_pDockManager->[+0x208] != 0`
-// -- a BOOL that sits directly in front of the print-preview pane list at +0x210 (the
-// list ?HideForPrintPreview@CDockingManager@@ 0x4ce00 fills).  The dock-manager pointer
-// is the companion-state field the frame files set through
-// openmfc_CFrameImpl_SetDockManager; the +0x208 flag has no OpenMFC CDockingManager
-// member (see DockManagerIsPrintPreview), so this STILL RETURNS FALSE for every
-// caller -- only the null test is real.
+// Retail 0x66ab0 reads the attached docking manager's print-preview flag.
 // Symbol: ?IsPrintPreview@CFrameImpl@@IEAAHXZ
 extern "C" int MS_ABI impl__IsPrintPreview_CFrameImpl__IEAAHXZ(void* pThis) {
     CDockingManager* pDockManager = nullptr;
@@ -2573,10 +2564,8 @@ extern "C" void MS_ABI impl__OnLButtonUp_CFrameImpl__IEAAXVCPoint___Z(void* pThi
 //         if (pToolBar->TranslateChar(nChar)) return TRUE;                         // vftable +0x738
 //     }
 //     return FALSE;
-// DEVIATION: the print-preview flag reads FALSE here (DockManagerIsPrintPreview, no
-// such CDockingManager member in OpenMFC), so the CMFCPrintPreviewToolBar filter never
-// engages; the TranslateChar calls go to the CMFCRibbonBar / CMFCToolBar thunks rather
-// than the objects' vtables; the toolbar list is read through FindListStorage.
+// The toolbar list is read through FindListStorage and TranslateChar uses the
+// class thunks.
 // Symbol: ?OnMenuChar@CFrameImpl@@IEAAHI@Z
 extern "C" int MS_ABI impl__OnMenuChar_CFrameImpl__IEAAHI_Z(void* pThis, unsigned int nChar) {
     CMFCRibbonBar* pRibbonBar = nullptr;
@@ -2615,9 +2604,7 @@ extern "C" int MS_ABI impl__OnMenuChar_CFrameImpl__IEAAHI_Z(void* pThis, unsigne
             impl__AfxThrowInvalidArgException__YAXXZ();
             return FALSE;
         }
-        if (bPrintPreview) {
-            // Unreachable while DockManagerIsPrintPreview is FALSE; retail filters on
-            // IsKindOf(RUNTIME_CLASS(CMFCPrintPreviewToolBar)) here.
+        if (bPrintPreview && !pToolBar->IsKindOf(impl__GetThisClass_CMFCPrintPreviewToolBar__SAPEAUCRuntimeClass__XZ())) {
             continue;
         }
         if (impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(pToolBar->m_hWnd) == nullptr) {

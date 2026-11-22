@@ -139,9 +139,7 @@ struct DockingManagerState {
     CBasePane** hiddenMDITabbedBars = nullptr;       // m_lstHiddenMDITabbedBars +0x2d0, side storage
     std::size_t hiddenMDITabbedBarCount = 0;
     std::size_t hiddenMDITabbedBarCapacity = 0;
-    CBasePane** printPreviewHiddenBars = nullptr;    // preview saved list +0x210, side storage
-    std::size_t printPreviewHiddenBarCount = 0;
-    std::size_t printPreviewHiddenBarCapacity = 0;
+    std::vector<HWND> printPreviewHiddenBars;       // m_lstBarsHiddenInPreview +0x210
     bool printPreviewMode = false;                   // preview state +0x208
     bool showPanesMode = false;                       // panes are temporarily hidden
     std::vector<HWND> panesHiddenForInPlace;

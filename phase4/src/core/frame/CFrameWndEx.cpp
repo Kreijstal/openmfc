@@ -103,8 +103,8 @@ extern "C" void MS_ABI impl__OnUpdateFrameMenu_CFrameWnd__UEAAXPEAUHMENU_____Z(
 extern "C" void MS_ABI impl__OnUpdateFrameTitle_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int bAddToTitle);
 extern "C" int MS_ABI impl__NegotiateBorderSpace_CFrameWnd__UEAAHIPEAUtagRECT___Z(
     CFrameWnd* pThis, unsigned int nBorderCmd, RECT* lpRectBorder);
-extern "C" void MS_ABI impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(
-    CFrameWnd* pThis, int bPreview, CPrintPreviewState* pState);
+extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(
+    CDockingManager*, int, CPrintPreviewState*);
 extern "C" int MS_ABI impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(
     CFrameWnd* pThis, CREATESTRUCTW& cs);
 extern "C" int MS_ABI impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(
@@ -1069,18 +1069,17 @@ extern "C" __int64 MS_ABI impl__OnSetMenu_CFrameWndEx__QEAA_J_K_J_Z(
 //     if (m_pRibbonBar /*this+0x370*/ && m_pRibbonBar->[+0x468])
 //         ::PostMessageW(m_hWnd, AFX_WM_POSTSETPREVIEWFRAME /*0x3c1618*/,
 //                        bPreview, 0);            // USER32 IAT slot 0x2c72b0
-// Reproduced: the base OnSetPreviewMode, AdjustDockingLayout(NULL) and
-// RecalcLayout(TRUE).  NOT reproduced (all unmodelled): the top-frame back
-// pointer at +0x6e8, CDockingManager::SetPrintPreviewMode (OpenMFC ships that
-// export as a no-op stub), the save/restore of CPrintPreviewState+0x10, and the
-// ribbon-bar notification.
 // Symbol: ?OnSetPreviewMode@CFrameWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z
 extern "C" void MS_ABI impl__OnSetPreviewMode_CFrameWndEx__UEAAXHPEAUCPrintPreviewState___Z(
     CFrameWndEx* pThis, int bPreview, CPrintPreviewState* pState) {
-    if (!pThis) return;
-    impl__OnSetPreviewMode_CFrameWnd__UEAAXHPEAUCPrintPreviewState___Z(pThis, bPreview, pState);
-    impl__AdjustDockingLayout_CFrameWndEx__UEAAXPEAX_Z(pThis, nullptr);
-    impl__RecalcLayout_CFrameWndEx__UEAAXH_Z(pThis, TRUE);
+    if (pThis) pThis->CFrameWndEx::OnSetPreviewMode(bPreview, pState);
+}
+
+void CFrameWndEx::OnSetPreviewMode(BOOL preview, CPrintPreviewState* state) {
+    impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(GetDockingManager(), preview, state);
+    CFrameWnd::OnSetPreviewMode(preview, state);
+    impl__AdjustDockingLayout_CFrameWndEx__UEAAXPEAX_Z(this, nullptr);
+    impl__RecalcLayout_CFrameWndEx__UEAAXH_Z(this, TRUE);
 }
 
 // CFrameWndEx::OnSetText(LPCTSTR) -- retail (RVA 0x688f0):

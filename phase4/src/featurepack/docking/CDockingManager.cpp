@@ -36,6 +36,8 @@ extern "C" void MS_ABI impl__Slide_CDockablePane__UEAAXHH_Z(CDockablePane*, BOOL
 extern "C" void* MS_ABI impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(const CDockablePane*);
 extern "C" void MS_ABI impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(
     CDockingManager*, CPaneDivider*, BOOL);
+extern "C" void MS_ABI impl__CalcPaneOffset_CDockingManager__IEAAXPEAVCAutoHideDockSite___Z(
+    CDockingManager*, CAutoHideDockSite*);
 
 extern "C" void* MS_ABI impl__FindPaneByID_CDockSite__QEAAPEAVCPane__I_Z(void*, unsigned int);
 extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd*);
@@ -193,6 +195,16 @@ void LayoutDockSites(CDockingManager& manager, const DockingManagerState& state,
             bounds.right - bounds.left, bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE);
     }
     if (layout) ::EndDeferWindowPos(layout);
+    for (const auto& entry : state.dockSites) {
+        if (!entry.autoHide) continue;
+        auto* site = static_cast<CAutoHideDockSite*>(entry.site);
+        site->m_nOffsetLeft = site->m_nOffsetRight = 0;
+    }
+    for (const auto& entry : state.dockSites) {
+        if (entry.autoHide)
+            impl__CalcPaneOffset_CDockingManager__IEAAXPEAVCAutoHideDockSite___Z(
+                &manager, static_cast<CAutoHideDockSite*>(entry.site));
+    }
     for (const auto& entry : state.dockSites) {
         if (entry.autoHide && !entry.site->m_lstDockBarRows.IsEmpty())
             impl__RepositionPanes_CAutoHideDockSite__UEAAXAEAVCRect___Z(entry.site, nullptr);
@@ -1121,11 +1133,8 @@ CDockingManager::~CDockingManager() {
             delete site;
         }
         std::free(state.hiddenMDITabbedBars);
-        std::free(state.printPreviewHiddenBars);
         state.hiddenMDITabbedBars = nullptr;
-        state.printPreviewHiddenBars = nullptr;
         state.hiddenMDITabbedBarCount = state.hiddenMDITabbedBarCapacity = 0;
-        state.printPreviewHiddenBarCount = state.printPreviewHiddenBarCapacity = 0;
     }
     RemoveDockingState(this);
 }
@@ -1677,12 +1686,37 @@ extern "C" void MS_ABI impl__AlignByRect_CDockingManager__IEAAXAEBVCRect__AEAV2_
 }
 
 // Symbol: ?CalcPaneOffset@CDockingManager@@IEAAXPEAVCAutoHideDockSite@@@Z
-// STUB: Retail entry RVA 0x4a100 (mfc140u) compares neighboring auto-hide dock-site
-// rectangles/orientations and updates their +0x220/+0x224 offsets. The manager's
-// dockSites side array exists, but this TU has no typed accessor for the auto-hide
-// site's offset fields and adjacent-site geometry.
+// mfc140u 0x4a100. Each corner is visited from one of its two sides.
 extern "C" void MS_ABI impl__CalcPaneOffset_CDockingManager__IEAAXPEAVCAutoHideDockSite___Z(
-    CDockingManager*, void*) {}
+    CDockingManager* manager, CAutoHideDockSite* site) {
+    const auto* state = FindDockingState(manager);
+    RECT bounds{};
+    if (!state || !site || !::GetWindowRect(site->m_hWnd, &bounds)) return;
+    const DWORD side = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(site);
+    const LONG width = bounds.right - bounds.left;
+    const LONG height = bounds.bottom - bounds.top;
+    for (const auto& entry : state->dockSites) {
+        if (!entry.autoHide || entry.site == site) continue;
+        auto* adjacent = static_cast<CAutoHideDockSite*>(entry.site);
+        const DWORD adjacentSide = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(adjacent);
+        if (((side & CBRS_ORIENT_HORZ) != 0) == ((adjacentSide & CBRS_ORIENT_HORZ) != 0)) continue;
+        RECT rect{};
+        if (!::GetWindowRect(adjacent->m_hWnd, &rect) || ::IsRectEmpty(&rect)) continue;
+        if ((side & CBRS_ALIGN_LEFT) && (adjacentSide & CBRS_ALIGN_TOP)) {
+            if (bounds.top == rect.bottom) adjacent->m_nOffsetLeft = width;
+            if (bounds.right == rect.left) site->m_nOffsetLeft = rect.bottom - rect.top;
+        } else if ((side & CBRS_ALIGN_TOP) && (adjacentSide & CBRS_ALIGN_RIGHT)) {
+            if (bounds.right == rect.left) adjacent->m_nOffsetLeft = height;
+            if (bounds.bottom == rect.top) site->m_nOffsetRight = rect.right - rect.left;
+        } else if ((side & CBRS_ALIGN_RIGHT) && (adjacentSide & CBRS_ALIGN_BOTTOM)) {
+            if (bounds.bottom == rect.top) adjacent->m_nOffsetRight = width;
+            if (bounds.left == rect.right) site->m_nOffsetRight = width;
+        } else if ((side & CBRS_ALIGN_LEFT) && (adjacentSide & CBRS_ALIGN_BOTTOM)) {
+            if (bounds.bottom == rect.top) adjacent->m_nOffsetLeft = width;
+            if (bounds.right == rect.left) site->m_nOffsetRight = rect.bottom - rect.top;
+        }
+    }
+}
 
 // Symbol: ?Create@CDockingManager@@QEAAHPEAVCFrameWnd@@@Z
 // Retail RVA 0x473e0 (mfc140u) stores the frame at this+0x1b0 and returns TRUE.
@@ -1731,14 +1765,60 @@ extern "C" void* MS_ABI impl__FindDockSiteByPane_CDockingManager__UEAAPEAVCDockS
     return nullptr;
 }
 
+namespace {
+extern "C" int MS_ABI impl__IsVisible_CBasePane__UEBAHXZ(const CBasePane*);
+extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(CBasePane*, int, int, int);
+extern "C" void MS_ABI impl__ShowPane_CDockablePane__UEAAXHHH_Z(CDockablePane*, int, int, int);
+
+void SetPreviewPaneVisibility(CBasePane* pane, BOOL visible) {
+    if (pane->IsKindOf(RUNTIME_CLASS(CDockablePane))) {
+        auto* dockable = static_cast<CDockablePane*>(pane);
+        impl__ShowPane_CDockablePane__UEAAXHHH_Z(dockable, visible, TRUE, FALSE);
+        if (dockable->IsAutoHideMode()) {
+            auto* divider = static_cast<CPaneDivider*>(
+                impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(dockable));
+            if (divider) ::ShowWindow(divider->m_hWnd, visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+        }
+    } else {
+        impl__ShowPane_CBasePane__UEAAXHHH_Z(pane, visible, TRUE, FALSE);
+    }
+}
+}
+
 // Symbol: ?HideForPrintPreview@CDockingManager@@IEAAXAEBVCObList@@@Z
-// STUB: Retail entry RVA 0x4cfb0 (mfc140u) applies virtual type/visibility/eligibility
-// checks to the supplied CObList. It separately scans manager mini-frames, validates
-// their HWNDs, hides valid windows, and records eligible objects in
-// m_lstBarsHiddenInPreview (+0x210). The side table has a saved-entry array, but not
-// the input-list traversal and eligibility state.
+// mfc140u 0x4cfb0. Remember each visible eligible pane and each visible mini-frame.
 extern "C" void MS_ABI impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObList___Z(
-    CDockingManager*, const CObList*) {}
+    CDockingManager* manager, const CObList* panes) {
+    if (!manager || !panes || panes->IsEmpty()) return;
+    auto& state = EnsureDockingState(manager);
+    auto& hidden = state.printPreviewHiddenBars;
+    std::vector<HWND> candidates;
+    for (auto position = panes->GetHeadPosition(); position != nullptr;) {
+        auto* object = panes->GetNext(position);
+        if (object && object->IsKindOf(RUNTIME_CLASS(CBasePane)))
+            candidates.push_back(static_cast<CBasePane*>(object)->m_hWnd);
+    }
+    for (HWND window : candidates) {
+        auto* object = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+        if (!object || !object->IsKindOf(RUNTIME_CLASS(CBasePane)) ||
+            object->IsKindOf(RUNTIME_CLASS(CMFCRibbonBar))) continue;
+        auto* pane = static_cast<CBasePane*>(object);
+        if (state.floatingPanes.count(pane) || !impl__IsVisible_CBasePane__UEBAHXZ(pane) ||
+            std::find(hidden.begin(), hidden.end(), window) != hidden.end()) continue;
+        hidden.push_back(window);
+        SetPreviewPaneVisibility(pane, FALSE);
+    }
+    std::vector<HWND> frames;
+    for (void* value : state.miniFrames) {
+        if (auto* frame = static_cast<CWnd*>(value); frame && ::IsWindowVisible(frame->m_hWnd))
+            frames.push_back(frame->m_hWnd);
+    }
+    for (HWND window : frames) {
+        if (!::IsWindowVisible(window)) continue;
+        hidden.push_back(window);
+        ::ShowWindow(window, SW_HIDE);
+    }
+}
 
 // Symbol: ?InsertDockSite@CDockingManager@@QEAAHAEBUAFX_DOCKSITE_INFO@@KPEAPEAVCDockSite@@@Z
 extern "C" BOOL MS_ABI impl__InsertDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__KPEAPEAVCDockSite___Z(
@@ -2169,12 +2249,35 @@ void CDockingManager::Serialize(CArchive& archive) {
 }
 
 // Symbol: ?SetAutohideZOrder@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
-// STUB: The ANSI twin's retail entry RVA 0x49640 (mfc140) walks the manager control-bar
-// list from its tail, filters pane/auto-hide-bar runtime classes, compares alignment
-// and divider relationships, then dispatches virtual positioning operations. The local
-// side table does not preserve the required complete membership/order and relationships.
+// mfc140u 0x497f0. The active pane sits behind its divider and above panes on its side.
 extern "C" void MS_ABI impl__SetAutohideZOrder_CDockingManager__QEAAXPEAVCDockablePane___Z(
-    CDockingManager*, CDockablePane*) {}
+    CDockingManager* manager, CDockablePane* pane) {
+    const auto* state = FindDockingState(manager);
+    if (!state || !pane || !pane->m_hWnd) return;
+    const HWND window = pane->m_hWnd;
+    const HWND parent = ::GetParent(window);
+    auto* divider = static_cast<CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pane));
+    const HWND dividerWindow = divider ? divider->m_hWnd : nullptr;
+    const DWORD side = impl__GetCurrentAlignment_CBasePane__UEBAKXZ(pane);
+    constexpr UINT flags = SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE;
+    std::vector<HWND> adjacentPanes;
+    for (auto it = state->panes.rbegin(); it != state->panes.rend(); ++it) {
+        const auto* other = *it;
+        if (other && other != pane && other->m_hWnd && ::GetParent(other->m_hWnd) == parent &&
+            other->IsKindOf(RUNTIME_CLASS(CPane)) && impl__GetCurrentAlignment_CBasePane__UEBAKXZ(other) == side)
+            adjacentPanes.push_back(other->m_hWnd);
+    }
+    const auto edges = state->edgePanes;
+    for (auto it = edges.rbegin(); it != edges.rend(); ++it) {
+        if (it->divider != dividerWindow && ::GetParent(it->divider) == parent)
+            ::SetWindowPos(it->divider, HWND_BOTTOM, 0, 0, 0, 0, flags);
+    }
+    for (HWND other : adjacentPanes)
+        ::SetWindowPos(other, window, 0, 0, 0, 0, flags);
+    if (::IsWindow(window))
+        ::SetWindowPos(window, dividerWindow ? dividerWindow : HWND_TOP, 0, 0, 0, 0, flags);
+}
 
 // Symbol: ?SetDockingMode@CDockingManager@@SAXW4AFX_DOCK_TYPE@@W4AFX_SMARTDOCK_THEME@@@Z
 // Retail ANSI-twin entry RVA 0x4da50 (mfc140; --u does not resolve this name): store
@@ -2191,12 +2294,39 @@ extern "C" void MS_ABI impl__SetDockingMode_CDockingManager__SAXW4AFX_DOCK_TYPE_
 }
 
 // Symbol: ?SetPrintPreviewMode@CDockingManager@@QEAAXHPEAUCPrintPreviewState@@@Z
-// STUB: The ANSI twin's retail entry RVA 0x4ced0 (mfc140) toggles +0x208 and, when
-// parent/OLE conditions permit, hides/restores eligible entries through manager lists.
-// printPreviewMode and printPreviewHiddenBars are modeled, but the second manager list
-// and parent-frame OLE-notify-hook state needed to reproduce the path are not.
+// mfc140u 0x4d080. OLE in-place frames own their control-bar visibility.
 extern "C" void MS_ABI impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(
-    CDockingManager*, int, void*) {}
+    CDockingManager* manager, int preview, CPrintPreviewState*) {
+    if (!manager) return;
+    auto& state = EnsureDockingState(manager);
+    if (std::exchange(state.printPreviewMode, preview != FALSE) == (preview != FALSE)) return;
+
+    const auto* frame = state.parentFrame;
+    const void* notifyHook = nullptr;
+    if (frame && frame->m_hWnd)
+        std::memcpy(&notifyHook, frame->m_retailMiddle.m_pNotifyHook, sizeof(notifyHook));
+
+    auto previous = std::exchange(state.printPreviewHiddenBars, {});
+    if (notifyHook) return;
+    if (preview) {
+        CObList autoHide;
+        for (const auto& bar : state.autoHideBars) autoHide.AddTail(bar.get());
+        impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObList___Z(manager, &autoHide);
+        CObList panes;
+        for (const auto& site : state.dockSites) panes.AddTail(site.site);
+        for (auto* pane : state.panes) if (pane) panes.AddTail(pane);
+        impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObList___Z(manager, &panes);
+        return;
+    }
+    for (HWND window : previous) {
+        auto* object = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+        if (!object) continue;
+        if (object->IsKindOf(RUNTIME_CLASS(CBasePane)))
+            SetPreviewPaneVisibility(static_cast<CBasePane*>(object), TRUE);
+        else if (object->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
+            ::ShowWindow(window, SW_SHOWNOACTIVATE);
+    }
+}
 
 // Symbol: ?SetSmartDockingParams@CDockingManager@@SAXAEAVCSmartDockingInfo@@@Z
 // Retail ANSI-twin entry RVA 0x4da70 (mfc140; --u does not resolve this name): copy
@@ -2224,12 +2354,21 @@ extern "C" void MS_ABI impl__SetSmartDockingParams_CDockingManager__SAXAEAVCSmar
 }
 
 // Symbol: ?ShowDelayShowMiniFrames@CDockingManager@@UEAAXH@Z
-// The ANSI twin's retail entry RVA 0x4d6c0 (mfc140) scans mini-frames, tests
-// m_bDelayShow (+0x108), calls USER32 IsWindow and (when valid) ShowWindow, then
-// clears the flag. The flag is modeled in PaneFrameState, but its only accessor is a
-// C++ helper in another TU; this file cannot call it without violating the thunk rule.
+// mfc140u 0x4d870. Consume only mini-frames marked for delayed visibility.
 extern "C" void MS_ABI impl__ShowDelayShowMiniFrames_CDockingManager__UEAAXH_Z(
-    CDockingManager*, int) {}
+    CDockingManager* manager, int show) {
+    const auto* state = FindDockingState(manager);
+    if (!state) return;
+    const auto frames = state->miniFrames;
+    for (auto* value : frames) {
+        const auto* current = FindDockingState(manager);
+        if (!current || std::find(current->miniFrames.begin(), current->miniFrames.end(), value) == current->miniFrames.end())
+            continue;
+        auto* frame = static_cast<CWnd*>(value);
+        if (frame && frame->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
+            openmfc::detail::ApplyDelayedMiniFrameVisibility(*static_cast<CPaneFrameWnd*>(frame), show);
+    }
+}
 
 // Symbol: ?ShowPanes@CDockingManager@@UEAAHH@Z
 // mfc140 0x4d490 saves the visible pane HWNDs so intentionally hidden panes stay hidden.
