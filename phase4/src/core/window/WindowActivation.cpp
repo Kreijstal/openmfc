@@ -77,6 +77,16 @@ HWND ContextCreateWindow(CREATESTRUCTW create) {
     } __finally {FinishContext(cookie,result==nullptr);}
     return result;
 }
+HWND ContextCreateDialog(HINSTANCE module, const DLGTEMPLATE* dialog, HWND parent, DLGPROC procedure) {
+    ULONG_PTR cookie = 0;
+    HWND result = nullptr;
+    if (!windowActivation.bypass && !windowActivation.unavailable && !ActivateWindowContext(&cookie))
+        return nullptr;
+    __try {
+        result = ::CreateDialogIndirectParamW(module, dialog, parent, procedure, 0);
+    } __finally { FinishContext(cookie, result == nullptr); }
+    return result;
+}
 BOOL ContextMenuClassInfo(WNDCLASSEXW* info) {
     ULONG_PTR cookie=0;
     BOOL result=FALSE;

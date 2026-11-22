@@ -15,39 +15,66 @@ void* MS_ABI impl___2_YAPEAX_K_Z(size_t);
 void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 }
 
-int CWnd::ExecuteDlgInit(void* data) {
-    auto* record=static_cast<BYTE*>(data);
-    if(record)for(;;) {
-        WORD id,message;DWORD size;
-        std::memcpy(&id,record,2);if(!id)break;
-        std::memcpy(&message,record+2,2);std::memcpy(&size,record+4,4);
-        BYTE* payload=record+8;
-        if(message==0x401)message=LB_ADDSTRING;else if(message==0x403)message=CB_ADDSTRING;
-        BOOL success=TRUE;
-        if(message==LB_ADDSTRING || message==CB_ADDSTRING)success=::SendDlgItemMessageA(m_hWnd,id,message,0,reinterpret_cast<LPARAM>(payload))!=-1;
-        else if(message==0x37c) {
-            if(!m_pMFCCtrlContainer) {
-                void* storage=impl___2_YAPEAX_K_Z(sizeof(CMFCControlContainer));
-                if(!storage)impl__AfxThrowMemoryException__YAXXZ();
-                m_pMFCCtrlContainer=new(storage) CMFCControlContainer(this);
-                m_pMFCCtrlContainer->SubclassDlgControls();
+namespace {
+BOOL ExecuteInitRecords(CWnd* window, BYTE* records, size_t bytes, bool bounded) {
+    constexpr size_t headerSize = sizeof(WORD) * 2 + sizeof(DWORD);
+    for (BYTE* record = records; record;) {
+        if (bounded && bytes < sizeof(WORD)) return FALSE;
+        WORD id;
+        std::memcpy(&id, record, sizeof(id));
+        if (!id) break;
+        if (bounded && bytes < headerSize) return FALSE;
+
+        WORD message;
+        DWORD length;
+        std::memcpy(&message, record + sizeof(id), sizeof(message));
+        std::memcpy(&length, record + sizeof(id) + sizeof(message), sizeof(length));
+        if (bounded && length > bytes - headerSize) return FALSE;
+        BYTE* payload = record + headerSize;
+
+        if (message == 0x401) message = LB_ADDSTRING;
+        else if (message == 0x403) message = CB_ADDSTRING;
+        if (message == LB_ADDSTRING || message == CB_ADDSTRING) {
+            if (bounded && !std::memchr(payload, 0, length)) return FALSE;
+            if (::SendDlgItemMessageA(window->m_hWnd, id, message, 0, reinterpret_cast<LPARAM>(payload)) == -1)
+                return FALSE;
+        } else if (message == 0x37c) {
+            if (!window->m_pMFCCtrlContainer) {
+                void* storage = impl___2_YAPEAX_K_Z(sizeof(CMFCControlContainer));
+                if (!storage) impl__AfxThrowMemoryException__YAXXZ();
+                window->m_pMFCCtrlContainer = new (storage) CMFCControlContainer(window);
+                window->m_pMFCCtrlContainer->SubclassDlgControls();
             }
-            success=::SendDlgItemMessageA(m_hWnd,id,message,size,reinterpret_cast<LPARAM>(payload))!=-1;
-            m_pMFCCtrlContainer->SetControlData(id,size,payload);
+            if (::SendDlgItemMessageA(window->m_hWnd, id, message, length, reinterpret_cast<LPARAM>(payload)) == -1)
+                return FALSE;
+            window->m_pMFCCtrlContainer->SetControlData(id, length, payload);
         }
-        if(!success)return FALSE;
-        record=payload+size;
+
+        if (bounded) bytes -= headerSize + length;
+        record = payload + length;
     }
-    SendMessageToDescendants(m_hWnd,0x364,0,0,FALSE,FALSE);return TRUE;
+    CWnd::SendMessageToDescendants(window->m_hWnd, 0x364, 0, 0, FALSE, FALSE);
+    return TRUE;
 }
+}
+
+int CWnd::ExecuteDlgInit(void* data) {
+    return ExecuteInitRecords(this, static_cast<BYTE*>(data), 0, false);
+}
+
 int CWnd::ExecuteDlgInit(const wchar_t* name) {
-    void* data=nullptr;
-    if(name) {
-        HINSTANCE module=impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name,MAKEINTRESOURCEW(240));
-        HRSRC resource=::FindResourceW(module,name,MAKEINTRESOURCEW(240));
-        if(resource) {HGLOBAL loaded=::LoadResource(module,resource);if(!loaded)return FALSE;data=::LockResource(loaded);}
+    if (name) {
+        const auto type = MAKEINTRESOURCEW(240);
+        HINSTANCE module = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, type);
+        HRSRC resource = ::FindResourceW(module, name, type);
+        if (resource) {
+            const auto bytes = ::SizeofResource(module, resource);
+            HGLOBAL loaded = ::LoadResource(module, resource);
+            auto* data = loaded ? static_cast<BYTE*>(::LockResource(loaded)) : nullptr;
+            return data && ExecuteInitRecords(this, data, bytes, true);
+        }
     }
-    return ExecuteDlgInit(data);
+    return ExecuteInitRecords(this, nullptr, 0, false);
 }
 // Symbol: ?ExecuteDlgInit@CWnd@@QEAAHPEAX@Z
 extern "C" int MS_ABI impl__ExecuteDlgInit_CWnd__QEAAHPEAX_Z(CWnd* self,void* data) {return self->ExecuteDlgInit(data);}

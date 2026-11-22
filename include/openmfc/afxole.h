@@ -362,13 +362,15 @@ public:
                         UINT nID = AFX_IDW_DIALOGBAR);
 
     // Dialog data
-    void UpdateData(BOOL bSaveAndValidate = TRUE);
     CSize CalcFixedLayout(BOOL stretch, BOOL horizontal) override;
     void OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) override;
     BOOL SetOccDialogInfo(_AFX_OCC_DIALOG_INFO* dialogInfo) override;
     CSize m_sizeDefault;
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
+    LRESULT HandleInitDialog(WPARAM wParam, LPARAM lParam);
 
 protected:
+    const AFX_MSGMAP* GetMessageMap() const override;
     _AFX_OCC_DIALOG_INFO* m_pOccDialogInfo;
     const wchar_t* m_lpszTemplateName;
 };

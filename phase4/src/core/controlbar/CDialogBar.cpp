@@ -3,7 +3,12 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CbarcoreSupport.h"
+#include "detail/RegcoreSupport.h"
+#include "detail/WindowMessageSupport.h"
+#include "openmfc/afxole.h"
+#include <new>
+
+extern "C" BOOL MS_ABI impl__ModifyStyle_CWnd__QEAAHKKI_Z(CWnd*, DWORD, DWORD, UINT);
 
 CSize CDialogBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
     return CSize(stretch && horizontal ? 32767 : m_sizeDefault.cx,
@@ -16,11 +21,24 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CDialogBar__UEAA_AVCSize__HH_Z(
     return new (result) CSize(pThis->CDialogBar::CalcFixedLayout(stretch, horizontal));
 }
 
-// Symbol: ?HandleInitDialog@CDialogBar@@IEAA_J_K_J@Z
-extern "C" intptr_t MS_ABI impl__HandleInitDialog_CDialogBar__IEAA_J_K_J_Z(CDialogBar* pThis, WPARAM, LPARAM) {
-    if (!pThis) return TRUE;
-    return TRUE;
+LRESULT CDialogBar::HandleInitDialog(WPARAM, LPARAM) {
+    Default();
+    COccManager* manager = impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ()->m_pOccManager;
+    if (manager && m_pOccDialogInfo) {
+        using Create = BOOL (MS_ABI*)(COccManager*, CWnd*, const wchar_t*, _AFX_OCC_DIALOG_INFO*);
+        if (!openmfc::detail::WindowSlot<Create>(manager, 9)(manager, this, m_lpszTemplateName, m_pOccDialogInfo))
+            return FALSE;
+    }
+    LoadDynamicLayoutResource(m_lpszTemplateName);
+    return FALSE;
 }
+
+// Symbol: ?HandleInitDialog@CDialogBar@@IEAA_J_K_J@Z
+extern "C" LRESULT MS_ABI impl__HandleInitDialog_CDialogBar__IEAA_J_K_J_Z(
+    CDialogBar* bar, WPARAM wParam, LPARAM lParam) {
+    return bar ? bar->HandleInitDialog(wParam, lParam) : FALSE;
+}
+
 void CDialogBar::OnUpdateCmdUI(CFrameWnd* target, BOOL disableIfNoHandler) {
     UpdateDialogControls(target, disableIfNoHandler);
 }
@@ -44,41 +62,65 @@ CDialogBar::CDialogBar()
 static_assert(sizeof(CDialogBar) == 352);
 
 CDialogBar::~CDialogBar() {
-    if (m_hWnd) ::DestroyWindow(m_hWnd);
+    m_bAutoDelete = FALSE;
+    CControlBar::DestroyWindow();
 }
-BOOL CDialogBar::Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle, UINT nID) {
-    return Create(pParentWnd, MAKEINTRESOURCEW(nIDTemplate), nStyle, nID);
+
+BOOL CDialogBar::Create(CWnd* parent, UINT templateId, UINT style, UINT id) {
+    return Create(parent, MAKEINTRESOURCEW(templateId), style, id);
 }
-BOOL CDialogBar::Create(CWnd* pParentWnd, const wchar_t* lpszTemplateName,
-                         UINT nStyle, UINT nID) {
-    if (!pParentWnd || !lpszTemplateName) return FALSE;
 
-    m_dwStyle = nStyle;
+BOOL CDialogBar::Create(CWnd* parent, const wchar_t* name, UINT style, UINT id) {
+    if (m_hWnd || !name) return FALSE;
+    m_dwStyle = style & CBRS_ALL;
 
-    m_hWnd = ::CreateDialogParamW(AfxGetInstanceHandle(),
-                                   lpszTemplateName,
-                                   pParentWnd->GetSafeHwnd(),
-                                   nullptr, 0);
+    CREATESTRUCTW create{};
+    create.hInstance = AfxGetInstanceHandle();
+    create.hwndParent = parent ? parent->m_hWnd : nullptr;
+    create.hMenu = reinterpret_cast<HMENU>(static_cast<UINT_PTR>(id));
+    create.style = style | WS_CHILD;
+    create.lpszClass = L"AfxControlBar140u";
+    if (!PreCreateWindow(create)) return FALSE;
 
-    if (!m_hWnd) return FALSE;
+    m_lpszTemplateName = name;
+    BOOL created;
+    try {
+        created = CreateDlg(name, parent);
+    } catch (...) {
+        m_lpszTemplateName = nullptr;
+        throw;
+    }
+    m_lpszTemplateName = nullptr;
+    if (!created) return FALSE;
 
-    m_lpszTemplateName = lpszTemplateName;
-    RECT rect = {};
+    SetDlgCtrlID(id);
+    RECT rect{};
     ::GetWindowRect(m_hWnd, &rect);
     m_sizeDefault = CSize(rect.right - rect.left, rect.bottom - rect.top);
-
-    ::SetWindowLongPtrW(m_hWnd, GWLP_ID, nID);
-
-    if (nStyle & WS_VISIBLE) {
-        ::ShowWindow(m_hWnd, SW_SHOW);
+    impl__ModifyStyle_CWnd__QEAAHKKI_Z(this, 0, WS_CLIPSIBLINGS, 0);
+    if (!ExecuteDlgInit(name)) {
+        CControlBar::DestroyWindow();
+        return FALSE;
     }
-
+    ::SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
     return TRUE;
 }
-void CDialogBar::UpdateData(BOOL bSaveAndValidate) {
-    (void)bSaveAndValidate;
-}
+
 BOOL CDialogBar::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO* info) {
     m_pOccDialogInfo = info;
     return TRUE;
+}
+
+BEGIN_MESSAGE_MAP(CDialogBar, CControlBar)
+    ON_MESSAGE(WM_INITDIALOG, &ThisClass::HandleInitDialog)
+END_MESSAGE_MAP()
+
+// Symbol: ?GetMessageMap@CDialogBar@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CDialogBar__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return CDialogBar::GetThisMessageMap();
+}
+
+// Symbol: ?GetThisMessageMap@CDialogBar@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CDialogBar__KAPEBUAFX_MSGMAP__XZ() {
+    return CDialogBar::GetThisMessageMap();
 }

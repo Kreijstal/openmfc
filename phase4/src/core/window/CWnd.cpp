@@ -617,20 +617,6 @@ extern "C" int MS_ABI impl__CreateControl_CWnd__QEAAHPEB_W0KAEBUtagRECT__PEAV1_I
     void* parent = pParentWnd;
     return pThis->CreateControl(lpszClass, pWindowName, dwStyle, rectPtr, parent, nID, pPersist, bStorage, pLicKey);
 }
-// Symbol: ?CreateDlgIndirect@CWnd@@IEAAHPEBUDLGTEMPLATE@@PEAV1@PEAUHINSTANCE__@@@Z
-extern "C" int MS_ABI impl__CreateDlgIndirect_CWnd__IEAAHPEBUDLGTEMPLATE__PEAV1_PEAUHINSTANCE_____Z(
-    CWnd* pThis, const DLGTEMPLATE* pTemplate, CWnd* pParentWnd, HINSTANCE hInst) {
-    if (!pThis) {
-        return FALSE;
-    }
-    return pThis->CreateDlgIndirect(pTemplate, pParentWnd, hInst);
-}
-// Symbol: ?CreateRunDlgIndirect@CWnd@@IEAAHPEBUDLGTEMPLATE@@PEAV1@PEAUHINSTANCE__@@@Z
-extern "C" int MS_ABI impl__CreateRunDlgIndirect_CWnd__IEAAHPEBUDLGTEMPLATE__PEAV1_PEAUHINSTANCE_____Z(
-    CWnd* pThis, const DLGTEMPLATE* pTemplate, CWnd* pParentWnd, HINSTANCE hInst) {
-    return impl__CreateDlgIndirect_CWnd__IEAAHPEBUDLGTEMPLATE__PEAV1_PEAUHINSTANCE_____Z(
-        pThis, pTemplate, pParentWnd, hInst);
-}
 // Symbol: ?GetDlgItemTextW@CWnd@@QEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__GetDlgItemTextW_CWnd__QEBAHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     const CWnd* pThis, int nID, CString* rString) {
@@ -1261,57 +1247,6 @@ int CWnd::CreateControlSite(COleControlContainer* p0, COleControlSite** p1, UINT
     }
     return TRUE;
 }
-int CWnd::CreateDlg(const WCHAR* p0, void* p1)
-{
-    if (!p0) {
-        return FALSE;
-    }
-    CWnd* pParent = p1 ? static_cast<CWnd*>(p1) : nullptr;
-    HINSTANCE hInst = AfxGetInstanceHandle();
-    if (!hInst) {
-        hInst = ::GetModuleHandleW(nullptr);
-    }
-    HRSRC hTemplate = ::FindResourceW(hInst, p0, MAKEINTRESOURCEW(RT_DIALOG));
-    if (!hTemplate) {
-        return FALSE;
-    }
-    HGLOBAL hRes = ::LoadResource(hInst, hTemplate);
-    if (!hRes) {
-        return FALSE;
-    }
-    const DLGTEMPLATE* pTemplate = static_cast<const DLGTEMPLATE*>(::LockResource(hRes));
-    if (!pTemplate) {
-        return FALSE;
-    }
-    return CreateDlgIndirect(pTemplate, pParent, hInst);
-}
-int CWnd::CreateDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
-{
-    if (!p0) {
-        return FALSE;
-    }
-    CWnd* pParent = p1 ? static_cast<CWnd*>(p1) : nullptr;
-    HINSTANCE hInst = p2 ? p2 : AfxGetInstanceHandle();
-    if (!hInst) {
-        hInst = ::GetModuleHandleW(nullptr);
-    }
-    HWND hWnd = ::CreateDialogIndirectParamW(
-        hInst,
-        p0,
-        pParent ? pParent->m_hWnd : nullptr,
-        reinterpret_cast<DLGPROC>(AfxWndProc),
-        reinterpret_cast<LPARAM>(this));
-    if (!hWnd) {
-        return FALSE;
-    }
-    Attach(hWnd);
-    return TRUE;
-}
-int CWnd::CreateRunDlgIndirect(const DLGTEMPLATE* p0, void* p1, HINSTANCE p2)
-{
-    return CreateDlgIndirect(p0, p1, p2);
-}
-
 LONGLONG CWnd::DefWindowProcW(UINT p0, ULONGLONG p1, LONGLONG p2)
 {
     if (!m_hWnd) {

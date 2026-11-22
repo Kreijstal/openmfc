@@ -19,15 +19,6 @@ DEF_MM(COleResizeBar,
 #define DEF_MM(Cls, GMSym, GTMSym) \
     extern "C" const AFX_MSGMAP* MS_ABI GMSym(const void*) { return &class##Cls##_msgmap; } \
     extern "C" const AFX_MSGMAP* MS_ABI GTMSym() { return &class##Cls##_msgmap; }
-// Symbol: ?GetMessageMap@CDialogBar@@MEBAPEBUAFX_MSGMAP@@XZ
-// Symbol: ?GetThisMessageMap@CDialogBar@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(CDialogBar,
-       impl__GetMessageMap_CDialogBar__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_CDialogBar__KAPEBUAFX_MSGMAP__XZ)
-#undef DEF_MM
-#define DEF_MM(Cls, GMSym, GTMSym) \
-    extern "C" const AFX_MSGMAP* MS_ABI GMSym(const void*) { return &class##Cls##_msgmap; } \
-    extern "C" const AFX_MSGMAP* MS_ABI GTMSym() { return &class##Cls##_msgmap; }
 // Symbol: ?GetMessageMap@CReBar@@MEBAPEBUAFX_MSGMAP@@XZ
 // Symbol: ?GetThisMessageMap@CReBar@@KAPEBUAFX_MSGMAP@@XZ
 DEF_MM(CReBar,

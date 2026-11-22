@@ -47,7 +47,6 @@ const AFX_MSGMAP* AFXAPI gbm_CCtrlView();
 namespace openmfc { namespace detail { namespace other11msgmap {
 const AFX_MSGMAP* AFXAPI gbm_CDHtmlDialog();
 } } }
-const AFX_MSGMAP* AFXAPI gbm_CDialogBar();  // defined after maps (in-batch base CControlBar)
 const AFX_MSGMAP* AFXAPI gbm_CDocObjectServer();  // defined after maps (in-batch base CCmdTarget)
 namespace openmfc { namespace detail { namespace other11msgmap {
 const AFX_MSGMAP* AFXAPI gbm_CHtmlEditView();
@@ -69,7 +68,6 @@ namespace openmfc { namespace detail { namespace other11msgmap {
 extern const AFX_MSGMAP classCDHtmlDialog_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace other11msgmap {
-extern const AFX_MSGMAP classCDialogBar_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace other11msgmap {
 extern const AFX_MSGMAP classCDocObjectServer_msgmap;
@@ -77,7 +75,6 @@ extern const AFX_MSGMAP classCDocObjectServer_msgmap;
 namespace openmfc { namespace detail { namespace other11msgmap {
 extern const AFX_MSGMAP classCHtmlEditView_msgmap;
 } } }
-const AFX_MSGMAP* AFXAPI gbm_CDialogBar();
 const AFX_MSGMAP* AFXAPI gbm_CDocObjectServer();
 
 #define DEF_MM(Cls, GMSym, GTMSym) \

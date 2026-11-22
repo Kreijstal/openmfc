@@ -981,7 +981,7 @@ public:
     int SubclassDlgItem(UINT p0, void* p1);
     int SubclassWindow(HWND p0);
     HWND UnsubclassWindow();
-    int UpdateData(int p0);
+    int UpdateData(int saveAndValidate = TRUE);
     void UpdateDialogControls(void* p0, int p1);
     void EnableD2DSupport(int enable = TRUE, int useDCRenderTarget = FALSE);
     void EnableDynamicLayout(int enable = TRUE);

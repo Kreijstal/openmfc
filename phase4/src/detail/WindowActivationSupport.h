@@ -13,6 +13,7 @@ extern WindowActivationState windowActivation;
 BOOL InitializeWindowActivation();
 BOOL ActivateWindowContext(ULONG_PTR*);
 HWND ContextCreateWindow(CREATESTRUCTW);
+HWND ContextCreateDialog(HINSTANCE, const DLGTEMPLATE*, HWND, DLGPROC);
 BOOL ContextMenuClassInfo(WNDCLASSEXW*);
 HMODULE ContextLoadLibrary(const wchar_t*,HANDLE,DWORD);
 } }
