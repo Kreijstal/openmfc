@@ -191,21 +191,6 @@ extern "C" unsigned int impl__AFX_WM_UPDATETOOLTIPS__3IA =
 // Symbol: ?AFX_WM_WINDOW_HELP@@3IA
 extern "C" unsigned int impl__AFX_WM_WINDOW_HELP__3IA =
     RegisterAfxMessage(L"AFX_WM_WINDOW_HELP");
-// =============================================================================
-// ?AfxIsDescendant@@YAHPEAUHWND__@@0@Z
-//   int AfxIsDescendant(HWND hWndParent, HWND hWndChild)
-// Returns nonzero if hWndChild is hWndParent itself or a descendant window.
-// =============================================================================
-// Symbol: ?AfxIsDescendant@@YAHPEAUHWND__@@0@Z
-extern "C" int MS_ABI impl__AfxIsDescendant__YAHPEAUHWND____0_Z(HWND hWndParent,
-                                                                HWND hWndChild)
-{
-    if (hWndParent == nullptr || hWndChild == nullptr)
-        return 0;
-    if (hWndParent == hWndChild)
-        return 1;
-    return ::IsChild(hWndParent, hWndChild) ? 1 : 0;
-}
 // Native CNoTrackObject allocation lives in _AFX_THREAD_STATE.cpp.
 // Array allocation/deletion exports live in NativeMemoryOperators.cpp.
 // Symbol: ??$HashKey@PEB_W@@YAIPEB_W@Z

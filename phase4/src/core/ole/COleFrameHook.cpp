@@ -141,6 +141,10 @@ extern "C" int MS_ABI impl__OnUpdateFrameTitle_COleClientItem__UEAAHXZ(
 extern "C" BOOL MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis, const CRuntimeClass* pClass);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_COleDocObjectItem__SAPEAUCRuntimeClass__XZ();
+extern "C" BOOL MS_ABI impl__AfxIsDescendant__YAHPEAUHWND____0_Z(HWND, HWND);
+extern "C" void* MS_ABI impl__GetFirstDocTemplatePosition_CWinApp__QEBAPEAU__POSITION__XZ(const CWinApp*);
+extern "C" CDocTemplate* MS_ABI impl__GetNextDocTemplate_CWinApp__QEBAPEAVCDocTemplate__AEAPEAU__POSITION___Z(
+    const CWinApp*, void**);
 
 // ---- forward declarations of exports defined later in this file ----
 // NotifyAllInPlace's second parameter is a pointer to member function
@@ -581,54 +585,33 @@ extern "C" int MS_ABI impl__DoEnableModeless_COleFrameHook__QEAAHH_Z(COleFrameHo
 }
 
 // Symbol: ?NotifyAllInPlace@COleFrameHook@@QEAAHHP81@EAAHH@Z@Z
-// STUB.  mfc140u 0x2483e0 / mfc140 0x246840 broadcasts a hook callback to
-// every in-place item hosted inside this frame:
-// What the disassembly literally establishes is the offsets, the vtable bytes
-// and the three callees the map does name; the MFC class names attached to the
-// enumeration steps below come from MFC's documented API shape.
-//     HWND hwndFrame = m_hWndFrame;                       // [this+0x58]
-//     void* pApp     = AfxGetModuleState()->[+0x08];      // the module's app object
-//     void* pMgr     = pApp->[+0xb8];                     // its document manager
-//     if (pMgr == NULL) return TRUE;
-//     for (POSITION p = pMgr->vf[0x30](); p != NULL; )              // slot 6
-//     { void* pT = pMgr->vf[0x38](&p);             // slot 7 -- a doc template
-//       for (POSITION q = pT->vf[0xb8](); q != NULL; )              // slot 23
-//       { CObject* pDoc = pT->vf[0xc0](&q);                         // slot 24
-//         if (!pDoc->IsKindOf(RUNTIME_CLASS(COleDocument))) continue;
-//         for (POSITION r = pDoc->vf[0x238]();;)                    // slot 71
-//         { COleClientItem* pItem =            // call mfc140u 0x180254120, which the
-//               pDoc->GetNextItemOfKind(       // mfc140u map DOES name:
-//                   r, RUNTIME_CLASS(COleClientItem));  // ?GetNextItemOfKind@
-//                                              //   COleDocument@@IEBAPEAVCDocItem@@
-//                                              //   AEAPEAU__POSITION@@PEAUCRuntimeClass@@@Z
-//           if (pItem == NULL) break;
-//           COleFrameHook* pHook = pItem->[+0xa8];
-//           if (pHook == NULL || pHook->m_lpActiveObject == NULL) continue;
-//           CView* pView = pItem->[+0x98];
-//           if (pView == NULL) continue;
-//           if (!AfxIsDescendant(hwndFrame, pView->m_hWnd)) continue;
-//           if (!(*pfn)(pHook, bParam)) return FALSE;   // 0x2484f5
-//         } } }
-//     return TRUE;
-// (The two RUNTIME_CLASS operands are mfc140u 0x18032ea80 = COleDocument
-// (m_nObjectSize 0x1e8) and 0x18032e788 = COleClientItem (0xf0), read straight
-// out of the descriptors; the callees at 0x180133930, 0x180234cf0, 0x18029d3a0
-// resolve to AfxGetModuleState, CObject::IsKindOf and AfxIsDescendant, and the
-// `call *0x1802c7b30` used for every indirect call is
-// __guard_dispatch_icall_fptr, not an import.)
-// The item hook (+0xa8) is an asserted COleClientItem tail field; the view
-// (+0x98) and this hook's frame HWND (+0x58) are represented by family state.
-// The remaining blocker
-// is exact retail enumeration through the active module state's app/document
-// manager/template vtables, which this file does not model. Substituting the
-// process-wide side tables would include documents outside the retail walk and
-// would not preserve its ordering. The callback keeps its recovered signature
-// for when that traversal is available.
-extern "C" int MS_ABI impl__NotifyAllInPlace_COleFrameHook__QEAAHHP81_EAAHH_Z_Z(
-    COleFrameHook* pThis, int bParam, PFN_HOOKNOTIFY pfn) {
-    (void)pThis;
-    (void)bParam;
-    (void)pfn;
+extern "C" BOOL MS_ABI impl__NotifyAllInPlace_COleFrameHook__QEAAHHP81_EAAHH_Z_Z(
+    COleFrameHook* self, BOOL parameter, PFN_HOOKNOTIFY notify) {
+    auto* app = AfxGetApp();
+    if (!self || !notify || !app) return TRUE;
+
+    const HWND frame = self->m_retailTail.m_hWndFrame;
+    auto templates = impl__GetFirstDocTemplatePosition_CWinApp__QEBAPEAU__POSITION__XZ(app);
+    while (templates) {
+        auto* docTemplate = impl__GetNextDocTemplate_CWinApp__QEBAPEAVCDocTemplate__AEAPEAU__POSITION___Z(
+            app, &templates);
+        if (!docTemplate) continue;
+        auto documents = docTemplate->GetFirstDocPosition();
+        while (documents) {
+            auto* document = docTemplate->GetNextDoc(documents);
+            if (!document || !document->IsKindOf(COleDocument::GetThisClass())) continue;
+
+            auto* oleDocument = static_cast<COleDocument*>(document);
+            auto items = reinterpret_cast<POSITION>(oleDocument->GetStartPosition());
+            while (auto* item = oleDocument->GetNextClientItem(items)) {
+                auto* hook = item->m_retailTail.m_pInPlaceFrame;
+                auto* view = item->m_retailTail.m_pView;
+                if (!view || !ActiveObject(hook)) continue;
+                if (impl__AfxIsDescendant__YAHPEAUHWND____0_Z(frame, view->GetSafeHwnd()) &&
+                    !notify(hook, parameter)) return FALSE;
+            }
+        }
+    }
     return TRUE;
 }
 
@@ -660,8 +643,6 @@ extern "C" void MS_ABI impl__OnActivate_COleFrameHook__UEAAXH_Z(COleFrameHook* p
 // The r8 the call passes is mfc140u 0x180248580 (mfc140 0x1802469e0), which is
 // DoEnableModeless's own entry in each image's map.  The
 // BOOL NotifyAllInPlace returns is discarded (this override returns void).
-// ActiveForThisFrame checks the overlaid +0xa8 link; the callback itself is
-// implemented, but retail document-manager enumeration remains unavailable.
 extern "C" void MS_ABI impl__OnEnableModeless_COleFrameHook__UEAAXH_Z(COleFrameHook* pThis,
                                                                       int bEnable) {
     if (!ActiveForThisFrame(pThis))

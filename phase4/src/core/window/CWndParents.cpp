@@ -32,6 +32,16 @@ HWND ParentOwner(HWND handle) {
 }
 // Symbol: ?AfxGetParentOwner@@YAPEAUHWND__@@PEAU1@@Z
 extern "C" HWND MS_ABI impl__AfxGetParentOwner__YAPEAUHWND____PEAU1__Z(HWND handle) { return ParentOwner(handle); }
+
+// Symbol: ?AfxIsDescendant@@YAHPEAUHWND__@@0@Z
+extern "C" BOOL MS_ABI impl__AfxIsDescendant__YAHPEAUHWND____0_Z(HWND ancestor, HWND window) {
+    do {
+        if (window == ancestor) return TRUE;
+        window = ParentOwner(window);
+    } while (window);
+    return FALSE;
+}
+
 // Symbol: ?GetParentFrame@CWnd@@QEBAPEAVCFrameWnd@@XZ
 extern "C" CFrameWnd* MS_ABI impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* self) { return ParentFrame(self); }
 // Symbol: ?GetTopLevelFrame@CWnd@@QEBAPEAVCFrameWnd@@XZ
