@@ -540,7 +540,6 @@ int CFrameWnd::OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext) {
     return pClient || !pContext || !pContext->m_pNewViewClass;
 }
 int CFrameWnd::OnCreateHelper(CREATESTRUCTW* lpcs, CCreateContext* pContext) {
-    AddFrameWnd();
     ::DragAcceptFiles(m_hWnd, TRUE);
     return OnCreateClient(lpcs, pContext);
 }
