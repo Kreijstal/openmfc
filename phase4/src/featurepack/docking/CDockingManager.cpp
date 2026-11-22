@@ -29,6 +29,8 @@ extern "C" unsigned long MS_ABI impl__GetCurrentAlignment_CBasePane__UEBAKXZ(con
 extern "C" int MS_ABI impl__GetDlgCtrlID_CWnd__QEBAHXZ(const CWnd*);
 extern "C" void* MS_ABI impl__FindPaneByID_CDockSite__QEAAPEAVCPane__I_Z(void*, unsigned int);
 extern "C" HWND MS_ABI impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(const CWnd*);
+extern "C" BOOL MS_ABI impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(
+    const void*, long long, CBasePane*, int, const CDockingManager*, BOOL, DWORD*, DWORD, const RECT*);
 
 namespace {
 struct DockSiteInfoShadow {
@@ -860,7 +862,7 @@ BOOL CDockingManager::DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar) {
     return TRUE;
 }
 BOOL CDockingManager::EnableDocking(DWORD dwDockStyle) {
-    EnsureDockingState(this).enabledAlignment = dwDockStyle;
+    EnsureDockingState(this).enabledAlignment |= dwDockStyle & CBRS_ALIGN_ANY;
     return TRUE;
 }
 void CDockingManager::FloatPane(CBasePane* pBar, CPoint, DWORD) {
@@ -1149,6 +1151,7 @@ extern "C" void MS_ABI impl__CalcPaneOffset_CDockingManager__IEAAXPEAVCAutoHideD
 // member location rather than writing the incompatible retail offset.
 extern "C" int MS_ABI impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(
     CDockingManager* pThis, CFrameWnd* pFrame) {
+    if (!pThis) return FALSE;
     *reinterpret_cast<CFrameWnd**>(reinterpret_cast<unsigned char*>(pThis) + sizeof(CObject)) = pFrame;
     EnsureDockingState(pThis).parentFrame = pFrame;
     return TRUE;
@@ -1244,15 +1247,36 @@ extern "C" int MS_ABI impl__InsertDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSIT
 }
 
 // Symbol: ?IsPointNearDockSite@CDockingManager@@QEBAHVCPoint@@AEAKAEAH@Z
-// STUB: Retail entry RVA 0x48310 (mfc140u) converts manager bounds at +0x1d8/+0x1c8
-// through the parent frame before calling CGlobalUtils::CheckAlignment at entry RVA
-// 0x6caf0 (mfc140u). The side-table bounds have no writer, and the local sensitivity
-// datum defaults to 0 rather than retail's 15; usable inputs are not represented here.
-extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-    const CDockingManager*, long long, unsigned long* pAlignment, int* pOuterEdge) {
-    if (pAlignment) *pAlignment = 0;
-    if (pOuterEdge) *pOuterEdge = FALSE;
-    return FALSE;
+// Retail mfc140u 0x48310 checks the outer edge first, then the remaining client area.
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
+    const CDockingManager* manager, CPoint point, DWORD* alignment, BOOL* outerEdge) {
+    DWORD foundAlignment = 0;
+    if (alignment) *alignment = 0;
+    if (outerEdge) *outerEdge = FALSE;
+
+    const auto* state = FindDockingState(manager);
+    if (!state || !state->parentFrame || !state->enabledAlignment) return FALSE;
+    auto* frame = state->parentFrame;
+    RECT client{};
+    if (!::GetClientRect(frame->m_hWnd, &client)) return FALSE;
+
+    RECT outer = state->inPlaceBounds.value_or(client);
+    RECT inner = state->inPlaceBounds ? state->clientAreaBounds : client;
+    long long packedPoint;
+    static_assert(sizeof(packedPoint) == sizeof(point));
+    std::memcpy(&packedPoint, &point, sizeof(point));
+    const auto checkEdge = [&](RECT& bounds, BOOL outside) {
+        if (::IsRectEmpty(&bounds)) return FALSE;
+        frame->ClientToScreen(&bounds);
+        return impl__CheckAlignment_CGlobalUtils__QEBAHVCPoint__PEAVCBasePane__HPEBVCDockingManager__HAEAKKPEBUtagRECT___Z(
+            nullptr, packedPoint, nullptr, impl__m_nDockSensitivity_CDockingManager__2HA,
+            manager, outside, &foundAlignment, state->enabledAlignment, &bounds);
+    };
+    const BOOL outside = checkEdge(outer, TRUE);
+    if (!outside && !checkEdge(inner, FALSE)) return FALSE;
+    if (alignment) *alignment = foundAlignment;
+    if (outerEdge) *outerEdge = outside;
+    return TRUE;
 }
 
 // Symbol: ?Serialize@CDockingManager@@UEAAXAEAVCArchive@@@Z

@@ -55,7 +55,7 @@ extern "C" std::int32_t impl__m_bSDParamsModified_CDockingManager__1HA = 0;
 // Symbol: ?m_dockModeGlobal@CDockingManager@@1W4AFX_DOCK_TYPE@@A
 extern "C" std::uint32_t impl__m_dockModeGlobal_CDockingManager__1W4AFX_DOCK_TYPE__A = 0;
 // Symbol: ?m_nDockSensitivity@CDockingManager@@2HA
-extern "C" std::int32_t impl__m_nDockSensitivity_CDockingManager__2HA = 0;
+extern "C" std::int32_t impl__m_nDockSensitivity_CDockingManager__2HA = 15;
 // Symbol: ?m_nTimeOutBeforeDockingBarDock@CDockingManager@@2IA
 extern "C" std::uint32_t impl__m_nTimeOutBeforeDockingBarDock_CDockingManager__2IA = 0;
 // Symbol: ?m_nTimeOutBeforeToolBarDock@CDockingManager@@2IA

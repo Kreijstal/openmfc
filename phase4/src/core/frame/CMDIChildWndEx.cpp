@@ -171,6 +171,7 @@ extern "C" void* MS_ABI impl__GetITaskbarList3_AFX_GLOBAL_DATA__QEAAPEAUITaskbar
 // is modelled as `long long` here, the same way core/frame/CMDIFrameWndEx.cpp
 // declares these.
 extern "C" void* MS_ABI impl___0CDockingManager__QEAA_XZ(void* pThis);
+extern "C" BOOL MS_ABI impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(CDockingManager*, CFrameWnd*);
 extern "C" void MS_ABI impl___1CDockingManager__UEAA_XZ(void* pThis);
 extern "C" int MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
     CDockingManager* pThis, CBasePane* pPane, int bTail, int bAutoHide, int bInsertForOuterEdge);
@@ -186,12 +187,6 @@ extern "C" int MS_ABI impl__EnableDocking_CDockingManager__QEAAHK_Z(
     CDockingManager* pThis, unsigned long dwDockStyle);
 extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
     CDockingManager* pThis, unsigned int nID, int bSearchMiniFrames);
-// NOTE: the definition of this one in featurepack/docking/CDockingManager.cpp
-// still carries an auto-generated `(void* p0, unsigned long* p1, int* p2)`
-// list (no `point` argument); it is a `return 0` that touches nothing, so the
-// call is harmless today -- see the headerRequest filed with this file.
-extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-    const CDockingManager* pThis, long long point, unsigned long* pdwBarAlignment, int* pbOuterEdge);
 extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(
     CDockingManager* pThis, CWnd* pFrame);
 extern "C" void MS_ABI impl__OnActivateFrame_CDockingManager__UEAAXH_Z(
@@ -375,6 +370,7 @@ ChildExtra* AttachExtra(CMDIChildWndEx* pChild) {
     p->pDockManager = new DockManagerBlock();
     memset(p->pDockManager->bytes, 0, sizeof(p->pDockManager->bytes));
     impl___0CDockingManager__QEAA_XZ(p->pDockManager);
+    impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(reinterpret_cast<CDockingManager*>(p->pDockManager), pChild);
     p->pMDIFrame = nullptr;
     AcquireSRWLockExclusive(&g_childExtraLock);
     p->pNext = g_childExtraHead;
@@ -428,26 +424,16 @@ void SetMDIFrame(CMDIChildWndEx* pThis, CMDIFrameWndEx* pFrame) {
     }
 }
 
-// OpenMFC's CDockingManager keeps its parent frame in a protected member; the
-// default-ctor thunk (what retail's ctor calls) leaves it NULL, and retail's
-// PreCreateWindow then stores `this` into m_dockManager+0x1b0 (this+0x558)
-// itself.  That store goes through this accessor (CMDIFrameWndEx.cpp does the
-// same for its OnCreate).
-struct DockManagerAccess : CDockingManager {
-    using CDockingManager::m_pParentWnd;
-};
-void SetDockManagerParent(CDockingManager* pDock, CFrameWnd* pFrame) {
-    if (pDock != nullptr) {
-        static_cast<DockManagerAccess*>(pDock)->m_pParentWnd = pFrame;
-    }
-}
-
 // The two CBasePane members the retail DockPane body touches through unexported
 // inline virtuals (see that export); pinned against the retail layout that
 // afxmfc.h carries for CBasePane.
 static_assert(offsetof(CBasePane, m_dwEnabledAlignment) == 0x100, "CBasePane::m_dwEnabledAlignment");
 static_assert(offsetof(CBasePane, m_dwControlBarStyle) == 0x108, "CBasePane::m_dwControlBarStyle");
 }  // namespace
+
+CDockingManager* openmfc::detail::mfccore::DockingManagerForMdiChild(CMDIChildWndEx* frame) {
+    return DockManagerOf(frame);
+}
 
 //=============================================================================
 // CMDIChildWndEx — message handlers
@@ -1121,13 +1107,11 @@ extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CMDIChildWndEx__QEBAPEAVCBasePa
 // The jump target is CFrameWnd's export, not CMDIChildWnd's --
 // ?PreCreateWindow@CMDIChildWnd@@UEAAHAEAUtagCREATESTRUCTW@@@Z (0x2a6f00) is
 // itself a bare `jmp 0x29d8d0`, so the CMDIChildWnd thunk used here reaches
-// the same body.  The parent-pointer store goes to the ChildExtra dock manager
-// (OpenMFC's CDockingManager keeps that pointer in m_pParentWnd).
+// the same body. ChildExtra binds the docking manager when it constructs it.
 // Symbol: ?PreCreateWindow@CMDIChildWndEx@@MEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_CMDIChildWndEx__MEAAHAEAUtagCREATESTRUCTW___Z(
     CMDIChildWndEx* pThis, CREATESTRUCTW& cs) {
     if (!pThis) return FALSE;
-    SetDockManagerParent(DockManagerOf(pThis), pThis);
     return impl__PreCreateWindow_CMDIChildWnd__UEAAHAEAUtagCREATESTRUCTW___Z(pThis, cs);
 }
 // CMDIChildWndEx::PreTranslateMessage(MSG*) — retail (RVA 0x83990) has keyboard
@@ -1781,25 +1765,11 @@ extern "C" int MS_ABI impl__InvalidateIconicBitmaps_CMDIChildWndEx__QEAAHXZ(
     return FALSE;
 }
 
-// CMDIChildWndEx::IsPointNearDockSite(CPoint, DWORD&, BOOL&) const —
-// transcribed from retail mfc140u.dll entry RVA 0x850f0, a two-instruction tail
-// jump: `this += 0x3a8` then
-// ?IsPointNearDockSite@CDockingManager@@QEBAHVCPoint@@AEAKAEAH@Z (0x48310) with
-// (point, dwBarAlignment, bOuterEdge) unchanged; the two out-parameters go
-// straight through.  Forwarded to the ChildExtra dock manager.  NOTE: the
-// CDockingManager body in this tree is still a generated `return 0` with a
-// placeholder parameter list (see the declaration note near the top), so today
-// this reports "not near a dock site" and leaves the out-parameters untouched.
 // Symbol: ?IsPointNearDockSite@CMDIChildWndEx@@QEBAHVCPoint@@AEAKAEAH@Z
-extern "C" int MS_ABI impl__IsPointNearDockSite_CMDIChildWndEx__QEBAHVCPoint__AEAKAEAH_Z(
-    const CMDIChildWndEx* pThis, unsigned long long point,
-    unsigned long* dwBarAlignment, int* bOuterEdge) {
-    if (!pThis) {
-        return FALSE;
-    }
-    return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-        DockManagerOf(const_cast<CMDIChildWndEx*>(pThis)), static_cast<long long>(point),
-        dwBarAlignment, bOuterEdge);
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CMDIChildWndEx__QEBAHVCPoint__AEAKAEAH_Z(
+    const CMDIChildWndEx* frame, CPoint point, DWORD* alignment, BOOL* outerEdge) {
+    auto* manager = frame ? DockManagerOf(const_cast<CMDIChildWndEx*>(frame)) : nullptr;
+    return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, alignment, outerEdge);
 }
 
 // CMDIChildWndEx::IsRegisteredWithTaskbarTabs() — retail mfc140u.dll

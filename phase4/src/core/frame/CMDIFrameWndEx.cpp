@@ -153,6 +153,7 @@ extern "C" void MS_ABI openmfc_CFrameImpl_SetRibbonBar(void* pFrameImpl, CMFCRib
 extern "C" void MS_ABI openmfc_CFrameImpl_SetRibbonStatusBar(void* pFrameImpl, CWnd* pRibbonStatusBar);
 // CDockingManager (featurepack/docking/Thunks.cpp, CDockingManager.cpp)
 extern "C" void* MS_ABI impl___0CDockingManager__QEAA_XZ(void* pThis);
+extern "C" BOOL MS_ABI impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(CDockingManager*, CFrameWnd*);
 extern "C" void MS_ABI impl___1CDockingManager__UEAA_XZ(void* pThis);
 extern "C" int MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
     CDockingManager* pThis, CBasePane* pPane, int bTail, int bAutoHide, int bInsertForOuterEdge);
@@ -178,8 +179,6 @@ extern "C" int MS_ABI impl__DockPaneLeftOf_CDockingManager__QEAAHPEAVCPane__0_Z(
 extern "C" int MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwStyle);
 extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
     CDockingManager* pThis, CBasePane* pControlBar, CBasePane* pTarget, int bAfter);
-extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-    const CDockingManager* pThis, long long point, unsigned long* pdwBarAlignment, int* pbOuterEdge);
 extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(CDockingManager* pThis, CWnd* pFrame);
 extern "C" int MS_ABI impl__EnableDocking_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwDockStyle);
 // CBasePane / CDockablePane (featurepack/docking)
@@ -387,6 +386,7 @@ FrameExtra* AttachExtra(CMDIFrameWndEx* pFrame) {
     p->pDockManager = new DockManagerBlock();
     memset(p->pDockManager->bytes, 0, sizeof(p->pDockManager->bytes));
     impl___0CDockingManager__QEAA_XZ(p->pDockManager);
+    impl__Create_CDockingManager__QEAAHPEAVCFrameWnd___Z(reinterpret_cast<CDockingManager*>(p->pDockManager), pFrame);
     p->pRibbonBar = nullptr;
     p->pRibbonStatusBar = nullptr;
     p->bInRecalcLayout = FALSE;
@@ -466,23 +466,6 @@ void SetWindowsDlgMenuText(CMDIFrameWndEx* pThis, const wchar_t* pszText) {
     }
 }
 
-// OpenMFC's CDockingManager keeps its parent frame in a protected member that
-// the C++ constructor CFrameWndEx.cpp uses would set; the default-ctor thunk
-// (what retail's ctor calls) leaves it NULL, and retail's OnCreate then stores
-// the frame into m_dockManager+0x1b0 (this+0x3d8) itself.  That store is
-// reproduced through this accessor.
-struct DockManagerAccess : CDockingManager {
-    using CDockingManager::m_pParentWnd;
-};
-void SetDockManagerParent(CDockingManager* pDock, CFrameWnd* pFrame) {
-    if (pDock != nullptr) {
-        static_cast<DockManagerAccess*>(pDock)->m_pParentWnd = pFrame;
-    }
-}
-CFrameWnd* DockManagerParent(CDockingManager* pDock) {
-    return pDock != nullptr ? static_cast<DockManagerAccess*>(pDock)->m_pParentWnd : nullptr;
-}
-
 // Retail's `if (!afxGlobalData.<+0x00>) { afxGlobalData.Initialize(); <+0x00> = 1; }`
 // prologue, emitted inline before every AFX_GLOBAL_DATA use; the same helper as
 // core/frame/CFrameImpl.cpp.
@@ -546,6 +529,10 @@ void DispatchShowPane(CBasePane* pBar, int bShow, int bDelay, int bActivate) {
 
 }  // namespace
 
+CDockingManager* openmfc::detail::mfccore::DockingManagerForMdiFrame(CMDIFrameWndEx* frame) {
+    return DockManagerOf(frame);
+}
+
 //=============================================================================
 // CMDIChildWndEx — message handlers
 //=============================================================================
@@ -606,7 +593,7 @@ extern "C" int MS_ABI impl__EnableDocking_CMDIFrameWndEx__QEAAHK_Z(CMDIFrameWndE
         return FALSE;
     }
     pThis->CFrameWnd::EnableDocking(dwDockStyle);
-    return TRUE;
+    return DockManagerOf(pThis)->EnableDocking(dwDockStyle);
 }
 // CMDIFrameWndEx::OnShowPopupMenu(CMFCPopupMenu*) — transcribed from retail
 // mfc140 (entry RVA 0x68600). The body is:
@@ -1279,19 +1266,11 @@ extern "C" int MS_ABI impl__InsertPane_CMDIFrameWndEx__QEAAHPEAVCBasePane__0H_Z(
     return 0;
 }
 
-// CMDIFrameWndEx::IsPointNearDockSite(CPoint, DWORD&, BOOL&) const — retail
-// entry RVA 0x897f0 is a two-instruction tail jump: `rcx = this + 0x228;
-// jmp 0x180048160` = ?IsPointNearDockSite@CDockingManager@@QEBAHVCPoint@@AEAKAEAH@Z,
-// arguments unchanged.
-// Left a stub for the same reason as GetPane/InsertPane. Note that returning 0
-// also leaves the two out-parameters untouched, which retail would have written
-// — callers must treat them as valid only when the result is TRUE.
 // Symbol: ?IsPointNearDockSite@CMDIFrameWndEx@@QEBAHVCPoint@@AEAKAEAH@Z
-extern "C" int MS_ABI impl__IsPointNearDockSite_CMDIFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
-    const CMDIFrameWndEx* pThis, unsigned long long point,
-    unsigned long* pdwBarAlignment, int* pbOuterEdge) {
-    (void)pThis; (void)point; (void)pdwBarAlignment; (void)pbOuterEdge;
-    return 0;
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CMDIFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
+    const CMDIFrameWndEx* frame, CPoint point, DWORD* alignment, BOOL* outerEdge) {
+    auto* manager = frame ? DockManagerOf(const_cast<CMDIFrameWndEx*>(frame)) : nullptr;
+    return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, alignment, outerEdge);
 }
 
 // CMDIFrameWndEx::LoadMDIState(LPCTSTR) — the wide export has no RVA; its ANSI

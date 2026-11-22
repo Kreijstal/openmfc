@@ -116,7 +116,6 @@ struct DockingManagerState {
     RECT clientAreaBounds{};                      // m_rectClientAreaBounds +0x1c8
     std::unordered_map<const CBasePane*, InPlacePaneSize> inPlacePaneSizes;
     bool positioningInPlace = false;
-    RECT boundsAt1d8{};                            // manager rectangle at +0x1d8
     void** dockSites = nullptr;                      // entries in m_lstControlBars +0x28, side storage
     std::size_t dockSiteCount = 0;
     std::size_t dockSiteCapacity = 0;
@@ -159,6 +158,9 @@ DockingManagerState& EnsureDockingState(const CDockingManager* pManager);
 
 namespace openmfc { namespace detail { namespace mfccore {
 const DockingManagerState* FindDockingState(const CDockingManager* pManager);
+CDockingManager* DockingManagerForFrame(CWnd* frame);
+CDockingManager* DockingManagerForMdiFrame(CMDIFrameWndEx* frame);
+CDockingManager* DockingManagerForMdiChild(CMDIChildWndEx* frame);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
@@ -1331,6 +1333,8 @@ extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
     const CDockingManager* pThis, CPoint point, int bIncludeHidden, int bCheckForPoint,
     CRuntimeClass* pRTCFilter, int, const CDockingManager* pDockManager);
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
+    const CDockingManager* manager, CPoint point, DWORD* alignment, BOOL* outerEdge);
 extern "C" void MS_ABI impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(CDockingManager* pThis);
 
 

@@ -89,8 +89,6 @@ extern "C" int   MS_ABI impl__SendMessageToMiniFrames_CDockingManager__QEAAHI_K_
 extern "C" void  MS_ABI impl__GetPaneList_CDockingManager__QEAAXAEAVCObList__HPEAUCRuntimeClass__H_Z(
     CDockingManager* pThis, CObList* pList, int bIncludeAutohide, CRuntimeClass* pRTCFilter, int bIncludeTabbed);
 extern "C" int   MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(CDockingManager* pThis, int bShow);
-extern "C" int   MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-    const CDockingManager* pThis, CPoint point, unsigned long* pdwBarAlignment, int* pbOuterEdge);
 // CObList (core/collections/CObList.cpp)
 extern "C" void*    MS_ABI impl___0CObList__QEAA__J_Z(CObList* pThis, long long nBlockSize);
 extern "C" void     MS_ABI impl___1CObList__UEAA_XZ(CObList* pThis);
@@ -124,6 +122,8 @@ COleCntrFrameWndEx::~COleCntrFrameWndEx() {
         const void* child = CWnd::FromHandlePermanent(window);
         auto pane = std::find(state.panes.begin(), state.panes.end(), child);
         if (pane != state.panes.end()) {
+            if (reinterpret_cast<CWnd*>((*pane)->m_pDockSite) == this)
+                (*pane)->m_pDockSite = nullptr;
             RemoveDockingPane(&m_dockManager, *pane);
             ::DestroyWindow(window);
         }
@@ -235,26 +235,11 @@ extern "C" int MS_ABI impl__InsertPane_COleCntrFrameWndEx__QEAAHPEAVCBasePane__0
     return impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(DockMgr(pThis), pBar, pTarget, bAfter);
 }
 
-// COleCntrFrameWndEx::IsPointNearDockSite(CPoint, DWORD&, BOOL&) const -- retail (RVA 0x94d80):
-//     jmp CDockingManager::IsPointNearDockSite(this + 0x1e0, point, dwBarAlignment, bOuterEdge)   // 0x48310
-// Transcribed as that forward.  NOTE: OpenMFC's CDockingManager::IsPointNearDockSite
-// is still a generated placeholder that returns 0 without touching the
-// out-parameters (see the declaration block above), so until it gets a body
-// this reports "not near a dock site" with dwBarAlignment / bOuterEdge left as
-// the caller passed them.  That is NOT what retail's callee does on its FALSE
-// path: CDockingManager::IsPointNearDockSite (RVA 0x48310 mfc140u) stores 0 to
-// dwBarAlignment on entry (`movl $0,(%r8)`), sets bOuterEdge to TRUE for the
-// outer-edge probe and back to FALSE for the inner one, so a retail FALSE comes
-// back with dwBarAlignment == 0 and bOuterEdge == FALSE; a caller that reads
-// the out-parameters without checking the return sees the difference until the
-// placeholder is implemented.  Deviation: a null `this` returns FALSE (retail
-// has no guard).
 // Symbol: ?IsPointNearDockSite@COleCntrFrameWndEx@@QEBAHVCPoint@@AEAKAEAH@Z
-extern "C" int MS_ABI impl__IsPointNearDockSite_COleCntrFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
-    const void* pThis, CPoint point, unsigned long* pdwBarAlignment, int* pbOuterEdge) {
-    if (pThis == nullptr) return FALSE;   // deviation: retail has no guard
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_COleCntrFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
+    const COleCntrFrameWndEx* frame, CPoint point, DWORD* alignment, BOOL* outerEdge) {
     return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-        DockMgr(const_cast<void*>(pThis)), point, pdwBarAlignment, pbOuterEdge);
+        frame ? &frame->m_dockManager : nullptr, point, alignment, outerEdge);
 }
 
 // COleCntrFrameWndEx::OnIdleUpdateCmdUI() -- retail (RVA 0x94f70):

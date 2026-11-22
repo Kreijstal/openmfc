@@ -4,7 +4,9 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CPreviewViewSupport.h"
+#include "detail/CPaneFrameWndSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/OleFeaturePackSupport.h"
 
 // OpenMFC: CGlobalUtils — currency/decimal string conversions (oleaut32-backed).
 //
@@ -88,8 +90,6 @@ extern "C" void MS_ABI impl__CalcRects_CPaneContainerManager__QEAAXAEAVCRect__00
                      unsigned long long sizeMinOriginal, unsigned long long sizeMinInserted);
 // featurepack/docking/StaticData.cpp -- the exported static data members.
 extern "C" int impl__m_bHandleMinSize_CPane__2HA;                      // retail .data 0x3b6fd0 (mfc140)
-// NB: retail initialises m_nDockSensitivity to 15 (the int stored at .data
-// 0x3aaacc, mfc140); StaticData.cpp currently initialises it to 0.
 extern "C" int impl__m_nDockSensitivity_CDockingManager__2HA;          // retail .data 0x3aaacc (mfc140)
 extern "C" int impl__m_bIgnoreEnabledAlignment_CDockingManager__2HA;   // retail .data 0x3b6f5c (mfc140)
 // featurepack/CMFC_misc_stubs.cpp:3665 -- ?afxGlobalUtils@@3VCGlobalUtils@@A
@@ -309,7 +309,36 @@ CSize CGlobalUtils::GetSystemBorders(CWnd* pWnd) { return GetSystemBorders(pWnd 
 HICON CGlobalUtils::GetWndIcon(CWnd* pWnd) { return pWnd ? reinterpret_cast<HICON>(::SendMessageW(pWnd->GetSafeHwnd(), WM_GETICON, ICON_SMALL, 0)) : nullptr; }
 BOOL CGlobalUtils::CanBeAttached(CWnd* pWnd) const { return pWnd != nullptr; }
 BOOL CGlobalUtils::CanPaneBeInFloatingMultiPaneFrameWnd(CWnd* pWnd) const { return pWnd != nullptr; }
-CDockingManager* CGlobalUtils::GetDockingManager(CWnd* pWnd) { return pWnd && pWnd->IsKindOf(RUNTIME_CLASS(CFrameWndEx)) ? static_cast<CFrameWndEx*>(pWnd)->GetDockingManager() : nullptr; }
+CDockingManager* openmfc::detail::mfccore::DockingManagerForFrame(CWnd* frame) {
+    using namespace openmfc::detail::olecore;
+    if (!frame) return nullptr;
+    if (frame->IsKindOf(RUNTIME_CLASS(CFrameWndEx)))
+        return static_cast<CFrameWndEx*>(frame)->GetDockingManager();
+    if (frame->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx)))
+        return DockingManagerForMdiFrame(static_cast<CMDIFrameWndEx*>(frame));
+    if (frame->IsKindOf(impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ()) ||
+        frame->IsKindOf(impl__GetThisClass_COleDocIPFrameWndEx__SAPEAUCRuntimeClass__XZ()))
+        return &static_cast<FeaturePackInPlaceFrame*>(frame)->m_dockManager;
+    if (frame->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx)))
+        return DockingManagerForMdiChild(static_cast<CMDIChildWndEx*>(frame));
+    if (frame->IsKindOf(COleCntrFrameWndEx::GetThisClass()))
+        return &static_cast<COleCntrFrameWndEx*>(frame)->m_dockManager;
+    return nullptr;
+}
+
+CDockingManager* CGlobalUtils::GetDockingManager(CWnd* window) {
+    while (window) {
+        if (auto* manager = openmfc::detail::mfccore::DockingManagerForFrame(window))
+            return manager;
+        if (!window->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)) &&
+            !window->IsKindOf(impl__GetThisClass_CPaneFrameWnd__SAPEAUCRuntimeClass__XZ()))
+            return nullptr;
+        const auto* state = openmfc::detail::cpaneframewnd::FindStatePtr(window);
+        if (state && state->dockManager) return state->dockManager;
+        window = CWnd::FromHandle(::GetParent(window->m_hWnd));
+    }
+    return nullptr;
+}
 // CGlobalUtils::SetNewParent -- transcribed from retail
 // ?SetNewParent@CGlobalUtils@@QEAAXAEAVCObList@@PEAVCWnd@@H@Z, entry RVA 0x6d050
 // (mfc140u -- absent from the symbol map, resolved through export ordinal 13385;

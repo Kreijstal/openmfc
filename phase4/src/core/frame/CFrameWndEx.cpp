@@ -127,15 +127,8 @@ extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBaseP
 // CBasePane (featurepack/docking/CBasePane.cpp)
 extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(
     CBasePane* pThis, int bShow, int bDelay, int bActivate);
-// CDockingManager exports that OpenMFC still ships as GENERATED stubs whose
-// parameter lists omit the `this` pointer (they ignore their arguments and
-// return 0 / do nothing).  Declared here with the real MSVC signature, so the
-// delegation retail performs is expressed structurally and starts working the
-// moment those stubs get real bodies.
 extern "C" int MS_ABI impl__ShowPanes_CDockingManager__UEAAHH_Z(
     CDockingManager* pThis, int bShow);
-extern "C" int MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-    const CDockingManager* pThis, CPoint point, unsigned long& dwBarAlignment, int& bOuterEdge);
 
 // CFrameImpl exports (core/frame/CFrameImpl.cpp). The definitions were checked
 // before use; CFrameImpl's fields are side-table-backed, so this stable token
@@ -471,25 +464,11 @@ extern "C" CBasePane* MS_ABI impl__GetPane_CFrameWndEx__QEAAPEAVCBasePane__I_Z(
     return impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
         pThis->GetDockingManager(), nID, TRUE);
 }
-// CFrameWndEx::IsPointNearDockSite(CPoint, DWORD&, int&) -- retail entry is
-// RVA 0x67e40 and it is a two-instruction tail jump:
-//     add $0x380,%rcx ; jmp 0x180048310
-// 0x180048310 is ?IsPointNearDockSite@CDockingManager@@QEBAHVCPoint@@AEAKAEAH@Z,
-// i.e. a plain forward to the embedded docking manager.  (An earlier comment
-// here cited these same two addresses but claimed the target is not exported;
-// that single claim was wrong -- the address and the RVA were right, and the
-// target is an export.)  Forwarded through m_pDockingManager.
-// NOTE: OpenMFC's CDockingManager::IsPointNearDockSite is still a generated
-// stub that returns 0 without touching the out-parameters, so this currently
-// still reports "not near a dock site".
 // Symbol: ?IsPointNearDockSite@CFrameWndEx@@QEBAHVCPoint@@AEAKAEAH@Z
-extern "C" int MS_ABI impl__IsPointNearDockSite_CFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
-    const CFrameWndEx* pThis, CPoint pt, unsigned long& dwBarAlignment, int& bOuterEdge) {
-    if (!pThis) return FALSE;
-    CDockingManager* pDock = const_cast<CFrameWndEx*>(pThis)->GetDockingManager();
-    if (!pDock) return FALSE;
-    return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
-        pDock, pt, dwBarAlignment, bOuterEdge);
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
+    const CFrameWndEx* frame, CPoint point, DWORD& alignment, BOOL& outerEdge) {
+    auto* manager = frame ? const_cast<CFrameWndEx*>(frame)->GetDockingManager() : nullptr;
+    return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, &alignment, &outerEdge);
 }
 // CFrameWndEx::AdjustDockingLayout(void*) — retail (RVA 0x67e50) checks a
 // CDockingManager flag, calls its AdjustDockingLayout, then the frame's own

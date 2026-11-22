@@ -103,6 +103,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OleFeaturePackSupport.h"
+#include "detail/MfccoreSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/OlecoreSupport.h"
 
@@ -362,17 +363,11 @@ extern "C" int MS_ABI impl__InsertPane_COleDocIPFrameWndEx__QEAAHPEAVCBasePane__
         &frame->m_dockManager, pane, target, after);
 }
 
-// COleDocIPFrameWndEx::IsPointNearDockSite(CPoint, DWORD&, BOOL&) const —
-// retail (RVA 0x95fd0, named ?IsPointNearDockSite@COleIPFrameWndEx@@ in the
-// map):
-//     add $0x428,%rcx; jmp CDockingManager::IsPointNearDockSite   // 0x48160
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?IsPointNearDockSite@COleDocIPFrameWndEx@@QEBAHVCPoint@@AEAKAEAH@Z
-extern "C" int MS_ABI impl__IsPointNearDockSite_COleDocIPFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
-    const void* pThis, unsigned long long pt, unsigned long* dwBarAlignment, int* bOuterEdge) {
-    (void)pThis; (void)pt; (void)dwBarAlignment; (void)bOuterEdge;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_COleDocIPFrameWndEx__QEBAHVCPoint__AEAKAEAH_Z(
+    const FeaturePackInPlaceFrame* frame, CPoint point, DWORD* alignment, BOOL* outerEdge) {
+    return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
+        frame ? &frame->m_dockManager : nullptr, point, alignment, outerEdge);
 }
 
 // COleDocIPFrameWndEx::LoadFrame(UINT, DWORD, CWnd*, CCreateContext*) — retail

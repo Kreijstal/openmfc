@@ -9,7 +9,7 @@
 // Symbol: ?CreateEx@CBasePane@@UEAAHKPEB_W0KAEBUtagRECT@@PEAVCWnd@@IKPEAUCCreateContext@@@Z
 extern "C" int MS_ABI impl__CreateEx_CBasePane__UEAAHKPEB_W0KAEBUtagRECT__PEAVCWnd__IKPEAUCCreateContext___Z(
     CBasePane* pThis, unsigned long dwStyleEx, const wchar_t* lpszClassName, const wchar_t* lpszWindowName, unsigned long dwStyle,
-    const RECT& rect, CWnd* pParentWnd, unsigned int nID, unsigned long, CCreateContext* pContext) {
+    const RECT& rect, CWnd* pParentWnd, unsigned int nID, DWORD controlBarStyle, CCreateContext* pContext) {
     (void)dwStyleEx;
     (void)lpszWindowName;
     if (pThis == nullptr) return FALSE;
@@ -23,7 +23,13 @@ extern "C" int MS_ABI impl__CreateEx_CBasePane__UEAAHKPEB_W0KAEBUtagRECT__PEAVCW
         if (state.minSize.cx <= 0) state.minSize.cx = 32;
         if (state.minSize.cy <= 0) state.minSize.cy = 32;
     }
-    return TryCreatePaneWindow(static_cast<CWnd*>(pThis), lpszClassName, dwStyle, useRect, pParentWnd, nID, pContext);
+    pThis->m_dwControlBarStyle = controlBarStyle;
+    if (!TryCreatePaneWindow(pThis, lpszClassName, dwStyle, useRect, pParentWnd, nID, pContext))
+        return FALSE;
+    CWnd* frame = pParentWnd->IsKindOf(RUNTIME_CLASS(CFrameWnd)) ? pParentWnd : pParentWnd->GetParentFrame();
+    pThis->m_pDockSite = reinterpret_cast<CDockSite*>(frame);
+    pThis->m_bIsDlgControl = pParentWnd->IsKindOf(RUNTIME_CLASS(CDialog));
+    return TRUE;
 }
 // Symbol: ?ShowPane@CBasePane@@UEAAXHHH@Z
 extern "C" void MS_ABI impl__ShowPane_CBasePane__UEAAXHHH_Z(CBasePane* pThis, int bShow, int, int) {
@@ -1085,19 +1091,15 @@ extern "C" int MS_ABI impl__IsDocked_CBasePane__UEBAHXZ(const CBasePane* pThis) 
     return FALSE;
 }
 
-// STUB. Retail entry RVA 0xb950 (mfc140u). It gets the dock-site frame via
-// vtable slot 105 and returns TRUE if the frame is null or docking is suppressed.
-// Otherwise it RTTI-dispatches to CDockingManager::IsPointNearDockSite using an
-// embedded manager at +0x380, +0x228, +0x428, +0x3a8, or +0x1e0; an unmatched
-// frame returns FALSE. OpenMFC does not model those frame layouts.
 // Symbol: ?IsPointNearDockSite@CBasePane@@QEBAHVCPoint@@AEAKAEAH@Z
-extern "C" int MS_ABI impl__IsPointNearDockSite_CBasePane__QEBAHVCPoint__AEAKAEAH_Z(
-    const CBasePane* pThis, long long point, unsigned long* dwBarAlignment, int* bOuterEdge) {
-    (void)pThis;
-    (void)point;
-    (void)dwBarAlignment;
-    (void)bOuterEdge;
-    return FALSE;
+extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CBasePane__QEBAHVCPoint__AEAKAEAH_Z(
+    const CBasePane* pane, CPoint point, DWORD* alignment, BOOL* outerEdge) {
+    if (!pane) return FALSE;
+    auto* frame = static_cast<CWnd*>(impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(pane));
+    if (!frame) return TRUE;
+    const auto* manager = openmfc::detail::mfccore::DockingManagerForFrame(frame);
+    return manager && impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
+        manager, point, alignment, outerEdge);
 }
 
 // CBasePane::IsMDITabbed -- retail entry RVA 0xb380 is two instructions:
