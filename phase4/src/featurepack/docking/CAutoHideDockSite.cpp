@@ -11,17 +11,7 @@
 // and constants read off it are valid, but its addresses are NOT mfc140u
 // addresses.  Import slots were resolved with iat.py, not guessed.
 //
-// include/openmfc does not declare CAutoHideDockSite, so `this` is a void* and
-// the layout is pinned here.  Instance layout, read out of the retail
-// constructor ??0CAutoHideDockSite@@QEAA@XZ (0xa5a0; 0xa520 in mfc140u) and
-// the DECLARE_DYNCREATE factory (0xa550, `operator new(0x228)`), cross-checked
-// against the shipping afxautohidedocksite.h:33 member order:
-//
-//   0x000 CDockSite subobject (0x220 bytes, featurepack/docking/CDockSite.cpp)
-//   0x220 int m_nOffsetLeft      (the ctor zeroes 0x220..0x227 with one movq)
-//   0x224 int m_nOffsetRight
-//   0x228 == sizeof  (also the 552 recorded in detail/DeferredRttiSupport.h:57)
-//
+// The dock site layout in detail/FeaturePackDockSite.h retains the retail offsets.
 // Retail CAutoHideDockSite vftable (0x1802d9868, mfc140) -- the overridden
 // slots the bodies below implement, and the inherited slots they use.  Diffed
 // against the CDockSite vftable (0x1802e4388, mfc140), the
@@ -39,19 +29,20 @@
 // here as the impl__ thunk of the class whose body sits in that slot (a
 // devirtualisation), exactly as CDockSite.cpp does.
 
+#define OPENMFC_APPCORE_IMPL
+#include "detail/FeaturePackDockSite.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/CMemDCSupport.h"   // S_Cmemdc view + the CMemDC thunk declarations
 
 #include <cstddef>
 #include <cstring>
+#include <new>
 
 // ---------------------------------------------------------------------------
 // Thunks defined elsewhere in this DLL (briefing S1).  Each was located with
 // grep before being declared; the defining file is named per group.
 // ---------------------------------------------------------------------------
 // featurepack/docking/CDockSite.cpp (real bodies)
-extern "C" void* MS_ABI impl___0CDockSite__QEAA_XZ(void* pThis);
-extern "C" void MS_ABI impl___1CDockSite__UEAA_XZ(void* pThis);
 extern "C" void* MS_ABI impl__RowFromPane_CDockSite__IEBAPEAVCDockingPanesRow__PEAVCBasePane___Z(
     const void* pThis, CBasePane* pBar);
 // featurepack/docking/CDockingPanesRow.cpp (real body)
@@ -74,9 +65,6 @@ extern "C" CObList::POSITION MS_ABI
     impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(const CObList* pThis, long long nIndex);
 extern "C" void MS_ABI impl__AddTail_CObList__QEAAXPEAV1__Z(CObList* pThis, CObList* pNewList);
 extern "C" void MS_ABI impl__RemoveAt_CObList__QEAAXPEAU__POSITION___Z(CObList* pThis, CObList::POSITION* pPos);
-// detail/MemcoreSupport.cpp -- the exported ??2@YAPEAX_K@Z, which is what the
-// retail factory's `call 0x2840` resolves to.
-extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
 // core/gdi/CPaintDC.cpp
 extern "C" CPaintDC* MS_ABI impl___0CPaintDC__QEAA_PEAVCWnd___Z(CPaintDC* pThis, CWnd* pWnd);
 extern "C" void MS_ABI impl___1CPaintDC__UEAA_XZ(CPaintDC* pThis);
@@ -88,7 +76,6 @@ extern "C" void MS_ABI impl__OnFillBarBackground_CMFCVisualManager__UEAAXPEAVCDC
 extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
 
 // Same-file thunks used before their definition.
-extern "C" void* MS_ABI impl___0CAutoHideDockSite__QEAA_XZ(void* pThis);
 extern "C" void MS_ABI impl__UnSetAutoHideMode_CAutoHideDockSite__QEAAXPEAVCMFCAutoHideBar___Z(
     void* pThis, CMFCAutoHideBar* pAutohideToolbar);
 
@@ -97,27 +84,11 @@ extern "C" void MS_ABI impl__UnSetAutoHideMode_CAutoHideDockSite__QEAAXPEAVCMFCA
 // ---------------------------------------------------------------------------
 namespace {
 
-// The CDockSite part is opaque here (its shadow lives in CDockSite.cpp); only
-// the two members this class adds, and the CDockSite list the bodies below
-// walk, are named.
-struct S_CAutoHideDockSite {
-    unsigned char m_dockSite[0x1A8];  // 0x000 CBasePane part of CDockSite
-    CObList       m_lstControlBars;   // 0x1A8 CDockSite::m_lstControlBars
-    unsigned char m_dockSiteRest[0x220 - 0x1E0];  // 0x1E0 m_lstDockBarRows, m_nDockBarID
-    int           m_nOffsetLeft;      // 0x220
-    int           m_nOffsetRight;     // 0x224
-};
-static_assert(sizeof(CObList) == 0x38, "CObList must be 56 bytes");
-static_assert(offsetof(S_CAutoHideDockSite, m_lstControlBars) == 0x1A8,
-              "CDockSite::m_lstControlBars at +0x1A8 (CDockSite.cpp static_assert)");
-static_assert(offsetof(S_CAutoHideDockSite, m_nOffsetLeft) == 0x220, "retail reads m_nOffsetLeft at +0x220");
-static_assert(offsetof(S_CAutoHideDockSite, m_nOffsetRight) == 0x224, "retail reads m_nOffsetRight at +0x224");
-static_assert(sizeof(S_CAutoHideDockSite) == 0x228, "CAutoHideDockSite is 0x228 bytes (retail factory 0xa550)");
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "retail reads m_hWnd at CWnd+0x40");
 static_assert(offsetof(CPane, m_bFirstInGroup) == 0x1AC, "retail UnSetAutoHideMode reads +0x1AC");
 
-inline S_CAutoHideDockSite* Site(void* p) { return static_cast<S_CAutoHideDockSite*>(p); }
-inline const S_CAutoHideDockSite* Site(const void* p) { return static_cast<const S_CAutoHideDockSite*>(p); }
+inline CAutoHideDockSite* Site(void* p) { return static_cast<CAutoHideDockSite*>(p); }
+inline const CAutoHideDockSite* Site(const void* p) { return static_cast<const CAutoHideDockSite*>(p); }
 inline CBasePane* AsPane(void* p) { return static_cast<CBasePane*>(p); }
 inline const CBasePane* AsPane(const void* p) { return static_cast<const CBasePane*>(p); }
 
@@ -167,27 +138,15 @@ inline bool SiteIsHorz(const void* pThis) {
 
 } // namespace
 
+IMPLEMENT_DYNCREATE(CAutoHideDockSite, CDockSite)
+
 // Symbol: ??0CAutoHideDockSite@@QEAA@XZ
-// Retail 0xa5a0 (0xa520 in mfc140u), transcribed in full:
-//   CDockSite::CDockSite();                          // call 0x52e10
-//   <install CAutoHideDockSite vftable 0x1802d9868>
-//   m_nOffsetLeft = m_nOffsetRight = 0;              // one `movq $0x0,0x220(%rbx)`
-//   return this;
-// OpenMFC has no retail vftable to install.  The pThis NULL guard is ours.
-extern "C" void* MS_ABI impl___0CAutoHideDockSite__QEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return nullptr;
-    impl___0CDockSite__QEAA_XZ(pThis);
-    Site(pThis)->m_nOffsetLeft = 0;
-    Site(pThis)->m_nOffsetRight = 0;
-    return pThis;
+extern "C" void* MS_ABI impl___0CAutoHideDockSite__QEAA_XZ(void* storage) {
+    return storage ? ::new (storage) CAutoHideDockSite : nullptr;
 }
 // Symbol: ??1CAutoHideDockSite@@UEAA@XZ
-// Retail 0xa620 (0xa5a0 in mfc140u), transcribed in full: re-install the
-// CAutoHideDockSite vftable, then tail-jump to ~CDockSite (0x52f00).  The two
-// int members need no destruction.  OpenMFC has no vftable to store.
-extern "C" void MS_ABI impl___1CAutoHideDockSite__UEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return;
-    impl___1CDockSite__UEAA_XZ(pThis);
+extern "C" void MS_ABI impl___1CAutoHideDockSite__UEAA_XZ(void* site) {
+    if (site) static_cast<CAutoHideDockSite*>(site)->CAutoHideDockSite::~CAutoHideDockSite();
 }
 // Symbol: ?CanAcceptPane@CAutoHideDockSite@@UEBAHPEBVCBasePane@@@Z
 // Retail 0xab70 (0xaaf0 in mfc140u), transcribed in full -- `this` is unused:
@@ -197,21 +156,17 @@ extern "C" void MS_ABI impl___1CAutoHideDockSite__UEAA_XZ(void* pThis) {
 // CRuntimeClass (mfc140; its name field reads "CMFCAutoHideBar", size 0x458).
 extern "C" int MS_ABI impl__CanAcceptPane_CAutoHideDockSite__UEBAHPEBVCBasePane___Z(
     const void* pThis, const CBasePane* pBar) {
-    (void)pThis;
-    return impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-        pBar, impl__GetThisClass_CMFCAutoHideBar__SAPEAUCRuntimeClass__XZ());
+    return pThis && Site(pThis)->CAutoHideDockSite::CanAcceptPane(pBar);
+}
+
+BOOL CAutoHideDockSite::CanAcceptPane(const CBasePane* pane) const {
+    return pane && (pane->IsKindOf(RUNTIME_CLASS(CMFCAutoHideBar)) ||
+        pane->IsKindOf(impl__GetThisClass_CMFCAutoHideBar__SAPEAUCRuntimeClass__XZ()));
 }
 
 // Symbol: ?CreateObject@CAutoHideDockSite@@SAPEAVCObject@@XZ
-// Retail 0xa550 (0xa4d0 in mfc140u), transcribed in full -- the
-// DECLARE_DYNCREATE factory:
-//   void* p = ::operator new(0x228);                 // call 0x2840
-//   if (p != NULL) CAutoHideDockSite::CAutoHideDockSite(p);   // call 0xa5a0
-//   return p;
 extern "C" CObject* MS_ABI impl__CreateObject_CAutoHideDockSite__SAPEAVCObject__XZ() {
-    void* p = impl___2_YAPEAX_K_Z(sizeof(S_CAutoHideDockSite));
-    if (p != nullptr) impl___0CAutoHideDockSite__QEAA_XZ(p);
-    return static_cast<CObject*>(p);
+    return CAutoHideDockSite::CreateObject();
 }
 
 // Symbol: ?DockPane@CAutoHideDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@@Z
@@ -264,7 +219,7 @@ extern "C" void MS_ABI impl__DockPane_CAutoHideDockSite__UEAAXPEAVCPane__W4AFX_D
 extern "C" void MS_ABI impl__GetAlignRect_CAutoHideDockSite__QEBAXAEAVCRect___Z(const void* pThis, CRect* pRect) {
     if (pThis == nullptr || pRect == nullptr) return;
     ::GetWindowRect(AsPane(pThis)->m_hWnd, reinterpret_cast<RECT*>(pRect));
-    const S_CAutoHideDockSite* s = Site(pThis);
+    const CAutoHideDockSite* s = Site(pThis);
     if (SiteIsHorz(pThis)) {
         pRect->left += s->m_nOffsetLeft;
         pRect->right -= s->m_nOffsetRight;

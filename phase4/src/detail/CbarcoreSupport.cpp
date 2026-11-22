@@ -259,18 +259,6 @@ BOOL TryCreatePaneWindow(CWnd* paneWnd, const wchar_t* className, DWORD style, c
     const DWORD useStyle = style != 0 ? style : (WS_CHILD | WS_VISIBLE);
     return paneWnd->Create(useClass, L"", useStyle, *static_cast<const RECT*>(rect), parentWnd, id, context);
 }
-CRuntimeClass* AFXAPI gb_CDockSite() {
-    return impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
-}
-CRuntimeClass g_runtimeClassDockSite = {
-    "CDockSite",
-    544,
-    kNoSerializationSchema,
-    nullptr,
-    gb_CDockSite,
-    nullptr,
-    nullptr
-};
 std::mutex g_featurePackStateMutex;
 std::unordered_map<CFrameImpl*, FrameImplState> g_frameImplStates;
 std::unordered_map<CMDIChildWndEx*, std::wstring> g_taskbarTabText;

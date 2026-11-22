@@ -72,7 +72,6 @@ extern "C" void  MS_ABI impl__DockPane_CDockingManager__QEAAXPEAVCBasePane__IPEB
 extern "C" int   MS_ABI impl__DockPaneLeftOf_CDockingManager__QEAAHPEAVCPane__0_Z(
     CDockingManager* pThis, CPane* pBarToDock, CPane* pBar);
 extern "C" int   MS_ABI impl__EnableDocking_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwDockStyle);
-extern "C" int   MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwDockStyle);
 extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
     CDockingManager* pThis, unsigned int nID, int bSearchMiniFrames);
 extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(

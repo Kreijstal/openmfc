@@ -55,10 +55,13 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/FeaturePackDockSite.h"
+#include "detail/ClassicDockingSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 
 #include <cstddef>
 #include <cstring>
+#include <new>
 
 // ---------------------------------------------------------------------------
 // Thunks defined elsewhere in this DLL (briefing S1: the C++ methods of these
@@ -201,19 +204,6 @@ extern "C" void MS_ABI impl__SwapRows_CDockSite__QEAAXPEAVCDockingPanesRow__0_Z(
 // ---------------------------------------------------------------------------
 namespace {
 
-struct S_CDockSite {
-    CBasePane base;                 // 0x000 (0x1A8 bytes)
-    CObList   m_lstControlBars;     // 0x1A8
-    CObList   m_lstDockBarRows;     // 0x1E0
-    UINT      m_nDockBarID;         // 0x218
-    UINT      m_pad21C;             // 0x21C (tail pad in retail)
-};
-static_assert(sizeof(CBasePane) == 0x1A8, "CBasePane must be 424 bytes (afxmfc.h)");
-static_assert(sizeof(CObList) == 0x38, "CObList must be 56 bytes");
-static_assert(offsetof(S_CDockSite, m_lstControlBars) == 0x1A8, "CDockSite layout");
-static_assert(offsetof(S_CDockSite, m_lstDockBarRows) == 0x1E0, "CDockSite layout");
-static_assert(offsetof(S_CDockSite, m_nDockBarID)     == 0x218, "CDockSite layout");
-static_assert(sizeof(S_CDockSite) == 0x220, "CDockSite is 544 bytes in retail");
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "retail reads m_hWnd at CWnd+0x40");
 static_assert(offsetof(CPane, m_pDockBarRow) == 0x130, "retail reads m_pDockBarRow at +0x130");
 static_assert(offsetof(CPane, m_bDisableMove) == 0x1A8, "retail writes m_bDisableMove at +0x1A8");
@@ -289,8 +279,8 @@ inline ObNode* FindNode(const CObList* pList, const void* data) {
     return nullptr;
 }
 
-inline S_CDockSite* Site(void* p) { return static_cast<S_CDockSite*>(p); }
-inline const S_CDockSite* Site(const void* p) { return static_cast<const S_CDockSite*>(p); }
+inline CDockSite* Site(void* p) { return static_cast<CDockSite*>(p); }
+inline const CDockSite* Site(const void* p) { return static_cast<const CDockSite*>(p); }
 inline CBasePane* AsPane(void* p) { return static_cast<CBasePane*>(p); }
 inline const CBasePane* AsPane(const void* p) { return static_cast<const CBasePane*>(p); }
 inline S_CDockingPanesRow* RowOf(const void* p) {
@@ -353,41 +343,105 @@ const int kHitLeft = 10, kHitRight = 11, kHitTop = 12, kHitBottom = 15;
 
 } // namespace
 
+IMPLEMENT_DYNCREATE(CDockSite, CBasePane)
+
+extern "C" void MS_ABI impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+    CString*, void*, const wchar_t*);
+extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[];
+
+RECT openmfc::detail::mfccore::EmptyDockSiteBounds(RECT rect, DWORD alignment) {
+    using namespace openmfc::detail::dock;
+    switch (alignment) {
+    case alignTop: rect.bottom = rect.top; break;
+    case alignBottom: rect.top = rect.bottom; break;
+    case alignLeft: rect.right = rect.left; break;
+    case alignRight: rect.left = rect.right; break;
+    }
+    return rect;
+}
+
+BOOL CDockSite::Create(DWORD style, const RECT& rect, CWnd* parent, DWORD controlBarStyle,
+                       CCreateContext* context) {
+    return CreateEx(0, style, rect, parent, controlBarStyle, context);
+}
+
+BOOL CDockSite::CreateEx(DWORD extended, DWORD style, const RECT&, CWnd* parent,
+                         DWORD controlBarStyle, CCreateContext* context) {
+    using namespace openmfc::detail::dock;
+    RECT bounds{};
+    if (!parent || m_hWnd || !::GetClientRect(parent->m_hWnd, &bounds)) return FALSE;
+    const DWORD alignment = style & alignAny;
+    switch (alignment) {
+    case alignTop: m_nDockBarID = topBarId; break;
+    case alignLeft: m_nDockBarID = leftBarId; break;
+    case alignRight: m_nDockBarID = rightBarId; break;
+    case alignBottom: m_nDockBarID = bottomBarId; break;
+    default: m_nDockBarID = 0; break;
+    }
+    bounds = openmfc::detail::mfccore::EmptyDockSiteBounds(bounds, alignment);
+    m_dwStyle = alignment;
+    m_dwEnabledAlignment |= alignment;
+    SetPaneAlignment(alignment);
+    m_dwControlBarStyle = controlBarStyle;
+    m_pDockSite = reinterpret_cast<CDockSite*>(parent);
+
+    alignas(CString) unsigned char storage[sizeof(CString)];
+    auto* name = reinterpret_cast<CString*>(storage);
+    impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
+        name, impl__afxGlobalData__3UAFX_GLOBAL_DATA__A, L"Afx:DockPane");
+    const BOOL created = CWnd::CreateEx(extended, name->GetString(), nullptr,
+        style | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, bounds, parent, m_nDockBarID, context);
+    name->~CString();
+    if (!created) {
+        m_pDockSite = nullptr;
+        return FALSE;
+    }
+
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Cbarcore);
+    auto& state = g_dockSiteCoreState[this];
+    state.parent = parent;
+    state.recentRect = bounds;
+    state.autoDelete = true;
+    return TRUE;
+}
+
+void CDockSite::SetDockingManager(CDockingManager* manager) {
+    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Cbarcore);
+    g_dockSiteCoreState[this].manager = manager;
+}
+
+void CDockSite::PostNcDestroy() {
+    bool destroy = false;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Cbarcore);
+        const auto found = g_dockSiteCoreState.find(this);
+        destroy = found != g_dockSiteCoreState.end() && found->second.autoDelete;
+    }
+    if (destroy) delete this;
+}
+
 // Symbol: ?CreateObject@CDockSite@@SAPEAVCObject@@XZ
-// Retail 0x52de0: `p = ::operator new(0x220); if (p) CDockSite::CDockSite(p);
-// return p;` -- the DECLARE_DYNCREATE factory.  The exported operator new
-// (0x2840, ??2@YAPEAX_K@Z) is reached through the memcore thunk.  NOTE:
-// g_runtimeClassDockSite in detail/CbarcoreSupport.cpp:280 still carries a NULL
-// m_pfnCreateObject, so RUNTIME_CLASS(CDockSite)->CreateObject() does not reach
-// this yet (see headerRequests).
 extern "C" CObject* MS_ABI impl__CreateObject_CDockSite__SAPEAVCObject__XZ() {
-    void* p = impl___2_YAPEAX_K_Z(sizeof(S_CDockSite));
-    if (p != nullptr) impl___0CDockSite__QEAA_XZ(p);
-    return static_cast<CObject*>(p);
+    return CDockSite::CreateObject();
 }
 // Symbol: ?GetRuntimeClass@CDockSite@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDockSite__UEBAPEAUCRuntimeClass__XZ(const void*) {
-    return &g_runtimeClassDockSite;
+    return CDockSite::GetThisClass();
 }
 // Symbol: ?GetThisClass@CDockSite@@SAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockSite__SAPEAUCRuntimeClass__XZ() {
-    return &g_runtimeClassDockSite;
+    return CDockSite::GetThisClass();
 }
 // Symbol: ?Create@CDockSite@@UEAAHKAEBUtagRECT@@PEAVCWnd@@KPEAUCCreateContext@@@Z
-extern "C" int MS_ABI impl__Create_CDockSite__UEAAHKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
-    void* pThis, unsigned long, const RECT& rect, CWnd* pParentWnd, unsigned long, CCreateContext*) {
-    if (pThis == nullptr) return FALSE;
-    std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Cbarcore);
-    DockSiteCoreState& state = g_dockSiteCoreState[pThis];
-    state.parent = pParentWnd;
-    state.recentRect = NormalizeRect(&rect, 320, 220);
-    return TRUE;
+extern "C" BOOL MS_ABI impl__Create_CDockSite__UEAAHKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
+    CDockSite* site, DWORD style, const RECT& rect, CWnd* parent, DWORD controlBarStyle, CCreateContext* context) {
+    return site && site->CDockSite::Create(style, rect, parent, controlBarStyle, context);
 }
 // Symbol: ?CreateEx@CDockSite@@UEAAHKKAEBUtagRECT@@PEAVCWnd@@KPEAUCCreateContext@@@Z
-extern "C" int MS_ABI impl__CreateEx_CDockSite__UEAAHKKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
-    void* pThis, unsigned long, unsigned long dwStyle, const RECT& rect, CWnd* pParentWnd, unsigned long nID, CCreateContext* pContext) {
-    return impl__Create_CDockSite__UEAAHKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
-        pThis, dwStyle, rect, pParentWnd, nID, pContext);
+extern "C" BOOL MS_ABI impl__CreateEx_CDockSite__UEAAHKKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
+    CDockSite* site, DWORD extended, DWORD style, const RECT& rect, CWnd* parent,
+    DWORD controlBarStyle, CCreateContext* context) {
+    return site && site->CDockSite::CreateEx(extended, style, rect, parent, controlBarStyle, context);
 }
 // Symbol: ?DockPane@CDockSite@@UEAAXPEAVCPane@@W4AFX_DOCK_METHOD@@PEBUtagRECT@@@Z
 extern "C" void MS_ABI impl__DockPane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD__PEBUtagRECT___Z(
@@ -571,49 +625,28 @@ extern "C" void MS_ABI impl__OnRemoveRow_CDockSite__UEAAXPEAU__POSITION__H_Z(voi
     for (n = n->pNext; n != nullptr; n = n->pNext)
         impl__Move_CDockingPanesRow__UEAAXH_Z(n->data, -nRowHeight);
 }
+CDockSite::~CDockSite() {
+    CDockingManager* manager = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Cbarcore);
+        const auto found = g_dockSiteCoreState.find(this);
+        if (found != g_dockSiteCoreState.end()) {
+            manager = found->second.manager;
+            g_dockSiteCoreState.erase(found);
+        }
+    }
+    if (manager) openmfc::detail::mfccore::ForgetDockSite(manager, this);
+    if (m_hWnd) DestroyWindow();
+    while (!m_lstDockBarRows.IsEmpty()) DeleteRow(m_lstDockBarRows.RemoveHead());
+}
+
 // Symbol: ??0CDockSite@@QEAA@XZ
-// Retail 0x52e10, transcribed in full: CBasePane::CBasePane() (0xad30), install
-// the CDockSite vftable, construct m_lstControlBars (+0x1A8) and m_lstDockBarRows
-// (+0x1E0) as CObList(10), m_nDockBarID = 0.  OpenMFC has no retail vftable to
-// install; the two lists go through the exported CObList constructor so their
-// side-table storage exists (see the file header).
-extern "C" void* MS_ABI impl___0CDockSite__QEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return nullptr;
-    S_CDockSite* s = Site(pThis);
-    impl___0CBasePane__QEAA_XZ(pThis);
-    impl___0CObList__QEAA__J_Z(&s->m_lstControlBars, 10);
-    impl___0CObList__QEAA__J_Z(&s->m_lstDockBarRows, 10);
-    s->m_nDockBarID = 0;
-    return pThis;
+extern "C" void* MS_ABI impl___0CDockSite__QEAA_XZ(void* storage) {
+    return storage ? ::new (storage) CDockSite : nullptr;
 }
 // Symbol: ??1CDockSite@@UEAA@XZ
-// Retail 0x52f00, transcribed in full:
-//   (vftable store)
-//   while (m_lstDockBarRows.GetCount() != 0) {                        // +0x1F8
-//       CDockingPanesRow* pRow = (CDockingPanesRow*)m_lstDockBarRows.RemoveHead();  // 0x230560
-//       if (pRow != NULL) delete pRow;                                 // row vslot +0x08, flag 1
-//   }
-//   m_lstDockBarRows.~CObList();    // inlined: list vftable store + CPtrList::RemoveAll (0x83d0)
-//   m_lstControlBars.~CObList();    // same, at +0x1A8
-//   CBasePane::~CBasePane();                                           // tail-jump 0xaf30
-// Retail keys the loop on the in-object count word; here it is the head node.
-// The two vftable-store + `call 0x83d0` pairs at 0x52f63-0x52f78 inside 0x52f00
-// (`mov %rsi,(%rdi)` for +0x1E0, then `mov %rsi,(%rcx)` for +0x1A8; %rsi holds
-// the CObList vftable 0x180328538, mfc140) are the compiler-inlined member
-// destructors (~CObList is `RemoveAll()` in MFC), so
-// the members ARE destroyed in retail; here that is the exported CObList
-// destructor thunk, which empties the list and releases the side-table
-// storage the constructor thunk registered (see the file header).
-extern "C" void MS_ABI impl___1CDockSite__UEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return;
-    S_CDockSite* s = Site(pThis);
-    while (HeadNode(&s->m_lstDockBarRows) != nullptr) {
-        CObject* pRow = impl__RemoveHead_CObList__QEAAPEAVCObject__XZ(&s->m_lstDockBarRows);
-        DeleteRow(pRow);
-    }
-    impl___1CObList__UEAA_XZ(&s->m_lstDockBarRows);
-    impl___1CObList__UEAA_XZ(&s->m_lstControlBars);
-    impl___1CBasePane__UEAA_XZ(pThis);
+extern "C" void MS_ABI impl___1CDockSite__UEAA_XZ(void* site) {
+    if (site) static_cast<CDockSite*>(site)->CDockSite::~CDockSite();
 }
 // Symbol: ?AddRow@CDockSite@@QEAAPEAVCDockingPanesRow@@PEAU__POSITION@@H@Z
 // Retail 0x54080, transcribed in full:
@@ -635,7 +668,7 @@ extern "C" void MS_ABI impl___1CDockSite__UEAA_XZ(void* pThis) {
 extern "C" void* MS_ABI impl__AddRow_CDockSite__QEAAPEAVCDockingPanesRow__PEAU__POSITION__H_Z(
     void* pThis, void* pos, int nHeight) {
     if (pThis == nullptr) return nullptr;
-    S_CDockSite* s = Site(pThis);
+    CDockSite* s = Site(pThis);
     int nOffset = 0;
     for (ObNode* n = HeadNode(&s->m_lstDockBarRows); n != static_cast<ObNode*>(pos); n = n->pNext) {
         if (n == nullptr) { impl__AfxThrowInvalidArgException__YAXXZ(); return nullptr; }
@@ -762,7 +795,7 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CDockSite__UEAA_AVCSize__HH_Z(
     pRet->cx = 0;
     pRet->cy = 0;
     if (pThis == nullptr) return pRet;
-    S_CDockSite* s = Site(pThis);
+    CDockSite* s = Site(pThis);
     const bool bIsHorz = SiteIsHorz(pThis);
     for (ObNode* n = HeadNode(&s->m_lstDockBarRows); n != nullptr; n = n->pNext) {
         S_CDockingPanesRow* r = RowOf(n);
@@ -775,7 +808,7 @@ extern "C" CSize* MS_ABI impl__CalcFixedLayout_CDockSite__UEAA_AVCSize__HH_Z(
             impl__ResizeRow_CDockSite__QEAAHPEAVCDockingPanesRow__HH_Z(pThis, r, nNewHeight, FALSE);
     }
     CRect rectWnd(0, 0, 0, 0);
-    ::GetWindowRect(s->base.m_hWnd, RP(&rectWnd));
+    ::GetWindowRect(s->m_hWnd, RP(&rectWnd));
     pRet->cx = rectWnd.right - rectWnd.left;
     pRet->cy = rectWnd.bottom - rectWnd.top;
     return pRet;
@@ -1257,20 +1290,8 @@ extern "C" int MS_ABI impl__OnEraseBkgnd_CDockSite__IEAAHPEAVCDC___Z(void* pThis
 }
 
 // Symbol: ?OnNcDestroy@CDockSite@@IEAAXXZ
-// Retail: the CDockSite message map (0x1802e4288, entry for WM_NCDESTROY 0x82)
-// points at 0x3d590, a body the linker folded with CMFCDesktopAlertWnd::OnNcDestroy:
-//   CWnd::OnNcDestroy();                                              // 0x289d80
-//   if (this != NULL) delete this;                                    // vslot +0x08, flag 1
-// i.e. the dock site destroys itself when its window goes away.  The scalar
-// deleting destructor (~CDockSite, then ??3@YAXPEAX@Z) is spelled out below
-// through this file's own destructor thunk and the memcore operator delete;
-// with no retail vftable a derived class's destructor cannot be reached.
-// Signature corrected: the generated stub had dropped `this`.
-extern "C" void MS_ABI impl__OnNcDestroy_CDockSite__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    impl__OnNcDestroy_CWnd__IEAAXXZ(AsPane(pThis));
-    impl___1CDockSite__UEAA_XZ(pThis);
-    impl___3_YAXPEAX_Z(pThis);
+extern "C" void MS_ABI impl__OnNcDestroy_CDockSite__IEAAXXZ(void* site) {
+    if (site) impl__OnNcDestroy_CWnd__IEAAXXZ(AsPane(site));
 }
 
 // Symbol: ?OnPaint@CDockSite@@IEAAXXZ
@@ -1393,7 +1414,7 @@ extern "C" int MS_ABI impl__RectSideFromPoint_CDockSite__SAHAEBVCRect__AEBVCPoin
 extern "C" void MS_ABI impl__RemovePane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(void* pThis, CPane* pWnd, int dockMethod) {
     (void)dockMethod;
     if (pThis == nullptr || pWnd == nullptr) return;
-    S_CDockSite* s = Site(pThis);
+    CDockSite* s = Site(pThis);
     ObNode* n = FindNode(&s->m_lstControlBars, pWnd);
     if (n == nullptr) return;
     CObList::POSITION pos = PosFromNode(n);
@@ -1416,7 +1437,7 @@ extern "C" void MS_ABI impl__RemovePane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_ME
 // Signature corrected: the generated stub had dropped `this`.
 extern "C" void MS_ABI impl__RemoveRow_CDockSite__QEAAXPEAVCDockingPanesRow___Z(void* pThis, void* pRow) {
     if (pThis == nullptr || pRow == nullptr) return;
-    S_CDockSite* s = Site(pThis);
+    CDockSite* s = Site(pThis);
     S_CDockingPanesRow* r = RowOf(pRow);
     const int nRowHeight = r->m_nRowHeight;
     if (RowIsVisible(r)) impl__ResizeDockSiteByOffset_CDockSite__IEAAXHH_Z(pThis, -nRowHeight, TRUE);
@@ -1438,7 +1459,7 @@ extern "C" void MS_ABI impl__RemoveRow_CDockSite__QEAAXPEAVCDockingPanesRow___Z(
 // Signature corrected: the generated stub had dropped `this`.
 extern "C" int MS_ABI impl__ReplacePane_CDockSite__QEAAHPEAVCPane__0_Z(void* pThis, CPane* pOldBar, CPane* pNewBar) {
     if (pThis == nullptr) return FALSE;
-    S_CDockSite* s = Site(pThis);
+    CDockSite* s = Site(pThis);
     ObNode* n = FindNode(&s->m_lstControlBars, pOldBar);
     if (n == nullptr) return FALSE;
     CObList::POSITION pos = PosFromNode(n);
@@ -1466,9 +1487,9 @@ extern "C" int MS_ABI impl__ReplacePane_CDockSite__QEAAHPEAVCPane__0_Z(void* pTh
 // Signature corrected: the generated stub had dropped `this`.
 extern "C" void MS_ABI impl__RepositionPanes_CDockSite__UEAAXAEAVCRect___Z(void* pThis, CRect* pRectNew) {
     if (pThis == nullptr || pRectNew == nullptr) return;
-    S_CDockSite* s = Site(pThis);
+    CDockSite* s = Site(pThis);
     CRect rectClient(0, 0, 0, 0);
-    ::GetClientRect(s->base.m_hWnd, RP(&rectClient));
+    ::GetClientRect(s->m_hWnd, RP(&rectClient));
     const int nDeltaW = (pRectNew->right - pRectNew->left) - (rectClient.right - rectClient.left);
     const int nDeltaH = (pRectNew->bottom - pRectNew->top) - (rectClient.bottom - rectClient.top);
     if (nDeltaW != 0 || nDeltaH != 0) {
@@ -1573,7 +1594,7 @@ extern "C" void MS_ABI impl__ShowRow_CDockSite__QEAAXPEAVCDockingPanesRow__HH_Z(
 // Signature corrected: the generated stub had dropped `this`.
 extern "C" void MS_ABI impl__SwapRows_CDockSite__QEAAXPEAVCDockingPanesRow__0_Z(void* pThis, void* pFirstRow, void* pSecondRow) {
     if (pThis == nullptr) return;
-    S_CDockSite* s = Site(pThis);
+    CDockSite* s = Site(pThis);
     ObNode* nFirst  = FindNode(&s->m_lstDockBarRows, pFirstRow);
     ObNode* nSecond = FindNode(&s->m_lstDockBarRows, pSecondRow);
     if (nFirst == nullptr || nSecond == nullptr) { impl__AfxThrowInvalidArgException__YAXXZ(); return; }

@@ -48,8 +48,6 @@ extern "C" void MS_ABI impl__DockPane_CDockingManager__QEAAXPEAVCBasePane__IPEBU
     CDockingManager* pThis, CBasePane* pBar, unsigned int nDockBarID, const RECT* lpRect);
 extern "C" int MS_ABI impl__DockPaneLeftOf_CDockingManager__QEAAHPEAVCPane__0_Z(
     CDockingManager* pThis, CPane* pBarToDock, CPane* pBar);
-extern "C" int MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(
-    CDockingManager* pThis, unsigned long dwAlignment);
 extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
     CDockingManager* pThis, CBasePane* pPane, CBasePane* pTarget, int nInsertAfter);
 extern "C" int MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(

@@ -5,11 +5,13 @@
 
 #include "detail/MfccoreSupport.h"
 #include "detail/CSmartDockingInfoSupport.h"
+#include "detail/FeaturePackDockSite.h"
 #include "detail/ClassicDockingSupport.h"
 #include "openmfc/afxole.h"
 
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 
 static_assert(sizeof(CDockingManager) == 0x90,
               "preserve the existing compact CDockingManager allocation");
@@ -18,13 +20,6 @@ extern "C" void* MS_ABI impl___0CSmartDockingInfo__QEAA_XZ(void* pThis);
 extern "C" std::int32_t impl__m_bSDParamsModified_CDockingManager__1HA;
 extern "C" std::uint32_t impl__m_dockModeGlobal_CDockingManager__1W4AFX_DOCK_TYPE__A;
 extern "C" int impl__m_nDockSensitivity_CDockingManager__2HA;
-extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(CRuntimeClass*);
-extern "C" CObject* MS_ABI impl__CreateObject_CDockSite__SAPEAVCObject__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockSite__SAPEAUCRuntimeClass__XZ();
-extern "C" int MS_ABI impl__Create_CDockSite__UEAAHKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
-    void*, unsigned long, const RECT&, CWnd*, unsigned long, CCreateContext*);
-extern "C" void MS_ABI impl___1CDockSite__UEAA_XZ(void*);
-extern "C" void MS_ABI impl___3_YAXPEAX_Z(void*);
 extern "C" unsigned long MS_ABI impl__GetCurrentAlignment_CBasePane__UEBAKXZ(const CBasePane*);
 extern "C" int MS_ABI impl__GetDlgCtrlID_CWnd__QEBAHXZ(const CWnd*);
 extern "C" void* MS_ABI impl__FindPaneByID_CDockSite__QEAAPEAVCPane__I_Z(void*, unsigned int);
@@ -60,34 +55,35 @@ bool InsertManagerStateEntry(T**& entries, std::size_t& count, std::size_t& capa
     return true;
 }
 
-void* CreateDockSiteForManager(CDockingManager* manager, const DockSiteInfoShadow* info) {
-    if (!manager || !info || !info->dockSiteRuntimeClass) return nullptr;
-    CObject* object = impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(
-        info->dockSiteRuntimeClass);
-    // Deviation: this calls the local CDockSite::Create thunk directly rather
-    // than dispatching through the retail vtable, which OpenMFC does not model.
-    // OpenMFC's CDockSite CRuntimeClass currently has no
-    // m_pfnCreateObject; use its verified dedicated factory only for that exact
-    // class. Other runtime classes still follow CRuntimeClass::CreateObject.
-    if (!object && info->dockSiteRuntimeClass ==
-                       impl__GetThisClass_CDockSite__SAPEAUCRuntimeClass__XZ()) {
-        object = impl__CreateObject_CDockSite__SAPEAVCObject__XZ();
-    }
-    if (!object) return nullptr;
+CDockSite* CreateDockSiteForManager(CDockingManager* manager, const DockSiteInfoShadow& info,
+                                     std::size_t position) {
+    auto& state = EnsureDockingState(manager);
+    if (!state.parentFrame || !info.dockSiteRuntimeClass ||
+        !info.dockSiteRuntimeClass->IsDerivedFrom(RUNTIME_CLASS(CDockSite))) return nullptr;
 
-    RECT initialBounds{};
-    const DockingManagerState* managerState = FindDockingState(manager);
-    CFrameWnd* parent = managerState ? managerState->parentFrame : nullptr;
-    if (!impl__Create_CDockSite__UEAAHKAEBUtagRECT__PEAVCWnd__KPEAUCCreateContext___Z(
-            object, info->alignment, initialBounds, parent, 0, nullptr)) {
-        impl___1CDockSite__UEAA_XZ(object);
-        impl___3_YAXPEAX_Z(object);
+    std::unique_ptr<CDockSite> site(static_cast<CDockSite*>(info.dockSiteRuntimeClass->CreateObject()));
+    if (!site || !site->Create(info.alignment, RECT{}, state.parentFrame, 0, nullptr))
         return nullptr;
+
+    const bool autoHide = site->IsKindOf(RUNTIME_CLASS(CAutoHideDockSite));
+    site->SetDockingManager(manager);
+    state.dockSites.insert(state.dockSites.begin() + std::min(position, state.dockSites.size()),
+                           {site.get(), info.alignment & CBRS_ALIGN_ANY, autoHide});
+    return site.release();
+}
+
+constexpr DWORD dockingEdges[]{CBRS_ALIGN_TOP, CBRS_ALIGN_BOTTOM, CBRS_ALIGN_LEFT, CBRS_ALIGN_RIGHT};
+
+void LayoutEmptyDockSites(const DockingManagerState& state, const RECT& available) {
+    if (state.dockSites.empty()) return;
+    HDWP layout = ::BeginDeferWindowPos(static_cast<int>(state.dockSites.size()));
+    for (const auto& entry : state.dockSites) {
+        if (!layout || !entry.site->m_hWnd || !entry.site->m_lstDockBarRows.IsEmpty()) continue;
+        const RECT bounds = EmptyDockSiteBounds(available, entry.alignment);
+        layout = ::DeferWindowPos(layout, entry.site->m_hWnd, nullptr, bounds.left, bounds.top,
+            bounds.right - bounds.left, bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE);
     }
-    // The local Create thunk only records the parent/rectangle. Retail Create
-    // also leaves the alignment in CBasePane::m_dwStyle, read by GetCurrentAlignment.
-    static_cast<CBasePane*>(object)->m_dwStyle = info->alignment;
-    return object;
+    if (layout) ::EndDeferWindowPos(layout);
 }
 } // namespace
 
@@ -380,8 +376,17 @@ extern "C" int MS_ABI impl__DeterminePaneAndStatus_CDockingManager__UEAA_AW4AFX_
     return status;
 }
 // Symbol: ?EnableAutoHidePanes@CDockingManager@@QEAAHK@Z
-extern "C" int MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwStyle) {
-    if (pThis) EnsureDockingState(pThis).enabledAlignment |= dwStyle;
+extern "C" BOOL MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* manager, DWORD sides) {
+    if (!manager) return FALSE;
+    auto& state = EnsureDockingState(manager);
+    for (DWORD side : dockingEdges) {
+        if (!(sides & side) || (state.enabledAutoHideAlignment & side)) continue;
+        if (!(state.enabledAlignment & side) && !manager->EnableDocking(side)) return FALSE;
+        const DockSiteInfoShadow info{side, RUNTIME_CLASS(CAutoHideDockSite)};
+        if (!CreateDockSiteForManager(manager, info, state.dockSites.size())) return FALSE;
+        state.enabledAutoHideAlignment |= side;
+    }
+    manager->RecalcLayout();
     return TRUE;
 }
 // Symbol: ?EnablePaneContextMenu@CDockingManager@@QEAAXHIAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
@@ -824,13 +829,15 @@ CDockingManager::CDockingManager(CFrameWnd* pParentFrameWnd)
 CDockingManager::~CDockingManager() {
     if (const DockingManagerState* found = FindDockingState(this)) {
         DockingManagerState& state = const_cast<DockingManagerState&>(*found);
-        std::free(state.dockSites);
+        while (!state.dockSites.empty()) {
+            auto* site = state.dockSites.back().site;
+            state.dockSites.pop_back();
+            delete site;
+        }
         std::free(state.hiddenMDITabbedBars);
         std::free(state.printPreviewHiddenBars);
-        state.dockSites = nullptr;
         state.hiddenMDITabbedBars = nullptr;
         state.printPreviewHiddenBars = nullptr;
-        state.dockSiteCount = state.dockSiteCapacity = 0;
         state.hiddenMDITabbedBarCount = state.hiddenMDITabbedBarCapacity = 0;
         state.printPreviewHiddenBarCount = state.printPreviewHiddenBarCapacity = 0;
     }
@@ -862,8 +869,34 @@ BOOL CDockingManager::DockPaneLeftOf(CBasePane* pBarToDock, CBasePane* pBar) {
     return TRUE;
 }
 BOOL CDockingManager::EnableDocking(DWORD dwDockStyle) {
-    EnsureDockingState(this).enabledAlignment |= dwDockStyle & CBRS_ALIGN_ANY;
+    auto& state = EnsureDockingState(this);
+    for (DWORD side : dockingEdges) {
+        if (!(dwDockStyle & side) || (state.enabledAlignment & side)) continue;
+        const DockSiteInfoShadow info{side, RUNTIME_CLASS(CDockSite)};
+        if (!CreateDockSiteForManager(this, info, state.dockSites.size())) return FALSE;
+        state.enabledAlignment |= side;
+    }
+    RecalcLayout();
     return TRUE;
+}
+
+void openmfc::detail::mfccore::ForgetDockSite(CDockingManager* manager, CDockSite* site) {
+    const auto* found = FindDockingState(manager);
+    if (!found) return;
+    auto& state = const_cast<DockingManagerState&>(*found);
+    const auto entry = std::find_if(state.dockSites.begin(), state.dockSites.end(),
+        [site](const auto& value) { return value.site == site; });
+    if (entry == state.dockSites.end()) return;
+    const auto removed = *entry;
+    state.dockSites.erase(entry);
+    const bool hasReplacement = std::any_of(state.dockSites.begin(), state.dockSites.end(),
+        [removed](const auto& value) {
+            return value.alignment == removed.alignment && value.autoHide == removed.autoHide;
+        });
+    if (!hasReplacement) {
+        auto& enabled = removed.autoHide ? state.enabledAutoHideAlignment : state.enabledAlignment;
+        enabled &= ~removed.alignment;
+    }
 }
 void CDockingManager::FloatPane(CBasePane* pBar, CPoint, DWORD) {
     AddDockingPane(this, pBar);
@@ -903,6 +936,7 @@ void CDockingManager::RecalcLayout() {
     HWND parent = m_pParentWnd ? m_pParentWnd->GetSafeHwnd() : nullptr;
     if (parent) {
         ::GetClientRect(parent, &client);
+        LayoutEmptyDockSites(state, client);
     }
     int visibleCount = 0;
     for (CBasePane* pane : state.panes) {
@@ -981,6 +1015,7 @@ RECT openmfc::detail::mfccore::LayoutInPlacePanes(CDockingManager* manager, cons
         ::EndDeferWindowPos(layout);
         state.positioningInPlace = false;
     }
+    if (moveWindows) LayoutEmptyDockSites(state, available);
     return remaining;
 }
 void CDockingManager::SetDockState() {
@@ -1021,29 +1056,13 @@ DockingSmartParamsInitializer g_dockingSmartParamsInitializer;
 // dereferences these inputs. Side-array allocation failure also returns FALSE rather
 // than reproducing an unmodeled allocation-exception path.
 // Symbol: ?AddDockSite@CDockingManager@@QEAAHAEBUAFX_DOCKSITE_INFO@@PEAPEAVCDockSite@@@Z
-// Retail entry RVA 0x47660 (mfc140u) creates the supplied runtime class and
-// virtually calls Create with the manager's parent before appending the site. This
-// implementation calls the local CDockSite::Create thunk directly (vtable deviation);
-// that local thunk records parent/rectangle state but does not create a native window.
-// dockSites is an ordered side-table of created dock sites, not a complete
-// representation of the manager's retail m_lstControlBars.
-extern "C" int MS_ABI impl__AddDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__PEAPEAVCDockSite___Z(
-    CDockingManager* pThis, const void* pInfo, void** ppDockSite) {
-    if (ppDockSite) *ppDockSite = nullptr;
-    if (!pThis || !pInfo) return FALSE;
-
-    const auto* info = static_cast<const DockSiteInfoShadow*>(pInfo);
-    DockingManagerState& state = EnsureDockingState(pThis);
-    void* site = CreateDockSiteForManager(pThis, info);
-    if (!site) return FALSE;
-    if (!InsertManagerStateEntry(state.dockSites, state.dockSiteCount,
-                                 state.dockSiteCapacity, state.dockSiteCount, site)) {
-        impl___1CDockSite__UEAA_XZ(site);
-        impl___3_YAXPEAX_Z(site);
-        return FALSE;
-    }
-    if (ppDockSite) *ppDockSite = site;
-    return TRUE;
+extern "C" BOOL MS_ABI impl__AddDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__PEAPEAVCDockSite___Z(
+    CDockingManager* manager, const DockSiteInfoShadow* info, CDockSite** result) {
+    if (result) *result = nullptr;
+    if (!manager || !info) return FALSE;
+    auto* site = CreateDockSiteForManager(manager, *info, EnsureDockingState(manager).dockSites.size());
+    if (result) *result = site;
+    return site != nullptr;
 }
 
 // Symbol: ?AddHiddenMDITabbedBar@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
@@ -1167,15 +1186,10 @@ extern "C" void* MS_ABI impl__FindDockSite_CDockingManager__UEAAPEAVCDockSite__K
     const DockingManagerState* state = FindDockingState(pThis);
     if (!state) return nullptr;
 
-    for (std::size_t step = 0; step < state->dockSiteCount; ++step) {
-        const std::size_t index = bOuter ? step : state->dockSiteCount - step - 1;
-        void* site = state->dockSites[index];
-        if (!site) continue;
-        const auto* pane = reinterpret_cast<const CBasePane*>(site);
-        if ((impl__GetCurrentAlignment_CBasePane__UEBAKXZ(pane) & 0xf000UL) ==
-            (alignment & 0xf000UL)) {
-            return site;
-        }
+    for (std::size_t step = 0; step < state->dockSites.size(); ++step) {
+        const std::size_t index = bOuter ? step : state->dockSites.size() - step - 1;
+        const auto& entry = state->dockSites[index];
+        if (entry.alignment == (alignment & CBRS_ALIGN_ANY)) return entry.site;
     }
     return nullptr;
 }
@@ -1190,11 +1204,9 @@ extern "C" void* MS_ABI impl__FindDockSiteByPane_CDockingManager__UEAAPEAVCDockS
 
     const unsigned int paneID = static_cast<unsigned int>(
         impl__GetDlgCtrlID_CWnd__QEBAHXZ(static_cast<const CWnd*>(pPane)));
-    for (std::size_t i = 0; i < state->dockSiteCount; ++i) {
-        void* site = state->dockSites[i];
-        if (site && impl__FindPaneByID_CDockSite__QEAAPEAVCPane__I_Z(site, paneID) == pPane) {
-            return site;
-        }
+    for (const auto& entry : state->dockSites) {
+        if (impl__FindPaneByID_CDockSite__QEAAPEAVCPane__I_Z(entry.site, paneID) == pPane)
+            return entry.site;
     }
     return nullptr;
 }
@@ -1209,41 +1221,19 @@ extern "C" void MS_ABI impl__HideForPrintPreview_CDockingManager__IEAAXAEBVCObLi
     CDockingManager*, const CObList*) {}
 
 // Symbol: ?InsertDockSite@CDockingManager@@QEAAHAEBUAFX_DOCKSITE_INFO@@KPEAPEAVCDockSite@@@Z
-// Retail entry RVA 0x47730 (mfc140u) creates the supplied runtime class, virtually
-// calls Create, inserts after the first site matching dwAlignToInsertAfter & 0xf000
-// (or appends if none matches), and stores the optional result. The local Create call
-// is through the base thunk rather than a retail vtable and only records side state;
-// dockSites preserves relative order among dock sites, not all manager-list entries.
-extern "C" int MS_ABI impl__InsertDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__KPEAPEAVCDockSite___Z(
-    CDockingManager* pThis, const void* pInfo, unsigned long dwAlignToInsertAfter,
-    void** ppDockSite) {
-    if (ppDockSite) *ppDockSite = nullptr;
-    if (!pThis || !pInfo) return FALSE;
+extern "C" BOOL MS_ABI impl__InsertDockSite_CDockingManager__QEAAHAEBUAFX_DOCKSITE_INFO__KPEAPEAVCDockSite___Z(
+    CDockingManager* manager, const DockSiteInfoShadow* info, DWORD afterAlignment, CDockSite** result) {
+    if (result) *result = nullptr;
+    if (!manager || !info) return FALSE;
 
-    const auto* info = static_cast<const DockSiteInfoShadow*>(pInfo);
-    DockingManagerState& state = EnsureDockingState(pThis);
-    std::size_t insertionIndex = state.dockSiteCount;
-    for (std::size_t i = 0; i < state.dockSiteCount; ++i) {
-        void* existing = state.dockSites[i];
-        if (!existing) continue;
-        const auto* pane = reinterpret_cast<const CBasePane*>(existing);
-        if ((impl__GetCurrentAlignment_CBasePane__UEBAKXZ(pane) & 0xf000UL) ==
-            (dwAlignToInsertAfter & 0xf000UL)) {
-            insertionIndex = i + 1;
-            break;
-        }
-    }
-
-    void* site = CreateDockSiteForManager(pThis, info);
-    if (!site) return FALSE;
-    if (!InsertManagerStateEntry(state.dockSites, state.dockSiteCount,
-                                 state.dockSiteCapacity, insertionIndex, site)) {
-        impl___1CDockSite__UEAA_XZ(site);
-        impl___3_YAXPEAX_Z(site);
-        return FALSE;
-    }
-    if (ppDockSite) *ppDockSite = site;
-    return TRUE;
+    const auto& sites = EnsureDockingState(manager).dockSites;
+    const auto match = std::find_if(sites.begin(), sites.end(), [afterAlignment](const auto& entry) {
+        return entry.alignment == (afterAlignment & CBRS_ALIGN_ANY);
+    });
+    const auto position = match == sites.end() ? sites.size() : std::size_t(match - sites.begin() + 1);
+    auto* site = CreateDockSiteForManager(manager, *info, position);
+    if (result) *result = site;
+    return site != nullptr;
 }
 
 // Symbol: ?IsPointNearDockSite@CDockingManager@@QEBAHVCPoint@@AEAKAEAH@Z

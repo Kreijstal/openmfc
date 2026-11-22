@@ -23,7 +23,6 @@ using namespace openmfc::detail::deferredrtti;
 
 // Base getters exported elsewhere in this DLL (all verified to return real descriptors).
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBaseTabbedPane__SAPEAUCRuntimeClass__XZ();
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockSite__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CDockablePaneAdapter__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CHeaderCtrl__SAPEAUCRuntimeClass__XZ();
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CInternetFile__SAPEAUCRuntimeClass__XZ();
@@ -31,9 +30,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolTipCtrl__SAPEAUCRuntime
 
 // __cdecl (AFXAPI) thunks matching m_pfnGetBaseClass exactly; each defers to the
 // base's exported GetThisClass.
-namespace openmfc { namespace detail { namespace deferredrtti {
-CRuntimeClass* AFXAPI gb_CAutoHideDockSite();
-} } }
 namespace openmfc { namespace detail { namespace deferredrtti {
 CRuntimeClass* AFXAPI gb_CGopherFile();
 } } }
@@ -54,7 +50,6 @@ CRuntimeClass* AFXAPI gb_CMFCToolTipCtrl();
 // m_pNextClass(null), m_pNextClass(null).
 #define DEF_DESC(Cls, Size, Schema, GB) \
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, GB, nullptr, nullptr }
-DEF_DESC(CAutoHideDockSite, 552, 0xFFFF, gb_CAutoHideDockSite);
 DEF_DESC(CGopherFile, 152, 0xFFFF, gb_CGopherFile);
 DEF_DESC(CMFCHeaderCtrl, 320, 0xFFFF, gb_CMFCHeaderCtrl);
 DEF_DESC(CMFCOutlookBar, 1384, 0x00000001, gb_CMFCOutlookBar);

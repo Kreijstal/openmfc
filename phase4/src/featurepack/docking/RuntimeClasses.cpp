@@ -2,6 +2,7 @@
 // Sources: global_deferred_rtti.cpp, global_docktab_rtti.cpp, global_frames_docs_preview_rtti.cpp, global_pane2_rtti.cpp, global_tabctrl_renderer_list_rtti.cpp
 
 #include "detail/DeferredRttiSupport.h"
+#include "detail/FeaturePackDockSite.h"
 
 // OpenMFC: RTTI getters (GetThisClass / GetRuntimeClass) for a batch of docking
 // state / tabbed-pane wrappers (12 exports, 6 classes).
@@ -181,15 +182,14 @@ TABCTRL_RENDERER_LIST_DESC(CMFCAutoHideButton, 64, 0xFFFF, &CObject::classCObjec
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
 
-#define DEF_GETTERS(Cls, GT, GRC) \
-    extern "C" CRuntimeClass* MS_ABI GT() { return &class##Cls; } \
-    extern "C" CRuntimeClass* MS_ABI GRC(const void*) { return &class##Cls; }
 // Symbol: ?GetThisClass@CAutoHideDockSite@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CAutoHideDockSite__SAPEAUCRuntimeClass__XZ() {
+    return CAutoHideDockSite::GetThisClass();
+}
 // Symbol: ?GetRuntimeClass@CAutoHideDockSite@@UEBAPEAUCRuntimeClass@@XZ
-DEF_GETTERS(CAutoHideDockSite,
-            impl__GetThisClass_CAutoHideDockSite__SAPEAUCRuntimeClass__XZ,
-            impl__GetRuntimeClass_CAutoHideDockSite__UEBAPEAUCRuntimeClass__XZ)
-#undef DEF_GETTERS
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CAutoHideDockSite__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CAutoHideDockSite::GetThisClass();
+}
 #define DT_GETTERS(Cls, GetThisSym, GetRtSym) \
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }

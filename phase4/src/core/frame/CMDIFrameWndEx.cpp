@@ -176,7 +176,6 @@ extern "C" void MS_ABI impl__DockPane_CDockingManager__QEAAXPEAVCBasePane__IPEBU
     CDockingManager* pThis, CBasePane* pBar, unsigned int nDockBarID, const RECT* lpRect);
 extern "C" int MS_ABI impl__DockPaneLeftOf_CDockingManager__QEAAHPEAVCPane__0_Z(
     CDockingManager* pThis, CPane* pBarToDock, CPane* pBar);
-extern "C" int MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* pThis, unsigned long dwStyle);
 extern "C" int MS_ABI impl__InsertPane_CDockingManager__QEAAHPEAVCBasePane__0H_Z(
     CDockingManager* pThis, CBasePane* pControlBar, CBasePane* pTarget, int bAfter);
 extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(CDockingManager* pThis, CWnd* pFrame);
@@ -592,7 +591,6 @@ extern "C" int MS_ABI impl__EnableDocking_CMDIFrameWndEx__QEAAHK_Z(CMDIFrameWndE
     if (!pThis) {
         return FALSE;
     }
-    pThis->CFrameWnd::EnableDocking(dwDockStyle);
     return DockManagerOf(pThis)->EnableDocking(dwDockStyle);
 }
 // CMDIFrameWndEx::OnShowPopupMenu(CMFCPopupMenu*) — transcribed from retail
@@ -1007,20 +1005,9 @@ extern "C" int MS_ABI impl__DockPaneLeftOf_CMDIFrameWndEx__QEAAHPEAVCPane__0_Z(
     // this+0x228 (DockPaneLeftOf); not modeled.
     return FALSE;
 }
-// CMDIFrameWndEx::EnableAutoHidePanes(DWORD) — retail entry RVA 0x89940 (an
-// earlier revision cited 0x89390, an instruction inside OnUpdateFrameMenu at
-// 0x892f0)
-// is a two-instruction tail jump: `rcx = this + 0x228; jmp 0x180047350` =
-// ?EnableAutoHidePanes@CDockingManager@@QEAAHK@Z, argument unchanged. The
-// docking manager is not modeled. Conservative FALSE.
 // Symbol: ?EnableAutoHidePanes@CMDIFrameWndEx@@QEAAHK@Z
-extern "C" int MS_ABI impl__EnableAutoHidePanes_CMDIFrameWndEx__QEAAHK_Z(
-    CMDIFrameWndEx* pThis, unsigned long dwStyle) {
-    (void)dwStyle;
-    if (!pThis) return FALSE;
-    // TODO(clean-room): retail tail-jumps to the embedded CDockingManager at
-    // this+0x228 (EnableAutoHidePanes); not modeled.
-    return FALSE;
+extern "C" BOOL MS_ABI impl__EnableAutoHidePanes_CMDIFrameWndEx__QEAAHK_Z(CMDIFrameWndEx* frame, DWORD sides) {
+    return frame && impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(DockManagerOf(frame), sides);
 }
 // CMDIFrameWndEx::EnableMDITabbedGroups(BOOL, const CMDITabInfo&) — retail entry
 // RVA 0x894f0 (an earlier revision cited 0x88f40, an instruction inside

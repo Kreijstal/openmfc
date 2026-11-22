@@ -36,6 +36,7 @@
 
 #include "detail/OleFeaturePackSupport.h"
 #include "detail/MfccoreSupport.h"
+
 #include "detail/OlecoreSupport.h"
 
 #include <cstddef>
@@ -233,14 +234,9 @@ extern "C" int MS_ABI impl__DockPaneLeftOf_COleIPFrameWndEx__QEAAHPEAVCPane__0_Z
     return 0;
 }
 
-// COleIPFrameWndEx::EnableAutoHidePanes(DWORD) — retail mfc140.dll (ANSI) RVA 0x96080:
-//     add $0x428,%rcx; jmp CDockingManager::EnableAutoHidePanes
-// The docking manager at this+0x428 is not modeled.
 // Symbol: ?EnableAutoHidePanes@COleIPFrameWndEx@@QEAAHK@Z
-extern "C" int MS_ABI impl__EnableAutoHidePanes_COleIPFrameWndEx__QEAAHK_Z(void* pThis, unsigned long dwAlignment) {
-    (void)pThis; (void)dwAlignment;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+extern "C" BOOL MS_ABI impl__EnableAutoHidePanes_COleIPFrameWndEx__QEAAHK_Z(FeaturePackInPlaceFrame* frame, DWORD sides) {
+    return frame && impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(&frame->m_dockManager, sides);
 }
 
 // Symbol: ?EnableDocking@COleIPFrameWndEx@@QEAAHK@Z

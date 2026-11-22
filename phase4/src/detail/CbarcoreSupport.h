@@ -685,6 +685,8 @@ extern "C" int MS_ABI impl__CreateEx_CToolBarCtrl__QEAAHKKAEBUtagRECT__PEAVCWnd_
 namespace openmfc { namespace detail { namespace cbarcore {
 struct DockSiteCoreState {
     CWnd* parent = nullptr;
+    CDockingManager* manager = nullptr;
+    bool autoDelete = false;
     CRect recentRect = CRect(0, 0, 0, 0);
     int rowCount = 0;
     unsigned int layoutRevision = 0;
@@ -738,18 +740,7 @@ BOOL TryCreatePaneWindow(CWnd* paneWnd, const wchar_t* className, DWORD style, c
 
 
 
-static constexpr unsigned int kNoSerializationSchema = 0xFFFF;
-
-// CDockSite: DECLARE_DYNAMIC, real MSVC sizeof=544, base CBasePane (harvested from
-// mfc140u.dll). Chain via m_pfnGetBaseClass to CBasePane's exported getter so the
-// IsKindOf chain reaches CObject correctly (was sizeof 0 / base CObject — wrong).
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
 namespace openmfc { namespace detail { namespace cbarcore {
-CRuntimeClass* AFXAPI gb_CDockSite();
-} } }
-
-namespace openmfc { namespace detail { namespace cbarcore {
-extern CRuntimeClass g_runtimeClassDockSite;
 } } }
 
 

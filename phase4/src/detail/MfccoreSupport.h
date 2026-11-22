@@ -104,6 +104,7 @@ struct DockingManagerState {
     std::unordered_set<CBasePane*> hiddenPanes;
     std::unordered_set<CBasePane*> floatingPanes;
     DWORD enabledAlignment = 0;
+    DWORD enabledAutoHideAlignment = 0;
     bool lockUpdate = false;
     bool paneContextMenu = false;
     UINT paneContextMenuID = 0;
@@ -116,9 +117,12 @@ struct DockingManagerState {
     RECT clientAreaBounds{};                      // m_rectClientAreaBounds +0x1c8
     std::unordered_map<const CBasePane*, InPlacePaneSize> inPlacePaneSizes;
     bool positioningInPlace = false;
-    void** dockSites = nullptr;                      // entries in m_lstControlBars +0x28, side storage
-    std::size_t dockSiteCount = 0;
-    std::size_t dockSiteCapacity = 0;
+    struct DockSiteEntry {
+        CDockSite* site;
+        DWORD alignment;
+        bool autoHide;
+    };
+    std::vector<DockSiteEntry> dockSites;
     CBasePane** hiddenMDITabbedBars = nullptr;       // m_lstHiddenMDITabbedBars +0x2d0, side storage
     std::size_t hiddenMDITabbedBarCount = 0;
     std::size_t hiddenMDITabbedBarCapacity = 0;
@@ -1335,6 +1339,7 @@ extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBaseP
     CRuntimeClass* pRTCFilter, int, const CDockingManager* pDockManager);
 extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(
     const CDockingManager* manager, CPoint point, DWORD* alignment, BOOL* outerEdge);
+extern "C" BOOL MS_ABI impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(CDockingManager* manager, DWORD sides);
 extern "C" void MS_ABI impl__RedrawAllMiniFrames_CDockingManager__QEAAXXZ(CDockingManager* pThis);
 
 
