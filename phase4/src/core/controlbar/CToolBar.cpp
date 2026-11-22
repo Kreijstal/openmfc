@@ -30,12 +30,8 @@ extern "C" void MS_ABI impl__EraseNonClient_CControlBar__QEAAXXZ(CControlBar* pT
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();                                     // detail/MfcExceptionsSupport.cpp
 extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(
     const wchar_t* lpszName, const wchar_t* lpszType);                                                  // core/runtime/Globals.cpp
-// featurepack/CMFC_misc_stubs.cpp defines this with pointer-typed placeholder
-// parameters `(void** p0, void** p1, int p2)` returning void*.  That list is
-// ABI-identical to the mangled (HINSTANCE, HRSRC, BOOL) -> HBITMAP, so it is
-// declared here exactly as defined (see headerRequests for the retyping).
-extern "C" void* MS_ABI impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(
-    void** hInst, void** hRsrc, int bMono);                                                             // featurepack/CMFC_misc_stubs.cpp
+extern "C" HBITMAP MS_ABI impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(
+    HINSTANCE module, HRSRC resource, BOOL monochrome);                                                // core/gdi/SysColorBitmap.cpp
 extern "C" long MS_ABI impl__GetCommCtrlVersion__YAJPEAK0_Z(unsigned long* pdwMajor, unsigned long* pdwMinor); // featurepack/CMFC_misc_stubs.cpp
 
 // Thunks defined further down in this file that earlier bodies call.
@@ -731,8 +727,14 @@ extern "C" __int64 MS_ABI impl__OnSetSizeHelper_CToolBar__IEAA_JAEAVCSize___J_Z(
     return lResult;
 }
 // Symbol: ?OnSysColorChange@CToolBar@@IEAAXXZ
-extern "C" void MS_ABI impl__OnSysColorChange_CToolBar__IEAAXXZ(CToolBar* pThis) {
-    if (pThis && pThis->GetSafeHwnd()) ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, TRUE);
+extern "C" void MS_ABI impl__OnSysColorChange_CToolBar__IEAAXXZ(CToolBar* bar) {
+    if (!bar || !bar->m_hInstImageWell || !bar->m_hbmImageWell) return;
+
+    HBITMAP bitmap = impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(
+        static_cast<HINSTANCE>(bar->m_hInstImageWell), static_cast<HRSRC>(bar->m_hRsrcImageWell), FALSE);
+    if (bitmap && !impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(bar, bitmap)) {
+        ::DeleteObject(bitmap);
+    }
 }
 // Symbol: ?OnToolHitTest@CToolBar@@UEBA_JVCPoint@@PEAUtagTOOLINFOW@@@Z
 extern "C" __int64 MS_ABI impl__OnToolHitTest_CToolBar__UEBA_JVCPoint__PEAUtagTOOLINFOW___Z(
@@ -870,74 +872,58 @@ CToolBar::~CToolBar() {
         m_hbmImageWell = nullptr;
     }
 }
-BOOL CToolBar::LoadToolBar(UINT nIDResource) {
-    HRSRC hRsrc = ::FindResourceW(AfxGetInstanceHandle(),
-                                   MAKEINTRESOURCEW(nIDResource), RT_TOOLBAR);
-    if (!hRsrc) return FALSE;
+BOOL CToolBar::LoadToolBar(UINT id) {
+    return LoadToolBar(MAKEINTRESOURCEW(id));
+}
 
-    HGLOBAL hGlobal = ::LoadResource(AfxGetInstanceHandle(), hRsrc);
-    if (!hGlobal) return FALSE;
+BOOL CToolBar::LoadToolBar(const wchar_t* name) {
+    if (!m_hWnd || !name) return FALSE;
 
-    WORD* pData = (WORD*)::LockResource(hGlobal);
-    if (!pData) return FALSE;
+    const HINSTANCE module = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, RT_TOOLBAR);
+    const HRSRC resource = ::FindResourceW(module, name, RT_TOOLBAR);
+    constexpr size_t headerWords = 4;
+    constexpr size_t headerSize = headerWords * sizeof(WORD);
+    if (!resource) return FALSE;
+    const size_t resourceSize = ::SizeofResource(module, resource);
+    if (resourceSize < headerSize) return FALSE;
 
-    WORD wVersion = pData[0];
-    WORD wCount = pData[1];
-    WORD wWidth = pData[2];
-    WORD wHeight = pData[3];
-    (void)wVersion; (void)wWidth; (void)wHeight;
-
-    WORD* pButtonIDs = pData + 4;
-
-    for (WORD i = 0; i < wCount; ++i) {
-        TBBUTTON tb = {};
-        tb.iBitmap = I_IMAGENONE;
-        tb.idCommand = pButtonIDs[i];
-        tb.fsState = TBSTATE_ENABLED;
-        tb.fsStyle = (pButtonIDs[i] == 0) ? BTNS_SEP : BTNS_BUTTON;
-        tb.dwData = 0;
-        tb.iString = -1;
-        ::SendMessageW(m_hWnd, TB_ADDBUTTONSW, 1, (LPARAM)&tb);
+    const HGLOBAL data = ::LoadResource(module, resource);
+    const auto* words = data ? static_cast<const WORD*>(::LockResource(data)) : nullptr;
+    if (!words) return FALSE;
+    const SIZE imageSize{words[1], words[2]};
+    const size_t count = words[3];
+    constexpr int buttonPadding = 7;
+    if (count > (resourceSize - headerSize) / sizeof(WORD) ||
+        imageSize.cx == 0 || imageSize.cy == 0 ||
+        imageSize.cx > SHRT_MAX - buttonPadding || imageSize.cy > SHRT_MAX - buttonPadding) {
+        return FALSE;
     }
 
-    m_nCount = wCount;
-    return TRUE;
+    const std::vector<UINT> ids(words + headerWords, words + headerWords + count);
+    if (!SetButtons(ids.data(), static_cast<int>(count))) return FALSE;
+    SetSizes(SIZE{imageSize.cx + buttonPadding, imageSize.cy + buttonPadding}, imageSize);
+    return LoadBitmap(name);
 }
-BOOL CToolBar::LoadToolBar(const wchar_t* lpszResourceName) {
-    if (!lpszResourceName) return FALSE;
-    HRSRC hRsrc = ::FindResourceW(AfxGetInstanceHandle(), lpszResourceName, RT_TOOLBAR);
-    if (!hRsrc) return FALSE;
-    HGLOBAL hGlobal = ::LoadResource(AfxGetInstanceHandle(), hRsrc);
-    if (!hGlobal) return FALSE;
-    WORD* pData = (WORD*)::LockResource(hGlobal);
-    if (!pData) return FALSE;
 
-    WORD wCount = pData[1];
-    WORD* pButtonIDs = pData + 4;
+BOOL CToolBar::LoadBitmap(UINT id) {
+    return LoadBitmap(MAKEINTRESOURCEW(id));
+}
 
-    for (int i = 0; i < wCount; i++) {
-        TBBUTTON tb = {};
-        tb.iBitmap = I_IMAGENONE;
-        tb.idCommand = pButtonIDs[i];
-        tb.fsState = TBSTATE_ENABLED;
-        tb.fsStyle = (pButtonIDs[i] == 0) ? BTNS_SEP : BTNS_BUTTON;
-        tb.dwData = 0;
-        tb.iString = -1;
-        ::SendMessageW(m_hWnd, TB_ADDBUTTONSW, 1, (LPARAM)&tb);
+BOOL CToolBar::LoadBitmap(const wchar_t* name) {
+    if (!m_hWnd || !name) return FALSE;
+    const HINSTANCE module = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, RT_BITMAP);
+    const HRSRC resource = ::FindResourceW(module, name, RT_BITMAP);
+    if (!resource) return FALSE;
+    HBITMAP bitmap = impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(
+        module, resource, FALSE);
+    if (!bitmap) return FALSE;
+    if (!impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(this, bitmap)) {
+        ::DeleteObject(bitmap);
+        return FALSE;
     }
-
-    m_nCount = wCount;
+    m_hInstImageWell = module;
+    m_hRsrcImageWell = resource;
     return TRUE;
-}
-BOOL CToolBar::LoadBitmap(UINT nIDResource) {
-    HBITMAP hbm = ::LoadBitmapW(AfxGetInstanceHandle(), MAKEINTRESOURCEW(nIDResource));
-    if (!hbm) return FALSE;
-    return SetBitmap(hbm);
-}
-BOOL CToolBar::LoadBitmap(const wchar_t* lpszResourceName) {
-    HBITMAP hbm = ::LoadBitmapW(AfxGetInstanceHandle(), lpszResourceName);
-    if (!hbm) return FALSE;
-    return SetBitmap(hbm);
 }
 BOOL CToolBar::SetButtons(const UINT* ids, int count) {
     if (!m_hWnd || count < 0) return FALSE;
@@ -1075,24 +1061,10 @@ CString CToolBar::GetButtonText(int nIndex) const {
 void CToolBar::GetButtonText(int nIndex, CString& rString) const {
     rString = GetButtonText(nIndex);
 }
-BOOL CToolBar::SetBitmap(HBITMAP hbmImageWell) {
-    if (!m_hWnd || !hbmImageWell) return FALSE;
-    if (m_hbmImageWell) ::DeleteObject(m_hbmImageWell);
-    m_hbmImageWell = hbmImageWell;
-
-    TBADDBITMAP tbAddBmp = {};
-    tbAddBmp.hInst = nullptr;
-    tbAddBmp.nID = (UINT_PTR)hbmImageWell;
-    ::SendMessageW(m_hWnd, TB_ADDBITMAP, 1, (LPARAM)&tbAddBmp);
-
-    int nCount = (int)::SendMessageW(m_hWnd, TB_BUTTONCOUNT, 0, 0);
-    for (int i = 0; i < nCount; i++) {
-        TBBUTTONINFO tbi = {};
-        tbi.cbSize = sizeof(TBBUTTONINFO);
-        tbi.dwMask = TBIF_IMAGE;
-        tbi.iImage = i;
-        ::SendMessageW(m_hWnd, TB_SETBUTTONINFOW, i, (LPARAM)&tbi);
-    }
+BOOL CToolBar::SetBitmap(HBITMAP bitmap) {
+    if (!impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(this, bitmap)) return FALSE;
+    m_hInstImageWell = nullptr;
+    m_hRsrcImageWell = nullptr;
     return TRUE;
 }
 void CToolBar::SetToolTips(CToolTipCtrl* pToolTip) {
@@ -1129,84 +1101,34 @@ extern "C" void MS_ABI impl__GetButtonInfo_CToolBar__QEBAXHAEAI0AEAH_Z(
     pThis->GetButtonInfo(nIndex, *pnID, *pnStyle, *piImage);
 }
 
-// Transcribed from retail CToolBar::AddReplaceBitmap, RVA 0x1db7d0 (mfc140u):
-//     BITMAP bitmap;  ::GetObject(hbmImageWell, sizeof(BITMAP), &bitmap);   // IAT GetObjectW; result unchecked
-//     int nImages = bitmap.bmWidth / m_sizeImage.cx;                        // idiv, before the branch
-//     BOOL bResult;
-//     if (m_hbmImageWell == NULL) {                                         // +0x158
-//         TBADDBITMAP addBitmap = { NULL, (UINT_PTR)hbmImageWell };
-//         bResult = DefWindowProc(TB_ADDBITMAP, nImages, &addBitmap) == 0;  // vslot 73; sete
-//     } else {
-//         TBREPLACEBITMAP replaceBitmap = { NULL, (UINT_PTR)m_hbmImageWell,
-//                                           NULL, (UINT_PTR)hbmImageWell, nImages };
-//         bResult = (BOOL)DefWindowProc(TB_REPLACEBITMAP, 0, &replaceBitmap);
-//     }
-//     if (bResult) {
-//         AfxDeleteObject((HGDIOBJ*)&m_hbmImageWell);   // inlined: if (*p) ::DeleteObject(*p)
-//         m_hbmImageWell = hbmImageWell;
-//     }
-//     return bResult;
-// DEVIATIONS: `bitmap` is zeroed first (retail reads uninitialised stack when
-// GetObject fails), and a zero m_sizeImage.cx returns FALSE where retail's
-// idiv would raise a divide-by-zero fault.
-// (Replaces an auto-generated placeholder `(void** p0)` that had no `this`.)
 // Symbol: ?AddReplaceBitmap@CToolBar@@QEAAHPEAUHBITMAP__@@@Z
-extern "C" int MS_ABI impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(CToolBar* pThis, HBITMAP hbmImageWell) {
-    if (pThis == nullptr) return FALSE;
-    BITMAP bitmap;
-    std::memset(&bitmap, 0, sizeof(bitmap));
-    ::GetObjectW(hbmImageWell, sizeof(BITMAP), &bitmap);
-    if (pThis->m_sizeImage.cx == 0) return FALSE;
-    const int nImages = bitmap.bmWidth / pThis->m_sizeImage.cx;
+extern "C" int MS_ABI impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(
+    CToolBar* bar, HBITMAP bitmap) {
+    if (!bar || !bar->m_hWnd || !bitmap || bar->m_sizeImage.cx <= 0) return FALSE;
+    const HBITMAP previous = bar->m_hbmImageWell;
+    if (bitmap == previous) return TRUE;
 
-    BOOL bResult;
-    if (pThis->m_hbmImageWell == nullptr) {
-        TBADDBITMAP addBitmap;
-        addBitmap.hInst = nullptr;   // makes TBADDBITMAP::nID behave as an HBITMAP
-        addBitmap.nID = reinterpret_cast<UINT_PTR>(hbmImageWell);
-        bResult = TbDefWindowProc(pThis, kTB_ADDBITMAP,
-                                  static_cast<WPARAM>(static_cast<INT_PTR>(nImages)),
-                                  reinterpret_cast<LPARAM>(&addBitmap)) == 0;
+    BITMAP info{};
+    if (!::GetObjectW(bitmap, sizeof(info), &info)) return FALSE;
+    const int count = info.bmWidth / bar->m_sizeImage.cx;
+    if (count <= 0) return FALSE;
+
+    if (!previous) {
+        TBADDBITMAP add{nullptr, reinterpret_cast<UINT_PTR>(bitmap)};
+        if (TbDefWindowProc(bar, kTB_ADDBITMAP, count, reinterpret_cast<LPARAM>(&add)) != 0) return FALSE;
     } else {
-        TBREPLACEBITMAP replaceBitmap;
-        replaceBitmap.hInstOld = nullptr;
-        replaceBitmap.nIDOld = reinterpret_cast<UINT_PTR>(pThis->m_hbmImageWell);
-        replaceBitmap.hInstNew = nullptr;
-        replaceBitmap.nIDNew = reinterpret_cast<UINT_PTR>(hbmImageWell);
-        replaceBitmap.nButtons = nImages;
-        bResult = static_cast<BOOL>(TbDefWindowProc(pThis, kTB_REPLACEBITMAP, 0,
-                                                    reinterpret_cast<LPARAM>(&replaceBitmap)));
+        TBREPLACEBITMAP replace{nullptr, reinterpret_cast<UINT_PTR>(previous), nullptr,
+                                reinterpret_cast<UINT_PTR>(bitmap), count};
+        if (!TbDefWindowProc(bar, kTB_REPLACEBITMAP, 0, reinterpret_cast<LPARAM>(&replace))) return FALSE;
+        ::DeleteObject(previous);
     }
-    if (bResult) {
-        if (pThis->m_hbmImageWell != nullptr) ::DeleteObject(pThis->m_hbmImageWell);
-        pThis->m_hbmImageWell = hbmImageWell;
-    }
-    return bResult;
+    bar->m_hbmImageWell = bitmap;
+    return TRUE;
 }
 
-// Transcribed from retail CToolBar::LoadBitmapW, RVA 0x1db720 (mfc140u):
-//     HINSTANCE hInstImageWell = AfxFindResourceHandle(lpszResourceName, RT_BITMAP);   // 0x2aeb50
-//     HRSRC hRsrcImageWell = ::FindResource(hInstImageWell, lpszResourceName, RT_BITMAP);   // IAT FindResourceW
-//     if (hRsrcImageWell == NULL) return FALSE;
-//     HBITMAP hbmImageWell = AfxLoadSysColorBitmap(hInstImageWell, hRsrcImageWell, FALSE);  // 0x1dae20
-//     if (!AddReplaceBitmap(hbmImageWell)) return FALSE;                                    // 0x1db7d0
-//     m_hInstImageWell = hInstImageWell;    // +0x150
-//     m_hRsrcImageWell = hRsrcImageWell;    // +0x148
-//     return TRUE;
-// (Replaces an auto-generated placeholder `(const wchar_t* p0)` that had no `this`.)
 // Symbol: ?LoadBitmapW@CToolBar@@QEAAHPEB_W@Z
-extern "C" int MS_ABI impl__LoadBitmapW_CToolBar__QEAAHPEB_W_Z(CToolBar* pThis, const wchar_t* lpszResourceName) {
-    if (pThis == nullptr) return FALSE;
-    HINSTANCE hInstImageWell = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(lpszResourceName, RT_BITMAP);
-    HRSRC hRsrcImageWell = ::FindResourceW(hInstImageWell, lpszResourceName, RT_BITMAP);
-    if (hRsrcImageWell == nullptr) return FALSE;
-    HBITMAP hbmImageWell = static_cast<HBITMAP>(
-        impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(
-            reinterpret_cast<void**>(hInstImageWell), reinterpret_cast<void**>(hRsrcImageWell), FALSE));
-    if (!impl__AddReplaceBitmap_CToolBar__QEAAHPEAUHBITMAP_____Z(pThis, hbmImageWell)) return FALSE;
-    pThis->m_hInstImageWell = hInstImageWell;
-    pThis->m_hRsrcImageWell = hRsrcImageWell;
-    return TRUE;
+extern "C" int MS_ABI impl__LoadBitmapW_CToolBar__QEAAHPEB_W_Z(CToolBar* bar, const wchar_t* name) {
+    return bar && bar->LoadBitmap(name);
 }
 
 // Retail CToolBar::OnNcPaint (WM_NCPAINT handler) resolves to RVA 0x1d9430
@@ -1261,11 +1183,16 @@ void CToolBar::OnNcPaint() {
     impl__OnNcPaint_CToolBar__IEAAXXZ(this);
 }
 
+void CToolBar::OnSysColorChange() {
+    impl__OnSysColorChange_CToolBar__IEAAXXZ(this);
+}
+
 BEGIN_MESSAGE_MAP(CToolBar, CControlBar)
     ON_MESSAGE(WM_NCCREATE, &ThisClass::OnNcCreateMessage)
     ON_MESSAGE(TB_SETBUTTONSIZE, &ThisClass::OnSetButtonSize)
     ON_MESSAGE(TB_SETBITMAPSIZE, &ThisClass::OnSetBitmapSize)
     ON_WM_PAINT()
+    OPENMFC_MAP_ENTRY(WM_SYSCOLORCHANGE, 0, 0, 0, AfxSig_v_v_v, &ThisClass::OnSysColorChange)
     OPENMFC_MAP_ENTRY(WM_NCPAINT, 0, 0, 0, AfxSig_v_v_v, &ThisClass::OnNcPaint)
 END_MESSAGE_MAP()
 

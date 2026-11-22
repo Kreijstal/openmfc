@@ -1660,57 +1660,6 @@ extern "C" void* MS_ABI impl__AfxLoadLangResourceDLL__YAPEAUHINSTANCE____PEB_W_Z
 extern "C" int MS_ABI impl__AfxLoadString__YAHIPEADI_Z(unsigned int nID, char* lpszBuf, unsigned int nMaxBuf) {
     return ::LoadStringA(AfxGetResourceHandle(), nID, lpszBuf, nMaxBuf);
 }
-// Symbol: ?AfxLoadSysColorBitmap@@YAPEAUHBITMAP__@@PEAUHINSTANCE__@@PEAUHRSRC__@@H@Z
-extern "C" void* MS_ABI impl__AfxLoadSysColorBitmap__YAPEAUHBITMAP____PEAUHINSTANCE____PEAUHRSRC____H_Z(void* /*struct*/* p0, void* /*struct*/* p1, int p2) {
-    // Loads the DIB resource and remaps the standard MFC toolbar 4-entry
-    // color table (black/gray/ltgray/white) to the current system button
-    // colors, then realizes it via CreateDIBitmap -- the classic
-    // AfxLoadSysColorBitmap algorithm. p2 (bMono) is accepted but not used
-    // to alter bit depth; the resource's own bit depth/color table size is
-    // trusted as authored.
-    (void)p2;
-    HINSTANCE hInst = reinterpret_cast<HINSTANCE>(p0);
-    HRSRC hRsrc = reinterpret_cast<HRSRC>(p1);
-    if (hRsrc == nullptr) return nullptr;
-    HGLOBAL hGlobal = ::LoadResource(hInst, hRsrc);
-    if (hGlobal == nullptr) return nullptr;
-    BITMAPINFOHEADER* pHeader = static_cast<BITMAPINFOHEADER*>(::LockResource(hGlobal));
-    if (pHeader == nullptr) return nullptr;
-
-    RGBQUAD* pColorTable = reinterpret_cast<RGBQUAD*>(
-        reinterpret_cast<unsigned char*>(pHeader) + pHeader->biSize);
-    unsigned int nColors = pHeader->biClrUsed != 0
-        ? pHeader->biClrUsed
-        : (pHeader->biBitCount < 24 ? (1u << pHeader->biBitCount) : 0u);
-
-    struct Remap { COLORREF from; int sysColorIndex; };
-    const Remap table[] = {
-        { RGB(0, 0, 0), COLOR_BTNTEXT },
-        { RGB(128, 128, 128), COLOR_BTNSHADOW },
-        { RGB(192, 192, 192), COLOR_BTNFACE },
-        { RGB(255, 255, 255), COLOR_BTNHIGHLIGHT },
-    };
-    for (unsigned int i = 0; i < nColors; ++i) {
-        RGBQUAD& q = pColorTable[i];
-        COLORREF cr = RGB(q.rgbRed, q.rgbGreen, q.rgbBlue);
-        for (const Remap& r : table) {
-            if (cr == r.from) {
-                COLORREF sys = ::GetSysColor(r.sysColorIndex);
-                q.rgbRed = GetRValue(sys);
-                q.rgbGreen = GetGValue(sys);
-                q.rgbBlue = GetBValue(sys);
-                break;
-            }
-        }
-    }
-
-    unsigned char* lpBits = reinterpret_cast<unsigned char*>(pColorTable) + nColors * sizeof(RGBQUAD);
-    HDC hDC = ::GetDC(nullptr);
-    HBITMAP hBitmap = ::CreateDIBitmap(hDC, pHeader, CBM_INIT, lpBits,
-                                        reinterpret_cast<BITMAPINFO*>(pHeader), DIB_RGB_COLORS);
-    ::ReleaseDC(nullptr, hDC);
-    return hBitmap;
-}
 // Symbol: ?AfxMergeMenus@@YAPEAUHMENU__@@PEAU1@0PEAJHH@Z
 // OLE in-place menu merging: insert hMenuSource's top-level popup items into
 // hMenuShared at the group boundary given by lpMenuWidths[nIndex] (the sum

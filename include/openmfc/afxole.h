@@ -272,6 +272,7 @@ protected:
     LRESULT OnSetButtonSize(WPARAM, LPARAM);
     void OnPaint();
     void OnNcPaint();
+    void OnSysColorChange();
 
 public:
     // CToolBar-specific members (size 384; begin where CControlBar ends @328).
