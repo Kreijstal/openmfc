@@ -9,6 +9,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/PaneContainerLayout.h"
+#include "detail/MfccoreSupport.h"
 #include "detail/CRecentPaneContainerInfoSupport.h"
 
 #include <cstddef>
@@ -1404,16 +1405,132 @@ extern "C" void MS_ABI impl__GetAvailableSpace_CPaneContainerManager__UEBAXAEAVC
     ::SubtractRect(rect, rect, &rectOccupied);
 }
 
+namespace {
+struct DefaultDividerResize {
+    RECT bounds{};
+    int direction = 1;
+    LONG shrink = 0;
+    LONG grow = 0;
+};
+
+bool IsVerticalDefaultDivider(DWORD side) {
+    return side == CBRS_ALIGN_LEFT || side == CBRS_ALIGN_RIGHT;
+}
+
+LONG DividerThickness(const RECT& groupBounds, DWORD side) {
+    return IsVerticalDefaultDivider(side) ? groupBounds.right - groupBounds.left :
+                                           groupBounds.bottom - groupBounds.top;
+}
+
+LONG DefaultDividerMinimum(const S_CPaneContainer& root, DWORD side) {
+    CSize minimum(0, 0);
+    impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(&root, minimum);
+    return IsVerticalDefaultDivider(side) ? minimum.cx : minimum.cy;
+}
+
+bool GetUnregisteredDividerResize(const S_CPaneContainer& root, const CPaneDivider& divider,
+                                  LONG minimum, DefaultDividerResize& resize) {
+    if (!divider.m_hWnd || divider.m_dividerData.bAutoHideMode) return false;
+    const HWND parent = ::GetParent(divider.m_hWnd);
+    RECT client{};
+    if (!::GetClientRect(parent, &client)) return false;
+
+    CRect boundsOnScreen(0, 0, 0, 0);
+    impl__GetWindowRect_CPaneContainer__UEBAXAEAVCRect__H_Z(&root, boundsOnScreen, FALSE);
+    if (boundsOnScreen.IsRectEmpty()) return false;
+    resize.bounds = *static_cast<const RECT*>(boundsOnScreen);
+    ::MapWindowPoints(nullptr, parent, reinterpret_cast<POINT*>(&resize.bounds), 2);
+    const RECT& bounds = resize.bounds;
+    const DWORD side = divider.GetPaneAlignment();
+    const LONG current = DividerThickness(bounds, side);
+    resize.shrink = (std::max)(0L, current - (std::max)(1L, minimum));
+    switch (side) {
+    case CBRS_ALIGN_LEFT: resize.grow = client.right - bounds.right; break;
+    case CBRS_ALIGN_TOP: resize.grow = client.bottom - bounds.bottom; break;
+    case CBRS_ALIGN_RIGHT: resize.grow = bounds.left - client.left; resize.direction = -1; break;
+    case CBRS_ALIGN_BOTTOM: resize.grow = bounds.top - client.top; resize.direction = -1; break;
+    default: return false;
+    }
+    resize.grow = (std::max)(0L, resize.grow - divider.m_dividerData.nWidth);
+    return true;
+}
+
+bool DefaultDividerOffsets(const S_CPaneContainer& root, const CPaneDivider& divider, int& low, int& high) {
+    const DWORD side = divider.GetPaneAlignment();
+    const LONG minimum = DefaultDividerMinimum(root, side);
+    if (FrameEdgeDividerOffsets(divider, DividerThickness(root.m_rect74, side), minimum, low, high)) return true;
+    DefaultDividerResize resize;
+    if (!GetUnregisteredDividerResize(root, divider, minimum, resize)) return false;
+    low = resize.direction > 0 ? -resize.shrink : -resize.grow;
+    high = resize.direction > 0 ? resize.grow : resize.shrink;
+    return true;
+}
+
+bool ApplyUnregisteredDividerResize(S_CPaneContainer& root, CPaneDivider& divider,
+                                    LONG minimum, int offset, void** hdwp) {
+    DefaultDividerResize resize;
+    if (!GetUnregisteredDividerResize(root, divider, minimum, resize)) return false;
+    const LONG delta = static_cast<LONG>((std::clamp)(static_cast<long long>(offset) * resize.direction,
+        -static_cast<long long>(resize.shrink), static_cast<long long>(resize.grow)));
+    if (!delta) return true;
+
+    RECT& bounds = resize.bounds;
+    RECT sash = bounds;
+    const LONG width = divider.m_dividerData.nWidth;
+    switch (divider.GetPaneAlignment()) {
+    case CBRS_ALIGN_LEFT:
+        bounds.right += delta;
+        sash.left = bounds.right;
+        sash.right = sash.left + width;
+        break;
+    case CBRS_ALIGN_TOP:
+        bounds.bottom += delta;
+        sash.top = bounds.bottom;
+        sash.bottom = sash.top + width;
+        break;
+    case CBRS_ALIGN_RIGHT:
+        bounds.left -= delta;
+        sash.right = bounds.left;
+        sash.left = sash.right - width;
+        break;
+    case CBRS_ALIGN_BOTTOM:
+        bounds.top -= delta;
+        sash.bottom = bounds.top;
+        sash.top = sash.bottom - width;
+        break;
+    }
+    const HWND window = divider.m_hWnd;
+    impl__Resize_CPaneContainer__UEAAXVCRect__AEAPEAXH_Z(&root, &bounds, hdwp, TRUE);
+    constexpr UINT flags = SWP_NOZORDER | SWP_NOACTIVATE;
+    if (hdwp && *hdwp)
+        *hdwp = ::DeferWindowPos(static_cast<HDWP>(*hdwp), window, nullptr,
+            sash.left, sash.top, sash.right - sash.left, sash.bottom - sash.top, flags);
+    else
+        ::SetWindowPos(window, nullptr, sash.left, sash.top, sash.right - sash.left, sash.bottom - sash.top, flags);
+    return true;
+}
+}
+
 // Symbol: ?GetMinMaxOffset@CPaneContainerManager@@UEAAXPEAVCPaneDivider@@AEAH11@Z
 extern "C" void MS_ABI impl__GetMinMaxOffset_CPaneContainerManager__UEAAXPEAVCPaneDivider__AEAH11_Z(
     void* pThis, void* pSlider, int* pMinOffset, int* pMaxOffset, int* pStep) {
     int low = 0, high = 0, step = -1;
     if (auto* root = Root(pThis); root && pSlider) {
-        auto* node = static_cast<S_CPaneContainer*>(
+        auto& divider = *static_cast<CPaneDivider*>(pSlider);
+        const bool isDefault = pSlider == Field<void*>(pThis, kOffDefaultSlider);
+        auto* node = isDefault ? root : static_cast<S_CPaneContainer*>(
             impl__FindSubPaneContainer_CPaneContainer__QEAAPEAV1_PEBVCObject__W4BC_FIND_CRITERIA_1__Z(
                 root, pSlider, kFindBySlider));
-        if (node && PaneSplitOffsets(*node, low, high))
+        if (node && (isDefault ? DefaultDividerOffsets(*node, divider, low, high) : PaneSplitOffsets(*node, low, high))) {
+            // The tracking window follows screen coordinates even on a mirrored host.
+            if ((divider.m_dividerData.dwDividerStyle & kSliderStyleVert) &&
+                (::GetWindowLongPtrW(::GetParent(divider.m_hWnd), GWL_EXSTYLE) & WS_EX_LAYOUTRTL)) {
+                std::swap(low, high);
+                low = -low;
+                high = -high;
+            }
             step = impl__GetResizeStep_CPaneContainer__UEBAHXZ(node);
+        }
     }
     if (pMinOffset) *pMinOffset = low;
     if (pMaxOffset) *pMaxOffset = high;
@@ -1616,15 +1733,35 @@ extern "C" void MS_ABI impl__NotifyPaneDivider_CPaneContainerManager__QEAAXXZ(vo
     if (pSlider != nullptr) impl__NotifyAboutRelease_CPaneDivider__UEAAXXZ(pSlider);
 }
 
+namespace {
+bool MoveContainerDivider(void* manager, CPaneDivider& divider, int offset, void** hdwp) {
+    auto* root = Root(manager);
+    if (!root) return false;
+    if (&divider == Field<CPaneDivider*>(manager, kOffDefaultSlider)) {
+        const DWORD side = divider.GetPaneAlignment();
+        const LONG minimum = DefaultDividerMinimum(*root, side);
+        return MoveFrameEdgeDivider(divider, DividerThickness(root->m_rect74, side), minimum, offset) ||
+               ApplyUnregisteredDividerResize(*root, divider, minimum, offset, hdwp);
+    }
+    auto* node = static_cast<S_CPaneContainer*>(
+        impl__FindSubPaneContainer_CPaneContainer__QEAAPEAV1_PEBVCObject__W4BC_FIND_CRITERIA_1__Z(
+            root, &divider, kFindBySlider));
+    return node && MovePaneSplit(*node, offset, hdwp);
+}
+}
+
+bool openmfc::detail::MovePaneDivider(CPaneDivider& divider, int offset, void** hdwp) {
+    return MoveContainerDivider(divider.m_dividerData.pContainerManager, divider, offset, hdwp);
+}
+
 // Symbol: ?OnPaneDividerMove@CPaneContainerManager@@UEAAHPEAVCPaneDivider@@IHAEAPEAX@Z
 extern "C" int MS_ABI impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCPaneDivider__IHAEAPEAX_Z(
     void* pThis, void* pSlider, unsigned int, int nOffset, void** phdwp) {
-    auto* root = Root(pThis);
-    if (!root || !pSlider) return FALSE;
-    auto* node = static_cast<S_CPaneContainer*>(
-        impl__FindSubPaneContainer_CPaneContainer__QEAAPEAV1_PEBVCObject__W4BC_FIND_CRITERIA_1__Z(
-            root, pSlider, kFindBySlider));
-    return node && MovePaneSplit(*node, nOffset, phdwp);
+    if (!pThis || !pSlider) return FALSE;
+    const bool isDefault = pSlider == Field<void*>(pThis, kOffDefaultSlider);
+    const bool moved = MoveContainerDivider(pThis, *static_cast<CPaneDivider*>(pSlider), nOffset, phdwp);
+    // Retail returns a success flag only for internal dividers.
+    return moved && !isDefault;
 }
 
 // Symbol: ?OnShowPane@CPaneContainerManager@@UEAAHPEAVCDockablePane@@H@Z

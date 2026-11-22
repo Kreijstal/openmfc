@@ -126,6 +126,7 @@ struct DockingManagerState {
     RECT clientAreaBounds{};                      // m_rectClientAreaBounds +0x1c8
     std::unordered_map<const CBasePane*, InPlacePaneSize> inPlacePaneSizes;
     bool positioningInPlace = false;
+    bool fitFrameClient = false;
     struct DockSiteEntry {
         CDockSite* site;
         DWORD alignment;
@@ -181,6 +182,9 @@ struct DockingDrop {
 DockingDrop DockingTarget(const CDockingManager* manager, CPoint point, int sensitivity,
                           DWORD allowedAlignment, const CBasePane* ignore, const CBasePane* source);
 CDockablePane* DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked);
+bool FrameEdgeDividerOffsets(const CPaneDivider& divider, LONG thickness, LONG minThickness, int& low, int& high);
+bool MoveFrameEdgeDivider(CPaneDivider& divider, LONG thickness, LONG minThickness, int offset);
+void AdjustDockedFrameClient(const CDockingManager* manager);
 
 const DockingManagerState* FindDockingState(const CDockingManager* pManager);
 CDockingManager* DockingManagerForFrame(CWnd* frame);

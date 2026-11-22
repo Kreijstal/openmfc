@@ -862,58 +862,14 @@ extern "C" int MS_ABI impl__AddPane_CMDIFrameWndEx__QEAAHPEAVCBasePane__H_Z(
     // the embedded CDockingManager at this+0x228; not modeled.
     return FALSE;
 }
-// CMDIFrameWndEx::AdjustClientArea() — retail entry RVA 0x89880 in mfc140 and
-// 0x892d0 in mfc140u (an earlier revision cited the latter and a later one
-// called it wrong; both are this function's entry, in different images).
-// Transcribed:
-//     RECT rc = m_dockManager.+0x1c8;             // this+0x3f0, the client-area bounds
-//     rc.left += m_rectBorder.left; rc.top += m_rectBorder.top;       // CFrameWnd +0x110..0x11c
-//     rc.right -= m_rectBorder.right; rc.bottom -= m_rectBorder.bottom;
-//     if (m_wndClientArea.m_hWnd /* this+0x760 */ != NULL)
-//         m_wndClientArea.<vtable +0xe0>(&rc, 0);   // CWnd slot 28 = CalcWindowRect, read out of the
-//                                                   // CMDIClientAreaWnd vtable (0x2eb4f8 mfc140 / 0x2ed5a8 mfc140u)
-// Left a stub: the bounds rect is a CDockingManager member OpenMFC's class does
-// not have, CFrameWnd::m_rectBorder is not a named member of OpenMFC's CFrameWnd
-// (its layout differs from retail's), and the client-area sub-object is not
-// constructed for OpenMFC frames (file header) -- so there is nothing to
-// compute from and no window to resize.
-// Re-checked 2026-09-15 against mfc140u 0x892d0: the body is exactly the
-// 16-byte movups from this+0x3f0, the four +0x110..+0x11c adjustments, and the
-// slot-28 call (0x7d900 = ?CalcWindowRect@CMDIClientAreaWnd@@MEAAXPEAUtagRECT@@I@Z,
-// read out of the CMDIClientAreaWnd vftable at 0x2ed5a8 mfc140u) guarded on
-// m_wndClientArea.m_hWnd (this+0x760).  Now that m_dockManager is reachable
-// (DockManagerOf) the missing piece is the rect itself: neither OpenMFC's
-// CDockingManager (m_pParentWnd + 128 bytes of padding) nor its side record
-// (DockingManagerState in detail/MfccoreSupport.h) keeps the client-area
-// bounds, OpenMFC's CFrameWnd keeps m_pViewActive at +0xe8 with no named
-// border rect, and the client-area window is still not constructed.  STUB.
 // Symbol: ?AdjustClientArea@CMDIFrameWndEx@@UEAAXXZ
 extern "C" void MS_ABI impl__AdjustClientArea_CMDIFrameWndEx__UEAAXXZ(CMDIFrameWndEx* pThis) {
-    (void)pThis;
+    if (pThis) openmfc::detail::mfccore::AdjustDockedFrameClient(DockManagerOf(pThis));
 }
-// CMDIFrameWndEx::AdjustDockingLayout(HDWP) — retail entry RVA 0x89800 (an
-// earlier revision cited 0x89250, which is an instruction inside
-// ShowWindowsDialog at 0x89220, not this function's entry).
-// Transcribed:
-//     CDockingManager* pMgr = this + 0x228;
-//     if (pMgr->+0x250 != 0) return;             // relayout suppressed
-//     pMgr-><vtable +0x80>(hdwp);                // CDockingManager::AdjustDockingLayout
-//     this-><vtable +0x430>();                   // AdjustClientArea (slot 134)
-//     void* p = this->+0x3d8;                    // the self-pointer OnCreate stores
-//     if (p && p->+0x40 && p->+0x120)
-//         this-><vtable +0x300>(TRUE);           // RecalcLayout(TRUE) (slot 96)
-// (CDockingManager vtable +0x80 is slot 16 of the manager vtable at 0x1802e4070
-// = ?AdjustDockingLayout@CDockingManager@@UEAAXPEAX@Z.)
-// Everything here hangs off the CDockingManager at this+0x228 or the
-// this+0x3d8 self-pointer, neither of which OpenMFC models, and the
-// AdjustClientArea leg is itself a stub. Conservative no-op.
 // Symbol: ?AdjustDockingLayout@CMDIFrameWndEx@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__AdjustDockingLayout_CMDIFrameWndEx__UEAAXPEAX_Z(
     CMDIFrameWndEx* pThis, void* pParam) {
-    (void)pParam;
-    if (!pThis) return;
-    // TODO(clean-room): transcribed partially — retail forwards to the embedded
-    // CDockingManager (this+0x228) and then runs AdjustClientArea / RecalcLayout.
+    if (pThis) impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(DockManagerOf(pThis), pParam);
 }
 // CMDIFrameWndEx::ControlBarToTabbedDocument(CDockablePane*) — retail entry RVA
 // 0x8a6f0 (an earlier revision cited 0x8a140, which is an instruction inside

@@ -1118,11 +1118,27 @@ void CDockingManager::ShowPane(CBasePane* pane, BOOL) {
 }
 
 namespace {
-void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining, bool moveWindows = true) {
-    if (state.edgePanes.empty() || !state.parentFrame) return;
+constexpr UINT frameContentId = 0xe900; // AFX_IDW_PANE_FIRST
+constexpr LONG frameClientMargin = 4;
+
+struct EdgePlacement {
+    HWND divider;
+    RECT bounds;
+    RECT sash;
+};
+
+bool IsVerticalEdge(DWORD side) {
+    return side == CBRS_ALIGN_LEFT || side == CBRS_ALIGN_RIGHT;
+}
+
+LONG EdgeSpan(const RECT& rect, bool vertical) {
+    return (std::max)(0L, vertical ? rect.right - rect.left : rect.bottom - rect.top);
+}
+
+std::vector<EdgePlacement> PlaceEdgePanes(const DockingManagerState& state, RECT& remaining) {
+    std::vector<EdgePlacement> positions;
+    if (state.edgePanes.empty() || !state.parentFrame) return positions;
     const HWND host = state.parentFrame->m_hWnd;
-    struct Placement { HWND divider; RECT bounds; RECT sash; };
-    std::vector<Placement> positions;
     for (bool outer : {true, false}) {
         for (auto* pane : state.panes) {
             const auto it = state.edgePanes.find(pane);
@@ -1132,15 +1148,11 @@ void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining, bool moveWind
             if (!divider || divider->m_hWnd != dock.divider || ::GetParent(dock.divider) != host ||
                 !openmfc::detail::DividerHasVisiblePanes(divider)) continue;
 
-            RECT sash{};
-            if (!::GetWindowRect(dock.divider, &sash)) continue;
-            const DWORD side = pane->GetPaneAlignment();
-            const bool vertical = side == CBRS_ALIGN_LEFT || side == CBRS_ALIGN_RIGHT;
-            const LONG span = vertical ? remaining.right - remaining.left : remaining.bottom - remaining.top;
-            const LONG sashSize = (std::clamp)(vertical ? sash.right - sash.left : sash.bottom - sash.top, 0L, span);
-            const LONG thickness = (std::min)(dock.thickness, span - sashSize);
-            RECT bounds = remaining;
-            sash = remaining;
+            const DWORD side = divider->GetPaneAlignment();
+            const LONG span = EdgeSpan(remaining, IsVerticalEdge(side));
+            const LONG sashSize = (std::clamp)(static_cast<LONG>(divider->m_dividerData.nWidth), 0L, span);
+            const LONG thickness = (std::clamp)(dock.thickness, 0L, span - sashSize);
+            RECT bounds = remaining, sash = remaining;
             switch (side) {
             case CBRS_ALIGN_LEFT:
                 bounds.right = sash.left = remaining.left + thickness;
@@ -1160,20 +1172,114 @@ void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining, bool moveWind
                 break;
             default: continue;
             }
-            if (moveWindows) positions.push_back({dock.divider, bounds, sash});
+            positions.push_back({dock.divider, bounds, sash});
         }
     }
+    return positions;
+}
+
+void ArrangeEdgePanes(const DockingManagerState& state, RECT& remaining, bool moveWindows = true) {
+    auto positions = PlaceEdgePanes(state, remaining);
+    if (!moveWindows) return;
     for (const auto& position : positions) {
-        const auto place = [](HWND window, const RECT& rect) {
-            ::SetWindowPos(window, nullptr, rect.left, rect.top, (std::max)(0L, rect.right - rect.left),
-                (std::max)(0L, rect.bottom - rect.top), SWP_NOZORDER | SWP_NOACTIVATE);
-        };
-        place(position.divider, position.sash);
+        const RECT& rect = position.sash;
+        ::SetWindowPos(position.divider, nullptr, rect.left, rect.top,
+            EdgeSpan(rect, true), EdgeSpan(rect, false), SWP_NOZORDER | SWP_NOACTIVATE);
         auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(position.divider));
         if (window && window->IsKindOf(RUNTIME_CLASS(CPaneDivider)))
             openmfc::detail::ResizeDividerPanes(static_cast<CPaneDivider*>(window), position.bounds);
     }
 }
+
+RECT DockedFrameBounds(const DockingManagerState& state, const RECT& frameBounds) {
+    RECT bounds = frameBounds;
+    if (state.fitFrameClient) {
+        state.parentFrame->RepositionBars(0, 0xffff, frameContentId, CWnd::reposQuery, &bounds, &frameBounds);
+        const RECT& border = state.parentFrame->m_retailMiddle.m_rectBorder;
+        bounds.left += border.left;
+        bounds.top += border.top;
+        bounds.right = (std::max)(bounds.left, bounds.right - border.right);
+        bounds.bottom = (std::max)(bounds.top, bounds.bottom - border.bottom);
+    }
+    return bounds;
+}
+
+struct FrameEdgeResize {
+    CDockingManager* manager = nullptr;
+    DockingManagerState::EdgePane* edge = nullptr;
+    LONG current = 0;
+    LONG minDelta = 0;
+    LONG maxDelta = 0;
+    int growthDirection = 1; // Screen-independent client coordinates.
+};
+
+FrameEdgeResize GetFrameEdgeResize(const CPaneDivider& divider, LONG thickness, LONG minThickness) {
+    if (!divider.m_hWnd || divider.m_dividerData.bAutoHideMode) return {};
+    auto* frame = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(divider.m_hWnd)));
+    auto* manager = DockingManagerForFrame(frame);
+    if (!FindDockingState(manager)) return {};
+    auto& state = EnsureDockingState(manager);
+    const auto edge = std::find_if(state.edgePanes.begin(), state.edgePanes.end(), [&](const auto& pair) {
+        return pair.second.divider == divider.m_hWnd;
+    });
+    if (edge == state.edgePanes.end()) return {};
+    FrameEdgeResize resize{manager, &edge->second};
+    if (state.lockUpdate || !openmfc::detail::DividerHasVisiblePanes(&divider)) return resize;
+    const DWORD side = divider.GetPaneAlignment();
+    const bool vertical = IsVerticalEdge(side);
+    resize.current = (std::max)(0L, thickness);
+    // If the parent is already smaller than the requested minimum, keep the
+    // current thickness reachable and allow growing again as space becomes available.
+    const LONG minimum = (std::max)(1L, minThickness);
+    resize.minDelta = (std::min)(0L, minimum - resize.current);
+    resize.maxDelta = (std::max)(0L, EdgeSpan(state.clientAreaBounds, vertical) - frameClientMargin);
+    if (side == CBRS_ALIGN_RIGHT || side == CBRS_ALIGN_BOTTOM) resize.growthDirection = -1;
+    return resize;
+}
+}
+
+bool openmfc::detail::mfccore::FrameEdgeDividerOffsets(
+    const CPaneDivider& divider, LONG thickness, LONG minThickness, int& low, int& high) {
+    const auto resize = GetFrameEdgeResize(divider, thickness, minThickness);
+    if (!resize.edge) return false;
+    low = resize.growthDirection > 0 ? resize.minDelta : -resize.maxDelta;
+    high = resize.growthDirection > 0 ? resize.maxDelta : -resize.minDelta;
+    return true;
+}
+
+bool openmfc::detail::mfccore::MoveFrameEdgeDivider(
+    CPaneDivider& divider, LONG thickness, LONG minThickness, int offset) {
+    const auto resize = GetFrameEdgeResize(divider, thickness, minThickness);
+    if (!resize.edge) return false;
+    const LONG delta = static_cast<LONG>((std::clamp)(static_cast<long long>(offset) * resize.growthDirection,
+        static_cast<long long>(resize.minDelta), static_cast<long long>(resize.maxDelta)));
+    if (delta) {
+        resize.edge->thickness = resize.current + delta;
+        resize.manager->RecalcLayout();
+    }
+    return true;
+}
+
+void openmfc::detail::mfccore::AdjustDockedFrameClient(const CDockingManager* manager) {
+    const auto* state = FindDockingState(manager);
+    if (!state || state->lockUpdate || state->inPlaceBounds || !state->fitFrameClient ||
+        !state->parentFrame) return;
+    auto* frame = state->parentFrame;
+    const HWND host = frame->m_hWnd;
+    HWND content = ::GetDlgItem(host, frameContentId);
+    if (frame->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx))) {
+        const HWND mdi = static_cast<CMDIFrameWnd*>(frame)->m_hWndMDIClient;
+        if (::IsWindow(mdi)) content = mdi;
+    }
+    if (!content || ::GetParent(content) != host) return;
+    RECT bounds = state->clientAreaBounds;
+    if (auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(content)))
+        window->CalcWindowRect(&bounds, 0);
+    const LONG style = ::GetWindowLongW(content, GWL_STYLE);
+    if (!(style & WS_CLIPSIBLINGS))
+        ::SetWindowLongW(content, GWL_STYLE, style | WS_CLIPSIBLINGS);
+    ::SetWindowPos(content, HWND_BOTTOM, bounds.left, bounds.top, EdgeSpan(bounds, true),
+        EdgeSpan(bounds, false), SWP_NOACTIVATE);
 }
 
 void CDockingManager::RecalcLayout() {
@@ -1189,9 +1295,12 @@ void CDockingManager::RecalcLayout() {
     if (parent) {
         ::GetClientRect(parent, &client);
         const RECT frameBounds = client;
+        state.fitFrameClient = state.fitFrameClient || !state.edgePanes.empty();
+        client = DockedFrameBounds(state, frameBounds);
         ArrangeEdgePanes(state, client);
         state.clientAreaBounds = client;
         LayoutDockSites(*this, state, frameBounds);
+        AdjustDockedFrameClient(this);
     }
     const auto canTile = [&state](CBasePane* pane) {
         if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane) ||

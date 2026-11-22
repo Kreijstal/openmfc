@@ -343,12 +343,7 @@ extern "C" __int64 MS_ABI impl__OnToolbarCreateNew_CFrameWndEx__QEAA_J_K_J_Z(
 //     COleClientItem* pItem = GetInPlaceActiveItem();   // own vtable +0x3a8
 //     if (pItem && pItem->[+0xa8]) pItem->[+0xa8]->vtable[+0xb0]();
 //     AdjustClientArea();                               // own vtable +0x3a0
-// CORRECTION: this body used to call CFrameWnd::RecalcLayout(), which retail
-// never does here -- the tail call is AdjustClientArea, a far narrower
-// operation (it only repositions the AFX_IDW_PANE_FIRST child).  Routed to the
-// AdjustClientArea thunk instead, so it does the right thing as soon as that
-// one has a body; today that thunk is a documented no-op, which is why this
-// function currently does nothing.  The item+0xa8 map is not modelled.
+// The client-area adjustment uses the Feature Pack bounds after docking layout.
 // Symbol: ?ActiveItemRecalcLayout@CFrameWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__ActiveItemRecalcLayout_CFrameWndEx__QEAAXXZ(CFrameWndEx* pThis) {
     if (!pThis) return;
@@ -364,28 +359,9 @@ extern "C" void MS_ABI impl__ActiveItemRecalcLayout_CFrameWndEx__QEAAXXZ(CFrameW
 extern "C" void MS_ABI impl__AddDockSite_CFrameWndEx__QEAAXXZ(CFrameWndEx* pThis) {
     (void)pThis;
 }
-// CFrameWndEx::AdjustClientArea() -- retail entry is RVA 0x67ed0 (mfc140u). Transcribed:
-//     CWnd* pWnd = GetDlgItem(AFX_IDW_PANE_FIRST /*0xe900*/);
-//     if (!pWnd) return;
-//     CRect rc = this->[+0x548 .. +0x554];          // 16 bytes, one movups
-//     rc.left += this->[+0x110]; rc.top    += this->[+0x114];
-//     rc.right-= this->[+0x118]; rc.bottom -= this->[+0x11c];
-//     pWnd->CalcWindowRect(&rc, 0);                 // CWnd vtable +0xe0 (0x28edc0)
-//     DWORD dwAdd = (pWnd->IsKindOf(RUNTIME_CLASS(CSplitterWnd)) ||
-//                    pWnd->IsKindOf(RUNTIME_CLASS(CFormView)))
-//                 ? WS_CLIPSIBLINGS
-//                 : (WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
-//     pWnd->ModifyStyle(0, dwAdd, 0);               // 0x2a96f0
-//     pWnd->SetWindowPos(&CWnd::wndBottom /*0x3c3460*/, rc.left, rc.top,
-//                        rc.Width(), rc.Height(), SWP_NOACTIVATE);  // 0x2a9a60
-// Every source rectangle is an unmodelled CFrameWndEx/CFrameWnd member
-// (this+0x110..0x11c and this+0x548..0x554), so nothing here can be reproduced
-// without inventing offsets.  Left a no-op.
 // Symbol: ?AdjustClientArea@CFrameWndEx@@MEAAXXZ
 extern "C" void MS_ABI impl__AdjustClientArea_CFrameWndEx__MEAAXXZ(CFrameWndEx* pThis) {
-    (void)pThis;
-    // TODO(clean-room): not implemented -- the border rect at this+0x110 and the
-    // client rect at this+0x548 are not modelled in the simplified headers.
+    if (pThis) openmfc::detail::mfccore::AdjustDockedFrameClient(pThis->GetDockingManager());
 }
 // CFrameWndEx::DockPane(CBasePane*, UINT, LPCRECT) — retail (RVA 0x67dc0):
 //     add $0x380,%rcx; jmp CDockingManager::DockPane
@@ -462,18 +438,12 @@ extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CFrameWndEx__QEBAHVCPoint__AEAK
     auto* manager = frame ? const_cast<CFrameWndEx*>(frame)->GetDockingManager() : nullptr;
     return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, &alignment, &outerEdge);
 }
-// CFrameWndEx::AdjustDockingLayout(void*) — retail (RVA 0x67e50) checks a
-// CDockingManager flag, calls its AdjustDockingLayout, then the frame's own
-// AdjustClientArea / RecalcLayout chain. The frame-level extras are dropped;
-// the docking-manager relayout is forwarded.
 // Symbol: ?AdjustDockingLayout@CFrameWndEx@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__AdjustDockingLayout_CFrameWndEx__UEAAXPEAX_Z(
     CFrameWndEx* pThis, void* pParam) {
     if (!pThis) return;
     impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(
         pThis->GetDockingManager(), pParam);
-    // TODO(clean-room): transcribed partially — retail also runs the frame's
-    // AdjustClientArea and a conditional RecalcLayout(1) on this+0x530 state.
 }
 // CFrameWndEx::OnExitSizeMove() -- retail (RVA 0x68730), transcribed in full
 // (it is nine instructions):

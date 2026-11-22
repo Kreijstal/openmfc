@@ -1128,16 +1128,14 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMDIChildWndEx__UEAAHPEAUtagMSG_
 // CMDIChildWndEx::RecalcLayout(BOOL) — retail (RVA 0x852b0) drives the embedded
 // CDockingManager (this+0x3a8), the MDI client (this+0x558) and the internal
 // AdjustClientArea (0x180085140) behind reentrancy flags (this+0x1a0/0x1f8).
-// The base frame relayout is performed; the unmodeled dock/client state is
-// skipped.
 // Symbol: ?RecalcLayout@CMDIChildWndEx@@UEAAXH@Z
 extern "C" void MS_ABI impl__RecalcLayout_CMDIChildWndEx__UEAAXH_Z(
     CMDIChildWndEx* pThis, int bNotify) {
     if (!pThis) return;
     pThis->CFrameWnd::RecalcLayout(bNotify);
-    // TODO(clean-room): transcribed partially — retail also runs the embedded
-    // CDockingManager (this+0x3a8) layout and AdjustClientArea behind the
-    // reentrancy flags at this+0x1a0/0x1f8.
+    // The base frame lays out the classic bars before applying Feature Pack bounds.
+    impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(DockManagerOf(pThis), nullptr);
+    impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ(pThis);
 }
 // CMDIChildWndEx::RemovePaneFromDockManager(CBasePane*, BOOL, BOOL, BOOL,
 // CBasePane*) — transcribed from retail mfc140u.dll entry RVA 0x84ec0, a
@@ -1390,15 +1388,7 @@ extern "C" void MS_ABI impl__AddTabbedPane_CMDIChildWndEx__QEAAXPEAVCDockablePan
 //         this->[0x578] - this->[0x118] - (this->[0x110] + this->[0x570]),
 //         this->[0x57c] - this->[0x11c] - (this->[0x114] + this->[0x574]),
 //         SWP_NOZORDER /*0x10*/);   // the z-order arg is inert under NOZORDER
-// The tabbed-pane slot at this+0x710 is not modeled by OpenMFC (CMDIChildWndEx
-// is a 64-byte padding blob), so the GetDlgItem arm is the one retail takes
-// here -- and it, the two IsKindOf tests and the ModifyStyle call need nothing
-// this build lacks, so that whole leg is reproduced faithfully.
-// Only the trailing geometry pass is skipped: it needs this+0x110..0x11c
-// (the cached frame borders), this+0x210 and this+0x570..0x57c, none of which
-// have slots here, and CDockingManager::m_bFullScreenMode is not modeled
-// either.  The consequence is that the client pane still gets its clip styles
-// but is never re-fitted to the docking borders.
+// The standard child window supplies the document view for the managed bounds.
 // Symbol: ?AdjustClientArea@CMDIChildWndEx@@IEAAXXZ
 extern "C" void MS_ABI impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ(
     CMDIChildWndEx* pThis) {
@@ -1420,9 +1410,7 @@ extern "C" void MS_ABI impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ(
             ? static_cast<unsigned long>(WS_CLIPSIBLINGS)
             : static_cast<unsigned long>(WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
     impl__ModifyStyle_CWnd__QEAAHKKI_Z(pWnd, 0, dwAdd, 0);
-    // TODO(clean-room): retail then re-fits the pane with CWnd::SetWindowPos
-    // using this+0x110..0x11c and this+0x570..0x57c behind the this+0x210 and
-    // CDockingManager::m_bFullScreenMode gates; none of those are modeled.
+    openmfc::detail::mfccore::AdjustDockedFrameClient(DockManagerOf(pThis));
 }
 
 // CMDIChildWndEx::AdjustDockingLayout(HDWP) — transcribed from retail
@@ -1433,12 +1421,6 @@ extern "C" void MS_ABI impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ(
 //                                       // (slot 0x80 of the retail CDockingManager vftable
 //                                       // 0x2e6120, mfc140u); RDX is untouched from entry
 //     AdjustClientArea();               // 0x85140
-// The dock manager is the ChildExtra one; its relayout is reproduced as a
-// direct call to the CDockingManager export.  NOT reproduced: the +0x250 latch
-// (OpenMFC's 144-byte CDockingManager has no such member) -- so a re-entrant
-// call relayouts again where retail returns.  The AdjustClientArea() leg is
-// reproduced (see that function below -- it applies the client pane's clip
-// styles but not retail's trailing geometry pass).
 // Symbol: ?AdjustDockingLayout@CMDIChildWndEx@@UEAAXPEAX@Z
 extern "C" void MS_ABI impl__AdjustDockingLayout_CMDIChildWndEx__UEAAXPEAX_Z(
     CMDIChildWndEx* pThis, void* pLayout) {

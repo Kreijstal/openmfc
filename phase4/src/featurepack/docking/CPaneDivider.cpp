@@ -167,8 +167,6 @@ extern "C" void* MS_ABI impl__CreateObject_CPaneContainerManager__SAPEAVCObject_
 extern "C" void MS_ABI impl__GetWindowRect_CPaneContainerManager__UEBAXAEAVCRect___Z(const void*, CRect&);
 extern "C" void MS_ABI impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(void*, void*, BOOL);
 extern "C" void MS_ABI impl__RemovePaneDivider_CPaneContainerManager__UEAAXPEAVCPaneDivider___Z(void* pThis, void* pSlider);
-extern "C" int MS_ABI impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCPaneDivider__IHAEAPEAX_Z(
-    void* pThis, void* pSlider, unsigned int uFlags, int nOffset, void** phdwp);
 extern "C" void MS_ABI impl__ResizePaneContainers_CPaneContainerManager__UEAAXVCRect__AEAPEAX_Z(
     void* pThis, const RECT* pRect, void** phdwp);
 extern "C" void MS_ABI impl__GetMinSize_CPaneContainerManager__UEAAXAEAVCSize___Z(void* pThis, CSize& size);
@@ -882,33 +880,8 @@ extern "C" int MS_ABI impl__InsertPane_CPaneDivider__UEAAHPEAVCDockablePane__0KP
 }
 
 // Symbol: ?Move@CPaneDivider@@UEAAXAEAVCPoint@@H@Z
-// Decoded from retail entry RVA 0xac090 (mfc140u; 0xac650 mfc140). bAdjustLayout
-// (%r8d) is never read -- dead in retail.
-//     CWnd* pParent = CWnd::FromHandle(::GetParent(m_hWnd));
-//     DWORD dwExStyle = pParent->GetExStyle();                       // %esi
-//     CRect rect; ::GetWindowRect(m_hWnd, &rect);
-//     CWnd::FromHandle(::GetParent(m_hWnd))->ScreenToClient(&rect);  // the lookup is repeated
-//     int nOffset;
-//     if (m_dwDividerStyle & SS_VERT) {                              // +0x1ac, `test $2`
-//         nOffset = (dwExStyle & WS_EX_LAYOUTRTL) ? -ptOffset.x : ptOffset.x;   // `bt $0x16,%esi ; cmovae`
-//         ::OffsetRect(&rect, nOffset, 0);
-//     } else if (m_dwDividerStyle & SS_HORZ) {
-//         nOffset = ptOffset.y;
-//         ::OffsetRect(&rect, 0, nOffset);
-//     } else return;
-//     HDWP hdwp = ::BeginDeferWindowPos(50);
-//     if (m_pContainerManager != NULL)
-//         m_pContainerManager->OnPaneDividerMove(this, 0, nOffset, hdwp);   // mgr vslot +0x60; hdwp by reference
-//     ::EndDeferWindowPos(hdwp);                                    // re-read after the call
-//     AdjustDockingLayout(NULL);                                    // this vslot +0x4e0
-//     SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(),
-//                  SWP_NOZORDER | SWP_NOACTIVATE, NULL);             // this vslot +0x480 (CBasePane::SetWindowPos)
-// DEVIATION: vslot +0x480 is dispatched as the exported CWnd::SetWindowPos.
-// The pExtra (HDWP) argument retail passes is NULL, and ?SetWindowPos@CBasePane@@
-// (0xb620 mfc140u) with a NULL hdwp forwards its other six arguments to
-// ?SetWindowPos@CWnd@@ (0x2a9a60 mfc140u) and returns NULL -- so the call made
-// here is the one retail makes one frame deeper. Vslot +0x4e0 goes to the
-// exported CBasePane::AdjustDockingLayout, which is an empty body in this tree.
+// The container manager moves its panes and divider together. A divider with
+// no active pane container can still be positioned directly.
 extern "C" void MS_ABI impl__Move_CPaneDivider__UEAAXAEAVCPoint__H_Z(void* pThis, POINT* pptOffset, int bAdjustLayout) {
     (void)bAdjustLayout;   // dead in retail too
     if (pThis == nullptr || pptOffset == nullptr) return;   // deviation: retail has no NULL checks
@@ -930,10 +903,7 @@ extern "C" void MS_ABI impl__Move_CPaneDivider__UEAAXAEAVCPoint__H_Z(void* pThis
         return;
     }
     void* hdwp = ::BeginDeferWindowPos(50);
-    void* pManager = LoadState(pThis).pContainerManager;
-    const bool arranged = pManager &&
-        impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCPaneDivider__IHAEAPEAX_Z(
-            pManager, pThis, 0, nOffset, &hdwp);
+    const bool arranged = openmfc::detail::MovePaneDivider(*static_cast<CPaneDivider*>(pThis), nOffset, &hdwp);
     if (hdwp) ::EndDeferWindowPos(static_cast<HDWP>(hdwp));
     if (arranged) return;
     impl__AdjustDockingLayout_CBasePane__UEAAXPEAX_Z(AsBasePane(pThis), nullptr);
@@ -1018,6 +988,7 @@ extern "C" int MS_ABI impl__OnCreate_CPaneDivider__IEAAHPEAUtagCREATESTRUCTW___Z
 //     CWnd::OnDestroy();                                           // tail-jump to 0x289cc0 (mfc140)
 extern "C" void MS_ABI impl__OnDestroy_CPaneDivider__IEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    impl__StopTracking_CPaneDivider__MEAAXH_Z(pThis, FALSE);
     std::vector<void*> panes;
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
@@ -1081,8 +1052,13 @@ extern "C" void MS_ABI impl__OnLButtonDown_CPaneDivider__IEAAXIVCPoint___Z(void*
     (void)point;
     if (pThis == nullptr) return;   // deviation: retail has no NULL check
     if (!LoadState(pThis).bCaptured) {
+        const HWND window = HwndOf(pThis);
+        ::SetCapture(window);
+        if (::GetCapture() != window) {
+            (void)impl__Default_CWnd__IEAA_JXZ(AsWnd(pThis));
+            return;
+        }
         WithState(pThis, [](DividerState& s) { s.bCaptured = true; });
-        (void)impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::SetCapture(HwndOf(pThis)));
         RECT rectWnd = {0, 0, 0, 0};
         ::GetWindowRect(HwndOf(pThis), &rectWnd);
         CWnd* pTrack = NewTrackingWnd();
@@ -1134,19 +1110,19 @@ extern "C" void MS_ABI impl__OnLButtonDown_CPaneDivider__IEAAXIVCPoint___Z(void*
 // Decoded from retail entry RVA 0xabca0 (mfc140u; 0xac260 mfc140). nFlags and
 // point are never read.
 //     StopTracking(TRUE);                     // this vslot +0x568
-//     ::Sleep(20);                            // KERNEL32!Sleep, `mov $0x14,%ecx`
 //     CWnd::Default();                        // CWnd::OnLButtonUp
 //     ::InvalidateRect(m_hWnd, NULL, TRUE);
 //     ::UpdateWindow(m_hWnd);                 // tail-jump
 extern "C" void MS_ABI impl__OnLButtonUp_CPaneDivider__IEAAXIVCPoint___Z(void* pThis, unsigned int nFlags, long long point) {
     (void)nFlags;
     (void)point;
-    if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    if (pThis == nullptr) return;
+    const HWND window = HwndOf(pThis);
     impl__StopTracking_CPaneDivider__MEAAXH_Z(pThis, TRUE);
-    ::Sleep(20);
+    if (CWnd::FromHandlePermanent(window) != AsWnd(pThis)) return;
     (void)impl__Default_CWnd__IEAA_JXZ(AsWnd(pThis));
-    ::InvalidateRect(HwndOf(pThis), nullptr, TRUE);
-    ::UpdateWindow(HwndOf(pThis));
+    ::InvalidateRect(window, nullptr, TRUE);
+    ::UpdateWindow(window);
 }
 
 // Symbol: ?OnMouseMove@CPaneDivider@@IEAAXIVCPoint@@@Z
@@ -1638,23 +1614,21 @@ extern "C" void MS_ABI impl__ShowWindow_CPaneDivider__QEAAXH_Z(void* pThis, int 
 //     if (m_pContainerManager != NULL)
 //         m_pContainerManager->SetResizeMode(FALSE);                  // mgr vslot +0x110
 extern "C" void MS_ABI impl__StopTracking_CPaneDivider__MEAAXH_Z(void* pThis, int bMoveSlider) {
-    if (pThis == nullptr) return;   // deviation: retail has no NULL check
-    DividerState s = LoadState(pThis);
-    if (!s.bCaptured) return;
-    RECT rectWnd = {0, 0, 0, 0};
-    ::GetWindowRect(HwndOf(pThis), &rectWnd);
-    POINT ptOffset = { s.rectLastDragRect.left - rectWnd.left, s.rectLastDragRect.top - rectWnd.top };
+    if (!pThis) return;
+    auto& state = static_cast<CPaneDivider*>(pThis)->m_dividerData;
+    if (!state.bCaptured) return;
+    const HWND window = HwndOf(pThis);
+    RECT current{};
+    ::GetWindowRect(window, &current);
+    POINT offset{state.rectLastDragRect.left - current.left, state.rectLastDragRect.top - current.top};
+    state.bCaptured = false;
+    ::SetRectEmpty(&state.rectLastDragRect);
     DestroyTrackingWnd(pThis);
-    if (bMoveSlider) {
-        impl__Move_CPaneDivider__UEAAXAEAVCPoint__H_Z(pThis, &ptOffset, TRUE);
-    }
-    WithState(pThis, [](DividerState& st) { ::SetRectEmpty(&st.rectLastDragRect); });
-    ::ReleaseCapture();
-    WithState(pThis, [](DividerState& st) { st.bCaptured = false; });
-    void* pManager = LoadState(pThis).pContainerManager;
-    if (pManager != nullptr) {
-        impl__SetResizeMode_CPaneContainerManager__UEAAXH_Z(pManager, FALSE);
-    }
+    if (state.pContainerManager)
+        impl__SetResizeMode_CPaneContainerManager__UEAAXH_Z(state.pContainerManager, FALSE);
+    if (::GetCapture() == window) ::ReleaseCapture();
+    if (bMoveSlider && window && CWnd::FromHandlePermanent(window) == AsWnd(pThis))
+        impl__Move_CPaneDivider__UEAAXAEAVCPoint__H_Z(pThis, &offset, TRUE);
 }
 
 // Symbol: ?StoreRecentDockSiteInfo@CPaneDivider@@QEAAXPEAVCDockablePane@@@Z
@@ -1687,6 +1661,11 @@ extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneDivider__QEAAXPEAVCD
         impl__StoreDockInfo_CRecentDockSiteInfo__UEAAXPEAVCPaneContainer__PEAVCDockablePane___Z(
             &static_cast<CPane*>(static_cast<CDockablePane*>(pDockingBar))->m_recentDockInfo, pContainer, pTabbedBar);
     }
+}
+
+LRESULT CPaneDivider::OnCaptureChanged(WPARAM, LPARAM) {
+    impl__StopTracking_CPaneDivider__MEAAXH_Z(this, FALSE);
+    return 0;
 }
 
 void CPaneDivider::OnCancelMode() {

@@ -2005,6 +2005,7 @@ public:
     CRect GetRootContainerRect();
     CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz) override;
 
+    LRESULT OnCaptureChanged(WPARAM, LPARAM);
     void OnCancelMode();
     int OnCreate(CREATESTRUCTW* create);
     void OnDestroy();

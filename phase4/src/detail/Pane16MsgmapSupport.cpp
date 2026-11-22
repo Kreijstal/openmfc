@@ -24,6 +24,7 @@ const AFX_MSGMAP_ENTRY dividerEntries[] = {
     ON_WM_ERASEBKGND()
     ON_WM_LBUTTONDOWN()
     ON_WM_LBUTTONUP()
+    ON_MESSAGE(WM_CAPTURECHANGED, &ThisClass::OnCaptureChanged)
     ON_WM_MOUSEMOVE()
     ON_WM_PAINT()
     ON_WM_SETCURSOR()

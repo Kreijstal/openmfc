@@ -80,6 +80,7 @@ static_assert(sizeof(S_CPaneContainer) == 0xf8, "CPaneContainer size (operator n
 // Bounds and offsets are in the dock site's client coordinates.
 bool PaneSplitOffsets(const S_CPaneContainer& node, int& low, int& high);
 bool MovePaneSplit(S_CPaneContainer& node, int offset, void** hdwp);
+bool MovePaneDivider(CPaneDivider& divider, int offset, void** hdwp);
 void ResizeDividerPanes(CPaneDivider* divider, const RECT& bounds);
 bool DividerHasVisiblePanes(const CPaneDivider* divider);
 void RefreshDividerPanes(CPaneDivider* divider);
