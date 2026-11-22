@@ -122,7 +122,7 @@ void* CBasePane::SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx,
     }
     return pExtra;
 }
-void CBasePane::CalcFixedLayout(BOOL bStretch, BOOL bHorz) {
+CSize CBasePane::CalcFixedLayout(BOOL bStretch, BOOL bHorz) {
     std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
     PaneCoreState& state = g_paneCoreState_Mfccore[this];
 
@@ -156,6 +156,7 @@ void CBasePane::CalcFixedLayout(BOOL bStretch, BOOL bHorz) {
 
     m_rectBar = state.recentRect;
     state.visible = (m_hWnd != nullptr) ? TRUE : FALSE;
+    return CSize(m_rectBar.Width(), m_rectBar.Height());
 }
 void CBasePane::RecalcLayout() {
     HWND hwnd = GetSafeHwnd();

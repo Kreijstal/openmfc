@@ -10,6 +10,7 @@
 #include <cstddef>   // offsetof (static_asserts below)
 #include <cstring>   // memcpy
 #include <cwchar>    // wcscmp
+#include <memory>
 #include <mutex>
 #include <new>
 #include <unordered_map>
@@ -295,7 +296,11 @@ extern "C" int MS_ABI impl__IsVisible_CDockablePane__UEBAHXZ(const CDockablePane
 extern "C" unsigned long MS_ABI impl__GetExStyle_CWnd__QEBAKXZ(const CWnd* pThis);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPaneDivider__SAPEAUCRuntimeClass__XZ();
 extern "C" void MS_ABI impl__RemovePane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane);
-extern "C" void MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CRect* pRet, void* pThis);
+extern "C" CRect* MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CPaneDivider*, CRect*);
+extern "C" BOOL MS_ABI impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(
+    void*, DWORD, DWORD, const RECT&, CWnd*, UINT, CCreateContext*);
+extern "C" int impl__m_nDefaultWidth_CPaneDivider__2HA;
+extern "C" void* impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA;
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CMultiPaneFrameWnd__UEAAXPEAVCPane___Z(void* pThis, void* pBar);
 extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__0_Z(
     void* pThis, CDockablePane* pDockingBar, CDockablePane* pTabbedBar);
@@ -622,6 +627,7 @@ CDockablePane::~CDockablePane() {
         auto* bar = button->m_pParentBar;
         if (!bar || !bar->RemoveAutoHideWindow(this)) button->ReplacePane(nullptr);
     }
+    impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(this, nullptr);
     EraseExtraOf(this);
 }
 BOOL CDockablePane::CanBeAttached() const { return TRUE; }
@@ -709,7 +715,7 @@ extern "C" void MS_ABI impl__AdjustPaneToPaneContainer_CDockablePane__MEAAXPEAVC
     if (pThis == nullptr || pSlider == nullptr) return;   // deviation: retail has no NULL check
     CRect rectContainer(0, 0, 0, 0);
     // NOTE: (pRet, pThis) is the order docking/CPaneDivider.cpp:89 declares -- see above.
-    impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(&rectContainer, pSlider);
+    impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(static_cast<CPaneDivider*>(pSlider), &rectContainer);
     RECT rcContainer;
     rcContainer.left = rectContainer.left;
     rcContainer.top = rectContainer.top;
@@ -1227,40 +1233,27 @@ extern "C" void MS_ABI impl__CopyState_CDockablePane__UEAAXPEAV1__Z(
         DockablePaneField<int>(pOrgBar, kOffEnableAutoHideAll);
 }
 
-// STUB. Retail entry RVA 0x432c0 (mfc140u; 0x43110 in mfc140), a static (no
-// `this`), fully decoded:
-//     CPaneDivider* pSlider;
-//     if (pSliderRTC != NULL) {
-//         pSlider = DYNAMIC_DOWNCAST(CPaneDivider, pSliderRTC->CreateObject());   // RVA 0x233380,
-//         pSlider->{+0x1c4} = 1;                        // RTC 0x2f4b58 "CPaneDivider"; unchecked NULL
-//     } else {
-//         pSlider = DYNAMIC_DOWNCAST(CPaneDivider, CPaneDivider::m_pSliderRTC->CreateObject());  // RVA 0x3aab10
-//         pSlider->Init(TRUE, NULL);                    // RVA 0xab720, `lea 0x1(%r8),%edx ; xor %r8d`
-//     }
-//     DWORD dwStyle = ((dwAlignment & 0x5000 /*CBRS_ALIGN_LEFT|RIGHT*/) ? 2 : 1) | WS_VISIBLE;  // `bts $0x1c`
-//     CRect rect(0, 0, CPaneDivider::m_nDefaultWidth, CPaneDivider::m_nDefaultWidth);   // RVA 0x3aab0c
-//     if (!pSlider->CreateEx(0, dwStyle, rect, pParent, (UINT)-1, NULL)) {   // vtable slot 0x560
-//         delete pSlider;                               // vtable slot 1 (deleting dtor, flag 1)
-//         return NULL;
-//     }
-//     pSlider->SetPaneAlignment(dwAlignment);           // vtable slot 0x3d0: `andl $0xffff0fff,0x104 ; or %edx`
-//     return pSlider;
-// Blocked: OpenMFC's CPaneDivider declaration (include/openmfc/afxmfc.h:1748)
-// is a compact CObject, not the retail CBasePane-derived 0x218-byte window
-// object. Its CreateEx thunk (docking/CPaneDivider.cpp:824) returns FALSE for
-// such compact factory objects before touching CWnd storage; the +0x1c4
-// default-divider write in this retail body would already overrun that object.
-// The class also has no local vtable slots 0x560/0x3d0 or m_dwStyle at +0x104.
-// The default arm additionally depends on ?m_pSliderRTC@CPaneDivider@@, which
-// is NULL in core/runtime/StaticData.cpp:62. Neither divider creation path nor
-// the alignment store can be reproduced safely.
 // Symbol: ?CreateDefaultPaneDivider@CDockablePane@@SAPEAVCPaneDivider@@KPEAVCWnd@@PEAUCRuntimeClass@@@Z
-extern "C" void* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
-    unsigned long dwAlignment, CWnd* pParent, CRuntimeClass* pSliderRTC) {
-    (void)dwAlignment;
-    (void)pParent;
-    (void)pSliderRTC;
-    return nullptr;
+extern "C" CPaneDivider* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
+    DWORD alignment, CWnd* parent, CRuntimeClass* type) {
+    if (!parent || !parent->GetSafeHwnd()) return nullptr;
+    if (!type) type = static_cast<CRuntimeClass*>(impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA);
+    if (!type) type = CPaneDivider::GetThisClass();
+    if (!type->IsDerivedFrom(RUNTIME_CLASS(CPaneDivider))) return nullptr;
+    std::unique_ptr<CPaneDivider> divider(static_cast<CPaneDivider*>(type->CreateObject()));
+    if (!divider) return nullptr;
+    divider->m_dividerData.bDefaultDivider = TRUE;
+
+    const int width = impl__m_nDefaultWidth_CPaneDivider__2HA;
+    constexpr DWORD horizontalDivider = 1;
+    constexpr DWORD verticalDivider = 2;
+    const DWORD orientation = alignment & (kAlignLeft | kAlignRight) ? verticalDivider : horizontalDivider;
+    const RECT rect{0, 0, width, width};
+    if (!impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(
+            divider.get(), 0, WS_VISIBLE | orientation, rect, parent, static_cast<UINT>(-1), nullptr)) return nullptr;
+    divider->m_dwStyle = (divider->m_dwStyle & ~0xf000UL) | (alignment & 0xf000UL);
+    divider->SetPaneAlignment(alignment);
+    return divider.release();
 }
 
 // STUB. Transcribed from function entry RVA 0x43be0 (mfc140u): retail gets
@@ -1554,12 +1547,6 @@ extern "C" int MS_ABI impl__GetCaptionHeight_CDockablePane__UEBAHXZ(const CDocka
 //            ? (CPaneDivider*)p : NULL;
 // m_hDefaultSlider has no storage in the 1144-byte object and is read from the
 // file-private DockablePaneExtra table that SetDefaultPaneDivider below fills.
-// The descriptor is the one docking/RuntimeClasses.cpp:268 exports for
-// CPaneDivider. Note that OpenMFC's CPaneDivider (include/openmfc/afxmfc.h)
-// derives from CObject, not CWnd, so no permanent-map entry can pass the
-// IsKindOf test today and this returns NULL until that class is re-based; the
-// code path is retail's regardless.
-// Deviation: NULL check on `this`.
 // Symbol: ?GetDefaultPaneDivider@CDockablePane@@QEBAPEAVCPaneDivider@@XZ
 extern "C" void* MS_ABI impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(const CDockablePane* pThis) {
     if (pThis == nullptr) return nullptr;   // deviation: retail has no NULL check

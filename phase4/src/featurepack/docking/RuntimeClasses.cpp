@@ -136,7 +136,6 @@ FRAMES_DOCS_PREVIEW_DESC(CSmartDockingStandaloneGuide, 1128, 0xFFFF, &CObject::c
 
 PANE_DESC(CPaneContainer,        248,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
 PANE_DESC(CPaneContainerManager, 160,  0xFFFF,     &CObject::classCObject);          // DECLARE_DYNAMIC
-PANE_DESC(CPaneDivider,          536,  0xFFFF,     &CBasePane::classCBasePane);       // DECLARE_DYNCREATE
 PANE_DESC(CPaneDialog,           1264, 0x80000001, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
 PANE_DESC(CPaneFrameWnd,         600,  0x80000002, &CWnd::classCWnd);                 // DECLARE_SERIAL
 #undef PANE_DESC
@@ -256,9 +255,12 @@ PANE_GETTERS(CPaneContainerManager,
 
 // Symbol: ?GetThisClass@CPaneDivider@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CPaneDivider@@UEBAPEAUCRuntimeClass@@XZ
-PANE_GETTERS(CPaneDivider,
-             impl__GetThisClass_CPaneDivider__SAPEAUCRuntimeClass__XZ,
-             impl__GetRuntimeClass_CPaneDivider__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CPaneDivider__SAPEAUCRuntimeClass__XZ() {
+    return CPaneDivider::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CPaneDivider__UEBAPEAUCRuntimeClass__XZ(const CPaneDivider*) {
+    return CPaneDivider::GetThisClass();
+}
 
 // Symbol: ?GetThisClass@CPaneDialog@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CPaneDialog@@UEBAPEAUCRuntimeClass@@XZ

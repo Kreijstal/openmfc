@@ -4,6 +4,7 @@
 // Feature Pack static data exports with real storage.
 
 #include <cstdint>
+#include "openmfc/afxmfc.h"
 
 
 
@@ -59,7 +60,7 @@ extern "C" void* impl__m_hinstRes_CMFCVisualManagerOffice2007__1PEAUHINSTANCE___
 // Symbol: ?m_pContainerManagerRTC@CPaneDivider@@2PEAUCRuntimeClass@@EA
 extern "C" void* impl__m_pContainerManagerRTC_CPaneDivider__2PEAUCRuntimeClass__EA = nullptr;
 // Symbol: ?m_pSliderRTC@CPaneDivider@@2PEAUCRuntimeClass@@EA
-extern "C" void* impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA = nullptr;
+extern "C" void* impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA = &CPaneDivider::classCPaneDivider;
 // Symbol: ?m_pParentWndForSerialize@CPaneFrameWnd@@1PEAVCFrameWnd@@EA
 extern "C" void* impl__m_pParentWndForSerialize_CPaneFrameWnd__1PEAVCFrameWnd__EA = nullptr;
 // Implemented in cbarcore.cpp; this unit had a second, unlinked copy.

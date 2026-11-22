@@ -58,6 +58,7 @@ void ConstructBuffer(S_Cmemdc* self) {
     HPAINTBUFFER hbp = ::BeginBufferedPaint(hdcTarget, &self->m_rect,
                                             BPBF_COMPATIBLEBITMAP, nullptr, &hdcPaint);
     if (hbp != nullptr && hdcPaint != nullptr) {
+        self->m_bMemDC = TRUE;
         self->m_hBufferedPaint = hbp;
         self->m_dcMem.m_hDC = hdcPaint;      // Attach — not owned by us, released via EndBufferedPaint
         self->m_dcMem.m_hAttribDC = hdcPaint;
@@ -90,6 +91,7 @@ void DestructBody(S_Cmemdc* self) {
         // Buffered-paint path: TRUE => copy the buffer onto the target, then detach its DC.
         ::EndBufferedPaint(static_cast<HPAINTBUFFER>(self->m_hBufferedPaint), TRUE);
         self->m_hBufferedPaint = nullptr;
+        self->m_bMemDC = FALSE;
         self->m_dcMem.m_hDC = nullptr;       // Detach (buffer owned the DC)
         self->m_dcMem.m_hAttribDC = nullptr;
     } else if (self->m_bMemDC && self->m_dcMem.m_hDC != nullptr) {

@@ -273,6 +273,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ
 // ??2@YAPEAX_K@Z, MFC's exported operator new (detail/MemcoreSupport.cpp); the
 // allocator retail ?CreateObject@CPaneContainerManager@@ calls (0x2840, mfc140.dll).
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
+extern "C" void* MS_ABI impl___1CPaneContainer__UEAA_XZ(void*);
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
@@ -357,6 +358,15 @@ extern "C" void* MS_ABI impl___0CPaneContainerManager__QEAA_XZ(void* pThis) {
 }
 // Symbol: ??1CPaneContainerManager@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CPaneContainerManager__UEAA_XZ(void* pThis) {
+    if (!pThis) return nullptr;
+    void* root = Field<void*>(pThis, kOffRootContainer);
+    if (root && Field<BOOL>(pThis, kOffDestroyRootContainer)) {
+        if (Field<CRuntimeClass*>(pThis, kOffContainerRTC)) delete static_cast<CObject*>(root);
+        else {
+            impl___1CPaneContainer__UEAA_XZ(root);
+            ::operator delete(root);
+        }
+    }
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     g_containerManagerPanes.erase(pThis);
     EraseSliderList(pThis);
@@ -1010,10 +1020,6 @@ extern "C" int MS_ABI impl__CheckForMiniFrameAndCaption_CPaneContainerManager__U
 //    does not, so without the memset the root container would carry whatever
 //    operator new left at +0x00 and a client virtual call would jump through it.
 //    NULL at least faults cleanly.
-//  * Nothing frees the root container: retail's destructor honours
-//    m_bDestroyRootContainer, and this file's destructor does not model that
-//    yet. CPaneContainer::CleanUp is a stub in the sibling file for the same
-//    reason (no emitted vtable to run a virtual destructor through).
 extern "C" int MS_ABI impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPaneDivider__PEAUCRuntimeClass___Z(
     void* pThis, void* pParentWnd, void* pDefaultSlider, CRuntimeClass* pContainerRTC) {
     if (pThis == nullptr) return FALSE;
@@ -1042,7 +1048,7 @@ extern "C" int MS_ABI impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPa
     }
     Field<void*>(pThis, kOffRootContainer) = pRoot;
     Field<void*>(pThis, kOffDefaultSlider) = pDefaultSlider;
-    return TRUE;
+    return pRoot != nullptr;
 }
 
 // Symbol: ?CreateObject@CPaneContainerManager@@SAPEAVCObject@@XZ

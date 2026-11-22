@@ -511,7 +511,7 @@ public:
     void SetPaneAlignment(DWORD dwAlignment);
     DWORD GetPaneAlignment() const;
     virtual void* SetWindowPos(const CWnd* pWndInsertAfter, int x, int y, int cx, int cy, unsigned int nFlags, void* pExtra);
-    virtual void CalcFixedLayout(BOOL bStretch, BOOL bHorz);
+    virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
     virtual void RecalcLayout();
 
 public:
@@ -1921,12 +1921,12 @@ public: CMFCDesktopAlertWndButton() {} char _pad[16]; };
 class CMFCStatusBar : public CStatusBar {
     DECLARE_DYNAMIC(CMFCStatusBar)
 public: CMFCStatusBar(); virtual ~CMFCStatusBar(); void EnablePaneProgressBar(int nIndex, long nTotal, int nMax, unsigned long clrBar, unsigned long clrProgressBarDest, unsigned long clrProgressText); long GetPaneProgress(int nIndex) const; void SetPaneProgress(int nIndex, long nProgress, int bRedraw); char _pad[64]; };
-// This compact declaration stays unchanged (sizeof 0x18); retail divider
-// members after CBasePane +0x1a8 are held in CPaneDivider.cpp's pThis side table.
-class CPaneDivider : public CObject {
+class CPaneDivider : public CBasePane {
+    DECLARE_DYNCREATE(CPaneDivider)
 public:
-    CPaneDivider() {}
-    virtual ~CPaneDivider() {}
+    CPaneDivider();
+    CPaneDivider(BOOL defaultDivider, CWnd* parent);
+    ~CPaneDivider() override;
     virtual void AddPane(CDockablePane* pPane);
     virtual void RemovePane(CDockablePane* pPane);
     virtual BOOL CheckVisibility();
@@ -1935,8 +1935,42 @@ public:
     void GetPaneDividers(CObList& lst);
     void GetPanes(CObList& lst);
     CRect GetRootContainerRect();
-    virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
-    char _pad[16];
+    CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz) override;
+
+    void OnCancelMode();
+    int OnCreate(CREATESTRUCTW* create);
+    void OnDestroy();
+    BOOL OnEraseBkgnd(CDC* dc);
+    void OnLButtonDown(UINT flags, CPoint point);
+    void OnLButtonUp(UINT flags, CPoint point);
+    void OnMouseMove(UINT flags, CPoint point);
+    void OnPaint();
+    BOOL OnSetCursor(CWnd* window, UINT hitTest, UINT message);
+
+    struct DividerData {
+        UINT nID = static_cast<UINT>(-1);
+        DWORD dwDividerStyle = 0;
+        int nWidth = 0;
+        int nMinOffset = 0;
+        int nMaxOffset = 0;
+        int nStep = -1;
+        bool bCaptured = false;
+        bool destroyWithWindow = false;
+        bool customContainerManager = false;
+        BOOL bDefaultDivider = FALSE;
+        BOOL bAutoHideMode = FALSE;
+        RECT rectLastDragRect{};
+        RECT rectDragBounds{};
+        POINT ptHotTotal{};
+        POINT ptHotDrag{};
+        CWnd* pParentWndForSerialize = nullptr;
+        void* pContainerManager = nullptr;
+        CWnd* pWndTrack = nullptr;
+    } m_dividerData;
+
+protected:
+    void PostNcDestroy() override;
+    DECLARE_MESSAGE_MAP()
 };
 
 class CMFCRibbonButtonsGroup : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonButtonsGroup) public: CMFCRibbonButtonsGroup(); virtual ~CMFCRibbonButtonsGroup(); char _pad[32]; };

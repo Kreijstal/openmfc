@@ -41,7 +41,7 @@
 // Symbol: ?CreateObject@CPaneDivider@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CPaneDivider__SAPEAVCObject__XZ()
 {
-    return new (std::nothrow) CPaneDivider();
+    return CPaneDivider::CreateObject();
 }
 // Symbol: ?CreateObject@CPaneFrameWnd@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CPaneFrameWnd__SAPEAVCObject__XZ()

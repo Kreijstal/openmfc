@@ -79,7 +79,7 @@ extern "C" std::int32_t impl__m_bMaintainPercentage_CPaneContainer__2HA = 0;
 // Symbol: ?m_bRetainInternalSliderPosition@CPaneContainer@@2HA
 extern "C" std::int32_t impl__m_bRetainInternalSliderPosition_CPaneContainer__2HA = 0;
 // Symbol: ?m_nDefaultWidth@CPaneDivider@@2HA
-extern "C" std::int32_t impl__m_nDefaultWidth_CPaneDivider__2HA = 0;
+extern "C" std::int32_t impl__m_nDefaultWidth_CPaneDivider__2HA = 4;
 // Symbol: ?m_bUseSaveBits@CPaneFrameWnd@@2HA
 extern "C" std::int32_t impl__m_bUseSaveBits_CPaneFrameWnd__2HA = 0;
 // Symbol: ?m_nRollTimeOut@CPaneFrameWnd@@2IA

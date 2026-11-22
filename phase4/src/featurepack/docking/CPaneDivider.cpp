@@ -35,53 +35,19 @@
 //   +0x210  CPaneTrackingWnd*      m_pWndTrack
 //   sizeof == 0x218
 //
-// STORAGE -- deliberate, file-wide deviation, and the reason every body below
-// keeps its divider-own state in a side table instead of at those offsets.
-// The CPaneDivider this DLL actually builds is the one declared in
-// include/openmfc/afxmfc.h: `class CPaneDivider : public CObject` plus a 16-byte
-// pad, sizeof 24, allocated by docking/DynCreateFactories.cpp with
-// `new CPaneDivider()`. A store at +0x1a8..+0x217 into that object is a heap
-// overrun (docking/CPaneContainerManager.cpp's ?CreatePaneDivider@ comment
-// records an earlier revision that did exactly that and was reverted). So the
-// sixteen members above live in the file-local DividerState table keyed by
-// `this` (see namespace below); a static_assert pins the retail size so the
-// layout comment cannot drift silently. Moving the table back into the object
-// is mechanical once the header carries retail storage -- see headerRequests.
-//
-// PRECONDITION shared by every entry point that touches the window: retail's
-// CPaneDivider IS-A CWnd, and the bodies read CWnd::m_hWnd (+0x40) through the
-// exported CWnd thunks. Those thunks are only ever reached on an object that
-// really has CWnd storage in front of the divider block -- the message handlers
-// because a WM_* only arrives for an HWND that maps to such an object, and
-// CreateEx/Move/RepositionPanes/... because their retail callers
-// (?CreatePaneDivider@CPaneContainerManager@@, ?CreateDefaultPaneDivider@
-// CDockablePane@@) are both stubs in this tree, and a client compiled against
-// the shipping headers allocates the full 0x218 bytes. This is not guaranteed
-// for objects made by this DLL's own DynCreateFactories.cpp factory, which uses
-// the 24-byte OpenMFC declaration; passing one of those to a CWnd/CBasePane
-// entry point can access beyond the allocation. The exported constructor thunks
-// mark retail-ABI instances; CreateEx rejects unmarked instances before touching
-// base storage. Other direct CWnd/CBasePane entry points still require the
-// retail-sized caller object.
-//
-// VIRTUAL DISPATCH: OpenMFC publishes no CPaneDivider or CPaneContainerManager
-// vftable (the manager object is built with a NULL vfptr, see
-// ??0CPaneContainerManager@@ in CPaneContainerManager.cpp). Every `this->vslot`
-// and `m_pContainerManager->vslot` call retail makes is therefore dispatched
-// statically to the export that occupies that slot in the retail vftable
-// (slot numbers are quoted from the mfc140u CPaneDivider vftable at
-// 0x1802f6dd8 and the mfc140u CPaneContainerManager vftable at 0x1802f6258).
-// A derived-class override would not run. Each site says so.
-// ---------------------------------------------------------------------------
+// The window and divider members use the retail offsets above. Cross-class
+// member calls use the implemented exports for the corresponding methods.
 
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/CMemDCSupport.h"
+#include "detail/Pane16MsgmapSupport.h"
 
 #include <cstddef>
 #include <cstring>
-#include <unordered_set>
+#include <memory>
+#include <new>
 
 // ---------------------------------------------------------------------------
 // Cross-class entry points. BRIEFING S1: the C++ methods do not exist inside
@@ -123,7 +89,6 @@ extern "C" void MS_ABI impl___1CWnd__UEAA_XZ(void* pThis);
 extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
 extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* ptr);
 // core/runtime/CRuntimeClass.cpp:25, core/runtime/CObject.cpp:49
-extern "C" CObject* MS_ABI impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(CRuntimeClass* pThis);
 extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
     const CObject* pThis, const CRuntimeClass* pClass);
 // core/runtime/Globals.cpp:339, core/runtime/AFX_GLOBAL_DATA.cpp:14 / :98,
@@ -141,7 +106,6 @@ extern "C" void* impl__m_pContainerManagerRTC_CPaneDivider__2PEAUCRuntimeClass__
 extern "C" std::int32_t impl__m_bHandleMinSize_CPane__2HA;
 // core/runtime/StaticData.cpp:55 -- ?m_pVisManager@CMFCVisualManager@@1PEAV1@EA,
 // mirrored from the C++ instance by detail/MfccoreSupport.cpp:606.
-extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
 // featurepack/visualmanager/Thunks.cpp:1288
 extern "C" void MS_ABI impl__OnDrawPaneDivider_CMFCVisualManager__UEAAXPEAVCDC__PEAVCPaneDivider__VCRect__H_Z(
     CMFCVisualManager* pThis, CDC* pDC, CPaneDivider* pSlider, CRect rect, int bAutoHideMode);
@@ -175,6 +139,7 @@ extern "C" void MS_ABI impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(CBasePan
 // docking/CDockablePane.cpp:3055
 extern "C" void MS_ABI impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(
     CDockablePane* pThis, HWND hDivider);
+extern "C" void* MS_ABI impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(const CDockablePane*);
 // docking/CRecentDockSiteInfo.cpp:64 (placeholder)
 extern "C" void MS_ABI impl__StoreDockInfo_CRecentDockSiteInfo__UEAAXPEAVCPaneContainer__PEAVCDockablePane___Z(
     void* pThis, void* pRecentContainer, void* pTabbedBar);
@@ -197,6 +162,9 @@ extern "C" void MS_ABI impl__OnShowPane_CPaneContainer__UEAAXPEAVCDockablePane__
 extern "C" int MS_ABI impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPaneDivider__PEAUCRuntimeClass___Z(
     void* pThis, void* pParentWnd, void* pDefaultSlider, CRuntimeClass* pContainerRTC);
 extern "C" void* MS_ABI impl___1CPaneContainerManager__UEAA_XZ(void* pThis);
+extern "C" void* MS_ABI impl__CreateObject_CPaneContainerManager__SAPEAVCObject__XZ();
+extern "C" void MS_ABI impl__GetWindowRect_CPaneContainerManager__UEBAXAEAVCRect___Z(const void*, CRect&);
+extern "C" void MS_ABI impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(void*, void*, BOOL);
 extern "C" void MS_ABI impl__RemovePaneDivider_CPaneContainerManager__UEAAXPEAVCPaneDivider___Z(void* pThis, void* pSlider);
 extern "C" int MS_ABI impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCPaneDivider__IHAEAPEAX_Z(
     void* pThis, void* pSlider, unsigned int uFlags, int nOffset, void** phdwp);
@@ -243,86 +211,22 @@ extern "C" void MS_ABI impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(void* pThis, 
 
 namespace {
 
-// --- the divider-own member block (see the layout comment at the top) --------
-struct DividerState {
-    UINT   nID              = static_cast<UINT>(-1);   // +0x1a8
-    DWORD  dwDividerStyle   = 0;                        // +0x1ac
-    int    nWidth           = 0;                        // +0x1b0
-    int    nMinOffset       = 0;                        // +0x1b4
-    int    nMaxOffset       = 0;                        // +0x1b8
-    int    nStep            = -1;                       // +0x1bc
-    bool   bCaptured        = false;                    // +0x1c0
-    BOOL   bDefaultDivider  = FALSE;                    // +0x1c4
-    BOOL   bAutoHideMode    = FALSE;                    // +0x1c8
-    RECT   rectLastDragRect = {0, 0, 0, 0};             // +0x1cc
-    RECT   rectDragBounds   = {0, 0, 0, 0};             // +0x1dc
-    POINT  ptHotTotal       = {0, 0};                   // +0x1ec
-    POINT  ptHotDrag        = {0, 0};                   // +0x1f4
-    CWnd*  pParentWndForSerialize = nullptr;            // +0x200
-    void*  pContainerManager = nullptr;                 // +0x208  CPaneContainerManager*
-    CWnd*  pWndTrack        = nullptr;                  // +0x210  CPaneTrackingWnd* (built as a bare CWnd here, see OnLButtonDown)
-};
-constexpr size_t kSizeCPaneDivider = 0x218;
-static_assert(sizeof(CPaneDivider) == 0x18,
-              "preserve the existing compact CPaneDivider allocation");
-constexpr size_t kOffFirstOwnMember = 0x1a8;
-static_assert(sizeof(CBasePane) == kOffFirstOwnMember, "retail CPaneDivider members start right after CBasePane (0x1a8)");
-static_assert(offsetof(DividerState, nID) == 0x00 && offsetof(DividerState, dwDividerStyle) == 0x04 &&
-              offsetof(DividerState, nWidth) == 0x08 && offsetof(DividerState, nMinOffset) == 0x0c &&
-              offsetof(DividerState, nMaxOffset) == 0x10 && offsetof(DividerState, nStep) == 0x14 &&
-              offsetof(DividerState, bCaptured) == 0x18 && offsetof(DividerState, bDefaultDivider) == 0x1c &&
-              offsetof(DividerState, bAutoHideMode) == 0x20 && offsetof(DividerState, rectLastDragRect) == 0x24 &&
-              offsetof(DividerState, rectDragBounds) == 0x34 && offsetof(DividerState, ptHotTotal) == 0x44 &&
-              offsetof(DividerState, ptHotDrag) == 0x4c && offsetof(DividerState, pParentWndForSerialize) == 0x58 &&
-              offsetof(DividerState, pContainerManager) == 0x60 && offsetof(DividerState, pWndTrack) == 0x68,
-              "divider side-table fields must preserve the retail member offsets");
-static_assert(sizeof(DividerState) == 0x70 && kOffFirstOwnMember + sizeof(DividerState) == kSizeCPaneDivider,
-              "retail CPaneDivider is 0x218 bytes");
+using DividerState = CPaneDivider::DividerData;
+static_assert(sizeof(CPaneDivider) == 0x218);
+static_assert(offsetof(CPaneDivider, m_dividerData) == 0x1a8);
+static_assert(offsetof(DividerState, bDefaultDivider) == 0x1c);
+static_assert(offsetof(DividerState, pContainerManager) == 0x60);
 
-std::mutex& StateMutex() {
-    static std::mutex s_mutex;
-    return s_mutex;
+DividerState LoadState(const void* divider) {
+    return divider ? static_cast<const CPaneDivider*>(divider)->m_dividerData : DividerState{};
 }
-std::unordered_map<const void*, DividerState>& States() {
-    static std::unordered_map<const void*, DividerState> s_states;
-    return s_states;
-}
-std::unordered_set<const void*>& RetailLayoutInstances() {
-    static std::unordered_set<const void*> s_instances;
-    return s_instances;
-}
-void MarkRetailLayoutInstance(const void* pThis) {
-    std::lock_guard<std::mutex> lock(StateMutex());
-    RetailLayoutInstances().insert(pThis);
-}
-bool IsRetailLayoutInstance(const void* pThis) {
-    std::lock_guard<std::mutex> lock(StateMutex());
-    return RetailLayoutInstances().find(pThis) != RetailLayoutInstances().end();
-}
-// Copy-out / copy-in accessors. The mutex is never held across a thunk call:
-// several of the manager entry points call back into this file
-// (?RemovePaneDivider@ -> ?NotifyAboutRelease@, for one), and std::mutex is not
-// recursive.
-DividerState LoadState(const void* pThis) {
-    std::lock_guard<std::mutex> lock(StateMutex());
-    return States()[pThis];
-}
-template <class F> void WithState(const void* pThis, F f) {
-    std::lock_guard<std::mutex> lock(StateMutex());
-    f(States()[pThis]);
-}
-void EraseState(const void* pThis) {
-    std::lock_guard<std::mutex> lock(StateMutex());
-    States().erase(pThis);
-    RetailLayoutInstances().erase(pThis);
+template <class F> void WithState(void* divider, F update) {
+    update(static_cast<CPaneDivider*>(divider)->m_dividerData);
 }
 
-// The `this` casts. Retail's CPaneDivider is a CBasePane, whose CWnd subobject
-// sits at offset 0; OpenMFC's header says CObject, so the cast is a
-// reinterpret_cast and is only valid under the PRECONDITION in the file header.
-inline CWnd* AsWnd(void* pThis) { return reinterpret_cast<CWnd*>(pThis); }
-inline CBasePane* AsBasePane(void* pThis) { return reinterpret_cast<CBasePane*>(pThis); }
-inline HWND HwndOf(void* pThis) { return AsWnd(pThis)->m_hWnd; }   // CWnd::m_hWnd, +0x40
+inline CWnd* AsWnd(void* divider) { return static_cast<CPaneDivider*>(divider); }
+inline CBasePane* AsBasePane(void* divider) { return static_cast<CPaneDivider*>(divider); }
+inline HWND HwndOf(void* divider) { return AsWnd(divider)->m_hWnd; }
 
 template <class T> inline T& Field(void* p, size_t off) {
     return *reinterpret_cast<T*>(static_cast<char*>(p) + off);
@@ -469,65 +373,99 @@ void DestroyTrackingWnd(void* pThis) {
     WithState(pThis, [](DividerState& s) { s.pWndTrack = nullptr; });
 }
 
+void ReleaseContainerManager(CPaneDivider& divider) {
+    auto& data = divider.m_dividerData;
+    void* manager = data.pContainerManager;
+    if (!manager) return;
+    data.pContainerManager = nullptr;
+    if (!data.bDefaultDivider) {
+        impl__RemovePaneDivider_CPaneContainerManager__UEAAXPEAVCPaneDivider___Z(manager, &divider);
+        return;
+    }
+    if (data.customContainerManager) delete static_cast<CObject*>(manager);
+    else {
+        impl___1CPaneContainerManager__UEAA_XZ(manager);
+        impl___3_YAXPEAX_Z(manager);
+    }
+}
+
 } // namespace
 
 
-// Retail ??0CPaneDivider@@QEAA@HPEAVCWnd@@@Z, entry RVA 0xab0e0 (mfc140u; 0xab6a0
-// mfc140): runs the CBasePane constructor, stores the CPaneDivider vftable,
-// zeroes the 48 bytes at +0x1cc..+0x1fb (m_rectLastDragRect, m_rectDragBounds,
-// m_ptHotTotal, m_ptHotDrag -- six 8-byte stores) and calls
-// Init(bDefaultDivider, pParent). The default constructor
-// ??0CPaneDivider@@QEAA@XZ (entry RVA 0xab030 mfc140u; 0xab5f0 mfc140) is the
-// same sequence with Init(FALSE, NULL).
-// Only the Init call and the pre-existing side-table registration are done
-// here: the CBasePane base constructor and the vftable store need the retail
-// object shape (see the STORAGE note at the top), and the 48-byte zeroing is
-// what DividerState's defaults already are.
+IMPLEMENT_DYNCREATE(CPaneDivider, CBasePane)
+
+CPaneDivider::CPaneDivider() : CPaneDivider(FALSE, nullptr) {}
+
+CPaneDivider::CPaneDivider(BOOL defaultDivider, CWnd* parent) {
+    impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(this, defaultDivider, parent);
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_dividerPanes.try_emplace(this);
+}
+
+CPaneDivider::~CPaneDivider() {
+    m_dividerData.destroyWithWindow = false;
+    if (m_hWnd) DestroyWindow();
+    DestroyTrackingWnd(this);
+    ReleaseContainerManager(*this);
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    g_dividerPanes.erase(this);
+}
+
+void CPaneDivider::PostNcDestroy() {
+    if (m_dividerData.destroyWithWindow) delete this;
+}
+
+const AFX_MSGMAP* AFXAPI CPaneDivider::GetThisMessageMap() {
+    return &openmfc::detail::pane16msgmap::classCPaneDivider_msgmap;
+}
+
+const AFX_MSGMAP* CPaneDivider::GetMessageMap() const {
+    return GetThisMessageMap();
+}
+
 // Symbol: ??0CPaneDivider@@QEAA@HPEAVCWnd@@@Z
-extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_HPEAVCWnd___Z(void* pThis, int bDefaultDivider, void* pParent) {
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        g_dividerPanes[pThis] = {};
-    }
-    MarkRetailLayoutInstance(pThis);
-    impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(pThis, bDefaultDivider, static_cast<CWnd*>(pParent));
-    return pThis;
+extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_HPEAVCWnd___Z(void* storage, int defaultDivider, CWnd* parent) {
+    return storage ? ::new (storage) CPaneDivider(defaultDivider, parent) : nullptr;
 }
 // Symbol: ??0CPaneDivider@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_XZ(void* pThis) {
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        g_dividerPanes[pThis] = {};
-    }
-    MarkRetailLayoutInstance(pThis);
-    impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(pThis, FALSE, nullptr);
-    return pThis;
+extern "C" void* MS_ABI impl___0CPaneDivider__QEAA_XZ(void* storage) {
+    return storage ? ::new (storage) CPaneDivider() : nullptr;
 }
-// Retail ??1CPaneDivider@@UEAA@XZ (entry RVA 0xab200 mfc140u) stores the
-// vftable and tail-jumps to ??1CBasePane@@; the base destructor is not run
-// here for the STORAGE reason above. Both side tables are released.
 // Symbol: ??1CPaneDivider@@UEAA@XZ
-extern "C" void* MS_ABI impl___1CPaneDivider__UEAA_XZ(void* pThis) {
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        g_dividerPanes.erase(pThis);
-    }
-    EraseState(pThis);
-    return pThis;
+extern "C" void* MS_ABI impl___1CPaneDivider__UEAA_XZ(void* divider) {
+    if (divider) static_cast<CPaneDivider*>(divider)->CPaneDivider::~CPaneDivider();
+    return divider;
 }
 // Symbol: ?AddPane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__AddPane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    PaneState& state = g_dividerPanes[pThis];
-    AddUniquePane(state, pPane);
-    const int paneCount = static_cast<int>(state.panes.size());
-    state.recentRect = CRect(0, 0, std::max(80, paneCount * kPaneDividerUnitWidth), kPaneDividerThickness);
+    if (!pThis || !pPane) return;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        PaneState& state = g_dividerPanes[pThis];
+        AddUniquePane(state, pPane);
+        if (void* manager = LoadState(pThis).pContainerManager) {
+            void* root = Field<void*>(manager, kOffManagerRootContainer);
+            if (root) impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(root, FirstPane(state), TRUE);
+            AddUniquePane(g_containerManagerPanes[manager], pPane);
+        }
+        const int paneCount = static_cast<int>(state.panes.size());
+        state.recentRect = CRect(0, 0, std::max(80, paneCount * kPaneDividerUnitWidth), kPaneDividerThickness);
+    }
+    if (HWND window = HwndOf(pThis)) {
+        impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(static_cast<CDockablePane*>(pPane), window);
+    }
 }
 // Symbol: ?RemovePane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__RemovePane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
+    if (!pThis || !pPane) return;
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     PaneState& state = g_dividerPanes[pThis];
     RemovePane(state, pPane);
+    if (void* manager = LoadState(pThis).pContainerManager) {
+        void* root = Field<void*>(manager, kOffManagerRootContainer);
+        if (root) impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(root, FirstPane(state), TRUE);
+        RemovePane(g_containerManagerPanes[manager], pPane);
+    }
     if (state.panes.empty()) {
         state.recentRect.SetRectEmpty();
     } else {
@@ -578,29 +516,28 @@ extern "C" void MS_ABI impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(void* p
     }
 }
 // Symbol: ?GetRootContainerRect@CPaneDivider@@QEAA?AVCRect@@XZ
-extern "C" void MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CRect* pRet, void* pThis) {
-    if (!pRet) return;
+extern "C" CRect* MS_ABI impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(CPaneDivider* divider, CRect* pRet) {
+    if (!pRet) return nullptr;
+    pRet->SetRectEmpty();
+    if (!divider) return pRet;
+    if (void* manager = divider->m_dividerData.pContainerManager) {
+        impl__GetWindowRect_CPaneContainerManager__UEBAXAEAVCRect___Z(manager, *pRet);
+        return pRet;
+    }
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    const PaneState& state = g_dividerPanes[pThis];
+    const PaneState& state = g_dividerPanes[divider];
     if (state.recentRect.Width() > 0 && state.recentRect.Height() > 0) {
         *pRet = state.recentRect;
     } else {
         pRet->SetRect(0, 0, state.panes.empty() ? 0 : 240, state.panes.empty() ? 0 : 140);
     }
+    return pRet;
 }
 // Symbol: ?CalcFixedLayout@CPaneDivider@@UEAA?AVCSize@@HH@Z
-extern "C" void MS_ABI impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(CSize* pRet, void* pThis, int, int) {
-    if (!pRet) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    const PaneState& state = g_dividerPanes[pThis];
-    if (state.recentRect.Width() > 0 && state.recentRect.Height() > 0) {
-        pRet->cx = state.recentRect.Width();
-        pRet->cy = state.recentRect.Height();
-        return;
-    }
-    const int paneCount = static_cast<int>(state.panes.size());
-    pRet->cx = paneCount > 0 ? std::max(80, 80 * paneCount) : 0;
-    pRet->cy = paneCount > 0 ? kPaneDividerThickness : 0;
+extern "C" CSize* MS_ABI impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(
+    CPaneDivider* divider, CSize* result, BOOL stretch, BOOL horizontal) {
+    return result ? ::new (result) CSize(divider ? divider->CPaneDivider::CalcFixedLayout(stretch, horizontal) : CSize(0, 0))
+                  : nullptr;
 }
 void CPaneDivider::AddPane(CDockablePane* pPane) {
     impl__AddPane_CPaneDivider__UEAAXPEAVCDockablePane___Z(this, pPane);
@@ -626,14 +563,15 @@ void CPaneDivider::GetPanes(CObList& lst) {
     impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(this, &lst);
 }
 CRect CPaneDivider::GetRootContainerRect() {
-    CRect rect;
-    impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(&rect, this);
+    CRect rect(0, 0, 0, 0);
+    impl__GetRootContainerRect_CPaneDivider__QEAA_AVCRect__XZ(this, &rect);
     return rect;
 }
-CSize CPaneDivider::CalcFixedLayout(BOOL bStretch, BOOL bHorz) {
-    CSize size;
-    impl__CalcFixedLayout_CPaneDivider__UEAA_AVCSize__HH_Z(&size, this, bStretch, bHorz);
-    return size;
+CSize CPaneDivider::CalcFixedLayout(BOOL, BOOL) {
+    RECT window{};
+    ::GetWindowRect(m_hWnd, &window);
+    const CRect content = GetRootContainerRect();
+    return CSize(window.right - window.left + content.Width(), window.bottom - window.top + content.Height());
 }
 
 // ===========================================================================
@@ -659,12 +597,16 @@ CSize CPaneDivider::CalcFixedLayout(BOOL bStretch, BOOL bHorz) {
 //     m_pParentWndForSerialize = pParent;                        // +0x200 <- %r8
 // m_ptHotTotal / m_ptHotDrag are not touched by Init (the constructors zero them).
 extern "C" void MS_ABI impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(void* pThis, int bDefaultDivider, CWnd* pParent) {
+    if (!pThis) return;
+    auto& divider = *static_cast<CPaneDivider*>(pThis);
+    ReleaseContainerManager(divider);
+    DestroyTrackingWnd(&divider);
     WithState(pThis, [&](DividerState& s) {
         s.nID = static_cast<UINT>(-1);
         s.dwDividerStyle = 0;
         s.nWidth = 0;
         s.bCaptured = false;
-        s.pContainerManager = nullptr;
+        s.customContainerManager = false;
         s.bDefaultDivider = bDefaultDivider;
         ::SetRectEmpty(&s.rectLastDragRect);
         ::SetRectEmpty(&s.rectDragBounds);
@@ -809,42 +751,33 @@ extern "C" int MS_ABI impl__Create_CPaneDivider__UEAAHKAEBUtagRECT__PEAVCWnd__IP
 //     BOOL bResult = CWnd::CreateEx(dwStyleEx, strClassName, NULL, dwStyle, rect,
 //                                   pParentWnd, nID, pContext);      // direct call to ?CreateEx@CWnd@@ (LPVOID overload), NOT the vftable
 //     return bResult;                                                // after strClassName's dtor
-// DEVIATIONS:
-//  * The default-divider arm returns FALSE instead of throwing. In this tree
-//    ?m_pContainerManagerRTC@CPaneDivider@@ is NULL (core/runtime/StaticData.cpp:60,
-//    nothing initialises it) and ?CreateObject@CPaneContainerManager@@ returns
-//    NULL by design (CPaneContainerManager.cpp:969), so retail's two ENSURE-style
-//    throws would fire on every default divider; FALSE is the failure its retail
-//    callers (?CreateDefaultPaneDivider@CDockablePane@@) already test for. The
-//    RTC read and the downcast are kept so the arm becomes live the moment the
-//    static and the factory are.
-//  * m_pDockSite is a real CBasePane member here (afxmfc.h pins +0x110), so that
-//    store is made on the object -- the one place this file writes into the
-//    CBasePane block; it is inside the file-header PRECONDITION.
 extern "C" int MS_ABI impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(
     void* pThis, unsigned long dwStyleEx, unsigned long dwStyle, const RECT& rect, CWnd* pParentWnd,
     unsigned int nID, CCreateContext* pContext) {
-    if (pThis == nullptr) return FALSE;   // deviation: retail has no NULL check
-    WithState(pThis, [&](DividerState& s) {
-        s.nID = nID;
-        s.dwDividerStyle = static_cast<DWORD>(dwStyle);
-        if (dwStyle & kStyleVert)      s.nWidth = rect.right - rect.left;
-        else if (dwStyle & kStyleHorz) s.nWidth = rect.bottom - rect.top;
-    });
-    if (!IsRetailLayoutInstance(pThis)) {
-        // The in-tree inline CPaneDivider factory allocates only 24 bytes. Keep
-        // the side-table state above, but do not touch CBasePane/CWnd storage.
-        return FALSE;
-    }
-    if (LoadState(pThis).bDefaultDivider) {
-        CRuntimeClass* pRTC = static_cast<CRuntimeClass*>(impl__m_pContainerManagerRTC_CPaneDivider__2PEAUCRuntimeClass__EA);
-        if (pRTC == nullptr) return FALSE;   // deviation: retail AfxThrowInvalidArgException()
-        void* pManager = DynDowncast(impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(pRTC),
-                                     impl__GetThisClass_CPaneContainerManager__SAPEAUCRuntimeClass__XZ());
-        WithState(pThis, [&](DividerState& s) { s.pContainerManager = pManager; });
-        if (pManager == nullptr) return FALSE;   // deviation: retail AfxThrowInvalidArgException()
-        impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPaneDivider__PEAUCRuntimeClass___Z(
-            pManager, pParentWnd, pThis, nullptr);
+    auto* divider = static_cast<CPaneDivider*>(pThis);
+    if (!divider || divider->m_hWnd || !pParentWnd || !pParentWnd->GetSafeHwnd()) return FALSE;
+    auto& data = divider->m_dividerData;
+    data.nID = nID;
+    data.dwDividerStyle = dwStyle;
+    if (dwStyle & kStyleVert) data.nWidth = rect.right - rect.left;
+    else if (dwStyle & kStyleHorz) data.nWidth = rect.bottom - rect.top;
+    if (data.bDefaultDivider && !data.pContainerManager) {
+        auto* type = static_cast<CRuntimeClass*>(impl__m_pContainerManagerRTC_CPaneDivider__2PEAUCRuntimeClass__EA);
+        if (type) {
+            std::unique_ptr<CObject> manager(type->CreateObject());
+            if (!manager || !manager->IsKindOf(impl__GetThisClass_CPaneContainerManager__SAPEAUCRuntimeClass__XZ()))
+                return FALSE;
+            data.customContainerManager = true;
+            data.pContainerManager = manager.release();
+        } else {
+            data.pContainerManager = impl__CreateObject_CPaneContainerManager__SAPEAVCObject__XZ();
+        }
+        if (!data.pContainerManager ||
+            !impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPaneDivider__PEAUCRuntimeClass___Z(
+                data.pContainerManager, pParentWnd, divider, nullptr)) {
+            ReleaseContainerManager(*divider);
+            return FALSE;
+        }
     }
     dwStyle |= WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
     CWnd* pDockSite = static_cast<CWnd*>(DynDowncast(pParentWnd, impl__GetThisClass_CFrameWnd__SAPEAUCRuntimeClass__XZ()));
@@ -861,6 +794,8 @@ extern "C" int MS_ABI impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd_
         AsWnd(pThis), dwStyleEx, static_cast<const wchar_t*>(*pClassName), nullptr, dwStyle, rect,
         pParentWnd, nID, pContext);
     pClassName->~CString();
+    if (!bResult) ReleaseContainerManager(*divider);
+    data.destroyWithWindow = bResult != FALSE;
     return bResult;
 }
 
@@ -1063,6 +998,18 @@ extern "C" int MS_ABI impl__OnCreate_CPaneDivider__IEAAHPEAUtagCREATESTRUCTW___Z
 //     CWnd::OnDestroy();                                           // tail-jump to 0x289cc0 (mfc140)
 extern "C" void MS_ABI impl__OnDestroy_CPaneDivider__IEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;   // deviation: retail has no NULL check
+    std::vector<void*> panes;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        const auto found = g_dividerPanes.find(pThis);
+        if (found != g_dividerPanes.end()) panes.swap(found->second.panes);
+    }
+    for (void* value : panes) {
+        auto* pane = static_cast<CDockablePane*>(value);
+        if (impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pane) == pThis) {
+            impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(pane, nullptr);
+        }
+    }
     DestroyTrackingWnd(pThis);
     impl__OnDestroy_CWnd__IEAAXXZ(AsWnd(pThis));
 }
@@ -1264,44 +1211,8 @@ extern "C" void MS_ABI impl__OnMouseMove_CPaneDivider__IEAAXIVCPoint___Z(void* p
 }
 
 // Symbol: ?OnNcDestroy@CPaneDivider@@IEAAXXZ
-// Decoded from retail entry RVA 0xac9a0 (mfc140u; 0xacf60 mfc140):
-//     if (m_pContainerManager != NULL)
-//         m_pContainerManager->RemovePaneDivider(this);          // mgr vslot +0x118
-//     if (m_pContainerManager != NULL && m_bDefaultDivider) {    // +0x208 re-read, +0x1c4
-//         delete m_pContainerManager;                            // mgr vslot 1 (deleting dtor, flag 1)
-//         m_pContainerManager = NULL;
-//     }
-//     CWnd::OnNcDestroy();                                       // 0x289d80 (mfc140)
-//     delete this;                                               // this vslot 1 (deleting dtor, flag 1), tail-jump
-// Both `delete`s go through retail's vslot 1 (the scalar deleting destructor,
-// flag 1): run the destructor, then operator delete. The manager object carries
-// a NULL vfptr in this tree (see ??0CPaneContainerManager@@ in
-// CPaneContainerManager.cpp), so neither dispatch can be virtual; each is made
-// statically as the exported destructor thunk -- ??1CPaneContainerManager@@
-// (CPaneContainerManager.cpp:319, the pattern CMultiPaneFrameWnd.cpp:542 uses)
-// and ??1CPaneDivider@@ -- followed by MFC's exported operator delete
-// (??3@YAXPEAX@Z), matching the tail of retail's scalar deleting destructor.
-// This is not paired with ?OnLButtonDown@'s `new`, which allocates the separate
-// tracking window. The manager can only be here when CreateEx's default-divider
-// arm produced it from ?CreateObject@CRuntimeClass@@, i.e. heap-allocated, so
-// the manager free is appropriate; today that arm is dead (see CreateEx).
-// DEVIATION: callers that keep a CPaneDivider on the stack or embedded --
-// retail forbids that too -- would be freed twice by the `delete this`.
-extern "C" void MS_ABI impl__OnNcDestroy_CPaneDivider__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;   // deviation: retail has no NULL check
-    void* pManager = LoadState(pThis).pContainerManager;
-    if (pManager != nullptr) {
-        impl__RemovePaneDivider_CPaneContainerManager__UEAAXPEAVCPaneDivider___Z(pManager, pThis);
-    }
-    const DividerState s = LoadState(pThis);
-    if (s.pContainerManager != nullptr && s.bDefaultDivider) {
-        impl___1CPaneContainerManager__UEAA_XZ(s.pContainerManager);
-        impl___3_YAXPEAX_Z(s.pContainerManager);
-        WithState(pThis, [](DividerState& st) { st.pContainerManager = nullptr; });
-    }
-    impl__OnNcDestroy_CWnd__IEAAXXZ(AsWnd(pThis));
-    impl___1CPaneDivider__UEAA_XZ(pThis);
-    impl___3_YAXPEAX_Z(pThis);
+extern "C" void MS_ABI impl__OnNcDestroy_CPaneDivider__IEAAXXZ(void* divider) {
+    if (divider) impl__OnNcDestroy_CWnd__IEAAXXZ(AsWnd(divider));
 }
 
 // Symbol: ?OnPaint@CPaneDivider@@IEAAXXZ
@@ -1312,19 +1223,6 @@ extern "C" void MS_ABI impl__OnNcDestroy_CPaneDivider__IEAAXXZ(void* pThis) {
 //     CRect rectClient; ::GetClientRect(m_hWnd, &rectClient);
 //     CMFCVisualManager::GetInstance()->OnDrawPaneDivider(&pDC, this, rectClient, m_bAutoHideMode);   // inline GetInstance (0x97f4 mfc140) then vslot +0x318; +0x1c8
 //     memDC.~CMemDC();  dc.~CPaintDC();
-// DEVIATION: retail's GetInstance (the afxvisualmanager.h inline, emitted as
-// the non-exported helper at 0x97f4 mfc140) reads ?m_pVisManager@CMFCVisualManager@@
-// and lazily creates the default manager when it is NULL (m_pRTIDefault->
-// CreateObject() or new CMFCVisualManager, m_bAutoDestroy = TRUE, vslot +0x70).
-// That creation exists in this tree only as the C++ static
-// CMFCVisualManager::GetInstance() (visualmanager/CMFCVisualManager.cpp:766);
-// there is no impl__ thunk for it, and a call to the C++ method from this
-// translation unit is a new C++ undefined that the campaign's link audit
-// (checkfile.sh) rejects -- the same trade-off toolbar/CMFCToolBar.cpp's
-// DrawSeparator makes. So the draw happens only when a visual manager already
-// exists (the exported mirror of that static, kept in sync by
-// detail/MfccoreSupport.cpp:606) and is skipped otherwise. The BeginPaint /
-// EndPaint pair always runs, so the update region is validated either way.
 extern "C" void MS_ABI impl__OnPaint_CPaneDivider__IEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;   // deviation: retail has no NULL check
     alignas(void*) unsigned char dcStorage[sizeof(CPaintDC)] = {};
@@ -1336,8 +1234,7 @@ extern "C" void MS_ABI impl__OnPaint_CPaneDivider__IEAAXXZ(void* pThis) {
     CDC* pDC = pMemDC->m_bMemDC ? reinterpret_cast<CDC*>(&pMemDC->m_dcMem) : static_cast<CDC*>(pMemDC->m_dc);
     RECT rectClient = {0, 0, 0, 0};
     ::GetClientRect(HwndOf(pThis), &rectClient);
-    CMFCVisualManager* pVisManager = static_cast<CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
-    if (pVisManager != nullptr) {   // deviation: retail creates the default manager here
+    if (auto* pVisManager = CMFCVisualManager::GetInstance()) {
         impl__OnDrawPaneDivider_CMFCVisualManager__UEAAXPEAVCDC__PEAVCPaneDivider__VCRect__H_Z(
             pVisManager, pDC, reinterpret_cast<CPaneDivider*>(pThis), CRect(rectClient),
             LoadState(pThis).bAutoHideMode);
@@ -1762,4 +1659,32 @@ extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneDivider__QEAAXPEAVCD
         impl__StoreDockInfo_CRecentDockSiteInfo__UEAAXPEAVCPaneContainer__PEAVCDockablePane___Z(
             &static_cast<CPane*>(static_cast<CDockablePane*>(pDockingBar))->m_recentDockInfo, pContainer, pTabbedBar);
     }
+}
+
+void CPaneDivider::OnCancelMode() {
+    impl__OnCancelMode_CPaneDivider__IEAAXXZ(this);
+}
+int CPaneDivider::OnCreate(CREATESTRUCTW* create) {
+    return impl__OnCreate_CPaneDivider__IEAAHPEAUtagCREATESTRUCTW___Z(this, create);
+}
+void CPaneDivider::OnDestroy() {
+    impl__OnDestroy_CPaneDivider__IEAAXXZ(this);
+}
+BOOL CPaneDivider::OnEraseBkgnd(CDC* dc) {
+    return impl__OnEraseBkgnd_CPaneDivider__IEAAHPEAVCDC___Z(this, dc);
+}
+void CPaneDivider::OnLButtonDown(UINT flags, CPoint) {
+    impl__OnLButtonDown_CPaneDivider__IEAAXIVCPoint___Z(this, flags, 0);
+}
+void CPaneDivider::OnLButtonUp(UINT flags, CPoint) {
+    impl__OnLButtonUp_CPaneDivider__IEAAXIVCPoint___Z(this, flags, 0);
+}
+void CPaneDivider::OnMouseMove(UINT flags, CPoint) {
+    impl__OnMouseMove_CPaneDivider__IEAAXIVCPoint___Z(this, flags, 0);
+}
+void CPaneDivider::OnPaint() {
+    impl__OnPaint_CPaneDivider__IEAAXXZ(this);
+}
+BOOL CPaneDivider::OnSetCursor(CWnd* window, UINT hitTest, UINT message) {
+    return impl__OnSetCursor_CPaneDivider__IEAAHPEAVCWnd__II_Z(this, window, hitTest, message);
 }
