@@ -498,7 +498,9 @@ struct LoadRecord:CObject {
         if(!storage)AfxThrowMemoryException();
         return storage;
     }
-    static void operator delete(void* storage) noexcept {free(storage);}
+    // A failed read can leave the deleted object's address in the load map.
+    // Retain its storage until the trace is complete so it cannot be reused.
+    static void operator delete(void*) noexcept {}
     ~LoadRecord() override {liveRecords[slot]=false;event(130,slot);}
     CRuntimeClass* GetRuntimeClass()const override {event(131,slot);return &loadType;}
     void Serialize(CArchive& ar) override {
@@ -624,7 +626,11 @@ void loading(int scenario,int failure) {
         event(141,file.GetPosition(),UINT_PTR(field<void*>(&ar,64))-UINT_PTR(field<void*>(&ar,72)));
     }
     ar.Abort();
-    for(int i=0;i<loadAllocations;++i)if(liveRecords[i])delete static_cast<const LoadRecord*>(anchors[2+i]);
+    for(int i=0;i<loadAllocations;++i) {
+        if(liveRecords[i])delete static_cast<const LoadRecord*>(anchors[2+i]);
+        free(const_cast<void*>(anchors[2+i]));
+        anchors[2+i]=nullptr;
+    }
     active=nullptr;archiveActive=false;loadType.m_wSchema=7;failAllocation=failIO=0;
 }
 }
