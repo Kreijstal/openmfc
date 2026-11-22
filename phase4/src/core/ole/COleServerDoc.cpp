@@ -64,6 +64,7 @@
 #include "openmfc/afxwin.h"
 #include "openmfc/afxole.h"
 #include "openmfc/afxstr.h"
+#include "detail/CCmdTargetVirtualsSupport.h"
 
 #include <ole2.h>
 
@@ -132,6 +133,7 @@ struct ServerInPlaceState {
     SiteRef<IOleInPlaceUIWindow> document;
     BOOL uiActive = FALSE;
     BOOL activeObjectSet = FALSE;
+    bool windowActive = false;
     ReparentedView reusedView;
 };
 
@@ -144,6 +146,12 @@ struct ServerDocAccess {
     }
     static void SetItemRects(COleServerDoc* doc, LPCRECT position, LPCRECT clip) {
         doc->COleServerDoc::OnSetItemRects(position, clip);
+    }
+    static void OnDocWindowActivate(COleServerDoc* doc, BOOL active) {
+        doc->COleServerDoc::OnDocWindowActivate(active);
+    }
+    static void NotifyDocWindowActivate(COleServerDoc* doc, BOOL active) {
+        doc->OnDocWindowActivate(active);
     }
 };
 }
@@ -373,6 +381,7 @@ HRESULT COleServerDoc::ActivateInPlace(IOleInPlaceSite* site, bool docObject) {
         if (state.document) state.document->SetActiveObject(active, GetTitle());
         const HRESULT menu = frame->InstallSharedMenu(state.frame.get(), docObject);
         if (menu != S_OK) return menu;
+        state.windowActive = true;
         ::ShowWindow(frame->m_hWnd, SW_SHOWNA);
         if (auto* view = frame->GetActiveView()) ::SetFocus(view->m_hWnd);
         return S_OK;
@@ -1059,6 +1068,7 @@ void COleServerDoc::OnDeactivateUI(BOOL undoable) {
 void COleServerDoc::DeactivateInPlaceUI(BOOL undoable) {
     auto* state = m_retailTail.m_inPlaceState;
     if (!state || !std::exchange(state->uiActive, FALSE)) return;
+    state->windowActive = false;
     if (auto* frame = m_retailTail.m_pInPlaceFrame) frame->DestroySharedMenu();
     if (std::exchange(state->activeObjectSet, FALSE)) {
         if (state->document) state->document->SetActiveObject(nullptr, nullptr);
@@ -1067,15 +1077,30 @@ void COleServerDoc::DeactivateInPlaceUI(BOOL undoable) {
     state->site->OnUIDeactivate(undoable);
 }
 
-// COleServerDoc::OnDocWindowActivate(BOOL) — retail 0x266600 works on
-// m_pInPlaceFrame@0x250 and the per-thread state returned by the module/thread
-// state helper at 0x1801346a0 (it parks the frame in a thread-state slot and
-// posts WM_ messages to frame->m_hWnd).  Neither the in-place frame nor that
-// thread-state slot is modeled; left a no-op.
 // Symbol: ?OnDocWindowActivate@COleServerDoc@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnDocWindowActivate_COleServerDoc__UEAAXH_Z(
-    COleServerDoc* pThis, int bActivate) {
-    (void)pThis; (void)bActivate;
+    COleServerDoc* document, int active) {
+    if (document) ServerDocAccess::OnDocWindowActivate(document, active);
+}
+
+void COleServerDoc::OnDocWindowActivate(BOOL active) {
+    auto& tail = m_retailTail;
+    auto* state = tail.m_inPlaceState;
+    auto* frame = tail.m_pInPlaceFrame;
+    if (!state || !state->uiActive || !frame || !::IsWindow(frame->m_hWnd) ||
+        state->windowActive == (active != FALSE) || tail.m_inPlaceTransition) return;
+    InPlaceTransition transition(tail.m_inPlaceTransition);
+
+    const HRESULT menu = frame->SetSharedMenuActive(active);
+    if (active && menu != S_OK) {
+        frame->SetSharedMenuActive(FALSE);
+        return;
+    }
+    state->windowActive = active != FALSE;
+    if (!active) {
+        if (auto* view = frame->GetActiveView()) view->OnActivateView(FALSE, view, view);
+    }
+    ::SendMessageW(frame->m_hWnd, WM_ACTIVATE, active ? WA_ACTIVE : WA_INACTIVE, 0);
 }
 
 // COleServerDoc::OnExecOleCmd(const GUID*, DWORD, DWORD, VARIANTARG*,
@@ -2064,21 +2089,23 @@ extern "C" long MS_ABI impl__Load_XPersistStorage_COleServerDoc__UEAAJPEAUIStora
     return 0;
 }
 
-// COleServerDoc::XOleInPlaceActiveObject::OnDocWindowActivate(BOOL) -- retail
-// 0x268a80, transcribed in full:
-//     COleServerDoc* pThis = this - 0x290;
-//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
-//     pThis->OnDocWindowActivate(fActivate);   // vtable slot 94 (0x2f0)
-//     return S_OK;                             // the 0x8000ffff stored first
-//                                              // is the unwind value only
-// Stubbed: needs the document.  Retail returns S_OK unconditionally, so
-// `return 0` matches the return value exactly; the notification is missing.
 // Symbol: ?OnDocWindowActivate@XOleInPlaceActiveObject@COleServerDoc@@UEAAJH@Z
 extern "C" long MS_ABI impl__OnDocWindowActivate_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(
-    void* pThisItf, int fActivate)
-{
-    (void)pThisItf; (void)fActivate;
-    return 0;
+    void* part, int active) {
+    if (!part) return E_POINTER;
+    auto* document = DocFromPart(part, kOff_m_xOleInPlaceActiveObject);
+    try {
+        openmfc::detail::CmdTargetModuleScope state(document->m_pModuleState);
+        ServerDocAccess::NotifyDocWindowActivate(document, active);
+        return S_OK;
+    } catch (CException* error) {
+        if (!error) return E_UNEXPECTED;
+        const auto result = impl__Process_COleException__SAJPEBVCException___Z(error);
+        error->Delete();
+        return result;
+    } catch (...) {
+        return E_UNEXPECTED;
+    }
 }
 
 // COleServerDoc::XOleInPlaceActiveObject::OnFrameWindowActivate(BOOL) -- retail

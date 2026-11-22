@@ -1282,6 +1282,7 @@ protected:
     virtual void OnSetItemRects(LPCRECT position, LPCRECT clip);
     virtual COleIPFrameWnd* CreateInPlaceFrame(CWnd* parent);
     virtual void DestroyInPlaceFrame(COleIPFrameWnd* frame);
+    virtual void OnDocWindowActivate(BOOL active);
 
 private:
     friend class CDocObjectServer;
@@ -1940,6 +1941,7 @@ public:
     RECT GetInPlaceClipRect() const;
     HRESULT BuildSharedMenu(BOOL docObject = FALSE);
     HRESULT InstallSharedMenu(IOleInPlaceFrame* container, BOOL docObject);
+    HRESULT SetSharedMenuActive(BOOL active);
     static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
     const AFX_MSGMAP* GetMessageMap() const override;
 

@@ -394,14 +394,28 @@ HRESULT COleIPFrameWnd::InstallSharedMenu(IOleInPlaceFrame* container, BOOL docO
     auto& state = *Tail(this);
     state.m_lpFrame = container; // Borrowed from the document until UI deactivation.
     const HRESULT built = BuildSharedMenu(docObject);
-    if (built != S_OK || !state.m_hSharedMenu || ::GetMenuItemCount(state.m_hSharedMenu) == 0)
-        return built;
+    if (built != S_OK) return built;
+    const HRESULT installed = SetSharedMenuActive(TRUE);
+    if (installed != S_OK) DestroySharedMenu();
+    return installed;
+}
 
-    state.sharedMenuState->installed = true;
-    const HRESULT installed = container->SetMenu(state.m_hSharedMenu, state.m_hOleMenu, m_hWnd);
-    if (installed == S_OK) return S_OK;
-    DestroySharedMenu();
-    return FAILED(installed) ? installed : E_FAIL;
+HRESULT COleIPFrameWnd::SetSharedMenuActive(BOOL active) {
+    auto& state = *Tail(this);
+    auto* menu = state.sharedMenuState;
+    if (!menu || !state.m_lpFrame) return S_OK;
+
+    if (active) {
+        if (::GetMenuItemCount(state.m_hSharedMenu) <= 0) return S_OK;
+        // Record the attempt before calling the container so a partial install can be rolled back.
+        menu->installed = true;
+        const HRESULT result = state.m_lpFrame->SetMenu(state.m_hSharedMenu, state.m_hOleMenu, m_hWnd);
+        return result == S_OK || FAILED(result) ? result : E_FAIL;
+    }
+    if (!std::exchange(menu->installed, false)) return S_OK;
+    const HRESULT result = state.m_lpFrame->SetMenu(nullptr, nullptr, nullptr);
+    if (result != S_OK && state.sharedMenuState == menu) menu->installed = true;
+    return result == S_OK || FAILED(result) ? result : E_FAIL;
 }
 
 // COleIPFrameWnd::CreateObject() -- retail mfc140u 0x25dc90, transcribed:
