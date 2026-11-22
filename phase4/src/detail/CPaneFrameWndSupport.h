@@ -56,6 +56,7 @@ struct PaneFrameState {
     bool delayShow = false;                 // m_bDelayShow +0x108
     bool tabDragRectDisplayed = false;       // m_bTabDragRectDisplayed +0x10c
     bool dragging = false;                  // m_bCaptured +0x10d
+    bool dragOutlineOnly = false;
     bool systemMoveStarted = false;
     bool movedBySystem = false;
     RECT dragStartBounds{};

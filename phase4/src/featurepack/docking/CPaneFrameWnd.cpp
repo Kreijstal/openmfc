@@ -7,6 +7,7 @@
 #include "detail/PaneContainerLayout.h"
 #include "detail/CbarcoreSupport.h"
 #include "detail/CPaneFrameWndSupport.h"
+#include "detail/DragFrameSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/Pane16MsgmapSupport.h"
 
@@ -31,7 +32,6 @@ extern "C" void MS_ABI impl__CalcExpectedDockedRect_CDockingManager__QEAAXPEAVCW
 extern "C" void MS_ABI impl__EnterDragMode_CPane__MEAAXH_Z(CPane*, int);
 extern "C" int MS_ABI impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(const CBasePane*);
 extern "C" void* MS_ABI impl__DockPaneStandard_CMultiPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(void*, int*);
-extern "C" void MS_ABI impl__Init_CMFCDragFrameImpl__QEAAXPEAVCWnd___Z(void*, CWnd*);
 extern "C" void MS_ABI impl__OnDockToRecentPos_CPaneFrameWnd__UEAAXXZ(void*);
 extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(void*, int);
 
@@ -548,16 +548,20 @@ extern "C" int MS_ABI impl__LoadState_CPaneFrameWnd__UEAAHPEB_WI_Z(
     if (pThis == nullptr) return FALSE;
     return TRUE;
 }
+namespace {
+CMFCDragFrameImpl* FrameDrag(CPaneFrameWnd& frame) {
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    auto* state = FindStatePtr(&frame);
+    return state ? &state->dragFrame : nullptr;
+}
+}
+
 // Symbol: ?MoveDragFrame@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140u entry RVA 0xaeaa0 adds +0x1c8 to `this`, sets the force flag,
-// and tail-jumps to CMFCDragFrameImpl::MoveDragFrame(TRUE). The drag-frame
-// fields are now modeled in PaneFrameState::dragFrame, not at `this+0x1c8`.
-// STUB: the CMFCDragFrameImpl::MoveDragFrame thunk has no source definition in
-// phase4 (verified by searching the source tree); calling the generated no-op
-// would not move or draw a frame. Do not pass the retail offset into the compact
-// CPaneFrameWnd allocation or treat its current padding as that subobject.
 extern "C" void MS_ABI impl__MoveDragFrame_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis) {
+        if (auto* drag = FrameDrag(*static_cast<CPaneFrameWnd*>(pThis)))
+            openmfc::detail::UpdateDockDragPreview(*drag, true, true);
+    }
 }
 // Symbol: ?MoveMiniFrame@CPaneFrameWnd@@IEAAHXZ
 // Retail dispatches to a pane-type-specific MoveWindow-style virtual on the
@@ -909,8 +913,10 @@ BOOL CPaneFrameWnd::CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD
         state.ownerHwnd = owner ? owner->m_hWnd : nullptr;
         state.dockManager = manager;
         state.recentFloatingRect = *static_cast<const RECT*>(bounds);
-        impl__Init_CMFCDragFrameImpl__QEAAXPEAVCWnd___Z(&state.dragFrame, this);
     }
+    POINT anchor{-1, -1};
+    ::GetCursorPos(&anchor);
+    openmfc::detail::BeginDockDrag(*FrameDrag(*this), *this, manager, anchor);
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
         auto& state = g_framePanes[this];
@@ -955,6 +961,7 @@ void CPaneFrameWnd::OnClose() {
 }
 
 void CPaneFrameWnd::OnDestroy() {
+    openmfc::detail::ClearPaneFrameDockPreview(*this);
     CDockingManager* manager = nullptr;
     bool dragging = false;
     HWND pane = nullptr;
@@ -1191,6 +1198,7 @@ CDockablePane* DropFramePane(CPaneFrameWnd* frame, BOOL& docked, int method = 1)
         return nullptr;
     POINT point{};
     if (!::GetCursorPos(&point)) return nullptr;
+    openmfc::detail::ClearPaneFrameDockPreview(*frame);
     if (frame->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
         auto* multi = static_cast<CMultiPaneFrameWnd*>(frame);
         if (openmfc::detail::ContainerPanes(multi->GetContainerManager()).size() > 1)
@@ -1222,22 +1230,35 @@ bool openmfc::detail::EndPaneFrameDockDrag(CPaneFrameWnd& frame) {
             state->systemMoveStarted = state->movedBySystem = false;
         }
     }
+    ClearPaneFrameDockPreview(frame);
     if (dragging && ::GetCapture() == frame.m_hWnd) ::ReleaseCapture();
     return dragging;
 }
 
+void openmfc::detail::ClearPaneFrameDockPreview(CPaneFrameWnd& frame) {
+    if (auto* drag = FrameDrag(frame)) impl__EndDrawDragFrame_CMFCDragFrameImpl__QEAAXH_Z(drag, TRUE);
+}
+
 namespace {
-void FinishPaneFrameMove(CPaneFrameWnd& frame) {
-    BOOL docked = FALSE;
+bool UsesStandardDocking(CPaneFrameWnd& frame) {
     auto* window = frame.GetFirstVisiblePane();
-    if (window && window->IsKindOf(RUNTIME_CLASS(CBasePane)) &&
-        (impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(static_cast<CBasePane*>(window)) & 2 /* DT_STANDARD */)) {
+    return window && window->IsKindOf(RUNTIME_CLASS(CBasePane)) &&
+        (impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(static_cast<CBasePane*>(window)) & 2 /* DT_STANDARD */);
+}
+
+bool FinishPaneFrameMove(CPaneFrameWnd& frame) {
+    BOOL docked = FALSE;
+    if (UsesStandardDocking(frame)) {
+        const HWND popup = frame.m_hWnd;
+        const auto* first = frame.GetFirstVisiblePane();
         if (frame.IsKindOf(CMultiPaneFrameWnd::GetThisClass()))
             impl__DockPaneStandard_CMultiPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(&frame, &docked);
         else
             impl__DockPaneStandard_CPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(&frame, &docked);
+        return docked || CWnd::FromHandlePermanent(popup) != &frame || frame.GetFirstVisiblePane() != first;
     } else {
         DropFramePane(&frame, docked);
+        return docked != FALSE;
     }
 }
 }
@@ -1251,14 +1272,19 @@ void CPaneFrameWnd::BeginPaneDrag() {
     RECT bounds{};
     POINT point{};
     if (!::GetWindowRect(m_hWnd, &bounds) || !::GetCursorPos(&point)) return;
+    const bool outlineOnly = UsesStandardDocking(*this);
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(this);
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         auto& state = GetState(this);
         if (state.dragging) return;
         state.dragging = true;
+        state.dragOutlineOnly = outlineOnly;
         state.dragStartBounds = bounds;
         state.dragStartPoint = point;
     }
+    openmfc::detail::BeginDockDrag(*FrameDrag(*this), *this, manager, point);
     ::SetCapture(m_hWnd);
     ::SetCursor(::LoadCursorW(nullptr, IDC_SIZEALL));
 }
@@ -1271,34 +1297,50 @@ void CPaneFrameWnd::OnMouseMove(UINT, CPoint) {
     }
     RECT original{};
     POINT start{};
+    bool outlineOnly = false;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         const auto* state = FindStatePtr(this);
         if (!state || !state->dragging) return;
         original = state->dragStartBounds;
         start = state->dragStartPoint;
+        outlineOnly = state->dragOutlineOnly;
     }
     POINT point{};
     if (!::GetCursorPos(&point)) return;
-    ::SetWindowPos(frame, nullptr, original.left + point.x - start.x, original.top + point.y - start.y,
-        0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    if (!outlineOnly)
+        ::SetWindowPos(frame, nullptr, original.left + point.x - start.x, original.top + point.y - start.y,
+            0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    if (auto* drag = FrameDrag(*this)) openmfc::detail::UpdateDockDragPreview(*drag, outlineOnly, false);
 }
 
 void CPaneFrameWnd::OnLButtonUp(UINT, CPoint) {
     bool dragging = false;
+    bool outlineOnly = false;
     RECT startingBounds{};
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         if (auto* state = FindStatePtr(this)) {
             dragging = std::exchange(state->dragging, false);
             startingBounds = state->dragStartBounds;
+            outlineOnly = state->dragOutlineOnly;
         }
     }
     if (!dragging) {
         Default();
         return;
     }
-    if (::GetCapture() == m_hWnd) ::ReleaseCapture();
+    const HWND popup = m_hWnd;
+    RECT outline{};
+    auto* drag = FrameDrag(*this);
+    const bool hasOutline = outlineOnly && drag && openmfc::detail::DockDragBounds(*drag, outline);
+    openmfc::detail::ClearPaneFrameDockPreview(*this);
+    if (::GetCapture() == popup) ::ReleaseCapture();
+    if (outlineOnly) {
+        if (hasOutline && !FinishPaneFrameMove(*this) && CWnd::FromHandlePermanent(popup) == this)
+            ::SetWindowPos(popup, nullptr, outline.left, outline.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+        return;
+    }
     RECT current{};
     if (::GetWindowRect(m_hWnd, &current) && !::EqualRect(&current, &startingBounds))
         FinishPaneFrameMove(*this);
@@ -1313,12 +1355,24 @@ LRESULT CPaneFrameWnd::OnCaptionButtonDown(WPARAM hit, LPARAM) {
 
 LRESULT CPaneFrameWnd::OnPaneDragKey(WPARAM key, LPARAM) {
     if (key == VK_ESCAPE && ::GetCapture() == m_hWnd) return OnCancelPaneDrag(0, 0);
+    if (key == VK_CONTROL && ::GetCapture() == m_hWnd) {
+        bool outlineOnly = false;
+        {
+            std::lock_guard<std::mutex> lock(g_other6Mutex);
+            if (const auto* state = FindStatePtr(this)) outlineOnly = state->dragOutlineOnly;
+        }
+        if (auto* drag = FrameDrag(*this)) openmfc::detail::UpdateDockDragPreview(*drag, outlineOnly, true);
+    }
     return Default();
 }
 
 LRESULT CPaneFrameWnd::OnEnterSizeMove(WPARAM, LPARAM) {
     RECT bounds{};
     ::GetWindowRect(m_hWnd, &bounds);
+    POINT anchor{-1, -1};
+    ::GetCursorPos(&anchor);
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(this);
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         auto& state = GetState(this);
@@ -1326,12 +1380,18 @@ LRESULT CPaneFrameWnd::OnEnterSizeMove(WPARAM, LPARAM) {
         state.movedBySystem = false;
         state.dragStartBounds = bounds;
     }
+    openmfc::detail::BeginDockDrag(*FrameDrag(*this), *this, manager, anchor);
     return Default();
 }
 
 void CPaneFrameWnd::OnMoving(UINT, RECT*) {
-    std::lock_guard<std::mutex> lock(g_other6Mutex);
-    if (auto* state = FindStatePtr(this); state && state->systemMoveStarted) state->movedBySystem = true;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto* state = FindStatePtr(this);
+        if (!state || !state->systemMoveStarted) return;
+        state->movedBySystem = true;
+    }
+    if (auto* drag = FrameDrag(*this)) openmfc::detail::UpdateDockDragPreview(*drag, false, true);
 }
 
 LRESULT CPaneFrameWnd::OnExitSizeMove(WPARAM, LPARAM) {
@@ -1346,6 +1406,7 @@ LRESULT CPaneFrameWnd::OnExitSizeMove(WPARAM, LPARAM) {
             moved = std::exchange(state->movedBySystem, false);
         }
     }
+    openmfc::detail::ClearPaneFrameDockPreview(*this);
     RECT bounds{};
     // Windows restores the starting rectangle when Escape cancels a move.
     if (moved && ::GetWindowRect(m_hWnd, &bounds) && !::EqualRect(&bounds, &original))
@@ -1354,10 +1415,12 @@ LRESULT CPaneFrameWnd::OnExitSizeMove(WPARAM, LPARAM) {
 }
 
 LRESULT CPaneFrameWnd::OnCaptureChanged(WPARAM, LPARAM) {
+    bool lostDrag = false;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
-        if (auto* state = FindStatePtr(this)) state->dragging = false;
+        if (auto* state = FindStatePtr(this)) lostDrag = std::exchange(state->dragging, false);
     }
+    if (lostDrag) openmfc::detail::ClearPaneFrameDockPreview(*this);
     return Default();
 }
 
@@ -1372,6 +1435,7 @@ LRESULT CPaneFrameWnd::OnCancelPaneDrag(WPARAM, LPARAM) {
             state->systemMoveStarted = state->movedBySystem = false;
         }
     }
+    openmfc::detail::ClearPaneFrameDockPreview(*this);
     if (dragging) {
         if (::GetCapture() == m_hWnd) ::ReleaseCapture();
         ::SetWindowPos(m_hWnd, nullptr, bounds.left, bounds.top, 0, 0,

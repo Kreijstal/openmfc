@@ -561,6 +561,11 @@ protected:
     void PostNcDestroy() override;
 
 public:
+    void OnDragMouseMove(UINT flags, CPoint point);
+    void OnDragButtonUp(UINT flags, CPoint point);
+    void OnCancelDrag();
+    LRESULT OnDragCaptureChanged(WPARAM, LPARAM);
+
     // Retail member layout, harvested with /d1reportSingleClassLayoutCPane.
     // The CBasePane subobject occupies 0..423; own members start at 424.
     // Replaces a 64-byte padding blob that made CPane 424 bytes instead of the

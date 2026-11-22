@@ -42,4 +42,5 @@ CDockablePane* AttachContainerTabs(CDockablePane& target, CWnd& sourceHost,
 void AdoptTransferredPane(CDockablePane& pane, CWnd& host, CWnd* previous, CPaneDivider* divider);
 CDockablePane* DockMultiPaneFrameAtPoint(CMultiPaneFrameWnd& frame, CPoint point, BOOL& docked, int method);
 bool EndPaneFrameDockDrag(CPaneFrameWnd& frame);
+void ClearPaneFrameDockPreview(CPaneFrameWnd& frame);
 }

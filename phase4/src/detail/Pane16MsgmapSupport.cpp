@@ -13,7 +13,16 @@ const AFX_MSGMAP* AFXAPI gbm_CPaneFrameWnd() { return impl__GetThisMessageMap_CW
 const AFX_MSGMAP* AFXAPI gbm_CPaneTrackingWnd() { return impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ(); }
 const AFX_MSGMAP* AFXAPI gbm_CSmartDockingGroupGuidesWnd() { return impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ(); }
 
-const AFX_MSGMAP classCPane_msgmap = { gbm_CPane, g_emptyMsgEntries_Pane16Msgmap };
+namespace {
+const AFX_MSGMAP_ENTRY paneEntries[] = {
+    OPENMFC_MAP_ENTRY(WM_MOUSEMOVE, 0, 0, 0, AfxSig_v_u_p, &CPane::OnDragMouseMove)
+    OPENMFC_MAP_ENTRY(WM_LBUTTONUP, 0, 0, 0, AfxSig_v_u_p, &CPane::OnDragButtonUp)
+    OPENMFC_MAP_ENTRY(WM_CANCELMODE, 0, 0, 0, AfxSig_v_v_v, &CPane::OnCancelDrag)
+    OPENMFC_MAP_ENTRY(WM_CAPTURECHANGED, 0, 0, 0, AfxSig_l_w_l, &CPane::OnDragCaptureChanged)
+    {0, 0, 0, 0, AfxSig_end, nullptr}
+};
+}
+const AFX_MSGMAP classCPane_msgmap = { gbm_CPane, paneEntries };
 const AFX_MSGMAP classCPaneDialog_msgmap = { gbm_CPaneDialog, g_emptyMsgEntries_Pane16Msgmap };
 namespace {
 namespace multi_frame_map {
@@ -55,6 +64,7 @@ const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
     ON_MESSAGE(WM_EXITSIZEMOVE, &ThisClass::OnExitSizeMove)
     ON_MESSAGE(WM_NCLBUTTONDOWN, &ThisClass::OnCaptionButtonDown)
     ON_MESSAGE(WM_KEYDOWN, &ThisClass::OnPaneDragKey)
+    ON_MESSAGE(WM_KEYUP, &ThisClass::OnPaneDragKey)
     ON_MESSAGE(WM_CAPTURECHANGED, &ThisClass::OnCaptureChanged)
     ON_MESSAGE(WM_CANCELMODE, &ThisClass::OnCancelPaneDrag)
     ON_REGISTERED_MESSAGE(impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, &ThisClass::OnCheckEmptyState)

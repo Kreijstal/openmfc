@@ -7,6 +7,7 @@
 #include "detail/MultiPaneFrameSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/FeaturePackDockSite.h"
+#include "detail/DragFrameSupport.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -20,6 +21,7 @@ extern "C" int MS_ABI impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(
 extern "C" void* MS_ABI impl__AddRow_CDockSite__QEAAPEAVCDockingPanesRow__PEAU__POSITION__H_Z(void*, void*, int);
 extern "C" void MS_ABI impl__AddPaneFromRow_CDockingPanesRow__UEAAXPEAVCPane__W4AFX_DOCK_METHOD___Z(void*, CPane*, int);
 extern "C" unsigned int impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
+extern "C" void* MS_ABI impl__DockPaneStandard_CDockablePane__UEAAPEAVCPane__AEAH_Z(CDockablePane*, int*);
 extern "C" void MS_ABI impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(CPane*, CWnd*, int);
 extern "C" void MS_ABI impl__OnAfterChangeParent_CPane__UEAAXPEAVCWnd___Z(CPane*, CWnd*);
 
@@ -135,7 +137,6 @@ extern "C" void* MS_ABI impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEA
     CBasePane* pThis, const CWnd* pWndInsertAfter, int x, int y, int cx, int cy,
     unsigned int nFlags, void* pExtra);
 extern "C" const unsigned char impl__wndTop_CWnd__2V1_B[];
-extern "C" void MS_ABI impl__EndDrawDragFrame_CMFCDragFrameImpl__QEAAXH_Z(void* pThis, int bClearInternalRects);
 extern "C" void MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis);
 extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(
     CBasePane* pBar, int bAdd);
@@ -598,10 +599,12 @@ void CPane::ReleaseFloatingFrame() {
 }
 
 CPane::~CPane() {
+    impl__ResetState_CMFCDragFrameImpl__QEAAXXZ(&m_dragFrameImpl);
     ReleaseFloatingFrame();
 }
 
 void CPane::PostNcDestroy() {
+    impl__ResetState_CMFCDragFrameImpl__QEAAXXZ(&m_dragFrameImpl);
     ReleaseFloatingFrame();
     CBasePane::PostNcDestroy();
 }
@@ -905,6 +908,11 @@ extern "C" void MS_ABI impl__EnterDragMode_CPane__MEAAXH_Z(CPane* pThis, int bCh
     }
     if (!pThis->m_bCaptured &&
         impl__IsDocked_CBasePane__UEBAHXZ(static_cast<const CBasePane*>(pThis))) {
+        if (impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(pThis) & kDockTypeStandard) {
+            CFrameWnd* owner = nullptr;
+            auto* manager = PaneDockingManager(*pThis, owner);
+            openmfc::detail::BeginDockDrag(pThis->m_dragFrameImpl, *pThis, manager, pt);
+        }
         (void)impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::SetCapture(pThis->m_hWnd));
         *reinterpret_cast<POINT*>(reinterpret_cast<char*>(&pThis->m_dragFrameImpl) + 8) = pt;
         pThis->m_bCaptured = TRUE;
@@ -1553,8 +1561,8 @@ extern "C" void MS_ABI impl__OnCancelMode_CPane__IEAAXXZ(CPane* pThis) {
             static_cast<const CBasePane*>(pThis)) & kDockTypeStandard) {
         impl__EndDrawDragFrame_CMFCDragFrameImpl__QEAAXH_Z(&pThis->m_dragFrameImpl, TRUE);
     }
-    ::ReleaseCapture();
     pThis->m_bCaptured = FALSE;
+    if (::GetCapture() == pThis->m_hWnd) ::ReleaseCapture();
     impl__SetDragMode_CPane__MEAAXH_Z(pThis, FALSE);
     if (pThis->m_hwndMiniFrameToBeClosed != nullptr &&
         ::IsWindow(pThis->m_hwndMiniFrameToBeClosed)) {
@@ -1773,11 +1781,8 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CPane__IEAAXIVCPoint___Z(
 //    would be an out-of-bounds read of a foreign object.  The whole
 //    GetDockingManager call is therefore skipped too, since its only use here
 //    is to reach that pointer.
-//  * DockPaneStandard is the inlined CPane body (see PaneBaseDockPaneStandard
-//    above) rather than a virtual dispatch.  Because that body returns `this`,
-//    the `pDocked != this` test below is always false and the FloatPane call
-//    cannot be reached for a plain CPane; it is written out anyway so the
-//    control flow matches retail once a real override exists.
+//  * The dockable pane override and the inline CPane fallback dispatch
+//    through their available implementations.
 // As elsewhere in this file the virtuals retail dispatches through the CPane
 // vtable are reached through the exported base implementation, which loses
 // dispatch to a derived override.
@@ -1790,8 +1795,8 @@ extern "C" void MS_ABI impl__OnLButtonUp_CPane__IEAAXIVCPoint___Z(
 
     bool bDefault = false;
     if (pThis->m_bCaptured) {
-        ::ReleaseCapture();
         pThis->m_bCaptured = FALSE;
+        if (::GetCapture() == pThis->m_hWnd) ::ReleaseCapture();
         if (nFlags != 0xFFFFu) {
             if (pThis->m_hwndMiniFrameToBeClosed != nullptr &&
                 ::IsWindow(pThis->m_hwndMiniFrameToBeClosed)) {
@@ -1821,7 +1826,10 @@ extern "C" void MS_ABI impl__OnLButtonUp_CPane__IEAAXIVCPoint___Z(
                 }
                 int bWasDocked = FALSE;
                 impl__StoreRecentDockSiteInfo_CPane__MEAAXXZ(pThis);
-                CPane* pDocked = PaneBaseDockPaneStandard(pThis, bWasDocked);
+                CPane* pDocked = pThis->IsKindOf(RUNTIME_CLASS(CDockablePane))
+                    ? static_cast<CPane*>(impl__DockPaneStandard_CDockablePane__UEAAPEAVCPane__AEAH_Z(
+                        static_cast<CDockablePane*>(pThis), &bWasDocked))
+                    : PaneBaseDockPaneStandard(pThis, bWasDocked);
                 if (bWasDocked == 0 && !::IsRectEmpty(&rectDrag) && pDocked != pThis) {
                     impl__FloatPane_CPane__UEAAHVCRect__W4AFX_DOCK_METHOD___N_Z(
                         pThis, &rectDrag, kDockMethodStandard, true);
@@ -1914,6 +1922,28 @@ extern "C" void MS_ABI impl__OnMouseMove_CPane__IEAAXIVCPoint___Z(
     } else if (dockingMode & kDockTypeStandard) {
         impl__MoveDragFrame_CMFCDragFrameImpl__QEAAXH_Z(&pThis->m_dragFrameImpl, FALSE);
     }
+}
+
+void CPane::OnDragMouseMove(UINT flags, CPoint point) {
+    impl__OnMouseMove_CPane__IEAAXIVCPoint___Z(this, flags, PackPoint(point.x, point.y));
+}
+
+void CPane::OnDragButtonUp(UINT flags, CPoint point) {
+    if (m_bCaptured) impl__OnLButtonUp_CPane__IEAAXIVCPoint___Z(this, flags, PackPoint(point.x, point.y));
+    else Default();
+}
+
+void CPane::OnCancelDrag() {
+    impl__OnCancelMode_CPane__IEAAXXZ(this);
+}
+
+LRESULT CPane::OnDragCaptureChanged(WPARAM, LPARAM) {
+    if (m_bCaptured && ::GetCapture() != m_hWnd) {
+        m_bCaptured = FALSE;
+        impl__ResetState_CMFCDragFrameImpl__QEAAXXZ(&m_dragFrameImpl);
+        impl__SetDragMode_CPane__MEAAXH_Z(this, FALSE);
+    }
+    return Default();
 }
 
 // Symbol: ?OnNcDestroy@CPane@@IEAAXXZ

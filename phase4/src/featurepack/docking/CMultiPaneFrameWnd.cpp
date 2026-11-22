@@ -811,6 +811,7 @@ CDockablePane* DockMultiPaneDrop(CMultiPaneFrameWnd& source, CDockingManager* ma
     if (drop.change != DelayDockToTab && (drop.change != DelayDock || !drop.alignment)) return nullptr;
     auto* first = AsDockable(source.GetFirstVisiblePane());
     if (!first || !first->CanBeDocked()) return nullptr;
+    openmfc::detail::ClearPaneFrameDockPreview(source);
     if (drop.pane) {
         if (!::IsWindow(drop.pane->m_hWnd) || ::IsChild(source.m_hWnd, drop.pane->m_hWnd) ||
             drop.pane->IsAutoHideMode() || !first->CanAcceptPane(drop.pane) || !drop.pane->CanAcceptPane(first))
