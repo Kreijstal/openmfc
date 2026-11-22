@@ -3,17 +3,17 @@
 #include <cstddef>
 #include "openmfc/afxole.h"
 
-namespace openmfc::detail::olecore {
+class CDocObjectServer;
 
-class DocObjectServer;
-HRESULT QueryDocObjectServer(DocObjectServer*, bool queryOwner, REFIID, void**);
-ULONG AddRefDocObjectServer(DocObjectServer*);
-ULONG ReleaseDocObjectServer(DocObjectServer*);
+namespace openmfc::detail::olecore {
+HRESULT QueryDocObjectServer(CDocObjectServer*, bool queryOwner, REFIID, void**);
+ULONG AddRefDocObjectServer(CDocObjectServer*);
+ULONG ReleaseDocObjectServer(CDocObjectServer*);
 
 template<class Interface, size_t Offset, bool QueryOwner = false>
 struct DocObjectServerPart : Interface {
-    DocObjectServer* Server() {
-        return reinterpret_cast<DocObjectServer*>(reinterpret_cast<BYTE*>(this) - Offset);
+    CDocObjectServer* Server() {
+        return reinterpret_cast<CDocObjectServer*>(reinterpret_cast<BYTE*>(this) - Offset);
     }
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** result) override {
         return QueryDocObjectServer(Server(), QueryOwner, iid, result);
@@ -22,10 +22,17 @@ struct DocObjectServerPart : Interface {
     ULONG STDMETHODCALLTYPE Release() override { return ReleaseDocObjectServer(Server()); }
 };
 
-class DocObjectServer : public CCmdTarget {
+} // namespace openmfc::detail::olecore
+
+class CDocObjectServer : public CCmdTarget {
 public:
-    DocObjectServer(COleServerDoc* owner, IOleDocumentSite* site);
-    ~DocObjectServer() override;
+    explicit CDocObjectServer(COleServerDoc* owner, IOleDocumentSite* site = nullptr);
+    // A successful factory transfers ownership of the document-site reference.
+    void SetDocSite(IOleDocumentSite* site);
+    void ReleaseDocSite();
+    void ActivateDocObject();
+    HRESULT RequestActivation();
+    ~CDocObjectServer() override;
     CRuntimeClass* GetRuntimeClass() const override;
 
     IOleDocumentSite* m_pDocSite;
@@ -34,7 +41,7 @@ public:
     IContinueCallback* m_pContinueCallback = nullptr;
     IOleInPlaceSite* m_pViewSite = nullptr;
 
-    struct XOleObject : DocObjectServerPart<IOleObject, 0x68, true> {
+    struct XOleObject : openmfc::detail::olecore::DocObjectServerPart<IOleObject, 0x68, true> {
         HRESULT STDMETHODCALLTYPE SetClientSite(IOleClientSite*) override;
         HRESULT STDMETHODCALLTYPE GetClientSite(IOleClientSite**) override;
         HRESULT STDMETHODCALLTYPE SetHostNames(LPCOLESTR, LPCOLESTR) override;
@@ -58,13 +65,13 @@ public:
         HRESULT STDMETHODCALLTYPE SetColorScheme(LOGPALETTE*) override;
     } m_xOleObject;
 
-    struct XOleDocument : DocObjectServerPart<IOleDocument, 0x70> {
+    struct XOleDocument : openmfc::detail::olecore::DocObjectServerPart<IOleDocument, 0x70> {
         HRESULT STDMETHODCALLTYPE CreateView(IOleInPlaceSite*, IStream*, DWORD, IOleDocumentView**) override;
         HRESULT STDMETHODCALLTYPE GetDocMiscStatus(DWORD*) override;
         HRESULT STDMETHODCALLTYPE EnumViews(IEnumOleDocumentViews**, IOleDocumentView**) override;
     } m_xOleDocument;
 
-    struct XOleDocumentView : DocObjectServerPart<IOleDocumentView, 0x78, true> {
+    struct XOleDocumentView : openmfc::detail::olecore::DocObjectServerPart<IOleDocumentView, 0x78, true> {
         HRESULT STDMETHODCALLTYPE SetInPlaceSite(IOleInPlaceSite*) override;
         HRESULT STDMETHODCALLTYPE GetInPlaceSite(IOleInPlaceSite**) override;
         HRESULT STDMETHODCALLTYPE GetDocument(IUnknown**) override;
@@ -80,12 +87,12 @@ public:
         HRESULT STDMETHODCALLTYPE Clone(IOleInPlaceSite*, IOleDocumentView**) override;
     } m_xOleDocumentView;
 
-    struct XOleCommandTarget : DocObjectServerPart<IOleCommandTarget, 0x80, true> {
+    struct XOleCommandTarget : openmfc::detail::olecore::DocObjectServerPart<IOleCommandTarget, 0x80, true> {
         HRESULT STDMETHODCALLTYPE QueryStatus(const GUID*, ULONG, OLECMD*, OLECMDTEXT*) override;
         HRESULT STDMETHODCALLTYPE Exec(const GUID*, DWORD, DWORD, VARIANT*, VARIANT*) override;
     } m_xOleCommandTarget;
 
-    struct XPrint : DocObjectServerPart<IPrint, 0x88> {
+    struct XPrint : openmfc::detail::olecore::DocObjectServerPart<IPrint, 0x88> {
         HRESULT STDMETHODCALLTYPE SetInitialPageNum(LONG) override;
         HRESULT STDMETHODCALLTYPE GetPageInfo(LONG*, LONG*) override;
         HRESULT STDMETHODCALLTYPE Print(DWORD, DVTARGETDEVICE**, PAGESET**, STGMEDIUM*, IContinueCallback*, LONG, LONG*, LONG*) override;
@@ -95,16 +102,14 @@ protected:
     const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 };
 
-static_assert(sizeof(DocObjectServer) == 0x90);
-static_assert(offsetof(DocObjectServer, m_pDocSite) == 0x40);
-static_assert(offsetof(DocObjectServer, m_pOwner) == 0x48);
-static_assert(offsetof(DocObjectServer, m_nFirstPage) == 0x50);
-static_assert(offsetof(DocObjectServer, m_pContinueCallback) == 0x58);
-static_assert(offsetof(DocObjectServer, m_pViewSite) == 0x60);
-static_assert(offsetof(DocObjectServer, m_xOleObject) == 0x68);
-static_assert(offsetof(DocObjectServer, m_xOleDocument) == 0x70);
-static_assert(offsetof(DocObjectServer, m_xOleDocumentView) == 0x78);
-static_assert(offsetof(DocObjectServer, m_xOleCommandTarget) == 0x80);
-static_assert(offsetof(DocObjectServer, m_xPrint) == 0x88);
-
-} // namespace openmfc::detail::olecore
+static_assert(sizeof(CDocObjectServer) == 0x90);
+static_assert(offsetof(CDocObjectServer, m_pDocSite) == 0x40);
+static_assert(offsetof(CDocObjectServer, m_pOwner) == 0x48);
+static_assert(offsetof(CDocObjectServer, m_nFirstPage) == 0x50);
+static_assert(offsetof(CDocObjectServer, m_pContinueCallback) == 0x58);
+static_assert(offsetof(CDocObjectServer, m_pViewSite) == 0x60);
+static_assert(offsetof(CDocObjectServer, m_xOleObject) == 0x68);
+static_assert(offsetof(CDocObjectServer, m_xOleDocument) == 0x70);
+static_assert(offsetof(CDocObjectServer, m_xOleDocumentView) == 0x78);
+static_assert(offsetof(CDocObjectServer, m_xOleCommandTarget) == 0x80);
+static_assert(offsetof(CDocObjectServer, m_xPrint) == 0x88);

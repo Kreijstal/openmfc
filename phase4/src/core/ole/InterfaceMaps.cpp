@@ -73,6 +73,7 @@ extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COlePropertyPage
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleServerDoc__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleServerDoc; }
 // Symbol: ?GetInterfaceMap@COleServerDoc@@MEBAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleServerDoc__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleServerDoc; }
+const AFX_INTERFACEMAP* COleServerDoc::GetInterfaceMap() const { return &g_imap_COleServerDoc; }
 // Symbol: ?GetThisInterfaceMap@COleServerItem@@KAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleServerItem__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleServerItem; }
 // Symbol: ?GetInterfaceMap@COleServerItem@@MEBAPEBUAFX_INTERFACEMAP@@XZ

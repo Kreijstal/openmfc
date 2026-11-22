@@ -4,7 +4,10 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
-#include "detail/CDocObjectServerSupport.h"
+#include "openmfc/afxdocob.h"
+#include "detail/CCmdTargetVirtualsSupport.h"
+#include <memory>
+#include <utility>
 
 // COleClientItem / COleServerDoc methods, wave 2 (ole-2). Every function here
 // was decoded from the retail mfc140u export (ordinal -> RVA -> objdump, see
@@ -99,6 +102,7 @@ extern "C" IUnknown* MS_ABI impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEB
     CCmdTarget* pThis, const void* iid);                     // core/runtime/CCmdTarget.cpp
 extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(
     CCmdTarget* pThis);                                      // core/runtime/CCmdTarget.cpp
+extern "C" long MS_ABI impl__Process_COleException__SAJPEBVCException___Z(const CException*);
 extern "C" int MS_ABI impl__OnQueryUpdateItems_COleServerItem__UEAAHXZ(
     COleServerItem* pThis);                                  // core/ole/COleServerItem.cpp
 extern "C" void MS_ABI impl__OnUpdateItems_COleServerItem__UEAAXXZ(
@@ -119,12 +123,9 @@ constexpr size_t kOff_m_xPersistFile      = 0x220;  // COleLinkingDoc's XPersist
 constexpr size_t kOff_m_xPersistStorage   = 0x270;
 constexpr size_t kOff_m_xOleObject        = 0x278;
 constexpr size_t kOff_m_xOleInPlaceObject = 0x288;
-// +0x250 must fall in OpenMFC's zero-filled _coleserverdoc_padding (the
-// constructor below memsets it), not on m_bEmbedded, which is where retail's
-// m_lpClientSite (+0x230) sits.
 static_assert(sizeof(COleServerDoc) == 0x298, "OpenMFC COleServerDoc must be retail-sized (0x298)");
-static_assert(offsetof(COleServerDoc, m_bEmbedded) + sizeof(BOOL) <= kOff_m_pInPlaceFrame,
-              "retail m_pInPlaceFrame (+0x250) must lie in _coleserverdoc_padding");
+static_assert(offsetof(COleServerDoc, m_retailTail) +
+                  offsetof(COleServerDoc::RetailTailStorage, m_pInPlaceFrame) == kOff_m_pInPlaceFrame);
 
 // {00000000-0000-0000-C000-000000000046}, read at mfc140u .rdata 0x2d9a58 (the
 // operand OnCloseDocument passes to GetInterface), and
@@ -195,7 +196,6 @@ void ReleaseClientSite(COleServerDoc* document) {
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int enable);
-extern "C" void MS_ABI impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(void*);
 
 // COleServerDoc::ActivateDocObject() — retail (0x265ad0):
 //     if (m_pDocObjectServer@0x268) m_pDocObjectServer->ActivateDocObject();
@@ -204,7 +204,7 @@ extern "C" void MS_ABI impl__ActivateDocObject_COleServerDoc__QEAAXXZ(
     COleServerDoc* pThis)
 {
     if (pThis && pThis->m_retailTail.m_pDocObjectServer)
-        impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(pThis->m_retailTail.m_pDocObjectServer);
+        pThis->m_retailTail.m_pDocObjectServer->ActivateDocObject();
 }
 // COleServerDoc::ActivateInPlace() — retail (mfc140u 0x266da0 = mfc140
 // 0x265b50) is the full in-place activation handshake over m_lpClientSite@0x230
@@ -356,24 +356,14 @@ extern "C" HMENU MS_ABI impl__GetDefaultMenu_COleServerDoc__MEAAPEAUHMENU____XZ(
     // m_pInPlaceFrame@0x250 / m_lpClientSite@0x230; not modeled.
     return nullptr;
 }
-// COleServerDoc::GetDocObjectServer(IOleDocumentSite*) — retail RVA 0x71e0
-// (mfc140u; export ordinal 5262, read straight out of the export table) is
-// the whole body
-//     xor  %eax,%eax
-//     ret
-// so the base server document creates no doc-object server and `return
-// nullptr` is a literal transcription.  0x71e0 is a folded constant-zero body
-// shared with other exports (OnReactivateAndUndo, ordinal 10882, points at the
-// same address), which is why the name->RVA maps, keyed one name per RVA, do
-// not list this symbol.  CDocObjectServer is not declared in OpenMFC, so the
-// return is carried as void*.
+// The base class leaves DocObject creation to derived server documents.
 // Symbol: ?GetDocObjectServer@COleServerDoc@@MEAAPEAVCDocObjectServer@@PEAUIOleDocumentSite@@@Z
-extern "C" void* MS_ABI
-impl__GetDocObjectServer_COleServerDoc__MEAAPEAVCDocObjectServer__PEAUIOleDocumentSite___Z(
-    COleServerDoc* pThis, void* /*pDocSite*/)
-{
-    (void)pThis;
+extern "C" CDocObjectServer* MS_ABI impl__GetDocObjectServer_COleServerDoc__MEAAPEAVCDocObjectServer__PEAUIOleDocumentSite___Z(
+    COleServerDoc*, IOleDocumentSite*) {
     return nullptr;
+}
+CDocObjectServer* COleServerDoc::GetDocObjectServer(IOleDocumentSite* site) {
+    return impl__GetDocObjectServer_COleServerDoc__MEAAPEAVCDocObjectServer__PEAUIOleDocumentSite___Z(this, site);
 }
 // COleServerDoc::GetFileTypeString(CString&) — retail (0x2660e0) fills the
 // string from the server-state object at 0x50 (a virtual GetFileTypeString on
@@ -396,7 +386,7 @@ extern "C" IUnknown* MS_ABI impl__GetInterfaceHook_COleServerDoc__MEAAPEAUIUnkno
     COleServerDoc* document, const void* iid)
 {
     if (!document || !iid || *static_cast<const IID*>(iid) == IID_IUnknown) return nullptr;
-    auto* server = static_cast<DocObjectServer*>(document->m_retailTail.m_pDocObjectServer);
+    auto* server = document->m_retailTail.m_pDocObjectServer;
     return server ? server->GetInterface(iid) : nullptr;
 }
 IUnknown* COleServerDoc::GetInterfaceHook(const void* iid) {
@@ -502,10 +492,11 @@ extern "C" void MS_ABI impl__UpdateUsingHostObj_COleServerDoc__IEAAXIPEAVCCmdUI_
 }
 COleServerDoc::COleServerDoc()
     : COleLinkingDoc(), m_bEmbedded(FALSE) {
-    memset(_coleserverdoc_padding, 0, sizeof(_coleserverdoc_padding));
     GetServerDocState(this, true);
 }
 COleServerDoc::~COleServerDoc() {
+    m_retailTail.m_pDocObjectServer = nullptr;
+    delete std::exchange(m_retailTail.m_ownedDocObjectServer, nullptr);
     ReleaseClientSite(this);
     ServerDocState* state = GetServerDocState(this, false);
     if (state) {
@@ -696,30 +687,38 @@ extern "C" int MS_ABI impl__OnUpdateDocument_COleServerDoc__UEAAHXZ(COleServerDo
 // that thunk is implemented.
 // Symbol: ?OnClose@COleServerDoc@@MEAAXW4tagOLECLOSE@@@Z
 extern "C" void MS_ABI impl__OnClose_COleServerDoc__MEAAXW4tagOLECLOSE___Z(
-    COleServerDoc* pThis, unsigned long dwCloseOption)
+    COleServerDoc* document, unsigned long closeOption)
 {
-    if (!pThis) return;
+    if (!document) return;
     // TODO(clean-room): retail returns early here when the unmodeled flag at
     // retail offset 0x244 is set (the one CanCloseFrame above sets/clears).
     CWnd* pFrame = reinterpret_cast<CWnd*>(
-        impl__GetFirstFrame_COleDocument__QEAAPEAVCFrameWnd__XZ(pThis));
+        impl__GetFirstFrame_COleDocument__QEAAPEAVCFrameWnd__XZ(document));
     if (pFrame != nullptr && ::IsWindowVisible(pFrame->m_hWnd))
-        dwCloseOption = OLECLOSE_SAVEIFDIRTY;
+        closeOption = OLECLOSE_SAVEIFDIRTY;
 
-    if (pThis->IsModified()) {
-        if (dwCloseOption == OLECLOSE_SAVEIFDIRTY) {
-            pThis->SaveEmbedding();
-        } else if (dwCloseOption == OLECLOSE_PROMPTSAVE) {
-            if (!impl__SaveModifiedPrompt_COleServerDoc__IEAAHXZ(pThis))
-                impl__AfxThrowOleException__YAXJ_Z((long)0x8004000CL); // OLE_E_PROMPTSAVECANCELLED
+    if (document->IsModified()) {
+        if (closeOption == OLECLOSE_SAVEIFDIRTY) {
+            document->SaveEmbedding();
+        } else if (closeOption == OLECLOSE_PROMPTSAVE) {
+            if (!impl__SaveModifiedPrompt_COleServerDoc__IEAAHXZ(document))
+                impl__AfxThrowOleException__YAXJ_Z(OLE_E_PROMPTSAVECANCELLED);
         }
     }
     // TODO(clean-room): retail deactivates the in-place frame here
     // (m_pInPlaceFrame, retail offset 0x250); not modeled.
-    int bAutoDelete = pThis->m_bAutoDelete;
-    pThis->m_bAutoDelete = FALSE;
-    pThis->OnCloseDocument();
-    pThis->m_bAutoDelete = bAutoDelete;
+    const BOOL autoDelete = std::exchange(document->m_bAutoDelete, FALSE);
+    try {
+        document->OnCloseDocument();
+    } catch (...) {
+        document->m_bAutoDelete = autoDelete;
+        throw;
+    }
+    document->m_bAutoDelete = autoDelete;
+}
+
+void COleServerDoc::OnClose(OLECLOSE closeOption) {
+    impl__OnClose_COleServerDoc__MEAAXW4tagOLECLOSE___Z(this, closeOption);
 }
 
 // COleServerDoc::OnCloseDocument() — retail RVA 0x266670 (mfc140u; the same
@@ -763,19 +762,14 @@ extern "C" void MS_ABI impl__OnClose_COleServerDoc__MEAAXW4tagOLECLOSE___Z(
 //     `&& !m_bFinalRelease` term is always true and is not re-read here: a
 //     handler-mode document is never closed here.  (OpenMFC's thunk tests its
 //     own side-table flag, not the +0x128/+0x12c/+0x130 words.)
-//   * the client-site block and RELEASE(m_lpClientSite) are left out.  OpenMFC
-//     never stores a client site (XOleObject::SetClientSite below does not
-//     remember it) and +0x230 is OpenMFC's own m_bEmbedded, so retail's
-//     m_lpClientSite is NULL in every OpenMFC document and both steps are
-//     no-ops there; reading +0x230 as a pointer would be wrong, not faithful.
+//   * OpenMFC clears the client site through XOleObject::SetClientSite, which
+//     also detaches the DocObject server. Container window notification is
+//     still pending because OpenMFC does not track m_bCntrVisible here.
 //   * GetFirstViewPosition and the final delete are not dispatched through
 //     retail's vtable slots: the thunk is called directly and `delete` goes
 //     through OpenMFC's own virtual destructor, as COleLinkingDoc's body does.
 //     The +0x250 frame word is zero-filled padding that nothing in OpenMFC
 //     writes, so that branch does not run today.
-//   * OpenMFC's GetInterface returns NULL for every IID on this class, so the
-//     CoDisconnectObject call is skipped for a NULL IUnknown; retail passes the
-//     pointer unconditionally.
 //   * a NULL pThis returns; retail would fault.
 // Symbol: ?OnCloseDocument@COleServerDoc@@UEAAXXZ
 extern "C" void MS_ABI impl__OnCloseDocument_COleServerDoc__UEAAXXZ(COleServerDoc* pThis) {
@@ -796,13 +790,17 @@ extern "C" void MS_ABI impl__OnCloseDocument_COleServerDoc__UEAAXXZ(COleServerDo
     const int bAutoDelete = pThis->m_bAutoDelete;
     pThis->m_bAutoDelete = FALSE;
     impl__OnCloseDocument_COleLinkingDoc__UEAAXXZ(pThis);
-    ReleaseClientSite(pThis);
+    pThis->m_retailTail.m_xOleObject.SetClientSite(nullptr);
 
     IUnknown* pUnk = impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(pThis, &kIID_IUnknown);
     if (pUnk != nullptr) ::CoDisconnectObject(pUnk, 0);
 
     ::InterlockedDecrement(RefWord(pThis));
     if (bAutoDelete) delete pThis;
+}
+
+void COleServerDoc::OnCloseDocument() {
+    impl__OnCloseDocument_COleServerDoc__UEAAXXZ(this);
 }
 
 // COleServerDoc::OnDeactivate() — retail RVA 0x267d70 (mfc140u; 0x266b30 in
@@ -1268,14 +1266,14 @@ extern "C" void MS_ABI impl__UpdateAllItems_COleServerDoc__QEAAXPEAVCOleServerIt
 
 // Symbol: ?Advise@XOleObject@COleServerDoc@@UEAAJPEAUIAdviseSink@@PEAK@Z
 extern "C" long MS_ABI impl__Advise_XOleObject_COleServerDoc__UEAAJPEAUIAdviseSink__PEAK_Z(void* pThisItf, void* pAdvSink, unsigned long* pdwConnection) {
-    (void)pThisItf; (void)pAdvSink; (void)pdwConnection;
-    return 0;
+    if (!pdwConnection) return E_POINTER;
+    *pdwConnection = 0;
+    return OLE_E_ADVISENOTSUPPORTED;
 }
 
 // Symbol: ?Close@XOleObject@COleServerDoc@@UEAAJK@Z
 extern "C" long MS_ABI impl__Close_XOleObject_COleServerDoc__UEAAJK_Z(void* pThisItf, unsigned long dwSaveOption) {
-    (void)pThisItf; (void)dwSaveOption;
-    return 0;
+    return static_cast<COleServerDoc::XOleObject*>(pThisItf)->COleServerDoc::XOleObject::Close(dwSaveOption);
 }
 
 // Symbol: ?ContextSensitiveHelp@XOleInPlaceActiveObject@COleServerDoc@@UEAAJH@Z
@@ -1303,10 +1301,19 @@ extern "C" long MS_ABI impl__DUnadvise_XDataObject_COleServerDoc__UEAAJK_Z(void*
 }
 
 // Symbol: ?DoVerb@XOleObject@COleServerDoc@@UEAAJJPEAUtagMSG@@PEAUIOleClientSite@@JPEAUHWND__@@PEBUtagRECT@@@Z
-extern "C" long MS_ABI impl__DoVerb_XOleObject_COleServerDoc__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(void* pThisItf, long iVerb, void* lpmsg, void* pActiveSite, long lindex, void* hwndParent, const RECT* lprcPosRect) {
-    (void)pThisItf; (void)iVerb; (void)lpmsg; (void)pActiveSite; (void)lindex;
-    (void)hwndParent; (void)lprcPosRect;
-    return 0;
+extern "C" long MS_ABI impl__DoVerb_XOleObject_COleServerDoc__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(
+    void* part, LONG verb, MSG*, IOleClientSite* site, LONG, HWND, LPCRECT) {
+    if (!part) return E_UNEXPECTED;
+    auto* document = DocFromPart(part, kOff_m_xOleObject);
+    if (site && site != document->m_retailTail.m_clientSite) {
+        const HRESULT attached = document->m_retailTail.m_xOleObject.SetClientSite(site);
+        if (FAILED(attached)) return attached;
+    }
+    auto* server = document->m_retailTail.m_pDocObjectServer;
+    if (server && (verb == OLEIVERB_PRIMARY || verb == OLEIVERB_SHOW ||
+                   verb == OLEIVERB_INPLACEACTIVATE || verb == OLEIVERB_UIACTIVATE))
+        return server->RequestActivation();
+    return OLEOBJ_E_INVALIDVERB;
 }
 
 // Symbol: ?EnableModeless@XOleInPlaceActiveObject@COleServerDoc@@UEAAJH@Z
@@ -1317,8 +1324,9 @@ extern "C" long MS_ABI impl__EnableModeless_XOleInPlaceActiveObject_COleServerDo
 
 // Symbol: ?EnumAdvise@XOleObject@COleServerDoc@@UEAAJPEAPEAUIEnumSTATDATA@@@Z
 extern "C" long MS_ABI impl__EnumAdvise_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumSTATDATA___Z(void* pThisItf, void** ppenumAdvise) {
-    (void)pThisItf; (void)ppenumAdvise;
-    return 0;
+    if (!ppenumAdvise) return E_POINTER;
+    *ppenumAdvise = nullptr;
+    return OLE_E_ADVISENOTSUPPORTED;
 }
 
 // Symbol: ?EnumDAdvise@XDataObject@COleServerDoc@@UEAAJPEAPEAUIEnumSTATDATA@@@Z
@@ -1335,8 +1343,9 @@ extern "C" long MS_ABI impl__EnumFormatEtc_XDataObject_COleServerDoc__UEAAJKPEAP
 
 // Symbol: ?EnumVerbs@XOleObject@COleServerDoc@@UEAAJPEAPEAUIEnumOLEVERB@@@Z
 extern "C" long MS_ABI impl__EnumVerbs_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumOLEVERB___Z(void* pThisItf, void** ppenumOleVerb) {
-    (void)pThisItf; (void)ppenumOleVerb;
-    return 0;
+    if (!ppenumOleVerb) return E_POINTER;
+    *ppenumOleVerb = nullptr;
+    return OLEOBJ_E_NOVERBS;
 }
 
 // COleServerDoc::XDataObject::GetCanonicalFormatEtc — DECODED (wave-4 review).
@@ -1377,8 +1386,9 @@ extern "C" long MS_ABI impl__GetClientSite_XOleObject_COleServerDoc__UEAAJPEAPEA
 
 // Symbol: ?GetClipboardData@XOleObject@COleServerDoc@@UEAAJKPEAPEAUIDataObject@@@Z
 extern "C" long MS_ABI impl__GetClipboardData_XOleObject_COleServerDoc__UEAAJKPEAPEAUIDataObject___Z(void* pThisItf, unsigned long dwReserved, void** ppDataObject) {
-    (void)pThisItf; (void)dwReserved; (void)ppDataObject;
-    return 0;
+    if (!ppDataObject) return E_POINTER;
+    *ppDataObject = nullptr;
+    return E_NOTIMPL;
 }
 
 // Symbol: ?GetData@XDataObject@COleServerDoc@@UEAAJPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
@@ -1395,14 +1405,16 @@ extern "C" long MS_ABI impl__GetDataHere_XDataObject_COleServerDoc__UEAAJPEAUtag
 
 // Symbol: ?GetExtent@XOleObject@COleServerDoc@@UEAAJKPEAUtagSIZE@@@Z
 extern "C" long MS_ABI impl__GetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(void* pThisItf, unsigned long dwDrawAspect, SIZE* psizel) {
-    (void)pThisItf; (void)dwDrawAspect; (void)psizel;
-    return 0;
+    if (!psizel) return E_POINTER;
+    *psizel = {};
+    return E_NOTIMPL;
 }
 
 // Symbol: ?GetMiscStatus@XOleObject@COleServerDoc@@UEAAJKPEAK@Z
 extern "C" long MS_ABI impl__GetMiscStatus_XOleObject_COleServerDoc__UEAAJKPEAK_Z(void* pThisItf, unsigned long dwAspect, unsigned long* pdwStatus) {
-    (void)pThisItf; (void)dwAspect; (void)pdwStatus;
-    return 0;
+    if (!pdwStatus) return E_POINTER;
+    *pdwStatus = 0;
+    return S_OK;
 }
 
 //-----------------------------------------------------------------------------
@@ -1535,14 +1547,16 @@ extern "C" long MS_ABI impl__GetMoniker_XOleObject_COleServerDoc__UEAAJKKPEAPEAU
 //                ->GetClassID(pClassID);   // IPersist slot 3 (0x18)
 // The IID at 0x2d7a88 is {0000010b-...} == IID_IPersistFile, so this asks the
 // document's XPersistFile part (COleLinkingDoc's), not its XPersistStorage.
-// Stubbed: `this - 0x278` is not a document in OpenMFC and GetInterface returns
-// NULL for every IID on this class, so there is nothing to forward to.
 // Symbol: ?GetUserClassID@XOleObject@COleServerDoc@@UEAAJPEAU_GUID@@@Z
 extern "C" long MS_ABI impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_GUID___Z(
     void* pThisItf, GUID* pClassID)
 {
-    (void)pThisItf; (void)pClassID;
-    return 0;
+    if (!pClassID) return E_POINTER;
+    *pClassID = CLSID_NULL;
+    if (!pThisItf) return E_UNEXPECTED;
+    auto* doc = DocFromPart(pThisItf, kOff_m_xOleObject);
+    auto* persist = static_cast<IPersistFile*>(doc->GetInterface(&IID_IPersistFile));
+    return persist ? persist->GetClassID(pClassID) : E_NOINTERFACE;
 }
 
 // COleServerDoc::XOleObject::GetUserType(DWORD, LPOLESTR*) -- retail 0x267ae0,
@@ -1554,14 +1568,16 @@ extern "C" long MS_ABI impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_
 //         ->GetUserClassID(&clsid);        // IOleObject slot 15 (0x78)
 //     return ::OleRegGetUserType(clsid, dwFormOfType, ppszUserType);
 //                                          // ole32 import at 0x2c5ba0
-// The GetUserClassID HRESULT is discarded; the return value is
-// OleRegGetUserType's.  Stubbed for the same reason as GetUserClassID above.
+// OpenMFC propagates GetUserClassID's HRESULT if the document lacks a class ID.
 // Symbol: ?GetUserType@XOleObject@COleServerDoc@@UEAAJKPEAPEA_W@Z
 extern "C" long MS_ABI impl__GetUserType_XOleObject_COleServerDoc__UEAAJKPEAPEA_W_Z(
     void* pThisItf, unsigned long dwFormOfType, wchar_t** ppszUserType)
 {
-    (void)pThisItf; (void)dwFormOfType; (void)ppszUserType;
-    return 0;
+    if (!ppszUserType) return E_POINTER;
+    *ppszUserType = nullptr;
+    CLSID clsid{};
+    const auto result = impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_GUID___Z(pThisItf, &clsid);
+    return FAILED(result) ? result : ::OleRegGetUserType(clsid, dwFormOfType, ppszUserType);
 }
 
 // COleServerDoc::XOleInPlaceActiveObject::GetWindow(HWND*) -- retail 0x268870.
@@ -2006,48 +2022,51 @@ extern "C" long MS_ABI impl__SaveCompleted_XPersistStorage_COleServerDoc__UEAAJP
     return 0;
 }
 
-// COleServerDoc::XOleObject::SetClientSite(IOleClientSite*) -- retail 0x267330,
-// transcribed in full:
-//     COleServerDoc* pThis = this - 0x278;
-//     if (pClientSite != NULL) pClientSite->AddRef();        // slot 1 (0x8)
-//     RELEASE(pThis->m_lpClientSite@0x230);                  // helper 0x26ba84
-//     pThis->m_lpClientSite = pClientSite;
-//     if (pThis->m_pDocObjectServer@0x268 != NULL)
-//         pThis->m_pDocObjectServer->ReleaseDocSite();       // 0x255ec0
-//     if (pClientSite != NULL) {
-//         IOleDocumentSite* pDocSite;
-//         if (SUCCEEDED(pClientSite->QueryInterface(IID_IOleDocumentSite,
-//                                                   &pDocSite))) { // 0x2d7ee0
-//             if (pThis->m_pDocObjectServer != NULL) {
-//                 pThis->m_pDocObjectServer->ReleaseDocSite();   // 0x255ec0 --
-//                                    // a SECOND call, on top of the one above;
-//                                    // the earlier revision of this comment
-//                                    // omitted it (wave-6 review)
-//                 pThis->m_pDocObjectServer->[0x40] = pDocSite;
-//             }
-//             else
-//                 pThis->m_pDocObjectServer =
-//                     pThis-><vtable slot 90 (0x2d0)>(pDocSite);
-//         }
-//         // a failed QI falls straight through to the return
-//     } else if (pThis->m_pDocObjectServer != NULL) {
-//         pThis->m_pDocObjectServer->Release-style call (slot 1, arg 1);
-//         pThis->m_pDocObjectServer = NULL;
-//     }
-//     return S_OK;                                           // unconditional
-// Slot 90 holds 0x7260 == `xor %eax,%eax ; ret` in the base class, so a
-// COleServerDoc that does not override it stores NULL there.
-// OpenMFC stores the client site's reference in its own tail. The DocObject
-// wrapper binds its IOleDocumentSite when a server is supplied by the caller.
 // Symbol: ?SetClientSite@XOleObject@COleServerDoc@@UEAAJPEAUIOleClientSite@@@Z
 extern "C" long MS_ABI impl__SetClientSite_XOleObject_COleServerDoc__UEAAJPEAUIOleClientSite___Z(
-    void* part, IOleClientSite* site)
-{
+    void* part, IOleClientSite* site) {
     if (!part) return E_UNEXPECTED;
-    auto& current = DocFromPart(part, kOff_m_xOleObject)->m_retailTail.m_clientSite;
+    auto* object = static_cast<COleServerDoc::XOleObject*>(part);
+    return object->COleServerDoc::XOleObject::SetClientSite(site);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetClientSite(IOleClientSite* site) {
+    auto* document = DocFromPart(this, kOff_m_xOleObject);
+    openmfc::detail::CmdTargetModuleScope module(document->m_pModuleState);
+    auto& tail = document->m_retailTail;
+    const auto release = [](IUnknown* value) { value->Release(); };
     if (site) site->AddRef();
-    auto* previous = current;
-    current = site;
+    std::unique_ptr<IOleClientSite, decltype(release)> newClient(site, release);
+
+    IOleDocumentSite* queried = nullptr;
+    if (site) site->QueryInterface(IID_IOleDocumentSite, reinterpret_cast<void**>(&queried));
+    std::unique_ptr<IOleDocumentSite, decltype(release)> newSite(queried, release);
+
+    auto* server = tail.m_pDocObjectServer ? tail.m_pDocObjectServer : tail.m_ownedDocObjectServer;
+    if (!server && newSite) {
+        try {
+            server = document->GetDocObjectServer(newSite.get());
+        } catch (CException* error) {
+            if (error) error->Delete();
+            return E_UNEXPECTED;
+        } catch (const std::bad_alloc&) {
+            return E_OUTOFMEMORY;
+        } catch (...) {
+            return E_UNEXPECTED;
+        }
+        if (server) {
+            newSite.release();
+            tail.m_ownedDocObjectServer = server;
+        }
+    } else if (server) {
+        // Keep the server allocated while COM parts can still retain the document.
+        if (!newSite || site != tail.m_clientSite)
+            server->m_xOleDocumentView.SetInPlaceSite(nullptr);
+        server->SetDocSite(newSite.release());
+    }
+
+    tail.m_pDocObjectServer = server && server->m_pDocSite ? server : nullptr;
+    auto* previous = std::exchange(tail.m_clientSite, newClient.release());
     if (previous) previous->Release();
     return S_OK;
 }
@@ -2354,4 +2373,108 @@ extern "C" long MS_ABI impl__Update_XOleObject_COleServerDoc__UEAAJXZ(
     if (pItem != nullptr)                         // deviation: retail does not check
         impl__OnUpdateItems_COleServerItem__UEAAXXZ(pItem);
     return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetClientSite(IOleClientSite** site) {
+    return impl__GetClientSite_XOleObject_COleServerDoc__UEAAJPEAPEAUIOleClientSite___Z(this, site);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetHostNames(LPCOLESTR app, LPCOLESTR object) {
+    return impl__SetHostNames_XOleObject_COleServerDoc__UEAAJPEB_W0_Z(this, app, object);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::Close(DWORD save) {
+    auto* document = DocFromPart(this, kOff_m_xOleObject);
+    openmfc::detail::CmdTargetModuleScope module(document->m_pModuleState);
+    ::InterlockedIncrement(RefWord(document));
+    HRESULT status = S_OK;
+    try {
+        document->OnClose(static_cast<OLECLOSE>(save));
+    } catch (CException* error) {
+        status = error ? impl__Process_COleException__SAJPEBVCException___Z(error) : E_UNEXPECTED;
+        if (error) error->Delete();
+    } catch (...) {
+        status = E_UNEXPECTED;
+    }
+    impl__InternalRelease_CCmdTarget__QEAAKXZ(document);
+    return status;
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetMoniker(DWORD which, IMoniker* moniker) {
+    return impl__SetMoniker_XOleObject_COleServerDoc__UEAAJKPEAUIMoniker___Z(this, which, moniker);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetMoniker(DWORD assign, DWORD which, IMoniker** moniker) {
+    return impl__GetMoniker_XOleObject_COleServerDoc__UEAAJKKPEAPEAUIMoniker___Z(this, assign, which, reinterpret_cast<void**>(moniker));
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::InitFromData(IDataObject* data, BOOL creation, DWORD reserved) {
+    return impl__InitFromData_XOleObject_COleServerDoc__UEAAJPEAUIDataObject__HK_Z(this, data, creation, reserved);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetClipboardData(DWORD reserved, IDataObject** data) {
+    return impl__GetClipboardData_XOleObject_COleServerDoc__UEAAJKPEAPEAUIDataObject___Z(this, reserved, reinterpret_cast<void**>(data));
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::DoVerb(LONG verb, MSG* message, IOleClientSite* site, LONG index, HWND parent, LPCRECT position) {
+    return impl__DoVerb_XOleObject_COleServerDoc__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(this, verb, message, site, index, parent, position);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::EnumVerbs(IEnumOLEVERB** verbs) {
+    return impl__EnumVerbs_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumOLEVERB___Z(this, reinterpret_cast<void**>(verbs));
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::Update() {
+    return impl__Update_XOleObject_COleServerDoc__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::IsUpToDate() {
+    return impl__IsUpToDate_XOleObject_COleServerDoc__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetUserClassID(CLSID* clsid) {
+    return impl__GetUserClassID_XOleObject_COleServerDoc__UEAAJPEAU_GUID___Z(this, clsid);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetUserType(DWORD form, LPOLESTR* name) {
+    return impl__GetUserType_XOleObject_COleServerDoc__UEAAJKPEAPEA_W_Z(this, form, name);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetExtent(DWORD aspect, SIZEL* size) {
+    return impl__SetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(this, aspect, size);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetExtent(DWORD aspect, SIZEL* size) {
+    return impl__GetExtent_XOleObject_COleServerDoc__UEAAJKPEAUtagSIZE___Z(this, aspect, size);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::Advise(IAdviseSink* sink, DWORD* connection) {
+    return impl__Advise_XOleObject_COleServerDoc__UEAAJPEAUIAdviseSink__PEAK_Z(this, sink, connection);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::Unadvise(DWORD connection) {
+    return impl__Unadvise_XOleObject_COleServerDoc__UEAAJK_Z(this, connection);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::EnumAdvise(IEnumSTATDATA** advise) {
+    return impl__EnumAdvise_XOleObject_COleServerDoc__UEAAJPEAPEAUIEnumSTATDATA___Z(this, reinterpret_cast<void**>(advise));
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetMiscStatus(DWORD aspect, DWORD* status) {
+    return impl__GetMiscStatus_XOleObject_COleServerDoc__UEAAJKPEAK_Z(this, aspect, status);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetColorScheme(LOGPALETTE* palette) {
+    return impl__SetColorScheme_XOleObject_COleServerDoc__UEAAJPEAUtagLOGPALETTE___Z(this, palette);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::QueryInterface(REFIID iid, void** result) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(
+        DocFromPart(this, kOff_m_xOleObject), &iid, result);
+}
+ULONG STDMETHODCALLTYPE COleServerDoc::XOleObject::AddRef() {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(DocFromPart(this, kOff_m_xOleObject));
+}
+ULONG STDMETHODCALLTYPE COleServerDoc::XOleObject::Release() {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(DocFromPart(this, kOff_m_xOleObject));
 }

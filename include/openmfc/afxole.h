@@ -556,6 +556,7 @@ public:
 class COleDocument;
 class COleLinkingDoc;
 class COleServerDoc;
+class CDocObjectServer;
 class COleServerItem;
 class COleClientItem;
 class CRichEditCntrItem;
@@ -1249,6 +1250,7 @@ public:
     void NotifyRename(const wchar_t* lpszNewName);
     void NotifySaved();
     void SaveEmbedding();
+    void OnCloseDocument() override;
 
     // Client tracking
     COleClientItem* GetEmbeddedItem();
@@ -1265,37 +1267,61 @@ public:
     void UpdateUsingHostObj(unsigned int nID, CCmdUI* pCmdUI);
 
 protected:
+    virtual void OnClose(OLECLOSE closeOption);
+    // The returned server takes ownership of the supplied site reference.
+    virtual CDocObjectServer* GetDocObjectServer(IOleDocumentSite* site);
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
     IUnknown* GetInterfaceHook(const void* iid) override;
 
 public:
     BOOL m_bEmbedded;
 
 public:
-    // These retail COleServerDoc fields occupy the existing tail and its
-    // four-byte class-alignment slack; the complete class size stays 0x298.
-    // Pack the overlay to four-byte alignment so it starts immediately after
-    // m_bEmbedded at +0x230 without shifting that existing ABI layout. The
-    // two interface parts are storage only; no retail-compatible vtables are
-    // installed by the current constructor.
+    struct XOleObject : IOleObject {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE SetClientSite(IOleClientSite*) override;
+        HRESULT STDMETHODCALLTYPE GetClientSite(IOleClientSite**) override;
+        HRESULT STDMETHODCALLTYPE SetHostNames(LPCOLESTR, LPCOLESTR) override;
+        HRESULT STDMETHODCALLTYPE Close(DWORD) override;
+        HRESULT STDMETHODCALLTYPE SetMoniker(DWORD, IMoniker*) override;
+        HRESULT STDMETHODCALLTYPE GetMoniker(DWORD, DWORD, IMoniker**) override;
+        HRESULT STDMETHODCALLTYPE InitFromData(IDataObject*, BOOL, DWORD) override;
+        HRESULT STDMETHODCALLTYPE GetClipboardData(DWORD, IDataObject**) override;
+        HRESULT STDMETHODCALLTYPE DoVerb(LONG, MSG*, IOleClientSite*, LONG, HWND, LPCRECT) override;
+        HRESULT STDMETHODCALLTYPE EnumVerbs(IEnumOLEVERB**) override;
+        HRESULT STDMETHODCALLTYPE Update() override;
+        HRESULT STDMETHODCALLTYPE IsUpToDate() override;
+        HRESULT STDMETHODCALLTYPE GetUserClassID(CLSID*) override;
+        HRESULT STDMETHODCALLTYPE GetUserType(DWORD, LPOLESTR*) override;
+        HRESULT STDMETHODCALLTYPE SetExtent(DWORD, SIZEL*) override;
+        HRESULT STDMETHODCALLTYPE GetExtent(DWORD, SIZEL*) override;
+        HRESULT STDMETHODCALLTYPE Advise(IAdviseSink*, DWORD*) override;
+        HRESULT STDMETHODCALLTYPE Unadvise(DWORD) override;
+        HRESULT STDMETHODCALLTYPE EnumAdvise(IEnumSTATDATA**) override;
+        HRESULT STDMETHODCALLTYPE GetMiscStatus(DWORD, DWORD*) override;
+        HRESULT STDMETHODCALLTYPE SetColorScheme(LOGPALETTE*) override;
+    };
+
+    // Site references occupy formerly reserved fields in the server tail.
 #pragma pack(push, 4)
     struct RetailTailStorage {
         DWORD m_reserved_234;
         IOleClientSite* m_clientSite;           // OpenMFC uses +0x230 for m_bEmbedded.
-        BYTE m_reserved_240[0x10];
+        CDocObjectServer* m_ownedDocObjectServer; // Retained through a client-site disconnect.
+        BYTE m_reserved_248[8];
         COleIPFrameWnd* m_pInPlaceFrame;         // +0x250; ctor RVA 0x2657b0 (mfc140u)
         BYTE m_reserved_258[0x10];               // through +0x268; ctor RVA 0x2657b0 (mfc140u)
-        void* m_pDocObjectServer;                // +0x268; ctor RVA 0x2657b0 (mfc140u)
+        CDocObjectServer* m_pDocObjectServer;    // +0x268; ctor RVA 0x2657b0 (mfc140u)
         void* m_xPersistStorageVftable;          // interface part +0x270; ctor RVA 0x2657b0 (mfc140u)
-        void* m_xOleObjectVftable;                // interface part +0x278; ctor RVA 0x2657b0 (mfc140u)
+        XOleObject m_xOleObject;                  // interface part +0x278; ctor RVA 0x2657b0 (mfc140u)
         void* m_xDataObjectVftable;               // interface part +0x280; ctor RVA 0x2657b0 (mfc140u)
         void* m_xOleInPlaceObjectVftable;         // interface part +0x288; ctor RVA 0x2657b0 (mfc140u)
         void* m_xOleInPlaceActiveObjectVftable;   // interface part +0x290; ctor RVA 0x2657b0 (mfc140u)
     };
 #pragma pack(pop)
-    union {
-        RetailTailStorage m_retailTail;
-        char _coleserverdoc_padding[96];
-    };
+    RetailTailStorage m_retailTail{};
 };
 
 //=============================================================================

@@ -1,18 +1,16 @@
 #define OPENMFC_APPCORE_IMPL
 #include "InterfaceMapsSupport.h"
-#include "CDocObjectServerSupport.h"
-#include "openmfc/afxole.h"
+#include "openmfc/afxdocob.h"
 
 namespace openmfc { namespace detail { namespace interfacemaps {
 const AFX_INTERFACEMAP* AFXAPI gib_CDocObjectServer() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 namespace {
-using openmfc::detail::olecore::DocObjectServer;
 const AFX_INTERFACEMAP_ENTRY docObjectServerInterfaces[] = {
-    { &IID_IOleObject, offsetof(DocObjectServer, m_xOleObject) },
-    { &IID_IOleDocument, offsetof(DocObjectServer, m_xOleDocument) },
-    { &IID_IOleDocumentView, offsetof(DocObjectServer, m_xOleDocumentView) },
-    { &IID_IOleCommandTarget, offsetof(DocObjectServer, m_xOleCommandTarget) },
-    { &IID_IPrint, offsetof(DocObjectServer, m_xPrint) },
+    { &IID_IOleObject, offsetof(CDocObjectServer, m_xOleObject) },
+    { &IID_IOleDocument, offsetof(CDocObjectServer, m_xOleDocument) },
+    { &IID_IOleDocumentView, offsetof(CDocObjectServer, m_xOleDocumentView) },
+    { &IID_IOleCommandTarget, offsetof(CDocObjectServer, m_xOleCommandTarget) },
+    { &IID_IPrint, offsetof(CDocObjectServer, m_xPrint) },
     { nullptr, static_cast<size_t>(-1) }
 };
 }
@@ -97,7 +95,16 @@ const AFX_INTERFACEMAP g_imap_COleObjectFactory = { gib_COleObjectFactory, g_ifa
 const AFX_INTERFACEMAP* AFXAPI gib_COlePropertyPage() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COlePropertyPage = { gib_COlePropertyPage, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleServerDoc() { return impl__GetThisInterfaceMap_COleLinkingDoc__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_COleServerDoc = { gib_COleServerDoc, g_ifaceEnd };
+namespace {
+constexpr auto serverObject = offsetof(COleServerDoc, m_retailTail) +
+    offsetof(COleServerDoc::RetailTailStorage, m_xOleObject);
+static_assert(serverObject == 0x278);
+const AFX_INTERFACEMAP_ENTRY serverDocInterfaces[] = {
+    { &IID_IOleObject, serverObject },
+    { nullptr, static_cast<size_t>(-1) }
+};
+}
+const AFX_INTERFACEMAP g_imap_COleServerDoc = { gib_COleServerDoc, serverDocInterfaces };
 const AFX_INTERFACEMAP* AFXAPI gib_COleServerItem() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleServerItem = { gib_COleServerItem, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_CRichEditView() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }

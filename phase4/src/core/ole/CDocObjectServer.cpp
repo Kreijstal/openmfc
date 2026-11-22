@@ -2,12 +2,10 @@
 // Sources: manual_small_stub_implementations.cpp
 
 #define OPENMFC_APPCORE_IMPL
-#include "detail/CDocObjectServerSupport.h"
+#include "openmfc/afxdocob.h"
 #include "detail/CCmdTargetVirtualsSupport.h"
 #include <new>
 #include <utility>
-
-using openmfc::detail::olecore::DocObjectServer;
 
 #define ASSERT_SERVERDOC_TAIL(member, offset) \
     static_assert(offsetof(COleServerDoc, m_retailTail) + \
@@ -22,7 +20,7 @@ ASSERT_SERVERDOC_TAIL(m_pInPlaceFrame, 0x250);
 ASSERT_SERVERDOC_TAIL(m_reserved_258, 0x258);
 ASSERT_SERVERDOC_TAIL(m_pDocObjectServer, 0x268);
 ASSERT_SERVERDOC_TAIL(m_xPersistStorageVftable, 0x270);
-ASSERT_SERVERDOC_TAIL(m_xOleObjectVftable, 0x278);
+ASSERT_SERVERDOC_TAIL(m_xOleObject, 0x278);
 ASSERT_SERVERDOC_TAIL(m_xDataObjectVftable, 0x280);
 ASSERT_SERVERDOC_TAIL(m_xOleInPlaceObjectVftable, 0x288);
 ASSERT_SERVERDOC_TAIL(m_xOleInPlaceActiveObjectVftable, 0x290);
@@ -82,29 +80,11 @@ ASSERT_SERVERDOC_TAIL(m_xOleInPlaceActiveObjectVftable, 0x290);
 // and m_pOwner + 0x288 (COleServerDoc::m_xOleInPlaceObject), each a vptr-only
 // 8-byte sub-object that retail dispatches through.
 //
-// An earlier version of this file left every one of those as a stub on the
-// claim that "m_pOwner + 0x278 is off the end of the object".  That claim was
-// measured and is false.  OpenMFC's COleServerDoc (include/openmfc/afxole.h)
-// is COleLinkingDoc (0x230 bytes), then BOOL m_bEmbedded at +0x230, then
-// `char _coleserverdoc_padding[96]` at +0x234 .. +0x294, for sizeof == 0x298
-// (measured with the phase4 compiler) -- retail's size exactly, because
-// retail's five interface parts occupy +0x270 .. +0x298.  Both construction
-// paths zero-fill that padding: COleServerDoc::COleServerDoc
-// (core/ole/COleServerDoc.cpp:441-443, memset) is what the exported ctor thunk
-// in core/ole/Thunks.cpp:1178 placement-news.  So every retail owner offset
-// this file touches -- +0x250 m_pInPlaceFrame, +0x268 m_pDocObjectServer,
-// +0x278 m_xOleObject, +0x288 m_xOleInPlaceObject -- lies inside that
-// padding: addressable, and zero unless COleServerDoc.cpp starts to model it.
-// (+0x230, retail's m_lpClientSite, is NOT padding -- it is OpenMFC's
-// m_bEmbedded -- and nothing in this file reads it.)  The static_assert on
-// sizeof(COleServerDoc) in the namespace below pins the size.
+// COleServerDoc's tail preserves these offsets and the retail size of 0x298.
+// OpenMFC constructs XOleObject at +0x278. The +0x288 XOleInPlaceObject slot
+// is still reserved. Both parts are called through their impl__ entry points
+// with the same sub-object address used by retail virtual dispatch.
 //
-// Retail reaches the parts VIRTUALLY (`mov (%rcx),%rax; call *0xNN(%rax)`,
-// through the part's vptr and the CFG dispatch pointer).  In this DLL the
-// padding holds no vptr, so the dispatch is made as a direct call to the
-// COleServerDoc part's own impl__ thunk (core/ole/COleServerDoc.cpp) with the
-// SAME `this` retail passes: the sub-object address m_pOwner + 0x278 or
-// + 0x288.  That direct call is the retail call, not an approximation of it:
 // XOleObject and XOleInPlaceObject are BEGIN_INTERFACE_PART nested classes
 // (declared under `public:` in the real afxole.h, read on this host, so "public
 // nested", not private) that nothing derives from, hence one vtable each and
@@ -248,9 +228,7 @@ constexpr long kOff_m_xPrint            = 0x88;
 // Offsets inside the OWNING COleServerDoc that retail bodies in this file read,
 // each named at the function that reads it and in the layout note at the top
 // (they are also the offsets core/ole/COleServerDoc.cpp records in its own
-// header comment).  All four sit inside OpenMFC's zero-filled
-// _coleserverdoc_padding (+0x234 .. +0x294), which the static_assert pins by
-// size: retail's COleServerDoc is 0x298 bytes and so is OpenMFC's.
+// header comment). All four are in the 0x298-byte document's tail.
 constexpr long kOwnerOff_m_pInPlaceFrame     = 0x250;   // COleIPFrameWnd*
 constexpr long kOwnerOff_m_pDocObjectServer  = 0x268;   // CDocObjectServer*
 constexpr long kOwnerOff_m_xOleObject        = 0x278;   // XOleObject part (IOleObject)
@@ -267,13 +245,6 @@ static_assert(sizeof(COleServerDoc) == 0x298,
 // taken from the platform SDK because this DLL links no uuid library.
 const GUID kIID_IOleDocumentView = {
     0xB722BCC6, 0x4E68, 0x101B, { 0xA2, 0xBC, 0x00, 0xAA, 0x00, 0x40, 0x47, 0x70 } };
-
-// IID_IOleDocumentSite.  Read out of mfc140u .rdata at RVA 0x2d9f90 -- the
-// operand of the `lea` at 0x258109 inside XOleObject::SetClientSite (0x2580b0):
-//     c7 bc 22 b7  68 4e  1b 10  a2 bc 00 aa 00 40 47 70
-// i.e. {B722BCC7-4E68-101B-A2BC-00AA00404770}.
-const GUID kIID_IOleDocumentSite = {
-    0xB722BCC7, 0x4E68, 0x101B, { 0xA2, 0xBC, 0x00, 0xAA, 0x00, 0x40, 0x47, 0x70 } };
 
 // this (an interface sub-object) -> the owning CDocObjectServer.
 inline void* ServerFromPart(void* pPart, long nPartOffset) {
@@ -342,38 +313,38 @@ inline COleServerDoc* OwnerFromDocumentViewPart(void* pThis) {
 // Retail constructs its base and five interface parts in the caller's storage.
 extern "C" void* MS_ABI impl___0CDocObjectServer__QEAA_PEAVCOleServerDoc__PEAUIOleDocumentSite___Z(
     void* storage, COleServerDoc* owner, IOleDocumentSite* site) {
-    return storage ? new (storage) DocObjectServer(owner, site) : nullptr;
+    return storage ? new (storage) CDocObjectServer(owner, site) : nullptr;
 }
 
-DocObjectServer::DocObjectServer(COleServerDoc* owner, IOleDocumentSite* site)
+CDocObjectServer::CDocObjectServer(COleServerDoc* owner, IOleDocumentSite* site)
     : m_pDocSite(site), m_pOwner(owner) {
     if (owner) owner->m_bCompoundFile = TRUE;
 }
-DocObjectServer::~DocObjectServer() {
+CDocObjectServer::~CDocObjectServer() {
     if (auto* site = std::exchange(m_pViewSite, nullptr)) site->Release();
     if (auto* site = std::exchange(m_pDocSite, nullptr)) site->Release();
 }
-CRuntimeClass* DocObjectServer::GetRuntimeClass() const {
+CRuntimeClass* CDocObjectServer::GetRuntimeClass() const {
     return impl__GetThisClass_CDocObjectServer__SAPEAUCRuntimeClass__XZ();
 }
-const AFX_INTERFACEMAP* DocObjectServer::GetInterfaceMap() const {
+const AFX_INTERFACEMAP* CDocObjectServer::GetInterfaceMap() const {
     return &openmfc::detail::interfacemaps::g_imap_CDocObjectServer;
 }
 
 namespace openmfc::detail::olecore {
-ULONG AddRefDocObjectServer(DocObjectServer* server) {
+ULONG AddRefDocObjectServer(CDocObjectServer* server) {
     CmdTargetModuleScope state(server->m_pModuleState);
     CCmdTarget* lifetime = !server->m_pOuterUnknown && server->m_pOwner
         ? static_cast<CCmdTarget*>(server->m_pOwner) : server;
     return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(lifetime);
 }
-ULONG ReleaseDocObjectServer(DocObjectServer* server) {
+ULONG ReleaseDocObjectServer(CDocObjectServer* server) {
     CmdTargetModuleScope state(server->m_pModuleState);
     CCmdTarget* lifetime = !server->m_pOuterUnknown && server->m_pOwner
         ? static_cast<CCmdTarget*>(server->m_pOwner) : server;
     return impl__ExternalRelease_CCmdTarget__QEAAKXZ(lifetime);
 }
-HRESULT QueryDocObjectServer(DocObjectServer* server, bool queryOwner, REFIID iid, void** result) {
+HRESULT QueryDocObjectServer(CDocObjectServer* server, bool queryOwner, REFIID iid, void** result) {
     if (!result) return E_POINTER;
     CmdTargetModuleScope state(server->m_pModuleState);
     if (queryOwner && server->m_pOwner)
@@ -387,35 +358,25 @@ HRESULT QueryDocObjectServer(DocObjectServer* server, bool queryOwner, REFIID ii
 }
 
 // Symbol: ??1CDocObjectServer@@UEAA@XZ
-extern "C" void MS_ABI impl___1CDocObjectServer__UEAA_XZ(DocObjectServer* server) {
-    if (server) server->~DocObjectServer();
+extern "C" void MS_ABI impl___1CDocObjectServer__UEAA_XZ(CDocObjectServer* server) {
+    if (server) server->~CDocObjectServer();
 }
 extern "C" void MS_ABI impl__ReleaseDocSite_CDocObjectServer__QEAAXXZ(void*);
 // Symbol: ?ActivateDocObject@CDocObjectServer@@QEAAXXZ
-// CDocObjectServer::ActivateDocObject() -- retail RVA 0x256e90 (mfc140u; the
-// same body sits at 0x255f50 in mfc140), the whole body:
-//     if (m_pOwner->m_pDocObjectServer != NULL)   // +0x48, then `cmpq $0,0x268(%rax)`
-//         m_pDocSite->vtbl[0x18/8 = 3](NULL);     // +0x40; IOleDocumentSite::ActivateMe,
-//                                                 //   via the CFG dispatch pointer
-// Slot 3 is ActivateMe: IOleDocumentSite declares exactly one method after
-// IUnknown's three.  m_pOwner + 0x268 is COleServerDoc::m_pDocObjectServer and
-// is read exactly as retail reads it; in this DLL that word is inside the
-// zero-filled padding of OpenMFC's COleServerDoc (layout note at the top) and
-// nothing writes it, so the guard is false and ActivateMe is not called --
-// which is also what retail does for a document that was never handed a
-// doc-object server.  It starts activating the moment COleServerDoc.cpp models
-// the member.  Deviations: the pThis / m_pOwner / m_pDocSite null guards;
-// retail has none (a NULL m_pDocSite would fault there).
-extern "C" void MS_ABI impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    COleServerDoc* pOwner = Member<COleServerDoc*>(pThis, kOff_m_pOwner);
-    if (pOwner == nullptr) return;
-    if (*static_cast<void**>(OwnerAt(pOwner, kOwnerOff_m_pDocObjectServer)) == nullptr) {
-        return;                                                    // 0x256ea0
-    }
-    IOleDocumentSite* pDocSite = Member<IOleDocumentSite*>(pThis, kOff_m_pDocSite);
-    if (pDocSite == nullptr) return;   // deviation: retail would fault
-    pDocSite->ActivateMe(nullptr);                                 // 0x256eaf
+extern "C" void MS_ABI impl__ActivateDocObject_CDocObjectServer__QEAAXXZ(CDocObjectServer* server) {
+    if (server) server->ActivateDocObject();
+}
+void CDocObjectServer::ActivateDocObject() {
+    RequestActivation();
+}
+HRESULT CDocObjectServer::RequestActivation() {
+    if (!m_pOwner || m_pOwner->m_retailTail.m_pDocObjectServer != this || !m_pDocSite)
+        return OLE_E_NOTRUNNING;
+    auto* site = m_pDocSite;
+    site->AddRef();
+    const HRESULT result = site->ActivateMe(nullptr);
+    site->Release();
+    return result;
 }
 
 // The five CDocObjectServer::Do* printing helpers are, in retail, one-instruction
@@ -704,39 +665,20 @@ extern "C" void MS_ABI impl__OnSetItemRects_CDocObjectServer__IEAAXPEAUtagRECT__
 }
 
 // Symbol: ?ReleaseDocSite@CDocObjectServer@@QEAAXXZ
-// CDocObjectServer::ReleaseDocSite() -- retail (0x255ec0 in mfc140; the same
-// body at RVA 0x256e00 in mfc140u, re-read there), transcribed in full:
-//     rcx = m_pDocSite (+0x40)
-//     if (rcx != NULL) {
-//         rcx->vtbl[0x10/8 = 2]();      // IUnknown::Release
-//         m_pDocSite = NULL;            // 0x255edf, inside the if
-//     }
-// The store is genuinely inside the branch (the `je` at 0x255ed0 targets
-// 0x255ee7, past it), which is observationally the same as an unconditional
-// store.  Also called by the destructor above, by OnCloseDocument, by SetDocSite
-// and -- in retail -- by XOleObject::SetClientSite before it re-QIs the new
-// client site for IID_IOleDocumentSite.  The pThis null check is the only
-// deviation; retail has none.
 extern "C" void MS_ABI impl__ReleaseDocSite_CDocObjectServer__QEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    auto* server = static_cast<DocObjectServer*>(pThis);
-    if (auto* site = std::exchange(server->m_pDocSite, nullptr)) site->Release();
+    if (pThis) static_cast<CDocObjectServer*>(pThis)->ReleaseDocSite();
+}
+void CDocObjectServer::ReleaseDocSite() {
+    SetDocSite(nullptr);
 }
 
 // Symbol: ?SetDocSite@CDocObjectServer@@QEAAXPEAUIOleDocumentSite@@@Z
-// CDocObjectServer::SetDocSite(IOleDocumentSite*) -- retail (0x255ef0), the
-// whole body:
-//     CDocObjectServer::ReleaseDocSite(this)   (call 0x255ec0)
-//     m_pDocSite (+0x40) = pDocSite
-// Note that retail does NOT AddRef the incoming pointer even though
-// ReleaseDocSite releases the old one -- the caller's reference is taken over.
-// That asymmetry is retail's, not a simplification here.  The pThis null check
-// is the only deviation.
 extern "C" void MS_ABI impl__SetDocSite_CDocObjectServer__QEAAXPEAUIOleDocumentSite___Z(
-    void* pThis, IOleDocumentSite* pDocSite) {
-    if (pThis == nullptr) return;
-    impl__ReleaseDocSite_CDocObjectServer__QEAAXXZ(pThis);
-    Member<IOleDocumentSite*>(pThis, kOff_m_pDocSite) = pDocSite;
+    CDocObjectServer* server, IOleDocumentSite* site) {
+    if (server) server->SetDocSite(site);
+}
+void CDocObjectServer::SetDocSite(IOleDocumentSite* site) {
+    if (auto* previous = std::exchange(m_pDocSite, site)) previous->Release();
 }
 
 // Forward declarations: CloseView dispatches through this same interface's
@@ -982,7 +924,7 @@ extern "C" long MS_ABI impl__EnumViews_XOleDocument_CDocObjectServer__UEAAJPEAPE
     if (!enumerator) return E_POINTER;
     *enumerator = nullptr;
     if (!part || !view) return E_POINTER;
-    auto* document = static_cast<DocObjectServer::XOleDocument*>(part);
+    auto* document = static_cast<CDocObjectServer::XOleDocument*>(part);
     return document->QueryInterface(IID_IOleDocumentView, reinterpret_cast<void**>(view));
 }
 
@@ -1082,7 +1024,7 @@ extern "C" long MS_ABI impl__GetDocMiscStatus_XOleDocument_CDocObjectServer__UEA
 extern "C" long MS_ABI impl__GetDocument_XOleDocumentView_CDocObjectServer__UEAAJPEAPEAUIUnknown___Z(
     void* part, IUnknown** document) {
     if (!part || !document) return E_POINTER;
-    auto* view = static_cast<DocObjectServer::XOleDocumentView*>(part);
+    auto* view = static_cast<CDocObjectServer::XOleDocumentView*>(part);
     return view->Server()->m_xOleDocument.QueryInterface(IID_IUnknown, reinterpret_cast<void**>(document));
 }
 
@@ -1476,43 +1418,26 @@ extern "C" long MS_ABI impl__SaveViewState_XOleDocumentView_CDocObjectServer__UE
 }
 
 // Symbol: ?SetClientSite@XOleObject@CDocObjectServer@@UEAAJPEAUIOleClientSite@@@Z
-// IOleObject::SetClientSite -- retail RVA 0x2580b0 (mfc140u; the same body at
-// 0x257140 in mfc140), in program order.  server = this - 0x68 (the
-// `lea -0x68(%rcx),%rdi` at 0x2580bf):
-//     AFX_MANAGE_STATE(server + 0x38)
-//     hr = (m_pOwner + 0x278)->vtbl[0x18/8 = 3](pClientSite)   // IOleObject::SetClientSite
-//     if (hr == S_OK) {                          // `test %eax,%eax; jne` at 0x2580f1: exactly 0
-//         CDocObjectServer::ReleaseDocSite(server)                // call 0x256e00
-//         if (pClientSite != NULL)                                // 0x2580fd
-//             hr = pClientSite->QueryInterface(&IID_IOleDocumentSite,
-//                                              &m_pDocSite)      // slot 0; out = server + 0x40
-//     }
-//     return hr
-// The IID is the `lea` operand at 0x258109, .rdata RVA 0x2d9f90 (mfc140u), whose
-// sixteen bytes read c7 bc 22 b7 68 4e 1b 10 a2 bc 00 aa 00 40 47 70 =
-// {B722BCC7-4E68-101B-A2BC-00AA00404770}, IID_IOleDocumentSite.  Note that the
-// QueryInterface writes straight into m_pDocSite (NULL on failure, per COM) and
-// its HRESULT replaces the SetClientSite one, and that a NULL pClientSite
-// leaves m_pDocSite released and NULL with hr == S_OK.  The forward is to
-// COleServerDoc's own XOleObject::SetClientSite thunk with the sub-object
-// address as `this` (layout note at the top).  Deviation: the pThis / m_pOwner
-// null guard; retail would fault.
+// The owning document updates any server created through its factory.
 extern "C" long MS_ABI impl__SetClientSite_XOleObject_CDocObjectServer__UEAAJPEAUIOleClientSite___Z(
-    void* pThis, IOleClientSite* pClientSite) {
-    void* pPart = OwnerOleObjectPart(pThis);
-    if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
-    long hr = impl__SetClientSite_XOleObject_COleServerDoc__UEAAJPEAUIOleClientSite___Z(
-        pPart, pClientSite);
-    if (hr == S_OK) {
-        void* pServer = ServerFromPart(pThis, kOff_m_xOleObject);
-        impl__ReleaseDocSite_CDocObjectServer__QEAAXXZ(pServer);          // 0x2580f8
-        if (pClientSite != nullptr) {
-            hr = pClientSite->QueryInterface(
-                kIID_IOleDocumentSite,
-                reinterpret_cast<void**>(&Member<IOleDocumentSite*>(pServer, kOff_m_pDocSite)));
-        }
-    }
-    return hr;
+    void* part, IOleClientSite* client) {
+    if (!part) return E_UNEXPECTED;
+    auto* server = static_cast<CDocObjectServer::XOleObject*>(part)->Server();
+    auto* owner = server->m_pOwner;
+    if (!owner) return E_UNEXPECTED;
+    const bool managed = owner->m_retailTail.m_ownedDocObjectServer == server ||
+                         owner->m_retailTail.m_pDocObjectServer == server;
+    auto& object = owner->m_retailTail.m_xOleObject;
+    const HRESULT attached = object.SetClientSite(client);
+    if (FAILED(attached)) return attached;
+    if (managed) return client && !server->m_pDocSite ? E_NOINTERFACE : S_OK;
+
+    IOleDocumentSite* site = nullptr;
+    const HRESULT result = client
+        ? client->QueryInterface(IID_IOleDocumentSite, reinterpret_cast<void**>(&site))
+        : S_OK;
+    server->SetDocSite(site);
+    return result;
 }
 
 // Symbol: ?SetColorScheme@XOleObject@CDocObjectServer@@UEAAJPEAUtagLOGPALETTE@@@Z
@@ -1790,170 +1715,170 @@ extern "C" long MS_ABI impl__Update_XOleObject_CDocObjectServer__UEAAJXZ(
     if (pPart == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
     return impl__Update_XOleObject_COleServerDoc__UEAAJXZ(pPart);
 }
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::SetClientSite(IOleClientSite* site) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::SetClientSite(IOleClientSite* site) {
     return impl__SetClientSite_XOleObject_CDocObjectServer__UEAAJPEAUIOleClientSite___Z(this, site);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::GetClientSite(IOleClientSite** site) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::GetClientSite(IOleClientSite** site) {
     return impl__GetClientSite_XOleObject_CDocObjectServer__UEAAJPEAPEAUIOleClientSite___Z(this, site);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::SetHostNames(LPCOLESTR app, LPCOLESTR object) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::SetHostNames(LPCOLESTR app, LPCOLESTR object) {
     return impl__SetHostNames_XOleObject_CDocObjectServer__UEAAJPEB_W0_Z(this, app, object);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::Close(DWORD save) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::Close(DWORD save) {
     return impl__Close_XOleObject_CDocObjectServer__UEAAJK_Z(this, save);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::SetMoniker(DWORD which, IMoniker* moniker) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::SetMoniker(DWORD which, IMoniker* moniker) {
     return impl__SetMoniker_XOleObject_CDocObjectServer__UEAAJKPEAUIMoniker___Z(this, which, moniker);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::GetMoniker(DWORD assign, DWORD which, IMoniker** moniker) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::GetMoniker(DWORD assign, DWORD which, IMoniker** moniker) {
     return impl__GetMoniker_XOleObject_CDocObjectServer__UEAAJKKPEAPEAUIMoniker___Z(this, assign, which, moniker);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::InitFromData(IDataObject* data, BOOL creation, DWORD reserved) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::InitFromData(IDataObject* data, BOOL creation, DWORD reserved) {
     return impl__InitFromData_XOleObject_CDocObjectServer__UEAAJPEAUIDataObject__HK_Z(this, data, creation, reserved);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::GetClipboardData(DWORD reserved, IDataObject** data) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::GetClipboardData(DWORD reserved, IDataObject** data) {
     return impl__GetClipboardData_XOleObject_CDocObjectServer__UEAAJKPEAPEAUIDataObject___Z(this, reserved, data);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::DoVerb(LONG verb, MSG* message, IOleClientSite* site, LONG index, HWND parent, LPCRECT position) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::DoVerb(LONG verb, MSG* message, IOleClientSite* site, LONG index, HWND parent, LPCRECT position) {
     return impl__DoVerb_XOleObject_CDocObjectServer__UEAAJJPEAUtagMSG__PEAUIOleClientSite__JPEAUHWND____PEBUtagRECT___Z(this, verb, message, site, index, parent, position);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::EnumVerbs(IEnumOLEVERB** verbs) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::EnumVerbs(IEnumOLEVERB** verbs) {
     return impl__EnumVerbs_XOleObject_CDocObjectServer__UEAAJPEAPEAUIEnumOLEVERB___Z(this, verbs);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::Update() {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::Update() {
     return impl__Update_XOleObject_CDocObjectServer__UEAAJXZ(this);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::IsUpToDate() {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::IsUpToDate() {
     return impl__IsUpToDate_XOleObject_CDocObjectServer__UEAAJXZ(this);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::GetUserClassID(CLSID* clsid) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::GetUserClassID(CLSID* clsid) {
     return impl__GetUserClassID_XOleObject_CDocObjectServer__UEAAJPEAU_GUID___Z(this, clsid);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::GetUserType(DWORD form, LPOLESTR* name) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::GetUserType(DWORD form, LPOLESTR* name) {
     return impl__GetUserType_XOleObject_CDocObjectServer__UEAAJKPEAPEA_W_Z(this, form, name);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::SetExtent(DWORD aspect, SIZEL* size) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::SetExtent(DWORD aspect, SIZEL* size) {
     return impl__SetExtent_XOleObject_CDocObjectServer__UEAAJKPEAUtagSIZE___Z(this, aspect, size);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::GetExtent(DWORD aspect, SIZEL* size) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::GetExtent(DWORD aspect, SIZEL* size) {
     return impl__GetExtent_XOleObject_CDocObjectServer__UEAAJKPEAUtagSIZE___Z(this, aspect, size);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::Advise(IAdviseSink* sink, DWORD* connection) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::Advise(IAdviseSink* sink, DWORD* connection) {
     return impl__Advise_XOleObject_CDocObjectServer__UEAAJPEAUIAdviseSink__PEAK_Z(this, sink, connection);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::Unadvise(DWORD connection) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::Unadvise(DWORD connection) {
     return impl__Unadvise_XOleObject_CDocObjectServer__UEAAJK_Z(this, connection);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::EnumAdvise(IEnumSTATDATA** advise) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::EnumAdvise(IEnumSTATDATA** advise) {
     return impl__EnumAdvise_XOleObject_CDocObjectServer__UEAAJPEAPEAUIEnumSTATDATA___Z(this, advise);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::GetMiscStatus(DWORD aspect, DWORD* status) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::GetMiscStatus(DWORD aspect, DWORD* status) {
     return impl__GetMiscStatus_XOleObject_CDocObjectServer__UEAAJKPEAK_Z(this, aspect, status);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleObject::SetColorScheme(LOGPALETTE* palette) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleObject::SetColorScheme(LOGPALETTE* palette) {
     return impl__SetColorScheme_XOleObject_CDocObjectServer__UEAAJPEAUtagLOGPALETTE___Z(this, palette);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocument::CreateView(IOleInPlaceSite* site, IStream* stream, DWORD reserved, IOleDocumentView** view) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocument::CreateView(IOleInPlaceSite* site, IStream* stream, DWORD reserved, IOleDocumentView** view) {
     return impl__CreateView_XOleDocument_CDocObjectServer__UEAAJPEAUIOleInPlaceSite__PEAUIStream__KPEAPEAUIOleDocumentView___Z(this, site, stream, reserved, view);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocument::GetDocMiscStatus(DWORD* status) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocument::GetDocMiscStatus(DWORD* status) {
     return impl__GetDocMiscStatus_XOleDocument_CDocObjectServer__UEAAJPEAK_Z(this, status);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocument::EnumViews(IEnumOleDocumentViews** enumerator, IOleDocumentView** view) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocument::EnumViews(IEnumOleDocumentViews** enumerator, IOleDocumentView** view) {
     return impl__EnumViews_XOleDocument_CDocObjectServer__UEAAJPEAPEAUIEnumOleDocumentViews__PEAPEAUIOleDocumentView___Z(this, reinterpret_cast<void**>(enumerator), view);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::SetInPlaceSite(IOleInPlaceSite* site) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::SetInPlaceSite(IOleInPlaceSite* site) {
     return impl__SetInPlaceSite_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite___Z(this, site);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::GetInPlaceSite(IOleInPlaceSite** site) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::GetInPlaceSite(IOleInPlaceSite** site) {
     return impl__GetInPlaceSite_XOleDocumentView_CDocObjectServer__UEAAJPEAPEAUIOleInPlaceSite___Z(this, site);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::GetDocument(IUnknown** document) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::GetDocument(IUnknown** document) {
     return impl__GetDocument_XOleDocumentView_CDocObjectServer__UEAAJPEAPEAUIUnknown___Z(this, document);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::SetRect(RECT* rect) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::SetRect(RECT* rect) {
     return impl__SetRect_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT___Z(this, rect);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::GetRect(RECT* rect) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::GetRect(RECT* rect) {
     return impl__GetRect_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT___Z(this, rect);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::SetRectComplex(RECT* view, RECT* horizontal, RECT* vertical, RECT* sizeBox) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::SetRectComplex(RECT* view, RECT* horizontal, RECT* vertical, RECT* sizeBox) {
     return impl__SetRectComplex_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT__000_Z(this, view, horizontal, vertical, sizeBox);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::Show(BOOL show) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::Show(BOOL show) {
     return impl__Show_XOleDocumentView_CDocObjectServer__UEAAJH_Z(this, show);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::UIActivate(BOOL activate) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::UIActivate(BOOL activate) {
     return impl__UIActivate_XOleDocumentView_CDocObjectServer__UEAAJH_Z(this, activate);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::Open() {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::Open() {
     return impl__Open_XOleDocumentView_CDocObjectServer__UEAAJXZ(this);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::CloseView(DWORD reserved) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::CloseView(DWORD reserved) {
     return impl__CloseView_XOleDocumentView_CDocObjectServer__UEAAJK_Z(this, reserved);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::SaveViewState(IStream* stream) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::SaveViewState(IStream* stream) {
     return impl__SaveViewState_XOleDocumentView_CDocObjectServer__UEAAJPEAUIStream___Z(this, stream);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::ApplyViewState(IStream* stream) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::ApplyViewState(IStream* stream) {
     return impl__ApplyViewState_XOleDocumentView_CDocObjectServer__UEAAJPEAUIStream___Z(this, stream);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleDocumentView::Clone(IOleInPlaceSite* site, IOleDocumentView** view) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::Clone(IOleInPlaceSite* site, IOleDocumentView** view) {
     return impl__Clone_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite__PEAPEAUIOleDocumentView___Z(this, site, view);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleCommandTarget::QueryStatus(const GUID* group, ULONG count, OLECMD* commands, OLECMDTEXT* text) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleCommandTarget::QueryStatus(const GUID* group, ULONG count, OLECMD* commands, OLECMDTEXT* text) {
     return impl__QueryStatus_XOleCommandTarget_CDocObjectServer__UEAAJPEBU_GUID__KQEAU_tagOLECMD__PEAU_tagOLECMDTEXT___Z(this, group, count, commands, text);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XOleCommandTarget::Exec(const GUID* group, DWORD command, DWORD options, VARIANT* input, VARIANT* output) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleCommandTarget::Exec(const GUID* group, DWORD command, DWORD options, VARIANT* input, VARIANT* output) {
     return impl__Exec_XOleCommandTarget_CDocObjectServer__UEAAJPEBU_GUID__KKPEAUtagVARIANT__1_Z(this, group, command, options, input, output);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XPrint::SetInitialPageNum(LONG page) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XPrint::SetInitialPageNum(LONG page) {
     return impl__SetInitialPageNum_XPrint_CDocObjectServer__UEAAJJ_Z(this, page);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XPrint::GetPageInfo(LONG* first, LONG* pages) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XPrint::GetPageInfo(LONG* first, LONG* pages) {
     return impl__GetPageInfo_XPrint_CDocObjectServer__UEAAJPEAJ0_Z(this, first, pages);
 }
 
-HRESULT STDMETHODCALLTYPE DocObjectServer::XPrint::Print(DWORD flags, DVTARGETDEVICE** device, PAGESET** pageSet, STGMEDIUM* options, IContinueCallback* callback, LONG first, LONG* pages, LONG* last) {
+HRESULT STDMETHODCALLTYPE CDocObjectServer::XPrint::Print(DWORD flags, DVTARGETDEVICE** device, PAGESET** pageSet, STGMEDIUM* options, IContinueCallback* callback, LONG first, LONG* pages, LONG* last) {
     return impl__Print_XPrint_CDocObjectServer__UEAAJKPEAPEAUtagDVTARGETDEVICE__PEAPEAUtagPAGESET__PEAUtagSTGMEDIUM__PEAUIContinueCallback__JPEAJ4_Z(this, flags, device, pageSet, options, callback, first, pages, last);
 }
