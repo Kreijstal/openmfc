@@ -24,6 +24,7 @@ extern "C" void MS_ABI impl__RegisterWindowClass_AFX_GLOBAL_DATA__QEAA_AV__CStri
     CString*, void*, const wchar_t*);
 extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[];
 extern "C" unsigned int impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
+extern "C" int MS_ABI impl__GetTotalRefCount_CPaneContainerManager__QEBAHXZ(const void*);
 extern "C" void MS_ABI impl__Init_CMFCDragFrameImpl__QEAAXPEAVCWnd___Z(void*, CWnd*);
 extern "C" void MS_ABI impl__OnDockToRecentPos_CPaneFrameWnd__UEAAXXZ(void*);
 extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(void*, int);
@@ -968,6 +969,12 @@ void CPaneFrameWnd::OnDestroy() {
 
 LRESULT CPaneFrameWnd::OnCheckEmptyState(WPARAM, LPARAM) {
     if (GetPane()) return 0;
+    if (IsKindOf(CMultiPaneFrameWnd::GetThisClass()) &&
+        impl__GetTotalRefCount_CPaneContainerManager__QEBAHXZ(
+            static_cast<CMultiPaneFrameWnd*>(this)->GetContainerManager())) {
+        ::ShowWindow(m_hWnd, SW_HIDE);
+        return 0;
+    }
     bool hide = false;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);

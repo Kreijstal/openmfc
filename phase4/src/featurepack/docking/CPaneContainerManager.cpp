@@ -347,14 +347,7 @@ void DestroySplitDivider(S_CPaneContainer& node) {
 }
 
 void DestroySplitNode(S_CPaneContainer* node) {
-    DestroySplitDivider(*node);
-    SetLeaf(*node, true, nullptr);
-    SetLeaf(*node, false, nullptr);
     impl___1CPaneContainer__UEAA_XZ(node);
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        OwnedSplitNodes().erase(node);
-    }
     delete node;
 }
 
@@ -362,7 +355,6 @@ void DestroySplitChildren(S_CPaneContainer& node) {
     for (auto** slot : {&node.m_pLeftPaneContainer, &node.m_pRightPaneContainer}) {
         auto* child = *slot;
         if (!child || !IsOwnedSplitNode(child)) continue;
-        DestroySplitChildren(*child);
         *slot = nullptr;
         DestroySplitNode(child);
     }
@@ -379,10 +371,39 @@ void CollapseSplit(S_CPaneContainer* node) {
         slot = left ? node->m_pLeftPaneContainer : node->m_pRightPaneContainer;
         if (slot) slot->m_pParentContainer = parent;
         else SetLeaf(*parent, first, left ? node->m_pLeftPane : node->m_pRightPane);
+        node->m_pLeftPaneContainer = nullptr;
+        node->m_pRightPaneContainer = nullptr;
         DestroySplitNode(node);
         node = parent;
     }
 }
+}
+
+void openmfc::detail::CleanUpPaneContainer(S_CPaneContainer& container) {
+    DestroySplitChildren(container);
+    auto* divider = static_cast<CPaneDivider*>(container.m_pSlider);
+    if (divider && !divider->m_dividerData.bDefaultDivider) DestroySplitDivider(container);
+}
+
+void openmfc::detail::DestroyPaneContainerState(S_CPaneContainer& container) {
+    CleanUpPaneContainer(container);
+    container.m_bReleased = TRUE;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    for (void* pane : {container.m_pLeftPane, container.m_pRightPane}) {
+        const auto entry = g_paneToContainer.find(pane);
+        if (entry != g_paneToContainer.end() && entry->second == &container) g_paneToContainer.erase(entry);
+    }
+    auto& reservations = PaneReservations();
+    for (auto it = reservations.begin(); it != reservations.end();) {
+        if (it->second.container == &container) {
+            ClearRecentContainer(*it->first, &container);
+            it = reservations.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    g_containerPanes.erase(&container);
+    OwnedSplitNodes().erase(&container);
 }
 
 bool openmfc::detail::ReserveDividerPane(CPaneDivider& divider, CDockablePane& pane, const RECT& bounds) {
@@ -703,13 +724,131 @@ struct MovedWindow {
     RECT bounds;
 };
 
+bool HasVisibleStyle(const CWnd* window) {
+    return window && (::GetWindowLongPtrW(window->m_hWnd, GWL_STYLE) & WS_VISIBLE);
+}
+
+// Prepare the visible copy and any dividers the source will need if both
+// branches retain hidden or reserved panes. Do not edit the source until the
+// destination can take every moving HWND.
+class PaneTreeCopy {
+public:
+    struct Branch {
+        S_CPaneContainer* copy;
+        bool remains;
+    };
+
+    Branch Prepare(S_CPaneContainer& original, bool keepEmptyBranches, bool isRoot = true) {
+        auto branch = [&](void* pane, S_CPaneContainer* child, void*& movingPane) {
+            if (child) return Prepare(*child, keepEmptyBranches, false);
+            if (HasVisibleStyle(static_cast<CDockablePane*>(pane))) {
+                panes.push_back(pane);
+                movingPane = pane;
+            }
+            return Branch{nullptr, pane && !movingPane};
+        };
+        void* leftPane = nullptr;
+        void* rightPane = nullptr;
+        const auto left = branch(original.m_pLeftPane, original.m_pLeftPaneContainer, leftPane);
+        const auto right = branch(original.m_pRightPane, original.m_pRightPaneContainer, rightPane);
+        const bool remains = left.remains || right.remains || original.m_nRefCount != 0;
+        auto* divider = static_cast<CPaneDivider*>(original.m_pSlider);
+        const bool moveDivider = HasVisibleStyle(divider);
+        if (!isRoot && !keepEmptyBranches && !leftPane && !rightPane && !left.copy && !right.copy && !moveDivider)
+            return {nullptr, remains};
+
+        auto copy = std::make_unique<S_CPaneContainer>();
+        copy->m_pLeftPane = leftPane;
+        copy->m_pRightPane = rightPane;
+        copy->m_pLeftPaneContainer = left.copy;
+        copy->m_pRightPaneContainer = right.copy;
+        copy->m_pSlider = moveDivider ? divider : nullptr;
+        if (moveDivider) sliders.push_back(divider);
+        auto* result = copy.get();
+        nodes.push_back({&original, std::move(copy), moveDivider && left.remains && right.remains});
+        return {result, remains};
+    }
+
+    bool PrepareSourceDividers(void* manager) {
+        for (auto& node : nodes) {
+            if (!node.replaceDivider) continue;
+            auto* divider = static_cast<CPaneDivider*>(node.copy->m_pSlider);
+            RECT size{};
+            if (!::GetClientRect(divider->m_hWnd, &size)) return false;
+            node.replacement = static_cast<CPaneDivider*>(
+                impl__CreatePaneDivider_CPaneContainerManager__IEAAPEAVCPaneDivider__VCRect__KH_Z(manager, &size,
+                    divider->m_dividerData.dwDividerStyle & ~WS_VISIBLE, -1));
+            if (!node.replacement) return false;
+        }
+        return true;
+    }
+
+    ~PaneTreeCopy() {
+        for (const auto& node : nodes) {
+            if (!node.replacement) continue;
+            impl__RemovePaneDivider_CPaneContainerManager__UEAAXPEAVCPaneDivider___Z(
+                node.original->m_pContainerManager, node.replacement);
+            node.replacement->DestroyWindow();
+        }
+    }
+
+    void Commit(void* destination) {
+        for (auto& node : nodes) {
+            auto& original = *node.original;
+            auto* copy = node.copy.release();
+            const auto planned = *copy;
+            impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
+                copy, destination, nullptr, nullptr, nullptr);
+            if (planned.m_pLeftPane) {
+                SetLeaf(original, true, nullptr);
+                SetLeaf(*copy, true, planned.m_pLeftPane);
+            }
+            if (planned.m_pRightPane) {
+                SetLeaf(original, false, nullptr);
+                SetLeaf(*copy, false, planned.m_pRightPane);
+            }
+            copy->m_nPercent = original.m_nPercent;
+            copy->m_nField60 = original.m_nField60;
+            copy->m_bDividerHorz = original.m_bDividerHorz;
+            copy->m_rect64 = original.m_rect64;
+            copy->m_rect74 = original.m_rect74;
+            copy->m_pLeftPaneContainer = planned.m_pLeftPaneContainer;
+            copy->m_pRightPaneContainer = planned.m_pRightPaneContainer;
+            for (auto* child : {copy->m_pLeftPaneContainer, copy->m_pRightPaneContainer})
+                if (child) child->m_pParentContainer = copy;
+            if (auto* divider = static_cast<CPaneDivider*>(planned.m_pSlider)) {
+                ::GetClientRect(divider->m_hWnd, &original.m_rect64);
+                original.m_nField60 = divider->m_dividerData.dwDividerStyle;
+                original.m_bDividerHorz = (original.m_nField60 & kSliderStyleHorz) != 0;
+                original.m_pSlider = std::exchange(node.replacement, nullptr);
+                copy->m_pSlider = divider;
+                divider->m_dividerData.pContainerManager = destination;
+            }
+            std::lock_guard<std::mutex> lock(g_wave2Mutex);
+            OwnedSplitNodes().insert(copy);
+        }
+    }
+
+    std::vector<void*> panes;
+    std::vector<void*> sliders;
+
+private:
+    struct Node {
+        S_CPaneContainer* original;
+        std::unique_ptr<S_CPaneContainer> copy;
+        bool replaceDivider;
+        CPaneDivider* replacement = nullptr;
+    };
+    std::vector<Node> nodes;
+};
+
 bool ReparentTreeWindows(std::vector<MovedWindow>& windows, HWND from, HWND to) {
-    if (from == to) return true;
     for (auto& window : windows) {
         if (!window.hwnd || ::GetParent(window.hwnd) != from || !::GetWindowRect(window.hwnd, &window.bounds))
             return false;
         ::MapWindowPoints(nullptr, from, reinterpret_cast<POINT*>(&window.bounds), 2);
     }
+    if (from == to) return true;
     auto moved = windows.begin();
     for (; moved != windows.end(); ++moved) {
         ::SetLastError(ERROR_SUCCESS);
@@ -757,15 +896,17 @@ void ReconcileSliderIDs(const std::vector<void*>& sliders, HWND host) {
     }
 }
 
-bool TransferPaneTree(void* destination, void* source, CDockablePane* target, DWORD alignment, bool outerEdge) {
+bool TransferPaneTree(void* destination, void* source, CDockablePane* target, DWORD alignment, bool outerEdge,
+    bool copyVisible) {
     auto* dest = Root(destination);
     auto* src = Root(source);
     if (!src || !dest || src == dest) return false;
-    if (impl__GetTotalReferenceCount_CPaneContainer__QEBAHXZ(src) || !HasOwnedChildren(*src)) return false;
+    if (!copyVisible && (impl__GetTotalReferenceCount_CPaneContainer__QEBAHXZ(src) || !HasOwnedChildren(*src)))
+        return false;
     auto* from = Field<CWnd*>(source, kOffDockSite);
     auto* to = Field<CWnd*>(destination, kOffDockSite);
     if (!from || !to || !from->m_hWnd || !to->m_hWnd) return false;
-    const auto panes = ContainerPanes(source);
+    auto panes = ContainerPanes(source);
     if (panes.empty()) return false;
 
     S_CPaneContainer* parent = dest;
@@ -786,19 +927,29 @@ bool TransferPaneTree(void* destination, void* source, CDockablePane* target, DW
     const bool incomingFirst = alignment == kCbrsAlignLeft || alignment == kCbrsAlignTop;
     if (target && !horizontal && !incomingFirst && alignment != kCbrsAlignRight) return false;
 
+    PaneTreeCopy copy;
+    auto moved = copyVisible ? nullptr : std::make_unique<S_CPaneContainer>();
+    auto* attached = copyVisible ? copy.Prepare(*src, false).copy : moved.get();
+    if (copyVisible) {
+        const std::unordered_set<void*> movingPanes(copy.panes.begin(), copy.panes.end());
+        panes.erase(std::remove_if(panes.begin(), panes.end(), [&](CDockablePane* pane) {
+            return !movingPanes.count(pane);
+        }), panes.end());
+        if (panes.empty() || panes.size() != copy.panes.size()) return false;
+    }
     std::vector<MovedWindow> windows;
     for (auto* pane : panes) {
         if (!pane || !pane->CanBeDocked() || pane->IsAutoHideMode() ||
             (target && !target->CanAcceptPane(pane))) return false;
         windows.push_back({pane->m_hWnd});
     }
-    std::vector<void*> sliders;
-    {
+    auto sliders = std::move(copy.sliders);
+    if (!copyVisible) {
         std::lock_guard<std::mutex> guard(g_wave2Mutex);
         sliders = SliderList(source);
     }
     for (void* slider : sliders) windows.push_back({static_cast<CPaneDivider*>(slider)->m_hWnd});
-    auto moved = std::make_unique<S_CPaneContainer>();
+    if (copyVisible && !copy.PrepareSourceDividers(source)) return false;
     auto join = target ? std::make_unique<S_CPaneContainer>() : nullptr;
     CPaneDivider* sash = nullptr;
     if (join) {
@@ -817,43 +968,48 @@ bool TransferPaneTree(void* destination, void* source, CDockablePane* target, DW
     }
 
     if (from != to) ReconcileSliderIDs(sliders, to->m_hWnd);
-    for (void* slider : sliders) static_cast<CPaneDivider*>(slider)->m_dividerData.pContainerManager = destination;
-
-    auto* attached = moved.get();
-    impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
-        attached, destination, nullptr, nullptr, nullptr);
     if (join) {
         impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
             join.get(), destination, nullptr, nullptr, nullptr);
     }
-    const auto attachLeaf = [&](bool first, void* pane) {
-        SetLeaf(*src, first, nullptr);
-        SetLeaf(*attached, first, pane);
-    };
-    attachLeaf(true, src->m_pLeftPane);
-    attachLeaf(false, src->m_pRightPane);
-    attached->m_pLeftPaneContainer = std::exchange(src->m_pLeftPaneContainer, nullptr);
-    attached->m_pRightPaneContainer = std::exchange(src->m_pRightPaneContainer, nullptr);
-    attached->m_pSlider = std::exchange(src->m_pSlider, nullptr);
-    attached->m_bDividerHorz = src->m_bDividerHorz;
-    attached->m_nPercent = src->m_nPercent;
-    attached->m_nField60 = src->m_nField60;
-    for (auto* child : {attached->m_pLeftPaneContainer, attached->m_pRightPaneContainer})
-        if (child) child->m_pParentContainer = attached;
-    ChangeTreeManager(*attached, destination);
+    if (copyVisible) {
+        copy.Commit(destination);
+    } else {
+        impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
+            attached, destination, nullptr, nullptr, nullptr);
+        const auto attachLeaf = [&](bool first, void* pane) {
+            SetLeaf(*src, first, nullptr);
+            SetLeaf(*attached, first, pane);
+        };
+        attachLeaf(true, src->m_pLeftPane);
+        attachLeaf(false, src->m_pRightPane);
+        attached->m_pLeftPaneContainer = std::exchange(src->m_pLeftPaneContainer, nullptr);
+        attached->m_pRightPaneContainer = std::exchange(src->m_pRightPaneContainer, nullptr);
+        attached->m_pSlider = std::exchange(src->m_pSlider, nullptr);
+        attached->m_bDividerHorz = src->m_bDividerHorz;
+        attached->m_nPercent = src->m_nPercent;
+        attached->m_nField60 = src->m_nField60;
+        for (auto* child : {attached->m_pLeftPaneContainer, attached->m_pRightPaneContainer})
+            if (child) child->m_pParentContainer = attached;
+        ChangeTreeManager(*attached, destination);
+    }
 
     auto* divider = Field<CPaneDivider*>(destination, kOffDefaultSlider);
     auto* oldDivider = Field<CPaneDivider*>(source, kOffDefaultSlider);
     {
         std::lock_guard<std::mutex> guard(g_wave2Mutex);
-        OwnedSplitNodes().insert(attached);
-        moved.release();
+        if (moved) OwnedSplitNodes().insert(moved.release());
         if (join) OwnedSplitNodes().insert(join.get());
-        g_containerManagerPanes[source].panes.clear();
-        if (oldDivider) g_dividerPanes[oldDivider].panes.clear();
+        auto removeMovedPanes = [&](PaneState& state) {
+            for (auto* pane : panes) RemovePane(state, pane);
+        };
+        removeMovedPanes(g_containerManagerPanes[source]);
+        if (oldDivider) removeMovedPanes(g_dividerPanes[oldDivider]);
         auto& receiving = SliderList(destination);
         receiving.insert(receiving.end(), sliders.begin(), sliders.end());
-        SliderList(source).clear();
+        auto& remaining = SliderList(source);
+        for (auto* slider : sliders)
+            remaining.erase(std::remove(remaining.begin(), remaining.end(), slider), remaining.end());
     }
 
     if (join) {
@@ -882,9 +1038,17 @@ bool TransferPaneTree(void* destination, void* source, CDockablePane* target, DW
         if (divider) insert(g_dividerPanes[divider]);
     }
     for (auto* pane : panes) AdoptTransferredPane(*pane, *to, from, divider);
-    if (oldDivider) ::ShowWindow(oldDivider->m_hWnd, SW_HIDE);
-    if (from->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
-        ::PostMessageW(from->m_hWnd, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
+    const bool sourceEmpty = ContainerPanes(source).empty();
+    if (oldDivider) {
+        if (sourceEmpty && !impl__GetTotalReferenceCount_CPaneContainer__QEBAHXZ(src))
+            DestroySplitChildren(*src);
+        if (!DividerHasVisiblePanes(oldDivider)) ::ShowWindow(oldDivider->m_hWnd, SW_HIDE);
+        RefreshDividerPanes(oldDivider);
+    }
+    if (from->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))) {
+        if (sourceEmpty) ::PostMessageW(from->m_hWnd, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
+        else if (!impl__IsVisible_CPaneContainer__QEBAHXZ(src)) ::ShowWindow(from->m_hWnd, SW_HIDE);
+    }
 
     if (divider) {
         CGlobalUtils utils;
@@ -904,17 +1068,25 @@ bool TransferPaneTree(void* destination, void* source, CDockablePane* target, DW
 }
 }
 
+S_CPaneContainer* openmfc::detail::CopyVisiblePaneContainer(S_CPaneContainer& source, S_CPaneContainer* parent) {
+    PaneTreeCopy copy;
+    auto* root = copy.Prepare(source, true).copy;
+    copy.Commit(source.m_pContainerManager);
+    root->m_pParentContainer = parent;
+    return root;
+}
+
 // Symbol: ?AddPaneContainerManager@CPaneContainerManager@@UEAAHAEAV1@H@Z
 extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHAEAV1_H_Z(
     void* pThis, void* pSrcManager, int bOuterEdge) {
-    return TransferPaneTree(pThis, pSrcManager, nullptr, 0, bOuterEdge != FALSE);
+    return TransferPaneTree(pThis, pSrcManager, nullptr, 0, bOuterEdge != FALSE, true);
 }
 
 // Symbol: ?AddPaneContainerManager@CPaneContainerManager@@UEAAHPEAVCDockablePane@@KAEAV1@H@Z
 extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(
-    void* pThis, void* pTargetControlBar, unsigned long dwAlignment, void* pSrcManager, int) {
+    void* pThis, void* pTargetControlBar, unsigned long dwAlignment, void* pSrcManager, int bCopy) {
     return pTargetControlBar && TransferPaneTree(pThis, pSrcManager,
-        static_cast<CDockablePane*>(pTargetControlBar), dwAlignment & kCbrsAlignAny, false);
+        static_cast<CDockablePane*>(pTargetControlBar), dwAlignment & kCbrsAlignAny, false, bCopy != FALSE);
 }
 
 CDockablePane* openmfc::detail::MergeContainerTabs(CDockablePane& target, void* sourceManager) {

@@ -789,7 +789,8 @@ CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMul
     if (!state || !state->parentFrame) return nullptr;
     DWORD allowed = CBRS_ALIGN_ANY;
     for (auto* pane : openmfc::detail::ContainerPanes(source.GetContainerManager()))
-        allowed &= pane->m_dwEnabledAlignment;
+        if (pane && (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE))
+            allowed &= pane->m_dwEnabledAlignment;
     const auto drop = DockingTarget(manager, point, impl__m_nDockSensitivity_CDockingManager__2HA, allowed, first, first);
     if (drop.change != DelayDockToTab && (drop.change != DelayDock || !drop.alignment)) return nullptr;
     if (drop.pane) {

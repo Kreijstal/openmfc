@@ -92,5 +92,8 @@ void TransferDividerPane(CPane& previous, CPane& replacement);
 std::vector<CDockablePane*> ContainerPanes(const void* manager);
 bool ContainerHasPane(const void* manager, const CDockablePane* pane);
 bool DetachContainerPane(void* manager, CDockablePane& pane);
+S_CPaneContainer* CopyVisiblePaneContainer(S_CPaneContainer& source, S_CPaneContainer* parent);
+void CleanUpPaneContainer(S_CPaneContainer& container);
+void DestroyPaneContainerState(S_CPaneContainer& container);
 
 } // namespace openmfc::detail

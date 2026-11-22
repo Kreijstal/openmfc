@@ -331,8 +331,7 @@ extern "C" void* MS_ABI impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__
 }
 // Symbol: ??1CPaneContainer@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CPaneContainer__UEAA_XZ(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    g_containerPanes.erase(pThis);
+    if (pThis) openmfc::detail::DestroyPaneContainerState(*PC(pThis));
     return pThis;
 }
 // Symbol: ?AddPane@CPaneContainer@@QEAAPEAVCDockablePane@@PEAV2@@Z
@@ -820,128 +819,20 @@ extern "C" void MS_ABI impl__CheckPaneDividerVisibility_CPaneContainer__QEAAXXZ(
     if (hwndSlider != nullptr) ::ShowWindow(hwndSlider, bShow ? SW_SHOW : SW_HIDE);
 }
 
-// STUB. Retail ?CleanUp@CPaneContainer@@IEAAXXZ, entry RVA 0xa3910 (mfc140.dll),
-// fully decoded:
-//
-//   if (m_pLeftPaneContainer) {
-//       m_pLeftPaneContainer->CleanUp();                       // 0xa3922, direct call
-//       m_pLeftPaneContainer-><vftable byte 0x08>(1);          // scalar deleting dtor
-//       m_pLeftPaneContainer = NULL;                           // 0xa3942
-//   }
-//   ... the same three steps for m_pRightPaneContainer (0xa394a) ...
-//   if (m_pSlider && m_pSlider-><+0x1c4> == 0 && m_pSlider->m_hWnd != NULL) {
-//       m_pSlider-><vftable byte 0xd0>();                      // CWnd::DestroyWindow
-//       m_pSlider = NULL;                                      // 0xa39a4
-//   }
-//
-// Note that m_pSlider is cleared only on the path that actually destroys the
-// window; the two guards at 0xa3984 / 0xa398d skip the assignment as well.
-//
-// Blocked on both halves.  Byte 0x08 of the CPaneContainer vftable (0x2f4070) is
-// RVA 0xa3860, the scalar deleting destructor, i.e. `~CPaneContainer(); operator
-// delete(this)`, and retail reaches it VIRTUALLY, so a client-derived node runs
-// its own destructor and its own operator delete.  OpenMFC cannot reproduce that.
-// When this was written the only node OpenMFC builds is a manager's root
-// (re-grep -- sibling files change), so every child CleanUp meets was created
-// outside this DLL.  A plain CPaneContainer built that way went through the
-// exported constructor above, which never writes +0x00, so its vfptr is
-// whatever the client's allocator left there and cannot be called through;
-// only a client-DERIVED node has a real vftable (see the file header), and
-// nothing here can tell the two apart.  A non-virtual `impl___1CPaneContainer
-// + ::operator delete` replacement would skip a derived destructor and could
-// pair the block with an operator delete other than the one its class uses
-// (which one that is, is decided by the object's own deleting destructor).
-// Unlinking the children without freeing them would silently leak instead.
-// The divider half tests CPaneDivider +0x1c4 (m_bDefaultDivider) and CWnd::
-// m_hWnd (+0x40).  OpenMFC never stores m_bDefaultDivider in the object:
-// ?Init@CPaneDivider@ in docking/CPaneDivider.cpp keeps it in that file's
-// file-local DividerState side table, which has no accessor reachable from
-// this translation unit.  So +0x1c4 holds nothing OpenMFC wrote -- on a
-// client-allocated 0x218-byte divider it is whatever the allocator left
-// there, and on the 24-byte
-// CObject that docking/DynCreateFactories.cpp allocates for CPaneDivider (the
-// class declared in include/openmfc/afxmfc.h) it lies past the end of the
-// object (see PaneDividerHwnd above).
-// Only the parameter list is corrected, to the (this) shape the export ABI
-// passes; the body stays a stub for the reasons above.
+// CleanUp destroys owned children and the internal divider. The default
+// divider belongs to the dock site.
 // Symbol: ?CleanUp@CPaneContainer@@IEAAXXZ
 extern "C" void MS_ABI impl__CleanUp_CPaneContainer__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis) openmfc::detail::CleanUpPaneContainer(*PC(pThis));
 }
 
-// STUB. Retail ?Copy@CPaneContainer@@UEAAPEAV1@PEAV1@@Z, entry RVA 0xa7ca0
-// (mfc140.dll).  An earlier revision of this comment said the clone's
-// CRuntimeClass comes from "CPaneContainerManager vtable slot 16"; it does not --
-// it is the plain member m_pContainerRTC at manager +0x80 (the load at 0xa7cb9),
-// and the clone is built with CRuntimeClass::CreateObject (call 0x233380):
-//
-//   CRuntimeClass* pRTC = m_pContainerManager->m_pContainerRTC;   // +0x80
-//   CPaneContainer* pNew;
-//   if (pRTC == NULL) {
-//       void* p = operator new(0xf8);                             // 0xa7cc5
-//       if (p == NULL) pNew = NULL;   // 0xa7cf8: retail does NOT return here,
-//                                     // it falls into the code below with a
-//                                     // NULL pNew and faults at the first
-//                                     // store through it (0xa7d42 when the
-//                                     // left pane is hidden, at the latest
-//                                     // the unconditional one at 0xa7d70)
-//       else pNew = new(p) CPaneContainer(m_pContainerManager, m_pLeftPane,
-//                                    m_pRightPane, m_pSlider);    // call 0xa3750
-//   } else {
-//       pNew = (CPaneContainer*)pRTC->CreateObject();
-//       pNew->m_pContainerManager = m_pContainerManager;          // 0xa7d05..0xa7d1d
-//       pNew->m_pLeftPane = m_pLeftPane; pNew->m_pRightPane = m_pRightPane;
-//       pNew->m_pSlider = m_pSlider;
-//   }
-//   // Direction check, because it is easy to get backwards: `bt $0x1c,%eax`
-//   // sets CF from WS_VISIBLE and `jae` is taken when the bit is CLEAR.  So a
-//   // WS_VISIBLE pane MOVES TO THE CLONE -- retail clears it from the ORIGINAL
-//   // at 0xa7d38 (`movq $0,0x8(%rdi)`, rdi == this) -- while a hidden pane
-//   // STAYS WITH THE ORIGINAL and is cleared from the clone at 0xa7d42
-//   // (`movq $0,0x8(%rbx)`, rbx == pNew).  Same shape for m_pRightPane.
-//   pNew->m_pParentContainer = pParentContainer;                  // 0xa7d70
-//   // The two child copies recurse VIRTUALLY, through byte 0xb0 of the child's
-//   // vftable (0xa7d83 / 0xa7dac), and re-parent a non-NULL result:
-//   if (m_pLeftPaneContainer) {
-//       pNew->m_pLeftPaneContainer = m_pLeftPaneContainer->Copy(pNew);    // 0xa7d90
-//       if (pNew->m_pLeftPaneContainer) pNew->m_pLeftPaneContainer->m_pParentContainer = pNew;
-//   }
-//   ... the same for m_pRightPaneContainer (0xa7d9d..0xa7dc2) ...
-//   if (m_pSlider) {
-//       if (m_pSlider->GetStyle() & WS_VISIBLE) {                 // detach it
-//           this->m_nField60 = m_pSlider-><+0x1ac>;               // 0xa7de8
-//           ::GetClientRect(m_pSlider->m_hWnd, &this->m_rect64);  // IAT 0x2c5358
-//           this->m_bDividerHorz = m_pSlider-><vftable byte 0x2d8>();  // 0xa7e09
-//           this->m_pSlider = NULL;
-//       } else pNew->m_pSlider = NULL;
-//   }
-//   return pNew;
-//
-// Blocked.  The operator-new arm hands back an object whose +0x00 retail's
-// constructor fills with the CPaneContainer vftable and OpenMFC's exported
-// constructor does not write at all, so later virtual dispatch on the returned
-// clone would jump through whatever operator new left there.  This function's
-// recursive virtual calls are on the SOURCE child containers, not on the clone;
-// those could be routed through this export directly, as the other bodies here
-// do.  (The CreateObject arm gets whatever vftable the RTC's class constructor
-// writes, so that arm is not affected by the missing local vftable.)  The
-// divider-detach arm cannot: it
-// copies CPaneDivider +0x1ac (m_dwDividerStyle) into m_nField60 and caches
-// the orientation from vftable byte 0x2d8, whose body (RVA 0xab490,
-// mfc140.dll) is `mov 0x1ac(%rcx),%eax; and $0x1,%eax` -- the same member.
-// OpenMFC keeps m_dwDividerStyle in the file-local DividerState side table of
-// docking/CPaneDivider.cpp, not in the object, and nothing reachable from this
-// translation unit exposes it; on the 24-byte CObject that
-// docking/DynCreateFactories.cpp allocates for CPaneDivider, +0x1ac is also
-// past the end of the object.  A guessed style would feed ?IsPaneDividerHorz@
-// and the layout code a wrong orientation.  Only the parameter list is
-// corrected, to the (this, pParentContainer) shape the export ABI passes.
+// A copy transfers the visible leaves and dividers into a new tree with the
+// same manager. The caller links the returned root and updates the manager's
+// pane and divider lists when attaching the tree.
 // Symbol: ?Copy@CPaneContainer@@UEAAPEAV1@PEAV1@@Z
 extern "C" void* MS_ABI impl__Copy_CPaneContainer__UEAAPEAV1_PEAV1__Z(
     void* pThis, void* pParentContainer) {
-    (void)pThis;
-    (void)pParentContainer;
-    return nullptr;
+    return pThis ? openmfc::detail::CopyVisiblePaneContainer(*PC(pThis), PC(pParentContainer)) : nullptr;
 }
 
 // Decoded from retail ?DeletePane@CPaneContainer@@UEAAXPEAVCDockablePane@@W4BC_FIND_CRITERIA@1@@Z,
