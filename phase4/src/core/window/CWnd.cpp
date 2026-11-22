@@ -127,15 +127,6 @@ extern "C" int MS_ABI impl__CheckAutoCenter_CWnd__UEAAHXZ(CWnd* pThis)
     }
     return TRUE;
 }
-// Symbol: ?ContinueModal@CWnd@@UEAAHXZ
-extern "C" int MS_ABI impl__ContinueModal_CWnd__UEAAHXZ(CWnd* pThis)
-{
-    if (!pThis) {
-        return FALSE;
-    }
-    // Retail: return (m_nFlags & MF_MODALLOOP /* 0x10 */) != 0;
-    return (pThis->m_nFlags & 0x10) ? TRUE : FALSE;
-}
 // Symbol: ?CreateControl@CWnd@@QEAAHAEBVCControlCreationInfo@@KPEBUtagPOINT@@PEBUtagSIZE@@PEAV1@I@Z
 extern "C" int MS_ABI impl__CreateControl_CWnd__QEAAHAEBVCControlCreationInfo__KPEBUtagPOINT__PEBUtagSIZE__PEAV1_I_Z(
     CWnd* pThis,
@@ -175,28 +166,6 @@ extern "C" int MS_ABI impl__CreateControlSite_CWnd__MEAAHPEAVCOleControlContaine
     }
     *ppSite = nullptr;
     return TRUE;
-}
-// Symbol: ?EndModalLoop@CWnd@@UEAAXH@Z
-extern "C" void MS_ABI impl__EndModalLoop_CWnd__UEAAXH_Z(
-    CWnd* pThis, int nResult)
-{
-    if (!pThis) {
-        return;
-    }
-    // Retail: m_nModalResult = nResult; if (m_nFlags & MF_MODALLOOP) {
-    //   m_nFlags &= ~MF_MODALLOOP; AfxCancelModes(m_hWnd); }
-    {
-        std::lock_guard<std::mutex> lk(g_coreWndStateMutex);
-        g_coreWndModalResults[pThis] = nResult;
-    }
-    if (!(pThis->m_nFlags & 0x10)) {
-        return;
-    }
-    pThis->m_nFlags &= ~0x10;
-    if (pThis->m_hWnd) {
-        // AfxCancelModes sends WM_CANCELMODE to the window to end modal state.
-        ::SendMessageW(pThis->m_hWnd, WM_CANCELMODE, 0, 0);
-    }
 }
 // Symbol: ?HtmlHelpW@CWnd@@UEAAX_KI@Z
 extern "C" void MS_ABI impl__HtmlHelpW_CWnd__UEAAX_KI_Z(
@@ -2373,24 +2342,6 @@ void CWnd::RemoveRadioCheckFromGroup(const CObject* p0)
             ::SendMessageW(hChild, BM_SETCHECK, BST_UNCHECKED, 0);
         }
     }
-}
-LONGLONG CWnd::RunModalLoop(DWORD p0)
-{
-    (void)p0;
-    if (!m_hWnd) {
-        return 0;
-    }
-    MSG msg {};
-    while (::GetMessageW(&msg, nullptr, 0, 0) > 0) {
-        if (!CWnd_PreTranslateMessageCompat(this, &msg)) {
-            ::TranslateMessage(&msg);
-            ::DispatchMessageW(&msg);
-        }
-        if (msg.message == WM_QUIT) {
-            return static_cast<LONGLONG>(msg.wParam);
-        }
-    }
-    return 0;
 }
 int CWnd::ScrollWindowEx(int p0, int p1, const RECT* p2, const RECT* p3, CRgn* p4, RECT* p5, UINT p6)
 {

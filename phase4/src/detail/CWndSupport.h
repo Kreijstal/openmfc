@@ -1,9 +1,4 @@
 #pragma once
-// Shared internals of the former global_core-windows_impl.cpp translation unit.
-// Definitions live in detail/CWndSupport.cpp, so file-scope state keeps a
-// single instance across the classes this unit was split into.
-namespace openmfc { namespace detail { namespace cwnd {} } }
-using namespace openmfc::detail::cwnd;
 // CWnd core-window exports (wave 1: core-windows)
 //
 // Implements the remaining CWnd exports in the Windows/MSVC x64 ABI. Every
@@ -32,27 +27,6 @@ using namespace openmfc::detail::cwnd;
 // ---------------------------------------------------------------------------
 extern "C" int MS_ABI impl__ModifyStyle_CWnd__SAHPEAUHWND____KKI_Z(HWND__* p0, unsigned long p1, unsigned long p2, unsigned int p3);
 extern "C" int MS_ABI impl__ModifyStyleEx_CWnd__SAHPEAUHWND____KKI_Z(HWND__* p0, unsigned long p1, unsigned long p2, unsigned int p3);
-
-// ---------------------------------------------------------------------------
-// File-local per-window state
-// ---------------------------------------------------------------------------
-// Sibling implementations (wincore.cpp) keep per-window state in
-// mutex-guarded std::map containers; follow the same pattern here for the two
-// values that have no declared member in the (simplified) CWnd layout:
-//   - SetProxy  stores the accessibility proxy (retail offset 0x58)
-//   - EndModalLoop stores the modal result (retail offset 0xB8, m_nModalResult)
-namespace openmfc { namespace detail { namespace cwnd {
-extern std::mutex g_coreWndStateMutex;
-} } }
-namespace openmfc { namespace detail { namespace cwnd {
-} } }
-namespace openmfc { namespace detail { namespace cwnd {
-extern std::map<const CWnd*, int> g_coreWndModalResults;
-} } }
-
-// ===========================================================================
-// CWnd
-// ===========================================================================
 
 
 

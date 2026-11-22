@@ -2436,11 +2436,6 @@ extern "C" int MS_ABI impl__AfxPropSheetCallback__YAHPEAUHWND____I_J_Z(void* /*s
     (void)p0; (void)p1; (void)p2;
     return 0;
 }
-// Symbol: ?AfxPumpMessage@@YAHXZ
-extern "C" int MS_ABI impl__AfxPumpMessage__YAHXZ() {
-    auto* pThread = AfxGetThread();
-    return pThread ? pThread->PumpMessage() : FALSE;
-}
 // Symbol: ?AfxRegCreateKey@@YAJPEAUHKEY__@@PEB_WPEAPEAU1@PEAVCAtlTransactionManager@ATL@@@Z
 extern "C" long MS_ABI impl__AfxRegCreateKey__YAJPEAUHKEY____PEB_WPEAPEAU1_PEAVCAtlTransactionManager_ATL___Z(
     HKEY hKey, const wchar_t* lpszSubKey, HKEY* phkResult, void* pTransaction) {

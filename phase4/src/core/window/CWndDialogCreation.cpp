@@ -2,6 +2,7 @@
 #include "detail/RegcoreSupport.h"
 #include "detail/WindowCreationSupport.h"
 #include "detail/WindowActivationSupport.h"
+#include "detail/WindowModalSupport.h"
 
 extern "C" {
 HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(const wchar_t*, const wchar_t*);
@@ -10,8 +11,6 @@ BOOL MS_ABI impl__AfxUnhookWindowCreate__YAHXZ();
 }
 
 namespace {
-constexpr UINT continueModal = 0x10;
-
 INT_PTR CALLBACK ModelessDialogProc(HWND window, UINT message, WPARAM, LPARAM) {
     if (message != WM_INITDIALOG) return FALSE;
     auto* wrapper = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
@@ -65,7 +64,7 @@ int CWnd::CreateDlgIndirect(const DLGTEMPLATE* dialog, void* parent, HINSTANCE m
         if (manager) dialog = PrepareOleTemplate(manager, &info, dialog);
         if (dialog) {
             m_nModalResult = -1;
-            m_nFlags |= continueModal;
+            m_nFlags |= openmfc::detail::wfContinueModal;
             impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(this);
             window = openmfc::detail::ContextCreateDialog(
                 module, dialog, owner ? owner->m_hWnd : nullptr, ModelessDialogProc);
@@ -84,7 +83,7 @@ int CWnd::CreateDlgIndirect(const DLGTEMPLATE* dialog, void* parent, HINSTANCE m
         PostNcDestroy();
         return FALSE;
     }
-    if (window && (m_nFlags & continueModal) == 0) {
+    if (window && (m_nFlags & openmfc::detail::wfContinueModal) == 0) {
         ::DestroyWindow(window);
         return FALSE;
     }
@@ -92,7 +91,19 @@ int CWnd::CreateDlgIndirect(const DLGTEMPLATE* dialog, void* parent, HINSTANCE m
 }
 
 int CWnd::CreateRunDlgIndirect(const DLGTEMPLATE* dialog, void* parent, HINSTANCE module) {
-    return CreateDlgIndirect(dialog, parent, module);
+    using namespace openmfc::detail;
+    if (!CreateDlgIndirect(dialog, parent, module)) return FALSE;
+
+    if (m_nFlags & wfContinueModal) {
+        DWORD flags = mlfShowOnIdle;
+        if (GetStyle() & DS_NOIDLEMSG) flags |= mlfNoIdleMessage;
+        RunModalLoop(flags);
+    }
+    if (m_hWnd) {
+        SetWindowPos(nullptr, 0, 0, 0, 0,
+                     SWP_HIDEWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+    }
+    return TRUE;
 }
 
 // Symbol: ?CreateDlgIndirect@CWnd@@IEAAHPEBUDLGTEMPLATE@@PEAV1@PEAUHINSTANCE__@@@Z

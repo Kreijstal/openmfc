@@ -1505,11 +1505,6 @@ extern "C" int MS_ABI impl__ReflectChildNotify_CWnd__IEAAHI_K_JPEA_J_Z(CWnd* pTh
 extern "C" int MS_ABI impl__ReflectLastMsg_CWnd__KAHPEAUHWND____PEA_J_Z(HWND__* p0, __int64* p1) {
     return (int)CWnd::ReflectLastMsg(p0, p1);
 }
-// Symbol: ?RunModalLoop@CWnd@@QEAAHK@Z
-// CWnd::RunModalLoop
-extern "C" int MS_ABI impl__RunModalLoop_CWnd__QEAAHK_Z(CWnd* pThis, unsigned long p0) {
-    return (int)pThis->RunModalLoop(p0);
-}
 // Symbol: ?SendDlgItemMessageW@CWnd@@QEAA_JHI_K_J@Z
 // CWnd::SendDlgItemMessageW
 extern "C" __int64 MS_ABI impl__SendDlgItemMessageW_CWnd__QEAA_JHI_K_J_Z(CWnd* pThis, int p0, unsigned int p1, unsigned __int64 p2, __int64 p3) {

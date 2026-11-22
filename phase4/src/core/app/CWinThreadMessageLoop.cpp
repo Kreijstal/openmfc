@@ -1,6 +1,7 @@
 // Native release x64 CWinThread idle loop and pumped-message storage.
 #define OPENMFC_APPCORE_IMPL
 #include "detail/ModuleThreadStateSupport.h"
+#include "detail/WindowModalSupport.h"
 
 extern "C" BOOL MS_ABI impl__AfxPreTranslateMessage__YAHPEAUtagMSG___Z(MSG*);
 
@@ -44,8 +45,8 @@ extern "C" BOOL MS_ABI impl__AfxInternalPumpMessage__YAHXZ() {
     auto* state = AfxGetThreadState();
     MSG* message = &state->m_msgCur;
     if (!::GetMessageW(message,nullptr,0,0)) return FALSE;
-    // MFC's private WM_KICKIDLE is consumed without translation/dispatch.
-    if (message->message != 0x036a && !impl__AfxPreTranslateMessage__YAHPEAUtagMSG___Z(message)) {
+    if (message->message != openmfc::detail::wmKickIdle &&
+        !impl__AfxPreTranslateMessage__YAHPEAUtagMSG___Z(message)) {
         ::TranslateMessage(message);
         ::DispatchMessageW(message);
     }
@@ -55,6 +56,12 @@ BOOL CWinThread::PumpMessage() { return impl__AfxInternalPumpMessage__YAHXZ(); }
 // Symbol: ?PumpMessage@CWinThread@@UEAAHXZ
 extern "C" BOOL MS_ABI impl__PumpMessage_CWinThread__UEAAHXZ(CWinThread* self) {
     return self->CWinThread::PumpMessage();
+}
+
+// Symbol: ?AfxPumpMessage@@YAHXZ
+extern "C" BOOL MS_ABI impl__AfxPumpMessage__YAHXZ() {
+    auto* thread = impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()->m_pCurrentWinThread;
+    return thread ? thread->PumpMessage() : impl__AfxInternalPumpMessage__YAHXZ();
 }
 
 // Symbol: ?AfxInternalIsIdleMessage@@YAHPEAUtagMSG@@@Z

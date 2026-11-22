@@ -962,7 +962,7 @@ public:
     enum { reposDefault = 0, reposQuery = 1, reposExtra = 2, reposNoPosLeftOver = 0x8000 };
     void RepositionBars(UINT first, UINT last, UINT leftOver, UINT flags = reposDefault,
                         RECT* result = nullptr, const RECT* client = nullptr, BOOL stretch = TRUE);
-    LONGLONG RunModalLoop(DWORD p0);
+    int RunModalLoop(DWORD flags = 0);
     void ScreenToClient(RECT* p0) const;
     void ScrollWindow(int p0, int p1, const RECT* p2, const RECT* p3);
     int ScrollWindowEx(int p0, int p1, const RECT* p2, const RECT* p3, CRgn* p4, RECT* p5, UINT p6);

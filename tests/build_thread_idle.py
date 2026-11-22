@@ -94,8 +94,8 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == 12, count
-    print('All twelve idle/loop/exception export aliases match the DLL generator', flush=True)
+    assert count == 13, count
+    print(f'All {count} idle/loop/exception export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
     link.extend(['kernel32.lib', 'user32.lib'])
     response = out / 'link.rsp'
