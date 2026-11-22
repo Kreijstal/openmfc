@@ -8,6 +8,7 @@
 
 #include "detail/OlecoreSupport.h"
 #include "detail/CCmdTargetVirtualsSupport.h"
+#include <memory>
 #include <new>
 #include <utility>
 
@@ -23,6 +24,7 @@
 // Forward declarations for impl functions referenced from other impls below.
 extern "C" int MS_ABI impl__FinishCreate_COleClientItem__MEAAHJ_Z(
         COleClientItem* pThis, long hr);
+extern "C" DWORD MS_ABI impl__GetNewItemNumber_COleClientItem__QEAAKXZ(COleClientItem*);
 extern "C" void MS_ABI impl__GetEmbeddedItemData_COleClientItem__IEAAXPEAUtagSTGMEDIUM___Z(
         COleClientItem* pThis, STGMEDIUM* lpMedium);
 extern "C" void MS_ABI impl__AddCachedData_COleClientItem__IEAAXPEAVCOleDataSource___Z(
@@ -60,6 +62,12 @@ extern "C" int MS_ABI impl__OnChangeItemPosition_COleClientItem__MEAAHAEBVCRect_
         COleClientItem* pThis, const CRect* pRect);
 
 namespace {
+void EnsureItemNumber(COleClientItem* item) {
+    auto* state = GetClientItemState(item, true);
+    if (state && state->itemNumber == 0)
+        state->itemNumber = impl__GetNewItemNumber_COleClientItem__QEAAKXZ(item);
+}
+
 void ReleaseFrameHook(COleFrameHook*& holder) {
     auto* hook = std::exchange(holder, nullptr);
     if (!hook) return;
@@ -439,13 +447,13 @@ extern "C" int MS_ABI impl__CreateCloneFrom_COleClientItem__QEAAHPEBV1__Z(
 // Symbol: ?FinishCreate@COleClientItem@@MEAAHJ@Z
 // Local partial setup after an OLE create call. Retail FinishCreate (entry
 // RVA 0x244ba0 (mfc140u)) also calls CheckGeneral and UpdateItemType, obtains
-// and configures IOleCache, and updates additional private state; this body
-// only performs a best-effort IOleLink query and sets the local status.
+// and configures IOleCache, and updates additional private state.
 extern "C" int MS_ABI impl__FinishCreate_COleClientItem__MEAAHJ_Z(
         COleClientItem* pThis, long hr) {
     if (!pThis) return FALSE;
     if (!pThis->m_lpObject) return FALSE;
     if (FAILED(hr)) return FALSE;
+    EnsureItemNumber(pThis);
     if (!pThis->m_lpLink) {
         pThis->m_lpObject->QueryInterface(IID_IOleLink, reinterpret_cast<void**>(&pThis->m_lpLink));
     }
@@ -1076,6 +1084,7 @@ BOOL COleClientItem::CreateNewItem(REFCLSID clsid, OLERENDER render, CLIPFORMAT 
     HRESULT hr = CoCreateInstance(clsid, nullptr, CLSCTX_ALL, IID_IOleObject,
                                   reinterpret_cast<void**>(&m_lpObject));
     if (SUCCEEDED(hr) && m_lpObject) {
+        EnsureItemNumber(this);
         OleSetContainedObject(m_lpObject, TRUE);
         m_nStatus = OLE_LOADED;
         return TRUE;
@@ -1099,6 +1108,7 @@ BOOL COleClientItem::CreateFromData(COleDataObject* pDataObject, OLERENDER rende
                                    reinterpret_cast<void**>(&m_lpObject));
     dataObject->Release();
     if (SUCCEEDED(hr) && m_lpObject) {
+        EnsureItemNumber(this);
         m_nStatus = OLE_LOADED;
         return TRUE;
     }
@@ -1118,6 +1128,7 @@ BOOL COleClientItem::CreateLinkFromClipboard(OLERENDER render, CLIPFORMAT cfForm
                                reinterpret_cast<void**>(&m_lpObject));
     dataObject->Release();
     if (SUCCEEDED(hr) && m_lpObject) {
+        EnsureItemNumber(this);
         m_lpObject->QueryInterface(IID_IOleLink, reinterpret_cast<void**>(&m_lpLink));
         m_nStatus = OLE_LOADED;
         return TRUE;
@@ -1842,16 +1853,22 @@ extern "C" int MS_ABI impl__GetLinkUpdateOptions_COleClientItem__QEAA_AW4tagOLEU
 }
 
 // Symbol: ?GetNewItemNumber@COleClientItem@@QEAAKXZ
-// Retail entry: RVA 0x244700 (mfc140u). It reads document+0x1b8, scans the
-// document item list for collisions with item+0x58, then updates and returns
-// the next unused number. DocumentState::nextItemNumber and ClientItemState's
-// itemNumber are modeled, but accessing GetDocumentState from this TU adds a
-// new undefined C++ helper that checkfile.sh rejects; no C-linkage accessor or
-// impl__ thunk for that state currently exists, so this remains stubbed.
-extern "C" unsigned long MS_ABI impl__GetNewItemNumber_COleClientItem__QEAAKXZ(
-        COleClientItem* pThis) {
-    (void)pThis;
-    return 0;
+// Retail starts at the document's next number and skips numbers already in use.
+extern "C" DWORD MS_ABI impl__GetNewItemNumber_COleClientItem__QEAAKXZ(COleClientItem* item) {
+    if (!item || !item->m_pDocument) return 0;
+    auto* document = GetDocumentState(static_cast<COleDocument*>(item->m_pDocument), true);
+    if (!document) return 0;
+
+    for (;;) {
+        const DWORD number = document->nextItemNumber++;
+        if (number == 0) continue;
+        const auto used = std::any_of(document->items.begin(), document->items.end(),
+            [number](const COleClientItem* other) {
+                const auto* state = FindClientItemState(other);
+                return state && state->itemNumber == number;
+            });
+        if (!used) return number;
+    }
 }
 
 // Symbol: ?GetObjectDescriptorData@COleClientItem@@IEAAXPEAUtagPOINT@@PEAUtagSIZE@@PEAUtagSTGMEDIUM@@@Z
@@ -2439,40 +2456,70 @@ extern "C" long MS_ABI impl__DiscardUndoState_XOleIPSite_COleClientItem__UEAAJXZ
 }
 
 // Symbol: ?GetContainer@XOleClientSite@COleClientItem@@UEAAJPEAPEAUIOleContainer@@@Z
-// COleClientItem::XOleClientSite::GetContainer(IOleContainer**) — retail
-// 0x245dd0, which has no module-state prologue:
-//     if (ppContainer == NULL) return E_POINTER;              // 0x245dde
-//     COleDocument* pDoc = pThis->m_pDocument;                // 0x245de5
-//     if (pDoc == NULL) return E_UNEXPECTED;                  // 0x245df1
-//     *ppContainer = pDoc->vftable[0x278]();                  // 0x245dfb
-//     return *ppContainer ? S_OK : E_NOINTERFACE;             // 0x245e12
-// The E_POINTER test is reproduced and the outer item offset is represented,
-// but this conservative body does not dispatch through the document. Its
-// E_UNEXPECTED result matches retail's null-document path only; with a non-null
-// document that returns no container retail would return E_NOINTERFACE.
-// Deviation: the out-parameter is nulled first.
+// The document's GetContainer returns an owned reference for the caller.
 extern "C" long MS_ABI impl__GetContainer_XOleClientSite_COleClientItem__UEAAJPEAPEAUIOleContainer___Z(
-        void* pThisItf, IOleContainer** ppContainer) {
-    (void)pThisItf;
-    if (!ppContainer) return E_POINTER;
-    *ppContainer = nullptr;
-    return E_UNEXPECTED;
+    void* part, IOleContainer** container) {
+    if (!container) return E_POINTER;
+    *container = nullptr;
+    if (!part) return E_UNEXPECTED;
+    const auto* item = reinterpret_cast<const COleClientItem*>(static_cast<BYTE*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleClientSiteVftable));
+    auto* document = static_cast<COleDocument*>(item->m_pDocument);
+    if (!document) return E_UNEXPECTED;
+    *container = document->GetContainer();
+    return *container ? S_OK : E_NOINTERFACE;
 }
 
 // Symbol: ?GetMoniker@XOleClientSite@COleClientItem@@UEAAJKKPEAPEAUIMoniker@@@Z
-// Retail entry: RVA 0x247710 (mfc140u). It rejects a null output pointer,
-// clears the output, and selects container, relative-item, or composed full
-// monikers based on dwWhichMoniker; a produced moniker yields S_OK, otherwise
-// E_FAIL. The outer item offset is represented, but the raw interface slot is
-// not installed and the valid moniker composition path is unavailable. This
-// stub preserves pointer validation and the empty-output E_FAIL path.
+// Retail composes the document moniker with an item moniker for its full name.
 extern "C" long MS_ABI impl__GetMoniker_XOleClientSite_COleClientItem__UEAAJKKPEAPEAUIMoniker___Z(
-        void* pThisItf, unsigned long dwAssign, unsigned long dwWhichMoniker,
-        IMoniker** ppmk) {
-    (void)pThisItf; (void)dwAssign; (void)dwWhichMoniker;
-    if (!ppmk) return E_POINTER;
-    *ppmk = nullptr;
-    return E_FAIL;   // retail's tail at 0x245d85 when *ppmk is still NULL
+    void* part, DWORD assign, DWORD which, IMoniker** result) {
+    if (!result) return E_POINTER;
+    *result = nullptr;
+    if (!part) return E_FAIL;
+    auto* item = reinterpret_cast<COleClientItem*>(static_cast<BYTE*>(part) -
+        offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleClientSiteVftable));
+    auto* document = static_cast<COleDocument*>(item->m_pDocument);
+    if (!document) return E_FAIL;
+    openmfc::detail::CmdTargetModuleScope state(item->m_pModuleState);
+    const auto release = [](IMoniker* moniker) { moniker->Release(); };
+    using Moniker = std::unique_ptr<IMoniker, decltype(release)>;
+
+    if (which == OLEWHICHMK_CONTAINER) {
+        *result = document->GetMoniker(static_cast<OLEGETMONIKER>(assign));
+    } else if (which == OLEWHICHMK_OBJFULL) {
+        auto* site = static_cast<IOleClientSite*>(part);
+        IMoniker* name = nullptr;
+        site->GetMoniker(assign, OLEWHICHMK_CONTAINER, &name);
+        Moniker container(name, release);
+        name = nullptr;
+        site->GetMoniker(assign, OLEWHICHMK_OBJREL, &name);
+        Moniker relative(name, release);
+        if (container && relative) ::CreateGenericComposite(container.get(), relative.get(), result);
+    } else if (which == OLEWHICHMK_OBJREL && document->IsKindOf(RUNTIME_CLASS(COleLinkingDoc))) {
+        auto* container = document->GetMoniker(static_cast<OLEGETMONIKER>(assign));
+        if (!container) return E_FAIL;
+        container->Release();
+
+        auto* itemState = GetClientItemState(item, true);
+        if (assign == OLEGETMONIKER_UNASSIGN) {
+            itemState->monikerAssigned = 0;
+            return E_FAIL;
+        }
+        if (assign != OLEGETMONIKER_TEMPFORUSER && assign != OLEGETMONIKER_FORCEASSIGN &&
+            (assign != OLEGETMONIKER_ONLYIFTHERE || !itemState->monikerAssigned)) return E_FAIL;
+
+        if (item->GetObject()) EnsureItemNumber(item);
+        wchar_t name[21];
+        impl__GetItemName_COleClientItem__QEBAXPEA_W_Z(item, name);
+        if (SUCCEEDED(::CreateItemMoniker(L"\\", name, result)) && *result &&
+            assign != OLEGETMONIKER_TEMPFORUSER && !itemState->monikerAssigned && item->GetObject()) {
+            itemState->monikerAssigned = 1;
+            item->GetObject()->SetMoniker(OLEWHICHMK_OBJREL, *result);
+            if (item->m_pDocument) item->m_pDocument->SetModifiedFlag(TRUE);
+        }
+    }
+    return *result ? S_OK : E_FAIL;
 }
 
 // Symbol: ?GetWindow@XOleIPSite@COleClientItem@@UEAAJPEAPEAUHWND__@@@Z

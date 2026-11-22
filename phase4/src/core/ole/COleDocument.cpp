@@ -973,9 +973,12 @@ extern "C" int MS_ABI impl__DoSave_COleDocument__UEAAHPEB_WH_Z(COleDocument* pTh
 // symbol won the fold).  Linking to embedded items needs COleLinkingDoc, whose
 // own GetContainer is exported separately.
 // Symbol: ?GetContainer@COleDocument@@UEAAPEAUIOleItemContainer@@XZ
-extern "C" void* MS_ABI impl__GetContainer_COleDocument__UEAAPEAUIOleItemContainer__XZ(COleDocument* pThis) {
+extern "C" IOleItemContainer* MS_ABI impl__GetContainer_COleDocument__UEAAPEAUIOleItemContainer__XZ(COleDocument* pThis) {
     (void)pThis;
     return nullptr;
+}
+IOleItemContainer* COleDocument::GetContainer() {
+    return impl__GetContainer_COleDocument__UEAAPEAUIOleItemContainer__XZ(this);
 }
 
 // COleDocument::GetFirstFrame() -- mfc140u 0x254980:
@@ -1034,12 +1037,16 @@ extern "C" void* MS_ABI impl__GetInPlaceActiveItem_COleDocument__UEAAPEAVCOleCli
 //     return SUCCEEDED(hr) ? lpMoniker : NULL;
 // nAssign is not read (COleLinkingDoc overrides this with the real protocol).
 // Symbol: ?GetMoniker@COleDocument@@UEAAPEAUIMoniker@@W4tagOLEGETMONIKER@@@Z
-extern "C" void* MS_ABI impl__GetMoniker_COleDocument__UEAAPEAUIMoniker__W4tagOLEGETMONIKER___Z(COleDocument* pThis, int nAssign) {
+extern "C" IMoniker* MS_ABI impl__GetMoniker_COleDocument__UEAAPEAUIMoniker__W4tagOLEGETMONIKER___Z(
+    COleDocument* pThis, OLEGETMONIKER nAssign) {
     (void)nAssign;
     if (!pThis || pThis->m_strPathName.IsEmpty()) return nullptr;
     LPMONIKER lpMoniker = nullptr;
     HRESULT hr = ::CreateFileMoniker(pThis->m_strPathName, &lpMoniker);
     return SUCCEEDED(hr) ? lpMoniker : nullptr;
+}
+IMoniker* COleDocument::GetMoniker(OLEGETMONIKER assign) {
+    return impl__GetMoniker_COleDocument__UEAAPEAUIMoniker__W4tagOLEGETMONIKER___Z(this, assign);
 }
 
 // COleDocument::LoadFromStorage() -- mfc140u 0x255150:

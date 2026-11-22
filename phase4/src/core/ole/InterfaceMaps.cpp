@@ -55,6 +55,7 @@ const AFX_INTERFACEMAP* COleFrameHook::GetInterfaceMap() const { return &g_imap_
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleLinkingDoc__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleLinkingDoc; }
 // Symbol: ?GetInterfaceMap@COleLinkingDoc@@MEBAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetInterfaceMap_COleLinkingDoc__MEBAPEBUAFX_INTERFACEMAP__XZ(const void* pThis) { (void)pThis; return &g_imap_COleLinkingDoc; }
+const AFX_INTERFACEMAP* COleLinkingDoc::GetInterfaceMap() const { return &g_imap_COleLinkingDoc; }
 // Symbol: ?GetThisInterfaceMap@COleMessageFilter@@KAPEBUAFX_INTERFACEMAP@@XZ
 extern "C" const AFX_INTERFACEMAP* MS_ABI impl__GetThisInterfaceMap_COleMessageFilter__KAPEBUAFX_INTERFACEMAP__XZ() { return &g_imap_COleMessageFilter; }
 // Symbol: ?GetInterfaceMap@COleMessageFilter@@MEBAPEBUAFX_INTERFACEMAP@@XZ

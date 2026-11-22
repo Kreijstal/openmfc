@@ -55,7 +55,20 @@ const AFX_INTERFACEMAP_ENTRY frameHookInterfaces[] = {
 }
 const AFX_INTERFACEMAP g_imap_COleFrameHook = { gib_COleFrameHook, frameHookInterfaces };
 const AFX_INTERFACEMAP* AFXAPI gib_COleLinkingDoc() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
-const AFX_INTERFACEMAP g_imap_COleLinkingDoc = { gib_COleLinkingDoc, g_ifaceEnd };
+namespace {
+constexpr size_t persistFile = offsetof(COleLinkingDoc, m_xPersistFile);
+constexpr size_t itemContainer = offsetof(COleLinkingDoc, m_xOleItemContainer);
+static_assert(persistFile == 0x220 && itemContainer == 0x228);
+const AFX_INTERFACEMAP_ENTRY linkingDocInterfaces[] = {
+    { &IID_IPersistFile, persistFile },
+    { &IID_IPersist, persistFile },
+    { &IID_IParseDisplayName, itemContainer },
+    { &IID_IOleContainer, itemContainer },
+    { &IID_IOleItemContainer, itemContainer },
+    { nullptr, static_cast<size_t>(-1) }
+};
+}
+const AFX_INTERFACEMAP g_imap_COleLinkingDoc = { gib_COleLinkingDoc, linkingDocInterfaces };
 const AFX_INTERFACEMAP* AFXAPI gib_COleMessageFilter() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }
 const AFX_INTERFACEMAP g_imap_COleMessageFilter = { gib_COleMessageFilter, g_ifaceEnd };
 const AFX_INTERFACEMAP* AFXAPI gib_COleObjectFactory() { return impl__GetThisInterfaceMap_CCmdTarget__KAPEBUAFX_INTERFACEMAP__XZ(); }

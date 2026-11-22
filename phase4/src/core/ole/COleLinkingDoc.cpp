@@ -2,7 +2,7 @@
 // Sources: olecore.cpp
 //
 // The retail-dependent behavior below was checked against the retail
-// disassembly (OnFindEmbeddedItem stays a stub, see there).  OpenMFC layout and
+// disassembly. OpenMFC layout and
 // infrastructure gaps require adaptations; each such deviation is called out
 // at the affected body, so this is not a byte-for-byte transcription.  The
 // disassembler reads
@@ -54,22 +54,11 @@
 // is written through it rather than by re-reading three flags OpenMFC's
 // CDocument does not declare.
 //
-// HOW OpenMFC's DECLARATION DIFFERS (reported as a headerRequest, not patched
-// here -- include/openmfc/afxole.h is not this agent's file).  OpenMFC's
-// COleLinkingDoc declares, at the same total size of 560 bytes:
-//     BOOL m_bRegistered;              // sits where retail has m_pFactory
-//     LPMONIKER m_lpMoniker;           // sits where retail has m_bDeferErrors
-//     char _colelinkingdoc_padding[56];// covers retail +0x1f8 .. +0x230
-// Neither of those two is a retail member: m_bRegistered occupies the bytes
-// retail gives to m_pFactory and m_lpMoniker the bytes retail gives to
-// m_bDeferErrors, so none of retail's nine members is present under its own
-// name, and neither nested interface part is declared or constructed.  The
-// mapping used throughout this file is
+// The state overlay preserves the existing OpenMFC member order:
 //     m_lpMoniker   <-> retail m_lpMonikerROT
 //     m_bRegistered <-> "m_dwRegister != 0"  (retail has no such BOOL)
-// and every remaining retail member is laid over the declared-but-unused
-// _colelinkingdoc_padding through the S_COleLinkingDocExtra overlay below,
-// which the constructor already zeroes.
+//     m_linkingState holds S_COleLinkingDocExtra
+// The COM parts follow the overlay at +0x220 and +0x228.
 //
 // DEVIATION, stated once for the whole file: OpenMFC's COleLinkingDoc declares
 // none of Register/LockExternal/UpdateVisibleLock/OnShowViews/OnNewDocument/
@@ -88,6 +77,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include "detail/CCmdTargetVirtualsSupport.h"
 
 //=============================================================================
 // Sibling implementations this unit calls.  Every one of these is an export
@@ -115,7 +105,7 @@ extern "C" int MS_ABI impl__OnSaveDocument_COleDocument__UEAAHPEB_W_Z(COleDocume
 extern "C" void MS_ABI impl__OnCloseDocument_COleDocument__UEAAXXZ(COleDocument* pThis);
 extern "C" void MS_ABI impl__SaveToStorage_COleDocument__MEAAXPEAVCObject___Z(COleDocument* pThis, CObject* pObject);
 extern "C" void MS_ABI impl__SetPathName_COleDocument__UEAAXPEB_WH_Z(COleDocument* pThis, const wchar_t* lpszPathName, int bAddToMRU);
-extern "C" void* MS_ABI impl__GetMoniker_COleDocument__UEAAPEAUIMoniker__W4tagOLEGETMONIKER___Z(COleDocument* pThis, int nAssign);
+extern "C" void MS_ABI impl__GetItemName_COleClientItem__QEBAXPEA_W_Z(const COleClientItem*, wchar_t*);
 // core/exceptions/COleException.cpp
 extern "C" long MS_ABI impl__Process_COleException__SAJPEBVCException___Z(const CException* pAnyException);
 // featurepack/CMFC_misc_stubs.cpp  (both write/read detail::olecore::g_bOleUserCtrl,
@@ -141,14 +131,7 @@ namespace {
 //-----------------------------------------------------------------------------
 // The retail members OpenMFC's COleLinkingDoc declaration is missing.
 //
-// They are laid over _colelinkingdoc_padding, the 56 declared-but-unused bytes
-// that start at COleLinkingDoc+0x1f8 and run to the end of the object -- the
-// same span retail fills with m_pLastException/m_dwRegister/m_lpMonikerROT/
-// m_strMoniker/m_bVisibleLock and the two nested interface parts.  Only the
-// first 0x28 bytes are claimed here; 0x220..0x230 is deliberately left alone so
-// that the two sub-objects can be declared there later without moving anything.
-// The constructor already zeroes the whole span, which is exactly the initial
-// value retail's constructor writes into every one of these fields.
+// The class zero-initializes these 0x28 bytes at COleLinkingDoc+0x1f8.
 //
 // Field placement differs from retail's -- it has to, because OpenMFC's two
 // declared members (m_bRegistered at 0x1e8, m_lpMoniker at 0x1f0) sit on top of
@@ -190,16 +173,8 @@ void SetMonikerPath(S_COleLinkingDocExtra* x, const wchar_t* psz) {
     if (x->pszMoniker != nullptr) ::memcpy(x->pszMoniker, psz, cch * sizeof(wchar_t));
 }
 
-// The two nested interface sub-objects, at the retail offsets pinned above.
-// OpenMFC does not declare or construct them (headerRequest filed), so no
-// vftable pointer is ever parked at either address and nothing in a running
-// OpenMFC process can hand out one of these interface pointers -- the twelve
-// XPersistFile/XOleItemContainer entry points below are therefore unreachable
-// today.  They are written against the retail offsets so that they become live
-// and correct the moment the parts are added; the static_asserts above prove
-// the object is still laid out the way the offsets assume.
-const ptrdiff_t kXPersistFileOffset      = 0x220;
-const ptrdiff_t kXOleItemContainerOffset = 0x228;
+constexpr auto kXPersistFileOffset = offsetof(COleLinkingDoc, m_xPersistFile);
+constexpr auto kXOleItemContainerOffset = offsetof(COleLinkingDoc, m_xOleItemContainer);
 
 COleLinkingDoc* DocFromPersistFile(void* pThisItf) {
     return reinterpret_cast<COleLinkingDoc*>(
@@ -260,15 +235,10 @@ bool IsItemDelimiter(wchar_t ch) {
 // installs the COleLinkingDoc vftable (.rdata 0x32e3a0) and the two nested-part
 // vftables at +0x220/+0x228, default-constructs m_strMoniker and zeroes
 // m_pFactory, m_bDeferErrors, m_pLastException, m_dwRegister, m_lpMonikerROT
-// and m_bVisibleLock.  OpenMFC installs no nested-part vftables (the parts are
-// not declared) and has no retail CString at this location; the memset below
-// only initializes the private overlay fields used by this implementation.
-// It does not construct byte-for-byte retail state for the missing CString or
-// interface subobjects.
+// and m_bVisibleLock. OpenMFC preserves its private state overlay and constructs
+// the two interface parts at the same offsets.
 COleLinkingDoc::COleLinkingDoc()
-    : COleDocument(), m_bRegistered(FALSE), m_lpMoniker(nullptr) {
-    memset(_colelinkingdoc_padding, 0, sizeof(_colelinkingdoc_padding));
-}
+    : m_bRegistered(FALSE), m_lpMoniker(nullptr) {}
 
 // ??1COleLinkingDoc@@UEAA@XZ -- retail 0x25cce0:
 //     CDocument::DisconnectViews();          // 0x219200, via 0x25cd0d
@@ -306,11 +276,7 @@ COleLinkingDoc::~COleLinkingDoc() {
 // contract, so it is corrected.
 LPMONIKER COleLinkingDoc::GetMoniker(OLEGETMONIKER nAssign) {
     S_COleLinkingDocExtra* x = Extra(this);
-    if (x->pszMoniker == nullptr) {
-        return reinterpret_cast<LPMONIKER>(
-            impl__GetMoniker_COleDocument__UEAAPEAUIMoniker__W4tagOLEGETMONIKER___Z(
-                this, static_cast<int>(nAssign)));
-    }
+    if (!x->pszMoniker) return COleDocument::GetMoniker(nAssign);
     LPMONIKER pmk = nullptr;
     ::CreateFileMoniker(x->pszMoniker, &pmk);
     return pmk;
@@ -431,20 +397,16 @@ extern "C" long MS_ABI impl__EndDeferErrors_COleLinkingDoc__QEAAJJ_Z(COleLinking
 //     LPOLEITEMCONTAINER lp;
 //     InternalQueryInterface(&IID_IOleItemContainer, (LPVOID*)&lp);  // 0x26bda0
 //     return lp;                                          // 0x25d405
-// The HRESULT is discarded; InternalQueryInterface writes NULL into the slot on
-// failure.  The IID is the {0000011C-...} at .rdata 0x2d7b18.
-// This returns NULL in OpenMFC today, for two independent reasons: OpenMFC's
-// CCmdTarget::GetInterface (core/runtime/CCmdTarget.cpp) only ever walks
-// CCmdTarget's OWN interface map, never the object's, and that map has no
-// entries; and g_imap_COleLinkingDoc (detail/InterfaceMapsSupport.cpp:40-41)
-// is itself entry-less.  Populating the latter alone would not change the
-// result.
+// The successful query supplies the reference returned to the caller.
 extern "C" IOleItemContainer* MS_ABI impl__GetContainer_COleLinkingDoc__UEAAPEAUIOleItemContainer__XZ(
         COleLinkingDoc* pThis) {
     if (!pThis) return nullptr;
     void* lp = nullptr;
     impl__InternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(pThis, &IID_IOleItemContainer, &lp);
     return static_cast<IOleItemContainer*>(lp);
+}
+IOleItemContainer* COleLinkingDoc::GetContainer() {
+    return impl__GetContainer_COleLinkingDoc__UEAAPEAUIOleItemContainer__XZ(this);
 }
 
 // Symbol: ?LockExternal@COleLinkingDoc@@IEAAXHH@Z
@@ -814,16 +776,15 @@ extern "C" void MS_ABI impl__SaveToStorage_COleLinkingDoc__MEAAXPEAVCObject___Z(
 //         if (lstrcmp(szName, lpszItemName) == 0) return (COleClientItem*)p;
 //     }
 //     return NULL;
-// Left as a stub: the per-item number at retail COleClientItem+0x58 is needed
-// to format the comparison name, but OpenMFC's COleClientItem does not model
-// that number; its +0x58 is m_lpLink, so reading it as an integer would use
-// pointer bits as an item number.  The same missing number leaves
-// COleClientItem::GetNewItemNumber and GetItemStorageCompound stubbed in
-// core/ole/COleClientItem.cpp.  Returning an arbitrary item instead of the one
-// whose number matches would hand a linking client the wrong embedding.
 extern "C" COleClientItem* MS_ABI impl__OnFindEmbeddedItem_COleLinkingDoc__MEAAPEAVCOleClientItem__PEB_W_Z(
-        COleLinkingDoc* pThis, const wchar_t* lpszItemName) {
-    (void)pThis; (void)lpszItemName;
+    COleLinkingDoc* document, const wchar_t* name) {
+    if (!document || !name) return nullptr;
+    POSITION pos = reinterpret_cast<POSITION>(document->GetStartPosition());
+    while (auto* item = document->GetNextClientItem(pos)) {
+        wchar_t itemName[21];
+        impl__GetItemName_COleClientItem__QEBAXPEA_W_Z(item, itemName);
+        if (::lstrcmpW(name, itemName) == 0) return item;
+    }
     return nullptr;
 }
 
@@ -841,13 +802,7 @@ extern "C" COleServerItem* MS_ABI impl__OnGetLinkedItem_COleLinkingDoc__MEAAPEAV
 
 //=============================================================================
 // COleLinkingDoc::XPersistFile -- nested IPersistFile part, retail +0x220.
-// Every method opens with METHOD_PROLOGUE_EX_(COleLinkingDoc, PersistFile),
-// which is `lea -0x220(%rcx),<reg>` plus, where the body needs it, an
-// AFX_MAINTAIN_STATE2 built from pThis->m_pModuleState (doc+0x38) at 0x133df0
-// and popped again on the way out.  The module-state push is never reproduced
-// below: it pushes CCmdTarget::m_pModuleState from doc+0x38, and OpenMFC's
-// CCmdTarget stops at 32 bytes (core/runtime/CCmdTarget.cpp), so there is no
-// stored per-object module state to push.
+// Stateful methods run under the document's module state.
 //=============================================================================
 
 // Symbol: ?GetClassID@XPersistFile@COleLinkingDoc@@UEAAJPEAU_GUID@@@Z
@@ -878,7 +833,8 @@ extern "C" long MS_ABI impl__GetClassID_XPersistFile_COleLinkingDoc__UEAAJPEAU_G
 //         // BOOL into 0/1, i.e. S_OK when modified.
 extern "C" long MS_ABI impl__IsDirty_XPersistFile_COleLinkingDoc__UEAAJXZ(void* pThisItf) {
     COleLinkingDoc* pThis = DocFromPersistFile(pThisItf);
-    return impl__IsModified_CDocument__UEBAHXZ(pThis) ? S_OK : S_FALSE;
+    openmfc::detail::CmdTargetModuleScope state(pThis->m_pModuleState);
+    return pThis->IsModified() ? S_OK : S_FALSE;
 }
 
 // Symbol: ?Load@XPersistFile@COleLinkingDoc@@UEAAJPEB_WK@Z
@@ -913,6 +869,7 @@ extern "C" long MS_ABI impl__Load_XPersistFile_COleLinkingDoc__UEAAJPEB_WK_Z(
         void* pThisItf, const wchar_t* lpszFileName, unsigned long dwMode) {
     (void)dwMode;
     COleLinkingDoc* pThis = DocFromPersistFile(pThisItf);
+    openmfc::detail::CmdTargetModuleScope state(pThis->m_pModuleState);
     ++Extra(pThis)->nDeferErrors;
 
     const int bUserCtrl = impl__AfxOleGetUserCtrl__YAHXZ();
@@ -949,6 +906,7 @@ extern "C" long MS_ABI impl__Load_XPersistFile_COleLinkingDoc__UEAAJPEB_WK_Z(
 extern "C" long MS_ABI impl__Save_XPersistFile_COleLinkingDoc__UEAAJPEB_WH_Z(
         void* pThisItf, const wchar_t* lpszFileName, int fRemember) {
     COleLinkingDoc* pThis = DocFromPersistFile(pThisItf);
+    openmfc::detail::CmdTargetModuleScope state(pThis->m_pModuleState);
     ++Extra(pThis)->nDeferErrors;
     pThis->m_bRemember = fRemember;
     impl__OnSaveDocument_COleLinkingDoc__UEAAHPEB_W_Z(pThis, lpszFileName);
@@ -967,6 +925,7 @@ extern "C" long MS_ABI impl__Save_XPersistFile_COleLinkingDoc__UEAAJPEB_WH_Z(
 extern "C" long MS_ABI impl__SaveCompleted_XPersistFile_COleLinkingDoc__UEAAJPEB_W_Z(
         void* pThisItf, const wchar_t* lpszFileName) {
     COleLinkingDoc* pThis = DocFromPersistFile(pThisItf);
+    openmfc::detail::CmdTargetModuleScope state(pThis->m_pModuleState);
     if (lpszFileName != nullptr)
         impl__SetPathName_COleDocument__UEAAXPEB_WH_Z(pThis, lpszFileName, FALSE);
     return S_OK;
@@ -1019,8 +978,7 @@ extern "C" long MS_ABI impl__GetCurFile_XPersistFile_COleLinkingDoc__UEAAJPEAPEA
 // to RVA 0x2151e0 (mfc140u), with the same three instructions:
 //     movq $0x0,(%r8) ; mov $0x80004001,%eax ; ret
 // i.e. *ppenumUnknown = NULL; return E_NOTIMPL.  No this-adjustment, no module
-// state, grfFlags unread -- so this one is exact even though the containing
-// sub-object does not exist in OpenMFC.
+// state, grfFlags unread.
 extern "C" long MS_ABI impl__EnumObjects_XOleItemContainer_COleLinkingDoc__UEAAJKPEAPEAUIEnumUnknown___Z(
         void* pThisItf, unsigned long grfFlags, IEnumUnknown** ppenumUnknown) {
     (void)pThisItf; (void)grfFlags;
@@ -1083,8 +1041,6 @@ extern "C" long MS_ABI impl__LockContainer_XOleItemContainer_COleLinkingDoc__UEA
 //     from CCmdTarget, so the server item has no CCmdTarget sub-object and no
 //     interface map to query.  The branch therefore falls through to
 //     MK_E_NOOBJECT.  Both are reported as headerRequests.
-// OnFindEmbeddedItem is itself a stub in this file (see above), so the embedded
-// branch is reachable only once that gap is closed.
 extern "C" long MS_ABI impl__GetObjectW_XOleItemContainer_COleLinkingDoc__UEAAJPEA_WKPEAUIBindCtx__AEBU_GUID__PEAPEAX_Z(
         void* pThisItf, wchar_t* lpszItem, unsigned long dwSpeedNeeded, IBindCtx* pbc,
         const GUID& riid, void** ppvObject) {
@@ -1093,12 +1049,14 @@ extern "C" long MS_ABI impl__GetObjectW_XOleItemContainer_COleLinkingDoc__UEAAJP
     *ppvObject = nullptr;
 
     COleLinkingDoc* pThis = DocFromItemContainer(pThisItf);
+    openmfc::detail::CmdTargetModuleScope state(pThis->m_pModuleState);
     long sc = 0x800401E5L;                                      // MK_E_NOOBJECT
 
     COleClientItem* pItem =
         impl__OnFindEmbeddedItem_COleLinkingDoc__MEAAPEAVCOleClientItem__PEB_W_Z(pThis, lpszItem);
     if (pItem != nullptr) {
         LPOLEOBJECT lpObject = pItem->GetObject();
+        if (!lpObject) return MK_E_NOOBJECT;
         sc = S_OK;
         if (!::OleIsRunning(lpObject)) {
             if (dwSpeedNeeded != 1 /*BINDSPEED_INDEFINITE*/)
@@ -1131,10 +1089,13 @@ extern "C" long MS_ABI impl__GetObjectW_XOleItemContainer_COleLinkingDoc__UEAAJP
 extern "C" long MS_ABI impl__IsRunning_XOleItemContainer_COleLinkingDoc__UEAAJPEA_W_Z(
         void* pThisItf, wchar_t* lpszItem) {
     COleLinkingDoc* pThis = DocFromItemContainer(pThisItf);
+    openmfc::detail::CmdTargetModuleScope state(pThis->m_pModuleState);
     COleClientItem* pItem =
         impl__OnFindEmbeddedItem_COleLinkingDoc__MEAAPEAVCOleClientItem__PEB_W_Z(pThis, lpszItem);
-    if (pItem != nullptr)
-        return ::OleIsRunning(pItem->GetObject()) ? S_OK : S_FALSE;
+    if (pItem != nullptr) {
+        auto* object = pItem->GetObject();
+        return object && ::OleIsRunning(object) ? S_OK : S_FALSE;
+    }
 
     if (impl__OnGetLinkedItem_COleLinkingDoc__MEAAPEAVCOleServerItem__PEB_W_Z(pThis, lpszItem) != nullptr)
         return S_OK;
@@ -1214,15 +1175,6 @@ extern "C" long MS_ABI impl__ParseDisplayName_XOleItemContainer_COleLinkingDoc__
 // Checked against RVA 0x25ef40 (mfc140u): same control flow, the memcmp import
 // slot resolves to VCRUNTIME140!memcmp and the IID at 0x2d9b28 (mfc140u) is
 // {0000000B-0000-0000-C000-000000000046}.
-// DEVIATION, confined to the found-item leg: COleClientItem::m_lpStorage
-// (retail item+0x68) is not declared by OpenMFC's COleClientItem -- the same
-// gap that leaves ReadItemCompound/GetItemStorageFlat stubbed in
-// core/ole/COleClientItem.cpp -- so a found item is answered with
-// MK_E_NOSTORAGE, retail's answer for an item whose m_lpStorage is NULL.  That
-// leg is unreachable today because OnFindEmbeddedItem is itself a stub that
-// returns NULL; every other path (E_POINTER, E_UNEXPECTED for a non-IStorage
-// riid, MK_E_NOSTORAGE for an unknown item) is retail's.  The earlier body
-// returned S_OK with a NULL storage, which a caller would dereference.
 extern "C" long MS_ABI impl__GetObjectStorage_XOleItemContainer_COleLinkingDoc__UEAAJPEA_WPEAUIBindCtx__AEBU_GUID__PEAPEAX_Z(
         void* pThisItf, wchar_t* lpszItem, IBindCtx* pbc, const GUID& riid, void** ppvStorage) {
     (void)pbc;
@@ -1232,8 +1184,81 @@ extern "C" long MS_ABI impl__GetObjectStorage_XOleItemContainer_COleLinkingDoc__
         return 0x8000FFFFL;                                     // E_UNEXPECTED
 
     COleLinkingDoc* pThis = DocFromItemContainer(pThisItf);
+    openmfc::detail::CmdTargetModuleScope module(pThis->m_pModuleState);
     COleClientItem* pItem =
         impl__OnFindEmbeddedItem_COleLinkingDoc__MEAAPEAVCOleClientItem__PEB_W_Z(pThis, lpszItem);
-    (void)pItem;   // no m_lpStorage to hand back, see above
-    return 0x800401EDL;                                         // MK_E_NOSTORAGE
+    const auto* state = pItem ? openmfc::detail::olecore::FindClientItemState(pItem) : nullptr;
+    auto* storage = state ? state->storage : nullptr;
+    if (!storage) return MK_E_NOSTORAGE;
+    storage->AddRef();
+    *ppvStorage = storage;
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::QueryInterface(REFIID iid, void** result) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(DocFromPersistFile(this), &iid, result);
+}
+ULONG STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::AddRef() {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(DocFromPersistFile(this));
+}
+ULONG STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::Release() {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(DocFromPersistFile(this));
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::GetClassID(CLSID* id) {
+    return impl__GetClassID_XPersistFile_COleLinkingDoc__UEAAJPEAU_GUID___Z(this, id);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::IsDirty() {
+    return impl__IsDirty_XPersistFile_COleLinkingDoc__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::Load(LPCOLESTR filename, DWORD mode) {
+    return impl__Load_XPersistFile_COleLinkingDoc__UEAAJPEB_WK_Z(this, filename, mode);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::Save(LPCOLESTR filename, BOOL remember) {
+    return impl__Save_XPersistFile_COleLinkingDoc__UEAAJPEB_WH_Z(this, filename, remember);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::SaveCompleted(LPCOLESTR filename) {
+    return impl__SaveCompleted_XPersistFile_COleLinkingDoc__UEAAJPEB_W_Z(this, filename);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XPersistFile::GetCurFile(LPOLESTR* filename) {
+    return impl__GetCurFile_XPersistFile_COleLinkingDoc__UEAAJPEAPEA_W_Z(this, filename);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::QueryInterface(REFIID iid, void** result) {
+    return impl__ExternalQueryInterface_CCmdTarget__QEAAKPEBXPEAPEAX_Z(DocFromItemContainer(this), &iid, result);
+}
+ULONG STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::AddRef() {
+    return impl__ExternalAddRef_CCmdTarget__QEAAKXZ(DocFromItemContainer(this));
+}
+ULONG STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::Release() {
+    return impl__ExternalRelease_CCmdTarget__QEAAKXZ(DocFromItemContainer(this));
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::GetObject(LPOLESTR name, DWORD speed, IBindCtx* context, REFIID iid, void** result) {
+    return impl__GetObjectW_XOleItemContainer_COleLinkingDoc__UEAAJPEA_WKPEAUIBindCtx__AEBU_GUID__PEAPEAX_Z(this, name, speed, context, iid, result);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::EnumObjects(DWORD flags, IEnumUnknown** entries) {
+    return impl__EnumObjects_XOleItemContainer_COleLinkingDoc__UEAAJKPEAPEAUIEnumUnknown___Z(this, flags, entries);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::LockContainer(BOOL lock) {
+    return impl__LockContainer_XOleItemContainer_COleLinkingDoc__UEAAJH_Z(this, lock);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::IsRunning(LPOLESTR name) {
+    return impl__IsRunning_XOleItemContainer_COleLinkingDoc__UEAAJPEA_W_Z(this, name);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::ParseDisplayName(IBindCtx* context, LPOLESTR name, ULONG* eaten, IMoniker** moniker) {
+    return impl__ParseDisplayName_XOleItemContainer_COleLinkingDoc__UEAAJPEAUIBindCtx__PEA_WPEAKPEAPEAUIMoniker___Z(this, context, name, eaten, moniker);
+}
+
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::GetObjectStorage(LPOLESTR name, IBindCtx* context, REFIID iid, void** result) {
+    return impl__GetObjectStorage_XOleItemContainer_COleLinkingDoc__UEAAJPEA_WPEAUIBindCtx__AEBU_GUID__PEAPEAX_Z(this, name, context, iid, result);
 }

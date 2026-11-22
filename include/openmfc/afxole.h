@@ -1143,6 +1143,8 @@ public:
 
     // OLE support
     LPOLEITEMCONTAINER GetItemContainer();
+    virtual LPMONIKER GetMoniker(OLEGETMONIKER assign);
+    virtual LPOLEITEMCONTAINER GetContainer();
 
     // Command UI update handlers
     void OnUpdateEditChangeIcon(CCmdUI* pCmdUI);
@@ -1183,7 +1185,7 @@ public:
     virtual ~COleLinkingDoc();
 
     // Moniker support
-    LPMONIKER GetMoniker(OLEGETMONIKER nAssign);
+    LPMONIKER GetMoniker(OLEGETMONIKER nAssign) override;
     virtual LPMONIKER GetFileMoniker();
     virtual BOOL RegisterIfServerAttached(const wchar_t* lpszFileName, BOOL bSetModified);
     void Revoke();
@@ -1191,13 +1193,44 @@ public:
 
     // Overrides
     virtual void OnShowDocument(BOOL bShow);
+    LPOLEITEMCONTAINER GetContainer() override;
+
+protected:
+    const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 
 public:
+    struct XPersistFile : IPersistFile {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE GetClassID(CLSID*) override;
+        HRESULT STDMETHODCALLTYPE IsDirty() override;
+        HRESULT STDMETHODCALLTYPE Load(LPCOLESTR, DWORD) override;
+        HRESULT STDMETHODCALLTYPE Save(LPCOLESTR, BOOL) override;
+        HRESULT STDMETHODCALLTYPE SaveCompleted(LPCOLESTR) override;
+        HRESULT STDMETHODCALLTYPE GetCurFile(LPOLESTR*) override;
+    };
+    struct XOleItemContainer : IOleItemContainer {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE ParseDisplayName(IBindCtx*, LPOLESTR, ULONG*, IMoniker**) override;
+        HRESULT STDMETHODCALLTYPE EnumObjects(DWORD, IEnumUnknown**) override;
+        HRESULT STDMETHODCALLTYPE LockContainer(BOOL) override;
+        HRESULT STDMETHODCALLTYPE GetObject(LPOLESTR, DWORD, IBindCtx*, REFIID, void**) override;
+        HRESULT STDMETHODCALLTYPE GetObjectStorage(LPOLESTR, IBindCtx*, REFIID, void**) override;
+        HRESULT STDMETHODCALLTYPE IsRunning(LPOLESTR) override;
+    };
+
     BOOL m_bRegistered;
     LPMONIKER m_lpMoniker;
 
 protected:
-    char _colelinkingdoc_padding[56];
+    alignas(void*) BYTE m_linkingState[0x28]{};
+
+public:
+    XPersistFile m_xPersistFile;
+    XOleItemContainer m_xOleItemContainer;
 };
 
 //=============================================================================
