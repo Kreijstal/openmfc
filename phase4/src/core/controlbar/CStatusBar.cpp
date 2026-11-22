@@ -39,6 +39,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/ClassicDockingSupport.h"
 #include <cstddef>
 #include <cstring>
 #include <cwchar>
@@ -598,7 +599,7 @@ CToolTipCtrl* CStatusBar::GetToolTips() const {
     return nullptr;
 }
 void CStatusBar::EnableDocking(DWORD dwDockStyle) {
-    m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | (dwDockStyle & CBRS_ALIGN_ANY);
+    impl__EnableDocking_CControlBar__QEAAXK_Z(this, dwDockStyle);
 }
 BOOL CStatusBar::IsSimple() const {
     if (!m_hWnd) return FALSE;

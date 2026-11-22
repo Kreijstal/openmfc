@@ -296,11 +296,13 @@ void CGlobalUtils::AdjustRectToWorkArea(CRect& rect, CRect* pRectDelta) {
 }
 void CGlobalUtils::FlipRect(CRect& rect, BOOL bHorz) { if (bHorz) std::swap(rect.left, rect.right); else std::swap(rect.top, rect.bottom); rect.NormalizeRect(); }
 DWORD CGlobalUtils::GetOppositeAlignment(DWORD dwAlign) {
-    if (dwAlign & CBRS_LEFT) return CBRS_RIGHT;
-    if (dwAlign & CBRS_RIGHT) return CBRS_LEFT;
-    if (dwAlign & CBRS_TOP) return CBRS_BOTTOM;
-    if (dwAlign & CBRS_BOTTOM) return CBRS_TOP;
-    return dwAlign;
+    switch (dwAlign & CBRS_ALIGN_ANY) {
+    case CBRS_ALIGN_LEFT: return CBRS_ALIGN_RIGHT;
+    case CBRS_ALIGN_RIGHT: return CBRS_ALIGN_LEFT;
+    case CBRS_ALIGN_TOP: return CBRS_ALIGN_BOTTOM;
+    case CBRS_ALIGN_BOTTOM: return CBRS_ALIGN_TOP;
+    default: return 0;
+    }
 }
 CSize CGlobalUtils::GetSystemBorders(DWORD dwStyle) { (void)dwStyle; return CSize(::GetSystemMetrics(SM_CXFRAME), ::GetSystemMetrics(SM_CYFRAME)); }
 CSize CGlobalUtils::GetSystemBorders(CWnd* pWnd) { return GetSystemBorders(pWnd ? static_cast<DWORD>(::GetWindowLongPtrW(pWnd->GetSafeHwnd(), GWL_STYLE)) : 0); }

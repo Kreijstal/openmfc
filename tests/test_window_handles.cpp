@@ -18,6 +18,7 @@ extern "C" void AFXAPI impl__OnDestroy_CWnd__IEAAXXZ(CWnd*);
 extern "C" void AFXAPI impl__OnNcDestroy_CWnd__IEAAXXZ(CWnd*);
 extern "C" void AFXAPI impl__PostNcDestroy_CWnd__MEAAXXZ(CWnd*);
 extern "C" void AFXAPI impl__EnableD2DSupport_CWnd__QEAAXHH_Z(CWnd*,int,int);
+extern "C" LRESULT AFXAPI impl__AfxWndProc__YA_JPEAUHWND____I_K_J_Z(HWND,UINT,WPARAM,LPARAM);
 static int failures;
 static void check(bool ok,const char* message) {
     if(!ok){++failures;std::printf("FAIL: %s\n",message);}
@@ -612,6 +613,44 @@ static void destroyWindows(const API& api) {
         "DestroyWindow delegates HWND clearing and map removal to destruction messages");
     api.detach(object.window);
 }
+static void subclassProcedures(const API& api) {
+    struct StockControl : CWnd {
+        BOOL PreCreateWindow(CREATESTRUCTW&) override { return TRUE; }
+        void PreSubclassWindow() override {}
+    };
+    Context context(api);
+    auto* module = reinterpret_cast<BYTE*>(api.module());
+    auto& instance = *reinterpret_cast<HINSTANCE*>(module + 0x10);
+    auto& procedure = *reinterpret_cast<WNDPROC*>(module + 0x70);
+    const auto oldInstance = instance;
+    const auto oldProcedure = procedure;
+    instance = ::GetModuleHandleW(nullptr);
+    procedure = &impl__AfxWndProc__YA_JPEAUHWND____I_K_J_Z;
+    const HWND host = ::CreateWindowExW(0, L"STATIC", L"", WS_OVERLAPPED,
+                                      0, 0, 200, 100, nullptr, nullptr, instance, nullptr);
+    auto* thread = AfxGetThreadState();
+    const HHOOK oldHook = thread->m_hHookOldCbtFilter;
+    {
+        StockControl button, edit;
+        check(host && button.CreateEx(0, L"BUTTON", L"", WS_CHILD, 0, 0, 70, 24, host, nullptr, nullptr) &&
+              edit.CreateEx(0, L"EDIT", L"", WS_CHILD, 0, 25, 70, 24, host, nullptr, nullptr),
+              "create two subclassed stock controls");
+        check(button.GetSuperWndProcAddr() == &button.m_pfnSuper &&
+              edit.GetSuperWndProcAddr() == &edit.m_pfnSuper && button.m_pfnSuper && edit.m_pfnSuper &&
+              button.m_pfnSuper != edit.m_pfnSuper, "each control retains its own superclass procedure");
+        check((::SendMessageW(button.m_hWnd, WM_GETDLGCODE, 0, 0) & DLGC_BUTTON) &&
+              (::SendMessageW(edit.m_hWnd, WM_GETDLGCODE, 0, 0) & DLGC_HASSETSEL),
+              "attached button and edit delegate messages to their own classes");
+    }
+    if (!oldHook && thread->m_hHookOldCbtFilter) {
+        ::UnhookWindowsHookEx(thread->m_hHookOldCbtFilter);
+        thread->m_hHookOldCbtFilter = nullptr;
+    }
+    if (host) ::DestroyWindow(host);
+    instance = oldInstance;
+    procedure = oldProcedure;
+}
+
 int main(int argc,char** argv) {
     static_assert(!std::is_constructible<CWnd,HWND>::value,"HWND construction remains private, matching the SDK");
     std::setvbuf(stdout,nullptr,_IONBF,0);CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);
@@ -625,6 +664,7 @@ int main(int argc,char** argv) {
         &impl__EnableD2DSupport_CWnd__QEAAXHH_Z,&openmfc::detail::modulethreadstate::HandleAllocationFailure};
     if(argc>1 && !std::strcmp(argv[1],"--terminate-source"))terminateChild(source);
     Imports imports(GetModuleHandleW(nullptr),true);
+    subclassProcedures(source);
     specialWindows({&impl__wndBottom_CWnd__2V1_B,&impl__wndNoTopMost_CWnd__2V1_B,&impl__wndTop_CWnd__2V1_B,&impl__wndTopMost_CWnd__2V1_B});
     constructors(source);constructionFailure(source);maps(source);destroyWindows(source);messages(source);threadWindowOwners(source);nonclientProcedure(source);postNoop(source);destructors(source);handleMutation(source);
     crossLifetime(source,source);allocation(source);allocationSwitch(source);d2dLifetime(source);

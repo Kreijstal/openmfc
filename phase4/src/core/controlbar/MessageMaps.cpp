@@ -42,9 +42,4 @@ DEF_MM(CReBar,
 DEF_MM(CStatusBar,
        impl__GetMessageMap_CStatusBar__MEBAPEBUAFX_MSGMAP__XZ,
        impl__GetThisMessageMap_CStatusBar__KAPEBUAFX_MSGMAP__XZ)
-// Symbol: ?GetMessageMap@CToolBar@@MEBAPEBUAFX_MSGMAP@@XZ
-// Symbol: ?GetThisMessageMap@CToolBar@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(CToolBar,
-       impl__GetMessageMap_CToolBar__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_CToolBar__KAPEBUAFX_MSGMAP__XZ)
 #undef DEF_MM

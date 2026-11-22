@@ -155,11 +155,12 @@ def main():
         'phase4/src/core/window/CWndBarLayout.cpp',
         'phase4/src/core/controlbar/CDockContextLifetime.cpp',
         'phase4/src/core/controlbar/CControlBarVisibility.cpp',
+        'phase4/src/core/controlbar/CToolBarCreation.cpp',
         'phase4/src/detail/CPtrListSupport.cpp',
     ]]
     link_response('dock_frame',['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF',
                                 '/OUT:'+str(out/'test_archive_dock_frame.exe'),
-                                *libraries,*objects,*frame_objects,*libs])
+                                *libraries,*objects,*frame_objects,*libs,'comctl32.lib'])
     execute('test_archive_dock_frame.exe')
 
 if __name__=='__main__':main()

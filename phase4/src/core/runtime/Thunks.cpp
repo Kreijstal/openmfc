@@ -1133,8 +1133,3 @@ extern "C" void* MS_ABI impl___B__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT
     (void)self;
     return pThis;
 }
-// Symbol: ?GetSuperWndProcAddr@CWnd@@MEAAPEAP6A_JPEAUHWND__@@I_K_J@ZXZ
-// CWnd::GetSuperWndProcAddr
-extern "C" void* /*fnptr*/* MS_ABI impl__GetSuperWndProcAddr_CWnd__MEAAPEAP6A_JPEAUHWND____I_K_J_ZXZ(CWnd* pThis) {
-    return (void* /*fnptr*/*)pThis->GetSuperWndProcAddr();
-}

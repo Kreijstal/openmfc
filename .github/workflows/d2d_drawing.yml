@@ -166,6 +166,10 @@ on:
       - 'phase4/src/core/controlbar/CDockContext.cpp'
       - 'phase4/src/core/controlbar/CDockContextLifetime.cpp'
       - 'phase4/src/core/controlbar/CControlBarVisibility.cpp'
+      - 'phase4/src/core/controlbar/CToolBarCreation.cpp'
+      - 'phase4/src/core/controlbar/CToolBar.cpp'
+      - 'phase4/src/core/controlbar/CStatusBar.cpp'
+      - 'phase4/src/core/runtime/CGlobalUtils.cpp'
       - 'phase4/src/featurepack/docking/CMiniDockFrameWnd.cpp'
       - 'phase4/src/detail/ClassicDockingSupport.h'
       - 'phase4/src/detail/DockStateSupport.h'
@@ -494,6 +498,10 @@ on:
       - 'phase4/src/core/controlbar/CDockContext.cpp'
       - 'phase4/src/core/controlbar/CDockContextLifetime.cpp'
       - 'phase4/src/core/controlbar/CControlBarVisibility.cpp'
+      - 'phase4/src/core/controlbar/CToolBarCreation.cpp'
+      - 'phase4/src/core/controlbar/CToolBar.cpp'
+      - 'phase4/src/core/controlbar/CStatusBar.cpp'
+      - 'phase4/src/core/runtime/CGlobalUtils.cpp'
       - 'phase4/src/featurepack/docking/CMiniDockFrameWnd.cpp'
       - 'phase4/src/detail/ClassicDockingSupport.h'
       - 'phase4/src/detail/DockStateSupport.h'
@@ -1330,6 +1338,10 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CDockContext.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CDockContextLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CControlBarVisibility.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CToolBarCreation.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CToolBar.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CStatusBar.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/CGlobalUtils.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/docking/CMiniDockFrameWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/animation/RuntimeClasses.cpp"

@@ -93,6 +93,16 @@ CControlBar* FloatingDockBar(CMiniDockFrameWnd* frame) {
 CFrameWnd* CWnd::GetParentFrame() const { return entry<CFrameWnd*(*)(const CWnd*)>(6074)(this); }
 void* CWnd::FromHandlePermanent(HWND handle) { return entry<CWnd*(*)(HWND)>(4730)(handle); }
 CWnd* CWnd::FromHandle(HWND handle) { return entry<CWnd*(*)(HWND)>(4726)(handle); }
+BOOL CWnd::Create(const wchar_t* type, const wchar_t* title, DWORD style, const RECT& bounds,
+                  CWnd* parent, UINT id, CCreateContext* context) {
+    return entry<BOOL(*)(CWnd*, const wchar_t*, const wchar_t*, DWORD, const RECT&, CWnd*, UINT, CCreateContext*)>(
+        3172)(this, type, title, style, bounds, parent, id, context);
+}
+
+void CToolBar::SetSizes(SIZE button, SIZE image) {
+    ::SendMessageW(m_hWnd, TB_SETBITMAPSIZE, 0, MAKELPARAM(image.cx, image.cy));
+    ::SendMessageW(m_hWnd, TB_SETBUTTONSIZE, 0, MAKELPARAM(button.cx, button.cy));
+}
 
 namespace {
 int layoutCalls;
@@ -224,17 +234,17 @@ void TestDockTarget(CFrameWnd* frame, CControlBar* top) {
 void TestFloating(CFrameWnd* frame, CControlBar* bar) {
     using namespace openmfc::detail::dock;
     const HWND handle = bar->m_hWnd;
-    bar->m_hWnd = nullptr;
-    check(entry<BOOL(*)(CWnd*, HWND)>(13956)(bar, handle), "subclass the toolbar window");
-    bar->m_pDockSite = frame;
-    bar->m_dwStyle = alignTop;
-    frame->EnableDocking(alignTop);
+    frame->EnableDocking(CBRS_ALIGN_TOP);
     auto* top = frame->GetControlBar(topBarId);
     check(top && ::IsWindow(top->m_hWnd), "enable the top dock bar");
     if (!top) return;
     TestDockTarget(frame, top);
+    frame->EnableDocking(CBRS_ALIGN_ANY);
+    check(frame->GetControlBar(topBarId) == top && frame->GetControlBar(leftBarId) &&
+          frame->GetControlBar(rightBarId) && frame->GetControlBar(bottomBarId),
+          "public docking styles enable every side and keep existing bars");
 
-    impl__EnableDocking_CControlBar__QEAAXK_Z(bar, alignTop);
+    impl__EnableDocking_CControlBar__QEAAXK_Z(bar, CBRS_ALIGN_TOP);
     auto* context = static_cast<DockContext*>(bar->m_pDockContext);
     check(context && context->m_pBar == bar && context->m_pDockSite == frame &&
           context->m_dwMRUFloatStyle == alignTop && bar->m_hWndOwner == frame->m_hWnd,
@@ -322,19 +332,38 @@ int main() {
                                       10, 10, 300, 200, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
     if (!host || !entry<BOOL(*)(CWnd*, HWND)>(2487)(frame, host)) return 4;
     TestFrameLayout(frame);
-    alignas(CControlBar) BYTE barStorage[2][0x800]{};
-    auto init = entry<CControlBar*(*)(void*)>(972);
+    alignas(CToolBar) BYTE barStorage[2][sizeof(CToolBar)]{};
+    auto init = entry<CToolBar*(*)(void*)>(972);
     auto destroy = entry<void(*)(CControlBar*)>(1438);
-    CControlBar* bars[] = {init(barStorage[0]), init(barStorage[1])};
+    CToolBar* bars[] = {init(barStorage[0]), init(barStorage[1])};
+    const UINT ids[] = {AFX_IDW_TOOLBAR, 901};
     for (unsigned i=0; i<2; ++i) {
-        bars[i]->m_hWnd = CreateWindowExW(0, L"STATIC", L"bar", WS_CHILD | (i ? 0 : WS_VISIBLE),
-                                        10, 10, 80, 30, frame->m_hWnd,
-                                        reinterpret_cast<HMENU>(UINT_PTR(900+i)), GetModuleHandleW(nullptr), nullptr);
+        auto* bar = bars[i];
+        const DWORD style = WS_CHILD | (i ? 0 : WS_VISIBLE) | CBRS_TOP | CBRS_GRIPPER;
+        const CRect borders(2, 3, 4, 5);
+        if (!bar->CToolBar::CreateEx(frame, TBSTYLE_FLAT, style, borders, ids[i])) return 5;
+        wchar_t name[40]{};
+        ::GetClassNameW(bar->m_hWnd, name, _countof(name));
+        check(::lstrcmpiW(name, TOOLBARCLASSNAMEW) == 0 && CWnd::FromHandlePermanent(bar->m_hWnd) == bar,
+              "CreateEx attaches the native toolbar class to its permanent wrapper");
+        check(bar->m_pDockSite == frame && ::GetParent(bar->m_hWnd) == host &&
+              ::GetDlgCtrlID(bar->m_hWnd) == int(ids[i]), "CreateEx registers the toolbar with its frame");
+        const DWORD windowStyle = ::GetWindowLongW(bar->m_hWnd, GWL_STYLE);
+        check((windowStyle & (WS_CHILD | WS_CLIPSIBLINGS | TBSTYLE_FLAT)) ==
+              (WS_CHILD | WS_CLIPSIBLINGS | TBSTYLE_FLAT) &&
+              ((windowStyle & WS_VISIBLE) != 0) == (i == 0), "CreateEx preserves Win32 and common-control styles");
+        check(bar->m_dwStyle == (CBRS_ALIGN_TOP | CBRS_BORDER_TOP | CBRS_BORDER_3D | CBRS_GRIPPER |
+                                 (i ? 0 : CBRS_HIDE_INPLACE)) &&
+              bar->m_cxLeftBorder == 2 && bar->m_cyTopBorder == 3 &&
+              bar->m_cxRightBorder == 4 && bar->m_cyBottomBorder == 5,
+              "CreateEx stores the normalized control-bar style and border dimensions");
         bars[i]->m_nMRUWidth = 77+42*i;
         RegisterControlBar(frame, bars[i]);
-        RegisterControlBar(frame, bars[i]);
     }
-    check(ControlBars(frame).GetCount() == 2 && frame->GetControlBar(900) == bars[0], "registered bar identity");
+    const HWND firstToolbar = bars[0]->m_hWnd;
+    check(!bars[0]->CToolBar::CreateEx(frame, 0, WS_CHILD, CRect(), 5) && bars[0]->m_hWnd == firstToolbar,
+          "reject creating a second HWND on an attached toolbar");
+    check(ControlBars(frame).GetCount() == 2 && frame->GetControlBar(AFX_IDW_TOOLBAR) == bars[0], "registered bar identity");
     ScopedDockState snapshot;
     frame->GetDockState(snapshot.Get());
     check(Bars(snapshot.Get()).GetCount() == 2, "capture both records");
@@ -360,7 +389,6 @@ int main() {
     check(IsWindowVisible(bars[0]->m_hWnd) && !IsWindowVisible(bars[1]->m_hWnd), "restore bar visibility by ID");
     UnregisterControlBar(frame, bars[1]);
     DestroyWindow(bars[1]->m_hWnd);
-    bars[1]->m_hWnd = nullptr;
     destroy(bars[1]);
     TestFloating(frame, bars[0]);
     currentApp = previousApp;

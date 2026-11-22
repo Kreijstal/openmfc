@@ -49,9 +49,6 @@ namespace openmfc { namespace detail { namespace other13msgmap {
 const AFX_MSGMAP* AFXAPI gbm_CTabView();
 } } }
 namespace openmfc { namespace detail { namespace other13msgmap {
-const AFX_MSGMAP* AFXAPI gbm_CToolBar();
-} } }
-namespace openmfc { namespace detail { namespace other13msgmap {
 const AFX_MSGMAP* AFXAPI gbm_CToolBarCtrl();
 } } }
 namespace openmfc { namespace detail { namespace other13msgmap {
@@ -73,9 +70,6 @@ extern const AFX_MSGMAP classCStatusBar_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace other13msgmap {
 extern const AFX_MSGMAP classCTabView_msgmap;
-} } }
-namespace openmfc { namespace detail { namespace other13msgmap {
-extern const AFX_MSGMAP classCToolBar_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace other13msgmap {
 extern const AFX_MSGMAP classCToolBarCtrl_msgmap;

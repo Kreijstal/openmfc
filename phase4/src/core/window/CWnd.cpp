@@ -1685,13 +1685,6 @@ void CWnd::GetProperty(long p0, WORD p1, void* p2) const
     }
     *reinterpret_cast<void**>(p2) = propIt->second;
 }
-WNDPROC* CWnd::GetSuperWndProcAddr()
-{
-    static WNDPROC super=nullptr;return &super;
-}
-
-
-
 long CWnd::GetWindowLessChildCount()
 {
     if (!m_hWnd) {

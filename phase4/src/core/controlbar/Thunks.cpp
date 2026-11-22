@@ -1188,16 +1188,6 @@ extern "C" int MS_ABI impl__Create_COleResizeBar__UEAAHPEAVCWnd__KI_Z(COleResize
 extern "C" int MS_ABI impl__Create_CStatusBar__UEAAHPEAVCWnd__KI_Z(CStatusBar* pThis, CWnd* p0, unsigned long p1, unsigned int p2) {
     return (int)pThis->Create(p0, p1, p2);
 }
-// Symbol: ?Create@CToolBar@@UEAAHPEAVCWnd@@KI@Z
-// CToolBar::Create
-extern "C" int MS_ABI impl__Create_CToolBar__UEAAHPEAVCWnd__KI_Z(CToolBar* pThis, CWnd* p0, unsigned long p1, unsigned int p2) {
-    return (int)pThis->Create(p0, p1, p2);
-}
-// Symbol: ?CreateEx@CToolBar@@UEAAHPEAVCWnd@@KKVCRect@@I@Z
-// CToolBar::CreateEx
-extern "C" int MS_ABI impl__CreateEx_CToolBar__UEAAHPEAVCWnd__KKVCRect__I_Z(CToolBar* pThis, CWnd* p0, unsigned long p1, unsigned long p2, CRect p3, unsigned int p4) {
-    return (int)pThis->CreateEx(p0, p1, p2, p3, p4);
-}
 // Symbol: ?GetButtonStyle@CToolBar@@QEBAIH@Z
 // CToolBar::GetButtonStyle
 extern "C" unsigned int MS_ABI impl__GetButtonStyle_CToolBar__QEBAIH_Z(const CToolBar* pThis, int p0) {

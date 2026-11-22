@@ -227,7 +227,6 @@ BOOL CWnd::CreateControlContainer(COleControlContainer**) { std::abort(); }
 BOOL CWnd::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO*) { std::abort(); }
 _AFX_OCC_DIALOG_INFO* CWnd::GetOccDialogInfo() { std::abort(); }
 BOOL CWnd::OnChildNotify(UINT,WPARAM,LPARAM,LRESULT*) { std::abort(); }
-WNDPROC* CWnd::GetSuperWndProcAddr() { static WNDPROC procedure=nullptr;return &procedure; }
 extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(CWnd*,UINT,WPARAM,LPARAM);
 LRESULT CWnd::DefWindowProcW(UINT message,WPARAM wparam,LPARAM lparam) {
     return impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(this,message,wparam,lparam);

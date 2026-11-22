@@ -114,11 +114,8 @@ long ComCtlVersion() {
 
 // this->DefWindowProc(msg, wParam, lParam): CWnd vslot 73 (`call *0x248(%rax)`)
 // in every retail body below.  Retail's CWnd::DefWindowProc calls
-// ::CallWindowProc(m_pfnSuper, ...) for a subclassed control; OpenMFC's
-// CToolBar::CreateEx (further down in this file) creates the toolbar with
-// ::CreateWindowExW and no subclassing, so the HWND's own procedure still IS
-// comctl32's and ::SendMessage reaches the same code.  DEVIATION: the call is
-// not virtual here, so a client class overriding DefWindowProc is bypassed.
+// ::CallWindowProc(m_pfnSuper, ...) for the attached common control. A handle
+// supplied by a caller can still have its original window procedure.
 // Same helper as SbDefWindowProc in core/controlbar/CStatusBar.cpp and
 // RbDefWindowProc in CReBar.cpp.
 inline LRESULT TbDefWindowProc(const CToolBar* pThis, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -380,11 +377,6 @@ extern "C" long MS_ABI impl__get_accName_CToolBar__UEAAJUtagVARIANT__PEAPEA_W_Z(
     *pszName = ::SysAllocString((const wchar_t*)text);
     return *pszName ? S_OK : E_OUTOFMEMORY;
 }
-// GetMessageMap/GetThisMessageMap for CToolBar live in core/controlbar/MessageMaps.cpp
-// (classCToolBar_msgmap, base map CControlBar). Retail agrees: ?GetThisMessageMap@
-// CToolBar@@KAPEBUAFX_MSGMAP@@XZ in mfc140.dll returns the AFX_MSGMAP at 0x180320648,
-// whose pfnGetBaseMap is ?GetThisMessageMap@CControlBar@@KAPEBUAFX_MSGMAP@@XZ. The copies
-// that used to be here returned CWnd's map, skipping CToolBar and CControlBar entirely.
 // Symbol: ?GetRuntimeClass@CToolBar@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolBar__UEBAPEAUCRuntimeClass__XZ(const CToolBar* pThis) {
     return pThis ? pThis->GetRuntimeClass() : CToolBar::GetThisClass();
@@ -429,9 +421,11 @@ extern "C" void MS_ABI impl__OnNcCalcSize_CToolBar__IEAAXHPEAUtagNCCALCSIZE_PARA
 // Symbol: ?OnNcCreate@CToolBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnNcCreate_CToolBar__IEAAHPEAUtagCREATESTRUCTW___Z(CToolBar* pThis, CREATESTRUCTW* lpCreateStruct) {
     if (!pThis || !pThis->GetSafeHwnd() || !lpCreateStruct) return FALSE;
-    return static_cast<int>(::DefWindowProcW(
-        pThis->GetSafeHwnd(), WM_NCCREATE, 0,
-        reinterpret_cast<LPARAM>(lpCreateStruct)) != FALSE);
+    if (!TbDefWindowProc(pThis, WM_NCCREATE, 0, reinterpret_cast<LPARAM>(lpCreateStruct))) return FALSE;
+    if (pThis->m_hWndOwner)
+        TbDefWindowProc(pThis, TB_SETPARENT, reinterpret_cast<WPARAM>(pThis->m_hWndOwner), 0);
+    TbDefWindowProc(pThis, TB_BUTTONSTRUCTSIZE, sizeof(::TBBUTTON), 0);
+    return TRUE;
 }
 // Symbol: ?OnNcHitTest@CToolBar@@IEAA_JVCPoint@@@Z
 extern "C" __int64 MS_ABI impl__OnNcHitTest_CToolBar__IEAA_JVCPoint___Z(CToolBar* pThis, CPoint point) {
@@ -649,7 +643,7 @@ extern "C" void MS_ABI impl__GetButtonText_CToolBar__QEBAXHAEAV__CStringT__WV__S
 }
 CToolBar::CToolBar()
     : m_hRsrcImageWell(nullptr), m_hInstImageWell(nullptr), m_hbmImageWell(nullptr),
-      m_bDelayedButtonLayout(FALSE), m_pStringMap(nullptr) {
+      m_bDelayedButtonLayout(TRUE), m_pStringMap(nullptr) {
     // Record the g++ vptr this ctor installs (see g_gxxToolBarVptr).
     g_gxxToolBarVptr.store(*reinterpret_cast<const void* const*>(this), std::memory_order_relaxed);
     // m_nCount and the docking members are inherited from CControlBar (ctor).
@@ -657,39 +651,15 @@ CToolBar::CToolBar()
     m_sizeButton.cy = 22;
     m_sizeImage.cx = 16;
     m_sizeImage.cy = 15;
+    m_cyTopBorder = 3;
+    m_cyBottomBorder = 3;
+    EnableActiveAccessibility();
 }
 CToolBar::~CToolBar() {
     if (m_hbmImageWell) {
         ::DeleteObject(m_hbmImageWell);
         m_hbmImageWell = nullptr;
     }
-}
-BOOL CToolBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
-    return CreateEx(pParentWnd, TBSTYLE_FLAT, dwStyle, CRect(0,0,0,0), nID);
-}
-BOOL CToolBar::CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle,
-                         CRect rcBorders, UINT nID) {
-    if (!pParentWnd) return FALSE;
-
-    m_dwStyle = dwStyle;
-
-    DWORD dwWinStyle = dwStyle & 0xFFFF;
-    dwWinStyle |= WS_CHILD | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER;
-
-    m_hWnd = ::CreateWindowExW(0, TOOLBARCLASSNAMEW, nullptr, dwWinStyle,
-                                rcBorders.left, rcBorders.top,
-                                rcBorders.right - rcBorders.left,
-                                rcBorders.bottom - rcBorders.top,
-                                pParentWnd->GetSafeHwnd(), (HMENU)(UINT_PTR)nID,
-                                AfxGetInstanceHandle(), nullptr);
-
-    if (!m_hWnd) return FALSE;
-
-    ::SendMessageW(m_hWnd, TB_SETEXTENDEDSTYLE, 0, dwCtrlStyle);
-    ::SendMessageW(m_hWnd, TB_SETBITMAPSIZE, 0, MAKELPARAM(m_sizeImage.cx, m_sizeImage.cy));
-    ::SendMessageW(m_hWnd, TB_SETBUTTONSIZE, 0, MAKELPARAM(m_sizeButton.cx, m_sizeButton.cy));
-
-    return TRUE;
 }
 BOOL CToolBar::LoadToolBar(UINT nIDResource) {
     HRSRC hRsrc = ::FindResourceW(AfxGetInstanceHandle(),
@@ -816,12 +786,18 @@ void CToolBar::GetItemRect(int nIndex, LPRECT lpRect) const {
         ::SendMessageW(m_hWnd, TB_GETITEMRECT, nIndex, (LPARAM)lpRect);
 }
 void CToolBar::SetSizes(SIZE sizeButton, SIZE sizeImage) {
-    m_sizeButton = sizeButton;
-    m_sizeImage = sizeImage;
-    if (m_hWnd) {
-        ::SendMessageW(m_hWnd, TB_SETBITMAPSIZE, 0, MAKELPARAM(sizeImage.cx, sizeImage.cy));
-        ::SendMessageW(m_hWnd, TB_SETBUTTONSIZE, 0, MAKELPARAM(sizeButton.cx, sizeButton.cy));
+    if (!::IsWindow(m_hWnd)) {
+        m_sizeButton = sizeButton;
+        m_sizeImage = sizeImage;
+        return;
     }
+    ::SendMessageW(m_hWnd, TB_SETBITMAPSIZE, 0, MAKELPARAM(sizeImage.cx, sizeImage.cy));
+    ::SendMessageW(m_hWnd, TB_SETBUTTONSIZE, 0, MAKELPARAM(sizeButton.cx, sizeButton.cy));
+    if (ComCtlVersion() >= kVERSION_6) {
+        const LRESULT size = ::SendMessageW(m_hWnd, TB_GETBUTTONSIZE, 0, 0);
+        m_sizeButton = SIZE{LOWORD(size), HIWORD(size)};
+    }
+    ::InvalidateRect(m_hWnd, nullptr, TRUE);
 }
 CSize CToolBar::GetButtonSize() const {
     return CSize(m_sizeButton.cx, m_sizeButton.cy);
@@ -1049,4 +1025,42 @@ extern "C" __int64 MS_ABI impl__OnSetBitmapSize_CToolBar__IEAA_J_K_J_Z(CToolBar*
     if (pThis == nullptr) return 0;
     return impl__OnSetSizeHelper_CToolBar__IEAA_JAEAVCSize___J_Z(
         pThis, reinterpret_cast<CSize*>(&pThis->m_sizeImage), lParam);
+}
+
+LRESULT CToolBar::OnNcCreateMessage(WPARAM, LPARAM create) {
+    return impl__OnNcCreate_CToolBar__IEAAHPEAUtagCREATESTRUCTW___Z(this, reinterpret_cast<CREATESTRUCTW*>(create));
+}
+
+LRESULT CToolBar::OnSetButtonSize(WPARAM wParam, LPARAM lParam) {
+    return impl__OnSetButtonSize_CToolBar__IEAA_J_K_J_Z(this, wParam, lParam);
+}
+
+LRESULT CToolBar::OnSetBitmapSize(WPARAM wParam, LPARAM lParam) {
+    return impl__OnSetBitmapSize_CToolBar__IEAA_J_K_J_Z(this, wParam, lParam);
+}
+
+void CToolBar::OnPaint() {
+    impl__OnPaint_CToolBar__IEAAXXZ(this);
+}
+
+void CToolBar::OnNcPaint() {
+    impl__OnNcPaint_CToolBar__IEAAXXZ(this);
+}
+
+BEGIN_MESSAGE_MAP(CToolBar, CControlBar)
+    ON_MESSAGE(WM_NCCREATE, &ThisClass::OnNcCreateMessage)
+    ON_MESSAGE(TB_SETBUTTONSIZE, &ThisClass::OnSetButtonSize)
+    ON_MESSAGE(TB_SETBITMAPSIZE, &ThisClass::OnSetBitmapSize)
+    ON_WM_PAINT()
+    OPENMFC_MAP_ENTRY(WM_NCPAINT, 0, 0, 0, AfxSig_v_v_v, &ThisClass::OnNcPaint)
+END_MESSAGE_MAP()
+
+// Symbol: ?GetMessageMap@CToolBar@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetMessageMap_CToolBar__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return CToolBar::GetThisMessageMap();
+}
+
+// Symbol: ?GetThisMessageMap@CToolBar@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetThisMessageMap_CToolBar__KAPEBUAFX_MSGMAP__XZ() {
+    return CToolBar::GetThisMessageMap();
 }

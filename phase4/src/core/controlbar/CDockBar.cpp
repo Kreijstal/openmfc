@@ -41,6 +41,7 @@
 // for a "place holder" that remembers where a hidden bar used to sit.  Retail
 // tests `cmp $0xffff` to tell the two apart; so does this file.
 
+#define OPENMFC_APPCORE_IMPL
 #include "detail/FrameLifetimeSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/CControlBarInfoSupport.h"

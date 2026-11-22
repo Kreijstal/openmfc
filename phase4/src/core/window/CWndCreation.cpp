@@ -6,6 +6,16 @@ extern "C" {
 void MS_ABI impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(CWnd*);
 BOOL MS_ABI impl__AfxUnhookWindowCreate__YAHXZ();
 }
+
+WNDPROC* CWnd::GetSuperWndProcAddr() {
+    return &m_pfnSuper;
+}
+
+// Symbol: ?GetSuperWndProcAddr@CWnd@@MEAAPEAP6A_JPEAUHWND__@@I_K_J@ZXZ
+extern "C" WNDPROC* impl__GetSuperWndProcAddr_CWnd__MEAAPEAP6A_JPEAUHWND____I_K_J_ZXZ(CWnd* self) {
+    return self->CWnd::GetSuperWndProcAddr();
+}
+
 BOOL CWnd::CreateEx(DWORD extended,const wchar_t* cls,const wchar_t* title,DWORD style,
                    int x,int y,int width,int height,HWND parent,HMENU menu,void* parameter) {
     CREATESTRUCTW create;

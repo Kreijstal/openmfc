@@ -104,11 +104,7 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*
 
 namespace {
 
-// Retail CBRS_* values (afxres.h of the shipping MFC), as the disassembly
-// tests them.  include/openmfc/afxole.h defines CBRS_TOP=1 / CBRS_FLOATING=0x10
-// etc., which do NOT match the bits retail tests (e.g. DrawGripper masks
-// 0x400001 and compares with 0x400000: CBRS_GRIPPER set, CBRS_FLOATING=0x1
-// clear), so the bodies below use these constants and never the header macros.
+// CBRS_* values used by the native control-bar handlers.
 constexpr DWORD kCBRS_FLOATING      = 0x0001;
 constexpr DWORD kCBRS_SIZE_DYNAMIC  = 0x0004;
 constexpr DWORD kCBRS_TOOLTIPS      = 0x0010;
@@ -1028,9 +1024,29 @@ extern "C" void MS_ABI impl__OnWindowPosChanging_CControlBar__QEAAXPEAUtagWINDOW
 }
 // Symbol: ?PreCreateWindow@CControlBar@@UEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_CControlBar__UEAAHAEAUtagCREATESTRUCTW___Z(CControlBar* pThis, CREATESTRUCTW& cs) {
-    (void)pThis;
-    // Default CControlBar::PreCreateWindow: ensure WS_CLIPCHILDREN
-    cs.style |= WS_CLIPCHILDREN;
+    return pThis->CControlBar::PreCreateWindow(cs);
+}
+
+BOOL CControlBar::PreCreateWindow(CREATESTRUCTW& cs) {
+    if (!CWnd::PreCreateWindow(cs)) return FALSE;
+    cs.style |= WS_CLIPSIBLINGS;
+    if (m_dwStyle & CBRS_BORDER_3D) return TRUE;
+    DWORD border = 0;
+    switch (m_dwStyle & (CBRS_ALIGN_ANY | CBRS_BORDER_ANY)) {
+    case CBRS_LEFT:
+    case CBRS_RIGHT:
+        border = CBRS_BORDER_TOP | CBRS_BORDER_BOTTOM;
+        break;
+    case CBRS_TOP:
+        border = CBRS_BORDER_TOP;
+        break;
+    case CBRS_BOTTOM:
+        border = CBRS_BORDER_BOTTOM;
+        break;
+    default:
+        return TRUE;
+    }
+    m_dwStyle = (m_dwStyle & ~CBRS_BORDER_ANY) | border | CBRS_BORDER_3D;
     return TRUE;
 }
 // Transcribed from retail RVA 0x1d6200 (mfc140u).  The mfc140u export table
@@ -1500,6 +1516,10 @@ void CControlBar::OnDestroy() {
     impl__OnDestroy_CControlBar__QEAAXXZ(this);
 }
 
+int CControlBar::OnCreate(CREATESTRUCTW* create) {
+    return impl__OnCreate_CControlBar__QEAAHPEAUtagCREATESTRUCTW___Z(this, create);
+}
+
 LRESULT CControlBar::OnSizeParent(WPARAM wParam, LPARAM lParam) {
     return impl__OnSizeParent_CControlBar__QEAA_J_K_J_Z(this, wParam, lParam);
 }
@@ -1509,6 +1529,7 @@ LRESULT CControlBar::OnIdleUpdateCmdUI(WPARAM wParam, LPARAM lParam) {
 }
 
 BEGIN_MESSAGE_MAP(CControlBar, CWnd)
+    ON_WM_CREATE()
     ON_WM_DESTROY()
     ON_MESSAGE(openmfc::detail::dock::sizeParentMessage, &ThisClass::OnSizeParent)
     ON_MESSAGE(0x0363, &ThisClass::OnIdleUpdateCmdUI)

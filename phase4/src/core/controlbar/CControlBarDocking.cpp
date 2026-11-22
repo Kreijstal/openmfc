@@ -24,8 +24,8 @@ extern "C" CRuntimeClass* impl__GetRuntimeClass_CControlBar__UEBAPEAUCRuntimeCla
 
 CControlBar::CControlBar()
     : m_pInPlaceOwner(nullptr), m_bAutoDelete(FALSE),
-      m_cxLeftBorder(0), m_cxRightBorder(0), m_cyTopBorder(0), m_cyBottomBorder(0),
-      m_cxDefaultGap(0), m_nMRUWidth(0), m_nCount(0), m_pData(nullptr),
+      m_cxLeftBorder(6), m_cxRightBorder(6), m_cyTopBorder(1), m_cyBottomBorder(1),
+      m_cxDefaultGap(2), m_nMRUWidth(32767), m_nCount(0), m_pData(nullptr),
       m_hReBarTheme(nullptr), m_nStateFlags(0), m_dwStyle(0), m_dwDockStyle(0),
       m_pDockSite(nullptr), m_pDockBar(nullptr), m_pDockContext(nullptr) {
 }
@@ -49,7 +49,7 @@ CControlBar::~CControlBar() {
 
 BOOL CControlBar::Create(CWnd* parent, DWORD style, UINT id) {
     if (!parent) return FALSE;
-    m_dwStyle = style & 0xffff;
+    m_dwStyle = style & CBRS_ALL;
     RECT rect{};
     const DWORD windowStyle = (style & 0xffff0000) | WS_CHILD;
     if (!CWnd::Create(L"STATIC", nullptr, windowStyle, rect, parent, id, nullptr))
