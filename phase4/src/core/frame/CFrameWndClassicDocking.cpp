@@ -1,12 +1,15 @@
 #define OPENMFC_APPCORE_IMPL
 #include "detail/ClassicDockingSupport.h"
-#include "detail/DockContextSupport.h"
 #include "detail/FrameLifetimeSupport.h"
+#include "openmfc/afxole.h"
+#include <cstring>
 #include <memory>
 #include <vector>
 
 extern "C" void impl__ReDockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRECT___Z(
     void*, CControlBar*, const RECT*);
+extern "C" int impl__FindBar_CDockBar__QEAAHPEAVCControlBar__H_Z(void*, CControlBar*, int);
+extern "C" void impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(COleFrameHook*);
 
 using namespace openmfc::detail::dock;
 using openmfc::detail::frame::ControlBars;
@@ -14,6 +17,15 @@ using openmfc::detail::frame::RegisterControlBar;
 using openmfc::detail::frame::UnregisterControlBar;
 
 namespace {
+constexpr struct DockSide {
+    DWORD alignment;
+    DWORD border;
+    UINT id;
+} sides[] = {
+    {alignTop, borderBottom, topBarId}, {alignBottom, borderTop, bottomBarId},
+    {alignLeft, borderRight, leftBarId}, {alignRight, borderLeft, rightBarId}
+};
+
 bool IsDockBar(const CWnd* window) {
     return window->IsKindOf(impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ());
 }
@@ -22,6 +34,39 @@ void PositionFloatingFrame(CFrameWnd* frame, CPoint position) {
     ::SetWindowPos(frame->m_hWnd, nullptr, position.x, position.y, 0, 0,
                    SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
+}
+
+void CFrameWnd::RecalcLayout(BOOL notify) {
+    if (!m_hWnd || m_retailTail.m_bInRecalcLayout) return;
+    m_retailTail.m_bInRecalcLayout = TRUE;
+    struct ResetLayoutFlag {
+        BOOL& flag;
+        ~ResetLayoutFlag() { flag = FALSE; }
+    } reset{m_retailTail.m_bInRecalcLayout};
+
+    constexpr DWORD notifyBorderChange = 0x04;
+    constexpr DWORD layoutPending = 0x08;
+    const DWORD flags = m_retailTail.m_dwBorderFlags;
+    m_retailTail.m_dwBorderFlags &= ~(notifyBorderChange | layoutPending);
+    if (notify || (flags & notifyBorderChange)) {
+        COleFrameHook* hook = nullptr;
+        std::memcpy(&hook, m_retailMiddle.m_pNotifyHook, sizeof(hook));
+        if (hook) impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(hook);
+    }
+
+    constexpr UINT paneId = 0xe900;
+    constexpr DWORD snapToBars = 0x2000;
+    auto& border = m_retailMiddle.m_rectBorder;
+    if (::GetWindowLongW(m_hWnd, GWL_STYLE) & snapToBars) {
+        RECT rect{0, 0, 32767, 32767};
+        RepositionBars(0, 0xffff, paneId, reposQuery, &rect, &rect, FALSE);
+        RepositionBars(0, 0xffff, paneId, reposExtra, &border, &rect);
+        CalcWindowRect(&rect, 0);
+        ::SetWindowPos(m_hWnd, nullptr, 0, 0, rect.right - rect.left, rect.bottom - rect.top,
+                       SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    } else {
+        RepositionBars(0, 0xffff, paneId, reposExtra, &border);
+    }
 }
 
 DWORD CFrameWnd::CanDock(CRect rect, DWORD style, CDockBar** target) {
@@ -118,10 +163,6 @@ void CFrameWnd::DockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT
 
 void CFrameWnd::EnableDocking(DWORD dwDockStyle) {
     m_retailTail.m_pFloatingFrameClass = impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ();
-    constexpr struct { DWORD alignment; DWORD border; UINT id; } sides[] = {
-        {alignTop, borderBottom, topBarId}, {alignBottom, borderTop, bottomBarId},
-        {alignLeft, borderRight, leftBarId}, {alignRight, borderLeft, rightBarId}
-    };
     for (const auto& side : sides) {
         if (!(dwDockStyle & side.alignment) || GetControlBar(side.id)) continue;
         std::unique_ptr<CControlBar> dock(NewDockBar());
@@ -142,17 +183,23 @@ void CFrameWnd::RemoveControlBar(CControlBar* bar) {
 
 void CFrameWnd::ReDockControlBar(CControlBar* bar, CDockBar* target, const RECT* rect) {
     if (!bar) AfxThrowInvalidArgException();
-    if (!target && bar->m_pDockContext) {
-        const auto* context = static_cast<const DockContext*>(bar->m_pDockContext);
-        auto* candidate = GetControlBar(context->m_uMRUDockID);
-        if (candidate && IsDockBar(candidate)) target = reinterpret_cast<CDockBar*>(candidate);
+    if (!target) {
+        const auto id = static_cast<UINT_PTR>(static_cast<UINT>(::GetDlgCtrlID(bar->m_hWnd)));
+        auto* placeholder = reinterpret_cast<CControlBar*>(id);
+        for (const auto& side : sides) {
+            auto* dock = GetControlBar(side.id);
+            if (!dock || !IsDockBar(dock)) continue;
+            if (impl__FindBar_CDockBar__QEAAHPEAVCControlBar__H_Z(dock, placeholder, -1) > 0) {
+                target = reinterpret_cast<CDockBar*>(dock);
+                break;
+            }
+            if ((bar->m_dwStyle & alignAny) == side.alignment)
+                target = reinterpret_cast<CDockBar*>(dock);
+        }
     }
-    if (target) {
-        RegisterControlBar(this, bar);
-        impl__ReDockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRECT___Z(target, bar, rect);
-    } else {
-        DockControlBar(bar, 0u, rect);
-    }
+    if (!target) AfxThrowInvalidArgException();
+    RegisterControlBar(this, bar);
+    impl__ReDockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRECT___Z(target, bar, rect);
 }
 
 void CFrameWnd::FloatControlBar(CControlBar* bar, CPoint position, DWORD style) {

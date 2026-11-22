@@ -72,7 +72,14 @@ public:
     BOOL DestroyWindow() override;
     void PostNcDestroy() override;
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
 
+protected:
+    const AFX_MSGMAP* GetMessageMap() const override;
+    void OnDestroy();
+    LRESULT OnSizeParent(WPARAM, LPARAM);
+
+public:
     // Faithful MSVC mfc140u CControlBar layout (size 328; members begin where
     // CWnd ends @232). Real MFC keeps these here, so the bar subclasses inherit
     // them instead of re-declaring (which is what made CToolBar/CStatusBar

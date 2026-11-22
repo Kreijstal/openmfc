@@ -152,6 +152,7 @@ def main():
         'tests/test_archive_dock_frame.cpp',
         'phase4/src/core/frame/CFrameWndDockState.cpp',
         'phase4/src/core/frame/CFrameWndClassicDocking.cpp',
+        'phase4/src/core/window/CWndBarLayout.cpp',
         'phase4/src/core/controlbar/CDockContextLifetime.cpp',
         'phase4/src/detail/CPtrListSupport.cpp',
     ]]

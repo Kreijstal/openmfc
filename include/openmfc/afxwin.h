@@ -959,7 +959,9 @@ public:
     int ReflectChildNotify(UINT p0, ULONGLONG p1, LONGLONG p2, LONGLONG* p3);
     BOOL RegisterTouchWindow(BOOL registerWindow=TRUE,DWORD flags=0);
     void RemoveRadioCheckFromGroup(const CObject* p0);
-    void RepositionBars(UINT p0, UINT p1, UINT p2, UINT p3, RECT* p4, RECT* p5, int p6);
+    enum { reposDefault = 0, reposQuery = 1, reposExtra = 2, reposNoPosLeftOver = 0x8000 };
+    void RepositionBars(UINT first, UINT last, UINT leftOver, UINT flags = reposDefault,
+                        RECT* result = nullptr, const RECT* client = nullptr, BOOL stretch = TRUE);
     LONGLONG RunModalLoop(DWORD p0);
     void ScreenToClient(RECT* p0) const;
     void ScrollWindow(int p0, int p1, const RECT* p2, const RECT* p3);
@@ -1007,7 +1009,11 @@ class CFrameWnd : public CWnd {
 public:
     CFrameWnd();
     virtual ~CFrameWnd();
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
+protected:
+    const AFX_MSGMAP* GetMessageMap() const override;
 
+public:
     // Release x64 CFrameWnd virtual slots 91..113. Base overrides below keep
     // their CWnd slots; declarations here follow the native SDK order.
     virtual BOOL Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,

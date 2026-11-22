@@ -20,6 +20,7 @@
 // layout behavior for native frame semantics.
 BOOL CFrameWnd::Create(const wchar_t*,const wchar_t*,DWORD,const RECT&,CWnd*,const wchar_t*,DWORD,CCreateContext*) {std::abort();}
 BOOL CFrameWnd::LoadFrame(UINT,DWORD,CWnd*,CCreateContext*) {std::abort();}
+const AFX_MSGMAP* CFrameWnd::GetMessageMap() const {std::abort();}
 void CFrameWnd::GetMessageString(UINT,CString&) const {std::abort();}
 void CFrameWnd::RecalcLayout(BOOL) {std::abort();}
 void CFrameWnd::ActivateFrame(int) {std::abort();}

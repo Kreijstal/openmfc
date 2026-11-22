@@ -185,6 +185,8 @@ on:
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
+      - 'phase4/src/core/window/CWndBarLayout.cpp'
+      - 'phase4/src/detail/ControlBarLayoutSupport.h'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
       - 'phase4/src/detail/DatabaseFieldBuffer.h'
       - 'tests/database_exception_fixture.rc'
@@ -510,6 +512,8 @@ on:
       - 'tests/native_string_fixture.cpp'
       - 'phase4/src/core/window/CWndSafeOwner.cpp'
       - 'phase4/src/core/window/CWnd.cpp'
+      - 'phase4/src/core/window/CWndBarLayout.cpp'
+      - 'phase4/src/detail/ControlBarLayoutSupport.h'
       - 'phase4/src/detail/DatabaseStringBuffer.h'
       - 'phase4/src/detail/DatabaseFieldBuffer.h'
       - 'tests/database_exception_fixture.rc'
@@ -1307,6 +1311,7 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/RegcoreSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/runtime/Globals.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWnd.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndBarLayout.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/detail/WincoreSupport.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/CWndCreation.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/WindowActivation.cpp"

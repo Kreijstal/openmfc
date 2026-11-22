@@ -4,6 +4,7 @@
 #include "detail/DockContextSupport.h"
 #include "detail/AppProfile.h"
 #include "detail/ClassicDockingSupport.h"
+#include "detail/ControlBarLayoutSupport.h"
 #include "detail/FrameLifetimeSupport.h"
 #include "openmfc/afxstat_.h"
 #include "openmfc/afxole.h"
@@ -52,6 +53,14 @@ extern "C" void impl__ReDockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRE
     void* dock, CControlBar* bar, const RECT* rect) {
     entry<void(*)(void*, CControlBar*, const RECT*)>(12180)(dock, bar, rect);
 }
+extern "C" int impl__FindBar_CDockBar__QEAAHPEAVCControlBar__H_Z(void* dock, CControlBar* key, int exclude) {
+    return entry<int(*)(void*, CControlBar*, int)>(4527)(dock, key, exclude);
+}
+extern "C" void impl__AfxRepositionWindow__YAXPEAUAFX_SIZEPARENTPARAMS__PEAUHWND____PEBUtagRECT___Z(
+    void* layout, HWND window, const RECT* rect) {
+    entry<void(*)(void*, HWND, const RECT*)>(2322)(layout, window, rect);
+}
+extern "C" void impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(COleFrameHook*) { std::abort(); }
 extern "C" int impl__RemoveControlBar_CDockBar__QEAAHPEAVCControlBar__HH_Z(
     void* dock, CControlBar* bar, int exclude, int placeholder) {
     return entry<int(*)(void*, CControlBar*, int, int)>(12342)(dock, bar, exclude, placeholder);
@@ -84,8 +93,110 @@ CControlBar* FloatingDockBar(CMiniDockFrameWnd* frame) {
 }
 CFrameWnd* CWnd::GetParentFrame() const { return entry<CFrameWnd*(*)(const CWnd*)>(6074)(this); }
 void* CWnd::FromHandlePermanent(HWND handle) { return entry<CWnd*(*)(HWND)>(4730)(handle); }
+CWnd* CWnd::FromHandle(HWND handle) { return entry<CWnd*(*)(HWND)>(4726)(handle); }
 
 namespace {
+int layoutCalls;
+constexpr LONG probeBarHeight = 64;
+constexpr LONG probeBarWidth = 220;
+LRESULT CALLBACK SizeParentProbe(HWND child, UINT message, WPARAM wParam, LPARAM lParam) {
+    using namespace openmfc::detail::dock;
+    if (message != sizeParentMessage) return ::DefWindowProcW(child, message, wParam, lParam);
+    ++layoutCalls;
+    auto& layout = *reinterpret_cast<SizeParentParams*>(lParam);
+    RECT bar = layout.rect;
+    bar.bottom = bar.top + probeBarHeight;
+    if (!layout.bStretch) bar.right = bar.left + probeBarWidth;
+    layout.rect.top = bar.bottom;
+    layout.sizeTotal.cx = bar.right - bar.left;
+    layout.sizeTotal.cy = bar.bottom - bar.top;
+    if (layout.hDWP)
+        impl__AfxRepositionWindow__YAXPEAUAFX_SIZEPARENTPARAMS__PEAUHWND____PEBUtagRECT___Z(&layout, child, &bar);
+    return 0;
+}
+
+RECT ChildBounds(HWND child, HWND parent) {
+    RECT rect{};
+    ::GetWindowRect(child, &rect);
+    ::MapWindowPoints(nullptr, parent, reinterpret_cast<POINT*>(&rect), 2);
+    return rect;
+}
+
+void TestFrameLayout(CFrameWnd* frame) {
+    using openmfc::detail::dock::topBarId;
+    constexpr UINT paneId = 0xe900;
+    const HWND host = frame->m_hWnd;
+    const auto instance = GetModuleHandleW(nullptr);
+    WNDCLASSW type{};
+    type.lpfnWndProc = &SizeParentProbe;
+    type.hInstance = instance;
+    type.lpszClassName = L"OpenMFC_SizeParentProbe";
+    check(::RegisterClassW(&type) != 0, "register a size-parent probe window class");
+    const auto child = [&](const wchar_t* className, UINT id) {
+        return ::CreateWindowExW(0, className, L"", WS_CHILD | WS_VISIBLE, 5, 5, 30, 40,
+                                host, reinterpret_cast<HMENU>(UINT_PTR(id)), instance, nullptr);
+    };
+    const HWND bar = child(type.lpszClassName, topBarId);
+    const HWND ignored = child(type.lpszClassName, topBarId + 1);
+    const HWND pane = child(L"STATIC", paneId);
+    alignas(CToolBar) BYTE storage[0x800]{};
+    auto* wrapper = entry<CControlBar*(*)(void*)>(972)(storage);
+    check(bar && ignored && pane && entry<BOOL(*)(CWnd*, HWND)>(2487)(wrapper, bar),
+          "attach a permanent layout bar alongside an unwrapped child");
+
+    const RECT before = ChildBounds(pane, host);
+    const RECT client{10, 20, 230, 170};
+    RECT result{};
+    layoutCalls = 0;
+    frame->RepositionBars(topBarId, topBarId + 1, paneId, CWnd::reposQuery, &result, &client);
+    const RECT remaining{10, 20 + probeBarHeight, 230, 170};
+    const RECT afterQuery = ChildBounds(pane, host);
+    check(layoutCalls == 1 && ::EqualRect(&result, &remaining) && ::EqualRect(&before, &afterQuery),
+          "query trims the remaining client area without moving windows");
+    frame->RepositionBars(topBarId, topBarId + 1, paneId, CWnd::reposQuery, &result, &client, FALSE);
+    const RECT total{0, 0, probeBarWidth, probeBarHeight};
+    check(::EqualRect(&result, &total), "non-stretch query returns the total size of the bars");
+
+    RECT padding{1, 2, 3, 4};
+    frame->RepositionBars(topBarId, topBarId + 1, paneId, CWnd::reposExtra | CWnd::reposNoPosLeftOver,
+                          &padding, &client);
+    const RECT suppressed = ChildBounds(pane, host);
+    check(::EqualRect(&before, &suppressed), "a deferred layout can leave the pane in place");
+
+    frame->m_retailMiddle.m_rectBorder = padding;
+    frame->m_retailTail.m_dwBorderFlags |= 0x0c;
+    frame->CFrameWnd::RecalcLayout(FALSE);
+    RECT actual = ChildBounds(pane, host);
+    RECT expected{};
+    ::GetClientRect(host, &expected);
+    expected.left += padding.left;
+    expected.top += padding.top + probeBarHeight;
+    expected.right -= padding.right;
+    expected.bottom -= padding.bottom;
+    check(::EqualRect(&actual, &expected), "frame layout resizes the pane inside its dock bars and borders");
+    check(!(frame->m_retailTail.m_dwBorderFlags & 0x0c) && !frame->m_retailTail.m_bInRecalcLayout,
+          "frame layout clears the pending border and reentry flags");
+    frame->m_retailMiddle.m_rectBorder = {};
+
+    RECT frameBounds{};
+    ::GetWindowRect(host, &frameBounds);
+    const LONG style = ::GetWindowLongW(host, GWL_STYLE);
+    ::SetWindowLongW(host, GWL_STYLE, style | 0x2000);
+    frame->CFrameWnd::RecalcLayout(FALSE);
+    RECT snapped{};
+    ::GetClientRect(host, &snapped);
+    check(::EqualRect(&snapped, &total), "snap-to-bars sizes the frame to the non-stretch bar total");
+    ::SetWindowLongW(host, GWL_STYLE, style);
+    ::SetWindowPos(host, nullptr, 0, 0, frameBounds.right - frameBounds.left, frameBounds.bottom - frameBounds.top,
+                   SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+    entry<HWND(*)(CWnd*)>(3841)(wrapper);
+    entry<void(*)(CControlBar*)>(1438)(wrapper);
+    ::DestroyWindow(bar);
+    ::DestroyWindow(ignored);
+    ::DestroyWindow(pane);
+}
+
 void TestDockTarget(CFrameWnd* frame, CControlBar* top) {
     using namespace openmfc::detail::dock;
     const auto* dock = reinterpret_cast<CDockBar*>(top);
@@ -152,7 +263,7 @@ void TestFloating(CFrameWnd* frame, CControlBar* bar) {
 
     frame->SaveBarState(L"Floating layout");
     const HWND topHandle = top->m_hWnd;
-    frame->ReDockControlBar(bar, reinterpret_cast<CDockBar*>(top), nullptr);
+    frame->ReDockControlBar(bar, nullptr, nullptr);
     check(bar->m_pDockBar == top && ::GetParent(handle) == topHandle &&
           !::IsWindow(originalPopup), "redock closes the empty popup");
 
@@ -186,6 +297,7 @@ int main() {
     const HWND host = CreateWindowExW(0, L"STATIC", L"frame", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                                       10, 10, 300, 200, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
     if (!host || !entry<BOOL(*)(CWnd*, HWND)>(2487)(frame, host)) return 4;
+    TestFrameLayout(frame);
     alignas(CControlBar) BYTE barStorage[2][0x800]{};
     auto init = entry<CControlBar*(*)(void*)>(972);
     auto destroy = entry<void(*)(CControlBar*)>(1438);

@@ -19,11 +19,6 @@ DEF_MM(COleResizeBar,
 #define DEF_MM(Cls, GMSym, GTMSym) \
     extern "C" const AFX_MSGMAP* MS_ABI GMSym(const void*) { return &class##Cls##_msgmap; } \
     extern "C" const AFX_MSGMAP* MS_ABI GTMSym() { return &class##Cls##_msgmap; }
-// Symbol: ?GetMessageMap@CControlBar@@MEBAPEBUAFX_MSGMAP@@XZ
-// Symbol: ?GetThisMessageMap@CControlBar@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(CControlBar,
-       impl__GetMessageMap_CControlBar__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_CControlBar__KAPEBUAFX_MSGMAP__XZ)
 // Symbol: ?GetMessageMap@CDialogBar@@MEBAPEBUAFX_MSGMAP@@XZ
 // Symbol: ?GetThisMessageMap@CDialogBar@@KAPEBUAFX_MSGMAP@@XZ
 DEF_MM(CDialogBar,
@@ -52,13 +47,4 @@ DEF_MM(CStatusBar,
 DEF_MM(CToolBar,
        impl__GetMessageMap_CToolBar__MEBAPEBUAFX_MSGMAP__XZ,
        impl__GetThisMessageMap_CToolBar__KAPEBUAFX_MSGMAP__XZ)
-#undef DEF_MM
-#define DEF_MM(Cls, GMSym, GTMSym) \
-    extern "C" const AFX_MSGMAP* MS_ABI GMSym(const void*) { return &class##Cls##_msgmap; } \
-    extern "C" const AFX_MSGMAP* MS_ABI GTMSym() { return &class##Cls##_msgmap; }
-// Symbol: ?GetMessageMap@CDockBar@@MEBAPEBUAFX_MSGMAP@@XZ
-// Symbol: ?GetThisMessageMap@CDockBar@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(CDockBar,
-       impl__GetMessageMap_CDockBar__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_CDockBar__KAPEBUAFX_MSGMAP__XZ)
 #undef DEF_MM

@@ -40,7 +40,6 @@ const AFX_MSGMAP* AFXAPI gbm_CBasePane();
 } } }
 const AFX_MSGMAP* AFXAPI gbm_CBaseTabbedPane();  // defined after maps (in-batch base CDockablePane)
 namespace openmfc { namespace detail { namespace pane15msgmap {
-const AFX_MSGMAP* AFXAPI gbm_CDockBar();
 } } }
 const AFX_MSGMAP* AFXAPI gbm_CDockSite();  // defined after maps (in-batch base CBasePane)
 namespace openmfc { namespace detail { namespace pane15msgmap {
@@ -60,7 +59,6 @@ namespace openmfc { namespace detail { namespace pane15msgmap {
 extern const AFX_MSGMAP classCBaseTabbedPane_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace pane15msgmap {
-extern const AFX_MSGMAP classCDockBar_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace pane15msgmap {
 extern const AFX_MSGMAP classCDockSite_msgmap;

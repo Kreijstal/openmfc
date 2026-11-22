@@ -44,6 +44,7 @@
 #include "detail/FrameLifetimeSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/CControlBarInfoSupport.h"
+#include "detail/ControlBarLayoutSupport.h"
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -234,16 +235,7 @@ constexpr int   kRP_BACKGROUND = 6;             // vssym32.h REBAR part
 constexpr int kCxBorder2 = 2;
 constexpr int kCyBorder2 = 2;
 
-// Mirror of MFC's AFX_SIZEPARENTPARAMS (afxpriv.h) -- the same shape
-// CControlBar.cpp uses.  Retail reads hDWP at +0 and rect at +8.
-struct SizeParentParams {
-    HDWP hDWP;
-    RECT rect;
-    SIZE sizeTotal;
-    BOOL bStretch;
-};
-static_assert(offsetof(SizeParentParams, hDWP) == 0x00, "AFX_SIZEPARENTPARAMS::hDWP");
-static_assert(offsetof(SizeParentParams, rect) == 0x08, "AFX_SIZEPARENTPARAMS::rect");
+using openmfc::detail::dock::SizeParentParams;
 
 inline DockBarTail& Tail(const void* pThis) {
     return *reinterpret_cast<DockBarTail*>(reinterpret_cast<unsigned char*>(const_cast<void*>(pThis)) + kOffTail);
@@ -439,7 +431,17 @@ public:
         return impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();
     }
 
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
+
 private:
+    const AFX_MSGMAP* GetMessageMap() const override;
+    void OnPaint();
+    void OnNcPaint();
+    void OnNcCalcSize(BOOL calcValidRects, NCCALCSIZE_PARAMS* params);
+    BOOL OnEraseBkgnd(CDC* dc);
+    void OnWindowPosChanging(WINDOWPOS* position);
+    LRESULT OnSizeParent(WPARAM, LPARAM);
+
     DockBarTail tail{};
 };
 
@@ -1518,4 +1520,47 @@ extern "C" void MS_ABI impl__ShowAll_CDockBar__QEAAXH_Z(void* pThis, int bShow) 
         if (pFrame == nullptr) continue;
         impl__ShowControlBar_CFrameWnd__QEAAXPEAVCControlBar__HH_Z(pFrame, pBar, bShow, TRUE);
     }
+}
+
+void CDockBar::OnPaint() {
+    impl__OnPaint_CDockBar__IEAAXXZ(this);
+}
+
+void CDockBar::OnNcPaint() {
+    impl__OnNcPaint_CDockBar__IEAAXXZ(this);
+}
+
+void CDockBar::OnNcCalcSize(BOOL calcValidRects, NCCALCSIZE_PARAMS* params) {
+    impl__OnNcCalcSize_CDockBar__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(this, calcValidRects, params);
+}
+
+BOOL CDockBar::OnEraseBkgnd(CDC* dc) {
+    return impl__OnEraseBkgnd_CDockBar__IEAAHPEAVCDC___Z(this, dc);
+}
+
+void CDockBar::OnWindowPosChanging(WINDOWPOS* position) {
+    impl__OnWindowPosChanging_CDockBar__IEAAXPEAUtagWINDOWPOS___Z(this, position);
+}
+
+LRESULT CDockBar::OnSizeParent(WPARAM wParam, LPARAM lParam) {
+    return impl__OnSizeParent_CDockBar__IEAA_J_K_J_Z(this, wParam, lParam);
+}
+
+BEGIN_MESSAGE_MAP(CDockBar, CControlBar)
+    ON_WM_PAINT()
+    OPENMFC_MAP_ENTRY(WM_NCPAINT, 0, 0, 0, AfxSig_v_v_v, &ThisClass::OnNcPaint)
+    ON_WM_NCCALCSIZE()
+    ON_WM_ERASEBKGND()
+    ON_WM_WINDOWPOSCHANGING()
+    ON_MESSAGE(openmfc::detail::dock::sizeParentMessage, &ThisClass::OnSizeParent)
+END_MESSAGE_MAP()
+
+// Symbol: ?GetMessageMap@CDockBar@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetMessageMap_CDockBar__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return CDockBar::GetThisMessageMap();
+}
+
+// Symbol: ?GetThisMessageMap@CDockBar@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetThisMessageMap_CDockBar__KAPEBUAFX_MSGMAP__XZ() {
+    return CDockBar::GetThisMessageMap();
 }

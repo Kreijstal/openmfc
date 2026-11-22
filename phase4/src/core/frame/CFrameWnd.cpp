@@ -11,6 +11,10 @@
 using openmfc::detail::frame::ControlBars;
 using openmfc::detail::frame::RegisterControlBar;
 
+BEGIN_MESSAGE_MAP(CFrameWnd, CWnd)
+    ON_WM_SIZE()
+END_MESSAGE_MAP()
+
 // Symbol: ?CreateObject@CFrameWnd@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CFrameWnd__SAPEAVCObject__XZ() {
     return CFrameWnd::CreateObject();
@@ -19,7 +23,7 @@ extern "C" CObject* MS_ABI impl__CreateObject_CFrameWnd__SAPEAVCObject__XZ() {
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CFrameWnd__MEBAPEBUAFX_MSGMAP__XZ(
     const CFrameWnd* pThis) {
     (void)pThis;
-    return EmptyMessageMap_FrameFontExports();
+    return CFrameWnd::GetThisMessageMap();
 }
 // Symbol: ?GetRuntimeClass@CFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFrameWnd__UEBAPEAUCRuntimeClass__XZ(
@@ -28,7 +32,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CFrameWnd__UEBAPEAUCRunti
 }
 // Symbol: ?GetThisMessageMap@CFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFrameWnd__KAPEBUAFX_MSGMAP__XZ() {
-    return EmptyMessageMap_FrameFontExports();
+    return CFrameWnd::GetThisMessageMap();
 }
 // Native command routing lives in core/runtime/CommandRouting.cpp.
 // Symbol: ?OnCommand@CFrameWnd@@MEAAH_K_J@Z
@@ -270,12 +274,6 @@ void CFrameWnd::ActivateFrame(int nCmdShow) {
     int cmd = (nCmdShow == -1) ? SW_SHOW : nCmdShow;
     ::ShowWindow(m_hWnd, cmd);
     ::UpdateWindow(m_hWnd);
-}
-void CFrameWnd::RecalcLayout(int bNotify) {
-    (void)bNotify;
-    if (m_hWnd) {
-        ::SendMessageW(m_hWnd, WM_SIZE, 0, 0);
-    }
 }
 int CFrameWnd::OnCreate(CREATESTRUCTW* lpcs) {
     if (!m_hWnd) {
@@ -836,25 +834,10 @@ void CFrameWnd::OnSetPreviewMode(int bPreview, CPrintPreviewState* pState) {
 }
 
 void CFrameWnd::OnSize(unsigned int nType, int cx, int cy) {
-    (void)nType;
-    if (!m_hWnd) {
-        return;
-    }
-
-    if (cx <= 0 || cy <= 0) {
-        return;
-    }
-
-    if (m_pViewActive && m_pViewActive->m_hWnd) {
-        ::MoveWindow(m_pViewActive->m_hWnd, 0, 0, cx, cy, TRUE);
-    }
-
-    for (auto* node = ControlBars(this).m_pNodeHead; node; node = node->pNext) {
-        auto* pBar = static_cast<CControlBar*>(node->data);
-        if (pBar && pBar->m_hWnd) {
-            ::MoveWindow(pBar->m_hWnd, 0, 0, cx, cy, FALSE);
-        }
-    }
+    (void)cx;
+    (void)cy;
+    Default();
+    if (nType != SIZE_MINIMIZED) RecalcLayout(TRUE);
 }
 void CFrameWnd::OnSysCommand(unsigned int nID, __int64 lParam) {
     (void)lParam;

@@ -27,6 +27,7 @@
 
 #include "detail/DockContextSupport.h"
 #include "detail/CControlBarInfoSupport.h"
+#include "detail/ControlBarLayoutSupport.h"
 #include "detail/FrameLifetimeSupport.h"
 #include "detail/OlecoreSupport.h"
 #include <uxtheme.h>
@@ -100,6 +101,7 @@ extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARE
 extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CControlBar__QEAA_J_K_J_Z(CControlBar* pThis, UINT64 wParam, __int64 lParam);
 extern "C" void MS_ABI impl__ResetTimer_CControlBar__QEAAX_KI_Z(CControlBar* pThis, UINT64 nIDEvent, UINT uElapse);
 extern "C" void* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(void* pRet, CControlBar* pThis, int nLength, DWORD dwMode);
+extern "C" void* MS_ABI impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(void*, void*, int, int);
 
 namespace {
 
@@ -174,20 +176,7 @@ inline COLORREF ClrBtnHilite() { return ::GetSysColor(COLOR_BTNHIGHLIGHT); }
 inline COLORREF ClrBtnText()   { return ::GetSysColor(COLOR_BTNTEXT); }
 inline HBRUSH   HbrBtnFace()   { return ::GetSysColorBrush(COLOR_BTNFACE); }
 
-// Mirror of MFC's AFX_SIZEPARENTPARAMS (afxpriv.h), the struct WM_SIZEPARENT's
-// lParam points at; the same shape featurepack/CMFC_misc_stubs.cpp uses for
-// AfxRepositionWindow.  Retail reads hDWP at +0, rect at +8, sizeTotal at
-// +0x18 and bStretch at +0x20.
-struct SizeParentParams {
-    HDWP hDWP;
-    RECT rect;
-    SIZE sizeTotal;
-    BOOL bStretch;
-};
-static_assert(offsetof(SizeParentParams, hDWP) == 0x00, "AFX_SIZEPARENTPARAMS::hDWP");
-static_assert(offsetof(SizeParentParams, rect) == 0x08, "AFX_SIZEPARENTPARAMS::rect");
-static_assert(offsetof(SizeParentParams, sizeTotal) == 0x18, "AFX_SIZEPARENTPARAMS::sizeTotal");
-static_assert(offsetof(SizeParentParams, bStretch) == 0x20, "AFX_SIZEPARENTPARAMS::bStretch");
+using openmfc::detail::dock::SizeParentParams;
 
 // Members retail touches, pinned to the offsets the disassembly uses.
 static_assert(offsetof(CWnd, m_hWnd) == 0x40, "CWnd::m_hWnd");
@@ -608,8 +597,12 @@ extern "C" void* MS_ABI impl__CalcFixedLayout_CControlBar__UEAA_AVCSize__HH_Z(vo
 }
 // Symbol: ?CalcDynamicLayout@CControlBar@@UEAA?AVCSize@@HK@Z
 extern "C" void* MS_ABI impl__CalcDynamicLayout_CControlBar__UEAA_AVCSize__HK_Z(void* pRet, CControlBar* pThis, int nLength, DWORD dwMode) {
+    // Dock bars derive their size from the bars in the current layout pass.
+    if (pThis && KindOf(pThis, impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ())) {
+        return impl__CalcFixedLayout_CDockBar__UEAA_AVCSize__HH_Z(
+            pRet, pThis, dwMode & kLM_STRETCH, dwMode & kLM_HORZ);
+    }
     (void)nLength;
-    (void)dwMode;
     if (pThis && pThis->m_hWnd) {
         RECT rc = {};
         ::GetWindowRect(pThis->m_hWnd, &rc);
@@ -1516,4 +1509,27 @@ extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARE
         }
     }
     return dwResult;
+}
+
+void CControlBar::OnDestroy() {
+    impl__OnDestroy_CControlBar__QEAAXXZ(this);
+}
+
+LRESULT CControlBar::OnSizeParent(WPARAM wParam, LPARAM lParam) {
+    return impl__OnSizeParent_CControlBar__QEAA_J_K_J_Z(this, wParam, lParam);
+}
+
+BEGIN_MESSAGE_MAP(CControlBar, CWnd)
+    ON_WM_DESTROY()
+    ON_MESSAGE(openmfc::detail::dock::sizeParentMessage, &ThisClass::OnSizeParent)
+END_MESSAGE_MAP()
+
+// Symbol: ?GetMessageMap@CControlBar@@MEBAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetMessageMap_CControlBar__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return CControlBar::GetThisMessageMap();
+}
+
+// Symbol: ?GetThisMessageMap@CControlBar@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* impl__GetThisMessageMap_CControlBar__KAPEBUAFX_MSGMAP__XZ() {
+    return CControlBar::GetThisMessageMap();
 }

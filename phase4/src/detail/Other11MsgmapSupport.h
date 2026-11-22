@@ -61,7 +61,6 @@ namespace openmfc { namespace detail { namespace other11msgmap {
 extern const AFX_MSGMAP classCCommonDialog_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace other11msgmap {
-extern const AFX_MSGMAP classCControlBar_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace other11msgmap {
 extern const AFX_MSGMAP classCCtrlView_msgmap;

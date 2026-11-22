@@ -393,18 +393,6 @@ extern "C" void MS_ABI impl__RemoveRadioCheckFromGroup_CWnd__QEBAXPEBUCOleContro
         }
     }
 }
-// Symbol: ?RepositionBars@CWnd@@QEAAXIIIIPEAUtagRECT@@PEBU2@H@Z
-extern "C" void MS_ABI impl__RepositionBars_CWnd__QEAAXIIIIPEAUtagRECT__PEBU2_H_Z(
-    CWnd* pThis, unsigned int nIDFirst, unsigned int nIDLast,
-    unsigned int nIDLeftOver, unsigned int nFlag, RECT* lpRectClient,
-    const RECT* lpRectClient2, int bStretch)
-{
-    if (!pThis) {
-        return;
-    }
-    pThis->RepositionBars(nIDFirst, nIDLast, nIDLeftOver, nFlag,
-                          lpRectClient, const_cast<RECT*>(lpRectClient2), bStretch);
-}
 // Symbol: ?ScrollWindowEx@CWnd@@QEAAHHHPEBUtagRECT@@0PEAVCRgn@@PEAU2@I@Z
 extern "C" int MS_ABI impl__ScrollWindowEx_CWnd__QEAAHHHPEBUtagRECT__0PEAVCRgn__PEAU2_I_Z(
     CWnd* pThis, int X, int Y, const RECT* lpRectScroll, const RECT* lpRectClip,
@@ -2456,18 +2444,6 @@ void CWnd::RemoveRadioCheckFromGroup(const CObject* p0)
         if (style & BS_AUTORADIOBUTTON) {
             ::SendMessageW(hChild, BM_SETCHECK, BST_UNCHECKED, 0);
         }
-    }
-}
-void CWnd::RepositionBars(UINT p0, UINT p1, UINT p2, UINT p3, RECT* p4, RECT* p5, int p6)
-{
-    (void)p0;
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p5;
-    (void)p6;
-    if (m_hWnd && p4) {
-        ::MoveWindow(m_hWnd, p4->left, p4->top, p4->right - p4->left, p4->bottom - p4->top, TRUE);
     }
 }
 LONGLONG CWnd::RunModalLoop(DWORD p0)
