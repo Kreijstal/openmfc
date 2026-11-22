@@ -569,6 +569,22 @@ extern "C" void MS_ABI impl__EnablePaneContextMenu_CDockingManager__QEAAXHIAEBV_
     state.paneContextMenuID = uiCustomizeCmd;
     state.paneContextMenuName = strCustomizeText ? *strCustomizeText : CString();
 }
+namespace {
+CBasePane* FindTabbedPaneById(CBasePane* pane, UINT id) {
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return nullptr;
+    auto* tabs = static_cast<CBaseTabbedPane*>(pane)->GetTabs();
+    if (!tabs) return nullptr;
+    for (int index = 0; index < tabs->GetTabsCount(); ++index) {
+        auto* window = tabs->GetTabWnd(index);
+        if (!window || !window->IsKindOf(RUNTIME_CLASS(CBasePane))) continue;
+        auto* page = static_cast<CBasePane*>(window);
+        if (PaneCommandID(page) == id) return page;
+        if (auto* nested = FindTabbedPaneById(page, id)) return nested;
+    }
+    return nullptr;
+}
+}
+
 // Symbol: ?FindPaneByID@CDockingManager@@UEAAPEAVCBasePane@@IH@Z
 extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
     CDockingManager* pThis, unsigned int nID, int bSearchMiniFrames) {
@@ -582,7 +598,10 @@ extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePa
         if (PaneCommandID(pane) == nID) return pane;
     }
 
-    if (!bSearchMiniFrames) return nullptr;
+    for (auto* pane : state->panes) {
+        if (!bSearchMiniFrames && (state->hiddenPanes.count(pane) || state->floatingPanes.count(pane))) continue;
+        if (auto* nested = FindTabbedPaneById(pane, nID)) return nested;
+    }
     return nullptr;
 }
 // Symbol: ?FixupVirtualRects@CDockingManager@@UEAAXXZ

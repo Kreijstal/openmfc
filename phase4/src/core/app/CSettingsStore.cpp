@@ -25,14 +25,26 @@ extern "C" void MS_ABI impl___1CSettingsStore__UEAA_XZ(void* self) {
 // Symbol: ?Open@CSettingsStore@@UEAAHPEB_W@Z
 extern "C" int MS_ABI impl__Open_CSettingsStore__UEAAHPEB_W_Z(void* self, const wchar_t* path) {
     SettingsStoreState& state = g_settingsStoreStates[self];
-    state.path = NormalizeSettingPath(path);
+    if (path && !*path) {
+        state.path.clear();
+    } else {
+        state.path = NormalizeSettingPath(path ? path : L"");
+        const auto current = g_settingsStoreValues.find(state.path);
+        if (path && (current == g_settingsStoreValues.end() || current->second.empty())) {
+            // Earlier stores prefixed full paths after an explicit reset to the root.
+            auto previousPath = NormalizeSettingPath(L"", path);
+            if (g_settingsStoreValues.count(previousPath)) state.path = std::move(previousPath);
+        }
+    }
     state.open = true;
     return TRUE;
 }
 // Symbol: ?CreateKey@CSettingsStore@@UEAAHPEB_W@Z
 extern "C" int MS_ABI impl__CreateKey_CSettingsStore__UEAAHPEB_W_Z(void* self, const wchar_t* key) {
     SettingsStoreState& state = g_settingsStoreStates[self];
-    state.path = NormalizeSettingPath(state.path, key);
+    state.path = state.open && state.path.empty()
+        ? NormalizeSettingPath(key ? key : L"")
+        : NormalizeSettingPath(state.path, key);
     state.open = true;
     (void)CurrentSettingsValues(self);
     return TRUE;

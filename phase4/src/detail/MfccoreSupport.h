@@ -346,12 +346,26 @@ struct TabEntry {
     int id = -1;
     BOOL visible = TRUE;
     CRect rect{};
+    COLORREF textColor = static_cast<COLORREF>(-1);
+    COLORREF backgroundColor = static_cast<COLORREF>(-1);
+    bool temporary = false;
+};
+
+struct RestoredTab {
+    std::wstring label;
+    BOOL visible = TRUE;
+    int controlId = 0;
+    BOOL detachable = TRUE;
+    COLORREF textColor = static_cast<COLORREF>(-1);
+    COLORREF backgroundColor = static_cast<COLORREF>(-1);
 };
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
 struct TabCtrlState {
     std::vector<TabEntry> tabs;
+    std::optional<std::vector<RestoredTab>> restoredTabs;
+    int restoredActiveTab = -1;
     int activeTab = -1;
     int nextTabId = 0;
     int location = 0;

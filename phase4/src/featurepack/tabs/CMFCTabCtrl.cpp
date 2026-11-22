@@ -708,12 +708,22 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
     const int saved = ::SaveDC(handle);
     ::SelectObject(handle, ::GetStockObject(DEFAULT_GUI_FONT));
     ::SetBkMode(handle, TRANSPARENT);
-    ::SetTextColor(handle, ::GetSysColor(COLOR_BTNTEXT));
+    const auto defaultText = ::GetSysColor(COLOR_BTNTEXT);
     for (int i = 0; i < static_cast<int>(state->tabs.size()); ++i) {
         const auto& tab = state->tabs[i];
         if (!tab.visible || tab.rect.IsRectEmpty()) continue;
         visualManager->OnDrawTab(dc, tab.rect, i, state->activeTab == i, this);
         CRect text = tab.rect;
+        if (tab.backgroundColor != static_cast<COLORREF>(-1)) {
+            CRect interior = tab.rect;
+            interior.DeflateRect(1, 1);
+            HBRUSH background = ::CreateSolidBrush(tab.backgroundColor);
+            if (background) {
+                ::FillRect(handle, interior, background);
+                ::DeleteObject(background);
+            }
+        }
+        ::SetTextColor(handle, tab.textColor == static_cast<COLORREF>(-1) ? defaultText : tab.textColor);
         text.DeflateRect(6, 0);
         ::DrawTextW(handle, tab.label.c_str(), static_cast<int>(tab.label.size()), text,
             DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS | DT_NOPREFIX);

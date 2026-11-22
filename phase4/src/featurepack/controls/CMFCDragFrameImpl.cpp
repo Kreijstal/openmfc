@@ -208,6 +208,7 @@ bool PlaceTemporaryTab(DragFrameLayout& drag, CBaseTabbedPane& group) {
         dummy->DestroyWindow();
         return false;
     }
+    openmfc::detail::mfccore::EnsureTabCtrlState(tabs).tabs[index].temporary = true;
     drag.dummy = dummy.release();
     drag.insertedTab = index;
     drag.oldTarget = &group;

@@ -518,17 +518,80 @@ extern "C" void MS_ABI impl__AddTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__PEB_WIH_Z(
     if (!pThis) return;
     pThis->AddTab(pTabWnd, lpszTabLabel, uiImageId, bDetachable ? TRUE : FALSE);
 }
-// Retail (0x180018390): walks the restore array at +0x250, re-hands each
-// serialized tab info to internal vslot/virtual calls (0x180018310,
-// vslot 0x58, ...) and re-runs the +0x2e8/frame checks. The +0x250 array and
-// the frame members are unmodeled.
+extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+    CDockingManager*, UINT, int);
+extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AFX_DOCK_METHOD__HPEAPEAV1__Z(
+    CDockablePane*, CDockablePane*, int, int, CDockablePane**);
+
+namespace {
+int PageControlId(const TabEntry& tab) {
+    return tab.window && tab.window->m_hWnd ? ::GetDlgCtrlID(tab.window->m_hWnd) : 0;
+}
+
+void RecoverTabPages(CMFCBaseTabCtrl& control, const std::vector<RestoredTab>& saved) {
+    const HWND hwnd = control.m_hWnd;
+    auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(hwnd)));
+    if (!parent || !parent->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return;
+    auto* group = static_cast<CBaseTabbedPane*>(parent);
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(control.GetParentFrame());
+    if (!manager) return;
+    for (const auto& tab : saved) {
+        if (CWnd::FromHandlePermanent(hwnd) != &control) return;
+        if (!tab.controlId || tab.controlId == -1) continue;
+        const auto& current = EnsureTabCtrlState(&control).tabs;
+        if (std::any_of(current.begin(), current.end(), [&](const auto& item) {
+                return !item.temporary && PageControlId(item) == tab.controlId;
+            })) continue;
+        auto* page = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+            manager, static_cast<UINT>(tab.controlId), TRUE);
+        if (!page || page == group || !page->IsKindOf(RUNTIME_CLASS(CDockablePane)) ||
+            page->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) continue;
+        impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AFX_DOCK_METHOD__HPEAPEAV1__Z(
+            static_cast<CDockablePane*>(page), group, 3 /* DM_SHOW */, FALSE, nullptr);
+    }
+}
+}
+
 // Symbol: ?ApplyRestoredTabInfo@CMFCBaseTabCtrl@@UEAAXH@Z
 extern "C" void MS_ABI impl__ApplyRestoredTabInfo_CMFCBaseTabCtrl__UEAAXH_Z(
-    CMFCBaseTabCtrl* pThis, int /*nTabNumber*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the restore-info array at
-    // +0x250 and the internal tab/frame virtuals; not modeled.
+    CMFCBaseTabCtrl* control, int useTabIndexes) {
+    const auto* pending = control ? FindTabCtrlState(control) : nullptr;
+    if (!pending || !pending->restoredTabs) return;
+    const auto saved = *pending->restoredTabs;
+    const int savedActive = pending->restoredActiveTab;
+    const HWND hwnd = control->m_hWnd;
+    RecoverTabPages(*control, saved);
+    if (hwnd && CWnd::FromHandlePermanent(hwnd) != control) return;
+    auto& state = EnsureTabCtrlState(control);
+    std::vector<TabEntry> reordered;
+    if (useTabIndexes) reordered.reserve(state.tabs.size());
+    std::vector<bool> matched(state.tabs.size());
+    int active = -1;
+    for (size_t i = 0; i < saved.size(); ++i) {
+        const auto& record = saved[i];
+        for (size_t j = 0; j < state.tabs.size(); ++j) {
+            auto& tab = state.tabs[j];
+            if (matched[j] || tab.temporary || PageControlId(tab) != record.controlId) continue;
+            matched[j] = true;
+            tab.label = record.label;
+            tab.visible = record.visible;
+            tab.detachable = record.detachable;
+            tab.textColor = record.textColor;
+            tab.backgroundColor = record.backgroundColor;
+            if (static_cast<int>(i) == savedActive && tab.visible)
+                active = static_cast<int>(useTabIndexes ? reordered.size() : j);
+            if (useTabIndexes) reordered.push_back(std::move(tab));
+            break;
+        }
+    }
+    if (useTabIndexes) {
+        for (size_t i = 0; i < state.tabs.size(); ++i)
+            if (!matched[i]) reordered.push_back(std::move(state.tabs[i]));
+        state.tabs = std::move(reordered);
+    }
+    if (active < 0) active = FirstVisibleTab(state, 0);
+    control->SetActiveTab(active);
 }
 // Retail (0x180015ad0): walks the tab array (+0x108/+0x110/+0x150), destroys
 // every tab window when the +0x1e4 flag is set and deletes the per-tab
@@ -809,18 +872,13 @@ extern "C" CSize* MS_ABI impl__GetMaxWindowSize_CMFCBaseTabCtrl__UEBA_AVCSize__X
 // Retail (0x1800199e0): bounds-checks and returns the background color at
 // +0x44 of the tab record; when that slot holds -1 and the auto-color flag
 // (+0x328) is set it computes the color from the auto-color array
-// (+0x308/+0x310) and caches it in the record. Out of bounds returns
-// 0xffffffff. The record and array are unmodeled, so the retail "unset"
-// color 0xffffffff is returned for every in-bounds tab too.
+// (+0x308/+0x310) and caches it in the record. Out of bounds returns 0xffffffff.
 // Symbol: ?GetTabBkColor@CMFCBaseTabCtrl@@UEBAKH@Z
 extern "C" unsigned long MS_ABI impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
-    if (!pThis) return (unsigned long)-1;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return (unsigned long)-1;
-    // TODO(clean-room): partially transcribed -- the per-tab background color
-    // (+0x44) and the auto-color array (+0x308/+0x310/+0x328) are not modeled.
-    return (unsigned long)-1;
+    const auto* tab = TabAt(pThis, iTab);
+    return tab ? tab->backgroundColor : static_cast<COLORREF>(-1);
 }
 // Retail (0x180016fb0): scans the tab array and returns the index of the
 // first tab whose ID (record +0x3c) equals nID, or -1. The scan is kept
@@ -966,17 +1024,13 @@ extern "C" int MS_ABI impl__GetTabRect_CMFCBaseTabCtrl__UEBAHHAEAVCRect___Z(
     return tab->visible;
 }
 // Retail (0x180019a90): bounds-checks and returns the text color stored at
-// +0x40 of the tab record; out of bounds returns 0xffffffff. The per-tab
-// record is unmodeled; the bounds gate and the terminal value are kept.
+// +0x40 of the tab record; out of bounds returns 0xffffffff.
 // Symbol: ?GetTabTextColor@CMFCBaseTabCtrl@@UEBAKH@Z
 extern "C" unsigned long MS_ABI impl__GetTabTextColor_CMFCBaseTabCtrl__UEBAKH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
-    if (!pThis) return (unsigned long)-1;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return (unsigned long)-1;
-    // TODO(clean-room): partially transcribed -- the per-tab text color
-    // (record +0x40) is not modeled.
-    return (unsigned long)-1;
+    const auto* tab = TabAt(pThis, iTab);
+    return tab ? tab->textColor : static_cast<COLORREF>(-1);
 }
 // Retail (0x180016780): bounds-checks, loads the tab's CWnd* (record +0x30)
 // and, when it IsKindOf the class at 0x1803b11a8, returns the vslot-0x758
@@ -1096,9 +1150,7 @@ extern "C" void MS_ABI impl__InvalidateTab_CMFCBaseTabCtrl__QEAAXH_Z(
 }
 // Retail (0x18001a700): returns TRUE as soon as any tab's background color
 // (record +0x44) differs from 0xffffffff, scanning through the vslot-0x3c8
-// GetTabBkColor virtual; FALSE when no tab is colored. Transcribed through
-// the declared GetTabBkColor helper (which always reports the unset color),
-// so the scan shape matches retail and the terminal FALSE is reached.
+// GetTabBkColor virtual; FALSE when no tab is colored.
 // Symbol: ?IsColored@CMFCBaseTabCtrl@@UEBAHXZ
 extern "C" int MS_ABI impl__IsColored_CMFCBaseTabCtrl__UEBAHXZ(
     const CMFCBaseTabCtrl* pThis)
@@ -1110,8 +1162,6 @@ extern "C" int MS_ABI impl__IsColored_CMFCBaseTabCtrl__UEBAHXZ(
             return TRUE;
         }
     }
-    // TODO(clean-room): partially transcribed -- the per-tab background color
-    // (+0x44 of the tab record) is not modeled, so no tab can be colored.
     return FALSE;
 }
 // Retail (0x180016b40): bounds-checks `0 <= iTab < count (+0x150)`, destroys
@@ -1166,16 +1216,14 @@ impl__SetTabLabel_CMFCBaseTabCtrl__UEAAHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV
     return TRUE;
 }
 // Retail (0x180019ad0): bounds-checks and stores the color at +0x40 of the
-// tab record; returns 1 when applied, 0 when out of bounds. The per-tab
-// record is unmodeled; the bounds gate and the terminal values are kept.
+// tab record; returns 1 when applied, 0 when out of bounds.
 // Symbol: ?SetTabTextColor@CMFCBaseTabCtrl@@UEAAHHK@Z
 extern "C" int MS_ABI impl__SetTabTextColor_CMFCBaseTabCtrl__UEAAHHK_Z(
-    CMFCBaseTabCtrl* pThis, int iTab, unsigned long /*color*/)
+    CMFCBaseTabCtrl* pThis, int iTab, unsigned long color)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab text color
-    // (record +0x40) is not modeled.
+    if (!TabAt(pThis, iTab)) return FALSE;
+    EnsureTabCtrlState(pThis).tabs[iTab].textColor = color;
+    if (pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd, nullptr, FALSE);
     return TRUE;
 }
 // Retail (0x180019170): returns 0 when the tab count (+0x150) differs from
@@ -1771,19 +1819,48 @@ extern "C" void MS_ABI impl__ResetImageList_CMFCBaseTabCtrl__QEAAXXZ(
     // TODO(clean-room): not transcribed -- needs the vslot-0x2f8 virtual, the
     // +0x170 image handle and the +0x180 image map; not modeled.
 }
-// Retail (0x180018860): serializes the internal options block (+0x248, via
-// 0x18001bcb0) and, per CArchive direction, reads or writes the tab array
-// (+0x108/+0x110) as a CArray<CMFCBaseTabInfo>::Serialize stream plus the
-// count and active-tab integers. Neither the block nor the array is modeled,
-// so no archive traffic is emitted (matching a control with no tabs).
+// Retail writes a signed count, then each label, visible flag, control ID,
+// detachable flag and two colors, followed by the active index and location.
+// The load path defers applying the records until the application has panes.
 // Symbol: ?Serialize@CMFCBaseTabCtrl@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CMFCBaseTabCtrl__UEAAXAEAVCArchive___Z(
-    CMFCBaseTabCtrl* pThis, CArchive& /*ar*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- retail archives the +0x248 options
-    // block and the CArray<CMFCBaseTabInfo> tab array (+0x108/+0x110);
-    // neither is modeled.
+    CMFCBaseTabCtrl* control, CArchive& ar) {
+    if (!control) return;
+    auto& state = EnsureTabCtrlState(control);
+    if (ar.IsStoring()) {
+        const auto count = std::count_if(state.tabs.begin(), state.tabs.end(),
+            [](const auto& tab) { return !tab.temporary; });
+        ar << static_cast<int>(count);
+        int active = -1;
+        int index = 0;
+        for (size_t i = 0; i < state.tabs.size(); ++i) {
+            const auto& tab = state.tabs[i];
+            if (tab.temporary) continue;
+            if (static_cast<int>(i) == state.activeTab) active = index;
+            ar << CString(tab.label.c_str()) << tab.visible << PageControlId(tab) << tab.detachable
+                << tab.textColor << tab.backgroundColor;
+            ++index;
+        }
+        ar << active << state.location;
+        return;
+    }
+
+    int count = 0;
+    ar >> count;
+    if (count < 0 || count > 65535) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    std::vector<RestoredTab> saved;
+    for (int index = 0; index < count; ++index) {
+        CString label;
+        RestoredTab tab;
+        ar >> label >> tab.visible >> tab.controlId >> tab.detachable >> tab.textColor >> tab.backgroundColor;
+        tab.label.assign(label.GetString(), label.GetLength());
+        saved.push_back(std::move(tab));
+    }
+    int active = -1;
+    int savedLocation = 0;
+    ar >> active >> savedLocation;
+    state.restoredTabs = std::move(saved);
+    state.restoredActiveTab = active;
 }
 // Retail (0x18001b100): zeroes the numeric CAccessibilityData fields, copies
 // the tab-name string (CMFCTabInfo m_strName at +0x8) into m_strAccName,
@@ -1913,16 +1990,14 @@ extern "C" void MS_ABI impl__SetLocation_CMFCBaseTabCtrl__UEAAXW4Location_1__Z(
 }
 // Retail (0x180019a50): bounds-checks `0 <= iTab < tabs count (+0x150)` and
 // stores the color at +0x44 of the tab record; returns 1 when applied, 0 when
-// out of bounds. The per-tab records are unmodeled; the bounds gate and the
-// terminal values are kept.
+// out of bounds.
 // Symbol: ?SetTabBkColor@CMFCBaseTabCtrl@@UEAAHHK@Z
 extern "C" int MS_ABI impl__SetTabBkColor_CMFCBaseTabCtrl__UEAAHHK_Z(
-    CMFCBaseTabCtrl* pThis, int iTab, unsigned long /*color*/)
+    CMFCBaseTabCtrl* pThis, int iTab, unsigned long color)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab background color
-    // (+0x44 of the tab record, tab array +0x108/+0x110) is not modeled.
+    if (!TabAt(pThis, iTab)) return FALSE;
+    EnsureTabCtrlState(pThis).tabs[iTab].backgroundColor = color;
+    if (pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd, nullptr, FALSE);
     return TRUE;
 }
 // Retail (0x180016bf0): bounds-checks, destroys the previous icon (+0x18 of

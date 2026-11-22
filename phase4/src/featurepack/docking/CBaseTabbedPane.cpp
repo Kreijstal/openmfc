@@ -138,11 +138,16 @@ extern "C" int MS_ABI impl__AddTab_CBaseTabbedPane__UEAAHPEAVCWnd__HHH_Z(
     return pThis && pThis->AddTab(pNewBar, bVisible, bSetActive, bDetachable);
 }
 
-// STUB: retail RVA 0x14060.
+extern "C" void MS_ABI impl__ApplyRestoredTabInfo_CMFCBaseTabCtrl__UEAAXH_Z(CMFCBaseTabCtrl*, int);
+extern "C" void MS_ABI impl__Serialize_CMFCBaseTabCtrl__UEAAXAEAVCArchive___Z(CMFCBaseTabCtrl*, CArchive&);
+extern "C" int MS_ABI impl__LoadState_CPane__UEAAHPEB_WHI_Z(CPane*, const wchar_t*, int, UINT);
+extern "C" int MS_ABI impl__SaveState_CPane__UEAAHPEB_WHI_Z(CPane*, const wchar_t*, int, UINT);
+
 // Symbol: ?ApplyRestoredTabInfo@CBaseTabbedPane@@UEAAXH@Z
 extern "C" void MS_ABI impl__ApplyRestoredTabInfo_CBaseTabbedPane__UEAAXH_Z(
-    CBaseTabbedPane* pThis, int bUseTabIndexes) {
-    (void)pThis; (void)bUseTabIndexes;
+    CBaseTabbedPane* group, int useTabIndexes) {
+    if (group && group->GetTabs())
+        impl__ApplyRestoredTabInfo_CMFCBaseTabCtrl__UEAAXH_Z(group->GetTabs(), useTabIndexes);
 }
 
 // OpenMFC approximation: retail RVA 0x140c0 (mfc140u) tail-jumps to the full CBasePane::CanFloat body at RVA 0xc7c0 (mfc140u). The existing base thunk dispatches to CPane::CanFloat here (TRUE), so this preserves the local base-class behavior but not retail's docking checks.
@@ -258,19 +263,35 @@ extern "C" void MS_ABI impl__GetPaneList_CBaseTabbedPane__UEAAXAEAVCObList__PEAU
     }
 }
 
-// STUB: retail RVA 0x13d10 (mfc140u) parses CArchive's internal buffer and mutates the CList through a private helper; no verified typed archive/list path is available in this file.
 // Symbol: ?LoadSiblingPaneIDs@CBaseTabbedPane@@SAXAEAVCArchive@@AEAV?$CList@II@@@Z
 extern "C" void MS_ABI impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive__AEAV__CList_II___Z(
-    CArchive& archive, CList<UINT, UINT>& barIDs) {
-    (void)archive; (void)barIDs;
+    CArchive& ar, CList<UINT, UINT>& ids) {
+    int count = 0;
+    ar >> count;
+    if (count < 0 || count > 65535) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    std::vector<UINT> saved;
+    for (int i = 0; i < count; ++i) {
+        UINT id;
+        ar >> id;
+        saved.push_back(id);
+    }
+    for (auto id : saved) ids.AddTail(id);
 }
 
-// STUB: retail RVA 0x13ee0.
 // Symbol: ?LoadState@CBaseTabbedPane@@MEAAHPEB_WHI@Z
 extern "C" int MS_ABI impl__LoadState_CBaseTabbedPane__MEAAHPEB_WHI_Z(
-    CBaseTabbedPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
-    (void)pThis; (void)lpszProfileName; (void)nIndex; (void)uiID;
-    return 0;
+    CBaseTabbedPane* group, const wchar_t* profile, int index, UINT id) {
+    if (!group) return FALSE;
+    impl__LoadState_CPane__UEAAHPEB_WHI_Z(group, profile, index, id);
+    auto* tabs = group->GetTabs();
+    const auto* state = tabs ? FindTabCtrlState(tabs) : nullptr;
+    if (state) {
+        const auto pages = state->tabs;
+        for (const auto& page : pages)
+            if (page.window && page.window->IsKindOf(RUNTIME_CLASS(CPane)))
+                impl__LoadState_CPane__UEAAHPEB_WHI_Z(static_cast<CPane*>(page.window), profile, index, id);
+    }
+    return TRUE;
 }
 
 // STUB: retail RVA 0x14680.
@@ -327,23 +348,35 @@ extern "C" int MS_ABI impl__RemovePane_CBaseTabbedPane__UEAAHPEAVCWnd___Z(
     return pThis && pThis->RemovePane(pBar);
 }
 
-// STUB: the mfc140.dll ANSI-twin entry RVA 0x13d90 writes a tab count and
-// per-tab IDs through CArchive's internal buffer, using m_pTabWnd (+0x4e8).
-// The archive format remains unimplemented.
 // Symbol: ?SaveSiblingBarIDs@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
-    CBaseTabbedPane* pThis, CArchive& archive) {
-    (void)pThis; (void)archive;
+    CBaseTabbedPane* group, CArchive& ar) {
+    auto* tabs = group ? group->GetTabs() : nullptr;
+    const auto* state = tabs ? FindTabCtrlState(tabs) : nullptr;
+    std::vector<int> ids;
+    if (state) {
+        for (const auto& tab : state->tabs)
+            if (!tab.temporary && tab.window && tab.window->m_hWnd)
+                ids.push_back(::GetDlgCtrlID(tab.window->m_hWnd));
+    }
+    ar << static_cast<int>(ids.size());
+    for (int id : ids) ar << id;
 }
 
-// STUB: the exact Unicode export ?SaveState@CBaseTabbedPane@@MEAAHPEB_WHI@Z
-// is unresolved in the mfc140u map. Its ANSI char-signature counterpart is at
-// RVA 0x13f70 (mfc140) and traverses tab state; it is not the same export.
 // Symbol: ?SaveState@CBaseTabbedPane@@MEAAHPEB_WHI@Z
 extern "C" int MS_ABI impl__SaveState_CBaseTabbedPane__MEAAHPEB_WHI_Z(
-    CBaseTabbedPane* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID) {
-    (void)pThis; (void)lpszProfileName; (void)nIndex; (void)uiID;
-    return 0;
+    CBaseTabbedPane* group, const wchar_t* profile, int index, UINT id) {
+    if (!group) return FALSE;
+    impl__SaveState_CPane__UEAAHPEB_WHI_Z(group, profile, index, id);
+    auto* tabs = group->GetTabs();
+    const auto* state = tabs ? FindTabCtrlState(tabs) : nullptr;
+    if (state) {
+        for (const auto& tab : state->tabs)
+            if (tab.window && tab.window->IsKindOf(RUNTIME_CLASS(CPane)) &&
+                !impl__SaveState_CPane__UEAAHPEB_WHI_Z(static_cast<CPane*>(tab.window), profile, index, id))
+                return FALSE;
+    }
+    return TRUE;
 }
 
 // Retail mfc140.dll ANSI-twin entry RVA 0x13ca0 is a tail jump to
@@ -358,13 +391,11 @@ extern "C" void MS_ABI impl__Serialize_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
     }
 }
 
-// STUB: the mfc140.dll ANSI-twin entry RVA 0x13cb0 checks m_pTabWnd (+0x4e8)
-// and, when non-null, dispatches vslot +0x10 with the CArchive reference.
-// The pointer is side-table state with no safe C-ABI accessor in this file.
 // Symbol: ?SerializeTabWindow@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
-    CBaseTabbedPane* pThis, CArchive& archive) {
-    (void)pThis; (void)archive;
+    CBaseTabbedPane* group, CArchive& archive) {
+    if (group && group->GetTabs())
+        impl__Serialize_CMFCBaseTabCtrl__UEAAXAEAVCArchive___Z(group->GetTabs(), archive);
 }
 
 // STUB: the mfc140.dll ANSI-twin entry RVA 0x140e0 contains a substantial
