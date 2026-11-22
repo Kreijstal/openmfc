@@ -19,7 +19,6 @@ HINSTANCE AFXAPI AfxGetResourceHandle() { return g_d2dTestResourceModule ? g_d2d
 // List serialization is linked for its vtable but is outside these drawing tests.
 CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
 CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
-CArchive& CArchive::operator>>(CObject*&) { std::abort(); }
 // Command routing is outside these rendering tests.
 int CCmdTarget::OnCmdMsg(unsigned int,int,void*,AFX_CMDHANDLERINFO*) { std::abort(); }
 CRuntimeClass CCmdTarget::classCCmdTarget{};
@@ -40,15 +39,14 @@ CRuntimeClass CSplitterWnd::classCSplitterWnd{"CSplitterWnd",sizeof(CSplitterWnd
 thread_local AFX_MODULE_STATE* (*g_windowModuleStateHook)()=nullptr;
 extern "C" AFX_MODULE_STATE* MS_ABI impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ() {
     if(g_windowModuleStateHook)return g_windowModuleStateHook();
-#ifndef OPENMFC_TEST_WINDOW_HANDLES
-    // Rendering resource tests use a real module prefix even without an app.
-    // Resource selection belongs to that state, as it does in the DLL.
+    // Static serial class registration and resource lookup share the fallback.
     if(!g_cmdTestCurrentModule) {
         static AFX_MODULE_STATE resources;
+#ifndef OPENMFC_TEST_WINDOW_HANDLES
         resources.m_hCurrentResourceHandle=AfxGetResourceHandle();
+#endif
         return &resources;
     }
-#endif
     return g_cmdTestCurrentModule;
 }
 
@@ -113,17 +111,20 @@ std::recursive_mutex g_messageCacheTestMutex;
 thread_local int g_messageCacheLockDepth=0;
 std::recursive_mutex g_databaseTestMutex;
 thread_local int g_databaseLockDepth=0;
-std::recursive_mutex g_resourceTestMutex;
 thread_local int g_resourceLockDepth=0;
 #ifndef OPENMFC_TEST_REAL_GLOBAL_LOCKS
+static std::recursive_mutex& ResourceMutex() {
+    static std::recursive_mutex mutex;
+    return mutex;
+}
 extern "C" void MS_ABI impl__AfxLockGlobals__YAXH_Z(int id) {
-    if(id==0) {g_resourceTestMutex.lock();++g_resourceLockDepth;return;}
+    if(id==0) {ResourceMutex().lock();++g_resourceLockDepth;return;}
     if(id==7) { g_messageCacheTestMutex.lock();++g_messageCacheLockDepth;return; }
     if(id==15) {g_databaseTestMutex.lock();++g_databaseLockDepth;return;}
     if(id!=13)std::abort();g_typeCacheTestMutex.lock();++g_typeCacheLockDepth;
 }
 extern "C" void MS_ABI impl__AfxUnlockGlobals__YAXH_Z(int id) {
-    if(id==0) {if(g_resourceLockDepth<=0)std::abort();--g_resourceLockDepth;g_resourceTestMutex.unlock();return;}
+    if(id==0) {if(g_resourceLockDepth<=0)std::abort();--g_resourceLockDepth;ResourceMutex().unlock();return;}
     if(id==7) { if(g_messageCacheLockDepth<=0)std::abort();--g_messageCacheLockDepth;g_messageCacheTestMutex.unlock();return; }
     if(id==15) {if(g_databaseLockDepth<=0)std::abort();--g_databaseLockDepth;g_databaseTestMutex.unlock();return;}
     if(id!=13 || g_typeCacheLockDepth<=0)std::abort();--g_typeCacheLockDepth;g_typeCacheTestMutex.unlock();

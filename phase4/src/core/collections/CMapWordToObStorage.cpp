@@ -7,7 +7,7 @@
 #include <new>
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
-IMPLEMENT_SERIAL(CMapWordToOb,CObject,0xffff)
+IMPLEMENT_SERIAL(CMapWordToOb,CObject,0)
 CMapWordToOb::CMapWordToOb(INT_PTR block) : m_pHashTable(nullptr),m_nHashTableSize(17),m_nCount(0),m_pFreeList(nullptr),m_pBlocks(nullptr),m_nBlockSize(block) {
     if(block<=0)impl__AfxThrowInvalidArgException__YAXXZ();
 }

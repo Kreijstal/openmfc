@@ -13,11 +13,11 @@ extern "C" void* MS_ABI impl__NewNode_CObList__IEAAPEAUCNode_1__PEAU21_0_Z(CObLi
 extern "C" void* MS_ABI impl__NewNode_CStringList__IEAAPEAUCNode_1__PEAU21_0_Z(CStringList* /*pThis*/, void* pPrev, void* pNext);
 
 IMPLEMENT_DYNAMIC(CUIntArray, CObject)
-IMPLEMENT_SERIAL(CDWordArray, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CDWordArray, CObject, 0)
 IMPLEMENT_DYNAMIC(CMapPtrToWord, CObject)
-IMPLEMENT_SERIAL(CMapStringToOb, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CMapStringToOb, CObject, 0)
 IMPLEMENT_DYNAMIC(CMapStringToPtr, CObject)
-IMPLEMENT_SERIAL(CMapStringToString, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CMapStringToString, CObject, 0)
 IMPLEMENT_DYNAMIC(CMapWordToPtr, CObject)
 OPENMFC_DEFINE_ARRAY_METHODS(CUIntArray, unsigned int, unsigned int)
 OPENMFC_DEFINE_ARRAY_METHODS(CDWordArray, DWORD, DWORD)

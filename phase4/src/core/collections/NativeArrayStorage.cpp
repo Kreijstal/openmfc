@@ -1,7 +1,6 @@
 // Native primitive array storage; client inline accessors read these fields.
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxwin.h"
-#include "detail/NativeCollectionArchive.h"
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -47,23 +46,14 @@ template<class Array> void Compact(Array* a) {
 }
 
 }
-IMPLEMENT_SERIAL(CByteArray,CObject,0xffff)
-IMPLEMENT_SERIAL(CObArray,CObject,0xffff)
+IMPLEMENT_SERIAL(CByteArray,CObject,0)
+IMPLEMENT_SERIAL(CObArray,CObject,0)
 #define ARRAY_METHODS(Class,Type) \
 Class::Class():m_pData(nullptr),m_nSize(0),m_nMaxSize(0),m_nGrowBy(0){} \
 Class::~Class(){delete[] reinterpret_cast<BYTE*>(m_pData);} \
-INT_PTR Class::GetSize()const{return m_nSize;} INT_PTR Class::GetCount()const{return m_nSize;} \
-BOOL Class::IsEmpty()const{return !m_nSize;} INT_PTR Class::GetUpperBound()const{return m_nSize-1;} \
 void Class::SetSize(INT_PTR size,INT_PTR grow){Resize(this,size,grow);} \
-void Class::FreeExtra(){Compact(this);} void Class::RemoveAll(){SetSize(0);} \
-Type Class::GetAt(INT_PTR index)const{Require(index>=0 && index<m_nSize);return m_pData[index];} \
-void Class::SetAt(INT_PTR index,Type value){Require(index>=0 && index<m_nSize);m_pData[index]=value;} \
-Type& Class::ElementAt(INT_PTR index){Require(index>=0 && index<m_nSize);return m_pData[index];} \
-const Type& Class::ElementAt(INT_PTR index)const{Require(index>=0 && index<m_nSize);return m_pData[index];} \
-Type Class::operator[](INT_PTR index)const{return GetAt(index);} Type& Class::operator[](INT_PTR index){return ElementAt(index);} \
-Type* Class::GetData(){return m_pData;} \
+void Class::FreeExtra(){Compact(this);} \
 void Class::SetAtGrow(INT_PTR index,Type value){Require(index>=0 && index<PTRDIFF_MAX);if(index>=m_nSize)SetSize(index+1);m_pData[index]=value;} \
-INT_PTR Class::Add(Type value){INT_PTR index=m_nSize;SetAtGrow(index,value);return index;} \
 INT_PTR Class::Append(const Class& src){INT_PTR index=m_nSize,count=src.m_nSize;Require(count<=PTRDIFF_MAX-index);SetSize(index+count);if(count)std::memmove(m_pData+index,src.m_pData,count*sizeof(Type));return index;} \
 void Class::Copy(const Class& src){if(this==&src)return;SetSize(src.m_nSize);if(m_nSize)std::memcpy(m_pData,src.m_pData,m_nSize*sizeof(Type));} \
 void Class::InsertAt(INT_PTR index,Type value,INT_PTR count){Require(index>=0 && count>0 && count<=PTRDIFF_MAX-std::max(index,m_nSize));INT_PTR old=m_nSize;SetSize(std::max(index,old)+count);if(index<old)std::memmove(m_pData+index+count,m_pData+index,(old-index)*sizeof(Type));std::fill_n(m_pData+index,count,value);} \
@@ -74,18 +64,16 @@ ARRAY_METHODS(CByteArray,BYTE)
 using ObjectPtr=CObject*;
 ARRAY_METHODS(CObArray,ObjectPtr)
 #undef ARRAY_METHODS
-const BYTE* CByteArray::GetData()const{return m_pData;}
-const CObject** CObArray::GetData()const{return (const CObject**)m_pData;}
 void CByteArray::Serialize(CArchive& ar) {
-    if(ar.IsStoring())openmfc::detail::WriteCollectionCount(ar,m_nSize);
-    else {UINT64 size=openmfc::detail::ReadCollectionCount(ar);if(size>PTRDIFF_MAX)impl__AfxThrowMemoryException__YAXXZ();SetSize(static_cast<INT_PTR>(size));}
+    if(ar.IsStoring())ar.WriteCount(m_nSize);
+    else {UINT64 size=ar.ReadCount();if(size>PTRDIFF_MAX)impl__AfxThrowMemoryException__YAXXZ();SetSize(static_cast<INT_PTR>(size));}
     for(INT_PTR offset=0;offset<m_nSize;) {
         UINT bytes=static_cast<UINT>(std::min<UINT64>(m_nSize-offset,UINT_MAX));
         if(ar.IsStoring())ar.Write(m_pData+offset,bytes);else ar.Read(m_pData+offset,bytes);offset+=bytes;
     }
 }
 void CObArray::Serialize(CArchive& ar) {
-    if(ar.IsStoring()){openmfc::detail::WriteCollectionCount(ar,m_nSize);for(INT_PTR i=0;i<m_nSize;++i)ar<<m_pData[i];}
-    else {UINT64 size=openmfc::detail::ReadCollectionCount(ar);if(size>PTRDIFF_MAX)impl__AfxThrowMemoryException__YAXXZ();SetSize(size);for(INT_PTR i=0;i<m_nSize;++i)ar>>m_pData[i];}
+    if(ar.IsStoring()){ar.WriteCount(m_nSize);for(INT_PTR i=0;i<m_nSize;++i)ar<<m_pData[i];}
+    else {UINT64 size=ar.ReadCount();if(size>PTRDIFF_MAX)impl__AfxThrowMemoryException__YAXXZ();SetSize(size);for(INT_PTR i=0;i<m_nSize;++i)ar>>m_pData[i];}
 }
 static_assert(sizeof(CByteArray)==40 && sizeof(CObArray)==40,"native primitive arrays");

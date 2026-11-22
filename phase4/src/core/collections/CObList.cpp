@@ -5,7 +5,7 @@
 
 #include "detail/FilecoreSupport.h"
 
-IMPLEMENT_SERIAL(CObList, CObject, 0xFFFF)
+IMPLEMENT_SERIAL(CObList, CObject, 0)
 OPENMFC_DEFINE_LIST_METHODS(CObList, CObject*, CObject*)
 
 #define OPENMFC_WRAP_CTOR1(fn_name, class_name, arg_type) extern "C" void* MS_ABI fn_name(class_name* pThis, arg_type arg0) { return pThis ? new (pThis) class_name(arg0) : nullptr; }

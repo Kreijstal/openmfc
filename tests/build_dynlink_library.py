@@ -17,11 +17,8 @@ def sources():
     return [s for s in window_sources() if s != 'tests/test_window_handles.cpp'] + [
         'phase4/src/core/runtime/AFX_MODULE_STATE.cpp',
         'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp',
-        'phase4/src/core/runtime/CRuntimeClass.cpp',
         'phase4/src/core/ole/CTypeLibCacheMap.cpp',
         'phase4/src/core/controls/CToolTipCtrlLifetime.cpp',
-        'phase4/src/core/collections/CSimpleList.cpp',
-        'phase4/src/detail/CSimpleListSupport.cpp',
         'phase4/src/core/runtime/CDynLinkLibrary.cpp',
         'phase4/src/core/runtime/GlobalLocks.cpp',
         'tests/test_dynlink_library.cpp']

@@ -4,7 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/FilecoreSupport.h"
-IMPLEMENT_SERIAL(CStringList,CObject,0xffff)
+IMPLEMENT_SERIAL(CStringList,CObject,0)
 
 #define OPENMFC_WRAP_CTOR1(fn_name, class_name, arg_type) extern "C" void* MS_ABI fn_name(class_name* pThis, arg_type arg0) { return pThis ? new (pThis) class_name(arg0) : nullptr; }
 // Symbol: ??0CStringList@@QEAA@_J@Z

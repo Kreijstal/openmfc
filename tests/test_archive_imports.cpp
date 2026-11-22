@@ -13,18 +13,17 @@
 #include <type_traits>
 static_assert(sizeof(CArchive)==112&&!std::is_polymorphic_v<CArchive>,"native archive ABI");
 struct ImportRecord:CObject {
- static CRuntimeClass descriptor;
- static CObject* AFXAPI Construct(){return new ImportRecord;}
+ DECLARE_SERIAL(ImportRecord)
  int value=19;
- CRuntimeClass* GetRuntimeClass()const override{return &descriptor;}
- void Serialize(CArchive& archive)override{archive.Write(&value,sizeof(value));}
+ void Serialize(CArchive& archive)override {
+  if(archive.IsStoring())archive.Write(&value,sizeof(value));
+  else archive.EnsureRead(&value,sizeof(value));
+ }
 };
-extern AFX_CLASSINIT importRecordRegistration;
-CRuntimeClass ImportRecord::descriptor={"ImportRecord",sizeof(ImportRecord),42,&ImportRecord::Construct,&CObject::GetThisClass,nullptr,&importRecordRegistration};
-AFX_CLASSINIT importRecordRegistration(&ImportRecord::descriptor);
+IMPLEMENT_SERIAL(ImportRecord,CObject,42)
 int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
- check(CRuntimeClass::FromName("ImportRecord")==&ImportRecord::descriptor);
- check(CRuntimeClass::FromName(L"ImportRecord")==&ImportRecord::descriptor);
+ check(CRuntimeClass::FromName("ImportRecord")==RUNTIME_CLASS(ImportRecord));
+ check(CRuntimeClass::FromName(L"ImportRecord")==RUNTIME_CLASS(ImportRecord));
  check(CRuntimeClass::FromName("importrecord")==nullptr);
  check(CRuntimeClass::FromName(static_cast<const wchar_t*>(nullptr))==nullptr);
  auto* appModule=AfxGetAppModuleState();
@@ -37,10 +36,10 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
  check(CRuntimeClass::FromName("ImportRecord")==nullptr);
  AfxSetModuleState(previous);
  delete alternate;
- check(CRuntimeClass::FromName("ImportRecord")==&ImportRecord::descriptor);
+ check(CRuntimeClass::FromName("ImportRecord")==RUNTIME_CLASS(ImportRecord));
 #endif
  for(CObject* instance:{CRuntimeClass::CreateObject("ImportRecord"),CRuntimeClass::CreateObject(L"ImportRecord")}) {
-  check(instance&&instance->GetRuntimeClass()==&ImportRecord::descriptor);delete instance;
+  check(instance&&instance->GetRuntimeClass()==RUNTIME_CLASS(ImportRecord));delete instance;
  }
  check(CRuntimeClass::CreateObject("unregistered class")==nullptr);
  bool nullName=false;
@@ -49,17 +48,36 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
  check(nullName);
  {
   CMemFile graph;ImportRecord record;
-  {CArchive archive(&graph,CArchive::store,128);archive.WriteClass(&ImportRecord::descriptor);archive.WriteObject(&record);archive<<static_cast<const CObject*>(&record)<<static_cast<const CObject*>(nullptr);archive.Close();}
+  {CArchive archive(&graph,CArchive::store,128);archive.WriteClass(RUNTIME_CLASS(ImportRecord));archive.WriteObject(&record);archive<<static_cast<const CObject*>(&record)<<static_cast<const CObject*>(nullptr);archive.Close();}
   graph.Seek(0,CFile::begin);WORD word=0;char name[13]{};int value=0;
   graph.Read(&word,2);check(word==0xffff);graph.Read(&word,2);check(word==42);graph.Read(&word,2);check(word==12);
   graph.Read(name,12);check(!strcmp(name,"ImportRecord"));graph.Read(&word,2);check(word==0x8001);
   graph.Read(&value,4);check(value==19);graph.Read(&word,2);check(word==2);graph.Read(&word,2);check(word==0&&graph.GetPosition()==graph.GetLength());
-  CMemFile metadata;{CArchive archive(&metadata,CArchive::store,128);ImportRecord::descriptor.Store(archive);archive.Close();}
+  graph.Seek(0,CFile::begin);
+  {CArchive archive(&graph,CArchive::load,128);archive.SerializeClass(RUNTIME_CLASS(ImportRecord));
+   check(archive.GetObjectSchema()==42);
+   ImportRecord* loaded=nullptr;archive>>loaded;
+   const CObject* repeated=nullptr;CObject* empty=loaded;archive>>repeated>>empty;
+   check(loaded&&loaded->value==19&&repeated==loaded&&empty==nullptr);
+   delete loaded;
+  }
+  CMemFile metadata;{CArchive archive(&metadata,CArchive::store,128);RUNTIME_CLASS(ImportRecord)->Store(archive);archive.Close();}
   check(metadata.GetLength()==16);
   metadata.Seek(0,CFile::begin);
   {CArchive archive(&metadata,CArchive::load,128);UINT schema=0;
    check(CRuntimeClass::Load(archive,nullptr)==nullptr);
-   check(CRuntimeClass::Load(archive,&schema)==&ImportRecord::descriptor&&schema==42);
+   check(CRuntimeClass::Load(archive,&schema)==RUNTIME_CLASS(ImportRecord)&&schema==42);
+  }
+ }
+ {
+  auto* arrayType=CRuntimeClass::FromName("CObArray");
+  check(arrayType==RUNTIME_CLASS(CObArray)&&arrayType->m_wSchema==0&&arrayType->m_pClassInit);
+  CMemFile graph;CObArray cycle;cycle.Add(&cycle);cycle.Add(nullptr);cycle.Add(&cycle);
+  {CArchive archive(&graph,CArchive::store,128);archive.WriteObject(&cycle);archive.Close();}
+  graph.Seek(0,CFile::begin);
+  {CArchive archive(&graph,CArchive::load,128);CObArray* array=nullptr;archive>>array;
+   check(array&&array->GetSize()==3&&array->GetAt(0)==array&&array->GetAt(1)==nullptr&&array->GetAt(2)==array);
+   delete array;
   }
  }
  {

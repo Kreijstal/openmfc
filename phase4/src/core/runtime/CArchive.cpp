@@ -109,27 +109,6 @@ template <class T> T ArGet(CArchive* ar) {
 
 
 
-// Class/object storage lives in CArchiveStoreObjects.cpp.
-// Symbol: ?SerializeClass@CArchive@@QEAAXPEBUCRuntimeClass@@@Z
-extern "C" void MS_ABI impl__SerializeClass_CArchive__QEAAXPEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass* pClass) {
-    if (pThis && pThis->IsStoring()) pThis->WriteClass(pClass);
-    else if (pThis) {
-        unsigned int schema = 0;
-        (void)impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(pThis, &schema);
-        pThis->SetObjectSchema(schema);
-    }
-}
-// Symbol: ?ReadClass@CArchive@@QEAAPEAUCRuntimeClass@@PEBU2@PEAIPEAK@Z
-extern "C" CRuntimeClass* MS_ABI impl__ReadClass_CArchive__QEAAPEAUCRuntimeClass__PEBU2_PEAIPEAK_Z(
-    CArchive* pThis, const CRuntimeClass*, unsigned int* schema, unsigned long*) {
-    return pThis ? impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(pThis, schema) : nullptr;
-}
-// Symbol: ?ReadObject@CArchive@@QEAAPEAVCObject@@PEBUCRuntimeClass@@@Z
-extern "C" CObject* MS_ABI impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRuntimeClass___Z(CArchive* pThis, const CRuntimeClass*) {
-    CObject* object = nullptr;
-    if (pThis) (*pThis) >> object;
-    return object;
-}
 // Symbol: ?ReadString@CArchive@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CArchive* pThis, CString* stringOut) {
     return (pThis && stringOut) ? pThis->ReadString(*stringOut) : 0;
@@ -179,28 +158,6 @@ CArchive& CArchive::operator>>(float& f) {
 }
 CArchive& CArchive::operator>>(double& d) {
     Read(&d, sizeof(d));
-    return *this;
-}
-CArchive& CArchive::operator>>(CObject*& pOb) {
-    unsigned char hasObject = 0;
-    if (Read(&hasObject, sizeof(hasObject)) != sizeof(hasObject) || hasObject == 0) {
-        pOb = nullptr;
-        return *this;
-    }
-
-    unsigned int nSchema = 0xFFFF;
-    CRuntimeClass* pClass = impl__Load_CRuntimeClass__SAPEAU1_AEAVCArchive__PEAI_Z(this, &nSchema);
-    SetObjectSchema(nSchema);
-
-    if (!pClass || !pClass->m_pfnCreateObject) {
-        pOb = nullptr;
-        return *this;
-    }
-
-    pOb = pClass->CreateObject();
-    if (pOb) {
-        pOb->Serialize(*this);
-    }
     return *this;
 }
 CArchive& CArchive::operator>>(void*& p) {
@@ -365,18 +322,11 @@ void CArchive::WriteString(const wchar_t* lpsz) {
 // BRIEFING2 s1, which is about methods.
 // Every thunk named below was checked to have a definition under phase4/src.
 //
-// Caveat worth knowing: OpenMFC's own ReadObject
-// (impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRuntimeClass___Z, defined
-// above in this file) currently ignores its CRuntimeClass* argument and just
-// runs `ar >> pObject`.  The class is passed anyway so these stay correct if
-// ReadObject starts validating it.
-// ---------------------------------------------------------------------------
 #define OPENMFC_ARCHIVE_EXTRACT_OBJ(fn_name, getthisclass_fn)                  \
     extern "C" CRuntimeClass* MS_ABI getthisclass_fn();                        \
     extern "C" CArchive* MS_ABI fn_name(CArchive* ar, CObject** ppOb) {        \
         if (ar == nullptr || ppOb == nullptr) return ar;                       \
-        *ppOb = impl__ReadObject_CArchive__QEAAPEAVCObject__PEBUCRuntimeClass___Z( \
-            ar, getthisclass_fn());                                            \
+        *ppOb = ar->ReadObject(getthisclass_fn());                               \
         return ar;                                                             \
     }
 

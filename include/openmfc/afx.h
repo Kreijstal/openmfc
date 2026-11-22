@@ -318,21 +318,29 @@ public: \
 // DECLARE_SERIAL - adds serialization support to a class
 // Extends DECLARE_DYNCREATE with archive extraction operator
 #define DECLARE_SERIAL(class_name) \
-    DECLARE_DYNCREATE(class_name) \
-    friend CArchive& operator>>(CArchive& ar, class_name*& pOb);
+public: \
+    static CRuntimeClass class##class_name; \
+    static CRuntimeClass* AFXAPI _GetBaseClass(); \
+    static CRuntimeClass* GetThisClass() {return &class##class_name;} \
+    virtual CRuntimeClass* GetRuntimeClass() const override {return GetThisClass();} \
+    static CObject* AFXAPI CreateObject() {return new class_name;} \
+    friend CArchive& AFXAPI operator>>(CArchive& ar, class_name*& pOb);
+
+#if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
+#define OPENMFC_DECLARE_MFC_SERIAL(class_name) \
+public: \
+    static OPENMFC_STRING_API CRuntimeClass* GetThisClass(); \
+    virtual OPENMFC_STRING_API CRuntimeClass* GetRuntimeClass() const override; \
+    static OPENMFC_STRING_API CObject* AFXAPI CreateObject(); \
+    friend CArchive& AFXAPI operator>>(CArchive& ar, class_name*& pOb);
+#else
+#define OPENMFC_DECLARE_MFC_SERIAL(class_name) DECLARE_SERIAL(class_name)
+#endif
 
 // IMPLEMENT_SERIAL - implements runtime class with serialization
 // Sets a specific schema version for versioned serialization
 #define IMPLEMENT_SERIAL(class_name, base_class_name, wSchema) \
-    CObject* AFXAPI _AfxGetObject##class_name(CArchive& ar) { \
-        (void)ar; \
-        return class_name::CreateObject(); \
-    } \
-    CArchive& operator>>(CArchive& ar, class_name*& pOb) { \
-        pOb = static_cast<class_name*>(_AfxGetObject##class_name(ar)); \
-        if (pOb != nullptr) pOb->Serialize(ar); \
-        return ar; \
-    } \
+    extern AFX_CLASSINIT _init_##class_name; \
     CRuntimeClass* AFXAPI class_name::_GetBaseClass() \
         { return base_class_name::GetThisClass(); } \
     CRuntimeClass class_name::class##class_name = { \
@@ -342,8 +350,15 @@ public: \
         &class_name::CreateObject, \
         &class_name::_GetBaseClass, \
         nullptr, \
-        nullptr \
-    };
+        &_init_##class_name \
+    }; \
+    AFX_CLASSINIT _init_##class_name(class_name::GetThisClass()); \
+    CArchive& AFXAPI operator>>(CArchive& ar, class_name*& pOb) { \
+        pOb = static_cast<class_name*>(ar.ReadObject(class_name::GetThisClass())); \
+        return ar; \
+    }
+
+#define VERSIONABLE_SCHEMA 0x80000000
 
 // RUNTIME_CLASS macro - get CRuntimeClass pointer for a class
 #define RUNTIME_CLASS(class_name) (class_name::GetThisClass())
@@ -451,7 +466,8 @@ public:
     CArchive& operator>>(unsigned long& l);
     CArchive& operator>>(float& f);
     CArchive& operator>>(double& d);
-    CArchive& operator>>(CObject*& pOb);
+    CArchive& operator>>(CObject*& object) {object=ReadObject(nullptr);return *this;}
+    CArchive& operator>>(const CObject*& object) {object=ReadObject(nullptr);return *this;}
     CArchive& operator>>(void*& p);
     CArchive& operator>>(CString& str);
     
@@ -503,6 +519,10 @@ public:
     OPENMFC_ARCHIVE_API void MapObject(const CObject* object);
     OPENMFC_ARCHIVE_API void WriteClass(const CRuntimeClass* type);
     OPENMFC_ARCHIVE_API void WriteObject(const CObject* object);
+    OPENMFC_ARCHIVE_API CRuntimeClass* ReadClass(const CRuntimeClass* expected=nullptr,
+                                                UINT* schema=nullptr,DWORD* tag=nullptr);
+    OPENMFC_ARCHIVE_API CObject* ReadObject(const CRuntimeClass* expected);
+    OPENMFC_ARCHIVE_API void SerializeClass(const CRuntimeClass* type);
     OPENMFC_ARCHIVE_API void EnsureSchemaMapExists(CArray<LoadArrayObjType,const LoadArrayObjType&>** types=nullptr);
     void SetStoreParams(UINT hashSize=2053,UINT blockSize=128) {m_nHashSize=hashSize;m_nGrowSize=blockSize;}
     void SetLoadParams(UINT growBy=1024) {m_nGrowSize=growBy;}
@@ -522,6 +542,9 @@ protected:
     UINT m_nGrowSize;
     UINT m_nHashSize;
     friend class CArchiveAccess;
+private:
+    using LoadTypes=CArray<LoadArrayObjType,const LoadArrayObjType&>;
+    void AddLoadedEntry(void* value,LoadArrayObjType type);
 };
 static_assert(sizeof(CArchive)==112 && !std::is_polymorphic_v<CArchive>,"native archive representation");
 
@@ -1504,23 +1527,23 @@ public: \
     using Element=element_type; \
     class_name(); \
     virtual ~class_name(); \
-    INT_PTR GetSize() const; \
-    INT_PTR GetCount() const; \
-    BOOL IsEmpty() const; \
-    INT_PTR GetUpperBound() const; \
+    INT_PTR GetSize() const {return m_nSize;} \
+    INT_PTR GetCount() const {return m_nSize;} \
+    BOOL IsEmpty() const {return m_nSize==0;} \
+    INT_PTR GetUpperBound() const {return m_nSize-1;} \
     void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1); \
     void FreeExtra(); \
-    void RemoveAll(); \
-    element_type GetAt(INT_PTR nIndex) const; \
-    void SetAt(INT_PTR nIndex, arg_type newElement); \
-    element_type& ElementAt(INT_PTR nIndex); \
-    const Element& ElementAt(INT_PTR nIndex) const; \
-    element_type operator[](INT_PTR nIndex) const; \
-    element_type& operator[](INT_PTR nIndex); \
-    element_type* GetData(); \
-    const element_type* GetData() const; \
+    void RemoveAll() {SetSize(0);} \
+    element_type GetAt(INT_PTR index) const {return ElementAt(index);} \
+    void SetAt(INT_PTR index,arg_type value) {ElementAt(index)=value;} \
+    element_type& ElementAt(INT_PTR index) {return const_cast<Element&>(static_cast<const class_name&>(*this).ElementAt(index));} \
+    const Element& ElementAt(INT_PTR index) const {if(index<0||index>=m_nSize)AfxThrowInvalidArgException();return m_pData[index];} \
+    element_type operator[](INT_PTR index) const {return GetAt(index);} \
+    element_type& operator[](INT_PTR index) {return ElementAt(index);} \
+    element_type* GetData() {return m_pData;} \
+    const element_type* GetData() const {return (const element_type*)m_pData;} \
     void SetAtGrow(INT_PTR nIndex, arg_type newElement); \
-    INT_PTR Add(arg_type newElement); \
+    INT_PTR Add(arg_type value) {INT_PTR index=m_nSize;SetAtGrow(index,value);return index;} \
     INT_PTR Append(const class_name& src); \
     void Copy(const class_name& src); \
     void InsertAt(INT_PTR nIndex, arg_type newElement, INT_PTR nCount = 1); \
@@ -1605,8 +1628,8 @@ public: \
 };
 
 OPENMFC_DECLARE_ARRAY_WRAPPER(CUIntArray, unsigned int, unsigned int, DECLARE_DYNAMIC)
-OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, DECLARE_SERIAL)
-OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, DECLARE_SERIAL)
+OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, OPENMFC_DECLARE_MFC_SERIAL)
+OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, OPENMFC_DECLARE_MFC_SERIAL)
 class CPtrArray : public CObject {
 #if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
 public:
@@ -1649,10 +1672,10 @@ private:
     CPtrArray(const CPtrArray&) = delete;
     CPtrArray& operator=(const CPtrArray&) = delete;
 };
-OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, DECLARE_SERIAL)
+OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, OPENMFC_DECLARE_MFC_SERIAL)
 
 class CStringArray : public CObject {
-    DECLARE_SERIAL(CStringArray)
+    OPENMFC_DECLARE_MFC_SERIAL(CStringArray)
 public:
     CStringArray();
     virtual ~CStringArray();
@@ -1684,10 +1707,10 @@ public:
     virtual void Serialize(CArchive& ar) override;
 };
 
-OPENMFC_DECLARE_LIST_WRAPPER(CObList, CObject*, CObject*, DECLARE_SERIAL)
+OPENMFC_DECLARE_LIST_WRAPPER(CObList, CObject*, CObject*, OPENMFC_DECLARE_MFC_SERIAL)
 
 class CStringList : public CObject {
-    DECLARE_SERIAL(CStringList)
+    OPENMFC_DECLARE_MFC_SERIAL(CStringList)
 public:
     typedef CList<CString, const CString&>::POSITION POSITION;
     explicit CStringList(INT_PTR nBlockSize = 10);
@@ -1764,7 +1787,7 @@ static_assert(sizeof(CMapPtrToPtr)==56,"native pointer map");
 OPENMFC_DECLARE_MAP_WRAPPER(CMapPtrToWord, void*, void*, WORD, WORD, void*, DECLARE_DYNAMIC)
 struct __POSITION;
 class CMapWordToOb : public CObject {
-    DECLARE_SERIAL(CMapWordToOb)
+    OPENMFC_DECLARE_MFC_SERIAL(CMapWordToOb)
 public:
     using BASE_KEY=WORD;
     using POSITION=__POSITION*;
@@ -1801,7 +1824,7 @@ OPENMFC_DECLARE_MAP_WRAPPER(CMapWordToPtr, WORD, WORD, void*, void*, WORD, DECLA
 
 // String map classes (non-template versions for ABI compatibility)
 class CMapStringToOb : public CObject {
-    DECLARE_SERIAL(CMapStringToOb)
+    OPENMFC_DECLARE_MFC_SERIAL(CMapStringToOb)
 public:
     typedef const wchar_t* BASE_KEY;
     typedef CMap<CString, const CString&, CObject*, CObject*>::POSITION POSITION;
@@ -1859,7 +1882,7 @@ public:
 };
 
 class CMapStringToString : public CObject {
-    DECLARE_SERIAL(CMapStringToString)
+    OPENMFC_DECLARE_MFC_SERIAL(CMapStringToString)
 public:
     typedef const wchar_t* BASE_KEY;
     typedef CMap<CString, const CString&, CString, const CString&>::POSITION POSITION;

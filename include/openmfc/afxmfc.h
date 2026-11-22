@@ -1266,7 +1266,7 @@ protected:
 };
 
 class CTabbedPane : public CBaseTabbedPane {
-    DECLARE_SERIAL(CTabbedPane)
+    OPENMFC_DECLARE_MFC_SERIAL(CTabbedPane)
 public:
     CTabbedPane(int iStyle = 0);
     virtual ~CTabbedPane();
@@ -1276,7 +1276,7 @@ protected:
 };
 
 class CUserTool : public CObject {
-    DECLARE_SERIAL(CUserTool)
+    OPENMFC_DECLARE_MFC_SERIAL(CUserTool)
 public:
     CUserTool();
     virtual ~CUserTool();

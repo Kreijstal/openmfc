@@ -331,7 +331,8 @@ void archiveSnapshot(ArchiveView& ar) {
     else if(void* array=field<void*>(&ar,88)) {
         event(87,field<INT_PTR>(array,16),field<INT_PTR>(array,24),field<INT_PTR>(array,32));
         auto** data=field<void**>(array,8);event(88,pointer(data));
-        for(INT_PTR i=0;i<field<INT_PTR>(array,16);++i)event(89,i,reinterpret_cast<INT_PTR>(data[i]));
+        for(INT_PTR i=0;i<field<INT_PTR>(array,16);++i)
+            event(89,i,UINT_PTR(data[i])<=0xffff ? INT_PTR(data[i]) : pointer(data[i]));
     }
     mapSnapshot(field<CMapPtrToPtr*>(&ar,96),true);
 }
@@ -484,6 +485,148 @@ void storing(int scenario,int failure) {
     tracking=true;event(109,at,static_cast<long long>(hash));ar.Abort();event(110);
     active=nullptr;archiveActive=false;for(auto& anchor:anchors)anchor=nullptr;
 }
+
+int loadBehavior,loadAllocations;
+bool liveRecords[6];
+struct LoadRecord;
+extern CRuntimeClass loadType;
+struct LoadRecord:CObject {
+    unsigned slot;
+    explicit LoadRecord(unsigned index):slot(index) {}
+    static void* operator new(size_t bytes) {
+        void* storage=malloc(bytes);
+        if(!storage)AfxThrowMemoryException();
+        return storage;
+    }
+    static void operator delete(void* storage) noexcept {free(storage);}
+    ~LoadRecord() override {liveRecords[slot]=false;event(130,slot);}
+    CRuntimeClass* GetRuntimeClass()const override {event(131,slot);return &loadType;}
+    void Serialize(CArchive& ar) override {
+        event(132,slot,ar.GetObjectSchema());
+        WORD value=0;
+        ar.EnsureRead(&value,sizeof(value));
+        event(133,slot,value);
+        if(value&0x8000)event(134,slot,pointer(ar.ReadObject(nullptr)));
+        if(loadBehavior==20||loadBehavior==21)ar.SetObjectSchema(777);
+        if(loadBehavior==20)AfxThrowMemoryException();
+        if(loadBehavior==21)throw 75;
+    }
+};
+CObject* AFXAPI createLoadRecord() {
+    event(135,loadAllocations);
+    if(loadBehavior==17)return nullptr;
+    if(loadBehavior==18)AfxThrowMemoryException();
+    if(loadBehavior==19)throw 76;
+    unsigned slot=loadAllocations++;
+    auto* object=new LoadRecord(slot);
+    anchors[2+slot]=object;
+    liveRecords[slot]=true;
+    return object;
+}
+#if !defined(OPENMFC_USE_SDK_MFC)
+constexpr char loadName[]="GraphSource";
+#elif defined(OPENMFC_USE_SOURCE_DLL)
+constexpr char loadName[]="GraphSdkMfc";
+#else
+constexpr char loadName[]="GraphNative";
+#endif
+static_assert(sizeof(loadName)==12,"identical fixture wire lengths");
+CRuntimeClass loadType={loadName,sizeof(LoadRecord),7,&createLoadRecord,&CObject::GetThisClass,nullptr,nullptr};
+AFX_CLASSINIT registerLoadType(&loadType);
+
+struct LoadFile:CMemFile {
+    CRuntimeClass* GetRuntimeClass()const override {return CObject::GetThisClass();}
+    UINT Read(void* bytes,UINT count) override {
+        event(136,count,GetPosition());
+        if(failIO>0&&!--failIO)throw 74;
+        return CMemFile::Read(bytes,count);
+    }
+};
+struct LoadCall {
+    CArchive* archive;
+    const CRuntimeClass* expected;
+    int method;
+    UINT schema=919;
+    DWORD tag=923;
+    void* result=nullptr;
+    static void invoke(void* data) {
+        auto& call=*static_cast<LoadCall*>(data);
+        if(call.method==0)call.result=call.archive->ReadObject(call.expected);
+        if(call.method==1)call.result=call.archive->ReadClass(call.expected,&call.schema,&call.tag);
+        if(call.method==2)call.archive->SerializeClass(call.expected);
+        if(call.method==3)call.result=call.archive->ReadClass(call.expected,&call.schema);
+    }
+};
+void loading(int scenario,int failure) {
+    tracking=false;
+    LoadFile file;
+    auto word=[&](WORD value){file.Write(&value,sizeof(value));};
+    auto extended=[&](DWORD value){word(0x7fff);file.Write(&value,sizeof(value));};
+    auto type=[&](WORD schema,WORD length,const char* name,UINT actualLength) {
+        word(0xffff);word(schema);word(length);file.Write(name,actualLength);
+    };
+    const WORD nameLength=sizeof(loadName)-1;
+    const bool objectPayload=scenario!=1&&scenario!=2&&scenario!=3&&scenario!=4&&scenario!=24&&scenario!=25;
+    if(scenario==8)word(0x8000);
+    else if(scenario==9)extended(0xffffffff);
+    else if(scenario==10)extended(0x7fffffff);
+    else if(scenario==11)word(0x7fff);
+    else if(scenario==12)word(0xffff);
+    else if(scenario==13)type(7,64,loadName,nameLength);
+    else if(scenario==14)type(7,nameLength,"UnseenClass",nameLength);
+    else if(scenario==15)type(7,nameLength,loadName,3);
+    else if(scenario==16)word(0);
+    else {
+        if(scenario==26||scenario==27){BYTE padding[127]{};file.Write(padding,scenario==26?127:125);}
+        type(scenario==4?0:scenario==5||scenario==6?19:7,nameLength,loadName,nameLength);
+        if(objectPayload)word(scenario==7?0x800a:10);
+        if(scenario==7)word(2);
+        if(scenario==22||scenario==24)extended(0x80000001);
+        else if(scenario==28)word(1);
+        else word(0x8001);
+        if(objectPayload&&scenario!=28)word(12);
+        if(scenario==29)word(0x8002);
+        else if(scenario==22)extended(2);
+        else word(2);
+        word(3);word(0);
+    }
+    file.Seek(0,CFile::begin);
+    BYTE buffer[128];memset(buffer,0xa5,sizeof(buffer));
+    ArchiveView ar(&file,scenario==30||scenario==31?2:3,128,buffer);
+    ar.seed(0);
+    ar.SetLoadParams(3);
+    ar.SetObjectSchema(102);
+    if(scenario==26||scenario==27){BYTE padding[127];ar.EnsureRead(padding,scenario==26?127:125);}
+    CRuntimeClass other={"OtherRecord",sizeof(LoadRecord),9,nullptr,&CObject::GetThisClass,nullptr,nullptr};
+    anchors[0]=&loadType;anchors[1]=&other;
+    loadType.m_wSchema=scenario==4||scenario==6?VERSIONABLE_SCHEMA|7:7;
+    loadBehavior=scenario;loadAllocations=0;
+    memset(liveRecords,0,sizeof(liveRecords));
+    tracking=true;archiveActive=true;active=&ar;AllocationHook hook;
+    failAllocation=failure>=1&&failure<=7?failure:0;
+    failIO=failure>7?failure-7:0;
+    for(int step=0;step<4;++step) {
+        int method=scenario==1||scenario==4||scenario==24||scenario==25||scenario==31?1:
+            scenario==2?2:scenario==3?3:0;
+        const CRuntimeClass* expected=scenario==23&&step==0?&other:
+            scenario==25?CObject::GetThisClass():step>1?nullptr:&loadType;
+        LoadCall call{&ar,expected,method};
+        event(137,step,method);
+        try {event(138,guarded(&LoadCall::invoke,&call));}
+        catch(CNotSupportedException* e){event(139,4);e->Delete();}
+        catch(CInvalidArgException* e){event(139,1);e->Delete();}
+        catch(CMemoryException* e){event(139,2);e->Delete();}
+        catch(CArchiveException* e){event(139,100+e->m_cause);e->Delete();}
+        catch(CException* e){event(139,3);if(e)e->Delete();}
+        catch(int code){event(139,code);}
+        event(140,pointer(call.result),call.schema,call.tag);
+        archiveSnapshot(ar);
+        event(141,file.GetPosition(),UINT_PTR(field<void*>(&ar,64))-UINT_PTR(field<void*>(&ar,72)));
+    }
+    ar.Abort();
+    for(int i=0;i<loadAllocations;++i)if(liveRecords[i])delete static_cast<const LoadRecord*>(anchors[2+i]);
+    active=nullptr;archiveActive=false;loadType.m_wSchema=7;failAllocation=failIO=0;
+}
 }
 void* operator new[](size_t bytes) {return allocate(bytes);}
 void operator delete[](void* p) noexcept {release(p);}
@@ -493,7 +636,8 @@ extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int 
     failAllocation=failConstructor=failAssignment=0;
     archiveActive=failAsInteger=allocationNull=false;
     for(auto& anchor:anchors)anchor=nullptr;
-    if(kind==7)storing(scenario,failure);
+    if(kind==8)loading(scenario,failure);
+    else if(kind==7)storing(scenario,failure);
     else if(kind==6)mapping(scenario,failure);
     else if(kind==5)pointerArray(scenario,failure);
     else if(kind==4)largeArithmetic(scenario);

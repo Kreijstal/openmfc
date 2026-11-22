@@ -17,7 +17,6 @@ def sources():
     return [s for s in window_sources() if s != 'tests/test_window_handles.cpp'] + [
         'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp',
         'phase4/src/core/controls/CToolTipCtrlLifetime.cpp',
-        'phase4/src/core/collections/CSimpleList.cpp',
         'phase4/src/core/frame/CFrameWndLifetime.cpp',
         'phase4/src/core/frame/CFrameWndTracking.cpp',
         'phase4/src/core/frame/CFrameWndMenuBar.cpp',
