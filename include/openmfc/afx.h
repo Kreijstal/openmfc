@@ -825,7 +825,7 @@ private:
 static_assert(sizeof(CArray<int>)==40,"native array representation");
 
 template<class TYPE, class ARG_TYPE = const TYPE&>
-class CList {
+class CList : public CObject {
 protected:
     struct CNode {
         CNode* pNext;
@@ -835,15 +835,13 @@ protected:
     
     CNode* m_pNodeHead;
     CNode* m_pNodeTail;
-    int m_nCount;
+    INT_PTR m_nCount;
     CNode* m_pNodeFree;
-    int m_nBlockSize;
-    
-private:
     struct CBlock {
         CBlock* pNext;
     };
     CBlock* m_pBlocks;
+    INT_PTR m_nBlockSize;
     
 public:
     struct POSITION {
@@ -853,10 +851,12 @@ public:
         bool operator!=(const POSITION& pos) const { return pNode != pos.pNode; }
     };
     
-    CList(int nBlockSize = 10);
-    ~CList();
+    explicit CList(INT_PTR nBlockSize = 10);
+    ~CList() override;
+    void Serialize(CArchive& ar) override;
     
-    int GetCount() const { return m_nCount; }
+    INT_PTR GetCount() const { return m_nCount; }
+    INT_PTR GetSize() const { return m_nCount; }
     bool IsEmpty() const { return m_nCount == 0; }
     
     TYPE& GetHead() { return m_pNodeHead->data; }
@@ -876,7 +876,7 @@ public:
     void SetAt(POSITION pos, ARG_TYPE newElement);
     void RemoveAt(POSITION position);
     
-    POSITION FindIndex(int nIndex) const;
+    POSITION FindIndex(INT_PTR nIndex) const;
     POSITION Find(ARG_TYPE searchValue, POSITION startAfter = nullptr) const;
     
     void AddHead(ARG_TYPE newElement);
@@ -895,6 +895,7 @@ public:
 private:
     CNode* NewNode(CNode* pPrev, CNode* pNext);
 };
+static_assert(sizeof(CList<UINT, UINT>) == 0x38, "native list representation");
 
 // SerializeElements template function
 template<class TYPE>
@@ -1069,33 +1070,31 @@ template<class T,class A>void CArray<T,A>::Serialize(CArchive& ar) {
 // ============================================================================
 
 template<class TYPE, class ARG_TYPE>
-CList<TYPE, ARG_TYPE>::CList(int nBlockSize)
+CList<TYPE, ARG_TYPE>::CList(INT_PTR nBlockSize)
     : m_pNodeHead(nullptr), m_pNodeTail(nullptr), m_nCount(0),
-      m_pNodeFree(nullptr), m_nBlockSize(nBlockSize), m_pBlocks(nullptr) {}
+      m_pNodeFree(nullptr), m_pBlocks(nullptr), m_nBlockSize(nBlockSize) {
+    if (nBlockSize <= 0) AfxThrowInvalidArgException();
+}
 
 template<class TYPE, class ARG_TYPE>
 CList<TYPE, ARG_TYPE>::~CList() {
     RemoveAll();
-    // Free block memory
-    while (m_pBlocks != nullptr) {
-        CBlock* pNext = m_pBlocks->pNext;
-        free(m_pBlocks);
-        m_pBlocks = pNext;
-    }
 }
 
 template<class TYPE, class ARG_TYPE>
 typename CList<TYPE, ARG_TYPE>::CNode* CList<TYPE, ARG_TYPE>::NewNode(CNode* pPrev, CNode* pNext) {
     if (m_pNodeFree == nullptr) {
-        // Allocate a new block of nodes
-        size_t blockSize = sizeof(CBlock) + m_nBlockSize * sizeof(CNode);
+        const auto count = static_cast<size_t>(m_nBlockSize);
+        if (count > (SIZE_MAX - sizeof(CBlock)) / sizeof(CNode)) AfxThrowMemoryException();
+        const size_t blockSize = sizeof(CBlock) + count * sizeof(CNode);
         CBlock* pNewBlock = (CBlock*)malloc(blockSize);
+        if (!pNewBlock) AfxThrowMemoryException();
         pNewBlock->pNext = m_pBlocks;
         m_pBlocks = pNewBlock;
 
         // Chain the new nodes onto the free list
         CNode* pNode = (CNode*)(pNewBlock + 1);
-        for (int i = 0; i < m_nBlockSize - 1; i++) {
+        for (INT_PTR i = 0; i < m_nBlockSize - 1; i++) {
             pNode[i].pNext = &pNode[i + 1];
         }
         pNode[m_nBlockSize - 1].pNext = nullptr;
@@ -1172,12 +1171,12 @@ void CList<TYPE, ARG_TYPE>::RemoveAt(POSITION position) {
 }
 
 template<class TYPE, class ARG_TYPE>
-typename CList<TYPE, ARG_TYPE>::POSITION CList<TYPE, ARG_TYPE>::FindIndex(int nIndex) const {
+typename CList<TYPE, ARG_TYPE>::POSITION CList<TYPE, ARG_TYPE>::FindIndex(INT_PTR nIndex) const {
     if (nIndex >= m_nCount || nIndex < 0)
         return POSITION(nullptr);
 
     CNode* pNode = m_pNodeHead;
-    for (int i = 0; i < nIndex; i++)
+    for (INT_PTR i = 0; i < nIndex; i++)
         pNode = pNode->pNext;
     return POSITION(pNode);
 }
@@ -1309,12 +1308,31 @@ void CList<TYPE, ARG_TYPE>::RemoveAll() {
     while (pNode != nullptr) {
         CNode* pNext = pNode->pNext;
         pNode->data.~TYPE();
-        pNode->pNext = m_pNodeFree;
-        m_pNodeFree = pNode;
         pNode = pNext;
     }
-    m_pNodeHead = m_pNodeTail = nullptr;
+    m_pNodeHead = m_pNodeTail = m_pNodeFree = nullptr;
     m_nCount = 0;
+    while (m_pBlocks) {
+        auto* next = m_pBlocks->pNext;
+        free(m_pBlocks);
+        m_pBlocks = next;
+    }
+}
+
+template<class TYPE, class ARG_TYPE>
+void CList<TYPE, ARG_TYPE>::Serialize(CArchive& ar) {
+    if (ar.IsStoring()) {
+        ar.WriteCount(m_nCount);
+        for (CNode* node = m_pNodeHead; node; node = node->pNext)
+            SerializeElements(ar, &node->data, 1);
+    } else {
+        const auto count = ar.ReadCount();
+        for (ULONGLONG i = 0; i < count; ++i) {
+            TYPE value{};
+            SerializeElements(ar, &value, 1);
+            AddTail(value);
+        }
+    }
 }
 
 // ============================================================================

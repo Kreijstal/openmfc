@@ -541,7 +541,7 @@ const int kDockTypeStandard  = 2;
 
 // Symbol: ?CreateObject@CDockablePane@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CDockablePane__SAPEAVCObject__XZ() {
-    return new CDockablePane();
+    return CDockablePane::CreateObject();
 }
 // Symbol: ?GetRuntimeClass@CDockablePane@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDockablePane__UEBAPEAUCRuntimeClass__XZ(const CDockablePane*) {
@@ -3839,6 +3839,10 @@ extern "C" void MS_ABI impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(CDoc
         const int bRecentFloating = pThis->m_bRecentFloatingState;
         impl__Write_CArchive__QEAAXPEBXI_Z(&ar, &bRecentFloating, sizeof(bRecentFloating));
     }
+}
+
+void CDockablePane::Serialize(CArchive& archive) {
+    impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(this, archive);
 }
 
 // CDockablePane::SetAutoHideParents -- transcribed from retail entry RVA

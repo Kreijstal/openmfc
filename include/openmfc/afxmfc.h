@@ -607,8 +607,9 @@ public:
 // CDockablePane - Dockable pane with caption
 //=============================================================================
 class CDockablePane : public CPane {
-    DECLARE_DYNAMIC(CDockablePane)
+    OPENMFC_DECLARE_MFC_SERIAL(CDockablePane)
 public:
+    void Serialize(CArchive& archive) override;
     CDockablePane();
     virtual ~CDockablePane();
 
@@ -1313,6 +1314,8 @@ public:
     BOOL InsertTab(CWnd* window, int index, BOOL visible, BOOL activate, BOOL detachable);
     BOOL RemovePane(CWnd* window);
     BOOL ShowTab(CWnd* window, BOOL show, BOOL activate);
+    void Serialize(CArchive& archive) override;
+    void AutoDestroyWithWindow() { m_bAutoDestroy = TRUE; }
     void RecalcLayout() override;
     void OnSize(UINT type, int width, int height);
 
@@ -1333,7 +1336,6 @@ public:
     CTabbedPane(int iStyle = 0);
     ~CTabbedPane() override;
     int OnCreate(CREATESTRUCTW* create);
-    void AutoDestroyWithWindow() { m_bAutoDestroy = TRUE; }
 
 protected:
     DECLARE_MESSAGE_MAP()

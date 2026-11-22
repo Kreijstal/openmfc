@@ -1029,10 +1029,8 @@ extern "C" void* MS_ABI impl__FindSubPaneContainer_CPaneContainer__QEAAPEAV1_PEB
 // VA 0x1800a7b50 inside FindTabbedPane, entry RVA 0xa7b50, mfc140.dll), this
 // method not being virtual.
 //
-// The two sibling-id lists this walks are only ever filled by ?Serialize@,
-// ?SaveTabbedPane@ and ?LoadTabbedPane@, all of which are still stubs in this
-// file, and the constructor above leaves both lists with a NULL head.  So the
-// walk is complete and correct but currently finds nothing on any node.
+// The lists record tab membership read from an archive. The constructor
+// starts both lists empty.
 // Symbol: ?FindTabbedPane@CPaneContainer@@QEAAPEAVCDockablePane@@I@Z
 extern "C" void* MS_ABI impl__FindTabbedPane_CPaneContainer__QEAAPEAVCDockablePane__I_Z(
     void* pThis, unsigned int nID) {
@@ -1514,64 +1512,45 @@ extern "C" int MS_ABI impl__IsVisible_CPaneContainer__QEBAHXZ(const void* pThis)
     return 0;
 }
 
-// STUB. Retail ?LoadTabbedPane@CPaneContainer@@IEAAPEAVCDockablePane@@AEAVCArchive@@AEAV?$CList@II@@@Z,
-// entry RVA 0xa79f0 (mfc140.dll).  Transcribed from that body:
-//
-//   CDockablePane* pPane = NULL;                                 // 0xa7a02
-//   CBaseTabbedPane::LoadSiblingPaneIDs(ar, lstBarIDs);          // call 0x13ce0 at 0xa7a16
-//   ar >> pPane;          // ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCDockablePane@@@Z,
-//                         // call 0x3fc80 at 0xa7a26
-//   DWORD dwStyle; ar >> dwStyle;  // inline operator>>: `testb $0x1,0x20(%rsi)`
-//                                  // (else AfxThrowArchiveException(4 /*writeOnly*/)
-//                                  // at 0xa7b2a), m_lpBufCur +0x38 vs m_lpBufMax
-//                                  // +0x40, CArchive::FillBuffer 0x1cfc70
-//   DWORD dwTabbedStyle = pPane-><vftable byte 0x398>();         // 0xa7a77
-//   BOOL bOK = pPane-><vftable byte 0x658>(                      // 0xa7ac9
-//       "",                                  // empty literal at 0x33ac36
-//       m_pContainerManager->m_pDockSite,    // manager +0x98
-//       pPane + 0x3d8,                       // a RECT inside the pane
-//       TRUE, (UINT)-1, dwStyle, dwTabbedStyle, 0xf, NULL);
-//   if (!bOK) {
-//       lstBarIDs.RemoveAll();               // call 0x83d0 (the map names it
-//                                            // ?RemoveAll@CPtrList@@ -- the same code)
-//       if (pPane) pPane-><vftable byte 0x08>(1);   // scalar deleting dtor
-//       return NULL;
-//   }
-//   pPane-><vftable byte 0x7c0>(ar);         // 0xa7b09
-//   pPane-><+0x4e0> = TRUE;                  // 0xa7b12
-//   return pPane;
-//
-// Note that pPane is dereferenced at 0xa7a6d without a NULL test.  Slot names,
-// read from the CBaseTabbedPane vftable its constructor ??0CBaseTabbedPane@@QEAA@H@Z
-// (RVA 0x12f50, mfc140.dll) installs at 0x1802db2a8 (mfc140.dll): byte 0x658 is
-// ?Create@CDockablePane@@UEAAHPEBDPEAVCWnd@@AEBUtagRECT@@HIKKKPEAUCCreateContext@@@Z
-// (so the arguments above are caption, parent, rect, bHasGripper, nID, dwStyle,
-// dwTabbedStyle, dwControlBarStyle, pContext), byte 0x7c0 is
-// ?SerializeTabWindow@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z, and byte 0x398 is
-// the unexported accessor at RVA 0x8850 whose whole body is
-// `mov 0x108(%rcx),%eax; ret`.  +0x4e0 is the DWORD that constructor stores its
-// BOOL argument into (0x12f9a), i.e. bAutoDestroy in afxbasetabbedpane.h.
-//
-// Blocked on the siblings, not only on the archive.  The archive I/O alone
-// could be routed through the exported CArchive Read/Write thunks the way
-// detail/CMDITabInfoSupport.h does, but
-// impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive__AEAV__CList_II___Z
-// and impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z still
-// have empty typed stub bodies in CBaseTabbedPane.cpp (their signatures are
-// already corrected), and the pane-side virtuals at bytes 0x398 / 0x658 / 0x7c0 are
-// retail MSVC vftable offsets: the CDockablePane this DLL builds is the class
-// declared in include/openmfc/afxmfc.h, compiled by the mingw toolchain with an
-// Itanium-ABI vtable, so those byte offsets do not select the same functions
-// there (the failure path's virtual delete has the same problem).  Only
-// the parameter list is corrected, to the (this, CArchive&, CList<UINT,UINT>&)
-// shape the export ABI passes.
+extern "C" void MS_ABI impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive__AEAV__CList_II___Z(
+    CArchive&, CList<UINT, UINT>&);
+extern "C" void MS_ABI impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
+    CBaseTabbedPane*, CArchive&);
+extern "C" void MS_ABI impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
+    CBaseTabbedPane*, CArchive&);
+extern "C" int MS_ABI impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__AEBUtagRECT__HIKKKPEAUCCreateContext___Z(
+    CDockablePane*, const wchar_t*, CWnd*, const RECT&, int, UINT, DWORD, DWORD, DWORD, CCreateContext*);
+
+// The caller has already consumed the -1 tabbed-pane marker.
 // Symbol: ?LoadTabbedPane@CPaneContainer@@IEAAPEAVCDockablePane@@AEAVCArchive@@AEAV?$CList@II@@@Z
 extern "C" CDockablePane* MS_ABI impl__LoadTabbedPane_CPaneContainer__IEAAPEAVCDockablePane__AEAVCArchive__AEAV__CList_II___Z(
-    CPaneContainer* pThis, CArchive& archive, CList<UINT, UINT>& listIDs) {
-    (void)pThis;
-    (void)archive;
-    (void)listIDs;
-    return nullptr;
+    CPaneContainer* container, CArchive& archive, CList<UINT, UINT>& siblingIds) {
+    const auto* node = PC(container);
+    auto* parent = node ? openmfc::detail::PaneContainerDockSite(node->m_pContainerManager) : nullptr;
+    if (!parent || !parent->m_hWnd) AfxThrowInvalidArgException();
+
+    CList<UINT, UINT> savedIds;
+    impl__LoadSiblingPaneIDs_CBaseTabbedPane__SAXAEAVCArchive__AEAV__CList_II___Z(archive, savedIds);
+    auto* object = static_cast<CDockablePane*>(archive.ReadObject(RUNTIME_CLASS(CDockablePane)));
+    if (!object || object->m_hWnd) AfxThrowArchiveException(CArchiveException::badClass, nullptr);
+    std::unique_ptr<CDockablePane> pane(object);
+    if (!pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) AfxThrowArchiveException(CArchiveException::badClass, nullptr);
+    auto* group = static_cast<CBaseTabbedPane*>(pane.get());
+
+    DWORD style = 0;
+    archive >> style;
+    group->SetPaneAlignment(group->m_dwStyle & CBRS_ALIGN_ANY);
+    group->m_pDockSite = reinterpret_cast<CDockSite*>(
+        parent->IsKindOf(RUNTIME_CLASS(CFrameWnd)) ? parent : parent->GetParentFrame());
+    if (!impl__Create_CDockablePane__UEAAHPEB_WPEAVCWnd__AEBUtagRECT__HIKKKPEAUCCreateContext___Z(
+            group, L"", parent, *static_cast<const RECT*>(group->m_rectSavedDockedRect),
+            TRUE, UINT(-1), style | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+            group->m_dwControlBarStyle, 0xf, nullptr) || !group->GetTabs())
+        AfxThrowArchiveException(CArchiveException::badClass, nullptr);
+    impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z(group, archive);
+    siblingIds.AddTail(&savedIds);
+    group->AutoDestroyWithWindow();
+    return pane.release();
 }
 
 // Decoded from retail ?Move@CPaneContainer@@UEAAXVCPoint@@@Z, entry RVA 0xa6ae0
@@ -2259,57 +2238,19 @@ extern "C" void MS_ABI impl__ResizePartOfPaneContainer_CPaneContainer__UEAAXHHAE
     }
 }
 
-// STUB. Retail ?SaveTabbedPane@CPaneContainer@@IEAAXAEAVCArchive@@PEAVCDockablePane@@@Z,
-// entry RVA 0xa78d0 (mfc140.dll).  Transcribed from that body:
-//
-//   CBaseTabbedPane* pTabbed = NULL;
-//   if (pBar != NULL && pBar->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane)))
-//       pTabbed = pBar;       // CObject::IsKindOf 0x233310 against the descriptor
-//                             // at 0x2db168 (mfc140.dll), named "CBaseTabbedPane"
-//   if (pTabbed-><vftable byte 0x758>() > 0) {       // 0xa78ff: NO NULL test --
-//                             // a non-tabbed pBar faults right here
-//       ar << (int)-1;        // inline operator<<: `testb $0x1,0x20(%rbx)` (a
-//                             // loading archive -> AfxThrowArchiveException(2
-//                             // /*readOnly*/) at 0xa79c1), m_lpBufCur +0x38 vs
-//                             // m_lpBufMax +0x40, CArchive::Flush 0x1cfb90
-//       pTabbed-><vftable byte 0x7c8>(ar);           // 0xa7959
-//       ar.WriteObject(pTabbed);                     // call 0x1d0500 at 0xa7965
-//       ar << (DWORD)pTabbed->GetStyle();            // CWnd::GetStyle 0x2a75a0
-//       pTabbed-><vftable byte 0x7c0>(ar);           // 0xa79ab
-//   }
-//
-// Slot names, read from the CBaseTabbedPane vftable its constructor
-// ??0CBaseTabbedPane@@QEAA@H@Z (RVA 0x12f50, mfc140.dll) installs at 0x1802db2a8
-// (mfc140.dll): byte 0x7c8 is ?SaveSiblingBarIDs@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z,
-// byte 0x7c0 is ?SerializeTabWindow@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z, and
-// byte 0x758 is the unexported RVA 0x12eb0, which returns 0 when the pointer
-// at +0x4e8 is NULL and otherwise tail-calls byte 0x368 of that
-// object's vftable -- the inline GetTabsNum() of afxbasetabbedpane.h
-// (`m_pTabWnd->GetTabsNum()`).
-//
-// This is the save half of the record LoadTabbedPane below reads back: the -1
-// that Serialize's loader takes as "tabbed pane follows", the sibling IDs, the
-// pane object, its style and the tab window.
-//
-// Blocked on the siblings.  The archive I/O alone could go through the
-// exported CArchive Write/WriteObject thunks, but
-// impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z and
-// impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z still have
-// empty typed stub bodies in CBaseTabbedPane.cpp (their signatures are already
-// corrected), the tab count needs CBaseTabbedPane +0x4e8 (m_pTabWnd), which OpenMFC's
-// CBaseTabbedPane does not pin, and bytes 0x758 / 0x7c8 / 0x7c0 are retail MSVC
-// vftable offsets that do not select the same functions in the Itanium-ABI
-// vtable of the pane classes this DLL compiles.  Writing the -1 marker without
-// the sibling IDs and tab window that must follow it would produce a record
-// LoadTabbedPane cannot parse, so nothing is written.  Only the parameter list
-// is corrected, to the (this, CArchive&, CDockablePane*) shape the export ABI
-// passes.
+// A tabbed leaf stores the marker, sibling IDs, serialized pane object,
+// window style, and tab control state in that order.
 // Symbol: ?SaveTabbedPane@CPaneContainer@@IEAAXAEAVCArchive@@PEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__PEAVCDockablePane___Z(
-    CPaneContainer* pThis, CArchive& archive, CDockablePane* pPane) {
-    (void)pThis;
-    (void)archive;
-    (void)pPane;
+    CPaneContainer*, CArchive& archive, CDockablePane* pane) {
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) return;
+    auto* group = static_cast<CBaseTabbedPane*>(pane);
+    if (!group->GetTabs() || !group->GetTabs()->GetTabsCount()) return;
+    archive << -1;
+    impl__SaveSiblingBarIDs_CBaseTabbedPane__UEAAXAEAVCArchive___Z(group, archive);
+    archive.WriteObject(group);
+    archive << impl__GetStyle_CWnd__QEBAKXZ(group);
+    impl__SerializeTabWindow_CBaseTabbedPane__UEAAXAEAVCArchive___Z(group, archive);
 }
 
 // STUB. Retail ?Serialize@CPaneContainer@@UEAAXAEAVCArchive@@@Z, entry RVA
@@ -2366,27 +2307,8 @@ extern "C" void MS_ABI impl__SaveTabbedPane_CPaneContainer__IEAAXAEAVCArchive__P
 //       ... the same for bRight / m_pRightPaneContainer (0xa76bb..0xa7758) ...
 //   }
 //
-// Blocked.  The archive I/O alone could be routed through the exported
-// CArchive Read/Write thunks the way detail/CMDITabInfoSupport.h does -- the
-// layout of OpenMFC's CArchive (include/openmfc/afx.h) differs from retail, so
-// the inline buffer arithmetic cannot be transcribed literally -- but:
-//  * the divider arms: Init and the divider's Serialize exist as exported
-//    thunks in docking/CPaneDivider.cpp and could be called directly, but the
-//    loader's `m_pSlider-><+0x208> = m_pContainerManager` store has no
-//    counterpart reachable from here -- OpenMFC keeps m_pContainerManager in
-//    that file's file-local DividerState side table, which only its own
-//    CreateEx path sets -- and CWnd::GetDlgCtrlID (RVA 0x2a78b0) reads
-//    m_pCtrlSite (+0xd0) and m_hWnd (+0x40), both past the end of the 24-byte
-//    CObject docking/DynCreateFactories.cpp allocates for CPaneDivider (the
-//    class declared in include/openmfc/afxmfc.h);
-//  * the tabbed-pane arms call SaveTabbedPane / LoadTabbedPane above, both of
-//    them blocked stubs;
-//  * the loader allocates child nodes whose vftable OpenMFC's constructor does
-//    not write, then immediately dispatches Serialize through it.
-// A store that wrote the pane IDs but not the divider record would produce a
-// stream the retail (or any future OpenMFC) loader misparses, so nothing is
-// written.  Only the parameter list is corrected, to the (this, CArchive&)
-// shape the export ABI passes.
+// Loading must register recreated children, dividers and pane membership
+// with the manager once the complete tree has been read.
 // Symbol: ?Serialize@CPaneContainer@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CPaneContainer__UEAAXAEAVCArchive___Z(
     CPaneContainer* pThis, CArchive& archive) {

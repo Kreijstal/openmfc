@@ -90,6 +90,7 @@ CPaneDivider* ReservedPaneDivider(CPane& pane);
 void ForgetDividerPane(CPane& pane);
 void TransferDividerPane(CPane& previous, CPane& replacement);
 std::vector<CDockablePane*> ContainerPanes(const void* manager);
+CWnd* PaneContainerDockSite(const void* manager);
 bool ContainerHasPane(const void* manager, const CDockablePane* pane);
 bool DetachContainerPane(void* manager, CDockablePane& pane);
 S_CPaneContainer* CopyVisiblePaneContainer(S_CPaneContainer& source, S_CPaneContainer* parent);

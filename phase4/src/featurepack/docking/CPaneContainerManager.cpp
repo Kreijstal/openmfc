@@ -571,6 +571,10 @@ extern "C" unsigned int MS_ABI impl__FindPane_CPaneContainerManager__IEAAIVCRect
     if (ppPos) *ppPos = nullptr;
     return foundPane != nullptr ? 1U : 0U;
 }
+CWnd* openmfc::detail::PaneContainerDockSite(const void* manager) {
+    return manager ? Field<CWnd*>(manager, kOffDockSite) : nullptr;
+}
+
 std::vector<CDockablePane*> openmfc::detail::ContainerPanes(const void* manager) {
     std::vector<CDockablePane*> panes;
     std::lock_guard<std::mutex> lock(g_wave2Mutex);

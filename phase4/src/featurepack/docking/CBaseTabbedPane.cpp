@@ -18,8 +18,6 @@ extern "C" void MS_ABI impl__OnSetFocus_CDockablePane__IEAAXPEAVCWnd___Z(
     CDockablePane* pThis, CWnd* pOldWnd);
 extern "C" void MS_ABI impl__OnSize_CBasePane__IEAAXIHH_Z(
     CBasePane* pThis, unsigned int nType, int cx, int cy);
-extern "C" void MS_ABI impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(
-    CDockablePane* pThis, CArchive& archive);
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(CDockablePane* pThis);
 extern "C" int MS_ABI impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(const CMFCBaseTabCtrl*, HWND);
 extern "C" int MS_ABI impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl*, int);
@@ -385,10 +383,11 @@ extern "C" int MS_ABI impl__SaveState_CBaseTabbedPane__MEAAHPEB_WHI_Z(
 // Symbol: ?Serialize@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CBaseTabbedPane__UEAAXAEAVCArchive___Z(
     CBaseTabbedPane* pThis, CArchive& archive) {
-    if (pThis) {
-        impl__Serialize_CDockablePane__UEAAXAEAVCArchive___Z(
-            static_cast<CDockablePane*>(pThis), archive);
-    }
+    if (pThis) pThis->CBaseTabbedPane::Serialize(archive);
+}
+
+void CBaseTabbedPane::Serialize(CArchive& archive) {
+    CDockablePane::Serialize(archive);
 }
 
 // Symbol: ?SerializeTabWindow@CBaseTabbedPane@@UEAAXAEAVCArchive@@@Z
