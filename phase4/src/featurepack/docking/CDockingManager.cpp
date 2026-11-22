@@ -851,7 +851,6 @@ extern "C" void MS_ABI impl__ReleaseEmptyPaneContainers_CDockingManager__QEAAXXZ
         if (!pane || isAlive(pane)) continue;
         state.hiddenPanes.erase(pane);
         state.floatingPanes.erase(pane);
-        state.edgePanes.erase(pane);
         g_paneCoreState_Mfccore.erase(pane);
     }
 
@@ -888,10 +887,6 @@ extern "C" int MS_ABI impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane_
     auto it = std::find(state.panes.begin(), state.panes.end(), static_cast<CBasePane*>(pOldPane));
     if (it == state.panes.end()) return FALSE;
     *it = pNewPane;
-    if (auto edge = state.edgePanes.extract(pOldPane); !edge.empty()) {
-        edge.key() = pNewPane;
-        state.edgePanes.insert(std::move(edge));
-    }
     state.hiddenPanes.erase(pOldPane);
     state.floatingPanes.erase(pOldPane);
     return TRUE;
@@ -1071,10 +1066,10 @@ void CDockingManager::FloatPane(CBasePane* pane, CPoint offset, DWORD) {
     static_cast<CPane*>(pane)->FloatPaneWindow(bounds, 5 /* DM_STANDARD */, true, this);
 }
 namespace {
-CPaneDivider* DockedPaneDivider(CBasePane* pane) {
+CPaneDivider* DockedPaneDivider(const CBasePane* pane) {
     if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CDockablePane))) return nullptr;
     auto* divider = static_cast<CPaneDivider*>(
-        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(static_cast<CDockablePane*>(pane)));
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(static_cast<const CDockablePane*>(pane)));
     return divider && !divider->m_dividerData.bAutoHideMode ? divider : nullptr;
 }
 
@@ -1140,13 +1135,12 @@ std::vector<EdgePlacement> PlaceEdgePanes(const DockingManagerState& state, RECT
     if (state.edgePanes.empty() || !state.parentFrame) return positions;
     const HWND host = state.parentFrame->m_hWnd;
     for (bool outer : {true, false}) {
-        for (auto* pane : state.panes) {
-            const auto it = state.edgePanes.find(pane);
-            if (it == state.edgePanes.end() || it->second.outer != outer) continue;
-            const auto& dock = it->second;
-            auto* divider = DockedPaneDivider(pane);
-            if (!divider || divider->m_hWnd != dock.divider || ::GetParent(dock.divider) != host ||
-                !openmfc::detail::DividerHasVisiblePanes(divider)) continue;
+        for (const auto& dock : state.edgePanes) {
+            if (dock.outer != outer || ::GetParent(dock.divider) != host) continue;
+            auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(dock.divider));
+            if (!window || !window->IsKindOf(RUNTIME_CLASS(CPaneDivider))) continue;
+            auto* divider = static_cast<CPaneDivider*>(window);
+            if (!openmfc::detail::DividerHasVisiblePanes(divider)) continue;
 
             const DWORD side = divider->GetPaneAlignment();
             const LONG span = EdgeSpan(remaining, IsVerticalEdge(side));
@@ -1184,7 +1178,7 @@ void ArrangeEdgePanes(const DockingManagerState& state, RECT& remaining, bool mo
     for (const auto& position : positions) {
         const RECT& rect = position.sash;
         ::SetWindowPos(position.divider, nullptr, rect.left, rect.top,
-            EdgeSpan(rect, true), EdgeSpan(rect, false), SWP_NOZORDER | SWP_NOACTIVATE);
+            EdgeSpan(rect, true), EdgeSpan(rect, false), SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
         auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(position.divider));
         if (window && window->IsKindOf(RUNTIME_CLASS(CPaneDivider)))
             openmfc::detail::ResizeDividerPanes(static_cast<CPaneDivider*>(window), position.bounds);
@@ -1219,11 +1213,11 @@ FrameEdgeResize GetFrameEdgeResize(const CPaneDivider& divider, LONG thickness, 
     auto* manager = DockingManagerForFrame(frame);
     if (!FindDockingState(manager)) return {};
     auto& state = EnsureDockingState(manager);
-    const auto edge = std::find_if(state.edgePanes.begin(), state.edgePanes.end(), [&](const auto& pair) {
-        return pair.second.divider == divider.m_hWnd;
+    const auto edge = std::find_if(state.edgePanes.begin(), state.edgePanes.end(), [&](const auto& slot) {
+        return slot.divider == divider.m_hWnd;
     });
     if (edge == state.edgePanes.end()) return {};
-    FrameEdgeResize resize{manager, &edge->second};
+    FrameEdgeResize resize{manager, &*edge};
     if (state.lockUpdate || !openmfc::detail::DividerHasVisiblePanes(&divider)) return resize;
     const DWORD side = divider.GetPaneAlignment();
     const bool vertical = IsVerticalEdge(side);
@@ -1236,6 +1230,26 @@ FrameEdgeResize GetFrameEdgeResize(const CPaneDivider& divider, LONG thickness, 
     if (side == CBRS_ALIGN_RIGHT || side == CBRS_ALIGN_BOTTOM) resize.growthDirection = -1;
     return resize;
 }
+}
+
+void openmfc::detail::mfccore::RegisterFrameEdgeDivider(
+    CDockingManager& manager, CPaneDivider& divider, LONG thickness, bool outer, const CBasePane* relative) {
+    auto& edges = EnsureDockingState(&manager).edgePanes;
+    auto* neighbor = DockedPaneDivider(relative);
+    auto position = neighbor ? std::find_if(edges.begin(), edges.end(), [&](const auto& edge) {
+        return edge.divider == neighbor->m_hWnd;
+    }) : edges.end();
+    edges.insert(position, {divider.m_hWnd, thickness, outer});
+}
+
+void openmfc::detail::mfccore::ForgetFrameEdgeDivider(const CPaneDivider& divider) {
+    auto* frame = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(divider.m_hWnd)));
+    auto* manager = DockingManagerForFrame(frame);
+    if (!FindDockingState(manager)) return;
+    auto& edges = EnsureDockingState(manager).edgePanes;
+    edges.erase(std::remove_if(edges.begin(), edges.end(), [&](const auto& edge) {
+        return edge.divider == divider.m_hWnd;
+    }), edges.end());
 }
 
 bool openmfc::detail::mfccore::FrameEdgeDividerOffsets(

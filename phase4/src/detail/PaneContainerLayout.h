@@ -85,5 +85,9 @@ void ResizeDividerPanes(CPaneDivider* divider, const RECT& bounds);
 bool DividerHasVisiblePanes(const CPaneDivider* divider);
 void RefreshDividerPanes(CPaneDivider* divider);
 void AttachDividerPane(CPaneDivider* divider, CDockablePane* pane);
+bool ReserveDividerPane(CPaneDivider& divider, CDockablePane& pane, const RECT& bounds);
+CPaneDivider* ReservedPaneDivider(CPane& pane);
+void ForgetDividerPane(CPane& pane);
+void TransferDividerPane(CPane& previous, CPane& replacement);
 
 } // namespace openmfc::detail

@@ -3,7 +3,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CbarcoreSupport.h"
+#include "detail/PaneContainerLayout.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/FeaturePackDockSite.h"
 
@@ -582,6 +582,7 @@ void CPane::ReleaseFloatingFrame() {
             }
         }
     }
+    openmfc::detail::ForgetDividerPane(*this);
     if (auto* mini = FloatingFrame(miniWindow)) {
         mini->RemovePane(this);
     }
@@ -974,6 +975,8 @@ BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDocki
     }
     if (group) group->RemovePane(this);
     else impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(this, mini, FALSE);
+    if (divider && !group)
+        restore.reservedDivider = openmfc::detail::ReserveDividerPane(*divider, *dockable, restore.bounds);
     if (dockable) impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(dockable, nullptr);
     if (divider && !divider->GetFirstPane()) ::ShowWindow(divider->m_hWnd, SW_HIDE);
 
@@ -1008,6 +1011,7 @@ BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDocki
     docking.floatingPanes.insert(this);
     if (show) manager->ShowPane(this);
     else manager->HidePane(this);
+    if (restore.reservedDivider) manager->RecalcLayout();
     if (show && continueDrag) mini->BeginPaneDrag();
     return TRUE;
 }
@@ -1046,6 +1050,7 @@ BOOL CPane::DockToRecentPosition() {
     m_dwStyle = restore->style;
     m_bRecentFloatingState = FALSE;
     if (!group) mini->RemovePane(this);
+    CPaneDivider* restoredDivider = nullptr;
     if (group) {
         RemoveDockingPane(manager, this);
         ::ShowWindow(group->m_hWnd, SW_SHOWNOACTIVATE);
@@ -1054,9 +1059,13 @@ BOOL CPane::DockToRecentPosition() {
         const auto& bounds = restore->bounds;
         ::SetWindowPos(m_hWnd, nullptr, bounds.left, bounds.top, bounds.right - bounds.left,
             bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-        if (auto* divider = DockDivider(restore->divider); divider && IsKindOf(RUNTIME_CLASS(CDockablePane))) {
-            divider->AddPane(static_cast<CDockablePane*>(this));
-            if (restore->dividerVisible) ::ShowWindow(divider->m_hWnd, SW_SHOWNOACTIVATE);
+        if (IsKindOf(RUNTIME_CLASS(CDockablePane))) {
+            restoredDivider = restore->reservedDivider
+                ? openmfc::detail::ReservedPaneDivider(*this) : DockDivider(restore->divider);
+            if (restoredDivider) {
+                restoredDivider->AddPane(static_cast<CDockablePane*>(this));
+                if (restore->dividerVisible) ::ShowWindow(restoredDivider->m_hWnd, SW_SHOWNOACTIVATE);
+            }
         }
         if (parentWindow && parentWindow->IsKindOf(RUNTIME_CLASS(CDockSite))) {
             auto* site = static_cast<CDockSite*>(parentWindow);
@@ -1087,6 +1096,8 @@ BOOL CPane::DockToRecentPosition() {
         state.floatRestore.reset();
         state.visible = TRUE;
     }
+    openmfc::detail::ForgetDividerPane(*this);
+    if (restoredDivider && restore->reservedDivider) manager->RecalcLayout();
     ::SendMessageW(miniWindow, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
     return TRUE;
 }

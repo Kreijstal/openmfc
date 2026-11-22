@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <unordered_set>
 #include <cstdlib>
 
@@ -269,6 +270,46 @@ S_CPaneContainer* Root(const void* manager) {
     return manager ? Field<S_CPaneContainer*>(manager, kOffRootContainer) : nullptr;
 }
 
+struct PaneReservation {
+    void* manager;
+    S_CPaneContainer* container;
+    bool leading;
+};
+
+std::unordered_map<CPane*, PaneReservation>& PaneReservations() {
+    static std::unordered_map<CPane*, PaneReservation> reservations;
+    return reservations;
+}
+
+void ClearRecentContainer(CPane& pane, const S_CPaneContainer* container) {
+    auto& recent = pane.m_recentDockInfo.m_layout.m_recentSliderInfo;
+    if (recent.m_pRecentBarContainer == container) recent.m_pRecentBarContainer = nullptr;
+}
+
+std::optional<PaneReservation> TakePaneReservation(CPane& pane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    auto entry = PaneReservations().extract(&pane);
+    if (entry.empty()) return std::nullopt;
+    const auto& reservation = entry.mapped();
+    ClearRecentContainer(pane, reservation.container);
+    --reservation.container->m_nRefCount;
+    return reservation;
+}
+
+void ForgetManagerReservations(void* manager) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    auto& reservations = PaneReservations();
+    for (auto it = reservations.begin(); it != reservations.end();) {
+        if (it->second.manager != manager) {
+            ++it;
+            continue;
+        }
+        ClearRecentContainer(*it->first, it->second.container);
+        --it->second.container->m_nRefCount;
+        it = reservations.erase(it);
+    }
+}
+
 std::unordered_set<S_CPaneContainer*>& OwnedSplitNodes() {
     static std::unordered_set<S_CPaneContainer*> nodes;
     return nodes;
@@ -342,6 +383,51 @@ void CollapseSplit(S_CPaneContainer* node) {
 }
 }
 
+bool openmfc::detail::ReserveDividerPane(CPaneDivider& divider, CDockablePane& pane, const RECT& bounds) {
+    if (!divider.m_dividerData.bDefaultDivider || divider.m_dividerData.bAutoHideMode) return false;
+    int leading = FALSE;
+    auto* node = reinterpret_cast<S_CPaneContainer*>(divider.FindPaneContainer(&pane, leading));
+    if (!node) return false;
+    const DWORD alignment = divider.GetPaneAlignment();
+
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    auto& reservations = PaneReservations();
+    if (const auto found = reservations.find(&pane); found != reservations.end())
+        return found->second.container == node && found->second.leading == (leading != FALSE);
+    reservations.emplace(&pane, PaneReservation{divider.m_dividerData.pContainerManager, node, leading != FALSE});
+    ++node->m_nRefCount;
+    auto& info = pane.m_recentDockInfo.m_layout;
+    info.m_pBar = &pane;
+    info.m_hRecentDefaultSlider = divider.m_hWnd;
+    info.m_dwRecentAlignmentToFrame = alignment;
+    info.m_recentSliderInfo.m_rectDockedRect = bounds;
+    info.m_recentSliderInfo.m_nRecentPercent = node->m_nPercent;
+    info.m_recentSliderInfo.m_bIsRecentLeftBar = leading;
+    info.m_recentSliderInfo.m_pRecentBarContainer = node;
+    return true;
+}
+
+CPaneDivider* openmfc::detail::ReservedPaneDivider(CPane& pane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const auto entry = PaneReservations().find(&pane);
+    return entry == PaneReservations().end() ? nullptr : Field<CPaneDivider*>(entry->second.manager, kOffDefaultSlider);
+}
+
+void openmfc::detail::ForgetDividerPane(CPane& pane) {
+    if (auto reservation = TakePaneReservation(pane)) CollapseSplit(reservation->container);
+}
+
+void openmfc::detail::TransferDividerPane(CPane& previous, CPane& replacement) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    auto& reservations = PaneReservations();
+    if (reservations.count(&replacement)) return;
+    auto entry = reservations.extract(&previous);
+    if (entry.empty()) return;
+    ClearRecentContainer(previous, entry.mapped().container);
+    entry.key() = &replacement;
+    reservations.insert(std::move(entry));
+}
+
 // Same-file entry point, forward declared so ReplacePane can reach it the way
 // retail does (retail calls it through this->vftable slot 0x128, which for an
 // unsubclassed CPaneContainerManager is exactly this body).
@@ -405,6 +491,7 @@ extern "C" void* MS_ABI impl___0CPaneContainerManager__QEAA_XZ(void* pThis) {
 // Symbol: ??1CPaneContainerManager@@UEAA@XZ
 extern "C" void* MS_ABI impl___1CPaneContainerManager__UEAA_XZ(void* pThis) {
     if (!pThis) return nullptr;
+    ForgetManagerReservations(pThis);
     void* root = Field<void*>(pThis, kOffRootContainer);
     if (root) {
         auto& node = *static_cast<S_CPaneContainer*>(root);
@@ -567,6 +654,7 @@ extern "C" int MS_ABI impl__AddPaneAndPaneDivider_CPaneContainerManager__IEAAHPE
     impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
         node, pThis, leading, trailing, divider);
     node->m_bDividerHorz = horizontal;
+    node->m_nField60 = horizontal ? kSliderStyleHorz : kSliderStyleVert;
     node->m_pParentContainer = parent;
     (first ? parent->m_pLeftPaneContainer : parent->m_pRightPaneContainer) = node;
     if (auto* root = Root(pThis); ::IsRectEmpty(&root->m_rect74)) root->m_rect74 = bounds;
@@ -761,79 +849,93 @@ extern "C" void MS_ABI impl__AddPaneToList_CPaneContainerManager__QEAAXPEAVCDock
     AddUniquePane(g_containerManagerPanes[pThis], pPane);
 }
 
+namespace {
+void CollectPaneOrder(const S_CPaneContainer& node, std::vector<void*>& panes) {
+    if (node.m_pLeftPane) panes.push_back(node.m_pLeftPane);
+    if (node.m_pLeftPaneContainer) CollectPaneOrder(*node.m_pLeftPaneContainer, panes);
+    if (node.m_pRightPane) panes.push_back(node.m_pRightPane);
+    if (node.m_pRightPaneContainer) CollectPaneOrder(*node.m_pRightPaneContainer, panes);
+}
+
+void InsertInPaneOrder(PaneState& state, const std::vector<void*>& treeOrder, void* pane) {
+    RemovePane(state, pane);
+    auto next = std::find(treeOrder.begin(), treeOrder.end(), pane);
+    if (next != treeOrder.end()) {
+        for (++next; next != treeOrder.end(); ++next) {
+            const auto successor = std::find(state.panes.begin(), state.panes.end(), *next);
+            if (successor != state.panes.end()) {
+                state.panes.insert(successor, pane);
+                return;
+            }
+        }
+    }
+    state.panes.push_back(pane);
+}
+}
+
 // Symbol: ?AddPaneToRecentPaneContainer@CPaneContainerManager@@UEAAPEAVCDockablePane@@PEAV2@PEAVCPaneContainer@@@Z
-// STUB. Retail entry RVA 0xa89d0 (mfc140.dll), body 0xa89d0..0xa8ba5 with the
-// throw tail at 0xa8bb4. (An earlier revision of this comment attributed the
-// body to CRecentPaneContainerInfo; no call into that class appears in it. The
-// "recent" state it uses lives in CPaneContainer itself, at +0x60 and +0x64.)
-// The shipping header declares
-// `CDockablePane* AddPaneToRecentPaneContainer(CDockablePane* pBarToAdd,
-//                                              CPaneContainer* pRecentContainer)`.
-//
-//   if (pRecentContainer == NULL) AfxThrowInvalidArgException();   // 0xa89ec
-//   CPaneContainer* p = m_pRootContainer;
-//   if (p != pRecentContainer) {                                   // 0xa89f6
-//       p = NULL;
-//       if (m_pRootContainer->m_pLeftPaneContainer)                // +0x20
-//           p = ...->FindSubPaneContainer(pRecentContainer, 3);    // entry RVA 0xa5230 (mfc140.dll)
-//       if (p == NULL && m_pRootContainer->m_pRightPaneContainer)  // +0x28
-//           p = ...->FindSubPaneContainer(pRecentContainer, 3);
-//   }
-//   if (p == NULL) return NULL;
-//   if (!p->IsEmpty() && p->m_pSlider == NULL)                     // 0xa8a40/+0x18
-//       p->m_pSlider = CreatePaneDivider(*(CRect*)((char*)p + 0x64),
-//                                        *(DWORD*)((char*)p + 0x60), -1);
-//   if (p->IsEmpty())                                              // 0xa8a77
-//       for (CPaneContainer* q = p->m_pParentContainer;            // +0x30
-//            q != NULL && q != m_pRootContainer; q = q->m_pParentContainer)
-//           if (q->m_pSlider == NULL && *(DWORD*)((char*)q + 0x60) != 0)
-//               q->m_pSlider = CreatePaneDivider(*(CRect*)((char*)q + 0x64),
-//                                                *(DWORD*)((char*)q + 0x60), -1);
-//   CObList lst;                                                   // stack
-//   lst.AddTail((char*)pBarToAdd +
-//               (m_pDockSite->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)) ? 0x388 : 0x320));
-//                                                  // 0xa8b04 neg/sbb/and $0x68
-//   ...                                                            // 0xa8b1f loop
-//   CDockablePane* pRet = p->AddPane(pBarToAdd);                   // 0xa4080
-//   if (pRet == pBarToAdd) {
-//       m_pRootContainer->CheckPaneDividerVisibility();            // 0xa71c0
-//       <insert pRet into m_lstControlBars with AddHead (0x230440) or
-//        InsertAfter (0x230690), depending on where the walk stopped>
-//   }
-//   lst.RemoveAll();
-//   return pRet;
-//
-// Left a stub, but the reason has changed and the old one should not be repeated:
-// ?AddPane@CPaneContainer@@ and ?FindSubPaneContainer@CPaneContainer@@ both have
-// real bodies in docking/CPaneContainer.cpp now, and an earlier revision of this
-// comment called them generated stubs. What actually blocks it:
-//
-//  * The divider. ?CreatePaneDivider@ above is a stub returning NULL (this DLL
-//    cannot build a CPaneDivider -- see that comment), so the two calls here
-//    produce nothing. That is harmless as a store (both sites only write an
-//    m_pSlider the guard just found NULL), but it means a container that retail
-//    would have given a divider is left without one, and ?AddPane@CPaneContainer@@
-//    then puts a second pane into it. The resulting layout is wrong, not merely
-//    incomplete.
-//  * The recent-divider geometry. The CPaneContainer members at +0x60 (style) and
-//    +0x64 (rect) that feed both CreatePaneDivider calls are never written in this
-//    repo: docking/CPaneContainer.cpp zeroes them in the constructor, and their
-//    only retail writer (0xa7de8) is a stub there.
-//  * The insertion point. The stack CObList declared at 0xa8adb is filled by the
-//    single CPtrList::AddTail at 0xa8b1a with ONE element -- `(char*)pBarToAdd +
-//    (m_pDockSite is a CPaneFrameWnd ? 0x388 : 0x320)`, the neg/sbb/and $0x68/
-//    add $0x320 sequence at 0xa8b04 -- and the walk at 0xa8b1f then looks in that
-//    list for a node whose data equals pBarToAdd. Those two CDockablePane members
-//    are not modelled here. (For whoever picks this up: 0x320 != 0, so in retail
-//    that walk can never match, so the result always reaches the CObList::AddHead
-//    call at 0xa8b83 rather than the InsertAfter at 0xa8bad. That is an observation about
-//    retail's own arithmetic, not a licence to hard-code AddHead here -- this
-//    file keeps m_lstControlBars in a side table with no POSITION to insert at.)
 extern "C" void* MS_ABI impl__AddPaneToRecentPaneContainer_CPaneContainerManager__UEAAPEAVCDockablePane__PEAV2_PEAVCPaneContainer___Z(
     void* pThis, void* pBarToAdd, void* pRecentContainer) {
-    (void)pThis; (void)pBarToAdd; (void)pRecentContainer;
-    // STUB: recent-divider creation depends on CPaneDivider retail storage and unavailable recent-state setup.
-    return nullptr;
+    auto* root = Root(pThis);
+    auto* pane = static_cast<CDockablePane*>(pBarToAdd);
+    if (!root || !pane || !pane->m_hWnd) return nullptr;
+    if (!pRecentContainer) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return nullptr;
+    }
+    constexpr int findByContainer = 3;
+    auto* node = static_cast<S_CPaneContainer*>(
+        impl__FindSubPaneContainer_CPaneContainer__QEAAPEAV1_PEBVCObject__W4BC_FIND_CRITERIA_1__Z(
+            root, pRecentContainer, findByContainer));
+    auto* host = Field<CWnd*>(pThis, kOffDockSite);
+    if (!node || !host || !host->m_hWnd) return nullptr;
+    if (void* present = impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+            pThis, pane, nullptr)) return present == node ? pane : nullptr;
+
+    auto* outer = Field<CPaneDivider*>(pThis, kOffDefaultSlider);
+    const auto& recent = pane->m_recentDockInfo.m_layout;
+    bool leading = (outer ? recent.m_recentSliderInfo : recent.m_recentMiniFrameInfo).m_bIsRecentLeftBar != FALSE;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        if (const auto found = PaneReservations().find(pane); found != PaneReservations().end()) {
+            if (found->second.manager != pThis || found->second.container != node) return nullptr;
+            leading = found->second.leading;
+        }
+    }
+    if (leading ? node->m_pLeftPane || node->m_pLeftPaneContainer : node->m_pRightPane || node->m_pRightPaneContainer)
+        return nullptr;
+
+    CPaneDivider* replacement = nullptr;
+    if (node->m_nField60 && !node->m_pSlider) {
+        const RECT sash{0, 0, kPaneDividerThickness, kPaneDividerThickness};
+        replacement = static_cast<CPaneDivider*>(
+            impl__CreatePaneDivider_CPaneContainerManager__IEAAPEAVCPaneDivider__VCRect__KH_Z(
+                pThis, &sash, node->m_nField60, -1));
+        if (!replacement) return nullptr;
+    }
+    if (::GetParent(pane->m_hWnd) != host->m_hWnd) {
+        ::SetLastError(ERROR_SUCCESS);
+        if (!::SetParent(pane->m_hWnd, host->m_hWnd) && ::GetLastError() != ERROR_SUCCESS) {
+            if (replacement) replacement->DestroyWindow();
+            return nullptr;
+        }
+    }
+
+    if (replacement) node->m_pSlider = replacement;
+    SetLeaf(*node, leading, pane);
+    TakePaneReservation(*pane);
+    std::vector<void*> order;
+    CollectPaneOrder(*root, order);
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        InsertInPaneOrder(g_containerManagerPanes[pThis], order, pane);
+        if (outer) InsertInPaneOrder(g_dividerPanes[outer], order, pane);
+    }
+    if (outer) {
+        impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(pane, outer->m_hWnd);
+        RefreshDividerPanes(outer);
+    }
+    return pane;
 }
 
 // Symbol: ?CalcRects@CPaneContainerManager@@QEAAXAEAVCRect@@00AEAKKVCSize@@2@Z
@@ -2201,6 +2303,17 @@ void openmfc::detail::AttachDividerPane(CPaneDivider* divider, CDockablePane* pa
     if (!root || !pane) return;
     if (impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
             manager, pane, nullptr)) return;
+    S_CPaneContainer* recent = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        if (const auto found = PaneReservations().find(pane);
+            found != PaneReservations().end() && found->second.manager == manager) recent = found->second.container;
+    }
+    if (recent) {
+        if (impl__AddPaneToRecentPaneContainer_CPaneContainerManager__UEAAPEAVCDockablePane__PEAV2_PEAVCPaneContainer___Z(
+                manager, pane, recent)) return;
+        ForgetDividerPane(*pane);
+    }
     if (!root->m_pLeftPane && !root->m_pLeftPaneContainer) {
         SetLeaf(*root, true, pane);
     } else {

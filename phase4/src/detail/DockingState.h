@@ -42,6 +42,7 @@ struct PaneAutoHideRestore {
     bool floating = false;
     bool tabVisible = false;
     bool tabActive = false;
+    bool reservedDivider = false;
 };
 
 struct PaneFloatRestore {
@@ -55,6 +56,7 @@ struct PaneFloatRestore {
     int tabIndex = -1;
     bool detachable = true;
     bool dividerVisible = false;
+    bool reservedDivider = false;
 };
 
 // pThis-keyed fallback state for members that the compact public pane classes

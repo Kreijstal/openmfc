@@ -668,7 +668,7 @@ extern "C" int MS_ABI impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__
             state.panes.insert(state.panes.begin() + (std::min)(index, static_cast<decltype(index)>(state.panes.size())), pane);
         }
     }
-    state.edgePanes[pane] = {divider->m_hWnd, (std::max)(1L, thickness), outer != 0};
+    RegisterFrameEdgeDivider(*manager, *divider, (std::max)(1L, thickness), outer != 0, relative);
     ::ShowWindow(pane->m_hWnd, SW_SHOWNOACTIVATE);
     ::ShowWindow(divider->m_hWnd, SW_SHOWNOACTIVATE);
     manager->RecalcLayout();
@@ -828,6 +828,10 @@ CMFCAutoHideBar* CDockablePane::BeginAutoHide(
         return nullptr;
     }
 
+    auto* previous = static_cast<CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(this));
+    restore.reservedDivider = previous && tab < 0 &&
+        openmfc::detail::ReserveDividerPane(*previous, *this, restore.bounds);
     restore.divider = slider;
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
@@ -849,12 +853,11 @@ CMFCAutoHideBar* CDockablePane::BeginAutoHide(
     impl__EnableGripper_CDockablePane__UEAAXH_Z(this, FALSE);
 
     divider->m_dividerData.bAutoHideMode = TRUE;
-    auto* previous = static_cast<CPaneDivider*>(
-        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(this));
     divider->AddPane(this);
     if (previous && !previous->GetFirstPane()) ::ShowWindow(previous->m_hWnd, SW_HIDE);
     manager.HidePane(this);
     managerState.floatingPanes.erase(this);
+    if (restore.reservedDivider) manager.RecalcLayout();
     impl__AlignAutoHidePane_CDockingManager__QEAAXPEAVCPaneDivider__H_Z(&manager, divider, TRUE);
     if (useTimer) {
         ::ShowWindow(slider, SW_SHOWNOACTIVATE);
@@ -892,6 +895,7 @@ void CDockablePane::EndAutoHide(BOOL restoreWindow) {
     impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(this, nullptr);
     if (::IsWindow(restore->divider)) ::DestroyWindow(restore->divider);
     if (!restoreWindow || !m_hWnd) {
+        if (restore->reservedDivider) openmfc::detail::ForgetDividerPane(*this);
         RemovePaneTab(this, restore->parent);
         RemoveDockingPane(restore->manager, this);
         return;
@@ -903,15 +907,16 @@ void CDockablePane::EndAutoHide(BOOL restoreWindow) {
     if (parent && parent != ::GetParent(m_hWnd)) ::SetParent(m_hWnd, parent);
     m_dwStyle = (m_dwStyle & ~CBRS_ALIGN_ANY) | restore->alignment;
     SetPaneAlignment(restore->alignment);
-    if (auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(restore->previousDivider));
-        window && window->IsKindOf(RUNTIME_CLASS(CPaneDivider))) {
-        auto* divider = static_cast<CPaneDivider*>(window);
-        divider->AddPane(this);
-        ::ShowWindow(divider->m_hWnd, restore->dividerVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
-    }
     const RECT& bounds = restore->bounds;
     SetWindowPos(nullptr, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top,
         SWP_NOACTIVATE | SWP_NOZORDER, nullptr);
+    auto* oldWindow = static_cast<CWnd*>(CWnd::FromHandlePermanent(restore->previousDivider));
+    auto* restoredDivider = restore->reservedDivider ? openmfc::detail::ReservedPaneDivider(*this) :
+        oldWindow && oldWindow->IsKindOf(RUNTIME_CLASS(CPaneDivider)) ? static_cast<CPaneDivider*>(oldWindow) : nullptr;
+    if (restoredDivider) {
+        restoredDivider->AddPane(this);
+        ::ShowWindow(restoredDivider->m_hWnd, restore->dividerVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
+    }
     auto* parentWindow = static_cast<CWnd*>(CWnd::FromHandlePermanent(parent));
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
@@ -935,6 +940,11 @@ void CDockablePane::EndAutoHide(BOOL restoreWindow) {
         if (restore->tabActive) tabs->ActivateTab(tab);
     } else {
         ::ShowWindow(m_hWnd, restore->visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+    }
+    if (restore->reservedDivider) {
+        openmfc::detail::ForgetDividerPane(*this);
+        if (restoredDivider) openmfc::detail::RefreshDividerPanes(restoredDivider);
+        if (restore->manager) restore->manager->RecalcLayout();
     }
 }
 
@@ -1128,6 +1138,7 @@ extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AF
                 }
                 g_paneCoreState_Mfccore[group].floatingFrame = targetParent;
             }
+            openmfc::detail::TransferDividerPane(*target, *group);
             if (manager) {
                 AddDockingPane(manager, group);
                 EnsureDockingState(manager).floatingPanes.insert(group);
@@ -1750,12 +1761,7 @@ extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT_
         state.tabbed = FALSE;
         state.tabWindow = nullptr;
     }
-    if (manager) {
-        auto& edgePanes = EnsureDockingState(manager).edgePanes;
-        auto edge = edgePanes.find(pane);
-        if (edge != edgePanes.end() && edge->second.divider != divider->m_hWnd) edgePanes.erase(edge);
-        manager->DockPane(pane);
-    }
+    if (manager) manager->DockPane(pane);
     impl__EnableGripper_CDockablePane__UEAAXH_Z(pane, TRUE);
     ::SetWindowPos(pane->m_hWnd, nullptr, 0, 0, 0, 0,
         SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);

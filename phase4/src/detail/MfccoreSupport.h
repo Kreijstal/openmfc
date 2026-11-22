@@ -111,7 +111,7 @@ struct DockingManagerState {
         LONG thickness;
         bool outer;
     };
-    std::unordered_map<CBasePane*, EdgePane> edgePanes;
+    std::vector<EdgePane> edgePanes;
     DWORD enabledAlignment = 0;
     DWORD enabledAutoHideAlignment = 0;
     bool lockUpdate = false;
@@ -185,6 +185,9 @@ CDockablePane* DockPaneAtPoint(CDockablePane& pane, CPoint point, BOOL& docked);
 bool FrameEdgeDividerOffsets(const CPaneDivider& divider, LONG thickness, LONG minThickness, int& low, int& high);
 bool MoveFrameEdgeDivider(CPaneDivider& divider, LONG thickness, LONG minThickness, int offset);
 void AdjustDockedFrameClient(const CDockingManager* manager);
+void RegisterFrameEdgeDivider(CDockingManager& manager, CPaneDivider& divider, LONG thickness,
+                              bool outer, const CBasePane* relative);
+void ForgetFrameEdgeDivider(const CPaneDivider& divider);
 
 const DockingManagerState* FindDockingState(const CDockingManager* pManager);
 CDockingManager* DockingManagerForFrame(CWnd* frame);
