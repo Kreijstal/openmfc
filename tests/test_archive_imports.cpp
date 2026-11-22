@@ -123,6 +123,45 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
   }
  }
  {
+  static_assert(sizeof(CWordArray)==40 && std::is_base_of_v<CObject,CWordArray>,"native word array ABI");
+  static_assert(!std::is_copy_constructible_v<CWordArray> && !std::is_copy_assignable_v<CWordArray>);
+  CRuntimeClass* type = RUNTIME_CLASS(CWordArray);
+  check(CRuntimeClass::FromName("CWordArray") == type && type->m_wSchema == 0 &&
+        type->m_nObjectSize == 40 && type->m_pClassInit);
+  CObject* created = CWordArray::CreateObject();
+  check(created && created->GetRuntimeClass() == type &&
+        static_cast<CWordArray*>(created)->IsEmpty());
+  delete created;
+
+  CMemFile graph;
+  CWordArray words;
+  words.Add(0xfedc);
+  words.SetAtGrow(2, 0x4321);
+  {
+   CArchive store(&graph,CArchive::store,128);
+   store << &words << &words << static_cast<CWordArray*>(nullptr);
+   store.Close();
+  }
+  const BYTE expected[] = {0xff,0xff,0,0,10,0,'C','W','o','r','d','A','r','r','a','y',
+                           3,0,0xdc,0xfe,0,0,0x21,0x43,2,0,0,0};
+  BYTE actual[sizeof(expected)] = {};
+  graph.Seek(0,CFile::begin);
+  check(graph.GetLength() == sizeof(expected) && graph.Read(actual,sizeof(actual)) == sizeof(actual) &&
+        !memcmp(actual,expected,sizeof(expected)));
+  graph.Seek(0,CFile::begin);
+  {
+   CArchive load(&graph,CArchive::load,128);
+   CWordArray* restored = nullptr;
+   CWordArray* repeated = nullptr;
+   CWordArray* empty = &words;
+   load >> restored >> repeated >> empty;
+   check(restored && restored->GetRuntimeClass() == type && restored == repeated &&
+         restored->GetSize() == 3 && restored->GetAt(0) == 0xfedc &&
+         restored->GetAt(1) == 0 && restored->GetAt(2) == 0x4321 && empty == nullptr);
+   delete restored;
+  }
+ }
+ {
   static_assert(sizeof(CPtrArray)==40,"native pointer array ABI");
   CPtrArray a,b;check(a.IsEmpty()&&a.GetUpperBound()==-1);
   a.SetSize(1,17);INT_PTR capacity=0;memcpy(&capacity,reinterpret_cast<const char*>(&a)+24,8);check(capacity==1);

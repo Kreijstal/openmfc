@@ -1,6 +1,7 @@
 #define _AFX_NOFORCE_LIBS
 #ifdef OPENMFC_USE_SDK_MFC
 #include <afx.h>
+#include <afxcoll.h>
 #include <afxtempl.h>
 #else
 #include "openmfc/afxwin.h"
@@ -117,14 +118,19 @@ template<class T>void snapshot(CArray<T,const T&>& a) {
         for(size_t i=0;i<size_t(capacity)*sizeof(T);++i)event(12,i,reinterpret_cast<const unsigned char*>(a.GetData())[i]);
     }
 }
-void snapshot(CPtrArray& a) {
+template<class Array>
+void plainArraySnapshot(Array& a, const char* name) {
+    using Element = std::remove_pointer_t<decltype(a.GetData())>;
     active=&a;event(8,a.GetCount(),a.GetUpperBound(),a.IsEmpty());
     auto* type=static_cast<CObject*>(&a)->GetRuntimeClass();
-    event(7,strcmp(type->m_lpszClassName,"CPtrArray"),type->m_nObjectSize,type->m_wSchema);
-    event(13,type==CPtrArray::GetThisClass());
-    for(INT_PTR i=0;i<a.GetSize();++i)event(9,i,reinterpret_cast<INT_PTR>(a.GetAt(i)));
-    for(size_t i=0;i<size_t(field<INT_PTR>(&a,24))*sizeof(void*);++i)event(12,i,reinterpret_cast<const unsigned char*>(a.GetData())[i]);
+    event(7,strcmp(type->m_lpszClassName,name),type->m_nObjectSize,type->m_wSchema);
+    event(13,type==Array::GetThisClass());
+    for (INT_PTR i = 0; i < a.GetSize(); ++i) event(9, i, (INT_PTR)a.GetAt(i));
+    for (size_t i = 0; i < size_t(field<INT_PTR>(&a,24))*sizeof(Element); ++i)
+        event(12, i, reinterpret_cast<const unsigned char*>(a.GetData())[i]);
 }
+void snapshot(CPtrArray& a) { plainArraySnapshot(a, "CPtrArray"); }
+void snapshot(CWordArray& a) { plainArraySnapshot(a, "CWordArray"); }
 template<class ARRAY,class F>void operation(ARRAY& a,int label,F fn) {
     active=&a;event(20,label);
     try {fn();event(21);}
@@ -244,11 +250,11 @@ void largeArithmetic(int scenario) {
     }
     active=nullptr;
 }
-void pointerArray(int scenario,int failure) {
+template<class Array, class Element>
+void plainArray(int scenario, int failure, Element value) {
     AllocationHook hook;
-    alignas(CPtrArray) unsigned char first[sizeof(CPtrArray)],second[sizeof(CPtrArray)];
-    active=first;CPtrArray& a=*::new(first) CPtrArray;active=second;CPtrArray& b=*::new(second) CPtrArray;
-    void* value=reinterpret_cast<void*>(UINT_PTR(0x1234));
+    alignas(Array) unsigned char first[sizeof(Array)],second[sizeof(Array)];
+    active=first;Array& a=*::new(first) Array;active=second;Array& b=*::new(second) Array;
     failAllocation=failure;
     if(scenario==0) {
         for(INT_PTR grow:{INT_PTR(0),INT_PTR(4),INT_PTR(17)}) {
@@ -268,13 +274,13 @@ void pointerArray(int scenario,int failure) {
     } else if(scenario==2) {
         operation(a,1,[&]{a.SetSize(3,5);});
         for(INT_PTR index:{INT_PTR(-1),INT_PTR(0),INT_PTR(2),INT_PTR(3),INT_PTR(4),INT_PTR(0x7fffffffffffffffLL)}) {
-            operation(a,2,[&]{event(23,reinterpret_cast<INT_PTR>(a.GetAt(index)));});
+            operation(a,2,[&]{event(23,(INT_PTR)a.GetAt(index));});
             operation(a,3,[&]{a.SetAt(index,value);});
             for(INT_PTR count:{INT_PTR(-1),INT_PTR(0),INT_PTR(1),INT_PTR(4),INT_PTR(0x7fffffffffffffffLL)})
                 operation(a,4,[&]{a.RemoveAt(index,count);});
         }
         operation(a,5,[&]{a.SetSize(-1,99);});operation(a,6,[&]{a.InsertAt(-1,&b);});
-        operation(a,7,[&]{a.InsertAt(0,static_cast<CPtrArray*>(nullptr));});
+        operation(a,7,[&]{a.InsertAt(0,static_cast<Array*>(nullptr));});
         operation(a,8,[&]{a.InsertAt(0,value,0);});operation(a,9,[&]{a.InsertAt(-1,value,1);});
         operation(a,10,[&]{a.SetAtGrow(-1,value);});operation(a,11,[&]{a.SetAtGrow(INT_PTR(0x7fffffffffffffffLL),value);});
     } else if(scenario==3) {
@@ -295,15 +301,53 @@ void pointerArray(int scenario,int failure) {
                 case 4:a.FreeExtra();break;case 5:b.Copy(a);break;
                 case 6:if(a.GetSize()+b.GetSize()<64)a.Append(b);break;
                 case 7:if(a.GetSize()+b.GetSize()<64)a.InsertAt(at,&b);break;
-                case 8:if(a.GetSize())a[a.GetSize()-1]=reinterpret_cast<void*>(UINT_PTR(i));break;
+                case 8:if(a.GetSize())a[a.GetSize()-1]=(Element)UINT_PTR(i);break;
                 case 9:a.RemoveAll();break;
             }});
         }
     }
     failAllocation=0;
-    // CPtrArray inherits CObject's empty Serialize slot; it has no wire format.
     operation(a,70,[&]{CMemFile file;CArchive store(&file,CArchive::store,128);static_cast<CObject*>(&a)->Serialize(store);store.Close();event(71,file.GetLength());});
-    active=&a;a.~CPtrArray();active=&b;b.~CPtrArray();active=nullptr;
+    active=&a;a.~Array();active=&b;b.~Array();active=nullptr;
+}
+void wordArchive(int scenario, int failure) {
+    const INT_PTR sizes[] = {0, 1, 63, 64, 65, 65534, 65535, 65536};
+    const INT_PTR count = sizes[scenario];
+    CMemFile file;
+    CWordArray words;
+    words.SetSize(count);
+    for (INT_PTR i = 0; i < count; ++i) words[i] = WORD(i * 4357 + 0xfedc);
+    {
+        CArchive store(&file, CArchive::store, 128);
+        words.Serialize(store);
+        store.Close();
+    }
+    event(30, file.GetLength());
+    file.Seek(0, CFile::begin);
+    BYTE bytes[257];
+    unsigned long long hash = 0;
+    while (const UINT n = file.Read(bytes, sizeof(bytes))) {
+        for (UINT i = 0; i < n; ++i) hash = hash * 131 + bytes[i];
+    }
+    event(31, hash);
+    if (failure && file.GetLength() >= UINT(failure))
+        file.SetLength(file.GetLength() - failure);
+    file.Seek(0, CFile::begin);
+
+    CWordArray restored;
+    restored.SetSize(3, 9);
+    restored[0] = 0xf123;
+    CArchive load(&file, CArchive::load, 128);
+    try {
+        restored.Serialize(load);
+        event(32);
+    } catch (CArchiveException* e) {
+        event(32, e->m_cause);
+        e->Delete();
+    }
+    hash = 0;
+    for (INT_PTR i = 0; i < restored.GetSize(); ++i) hash = hash * 131 + restored[i];
+    event(33, restored.GetSize(), field<INT_PTR>(&restored, 24), hash);
 }
 struct ArchiveView:CArchive {
     using CArchive::CArchive;
@@ -808,7 +852,11 @@ extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int 
     failAllocation=failConstructor=failAssignment=0;
     archiveActive=failAsInteger=allocationNull=false;
     for(auto& anchor:anchors)anchor=nullptr;
-    if(kind==9) {
+    if(kind==10) {
+        if (scenario < 16) plainArray<CWordArray>(scenario, failure, WORD(0xfedc));
+        else wordArchive(scenario - 16, failure);
+    }
+    else if(kind==9) {
         if(scenario<14)lengthCodec(scenario,failure);
         else if(scenario<30)lineCodec(scenario-14,failure);
         else if(scenario<38)scalarCodec(scenario-30,failure);
@@ -817,7 +865,7 @@ extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int 
     else if(kind==8)loading(scenario,failure);
     else if(kind==7)storing(scenario,failure);
     else if(kind==6)mapping(scenario,failure);
-    else if(kind==5)pointerArray(scenario,failure);
+    else if(kind==5)plainArray<CPtrArray>(scenario, failure, reinterpret_cast<void*>(UINT_PTR(0x1234)));
     else if(kind==4)largeArithmetic(scenario);
     else if(kind==3) {
         serialization(scenario);

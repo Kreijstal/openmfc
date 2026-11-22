@@ -3,7 +3,6 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CWordArraySupport.h"
 #include "detail/FilecoreSupport.h"
 #include "detail/StrcoreSupport.h"
 
@@ -71,7 +70,6 @@
 extern "C" int MS_ABI impl__LoadStringW___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAAHI_Z(CString* pThis, UINT nID);
 
 // Implemented in filecore.cpp; this unit had a second, unlinked copy.
-// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCWordArray@@@Z
 #define OPENMFC_WRAP_SERIAL_EXTRACT(fn_name, class_name) \
 extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { \
     return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; \
@@ -81,15 +79,6 @@ OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCDWordArray___
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCByteArray@@@Z
 OPENMFC_WRAP_SERIAL_EXTRACT(impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCByteArray___Z, CByteArray)
 #undef OPENMFC_WRAP_SERIAL_EXTRACT
-// Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAPEAVCWordArray@@@Z
-extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAPEAVCWordArray___Z(
-    CArchive* ar, CWordArray** ppArray) {
-    if (ar && ppArray) {
-        if (!*ppArray) *ppArray = new CWordArray();
-        impl__Serialize_CWordArray__UEAAXAEAVCArchive___Z(*ppArray, ar);
-    }
-    return ar;
-}
 #define OPENMFC_WRAP_SERIAL_EXTRACT(fn_name, class_name) \
 extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { \
     return (ar && pOb) ? &operator>>(*ar, *pOb) : ar; \

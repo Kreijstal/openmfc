@@ -1563,7 +1563,6 @@ void CMap<KEY, ARG_KEY, VALUE, ARG_VALUE>::GetNextAssoc(POSITION& rNextPosition,
 
 // Type definitions for common collections
 typedef CArray<int, int> CIntArray;
-typedef CArray<WORD, WORD> CWordArray;
 
 typedef CList<int, int> CIntList;
 typedef CList<unsigned int, unsigned int> CUIntList;
@@ -1712,6 +1711,11 @@ public: \
 OPENMFC_DECLARE_ARRAY_WRAPPER(CUIntArray, unsigned int, unsigned int, DECLARE_DYNAMIC)
 OPENMFC_DECLARE_ARRAY_WRAPPER(CDWordArray, DWORD, DWORD, OPENMFC_DECLARE_MFC_SERIAL)
 OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CObArray, CObject*, CObject*, OPENMFC_DECLARE_MFC_SERIAL)
+
+namespace openmfc::detail {
+template<class Array, class Element> struct PlainArrayStorage;
+}
+
 class CPtrArray : public CObject {
 #if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
 public:
@@ -1751,10 +1755,69 @@ protected:
     INT_PTR m_nMaxSize;
     INT_PTR m_nGrowBy;
 private:
+    friend struct openmfc::detail::PlainArrayStorage<CPtrArray, void*>;
     CPtrArray(const CPtrArray&) = delete;
     CPtrArray& operator=(const CPtrArray&) = delete;
 };
 OPENMFC_DECLARE_NATIVE_ARRAY_WRAPPER(CByteArray, BYTE, BYTE, OPENMFC_DECLARE_MFC_SERIAL)
+
+class CWordArray : public CObject {
+#if defined(_AFXDLL) && !defined(OPENMFC_EXPORTS) && !defined(OPENMFC_APPCORE_IMPL)
+    OPENMFC_DECLARE_MFC_SERIAL(CWordArray)
+#else
+public:
+    static CRuntimeClass classCWordArray;
+    static CRuntimeClass* AFXAPI _GetBaseClass();
+    static CRuntimeClass* GetThisClass();
+    CRuntimeClass* GetRuntimeClass() const override;
+    static CObject* AFXAPI CreateObject();
+    friend CArchive& AFXAPI operator>>(CArchive& ar, CWordArray*& array);
+#endif
+public:
+    OPENMFC_ARCHIVE_API CWordArray();
+    OPENMFC_ARCHIVE_API ~CWordArray() override;
+    INT_PTR GetSize() const { return m_nSize; }
+    INT_PTR GetCount() const { return m_nSize; }
+    BOOL IsEmpty() const { return m_nSize == 0; }
+    INT_PTR GetUpperBound() const { return m_nSize - 1; }
+    OPENMFC_ARCHIVE_API void SetSize(INT_PTR size, INT_PTR grow = -1);
+    OPENMFC_ARCHIVE_API void FreeExtra();
+    void RemoveAll() { SetSize(0); }
+    WORD GetAt(INT_PTR index) const {
+        if (index < 0 || index >= m_nSize) AfxThrowInvalidArgException();
+        return m_pData[index];
+    }
+    WORD& ElementAt(INT_PTR index) {
+        if (index < 0 || index >= m_nSize) AfxThrowInvalidArgException();
+        return m_pData[index];
+    }
+    void SetAt(INT_PTR index, WORD value) { ElementAt(index) = value; }
+    WORD operator[](INT_PTR index) const { return GetAt(index); }
+    WORD& operator[](INT_PTR index) { return ElementAt(index); }
+    WORD* GetData() { return m_pData; }
+    const WORD* GetData() const { return m_pData; }
+    OPENMFC_ARCHIVE_API void SetAtGrow(INT_PTR index, WORD value);
+    INT_PTR Add(WORD value) {
+        INT_PTR index = m_nSize;
+        SetAtGrow(index, value);
+        return index;
+    }
+    OPENMFC_ARCHIVE_API INT_PTR Append(const CWordArray& source);
+    OPENMFC_ARCHIVE_API void Copy(const CWordArray& source);
+    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR index, WORD value, INT_PTR count = 1);
+    OPENMFC_ARCHIVE_API void InsertAt(INT_PTR index, CWordArray* source);
+    OPENMFC_ARCHIVE_API void RemoveAt(INT_PTR index, INT_PTR count = 1);
+    OPENMFC_ARCHIVE_API void Serialize(CArchive& ar) override;
+protected:
+    WORD* m_pData;
+    INT_PTR m_nSize;
+    INT_PTR m_nMaxSize;
+    INT_PTR m_nGrowBy;
+private:
+    friend struct openmfc::detail::PlainArrayStorage<CWordArray, WORD>;
+    CWordArray(const CWordArray&) = delete;
+    CWordArray& operator=(const CWordArray&) = delete;
+};
 
 class CStringArray : public CObject {
     OPENMFC_DECLARE_MFC_SERIAL(CStringArray)

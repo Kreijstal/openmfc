@@ -325,7 +325,6 @@ struct ListNodeSnapshot {
 
 
 namespace openmfc { namespace detail { namespace filecore {
-extern CRuntimeClass g_classCWordArray;
 } } }
 
 template<class Array> inline void SyncArrayNative(Array*) {}
@@ -627,7 +626,6 @@ extern "C" CArchive* MS_ABI fn_name(CArchive* ar, class_name** pOb) { \
 
 
 
-extern "C" void MS_ABI impl__Serialize_CWordArray__UEAAXAEAVCArchive___Z(CWordArray* pThis, CArchive* ar);
 
 
 

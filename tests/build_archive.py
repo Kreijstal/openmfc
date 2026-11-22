@@ -40,6 +40,7 @@ def sources():
         'phase4/src/core/collections/CPtrArrayStorage.cpp',
         'phase4/src/core/collections/NativeArrayStorage.cpp',
         'phase4/src/core/collections/CByteArray.cpp',
+        'phase4/src/core/collections/CWordArray.cpp',
         'phase4/src/core/collections/CObArray.cpp',
         'tests/archive_services.cpp',
     ]
