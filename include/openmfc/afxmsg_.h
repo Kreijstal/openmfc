@@ -197,6 +197,7 @@ enum AfxSig {
 #define ON_NOTIFY_RANGE(code,first,last,function) OPENMFC_MAP_ENTRY(WM_NOTIFY,static_cast<WORD>(code),static_cast<WORD>(first),static_cast<WORD>(last),AfxSigNotify_RANGE,function)
 #define ON_NOTIFY_EX(code,id,function) OPENMFC_MAP_ENTRY(WM_NOTIFY,static_cast<WORD>(code),static_cast<WORD>(id),static_cast<WORD>(id),AfxSigNotify_EX,function)
 #define ON_NOTIFY_EX_RANGE(code,first,last,function) OPENMFC_MAP_ENTRY(WM_NOTIFY,static_cast<WORD>(code),static_cast<WORD>(first),static_cast<WORD>(last),AfxSigNotify_EX,function)
+#define ON_UPDATE_COMMAND_UI_REFLECT(function) OPENMFC_MAP_ENTRY(WM_COMMAND+WM_REFLECT_BASE,static_cast<WORD>(CN_UPDATE_COMMAND_UI),0,0,AfxSigCmdUI,function)
 #define ON_CONTROL_REFLECT(code,function) OPENMFC_MAP_ENTRY(WM_COMMAND+WM_REFLECT_BASE,static_cast<WORD>(code),0,0,AfxSigCmd_v,function)
 #define ON_CONTROL_REFLECT_EX(code,function) OPENMFC_MAP_ENTRY(WM_COMMAND+WM_REFLECT_BASE,static_cast<WORD>(code),0,0,AfxSigCmd_b,function)
 #define ON_NOTIFY_REFLECT(code,function) OPENMFC_MAP_ENTRY(WM_NOTIFY+WM_REFLECT_BASE,static_cast<WORD>(code),0,0,AfxSigNotify_v,function)

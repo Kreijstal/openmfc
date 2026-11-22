@@ -2510,30 +2510,6 @@ HWND CWnd::UnsubclassWindow()
     Detach();
     return hWnd;
 }
-void CWnd::UpdateDialogControls(void* p0, int p1)
-{
-    (void)p0;
-    if (!m_hWnd) {
-        return;
-    }
-
-    for (HWND hChild = ::GetWindow(m_hWnd, GW_CHILD); hChild; hChild = ::GetWindow(hChild, GW_HWNDNEXT)) {
-        if (!::IsWindow(hChild)) {
-            continue;
-        }
-
-        // Touch current caption text for each child window to mimic lightweight dialog
-        // validation/update without depending on framework DDX metadata.
-        int len = ::GetWindowTextLengthW(hChild);
-        if (len > 0) {
-            std::vector<wchar_t> buf(static_cast<size_t>(len) + 1);
-            ::GetWindowTextW(hChild, buf.data(), len + 1);
-            if (p1) {
-                ::SetWindowTextW(hChild, buf.data());
-            }
-        }
-    }
-}
 void CWnd::OnDrawIconicThumbnailOrLivePreview(CDC*& p0, CRect p1, CSize p2, int p3, int*& p4)
 {
     if (!m_hWnd) {

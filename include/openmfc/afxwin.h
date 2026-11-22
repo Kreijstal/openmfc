@@ -982,7 +982,7 @@ public:
     int SubclassWindow(HWND p0);
     HWND UnsubclassWindow();
     int UpdateData(int saveAndValidate = TRUE);
-    void UpdateDialogControls(void* p0, int p1);
+    void UpdateDialogControls(CCmdTarget* target, BOOL disableIfNoHandler);
     void EnableD2DSupport(int enable = TRUE, int useDCRenderTarget = FALSE);
     void EnableDynamicLayout(int enable = TRUE);
     BOOL IsDynamicLayoutEnabled() const { return m_pDynamicLayout != nullptr; }
