@@ -3,7 +3,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CbarcoreSupport.h"
+#include "detail/PaneContainerLayout.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/CMFCAutoHideButtonSupport.h"
 #include "detail/FeaturePackDockSite.h"
@@ -676,6 +676,15 @@ extern "C" int MS_ABI impl__DockToFrameWindow_CDockablePane__UEAAHKPEBUtagRECT__
 }
 // Symbol: ?ShowPane@CDockablePane@@UEAAXHHH@Z
 extern "C" void MS_ABI impl__ShowPane_CDockablePane__UEAAXHHH_Z(CDockablePane* pThis, int bShow, int bDelay, int bActivate) {
+    if (pThis && pThis->m_hWnd && !pThis->IsAutoHideMode() &&
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pThis)) {
+        if (auto* manager = FindPaneDockingManager(pThis)) {
+            if (bShow) manager->ShowPane(pThis, bDelay);
+            else manager->HidePane(pThis);
+            if (!bDelay) manager->RecalcLayout();
+            return;
+        }
+    }
     impl__ShowPane_CBasePane__UEAAXHHH_Z(reinterpret_cast<CBasePane*>(pThis), bShow, bDelay, bActivate);
 }
 CDockablePane::CDockablePane() {
@@ -767,6 +776,7 @@ void CDockablePane::PostNcDestroy() {
         }
     }
     RemovePaneTab(this, tabWindow);
+    impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(this, nullptr);
     if (m_pDockSite) {
         if (auto* manager = FindPaneDockingManager(this)) RemoveDockingPane(manager, this);
     }
@@ -1704,67 +1714,55 @@ extern "C" void* MS_ABI impl__DockPaneStandard_CDockablePane__UEAAPEAVCPane__AEA
     return pane && ::GetCursorPos(&point) ? DockPaneAtPoint(*pane, point, *docked) : nullptr;
 }
 
-// CDockablePane::DockToWindow -- transcribed from retail entry RVA 0x443d0
-// (mfc140u; 0x44220 in mfc140). %rdx (pTargetWindow) -> %rbp, %r8d
-// (dwAlignment) -> %r15d, %r9 (lpRect) -> %r14:
-//     CPaneDivider* pSlider = pTargetWindow->GetDefaultPaneDivider();   // `mov %rdx,%rcx ; call 0x45cd0`
-//     if (pSlider == NULL) { ShowWindow(SW_SHOW /*lea 0x5(%rax)*/); return FALSE; }   // RVA 0x2a79e0
-//     if (m_hDefaultSlider != NULL && ::IsWindow(m_hDefaultSlider))    // +0x4c0, IAT 0x1802c5390
-//         UndockPane(FALSE);                                           // vtable slot 0x490
-//     RemoveFromMiniframe(AFXGetParentFrame(this), DM_UNKNOWN);        // slot 0x620; RVA 0x6bb10; `xor %r8d`
-//     if (!pSlider->InsertPane(this, pTargetWindow, dwAlignment, lpRect))   // divider slot 0x500
-//         return FALSE;
-//     InsertPane(this, pTargetWindow, TRUE);                           // CBasePane::InsertPane, RVA 0xbc50
-//     m_hDefaultSlider = pSlider->m_hWnd;
-//     EnableGripper(TRUE);                                             // slot 0x3f0
-//     SetWindowPos(NULL, 0, 0, 0, 0, 0x7f, NULL);                      // slot 0x480
-//     AdjustDockingLayout(NULL);                                       // slot 0x4e0
-//     OnAfterDock(this, NULL, DM_UNKNOWN);                             // slot 0x608, `mov %rdi,%rdx ; xor %r8d ; xor %r9d`
-//     return TRUE;
-// 0x7f == SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOREDRAW|SWP_NOACTIVATE|
-// SWP_FRAMECHANGED|SWP_SHOWWINDOW. Slots 0x490/0x620/0x3f0/0x480/0x4e0/0x608
-// of the CDockablePane vftable (mfc140 RVA 0x2e3068) were read with vt.py and
-// resolve to UndockPane / CPane::RemoveFromMiniframe / EnableGripper /
-// CBasePane::SetWindowPos / CBasePane::AdjustDockingLayout / OnAfterDock;
-// slot 0x500 of the CPaneDivider vftable (0x2f4d28) is
-// ?InsertPane@CPaneDivider@@UEAAHPEAVCDockablePane@@0KPEBUtagRECT@@@Z (RVA
-// 0xac8a0). m_hDefaultSlider lives in the file-private DockablePaneExtra
-// table. pSlider came out of GetDefaultPaneDivider, i.e. from the permanent
-// CWnd map, so it is read as a CWnd for its m_hWnd even though OpenMFC's
-// CPaneDivider class is not declared as one.
-// Deviations: every virtual dispatches statically to the exports named above
-// (UndockPane is still a stub; the CPaneDivider InsertPane uses its side-state
-// manager and may return 0 when that manager is unavailable; GetDefaultPaneDivider
-// returns NULL for the compact divider objects in this build, so its first arm
-// normally runs); NULL checks on `this` and
-// pTargetWindow (retail dereferences pTargetWindow).
-// Signature corrected: the generated list dropped `this` and two parameters.
 // Symbol: ?DockToWindow@CDockablePane@@UEAAHPEAV1@KPEBUtagRECT@@@Z
 extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT___Z(
-    CDockablePane* pThis, CDockablePane* pTargetWindow, unsigned long dwAlignment, const RECT* lpRect) {
-    if (pThis == nullptr || pTargetWindow == nullptr) return FALSE;   // deviation: retail has no NULL check
-    void* pSlider = impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pTargetWindow);
-    if (pSlider == nullptr) {
-        impl__ShowWindow_CWnd__QEAAHH_Z(static_cast<CWnd*>(pThis), SW_SHOW);
-        return FALSE;
-    }
+    CDockablePane* pane, CDockablePane* target, DWORD alignment, const RECT* bounds) {
+    if (!pane || !target || !pane->m_hWnd || pane->IsAutoHideMode() || !pane->CanBeDocked()) return FALSE;
+    auto* divider = static_cast<CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(target));
+    if (!divider || divider->m_dividerData.bAutoHideMode) return FALSE;
+    auto* owner = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(divider->m_hWnd)));
+    if (!owner || !owner->m_hWnd) return FALSE;
+    auto* oldGroup = static_cast<CBaseTabbedPane*>(
+        impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(pane));
+    auto* source = FindPaneDockingManager(pane);
+    auto* manager = FindPaneDockingManager(target);
     if (!impl__InsertPane_CPaneDivider__UEAAHPEAVCDockablePane__0KPEBUtagRECT___Z(
-            pSlider, pThis, pTargetWindow, dwAlignment, lpRect)) return FALSE;
-    impl__RemoveFromMiniframe_CPane__MEAAXPEAVCWnd__W4AFX_DOCK_METHOD___Z(
-        static_cast<CPane*>(pThis),
-        static_cast<CWnd*>(impl__AFXGetParentFrame__YAPEAVCFrameWnd__PEBVCWnd___Z(static_cast<const CWnd*>(pThis))),
-        0 /* DM_UNKNOWN */);
-    impl__InsertPane_CBasePane__QEAAHPEAV1_0H_Z(
-        static_cast<CBasePane*>(pThis), static_cast<CBasePane*>(pThis), static_cast<CBasePane*>(pTargetWindow), TRUE);
-    SetDefaultSliderOf(pThis, static_cast<CWnd*>(pSlider)->m_hWnd);
-    impl__EnableGripper_CDockablePane__UEAAXH_Z(pThis, TRUE);
-    impl__SetWindowPos_CBasePane__UEAAPEAXPEBVCWnd__HHHHIPEAX_Z(
-        static_cast<CBasePane*>(pThis), nullptr, 0, 0, 0, 0,
-        SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW,
-        nullptr);
-    impl__AdjustDockingLayout_CBasePane__UEAAXPEAX_Z(static_cast<CBasePane*>(pThis), nullptr);
+            divider, pane, target, alignment, bounds)) return FALSE;
+
+    if (oldGroup) oldGroup->RemovePane(pane);
+    if (pane->m_pParentDockBar) {
+        impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(pane, owner, FALSE);
+        pane->m_pParentDockBar = nullptr;
+        pane->m_pDockBarRow = nullptr;
+    }
+    pane->ReleaseFloatingFrame();
+    if (source && source != manager) RemoveDockingPane(source, pane);
+    const DWORD side = target->GetPaneAlignment();
+    pane->m_pDockSite = reinterpret_cast<CDockSite*>(owner);
+    pane->m_dwStyle = (pane->m_dwStyle & ~(CBRS_FLOATING | CBRS_ALIGN_ANY)) | side;
+    pane->SetPaneAlignment(side);
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[pane];
+        state.parent = owner;
+        state.visible = TRUE;
+        state.tabbed = FALSE;
+        state.tabWindow = nullptr;
+    }
+    if (manager) {
+        auto& edgePanes = EnsureDockingState(manager).edgePanes;
+        auto edge = edgePanes.find(pane);
+        if (edge != edgePanes.end() && edge->second.divider != divider->m_hWnd) edgePanes.erase(edge);
+        manager->DockPane(pane);
+    }
+    impl__EnableGripper_CDockablePane__UEAAXH_Z(pane, TRUE);
+    ::SetWindowPos(pane->m_hWnd, nullptr, 0, 0, 0, 0,
+        SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+    openmfc::detail::RefreshDividerPanes(divider);
+    if (manager) manager->RecalcLayout();
     impl__OnAfterDock_CDockablePane__MEAAXPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
-        pThis, static_cast<CBasePane*>(pThis), nullptr, 0 /*DM_UNKNOWN*/);
+        pane, pane, nullptr, 0 /* DM_UNKNOWN */);
     return TRUE;
 }
 

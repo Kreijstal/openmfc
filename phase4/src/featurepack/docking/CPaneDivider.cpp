@@ -40,7 +40,8 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CbarcoreSupport.h"
+#include "detail/PaneContainerLayout.h"
+#include "detail/MfccoreSupport.h"
 #include "detail/CMemDCSupport.h"
 #include "detail/Pane16MsgmapSupport.h"
 
@@ -207,6 +208,8 @@ extern "C" void MS_ABI impl__StopTracking_CPaneDivider__MEAAXH_Z(void* pThis, in
 extern "C" int MS_ABI impl__CreateEx_CPaneDivider__UEAAHKKAEBUtagRECT__PEAVCWnd__IPEAUCCreateContext___Z(
     void* pThis, unsigned long dwStyleEx, unsigned long dwStyle, const RECT& rect, CWnd* pParentWnd,
     unsigned int nID, CCreateContext* pContext);
+extern "C" void* MS_ABI impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+    void*, void*, int*);
 extern "C" void MS_ABI impl__Init_CPaneDivider__QEAAXHPEAVCWnd___Z(void* pThis, int bDefaultDivider, CWnd* pParent);
 
 namespace {
@@ -439,40 +442,61 @@ extern "C" void* MS_ABI impl___1CPaneDivider__UEAA_XZ(void* divider) {
 // Symbol: ?AddPane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__AddPane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
     if (!pThis || !pPane) return;
+    auto* divider = static_cast<CPaneDivider*>(pThis);
+    auto* pane = static_cast<CDockablePane*>(pPane);
+    openmfc::detail::AttachDividerPane(divider, pane);
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        PaneState& state = g_dividerPanes[pThis];
-        AddUniquePane(state, pPane);
-        if (void* manager = LoadState(pThis).pContainerManager) {
-            void* root = Field<void*>(manager, kOffManagerRootContainer);
-            if (root) impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(root, FirstPane(state), TRUE);
-            AddUniquePane(g_containerManagerPanes[manager], pPane);
-        }
+        auto& state = g_dividerPanes[divider];
+        AddUniquePane(state, pane);
         const int paneCount = static_cast<int>(state.panes.size());
         state.recentRect = CRect(0, 0, std::max(80, paneCount * kPaneDividerUnitWidth), kPaneDividerThickness);
     }
-    if (HWND window = HwndOf(pThis)) {
-        impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(static_cast<CDockablePane*>(pPane), window);
-    }
+    if (divider->m_hWnd)
+        impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(pane, divider->m_hWnd);
 }
+
 // Symbol: ?RemovePane@CPaneDivider@@UEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__RemovePane_CPaneDivider__UEAAXPEAVCDockablePane___Z(void* pThis, void* pPane) {
     if (!pThis || !pPane) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    PaneState& state = g_dividerPanes[pThis];
-    RemovePane(state, pPane);
-    if (void* manager = LoadState(pThis).pContainerManager) {
-        void* root = Field<void*>(manager, kOffManagerRootContainer);
-        if (root) impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(root, FirstPane(state), TRUE);
-        RemovePane(g_containerManagerPanes[manager], pPane);
-    }
-    if (state.panes.empty()) {
-        state.recentRect.SetRectEmpty();
-    } else {
+    auto* divider = static_cast<CPaneDivider*>(pThis);
+    void* next = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_wave2Mutex);
+        auto& state = g_dividerPanes[divider];
+        if (std::find(state.panes.begin(), state.panes.end(), pPane) == state.panes.end()) return;
+        RemovePane(state, pPane);
+        next = FirstPane(state);
         const int paneCount = static_cast<int>(state.panes.size());
-        state.recentRect = CRect(0, 0, std::max(80, paneCount * kPaneDividerUnitWidth), kPaneDividerThickness);
+        if (paneCount) state.recentRect = CRect(0, 0, std::max(80, paneCount * kPaneDividerUnitWidth), kPaneDividerThickness);
+        else state.recentRect.SetRectEmpty();
     }
+    auto* manager = divider->m_dividerData.pContainerManager;
+    if (manager) impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockablePane__0_Z(manager, pPane, nullptr);
+    if (divider->m_dividerData.bDefaultDivider && next) {
+        auto* frame = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(divider->m_hWnd)));
+        if (auto* docking = DockingManagerForFrame(frame)) {
+            auto& state = EnsureDockingState(docking);
+            auto* previous = static_cast<CDockablePane*>(pPane);
+            auto* replacement = static_cast<CDockablePane*>(next);
+            auto found = state.edgePanes.find(previous);
+            if (found != state.edgePanes.end() && found->second.divider == divider->m_hWnd) {
+                auto edge = state.edgePanes.extract(found);
+                edge.key() = replacement;
+                state.edgePanes.insert(std::move(edge));
+                const auto oldPosition = std::find(state.panes.begin(), state.panes.end(), previous);
+                const auto newPosition = std::find(state.panes.begin(), state.panes.end(), replacement);
+                if (oldPosition != state.panes.end() && newPosition != state.panes.end())
+                    std::iter_swap(oldPosition, newPosition);
+            }
+        }
+    }
+    if (divider->m_dividerData.bDefaultDivider && !divider->m_dividerData.bAutoHideMode &&
+        !openmfc::detail::DividerHasVisiblePanes(divider))
+        ::ShowWindow(divider->m_hWnd, SW_HIDE);
+    openmfc::detail::RefreshDividerPanes(divider);
 }
+
 // Symbol: ?CheckVisibility@CPaneDivider@@UEAAHXZ
 extern "C" int MS_ABI impl__CheckVisibility_CPaneDivider__UEAAHXZ(void* pThis) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
@@ -481,11 +505,11 @@ extern "C" int MS_ABI impl__CheckVisibility_CPaneDivider__UEAAHXZ(void* pThis) {
 // Symbol: ?FindPaneContainer@CPaneDivider@@QEAAPEAVCPaneContainer@@PEAVCDockablePane@@AEAH@Z
 extern "C" void* MS_ABI impl__FindPaneContainer_CPaneDivider__QEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
     void* pThis, void* pPane, int* pIndex) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    (void)pThis;
-    if (pIndex) *pIndex = 0;
-    auto it = g_paneToContainer.find(pPane);
-    return it == g_paneToContainer.end() ? nullptr : it->second;
+    if (auto* manager = LoadState(pThis).pContainerManager)
+        return impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+            manager, pPane, pIndex);
+    if (pIndex) *pIndex = FALSE;
+    return nullptr;
 }
 // Symbol: ?GetFirstPane@CPaneDivider@@QEBAPEBVCBasePane@@XZ
 extern "C" void* MS_ABI impl__GetFirstPane_CPaneDivider__QEBAPEBVCBasePane__XZ(void* pThis) {
@@ -494,13 +518,8 @@ extern "C" void* MS_ABI impl__GetFirstPane_CPaneDivider__QEBAPEBVCBasePane__XZ(v
 }
 // Symbol: ?GetPaneDividers@CPaneDivider@@QEAAXAEAVCObList@@@Z
 extern "C" void MS_ABI impl__GetPaneDividers_CPaneDivider__QEAAXAEAVCObList___Z(void* pThis, CObList* pList) {
-    if (!pList) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    pList->RemoveAll();
-    const auto it = g_dividerPanes.find(pThis);
-    if (it != g_dividerPanes.end() && pThis != nullptr) {
-        pList->AddTail(reinterpret_cast<CObject*>(pThis));
-    }
+    if (auto* manager = LoadState(pThis).pContainerManager)
+        impl__AddPanesToList_CPaneContainerManager__QEAAXPEAVCObList__0_Z(manager, nullptr, pList);
 }
 // Symbol: ?GetPanes@CPaneDivider@@QEAAXAEAVCObList@@@Z
 extern "C" void MS_ABI impl__GetPanes_CPaneDivider__QEAAXAEAVCObList___Z(void* pThis, CObList* pList) {
@@ -912,10 +931,11 @@ extern "C" void MS_ABI impl__Move_CPaneDivider__UEAAXAEAVCPoint__H_Z(void* pThis
     }
     void* hdwp = ::BeginDeferWindowPos(50);
     void* pManager = LoadState(pThis).pContainerManager;
-    if (pManager != nullptr) {
-        impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCPaneDivider__IHAEAPEAX_Z(pManager, pThis, 0, nOffset, &hdwp);
-    }
-    ::EndDeferWindowPos(static_cast<HDWP>(hdwp));
+    const bool arranged = pManager &&
+        impl__OnPaneDividerMove_CPaneContainerManager__UEAAHPEAVCPaneDivider__IHAEAPEAX_Z(
+            pManager, pThis, 0, nOffset, &hdwp);
+    if (hdwp) ::EndDeferWindowPos(static_cast<HDWP>(hdwp));
+    if (arranged) return;
     impl__AdjustDockingLayout_CBasePane__UEAAXPEAX_Z(AsBasePane(pThis), nullptr);
     impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(AsWnd(pThis), nullptr, rect.left, rect.top,
                                                 rect.right - rect.left, rect.bottom - rect.top,
@@ -1056,10 +1076,6 @@ extern "C" int MS_ABI impl__OnEraseBkgnd_CPaneDivider__IEAAHPEAVCDC___Z(void* pT
 //     }
 //     CWnd::Default();                                                        // CWnd::OnLButtonDown
 // Retail dereferences m_pWndTrack unchecked after the `new`.
-// ?GetMinMaxOffset@CPaneContainerManager@@ is a placeholder in
-// CPaneContainerManager.cpp:1252 (empty), so it leaves the three offsets at
-// their current side-table values (Init starts them at 0, 0, and -1). See
-// NewTrackingWnd for the tracking-window deviation.
 extern "C" void MS_ABI impl__OnLButtonDown_CPaneDivider__IEAAXIVCPoint___Z(void* pThis, unsigned int nFlags, long long point) {
     (void)nFlags;
     (void)point;
@@ -1359,10 +1375,7 @@ extern "C" int MS_ABI impl__ReplacePane_CPaneDivider__UEAAHPEAVCDockablePane__0_
         } else if (pBarToReplaceWith) {
             AddUniquePane(state, pBarToReplaceWith);
         }
-        if (static_cast<CPaneDivider*>(pThis)->m_dividerData.bDefaultDivider) {
-            if (void* root = Field<void*>(pManager, kOffManagerRootContainer))
-                impl__SetPane_CPaneContainer__QEAAXPEAVCDockablePane__H_Z(root, FirstPane(state), TRUE);
-        }
+
     }
     impl__CheckVisibility_CPaneDivider__UEAAHXZ(pThis);
     return bResult;

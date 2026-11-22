@@ -11,7 +11,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CbarcoreSupport.h"
+#include "detail/PaneContainerLayout.h"
 
 #include <cstddef>
 
@@ -32,47 +32,15 @@
 // 0x180002840 in mfc140.dll) before running the
 // constructor on it.
 //
-// Exactly one OpenMFC code path allocates a CPaneContainer: the default
-// (m_pContainerRTC == NULL) arm of ?Create@CPaneContainerManager@ in
-// docking/CPaneContainerManager.cpp, which builds the ROOT node with
-// `::operator new(0xf8)`, zero-fills it and runs the exported constructor below
-// on it. Every other node these entry points see was allocated by a client (or
-// by a client CRuntimeClass) at this same 0xf8-byte retail layout. Either way
-// the storage (the whole object, or its base part for a client-derived class)
-// is 0xf8 bytes laid out as below, so writing at these offsets is correct.
-// What a node does NOT get from OpenMFC is a vftable: the exported constructor
-// below never writes +0x00. The root built by CPaneContainerManager::Create
-// therefore has the NULL vfptr its memset left there, and a plain
-// CPaneContainer a client constructs through this exported constructor has
-// whatever its allocator left there (the vfptr of a non-inline constructor is
-// written by that constructor, not by the caller). Only a client-DERIVED
-// node carries a real vftable, the one its own constructor stores after this
-// one returns. That is why the bodies below call sibling entry points
-// directly instead of dispatching through a node's vftable.
+// The tree uses the shared ABI layout in PaneContainerLayout.h. Implementation
+// calls into this type use the exported thunks and do not require a vftable on
+// the manager's internally allocated nodes.
 // ---------------------------------------------------------------------------
 
 namespace {
 
-// CList<UINT,UINT> has the CObList field shape. The retail constructor writes
-// exactly seven slots per list: the vftable at +0x00, zero at +0x08..+0x28 and
-// 10 (the CList default block size) at +0x30.
-struct S_CListUINT {
-    void*   vfptr;         // 0x00
-    void*   m_pNodeHead;   // 0x08
-    void*   m_pNodeTail;   // 0x10
-    INT_PTR m_nCount;      // 0x18
-    void*   m_pNodeFree;   // 0x20
-    void*   m_pBlocks;     // 0x28
-    INT_PTR m_nBlockSize;  // 0x30
-};
-static_assert(offsetof(S_CListUINT, vfptr) == 0x00, "CList<UINT> vfptr");
-static_assert(offsetof(S_CListUINT, m_pNodeHead) == 0x08, "CList<UINT> head");
-static_assert(offsetof(S_CListUINT, m_pNodeTail) == 0x10, "CList<UINT> tail");
-static_assert(offsetof(S_CListUINT, m_nCount) == 0x18, "CList<UINT> count");
-static_assert(offsetof(S_CListUINT, m_pNodeFree) == 0x20, "CList<UINT> free node");
-static_assert(offsetof(S_CListUINT, m_pBlocks) == 0x28, "CList<UINT> blocks");
-static_assert(offsetof(S_CListUINT, m_nBlockSize) == 0x30, "CList<UINT> block size");
-static_assert(sizeof(S_CListUINT) == 0x38, "CList<UINT> retail size");
+using openmfc::detail::S_CListUINT;
+using openmfc::detail::S_CPaneContainer;
 
 // One node of that list, as walked by the non-exported CList<UINT,UINT>::Find at
 // RVA 0x11f3c (mfc140.dll): the head comes from list+0x08, the successor from
@@ -83,58 +51,6 @@ struct S_CListUINTNode {
     S_CListUINTNode* pPrev;   // 0x08
     unsigned int     value;   // 0x10
 };
-
-struct S_CPaneContainer {
-    void*  vfptr;                              // 0x00
-    void*  m_pLeftPane;                        // 0x08 CDockablePane*
-    void*  m_pRightPane;                       // 0x10 CDockablePane*
-    void*  m_pSlider;                          // 0x18 CPaneDivider*
-    S_CPaneContainer* m_pLeftPaneContainer;    // 0x20
-    S_CPaneContainer* m_pRightPaneContainer;   // 0x28
-    S_CPaneContainer* m_pParentContainer;      // 0x30
-    void*  m_pContainerManager;                // 0x38 CPaneContainerManager*
-    int    m_nPercent;                         // 0x40 ctor stores 50
-    int    m_nField44;                         // 0x44 ctor stores -1; ?SetUpByID@
-                                               //      (0xa7860) matches it against a
-                                               //      persisted LEFT-pane id
-    int    m_nField48;                         // 0x48 ctor stores -1; the same, for
-                                               //      the RIGHT pane
-    int    m_nField4C;                         // 0x4c ctor stores -1
-    int    m_nRefCount;                        // 0x50 AddRef/Release
-    int    m_bDividerHorz;                     // 0x54 cached CPaneDivider orientation
-    int    m_nField58;                         // 0x58
-    int    m_bReleased;                        // 0x5c FreeReleasedPaneContainer sets 1
-    int    m_nField60;                         // 0x60
-    RECT   m_rect64;                           // 0x64 ctor ::SetRectEmpty's it
-    RECT   m_rect74;                           // 0x74 ctor ::SetRectEmpty's it
-    unsigned char m_pad84[4];                  // 0x84 alignment padding
-    S_CListUINT m_lstLeftSiblingIDs;           // 0x88
-    S_CListUINT m_lstRightSiblingIDs;          // 0xc0
-};
-
-static_assert(offsetof(S_CPaneContainer, vfptr) == 0x00, "CPaneContainer vfptr");
-static_assert(offsetof(S_CPaneContainer, m_pLeftPane) == 0x08, "CPaneContainer m_pLeftPane");
-static_assert(offsetof(S_CPaneContainer, m_pRightPane) == 0x10, "CPaneContainer m_pRightPane");
-static_assert(offsetof(S_CPaneContainer, m_pSlider) == 0x18, "CPaneContainer m_pSlider");
-static_assert(offsetof(S_CPaneContainer, m_pLeftPaneContainer) == 0x20, "CPaneContainer m_pLeftPaneContainer");
-static_assert(offsetof(S_CPaneContainer, m_pRightPaneContainer) == 0x28, "CPaneContainer m_pRightPaneContainer");
-static_assert(offsetof(S_CPaneContainer, m_pParentContainer) == 0x30, "CPaneContainer m_pParentContainer");
-static_assert(offsetof(S_CPaneContainer, m_pContainerManager) == 0x38, "CPaneContainer m_pContainerManager");
-static_assert(offsetof(S_CPaneContainer, m_nPercent) == 0x40, "CPaneContainer m_nPercent");
-static_assert(offsetof(S_CPaneContainer, m_nField44) == 0x44, "CPaneContainer field 0x44");
-static_assert(offsetof(S_CPaneContainer, m_nField48) == 0x48, "CPaneContainer field 0x48");
-static_assert(offsetof(S_CPaneContainer, m_nField4C) == 0x4c, "CPaneContainer field 0x4c");
-static_assert(offsetof(S_CPaneContainer, m_nRefCount) == 0x50, "CPaneContainer m_nRefCount");
-static_assert(offsetof(S_CPaneContainer, m_bDividerHorz) == 0x54, "CPaneContainer m_bDividerHorz");
-static_assert(offsetof(S_CPaneContainer, m_nField58) == 0x58, "CPaneContainer field 0x58");
-static_assert(offsetof(S_CPaneContainer, m_bReleased) == 0x5c, "CPaneContainer m_bReleased");
-static_assert(offsetof(S_CPaneContainer, m_nField60) == 0x60, "CPaneContainer field 0x60");
-static_assert(offsetof(S_CPaneContainer, m_rect64) == 0x64, "CPaneContainer m_rect64");
-static_assert(offsetof(S_CPaneContainer, m_rect74) == 0x74, "CPaneContainer m_rect74");
-static_assert(offsetof(S_CPaneContainer, m_pad84) == 0x84, "CPaneContainer list alignment pad");
-static_assert(offsetof(S_CPaneContainer, m_lstLeftSiblingIDs) == 0x88, "CPaneContainer m_lstLeftSiblingIDs");
-static_assert(offsetof(S_CPaneContainer, m_lstRightSiblingIDs) == 0xc0, "CPaneContainer m_lstRightSiblingIDs");
-static_assert(sizeof(S_CPaneContainer) == 0xf8, "CPaneContainer size (operator new(0xf8) in ?Copy@ 0xa7ca0)");
 
 inline S_CPaneContainer* PC(void* p) { return static_cast<S_CPaneContainer*>(p); }
 inline const S_CPaneContainer* PC(const void* p) { return static_cast<const S_CPaneContainer*>(p); }
@@ -237,20 +153,11 @@ namespace {
 //     BOOL bAll = pDef != NULL && pDef-><vftable byte 0x3c8>();
 //
 // When it is TRUE a pane that is not WS_VISIBLE still contributes to the layout.
-// Byte 0x3c8 of the CPaneDivider vftable (0x2f4d28, mfc140.dll) holds RVA
-// 0xab4a0, whose whole body is `mov 0x1c8(%rcx),%eax; ret`.  That DWORD is the
-// value ?OnPaint@CPaneDivider@ (0xac570) reads at 0xac5dc and passes as the
-// bAutoHideMode argument of CMFCVisualManager::OnDrawPaneDivider, and the one
-// ?Init@CPaneDivider@ (0xab720) clears at 0xab797.
-//
-// DEVIATION: OpenMFC's CPaneDivider is not a retail-shaped object -- afxmfc.h
-// declares it as a small CObject and phase4/src/featurepack/docking/
-// CPaneDivider.cpp keeps its state in a side table -- so +0x1c8 does not exist
-// here and cannot be read.  This returns retail's cleared-flag value, i.e. what
-// Init leaves behind and therefore what every non-autohide path computes.
-inline int CountsHiddenPanes(const S_CPaneContainer* p) {
-    (void)p;
-    return 0;
+inline int CountsHiddenPanes(const S_CPaneContainer* node) {
+    const auto* manager = static_cast<const unsigned char*>(node->m_pContainerManager);
+    if (!manager) return FALSE;
+    const auto* divider = *reinterpret_cast<CPaneDivider* const*>(manager + 0x88);
+    return divider && divider->m_dividerData.bAutoHideMode;
 }
 
 // Retail tests a pane's WS_VISIBLE with CWnd::GetStyle (RVA 0x2a75a0) followed
@@ -323,22 +230,12 @@ inline CWnd* ManagerDockSite(const S_CPaneContainer* p) {
         static_cast<const char*>(p->m_pContainerManager) + kOffManagerDockSite);
 }
 
-// OpenMFC's local CPaneDivider declaration/factory creates a 24-byte
-// CObject-derived object, not a CWnd. DividerState in CPaneDivider.cpp has no
-// accessor for this object's own HWND; reading the retail CWnd::m_hWnd offset
-// (+0x40) here would be out of bounds before ::IsWindow could validate it.
-// Until a safe accessor is available, do not infer a handle from this pointer.
 inline HWND PaneDividerHwnd(const void* pSlider) {
-    (void)pSlider;
-    return nullptr;
+    return pSlider ? static_cast<const CPaneDivider*>(pSlider)->m_hWnd : nullptr;
 }
 
-// Byte 0x3c8 of the CPaneDivider vftable -- the same DWORD at CPaneDivider
-// +0x1c8 that CountsHiddenPanes above documents, and unavailable here for the
-// same reason.  Returns retail's cleared-flag value.
-inline int PaneDividerAutoHideMode(const void* pSlider) {
-    (void)pSlider;
-    return 0;
+inline int PaneDividerAutoHideMode(const void* slider) {
+    return slider && static_cast<const CPaneDivider*>(slider)->m_dividerData.bAutoHideMode;
 }
 
 // CDockablePane +0x410, the per-pane split percentage that
@@ -1350,12 +1247,6 @@ extern "C" void* MS_ABI impl__GetAssociatedSiblingPaneIDs_CPaneContainer__QEAAPE
 // there.  Byte 0x30 of the CPaneContainer vftable (0x2f4070) is slot 6, GetMinSize
 // itself; retail recurses through the vftable, this file calls the entry point.
 //
-// DEVIATIONS, on top of the two documented at CountsHiddenPanes / PaneMinSize:
-// retail adds the divider's own extent, the int at CPaneDivider +0x1b0. OpenMFC
-// has no safe access to its compact divider object's state, so
-// kPaneDividerThickness -- the extent used by the rest of this docking code --
-// is substituted. Retail also checks the divider window's WS_VISIBLE bit; this
-// implementation only does so when PaneDividerHwnd can provide a safe handle.
 // Symbol: ?GetMinSize@CPaneContainer@@UEBAXAEAVCSize@@@Z
 extern "C" void MS_ABI impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(
     const void* pThis, SIZE* pSize) {
@@ -1388,11 +1279,13 @@ extern "C" void MS_ABI impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(
         impl__GetMinSize_CPaneContainer__UEBAXAEAVCSize___Z(p->m_pRightPaneContainer, &szRightCont);
     }
 
-    const HWND hwndSlider = PaneDividerHwnd(p->m_pSlider);
-    if (p->m_pSlider != nullptr &&
-        ((hwndSlider != nullptr &&
-          (::GetWindowLongPtrW(hwndSlider, GWL_STYLE) & WS_VISIBLE) != 0) || bAll)) {
-        const int nDivider = kPaneDividerThickness;   // stands in for m_pSlider->+0x1b0
+    const auto* divider = static_cast<const CPaneDivider*>(p->m_pSlider);
+    const bool leftVisible = (p->m_pLeftPane && PaneIsVisible(p->m_pLeftPane)) ||
+        (p->m_pLeftPaneContainer && impl__IsVisible_CPaneContainer__QEBAHXZ(p->m_pLeftPaneContainer));
+    const bool rightVisible = (p->m_pRightPane && PaneIsVisible(p->m_pRightPane)) ||
+        (p->m_pRightPaneContainer && impl__IsVisible_CPaneContainer__QEBAHXZ(p->m_pRightPaneContainer));
+    if (divider && ((leftVisible && rightVisible) || bAll)) {
+        const int nDivider = divider->m_dividerData.nWidth;
         if (impl__IsPaneDividerHorz_CPaneContainer__IEBAHXZ(p)) {
             pSize->cx = MaxI(MaxI(szRightPane.cx, szLeftPane.cx),
                              MaxI(szLeftCont.cx, szRightCont.cx));
@@ -1686,13 +1579,11 @@ extern "C" int MS_ABI impl__IsLeftPartEmpty_CPaneContainer__QEBAHH_Z(const void*
 // (the non-exported CBasePane::IsHorizontal override) when m_pSlider is
 // non-null, and returns the cached int at +0x54 otherwise.
 //
-// DEVIATION: OpenMFC does not emit a CPaneDivider vtable, so slot 0x2d8 cannot
-// be dispatched. Both paths return the cached +0x54 flag here -- the same field
-// retail's ?Copy@ (0xa7ca0, at 0xa7e09) fills in from that very virtual when a
-// divider is detached, so the value is the right one whenever it has been set.
 // Symbol: ?IsPaneDividerHorz@CPaneContainer@@IEBAHXZ
 extern "C" int MS_ABI impl__IsPaneDividerHorz_CPaneContainer__IEBAHXZ(const void* pThis) {
-    return PC(pThis)->m_bDividerHorz;
+    const auto* node = PC(pThis);
+    const auto* divider = static_cast<const CPaneDivider*>(node->m_pSlider);
+    return divider ? (divider->m_dividerData.dwDividerStyle & 1) != 0 : node->m_bDividerHorz;
 }
 
 // Decoded from retail ?IsRightPartEmpty@CPaneContainer@@QEBAHH@Z, entry RVA
@@ -2209,19 +2100,116 @@ extern "C" void MS_ABI impl__RemoveNonValidPanes_CPaneContainer__QEAAXXZ(void* p
     }
 }
 
-// STUB. Retail ?Resize@CPaneContainer@@UEAAXVCRect@@AEAPEAXH@Z (entry RVA
-// 0xa5780) is the main layout routine: it splits the incoming rect, uses the
-// divider width at CPaneDivider +0x1b0 and the manager-side predicate at
-// CPaneContainerManager +0x88 vtable slot 0x3c8, and applies the result through
-// CDockablePane vtable slots 0x478 and 0x4f0 into the caller's HDWP. None of
-// those vtables is emitted by OpenMFC. Left as the generated stub.
-// Only the parameter list is corrected, to the (this, rect, hdwp, bRedraw) shape
-// the export ABI passes and that CPaneContainerManager.cpp:196 already declares
-// and calls; the body stays a stub for the reasons above.
+namespace {
+bool BranchVisible(const void* pane, const S_CPaneContainer* child) {
+    return (pane && PaneIsVisible(pane)) ||
+           (child && impl__IsVisible_CPaneContainer__QEBAHXZ(child));
+}
+
+void PlaceContainerWindow(HWND window, const RECT& rect, UINT flags, void** hdwp) {
+    if (!window) return;
+    flags |= SWP_NOZORDER | SWP_NOACTIVATE;
+    const int width = (std::max)(0L, rect.right - rect.left);
+    const int height = (std::max)(0L, rect.bottom - rect.top);
+    if (hdwp && *hdwp) {
+        *hdwp = ::DeferWindowPos(static_cast<HDWP>(*hdwp), window, nullptr,
+            rect.left, rect.top, width, height, flags);
+    } else {
+        ::SetWindowPos(window, nullptr, rect.left, rect.top, width, height, flags);
+    }
+}
+
+int SplitSpan(const RECT& bounds, bool horizontal) {
+    return (std::max)(0L, horizontal ? bounds.bottom - bounds.top : bounds.right - bounds.left);
+}
+
+void SplitLimits(const S_CPaneContainer& node, int available, int& firstMin, int& firstMax) {
+    SIZE first{}, second{};
+    impl__GetMinSizeLeft_CPaneContainer__UEBAXAEAVCSize___Z(&node, &first);
+    impl__GetMinSizeRight_CPaneContainer__UEBAXAEAVCSize___Z(&node, &second);
+    firstMin = (std::max)(0L, node.m_bDividerHorz ? first.cy : first.cx);
+    const int secondMin = (std::max)(0L, node.m_bDividerHorz ? second.cy : second.cx);
+    firstMax = available - secondMin;
+    if (firstMin > firstMax) {
+        // When the host cannot fit both minimums, apportion the available space.
+        firstMin = firstMax = ::MulDiv(available, firstMin, firstMin + secondMin);
+    }
+}
+
+void ResizeContainer(S_CPaneContainer& node, const RECT& bounds, void** hdwp, UINT flags) {
+    node.m_rect74 = bounds;
+    const bool leftVisible = BranchVisible(node.m_pLeftPane, node.m_pLeftPaneContainer);
+    const bool rightVisible = BranchVisible(node.m_pRightPane, node.m_pRightPaneContainer);
+    auto* divider = static_cast<CPaneDivider*>(node.m_pSlider);
+    RECT left = bounds, right = bounds;
+    if (leftVisible && rightVisible) {
+        const bool horizontal = node.m_bDividerHorz != FALSE;
+        const int span = SplitSpan(bounds, horizontal);
+        const int thickness = divider ? (std::clamp)(divider->m_dividerData.nWidth, 0, span) : 0;
+        const int available = span - thickness;
+        int low, high;
+        SplitLimits(node, available, low, high);
+        const int extent = (std::clamp)(::MulDiv(available, node.m_nPercent, 100), low, high);
+        RECT sash = bounds;
+        if (horizontal) {
+            left.bottom = sash.top = bounds.top + extent;
+            right.top = sash.bottom = sash.top + thickness;
+        } else {
+            left.right = sash.left = bounds.left + extent;
+            right.left = sash.right = sash.left + thickness;
+        }
+        if (divider) PlaceContainerWindow(divider->m_hWnd, sash, flags | SWP_SHOWWINDOW, hdwp);
+    } else if (divider) {
+        PlaceContainerWindow(divider->m_hWnd, bounds, flags | SWP_HIDEWINDOW | SWP_NOSIZE | SWP_NOMOVE, hdwp);
+    }
+    if (node.m_pLeftPaneContainer) ResizeContainer(*node.m_pLeftPaneContainer, left, hdwp, flags);
+    else if (leftVisible) PlaceContainerWindow(PaneHwnd(node.m_pLeftPane), left, flags, hdwp);
+    if (node.m_pRightPaneContainer) ResizeContainer(*node.m_pRightPaneContainer, right, hdwp, flags);
+    else if (rightVisible) PlaceContainerWindow(PaneHwnd(node.m_pRightPane), right, flags, hdwp);
+}
+
+bool GetSplitLimits(const S_CPaneContainer& node, int& current, int& available, int& low, int& high) {
+    const auto* divider = static_cast<const CPaneDivider*>(node.m_pSlider);
+    if (!divider || !divider->m_hWnd || !BranchVisible(node.m_pLeftPane, node.m_pLeftPaneContainer) ||
+        !BranchVisible(node.m_pRightPane, node.m_pRightPaneContainer)) return false;
+    const bool horizontal = node.m_bDividerHorz != FALSE;
+    const RECT& bounds = node.m_rect74;
+    available = (std::max)(0, SplitSpan(bounds, horizontal) - divider->m_dividerData.nWidth);
+    RECT sash{};
+    if (!available || !::GetWindowRect(divider->m_hWnd, &sash)) return false;
+    ::MapWindowPoints(nullptr, ::GetParent(divider->m_hWnd), reinterpret_cast<POINT*>(&sash), 2);
+    current = horizontal ? sash.top - bounds.top : sash.left - bounds.left;
+    SplitLimits(node, available, low, high);
+    return true;
+}
+}
+
+bool openmfc::detail::PaneSplitOffsets(const S_CPaneContainer& node, int& low, int& high) {
+    int current, available;
+    if (!GetSplitLimits(node, current, available, low, high)) return false;
+    low -= current;
+    high -= current;
+    return true;
+}
+
+bool openmfc::detail::MovePaneSplit(S_CPaneContainer& node, int offset, void** hdwp) {
+    int current, available, low, high;
+    if (!GetSplitLimits(node, current, available, low, high)) return false;
+    const int next = (std::clamp)(current + offset, low, high);
+    if (next != current) {
+        node.m_nPercent = ::MulDiv(next, 100, available);
+        ResizeContainer(node, node.m_rect74, hdwp, 0);
+    }
+    return true;
+}
+
 // Symbol: ?Resize@CPaneContainer@@UEAAXVCRect@@AEAPEAXH@Z
 extern "C" void MS_ABI impl__Resize_CPaneContainer__UEAAXVCRect__AEAPEAXH_Z(
     void* pThis, const RECT* pRect, void** phdwp, int bRedraw) {
-    (void)pThis; (void)pRect; (void)phdwp; (void)bRedraw;
+    if (!pThis || !pRect) return;
+    void* batch = phdwp ? nullptr : ::BeginDeferWindowPos(8);
+    ResizeContainer(*PC(pThis), *pRect, phdwp ? phdwp : &batch, bRedraw ? 0 : SWP_NOREDRAW);
+    if (batch) ::EndDeferWindowPos(static_cast<HDWP>(batch));
 }
 
 // Decoded from retail ?ResizePane@CPaneContainer@@UEAAXHPEAVCPane@@PEAV1@HHAEAPEAX@Z,

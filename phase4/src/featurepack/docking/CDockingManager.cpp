@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+#include "detail/PaneContainerLayout.h"
 #include "detail/CSmartDockingInfoSupport.h"
 #include "detail/FeaturePackDockSite.h"
 #include "detail/CMFCAutoHideButtonSupport.h"
@@ -1070,14 +1071,24 @@ void CDockingManager::FloatPane(CBasePane* pane, CPoint offset, DWORD) {
     static_cast<CPane*>(pane)->FloatPaneWindow(bounds, 5 /* DM_STANDARD */, true, this);
 }
 namespace {
+CPaneDivider* DockedPaneDivider(CBasePane* pane) {
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CDockablePane))) return nullptr;
+    auto* divider = static_cast<CPaneDivider*>(
+        impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(static_cast<CDockablePane*>(pane)));
+    return divider && !divider->m_dividerData.bAutoHideMode ? divider : nullptr;
+}
+
 void ShowDockingWindows(DockingManagerState& state, CBasePane* pane, int command) {
     if (!pane->m_hWnd) return;
     if (state.floatingPanes.count(pane)) {
         ::ShowWindow(pane->m_hWnd, command);
         ::ShowWindow(::GetParent(pane->m_hWnd), command);
-    } else if (const auto edge = state.edgePanes.find(pane); edge != state.edgePanes.end()) {
+    } else if (auto* divider = DockedPaneDivider(pane)) {
         ::ShowWindow(pane->m_hWnd, command);
-        ::ShowWindow(edge->second.divider, command);
+        using namespace openmfc::detail;
+        const bool visible = DividerHasVisiblePanes(divider);
+        ::ShowWindow(divider->m_hWnd, visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+        RefreshDividerPanes(divider);
     }
 }
 }
@@ -1107,21 +1118,22 @@ void CDockingManager::ShowPane(CBasePane* pane, BOOL) {
 }
 
 namespace {
-void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining) {
+void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining, bool moveWindows = true) {
     if (state.edgePanes.empty() || !state.parentFrame) return;
     const HWND host = state.parentFrame->m_hWnd;
-    struct Placement { HWND pane; HWND divider; RECT bounds; RECT sash; };
+    struct Placement { HWND divider; RECT bounds; RECT sash; };
     std::vector<Placement> positions;
     for (bool outer : {true, false}) {
         for (auto* pane : state.panes) {
             const auto it = state.edgePanes.find(pane);
             if (it == state.edgePanes.end() || it->second.outer != outer) continue;
             const auto& dock = it->second;
-            if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane) ||
-                !pane->m_hWnd || ::GetParent(pane->m_hWnd) != host) continue;
+            auto* divider = DockedPaneDivider(pane);
+            if (!divider || divider->m_hWnd != dock.divider || ::GetParent(dock.divider) != host ||
+                !openmfc::detail::DividerHasVisiblePanes(divider)) continue;
 
             RECT sash{};
-            ::GetWindowRect(dock.divider, &sash);
+            if (!::GetWindowRect(dock.divider, &sash)) continue;
             const DWORD side = pane->GetPaneAlignment();
             const bool vertical = side == CBRS_ALIGN_LEFT || side == CBRS_ALIGN_RIGHT;
             const LONG span = vertical ? remaining.right - remaining.left : remaining.bottom - remaining.top;
@@ -1148,7 +1160,7 @@ void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining) {
                 break;
             default: continue;
             }
-            positions.push_back({pane->m_hWnd, dock.divider, bounds, sash});
+            if (moveWindows) positions.push_back({dock.divider, bounds, sash});
         }
     }
     for (const auto& position : positions) {
@@ -1156,8 +1168,10 @@ void ArrangeEdgePanes(DockingManagerState& state, RECT& remaining) {
             ::SetWindowPos(window, nullptr, rect.left, rect.top, (std::max)(0L, rect.right - rect.left),
                 (std::max)(0L, rect.bottom - rect.top), SWP_NOZORDER | SWP_NOACTIVATE);
         };
-        place(position.pane, position.bounds);
         place(position.divider, position.sash);
+        auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(position.divider));
+        if (window && window->IsKindOf(RUNTIME_CLASS(CPaneDivider)))
+            openmfc::detail::ResizeDividerPanes(static_cast<CPaneDivider*>(window), position.bounds);
     }
 }
 }
@@ -1181,7 +1195,7 @@ void CDockingManager::RecalcLayout() {
     }
     const auto canTile = [&state](CBasePane* pane) {
         if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane) ||
-            state.edgePanes.count(pane)) return false;
+            DockedPaneDivider(pane)) return false;
         auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(pane->m_hWnd)));
         return !parent || !parent->IsKindOf(RUNTIME_CLASS(CDockSite));
     };
@@ -1219,8 +1233,10 @@ RECT openmfc::detail::mfccore::LayoutInPlacePanes(CDockingManager* manager, cons
     const HWND parent = state.parentFrame ? state.parentFrame->m_hWnd : nullptr;
     HDWP layout = nullptr;
     if (parent && !::IsRectEmpty(&available)) {
+        ArrangeEdgePanes(state, remaining, moveWindows);
         for (auto* pane : state.panes) {
-            if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane)) continue;
+            if (!IsPaneVisibleForDocking(state, pane) || state.floatingPanes.count(pane) ||
+                DockedPaneDivider(pane)) continue;
             const HWND window = pane->m_hWnd;
             if (!window || ::GetParent(window) != parent || !(::GetWindowLongW(window, GWL_STYLE) & WS_VISIBLE))
                 continue;
