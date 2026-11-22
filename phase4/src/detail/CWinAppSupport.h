@@ -259,10 +259,6 @@ CWinThread* AfxGetThread();
 
 
 
-constexpr size_t kOpaqueStateWordCount = 32;
-namespace openmfc { namespace detail { namespace cwinapp {
-extern void* g_appModuleStateStorage[kOpaqueStateWordCount];
-} } }
 #include "openmfc/afxstat_.h"
 // These legacy counters are bookkeeping, not native _AFX_THREAD_STATE fields.
 namespace openmfc { namespace detail { namespace cwinapp {

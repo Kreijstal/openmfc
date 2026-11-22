@@ -757,7 +757,7 @@ void moduleLifetime(const API& api) {
         api.thread()->m_pModuleState = &module;
         auto* state = api.get();
         check(module.m_moduleThreadState.m_nSlot > 0 && api.get() == state,
-              "the module-state shadow stores its real cached slot at native offset 0xf8");
+              "the module state stores its real cached slot at native offset 0xf8");
         notify = allocate(72);
         state->m_pLastInfo = notify;
         before = localTrace.count;
@@ -810,6 +810,7 @@ extern "C" AFX_MODULE_STATE* AFXAPI impl__AfxGetModuleState__YAPEAVAFX_MODULE_ST
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() { frameworkError(91); }
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() { frameworkError(19); }
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long value) { throw value; }
+void AFXAPI AfxThrowOleException(long value) {impl__AfxThrowOleException__YAXJ_Z(value);}
 int main() {
     setvbuf(stdout, nullptr, _IONBF, 0);
     API source{&impl___0AFX_MODULE_THREAD_STATE__QEAA_XZ,

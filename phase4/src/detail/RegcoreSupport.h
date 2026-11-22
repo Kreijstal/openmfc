@@ -13,6 +13,7 @@ using namespace openmfc::detail::regcore;
 #include "openmfc/afxstat_.h"
 #include "CThreadLocalObjectSupport.h"
 #include "openmfc/afxtls_.h"
+#include "TypeLibCacheSupport.h"
 #include <windows.h>
 #include <cstring>
 
@@ -125,36 +126,76 @@ extern "C" CWinApp* MS_ABI impl__AfxGetApp__YAPEAVCWinApp__XZ();
 // AfxGetStaticModuleState as a stable process-wide state object.
 
 LRESULT CALLBACK AfxWndProc(HWND,UINT,WPARAM,LPARAM);
+class CDynLinkLibrary;
+class COleObjectFactory;
+class COleControlLock;
+class COccManager;
+
 class AFX_MODULE_STATE : public CNoTrackObject {
 public:
-    CWinApp* m_pCurrentWinApp{};
-    HINSTANCE m_hCurrentInstanceHandle{};
-    HINSTANCE m_hCurrentResourceHandle{};
-    // Preserve the native x64 prefix through the callbacks used by windows.
-    // The intervening module services are not modeled by this shadow yet.
-    const wchar_t* m_lpszCurrentAppName{};
-    BYTE m_bDLL=FALSE;
-    BYTE m_bSystem=FALSE;
-    BYTE m_reservedToWindowProcedure[0x70-0x2a]{};
-    WNDPROC m_pfnAfxWndProc=&AfxWndProc;
-    BYTE m_reservedToToolTip[8]{};
-    void (AFXAPI* m_pfnFilterToolTipMessage)(MSG*,CWnd*)=nullptr;
-    CSimpleList m_libraryList{0x78};
-    HINSTANCE m_appLangDLL{};
-    void* m_pOccManager{};
-    BYTE m_reservedToModuleThreadSlot[0xf8-0xa8]{};
-    S_Cthreadlocalobject m_moduleThreadState{};
-    ~AFX_MODULE_STATE() override { impl___1CThreadLocalObject__QEAA_XZ(&m_moduleThreadState); }
+    AFX_MODULE_STATE()
+        : m_pCurrentWinApp(nullptr),m_hCurrentInstanceHandle(nullptr),
+          m_hCurrentResourceHandle(nullptr),m_lpszCurrentAppName(nullptr),
+          m_bDLL(FALSE),m_bSystem(FALSE),m_bReserved{},m_fRegisteredClasses(0),
+          m_pClassInit(nullptr),m_classList(offsetof(CRuntimeClass,m_pNextClass)),
+          m_pFactoryInit(nullptr),m_factoryList(0x40),m_nObjectCount(0),m_bUserCtrl(TRUE),
+          m_pfnAfxWndProc(&AfxWndProc),m_dwVersion(0),m_pfnFilterToolTipMessage(nullptr),
+          m_libraryList(0x78),m_appLangDLL(nullptr),m_pOccManager(nullptr),m_lockList(0x20),
+          m_pTypeLibCacheMap(nullptr),m_moduleThreadState{},
+          m_bInitNetworkAddressControl(FALSE),m_bInitNetworkAddressControlCalled(FALSE) {}
+    AFX_MODULE_STATE(BOOL dll,WNDPROC wndProc,DWORD version,BOOL system=FALSE);
+    ~AFX_MODULE_STATE() override {
+        if(m_pTypeLibCacheMap) {
+            m_pTypeLibCacheMap->RemoveAll(&m_typeLibCache);
+            delete m_pTypeLibCacheMap;
+        }
+        impl___1CThreadLocalObject__QEAA_XZ(&m_moduleThreadState);
+    }
+
+    CWinApp* m_pCurrentWinApp;
+    HINSTANCE m_hCurrentInstanceHandle;
+    HINSTANCE m_hCurrentResourceHandle;
+    const wchar_t* m_lpszCurrentAppName;
+    BYTE m_bDLL;
+    BYTE m_bSystem;
+    BYTE m_bReserved[2];
+    DWORD m_fRegisteredClasses;
+    CRuntimeClass* m_pClassInit;
+    CTypedSimpleList<CRuntimeClass*> m_classList;
+    COleObjectFactory* m_pFactoryInit;
+    CTypedSimpleList<COleObjectFactory*> m_factoryList;
+    LONG m_nObjectCount;
+    BOOL m_bUserCtrl;
+    CString m_strUnregisterList;
+    WNDPROC m_pfnAfxWndProc;
+    DWORD m_dwVersion;
+    void (AFXAPI* m_pfnFilterToolTipMessage)(MSG*,CWnd*);
+    CTypedSimpleList<CDynLinkLibrary*> m_libraryList;
+    HINSTANCE m_appLangDLL;
+    COccManager* m_pOccManager;
+    CTypedSimpleList<COleControlLock*> m_lockList;
+    CTypeLibCache m_typeLibCache;
+    CTypeLibCacheMap* m_pTypeLibCacheMap;
+    S_Cthreadlocalobject m_moduleThreadState;
+    BOOL m_bInitNetworkAddressControl;
+    BOOL m_bInitNetworkAddressControlCalled;
 };
+static_assert(sizeof(AFX_MODULE_STATE)==0x108,"native module state size");
 static_assert(offsetof(AFX_MODULE_STATE,m_pCurrentWinApp)==8,"native module application prefix");
 static_assert(offsetof(AFX_MODULE_STATE,m_hCurrentResourceHandle)==0x18,"native current resource module");
 static_assert(offsetof(AFX_MODULE_STATE,m_lpszCurrentAppName)==0x20,"native module application name");
 static_assert(offsetof(AFX_MODULE_STATE,m_bSystem)==0x29,"native module resource search category");
+static_assert(offsetof(AFX_MODULE_STATE,m_classList)==0x38,"native runtime class list");
+static_assert(offsetof(AFX_MODULE_STATE,m_factoryList)==0x50,"native object factory list");
+static_assert(offsetof(AFX_MODULE_STATE,m_strUnregisterList)==0x68,"native window class names");
 static_assert(offsetof(AFX_MODULE_STATE,m_appLangDLL)==0x98,"native language resource module");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnAfxWndProc)==0x70,"native framework window procedure");
 static_assert(offsetof(AFX_MODULE_STATE,m_pfnFilterToolTipMessage)==0x80,"native tooltip filter");
 static_assert(offsetof(AFX_MODULE_STATE,m_pOccManager)==0xa0,"native OLE manager");
 static_assert(offsetof(AFX_MODULE_STATE,m_libraryList)==0x88,"native extension library list");
+static_assert(offsetof(AFX_MODULE_STATE,m_lockList)==0xa8,"native OLE control lock list");
+static_assert(offsetof(AFX_MODULE_STATE,m_typeLibCache)==0xb8,"native module type-library cache");
+static_assert(offsetof(AFX_MODULE_STATE,m_pTypeLibCacheMap)==0xf0,"native type-library cache map");
 static_assert(offsetof(AFX_MODULE_STATE,m_moduleThreadState)==0xf8,"native module thread slot");
 
 namespace openmfc { namespace detail { namespace regcore {

@@ -2,6 +2,10 @@
 #include "openmfc/afxstat_.h"
 #include "RegcoreSupport.h"
 
+#if defined(_MSC_VER)
+#pragma init_seg(lib)
+#endif
+
 thread_local wchar_t g_wndClassNames[kWndClassNameSlots][kWndClassNameLen];
 namespace openmfc { namespace detail { namespace regcore {
 ATOM g_registeredClasses[256];

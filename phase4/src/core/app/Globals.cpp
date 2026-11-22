@@ -28,10 +28,6 @@ HINSTANCE AFXAPI AfxGetInstanceHandleHelper() {
     // OpenMFC keeps it aligned with AfxGetInstanceHandle state.
     return AfxGetInstanceHandle();
 }
-// Symbol: ?AfxGetAppModuleState@@YAPEAVAFX_MODULE_STATE@@XZ
-AFX_MODULE_STATE* AFXAPI AfxGetAppModuleState() {
-    return reinterpret_cast<AFX_MODULE_STATE*>(g_appModuleStateStorage);
-}
 // AfxWinInit implementation
 // Symbol: ?AfxWinInit@@YAHPEAUHINSTANCE__@@0PEA_WH@Z
 BOOL AFXAPI AfxWinInit(HINSTANCE hInstance, HINSTANCE hPrevInstance,

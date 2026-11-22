@@ -5,7 +5,6 @@
 
 #include "detail/GdicoreSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
-#include "detail/CRuntimeClassSupport.h"
 
 // CDC default constructor
 // Native construction and destruction are in CDCMessageSupport.cpp.

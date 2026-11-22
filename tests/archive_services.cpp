@@ -3,6 +3,7 @@
 #include "openmfc/afxwin.h"
 #include "detail/ModuleThreadStateSupport.h"
 #include <cstdlib>
+LRESULT CALLBACK AfxWndProc(HWND,UINT,WPARAM,LPARAM) {std::abort();}
 extern "C" void* impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT){return GetModuleHandleW(nullptr);}
 extern "C" int impl__AfxMessageBox__YAHPEB_WII_Z(const wchar_t*,UINT,UINT){std::abort();}
 extern "C" int impl__AfxMessageBox__YAHIII_Z(UINT,UINT,UINT){std::abort();}

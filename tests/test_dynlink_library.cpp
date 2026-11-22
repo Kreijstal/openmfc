@@ -13,6 +13,9 @@
 #include <cstring>
 #include <type_traits>
 extern "C" {
+AFX_MODULE_STATE* AFXAPI impl___0AFX_MODULE_STATE__QEAA_HP6A_JPEAUHWND____I_K_J_ZKH_Z(AFX_MODULE_STATE*,BOOL,WNDPROC,DWORD,BOOL);
+void AFXAPI impl___1AFX_MODULE_STATE__UEAA_XZ(AFX_MODULE_STATE*);
+void AFXAPI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(CTypeLibCacheMap*,void*);
 CDynLinkLibrary* AFXAPI impl___0CDynLinkLibrary__QEAA_AEAUAFX_EXTENSION_MODULE__H_Z(CDynLinkLibrary*,AFX_EXTENSION_MODULE&,BOOL);
 CDynLinkLibrary* AFXAPI impl___0CDynLinkLibrary__QEAA_PEAUHINSTANCE____0_Z(CDynLinkLibrary*,HINSTANCE,HINSTANCE);
 void AFXAPI impl___1CDynLinkLibrary__UEAA_XZ(CDynLinkLibrary*);
@@ -30,6 +33,63 @@ void impl__Process_COleDispatchException__SAXPEAUtagEXCEPINFO__PEBVCException___
 namespace {
 int failures;
 void check(bool condition,const char* text) {if(!condition){++failures;std::printf("FAIL: %s\n",text);}}
+LRESULT CALLBACK moduleProcedure(HWND,UINT,WPARAM,LPARAM) {return 0;}
+using ModuleConstructor=decltype(&impl___0AFX_MODULE_STATE__QEAA_HP6A_JPEAUHWND____I_K_J_ZKH_Z);
+using ModuleDestructor=decltype(&impl___1AFX_MODULE_STATE__UEAA_XZ);
+using RemoveCaches=decltype(&impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z);
+
+void moduleStateLifetime(ModuleConstructor construct,ModuleDestructor destroy,RemoveCaches removeCaches) {
+    alignas(AFX_MODULE_STATE) std::array<BYTE,sizeof(AFX_MODULE_STATE)+16> storage;
+    storage.fill(0xa5);
+    auto* state=reinterpret_cast<AFX_MODULE_STATE*>(storage.data());
+    check(construct(state,0x102,&moduleProcedure,0x12345678,0x104)==state,
+          "module constructor returns its own storage");
+    check(state->m_bDLL==2 && state->m_bSystem==4 && state->m_dwVersion==0x12345678 &&
+          state->m_pfnAfxWndProc==&moduleProcedure && state->m_fRegisteredClasses==0 &&
+          state->m_bUserCtrl==TRUE && !state->m_bInitNetworkAddressControl &&
+          !state->m_bInitNetworkAddressControlCalled,"module flags and window callback match the native constructor");
+    check(!state->m_classList.GetHead() && state->m_classList.m_nNextOffset==0x20 &&
+          !state->m_factoryList.GetHead() && state->m_factoryList.m_nNextOffset==0x40 &&
+          !state->m_libraryList.GetHead() && state->m_libraryList.m_nNextOffset==0x78 &&
+          !state->m_lockList.GetHead() && state->m_lockList.m_nNextOffset==0x20,
+          "module constructor initializes all four intrusive lists");
+    check(state->m_strUnregisterList.IsEmpty() && state->m_strUnregisterList.GetAllocLength()==4096 &&
+          state->m_typeLibCache.m_lcid==static_cast<LCID>(-1) && !state->m_typeLibCache.m_ptlib &&
+          !state->m_typeLibCache.m_ptinfo && !state->m_typeLibCache.m_cRef,
+          "module constructor reserves the window-class string and initializes cache state");
+    const auto untouched=[&](size_t first,size_t last) {
+        for(size_t i=first;i<last;++i)if(storage[i]!=0xa5)return false;
+        return true;
+    };
+    check(untouched(8,0x28) && untouched(0x2a,0x2c) && untouched(0x30,0x38) &&
+          untouched(0x48,0x50) && untouched(0x60,0x64) && untouched(0x80,0x88) &&
+          untouched(0x98,0xa8) && untouched(0xb8,0xc0) && untouched(0xd0,0xe0) &&
+          untouched(0xf0,0xfc) && untouched(0x104,storage.size()),
+          "module constructor preserves caller-initialized fields and surrounding storage");
+
+    struct CacheMap final : CTypeLibCacheMap {
+        bool& removed;
+        bool& deleted;
+        void* expected;
+        CacheMap(bool& r,bool& d,void* e) : removed(r),deleted(d),expected(e) {}
+        void RemoveAll(void* except) override {removed=except==expected;}
+        ~CacheMap() override {deleted=removed;}
+    };
+    bool removed=false,deleted=false;
+    state->m_pTypeLibCacheMap=new CacheMap(removed,deleted,&state->m_typeLibCache);
+    state->m_moduleThreadState.m_nSlot=0;
+    destroy(state);
+    check(removed && deleted && untouched(0x108,storage.size()),
+          "module destructor visits the cache with the embedded entry excluded before deleting it");
+
+    CTypeLibCacheMap map;
+    CTypeLibCache embedded;
+    auto* key=reinterpret_cast<void*>(UINT_PTR(2));
+    map.SetAt(key,&embedded);
+    removeCaches(&map,&embedded);
+    check(map.GetCount()==1 && map.GetValueAt(key)==&embedded,
+          "cache cleanup preserves the original key of the embedded entry");
+}
 struct API {
     decltype(&impl___0CDynLinkLibrary__QEAA_AEAUAFX_EXTENSION_MODULE__H_Z) extension;
     decltype(&impl___0CDynLinkLibrary__QEAA_PEAUHINSTANCE____0_Z) handles;
@@ -68,6 +128,36 @@ CRITICAL_SECTION *entered,*libraryLock;
 decltype(&::EnterCriticalSection) realEnter;
 decltype(&::LeaveCriticalSection) realLeave;
 void select(unsigned index) {api->thread()->m_pModuleState=&modules[index];}
+using ClassInitializer=decltype(&AfxClassInit);
+using FindClass=CRuntimeClass* (AFXAPI*)(const char*);
+void runtimeClassRegistry(ClassInitializer registerClass,FindClass findClass) {
+    auto* thread=api->thread();
+    auto* saved=thread->m_pModuleState;
+    AFX_MODULE_STATE owner,other;
+    CRuntimeClass first{"ModuleRecord",0,7,nullptr,nullptr,nullptr,nullptr};
+    CRuntimeClass latest=first;
+    CRuntimeClass shared=first;
+    CRuntimeClass second{"SharedRecord",0,2,nullptr,nullptr,nullptr,nullptr};
+    shared.m_pNextClass=&second;
+    thread->m_pModuleState=&owner;
+    registerClass(&first);
+    registerClass(&latest);
+    check(owner.m_classList.GetHead()==&latest && latest.m_pNextClass==&first &&
+          findClass("ModuleRecord")==&latest,"module lookup prefers the latest registered descriptor");
+    AFX_EXTENSION_MODULE extension{TRUE,nullptr,nullptr,&shared,nullptr};
+    Object storage;
+    storage.reset();
+    auto* library=api->extension(storage.get(),extension,FALSE);
+    check(findClass("ModuleRecord")==&latest && findClass("SharedRecord")==&second,
+          "extension classes are searched after the owning module's classes");
+    thread->m_pModuleState=&other;
+    check(!findClass("ModuleRecord") && !findClass("SharedRecord"),
+          "runtime class lookup is isolated to the selected module");
+    api->destroy(library);
+    thread->m_pModuleState=&owner;
+    check(!findClass("SharedRecord"),"unlinking the extension removes its classes from lookup");
+    thread->m_pModuleState=saved;
+}
 template<class T> T& field(void* object,size_t offset) {return *reinterpret_cast<T*>(static_cast<BYTE*>(object)+offset);}
 void WINAPI enter(CRITICAL_SECTION* lock) {
     if(captureLock)libraryLock=lock;
@@ -229,6 +319,8 @@ void run(const API& functions) {
 int main() {
     setvbuf(stdout,nullptr,_IONBF,0);events.reserve(32);golden.reserve(64);
     static_assert(std::is_same<decltype(std::declval<CSimpleList>().GetNextPtr(nullptr)),void**>::value,"SDK list link API");
+    moduleStateLifetime(impl___0AFX_MODULE_STATE__QEAA_HP6A_JPEAUHWND____I_K_J_ZKH_Z,
+                        impl___1AFX_MODULE_STATE__UEAA_XZ,impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z);
     API source{impl___0CDynLinkLibrary__QEAA_AEAUAFX_EXTENSION_MODULE__H_Z,impl___0CDynLinkLibrary__QEAA_PEAUHINSTANCE____0_Z,
         impl___1CDynLinkLibrary__UEAA_XZ,impl__GetThisClass_CDynLinkLibrary__SAPEAUCRuntimeClass__XZ,
         impl__GetRuntimeClass_CDynLinkLibrary__UEBAPEAUCRuntimeClass__XZ,AfxGetThreadState,impl__AfxLockGlobals__YAXH_Z,impl__AfxUnlockGlobals__YAXH_Z,
@@ -236,6 +328,7 @@ int main() {
         impl__AfxLoadString__YAHIPEA_WI_Z,impl___0COleDispatchException__QEAA_PEB_WIG_Z,impl___1COleDispatchException__UEAA_XZ,
         impl__Process_COleDispatchException__SAXPEAUtagEXCEPINFO__PEBVCException___Z,nullptr};
     run(source);
+    runtimeClassRegistry(&AfxClassInit,&CRuntimeClass::FromName);
     if(const char* path=std::getenv("OPENMFC_NATIVE_DYNLINK_DLL")) {
         auto image=LoadLibraryA(path);check(image!=nullptr,"load native extension-library oracle");
         if(image) {
@@ -251,7 +344,12 @@ int main() {
                 RVA(resource,0x2aeb50);RVA(string,0x2aee00);RVA(load,0x2af0b0);
                 RVA(dispatchCtor,0x2514c0);RVA(dispatchDtor,0x251190);RVA(dispatchProcess,0x251270);
 #undef RVA
+                moduleStateLifetime(reinterpret_cast<ModuleConstructor>(base+0x1332d0),
+                                    reinterpret_cast<ModuleDestructor>(base+0x133450),
+                                    reinterpret_cast<RemoveCaches>(base+0x1334e0));
                 run(native);
+                runtimeClassRegistry(reinterpret_cast<ClassInitializer>(base+0x234dd0),
+                                     reinterpret_cast<FindClass>(base+0x1d1240));
             }
             FreeLibrary(image);
         }

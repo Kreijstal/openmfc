@@ -15,7 +15,10 @@ ROOT = Path(__file__).resolve().parent.parent
 def sources():
     from build_window_handles import sources as window_sources
     return [s for s in window_sources() if s != 'tests/test_window_handles.cpp'] + [
+        'phase4/src/core/runtime/AFX_MODULE_STATE.cpp',
         'phase4/src/core/runtime/AFX_MODULE_THREAD_STATE.cpp',
+        'phase4/src/core/runtime/CRuntimeClass.cpp',
+        'phase4/src/core/ole/CTypeLibCacheMap.cpp',
         'phase4/src/core/controls/CToolTipCtrlLifetime.cpp',
         'phase4/src/core/collections/CSimpleList.cpp',
         'phase4/src/detail/CSimpleListSupport.cpp',
@@ -64,7 +67,8 @@ def main():
     sys.path.insert(0, str(ROOT / 'tools'))
     import gen_weak_stubs
     count = 0
-    for relative in ('core/runtime/CDynLinkLibrary.cpp','core/runtime/GlobalLocks.cpp','core/runtime/AfxFindResourceHandle.cpp'):
+    for relative in ('core/runtime/CDynLinkLibrary.cpp','core/runtime/GlobalLocks.cpp','core/runtime/AfxFindResourceHandle.cpp',
+                     'core/runtime/AFX_MODULE_STATE.cpp','core/runtime/CRuntimeClass.cpp','core/ole/CTypeLibCacheMap.cpp'):
         source = 'phase4/src/' + relative
         obj = out / (source.removesuffix('.cpp').replace('/', '_') + '.obj')
         if os.name == 'nt':
@@ -77,8 +81,8 @@ def main():
         for symbol in re.findall(r'^// Symbol: (.+)$', (ROOT / source).read_text(), re.M):
             assert gen_weak_stubs.generate_stub_name(symbol) in defined, symbol
             count += 1
-    assert count == 11, count
-    print('All 11 extension library, global lock and resource finder export aliases match the DLL generator', flush=True)
+    assert count == 20, count
+    print('All 20 module, cache, class, extension library, lock and resource export aliases match the DLL generator', flush=True)
     link.extend(str(obj) for obj in objects)
     link.extend(['crypt32.lib', 'odbc32.lib', 'comctl32.lib', 'kernel32.lib', 'user32.lib',
                  'gdi32.lib', 'ole32.lib', 'oleacc.lib', 'oleaut32.lib', 'uuid.lib',

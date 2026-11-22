@@ -198,6 +198,12 @@ static_assert(sizeof(CFileStatus)==560 && offsetof(CFileStatus,m_szFullName)==36
 // CRuntimeClass - runtime type information structure
 // This structure is used for MFC's own RTTI system (separate from C++ RTTI)
 // IMPORTANT: Layout must match real MFC exactly for ABI compatibility!
+struct CRuntimeClass;
+OPENMFC_STRING_API void AFXAPI AfxClassInit(CRuntimeClass* type);
+struct AFX_CLASSINIT {
+    explicit AFX_CLASSINIT(CRuntimeClass* type) {AfxClassInit(type);}
+};
+
 struct CRuntimeClass {
     // IMPORTANT: Field order must match real MFC exactly for ABI compatibility!
     const char* m_lpszClassName;      // Class name string (offset 0)
@@ -212,11 +218,16 @@ struct CRuntimeClass {
     // test; je fail; call *%rax` with no data fallback at all.
     CRuntimeClass* (AFXAPI *m_pfnGetBaseClass)(); // Get base class (offset 24)
     CRuntimeClass* m_pNextClass;      // Module class list link (offset 32)
-    const void* m_pClassInit;         // AFX_CLASSINIT for IMPLEMENT_SERIAL (offset 40)
+    const AFX_CLASSINIT* m_pClassInit;
 
     // Helper methods
     CObject* CreateObject();
     OPENMFC_STRING_API void Store(CArchive& archive) const;
+    static OPENMFC_STRING_API CRuntimeClass* AFXAPI Load(CArchive& archive,UINT* schema);
+    static OPENMFC_STRING_API CRuntimeClass* AFXAPI FromName(const char* name);
+    static OPENMFC_STRING_API CRuntimeClass* AFXAPI FromName(const wchar_t* name);
+    static OPENMFC_STRING_API CObject* AFXAPI CreateObject(const char* name);
+    static OPENMFC_STRING_API CObject* AFXAPI CreateObject(const wchar_t* name);
     CObject* CreateObject() const { return const_cast<CRuntimeClass*>(this)->CreateObject(); }
 
     // Convenience accessor for the base link. Returns nullptr at a root descriptor.

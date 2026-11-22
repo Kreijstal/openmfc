@@ -82,6 +82,7 @@ extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
 #endif
 }
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long value) {throw value;}
+void AFXAPI AfxThrowOleException(long value) {impl__AfxThrowOleException__YAXJ_Z(value);}
 #endif
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {
 #ifdef OPENMFC_TEST_THREAD_STARTUP

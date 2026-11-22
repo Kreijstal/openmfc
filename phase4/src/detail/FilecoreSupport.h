@@ -790,6 +790,15 @@ extern "C" void MS_ABI impl__FreeAssoc_CMapWordToPtr__IEAAXPEAUCAssoc_1__Z(CMapW
 
 class CArchiveAccess {
 public:
+    template<class T>static T LoadScalar(CArchive& archive) {
+        if(!archive.IsLoading())AfxThrowArchiveException(4,archive.m_strFileName.GetString());
+        const UINT_PTR end=UINT_PTR(archive.m_lpBufCur)+sizeof(T);
+        if(end>UINT_PTR(archive.m_lpBufMax))archive.FillBuffer(UINT(end-UINT_PTR(archive.m_lpBufMax)));
+        T value;
+        memcpy(&value,archive.m_lpBufCur,sizeof(value));
+        archive.m_lpBufCur+=sizeof(value);
+        return value;
+    }
     template<class T>static void StoreScalar(CArchive& archive,T value) {
         if(archive.IsLoading())AfxThrowArchiveException(2,archive.m_strFileName.GetString());
         if(UINT_PTR(archive.m_lpBufCur)+sizeof(T)>UINT_PTR(archive.m_lpBufMax))archive.Flush();

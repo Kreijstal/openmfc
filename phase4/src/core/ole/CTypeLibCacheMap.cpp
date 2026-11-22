@@ -1,21 +1,26 @@
-// CTypeLibCacheMap — OpenMFC implementation.
-// Sources: cbarcore.cpp
-
+// A module owns its dynamically allocated type-library cache entries.
 #define OPENMFC_APPCORE_IMPL
+#include "detail/TypeLibCacheSupport.h"
 
-#include "detail/CbarcoreSupport.h"
-
-// Symbol: ?RemoveAll@CTypeLibCacheMap@@UEAAXPEAX@Z
-extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(void* pThis, void* pExcept) {
-    (void)pThis;
-    std::vector<std::unique_ptr<TypeLibCacheHandle>> retired;
-    {
-        std::lock_guard<std::mutex> lock(g_typeLibCacheMutex);
-        for(auto it=g_guidTypeLibCaches.begin();it!=g_guidTypeLibCaches.end();) {
-            CTypeLibCache* cache=&it->second->cache;
-            if(cache==pExcept || cache->m_cRef!=0) { ++it;continue; }
-            retired.push_back(std::move(it->second));it=g_guidTypeLibCaches.erase(it);
+void CTypeLibCacheMap::RemoveAll(void* except) {
+    void* savedKey=nullptr;
+    void* savedValue=nullptr;
+    for(auto position=GetStartPosition();position;) {
+        void* key;
+        void* value;
+        GetNextAssoc(position,key,value);
+        if(value==except) {
+            savedKey=key;
+            savedValue=value;
+        } else {
+            delete static_cast<CTypeLibCache*>(value);
         }
     }
-    // COM Release callbacks run after the registry mutex is unlocked.
+    CMapPtrToPtr::RemoveAll();
+    if(except && savedKey)SetAt(savedKey,savedValue);
+}
+
+// Symbol: ?RemoveAll@CTypeLibCacheMap@@UEAAXPEAX@Z
+extern "C" void MS_ABI impl__RemoveAll_CTypeLibCacheMap__UEAAXPEAX_Z(CTypeLibCacheMap* self,void* except) {
+    self->CTypeLibCacheMap::RemoveAll(except);
 }

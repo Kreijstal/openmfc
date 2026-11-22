@@ -310,6 +310,7 @@ void run(const API& api) {
 LRESULT CALLBACK AfxWndProc(HWND,UINT,WPARAM,LPARAM) {std::abort();}
 extern "C" BOOL MS_ABI impl__AfxPreTranslateMessage__YAHPEAUtagMSG___Z(MSG*) {std::abort();}
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long value) {throw value;}
+void AFXAPI AfxThrowOleException(long value) {impl__AfxThrowOleException__YAXJ_Z(value);}
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {throw 91;}
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {throw 19;}
 extern "C" void MS_ABI impl__CenterWindow_CWnd__QEAAXPEAV1__Z(CWnd*,CWnd*) {std::abort();}

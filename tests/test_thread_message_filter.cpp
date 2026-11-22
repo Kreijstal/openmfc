@@ -342,6 +342,7 @@ extern "C" void MS_ABI impl__Delete_CWinThread__UEAAXXZ(CWinThread*) {std::abort
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {throw 91;}
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() {throw 19;}
 extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long value) {throw value;}
+void AFXAPI AfxThrowOleException(long value) {impl__AfxThrowOleException__YAXJ_Z(value);}
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND handle) {
     return static_cast<CWnd*>(impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ()->m_pmapHWND->FromHandle(handle));
 }

@@ -11,6 +11,18 @@ def sources():
         'phase4/src/core/runtime/CArchiveMapping.cpp',
         'phase4/src/core/runtime/CArchiveStoreObjects.cpp',
         'phase4/src/core/runtime/RuntimeClassStore.cpp',
+        'phase4/src/core/runtime/CRuntimeClass.cpp',
+        'phase4/src/core/runtime/RuntimeClassFactory.cpp',
+        'phase4/src/core/runtime/AFX_MODULE_STATE.cpp',
+        'phase4/src/core/runtime/ModuleStateAccessors.cpp',
+        'phase4/src/core/runtime/GlobalLocks.cpp',
+        'phase4/src/core/runtime/_AFX_THREAD_STATE.cpp',
+        'phase4/src/core/runtime/CThreadLocalObject.cpp',
+        'phase4/src/core/runtime/CThreadSlotData.cpp',
+        'phase4/src/detail/CThreadLocalObjectSupport.cpp',
+        'phase4/src/detail/CThreadSlotDataSupport.cpp',
+        'phase4/src/detail/RegcoreSupport.cpp',
+        'phase4/src/core/app/CurrentApplication.cpp',
         'phase4/src/core/runtime/NativeMemoryOperators.cpp',
         'phase4/src/core/runtime/CObjectMetadata.cpp',
         'phase4/src/core/runtime/AfxFormatStrings.cpp',
@@ -20,6 +32,8 @@ def sources():
         'phase4/src/core/exceptions/CFileOsError.cpp',
         *['phase4/src/core/exceptions/'+n+'.cpp' for n in ['CFileException','CFileExceptionLifetime','CArchiveException','CArchiveExceptionLifetime']],
         'phase4/src/core/collections/CMapPtrToPtrStorage.cpp',
+        'phase4/src/core/collections/CSimpleList.cpp',
+        'phase4/src/detail/CSimpleListSupport.cpp',
         'phase4/src/core/collections/CPlex.cpp',
         'phase4/src/core/collections/CPtrArray.cpp',
         'phase4/src/core/collections/CPtrArrayStorage.cpp',
@@ -89,7 +103,8 @@ def main():
         if native and (mfc is None or not (mfc/'afx.h').is_file()):raise RuntimeError('Installed MFC SDK headers required for the archive ABI client')
         name='sdk_client' if native else 'public_client';obj=out/(name+'.obj')
         run([args.compiler,*flags,*system,*(['/I'+str(mfc)] if native else include),'/D_AFXDLL',*(['/DOPENMFC_USE_SDK_MFC'] if native else []),'/c',str(ROOT/'tests/test_archive_imports.cpp'),'/Fo'+str(obj)])
-        link_response(name,['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF','/OUT:'+str(out/(name+'.exe')),*libraries,obj,str(out/'openmfc_archive.lib'),*libs])
+        atl=[str(mfc.parent/'lib/x64/atls.lib')] if native else []
+        link_response(name,['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF','/OUT:'+str(out/(name+'.exe')),*libraries,obj,str(out/'openmfc_archive.lib'),*atl,*libs])
         imports=build_string_imports.pe_imports(out/(name+'.exe'));assert not any(d.startswith('mfc') for d in imports)
         print(name+': '+str(len(imports['openmfc_archive.dll']))+' production DLL imports',flush=True)
         execute(name+'.exe')

@@ -63,39 +63,6 @@ asm(".globl \"?classCObject@CObject@@2UCRuntimeClass@@A\"\n"
 // Function pointer type for object creation
 typedef CObject* (__cdecl *PFNCREATEOBJECT)();
 
-// =============================================================================
-// Global CRuntimeClass Registry (for FromName lookups)
-// =============================================================================
-// Note: Real MFC doesn't have m_pNextClass in CRuntimeClass struct.
-// We use a separate array to track registered classes.
-
-#include <vector>
-namespace openmfc { namespace detail { namespace cruntimeclass {
-std::vector<CRuntimeClass*>& GetClassRegistry();
-} } }
-
-namespace openmfc { namespace detail { namespace cruntimeclass {
-CRuntimeClass*& GetClassRegistryHead();
-} } }
-
-// Register a class in the global list
-namespace openmfc { namespace detail { namespace cruntimeclass {
-void RegisterRuntimeClass(CRuntimeClass* pClass);
-} } }
-
-// Find a runtime class by name
-namespace openmfc { namespace detail { namespace cruntimeclass {
-CRuntimeClass* FindRuntimeClass(const char* lpszClassName);
-} } }
-
-// Initialize on first use
-namespace openmfc { namespace detail { namespace cruntimeclass {
-extern bool g_classesInitialized;
-} } }
-namespace openmfc { namespace detail { namespace cruntimeclass {
-void InitializeClasses();
-} } }
-
 namespace openmfc { namespace detail { namespace cruntimeclass {
 const CRuntimeClass* GetObjectRuntimeClass(const CObject* pObject);
 } } }
@@ -135,13 +102,6 @@ extern "C" void MS_ABI impl__Serialize_CObject__UEAAXAEAVCArchive___Z(
 // =============================================================================
 // Helper Functions
 // =============================================================================
-
-// AfxClassInit - called during static initialization to register classes
-namespace openmfc { namespace detail { namespace cruntimeclass {
-extern "C" void MS_ABI impl__AfxClassInit__YAXPEAUCRuntimeClass___Z(
-    CRuntimeClass* pNewClass  // RCX = class to register
-);
-} } }
 
 // AfxDynamicDownCast - dynamic_cast equivalent for MFC
 // Note: This is already in the mapping but we implement it here for completeness
