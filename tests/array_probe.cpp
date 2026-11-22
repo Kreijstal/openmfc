@@ -633,6 +633,172 @@ void loading(int scenario,int failure) {
     }
     active=nullptr;archiveActive=false;loadType.m_wSchema=7;failAllocation=failIO=0;
 }
+
+template<class Action> void codecResult(Action action) {
+    try {action();event(150,0);}
+    catch(CArchiveException* error) {
+        event(150,error->m_cause,error->m_strFileName.GetLength(),
+              error->m_strFileName.IsEmpty()?0:error->m_strFileName[0]);
+        error->Delete();
+    }
+}
+
+void lengthCodec(int scenario,int variant) {
+    constexpr ULONGLONG lengths[]={0,1,254,255,256,0xfffd,0xfffe,0xffff,0x10000,
+        0xfffffffe,0xffffffff,0x100000000ull,0x123456789abcdef0ull,0xffffffffffffffffull};
+    LoadFile file;
+    file.SetFilePath(L"archive codec");
+    BYTE buffer[128]{},padding[127]{};
+    const UINT prefix=variant<=1||variant>=8 ? 0 : variant==2 ? 126 : 127;
+    const BOOL unicode=(variant&1) ? -5 : FALSE;
+    failIO=0;
+    {
+        ArchiveView store(&file,variant==8?CArchive::load:CArchive::store,128,buffer);
+        store.seed(0);active=&store;archiveActive=true;
+        if(prefix&&variant!=8)store.Write(padding,prefix);
+        codecResult([&]{AfxWriteStringLength(store,lengths[scenario],unicode);});
+        store.Close();
+    }
+    active=nullptr;archiveActive=false;
+    file.Seek(prefix,CFile::begin);
+    BYTE wire[16]{};
+    const UINT bytes=file.Read(wire,sizeof(wire));
+    event(151,bytes);
+    for(UINT i=0;i<bytes;++i)event(152,i,wire[i]);
+    const UINT missing=variant>=4&&variant<=7 ? UINT(variant-3) : 0;
+    if(missing)file.SetLength(prefix+(bytes>missing?bytes-missing:0));
+    file.Seek(0,CFile::begin);
+    {
+        ArchiveView load(&file,variant==9?CArchive::store:CArchive::load,128,buffer);
+        load.seed(0);active=&load;archiveActive=true;
+        if(prefix&&variant!=9)load.EnsureRead(padding,prefix);
+        int charSize=919;
+        ULONGLONG length=883;
+        codecResult([&]{length=AfxReadStringLength(load,charSize);});
+        event(153,static_cast<long long>(length),charSize);
+        event(154,UINT_PTR(field<void*>(&load,56))-UINT_PTR(field<void*>(&load,72)),
+              UINT_PTR(field<void*>(&load,64))-UINT_PTR(field<void*>(&load,72)));
+        load.Abort();
+    }
+    active=nullptr;archiveActive=false;
+}
+
+void lineCodec(int scenario,int variant) {
+    struct Input {const wchar_t* data;UINT count;};
+    const Input inputs[]={{L"",0},{L"x",1},{L"x\nz",3},{L"x\r\nz",4},{L"x\rYz",4},
+        {L"x\r",2},{L"\r",1},{L"\n",1},{L"a\0bc\nz",6},{L"\0z",2},{L"abcdefgh",8}};
+    const UINT limits[]={0,1,4,UINT(-2),UINT(-4),0x80000000u};
+    wchar_t large[386];
+    for(int i=0;i<386;++i)large[i]=wchar_t(L'A'+i%11);
+    if(scenario>=12&&scenario<15)large[scenario==12?127:scenario==13?128:255]=L'\n';
+    const Input input=scenario<11?inputs[scenario]:Input{large,scenario==11?128u:386u};
+    LoadFile file;
+    file.SetFilePath(L"archive codec");
+    file.Write(input.data,input.count*sizeof(wchar_t));
+    if(scenario==15)file.SetLength(1);
+    file.Seek(0,CFile::begin);
+    BYTE buffer[128];
+    ArchiveView archive(&file,variant==8?CArchive::store:CArchive::load,128,buffer);
+    archive.seed(0);active=&archive;archiveActive=true;failIO=0;
+    if(variant<6||variant==9) {
+        wchar_t text[16];
+        for(auto& character:text)character=L'?';
+        wchar_t* result=nullptr;
+        codecResult([&]{result=archive.ReadString(variant==9?nullptr:text,limits[variant%6]);});
+        event(155,result!=nullptr);
+        for(auto character:text)event(156,character);
+    } else {
+        CString text(L"before");
+        BOOL succeeded=FALSE;
+        codecResult([&]{succeeded=archive.ReadString(text);});
+        event(155,succeeded,text.GetLength(),text.GetAllocLength());
+        for(int i=0;i<text.GetLength();++i)event(156,text.GetString()[i]);
+    }
+    if(archive.IsLoading()) {
+        WORD next=0x9999;
+        UINT read=archive.Read(&next,sizeof(next));
+        event(157,read,next);
+    }
+    archive.Abort();active=nullptr;archiveActive=false;
+}
+
+void scalarCodec(int scenario,int variant) {
+    CMemFile file;
+    BYTE storage[128]{},padding[127]{};
+    const UINT prefix=UINT(120+scenario);
+    const ULONGLONG original=0xa54289fe01020304ull;
+    {
+        ArchiveView store(&file,CArchive::store,128,storage);
+        store.seed(0);active=&store;archiveActive=true;
+        store.Write(padding,prefix);
+        store<<original<<BYTE(0x8a)<<wchar_t(L'\u03a9')<<-3.25f<<-7.875;
+        store.Close();
+    }
+    ULONGLONG length=file.GetLength();
+    if(variant<8)file.SetLength(prefix+variant);
+    file.Seek(0,CFile::begin);
+    {
+        ArchiveView load(&file,CArchive::load,128,storage);
+        load.seed(0);active=&load;
+        load.EnsureRead(padding,prefix);
+        ULONGLONG value=9;bool flag=false;wchar_t character=0;float single=0;double wide=0;
+        codecResult([&]{load>>value>>flag>>character>>single>>wide;});
+        event(158,static_cast<long long>(value),flag,character);
+        event(159,field<INT32>(&single,0),field<INT64>(&wide,0),length);
+        event(154,UINT_PTR(field<void*>(&load,56))-UINT_PTR(field<void*>(&load,72)),
+              UINT_PTR(field<void*>(&load,64))-UINT_PTR(field<void*>(&load,72)));
+        load.Abort();
+    }
+    active=nullptr;archiveActive=false;
+}
+
+void stringCodec(int scenario,int variant) {
+    const int lengths[]={0,1,3,64,65,127,128,255};
+    const int length=lengths[scenario];
+    char narrow[255];
+    wchar_t wide[255];
+    for(int i=0;i<length;++i) {
+        narrow[i]=i%13?char('A'+i%19):0;
+        wide[i]=narrow[i];
+    }
+    CMemFile file;
+    BYTE storage[128]{},padding[127]{};
+    {
+        ArchiveView store(&file,CArchive::store,128,storage);
+        store.seed(0);active=&store;archiveActive=true;
+        store.Write(padding,sizeof(padding));
+        if(variant&1)store<<CStringA(narrow,length);
+        else store<<CString(wide,length);
+        store.Close();
+    }
+    active=nullptr;archiveActive=false;
+    BYTE wire[520]{};
+    file.Seek(sizeof(padding),CFile::begin);
+    const UINT bytes=file.Read(wire,sizeof(wire));
+    event(160,bytes);
+    for(UINT i=0;i<bytes;++i)event(161,i,wire[i]);
+    const UINT missing=variant>=6?UINT(variant-5):0;
+    if(missing)file.SetLength(sizeof(padding)+(bytes>missing?bytes-missing:0));
+    file.Seek(0,CFile::begin);
+    {
+        ArchiveView load(&file,CArchive::load,128,storage);
+        load.seed(0);active=&load;archiveActive=true;
+        load.EnsureRead(padding,sizeof(padding));
+        if(variant&2) {
+            CStringA text("before");
+            codecResult([&]{load>>text;});
+            event(162,text.GetLength(),text.GetAllocLength());
+            for(int i=0;i<text.GetLength();++i)event(163,i,BYTE(text.GetString()[i]));
+        } else {
+            CString text(L"before");
+            codecResult([&]{load>>text;});
+            event(162,text.GetLength(),text.GetAllocLength());
+            for(int i=0;i<text.GetLength();++i)event(163,i,text.GetString()[i]);
+        }
+        load.Abort();
+    }
+    active=nullptr;archiveActive=false;
+}
 }
 void* operator new[](size_t bytes) {return allocate(bytes);}
 void operator delete[](void* p) noexcept {release(p);}
@@ -642,7 +808,13 @@ extern "C" __declspec(dllexport) void run_array_probe(int kind,int scenario,int 
     failAllocation=failConstructor=failAssignment=0;
     archiveActive=failAsInteger=allocationNull=false;
     for(auto& anchor:anchors)anchor=nullptr;
-    if(kind==8)loading(scenario,failure);
+    if(kind==9) {
+        if(scenario<14)lengthCodec(scenario,failure);
+        else if(scenario<30)lineCodec(scenario-14,failure);
+        else if(scenario<38)scalarCodec(scenario-30,failure);
+        else stringCodec(scenario-38,failure);
+    }
+    else if(kind==8)loading(scenario,failure);
     else if(kind==7)storing(scenario,failure);
     else if(kind==6)mapping(scenario,failure);
     else if(kind==5)pointerArray(scenario,failure);

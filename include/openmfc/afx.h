@@ -428,7 +428,9 @@ static_assert(sizeof(CObject) == 8, "CObject must be 8 bytes (vptr only)");
 inline CObject::~CObject() = default;
 
 // CArchive - serialization archive class
-void AFXAPI AfxThrowArchiveException(int,const wchar_t*);
+OPENMFC_STRING_API void AFXAPI AfxThrowArchiveException(int,const wchar_t*);
+OPENMFC_STRING_API ULONGLONG AFXAPI AfxReadStringLength(CArchive&,int& charSize);
+OPENMFC_STRING_API void AFXAPI AfxWriteStringLength(CArchive&,ULONGLONG length,BOOL unicode);
 class CDocument;
 class CPtrArray;
 class CMapPtrToPtr;
@@ -455,42 +457,73 @@ public:
     CDocument* m_pDocument;
 
     // Reading operations
-    CArchive& operator>>(bool& b);
-    CArchive& operator>>(char& ch);
-    CArchive& operator>>(unsigned char& ch);
-    CArchive& operator>>(short& w);
-    CArchive& operator>>(unsigned short& w);
-    CArchive& operator>>(int& i);
-    CArchive& operator>>(unsigned int& i);
-    CArchive& operator>>(long& l);
-    CArchive& operator>>(unsigned long& l);
-    CArchive& operator>>(float& f);
-    CArchive& operator>>(double& d);
+    CArchive& operator>>(bool& b) {BYTE value;LoadScalar(value);b=value!=0;return *this;}
+#if !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED)
+    CArchive& operator>>(wchar_t& value) {return LoadScalar(value);}
+#endif
+    CArchive& operator>>(LONGLONG& value) {return LoadScalar(value);}
+    CArchive& operator>>(ULONGLONG& value) {return LoadScalar(value);}
+    CArchive& operator>>(char& ch) {return LoadScalar(ch);}
+    CArchive& operator>>(unsigned char& ch) {return LoadScalar(ch);}
+    CArchive& operator>>(short& w) {return LoadScalar(w);}
+    CArchive& operator>>(unsigned short& w) {return LoadScalar(w);}
+    CArchive& operator>>(int& i) {return LoadScalar(i);}
+    CArchive& operator>>(unsigned int& i) {return LoadScalar(i);}
+    CArchive& operator>>(long& l) {return LoadScalar(l);}
+    CArchive& operator>>(unsigned long& l) {return LoadScalar(l);}
+    CArchive& operator>>(float& f) {return LoadScalar(f);}
+    CArchive& operator>>(double& d) {return LoadScalar(d);}
     CArchive& operator>>(CObject*& object) {object=ReadObject(nullptr);return *this;}
     CArchive& operator>>(const CObject*& object) {object=ReadObject(nullptr);return *this;}
     CArchive& operator>>(void*& p);
-    CArchive& operator>>(CString& str);
+    template<class Char,class Traits>
+    CArchive& operator>>(ATL::CStringT<Char,Traits>& text) {
+        int charSize;
+        const UINT length=UINT(AfxReadStringLength(*this,charSize));
+        if(charSize==1)ReadStringPayload<char>(text,length);
+        else ReadStringPayload<wchar_t>(text,length);
+        return *this;
+    }
+    template<class Char,bool IsMFCDLL>
+    CArchive& operator>>(ATL::CSimpleStringT<Char,IsMFCDLL>& text) {
+        ATL::CStringT<Char,StrTraitMFC_DLL<Char>> value;
+        *this>>value;
+        text=value;
+        return *this;
+    }
     
     // Writing operations
-    CArchive& operator<<(bool b);
-    CArchive& operator<<(char ch);
-    CArchive& operator<<(unsigned char ch);
-    CArchive& operator<<(short w);
-    CArchive& operator<<(unsigned short w);
-    CArchive& operator<<(int i);
-    CArchive& operator<<(unsigned int i);
-    CArchive& operator<<(long l);
-    CArchive& operator<<(unsigned long l);
-    CArchive& operator<<(float f);
-    CArchive& operator<<(double d);
+    CArchive& operator<<(bool b) {return StoreScalar(BYTE(b));}
+#if !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED)
+    CArchive& operator<<(wchar_t value) {return StoreScalar(value);}
+#endif
+    CArchive& operator<<(LONGLONG value) {return StoreScalar(value);}
+    CArchive& operator<<(ULONGLONG value) {return StoreScalar(value);}
+    CArchive& operator<<(char ch) {return StoreScalar(ch);}
+    CArchive& operator<<(unsigned char ch) {return StoreScalar(ch);}
+    CArchive& operator<<(short w) {return StoreScalar(w);}
+    CArchive& operator<<(unsigned short w) {return StoreScalar(w);}
+    CArchive& operator<<(int i) {return StoreScalar(i);}
+    CArchive& operator<<(unsigned int i) {return StoreScalar(i);}
+    CArchive& operator<<(long l) {return StoreScalar(l);}
+    CArchive& operator<<(unsigned long l) {return StoreScalar(l);}
+    CArchive& operator<<(float f) {return StoreScalar(f);}
+    CArchive& operator<<(double d) {return StoreScalar(d);}
     CArchive& operator<<(const CObject* object) {WriteObject(object);return *this;}
     CArchive& operator<<(const void* p);
-    CArchive& operator<<(const CString& str);
+    template<class Char,class Traits>
+    CArchive& operator<<(const ATL::CStringT<Char,Traits>& text) {
+        return StoreString(text);
+    }
+    template<class Char,bool IsMFCDLL>
+    CArchive& operator<<(const ATL::CSimpleStringT<Char,IsMFCDLL>& text) {
+        return *this<<ATL::CStringT<Char,StrTraitMFC_DLL<Char>>(text);
+    }
     
     // String operations
-    wchar_t* ReadString(wchar_t* lpsz, UINT nMax);
-    int ReadString(CString& rString);
-    void WriteString(const wchar_t* lpsz);
+    OPENMFC_ARCHIVE_API wchar_t* ReadString(wchar_t* text,UINT limit);
+    OPENMFC_ARCHIVE_API BOOL ReadString(CString& text);
+    OPENMFC_ARCHIVE_API void WriteString(const wchar_t* text);
     
     // Raw read/write
     OPENMFC_ARCHIVE_API UINT Read(void* lpBuf, UINT nMax);
@@ -512,7 +545,7 @@ public:
     UINT m_nObjectSchema;
     CString m_strFileName;
     OPENMFC_ARCHIVE_API void FillBuffer(UINT additional);
-    void EnsureRead(void* output,UINT count) {if(Read(output,count)!=count)AfxThrowArchiveException(3,m_strFileName.GetString());}
+    void EnsureRead(void* output,UINT count) {if(Read(output,count)!=count)AfxThrowArchiveException(3,nullptr);}
     OPENMFC_ARCHIVE_API ULONGLONG ReadCount();
     OPENMFC_ARCHIVE_API void WriteCount(ULONGLONG count);
     OPENMFC_ARCHIVE_API void CheckCount();
@@ -543,6 +576,55 @@ protected:
     UINT m_nHashSize;
     friend class CArchiveAccess;
 private:
+    template<class Char,bool IsMFCDLL>
+    CArchive& StoreString(const ATL::CSimpleStringT<Char,IsMFCDLL>& text) {
+        AfxWriteStringLength(*this,text.GetLength(),sizeof(Char)==sizeof(wchar_t));
+        Write(text.GetString(),UINT(size_t(text.GetLength())*sizeof(Char)));
+        return *this;
+    }
+    template<class Input,class Char,class Traits>
+    void ReadStringPayload(ATL::CStringT<Char,Traits>& text,UINT length) {
+        Input local[128/sizeof(Input)]{};
+        struct HeapBuffer {
+            Input* data=nullptr;
+            ~HeapBuffer() {std::free(data);}
+        } heap;
+        Input* input=local;
+        const size_t bytes=size_t(length)*sizeof(Input);
+        if(bytes>sizeof(local)) {
+            heap.data=static_cast<Input*>(std::malloc(bytes));
+            if(!heap.data)AfxThrowMemoryException();
+            input=heap.data;
+        }
+        if(Read(input,UINT(bytes))!=bytes)AfxThrowArchiveException(3,nullptr);
+#ifdef _CSTRING_DISABLE_NARROW_WIDE_CONVERSION
+#ifdef _UNICODE
+        if constexpr(sizeof(Input)!=sizeof(wchar_t))AfxThrowArchiveException(1,nullptr);
+#else
+        if constexpr(sizeof(Input)!=sizeof(char))AfxThrowArchiveException(1,nullptr);
+#endif
+        else
+#endif
+        text=ATL::CStringT<Char,Traits>(input,static_cast<int>(length));
+    }
+    // Scalars are transferred whole, even when they cross a buffer boundary.
+    template<class T> CArchive& LoadScalar(T& output) {
+        if(!IsLoading())AfxThrowArchiveException(4,m_strFileName.GetString());
+        const UINT_PTR end=UINT_PTR(m_lpBufCur)+sizeof(T);
+        if(end>UINT_PTR(m_lpBufMax))FillBuffer(UINT(end-UINT_PTR(m_lpBufMax)));
+        T value;
+        memcpy(&value,m_lpBufCur,sizeof(value));
+        output=value;
+        m_lpBufCur+=sizeof(value);
+        return *this;
+    }
+    template<class T> CArchive& StoreScalar(T value) {
+        if(IsLoading())AfxThrowArchiveException(2,m_strFileName.GetString());
+        if(UINT_PTR(m_lpBufCur)+sizeof(T)>UINT_PTR(m_lpBufMax))Flush();
+        memcpy(m_lpBufCur,&value,sizeof(value));
+        m_lpBufCur+=sizeof(value);
+        return *this;
+    }
     using LoadTypes=CArray<LoadArrayObjType,const LoadArrayObjType&>;
     void AddLoadedEntry(void* value,LoadArrayObjType type);
 };

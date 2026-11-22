@@ -67,10 +67,6 @@ extern "C" int MS_ABI impl__ExchangeVersion_CPropExchange__UEAAHAEAKKH_Z(       
 extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* p0, unsigned int p1);  // core/runtime/Thunks.cpp
 extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* p0, unsigned int p1);   // core/runtime/Thunks.cpp
 extern "C" void MS_ABI impl__Flush_CArchive__QEAAXXZ(CArchive* pThis);                                        // core/runtime/Thunks.cpp
-extern "C" unsigned long long MS_ABI impl__AfxReadStringLength__YA_KAEAVCArchive__AEAH_Z(                      // core/runtime/CArchive.cpp
-    CArchive* ar, int* pnCharSize);
-extern "C" void MS_ABI impl__AfxWriteStringLength__YAXAEAVCArchive___KH_Z(                                    // core/runtime/CArchive.cpp
-    CArchive* ar, unsigned long long nLength, int bUnicode);
 extern "C" void* MS_ABI impl___0CArchiveStream__QEAA_PEAVCArchive___Z(void* pThis, CArchive* pArchive);        // core/ole/CArchiveStream.cpp
 extern "C" void MS_ABI impl__SetFont_CFontHolder__QEAAXPEAUIFont___Z(void* self, void* font);                 // core/ole/CFontHolder.cpp
 extern "C" void MS_ABI impl__InitializeFont_CFontHolder__QEAAXPEBUtagFONTDESC__PEAUIDispatch___Z(              // core/ole/CFontHolder.cpp
@@ -139,118 +135,6 @@ template <class T> void ArStore(CArchive* ar, T value) {
         impl__AfxThrowArchiveException__YAXHPEB_W_Z(kArchiveReadOnly, nullptr);
     }
     impl__Write_CArchive__QEAAXPEBXI_Z(ar, &value, sizeof(value));
-}
-
-// CTempBuffer<.., 128> as retail's CString operator>> uses it: a 128-byte stack
-// buffer, else malloc (0x1c090: `call *0x1802c74c8` = api-ms-win-crt-heap malloc;
-// NULL -> AtlThrow(E_OUTOFMEMORY), which the AtlThrow hook at 0x333c routes to
-// AfxThrowMemoryException), freed on exit when heap-allocated.
-struct TempBuffer {
-    unsigned char  stack[128];
-    unsigned char* p;
-    explicit TempBuffer(unsigned long long cb) : p(stack) {
-        if (cb > sizeof(stack)) {
-            p = static_cast<unsigned char*>(std::malloc(static_cast<std::size_t>(cb)));
-            if (p == nullptr) {
-                impl__AfxThrowMemoryException__YAXXZ();
-            }
-        }
-    }
-    void Free() {
-        if (p != stack) {
-            std::free(p);
-        }
-        p = stack;
-    }
-    ~TempBuffer() { Free(); }
-};
-
-// The wide-string construction retail uses here is the CSimpleStringT ctor
-// (??0?$CSimpleStringT@_W$00@ATL@@QEAA@PEB_WHPEAUIAtlStringMgr@1@@Z, RVA 0x12980
-// (mfc140u), called with the module string manager at 0x1803b25e8): it copies
-// exactly nLength characters (embedded NULs kept) and terminates.  A negative
-// length is AtlThrow(E_INVALIDARG) there (`test %ebx,%ebx; js`); it cannot arise
-// from the one caller below (see ArReadCString), so it is not modelled.
-void AssignWide(CString& str, const wchar_t* pch, int nLength) {
-    if (nLength > 0) {
-        wchar_t* pBuf = str.GetBuffer(nLength);
-        std::memcpy(pBuf, pch, static_cast<std::size_t>(nLength) * sizeof(wchar_t));
-        str.ReleaseBuffer(nLength);
-    }
-}
-
-// CStringT(const char* pch, int nLength) (RVA 0x1c0e0, mfc140u):
-//   if (nLength > 0) {
-//       n = MultiByteToWideChar(CP_THREAD_ACP, 0, pch, nLength, NULL, 0);   ; ecx = 3; slot
-//       GetBuffer(n); MultiByteToWideChar(CP_THREAD_ACP, 0, pch, nLength, buf, n);  ; 0x1802c6610
-//       length = n;                                                          ; KERNEL32 import
-//   }
-// (nLength <= 0 leaves the string empty: `test %ebp,%ebp; jle`.)
-void AssignAnsi(CString& str, const char* pch, int nLength) {
-    if (nLength > 0) {
-        const int n = ::MultiByteToWideChar(CP_THREAD_ACP, 0, pch, nLength, nullptr, 0);
-        if (n > 0) {
-            wchar_t* pBuf = str.GetBuffer(n);
-            ::MultiByteToWideChar(CP_THREAD_ACP, 0, pch, nLength, pBuf, n);
-            str.ReleaseBuffer(n);
-        }
-    }
-}
-
-// operator>>(CArchive&, CStringW&) -- RVA 0x1b5e4 (mfc140u, unexported):
-//   nLength = AfxReadStringLength(ar, nCharSize);       ; call 0x1d0c10
-//   nLen = (UINT)nLength;                               ; `mov %eax,%ebx` -- only the
-//                                                       ; low 32 bits are used below
-//   if (nCharSize == 1) {
-//       CTempBuffer<char> buf(nLen);
-//       if (ar.Read(buf, nLen) != nLen) AfxThrowArchiveException(endOfFile, NULL);   ; 0x1d1840
-//       str = CStringW((const char*)buf, (int)nLen);    ; 0x1c0e0, then operator= (0xde30)
-//   } else {
-//       CTempBuffer<wchar_t> buf(2 * nLen bytes);
-//       if ((ULONGLONG)ar.Read(buf, (UINT)(2 * nLen)) != 2 * nLen)                ; 64-bit compare
-//           AfxThrowArchiveException(endOfFile, NULL);
-//       str = CStringW((const wchar_t*)buf, (int)nLen); ; 0x12980
-//   }
-// Retail also carries size_t-overflow checks on the buffer size (`div` by nLen,
-// AtlThrow(0x80070216)); with a 32-bit nLen they can never fire, so they are
-// omitted.  In the wide branch a read can only match when 2*nLen < 2^32, so the
-// (int)nLen handed to the ctor is never negative.
-// The temporary buffer is released before the endOfFile throw here: the MSVC
-// exception this DLL raises does not run gcc frame cleanups (see
-// core/ole/CArchiveStream.cpp, "Exceptions"), where retail's unwinder frees it.
-void ArReadCString(CArchive* ar, CString& str) {
-    int nCharSize = 0;
-    const unsigned long long nLength = impl__AfxReadStringLength__YA_KAEAVCArchive__AEAH_Z(ar, &nCharSize);
-    const unsigned int nLen = static_cast<unsigned int>(nLength);
-    CString strTemp;
-    if (nCharSize == 1) {
-        TempBuffer buf(nLen);
-        if (impl__Read_CArchive__QEAAIPEAXI_Z(ar, buf.p, nLen) != nLen) {
-            buf.Free();
-            impl__AfxThrowArchiveException__YAXHPEB_W_Z(kArchiveEndOfFile, nullptr);
-        }
-        AssignAnsi(strTemp, reinterpret_cast<const char*>(buf.p), static_cast<int>(nLen));
-    } else {
-        const unsigned long long cb = 2ull * nLen;
-        TempBuffer buf(cb);
-        if (static_cast<unsigned long long>(
-                impl__Read_CArchive__QEAAIPEAXI_Z(ar, buf.p, static_cast<unsigned int>(cb))) != cb) {
-            buf.Free();
-            impl__AfxThrowArchiveException__YAXHPEB_W_Z(kArchiveEndOfFile, nullptr);
-        }
-        AssignWide(strTemp, reinterpret_cast<const wchar_t*>(buf.p), static_cast<int>(nLen));
-    }
-    str = strTemp;
-}
-
-// operator<<(CArchive&, const CStringW&) -- RVA 0x1b818 (mfc140u, unexported), whole body:
-//   AfxWriteStringLength(ar, (LONGLONG)str.GetLength(), TRUE);   ; movslq -0x10(%rax); r8d = 1; 0x1d0e40
-//   ar.Write(str.m_pszData, str.GetLength() * 2);                ; 32-bit `add %r8d,%r8d`; 0x1d1a70
-void ArWriteCString(CArchive* ar, const CString& str) {
-    impl__AfxWriteStringLength__YAXAEAVCArchive___KH_Z(
-        ar, static_cast<unsigned long long>(static_cast<long long>(str.GetLength())), TRUE);
-    impl__Write_CArchive__QEAAXPEBXI_Z(
-        ar, str.GetString(), static_cast<unsigned int>(str.GetLength()) * 2u);
 }
 
 // A CArchiveStream on the stack, as retail builds it inline (vftable 0x180321088
@@ -886,7 +770,7 @@ extern "C" int MS_ABI impl__ExchangeProp_CArchivePropExchange__UEAAHPEB_WGPEAXPE
             break;
         case VT_BSTR:
         case VT_LPSTR:
-            ArReadCString(ar, *static_cast<CString*>(pvProp));
+            *ar >> *static_cast<CString*>(pvProp);
             break;
         default:
             break;
@@ -915,7 +799,7 @@ extern "C" int MS_ABI impl__ExchangeProp_CArchivePropExchange__UEAAHPEB_WGPEAXPE
         }
         case VT_BSTR:
         case VT_LPSTR:
-            ArWriteCString(ar, *static_cast<const CString*>(pvProp));
+            *ar << *static_cast<const CString*>(pvProp);
             break;
         default:
             break;

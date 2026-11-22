@@ -158,28 +158,25 @@ void CArchive::Write(const void* input,UINT count) {
 }
 UINT CArchive::GetObjectSchema() {UINT result=m_nObjectSchema;m_nObjectSchema=UINT32_MAX;return result;}
 void CArchive::CheckCount() {if(m_nMapCount>=0x3ffffffe)ArchiveError(5,m_strFileName.GetString());}
-namespace {
-template<class T>T LoadCountValue(CArchive& ar,BYTE*& cursor,BYTE*& maximum) {
-    if(!ar.IsLoading())ArchiveError(4,ar.m_strFileName.GetString());
-    if(uintptr_t(cursor)+sizeof(T)>uintptr_t(maximum))ar.FillBuffer(UINT(uintptr_t(cursor)-uintptr_t(maximum)+sizeof(T)));
-    T value;std::memcpy(&value,cursor,sizeof(value));cursor=Advance(cursor,sizeof(value));return value;
-}
-template<class T>void StoreCountValue(CArchive& ar,BYTE*& cursor,BYTE*& maximum,T value) {
-    if(ar.IsLoading())ArchiveError(2,ar.m_strFileName.GetString());
-    if(uintptr_t(cursor)+sizeof(T)>uintptr_t(maximum))ar.Flush();
-    std::memcpy(cursor,&value,sizeof(value));cursor=Advance(cursor,sizeof(value));
-}
-}
 ULONGLONG CArchive::ReadCount() {
-    WORD word=LoadCountValue<WORD>(*this,m_lpBufCur,m_lpBufMax);if(word!=0xffff)return word;
-    DWORD dword=LoadCountValue<DWORD>(*this,m_lpBufCur,m_lpBufMax);if(dword!=0xffffffff)return dword;
-    return LoadCountValue<ULONGLONG>(*this,m_lpBufCur,m_lpBufMax);
+    WORD word;
+    *this>>word;
+    if(word!=0xffff)return word;
+    DWORD dword;
+    *this>>dword;
+    if(dword!=0xffffffff)return dword;
+    ULONGLONG count;
+    *this>>count;
+    return count;
 }
 void CArchive::WriteCount(ULONGLONG count) {
-    if(count<0xffff)StoreCountValue(*this,m_lpBufCur,m_lpBufMax,WORD(count));
-    else {StoreCountValue(*this,m_lpBufCur,m_lpBufMax,WORD(0xffff));
-        if(count<0xffffffff)StoreCountValue(*this,m_lpBufCur,m_lpBufMax,DWORD(count));
-        else {StoreCountValue(*this,m_lpBufCur,m_lpBufMax,DWORD(0xffffffff));StoreCountValue(*this,m_lpBufCur,m_lpBufMax,count);}}
+    if(count<0xffff) {
+        *this<<WORD(count);
+        return;
+    }
+    *this<<WORD(0xffff);
+    if(count<0xffffffff)*this<<DWORD(count);
+    else *this<<DWORD(0xffffffff)<<count;
 }
 
 // Symbol: ?FillBuffer@CArchive@@QEAAXI@Z

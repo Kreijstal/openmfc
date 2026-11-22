@@ -16,8 +16,8 @@ struct ImportRecord:CObject {
  DECLARE_SERIAL(ImportRecord)
  int value=19;
  void Serialize(CArchive& archive)override {
-  if(archive.IsStoring())archive.Write(&value,sizeof(value));
-  else archive.EnsureRead(&value,sizeof(value));
+  if(archive.IsStoring())archive<<value;
+  else archive>>value;
  }
 };
 IMPLEMENT_SERIAL(ImportRecord,CObject,42)
@@ -46,6 +46,48 @@ int main(){int failures=0;auto check=[&](bool value){if(!value)++failures;};
  try{CRuntimeClass::FromName(static_cast<const char*>(nullptr));}
  catch(CInvalidArgException* error){nullName=true;error->Delete();}
  check(nullName);
+ {
+  CMemFile strings;
+  const wchar_t wideContents[]={L'A',0,L'\u03a9'};
+  const char narrowContents[]={'B',0,'C'};
+  const CString wide(wideContents,3);
+  const CStringA narrow(narrowContents,3);
+  {CArchive store(&strings,CArchive::store,128);
+   store<<ULONGLONG(0x123456789abcdef0ull)<<LONGLONG(-431)<<wchar_t(L'\u03a9')<<true;
+   const auto& simpleWide=static_cast<const ATL::CSimpleStringT<wchar_t,true>&>(wide);
+   store<<wide<<narrow<<CStringA("plain")<<CString(L"plain")<<simpleWide;store.Close();
+  }
+  strings.Seek(0,CFile::begin);
+  {CArchive load(&strings,CArchive::load,128);
+   ULONGLONG unsignedValue=0;LONGLONG signedValue=0;wchar_t character=0;bool flag=false;
+   load>>unsignedValue>>signedValue>>character>>flag;
+   check(unsignedValue==0x123456789abcdef0ull&&signedValue==-431&&character==L'\u03a9'&&flag);
+   CString restoredWide,convertedWide;CStringA restoredNarrow,convertedNarrow;
+   load>>restoredWide>>restoredNarrow>>convertedWide>>convertedNarrow;
+   check(restoredWide.GetLength()==3&&!memcmp(restoredWide.GetString(),wideContents,sizeof(wideContents)));
+   check(restoredNarrow.GetLength()==3&&!memcmp(restoredNarrow.GetString(),narrowContents,sizeof(narrowContents)));
+   check(!wcscmp(convertedWide,L"plain")&&!strcmp(convertedNarrow,"plain"));
+   ATL::CSimpleStringT<wchar_t,false> simpleWide(restoredWide.GetManager());
+   load>>simpleWide;
+   check(simpleWide.GetLength()==3&&!memcmp(simpleWide.GetString(),wideContents,sizeof(wideContents)));
+   unsignedValue=9;
+   try {load>>unsignedValue;check(false);}
+   catch(CArchiveException* error){check(error->m_cause==CArchiveException::endOfFile&&unsignedValue==9);error->Delete();}
+  }
+ }
+ {
+  CMemFile lines;
+  {CArchive store(&lines,CArchive::store,128);store.WriteString(L"first\r\nsecond\nthird");store.Close();}
+  lines.Seek(0,CFile::begin);
+  {CArchive load(&lines,CArchive::load,128);
+   wchar_t first[8]={};
+   check(load.ReadString(first,UINT(-7))==first&&!wcscmp(first,L"first\n"));
+   CString line;
+   check(load.ReadString(line)==TRUE&&!wcscmp(line,L"second"));
+   check(load.ReadString(line)==TRUE&&!wcscmp(line,L"third"));
+   check(load.ReadString(line)==FALSE&&line.IsEmpty());
+  }
+ }
  {
   CMemFile graph;ImportRecord record;
   {CArchive archive(&graph,CArchive::store,128);archive.WriteClass(RUNTIME_CLASS(ImportRecord));archive.WriteObject(&record);archive<<static_cast<const CObject*>(&record)<<static_cast<const CObject*>(nullptr);archive.Close();}

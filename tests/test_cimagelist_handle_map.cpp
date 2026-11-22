@@ -214,14 +214,15 @@ extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_
     return GetModuleHandleW(nullptr);
 }
 _AFX_THREAD_STATE* AFXAPI AfxGetThreadState() { return nullptr; }
+void AFXAPI AfxThrowInvalidArgException() { impl__AfxThrowInvalidArgException__YAXXZ(); }
+void AFXAPI AfxThrowMemoryException() { impl__AfxThrowMemoryException__YAXXZ(); }
+void AFXAPI AfxThrowOleException(long) { std::abort(); }
+void AFXAPI AfxThrowArchiveException(int,const wchar_t*) { std::abort(); }
+extern "C" void AFXAPI impl__AfxThrowArchiveException__YAXHPEB_W_Z(int cause,const wchar_t* name) {
+    AfxThrowArchiveException(cause,name);
+}
 CArchive& CArchive::operator>>(void*&) { return *this; }
-CArchive& CArchive::operator>>(int&) { return *this; }
-CArchive& CArchive::operator>>(unsigned int&) { return *this; }
-CArchive& CArchive::operator>>(unsigned long&) { return *this; }
 CArchive& CArchive::operator<<(const void*) { return *this; }
-CArchive& CArchive::operator<<(int) { return *this; }
-CArchive& CArchive::operator<<(unsigned int) { return *this; }
-CArchive& CArchive::operator<<(unsigned long) { return *this; }
 
 int main() {
     const API source{impl___0CImageList__QEAA_XZ, impl___1CImageList__UEAA_XZ,

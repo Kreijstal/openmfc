@@ -380,6 +380,8 @@ public:
     OPENMFC_STRING_API CStringT(wchar_t,int);
     OPENMFC_STRING_API CStringT(char,int);
     CStringT(const CString& source):CSimpleStringW(source) {}
+    template<bool IsMFCDLL>
+    CStringT(const CSimpleStringT<wchar_t,IsMFCDLL>& source):CSimpleStringW(source) {}
     OPENMFC_STRING_API CStringT(const tagVARIANT&);
     OPENMFC_STRING_API CStringT(const tagVARIANT&,IAtlStringMgr*);
     OPENMFC_STRING_API CString& operator=(const tagVARIANT&);

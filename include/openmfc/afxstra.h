@@ -9,6 +9,8 @@ public:
     CStringT() noexcept:CSimpleStringA(OpenMFC_GetStringMgr()) {}
     explicit CStringT(IAtlStringMgr* manager) noexcept:CSimpleStringA(manager) {}
     CStringT(const CStringA& source):CSimpleStringA(source) {}
+    template<bool IsMFCDLL>
+    CStringT(const CSimpleStringT<char,IsMFCDLL>& source):CSimpleStringA(source) {}
     OPENMFC_STRING_API CStringT(const char* source);
     OPENMFC_STRING_API CStringT(const char* source,IAtlStringMgr* manager);
     CStringT(const char* source,int length):CSimpleStringA(source,length,OpenMFC_GetStringMgr()) {}

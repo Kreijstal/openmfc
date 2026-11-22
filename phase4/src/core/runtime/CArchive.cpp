@@ -66,28 +66,13 @@ static_assert(offsetof(S_ArchOleDate, m_value) == 0x0, "COleDateTime m_dt");
 static_assert(offsetof(S_ArchOleDate, m_status) == 0x8, "COleDateTime m_status");
 static_assert(sizeof(S_ArchOleDate) == 0x10, "COleDateTime size");
 
-// Stand-ins for retail's inline CArchive primitive operators (see the block
-// comment above the value-type operators at the bottom of this file).  A load
-// from a storing archive throws CArchiveException::writeOnly, a store into a
-// loading archive throws ::readOnly -- exactly the causes retail passes.
-// Archive mode errors carry the captured file name.
-void ArRequireLoading(CArchive* ar) {
-    if (!ar->IsLoading())
-        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::writeOnly, ar->m_strFileName.GetString());
-}
-void ArRequireStoring(CArchive* ar) {
-    if (ar->IsLoading())
-        impl__AfxThrowArchiveException__YAXHPEB_W_Z(CArchiveException::readOnly, ar->m_strFileName.GetString());
-}
-template <class T> void ArPut(CArchive* ar, T value) {
-    ArRequireStoring(ar);
-    ar->Write(&value, sizeof(value));
-}
-template <class T> T ArGet(CArchive* ar) {
-    ArRequireLoading(ar);
-    T value{};
-    ar->Read(&value, sizeof(value));
+template<class T>T ArGet(CArchive* ar) {
+    T value;
+    *ar>>value;
     return value;
+}
+template<class T>void ArPut(CArchive* ar,T value) {
+    *ar<<value;
 }
 
 } // namespace
@@ -109,173 +94,16 @@ template <class T> T ArGet(CArchive* ar) {
 
 
 
-// Symbol: ?ReadString@CArchive@@QEAAHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
-extern "C" int MS_ABI impl__ReadString_CArchive__QEAAHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(CArchive* pThis, CString* stringOut) {
-    return (pThis && stringOut) ? pThis->ReadString(*stringOut) : 0;
-}
-// Native object/schema index mapping lives in CArchiveMapping.cpp.
-CArchive& CArchive::operator>>(bool& b) {
-    char ch;
-    Read(&ch, sizeof(ch));
-    b = (ch != 0);
-    return *this;
-}
-CArchive& CArchive::operator>>(char& ch) {
-    Read(&ch, sizeof(ch));
-    return *this;
-}
-CArchive& CArchive::operator>>(unsigned char& ch) {
-    Read(&ch, sizeof(ch));
-    return *this;
-}
-CArchive& CArchive::operator>>(short& w) {
-    Read(&w, sizeof(w));
-    return *this;
-}
-CArchive& CArchive::operator>>(unsigned short& w) {
-    Read(&w, sizeof(w));
-    return *this;
-}
-CArchive& CArchive::operator>>(int& i) {
-    Read(&i, sizeof(i));
-    return *this;
-}
-CArchive& CArchive::operator>>(unsigned int& i) {
-    Read(&i, sizeof(i));
-    return *this;
-}
-CArchive& CArchive::operator>>(long& l) {
-    Read(&l, sizeof(l));
-    return *this;
-}
-CArchive& CArchive::operator>>(unsigned long& l) {
-    Read(&l, sizeof(l));
-    return *this;
-}
-CArchive& CArchive::operator>>(float& f) {
-    Read(&f, sizeof(f));
-    return *this;
-}
-CArchive& CArchive::operator>>(double& d) {
-    Read(&d, sizeof(d));
-    return *this;
-}
 CArchive& CArchive::operator>>(void*& p) {
     uintptr_t value = 0;
     Read(&value, sizeof(value));
     p = reinterpret_cast<void*>(value);
     return *this;
 }
-CArchive& CArchive::operator>>(CString& str) {
-    // Read string length
-    UINT nLen = 0;
-    Read(&nLen, sizeof(nLen));
-
-    if (nLen > 0 && nLen < 0x10000000) {
-        wchar_t* pBuf = str.GetBuffer(nLen + 1);
-        Read(pBuf, nLen * sizeof(wchar_t));
-        pBuf[nLen] = L'\0';
-        str.ReleaseBuffer(nLen);
-    } else {
-        str.Empty();
-    }
-    return *this;
-}
-CArchive& CArchive::operator<<(bool b) {
-    char ch = b ? 1 : 0;
-    Write(&ch, sizeof(ch));
-    return *this;
-}
-CArchive& CArchive::operator<<(char ch) {
-    Write(&ch, sizeof(ch));
-    return *this;
-}
-CArchive& CArchive::operator<<(unsigned char ch) {
-    Write(&ch, sizeof(ch));
-    return *this;
-}
-CArchive& CArchive::operator<<(short w) {
-    Write(&w, sizeof(w));
-    return *this;
-}
-CArchive& CArchive::operator<<(unsigned short w) {
-    Write(&w, sizeof(w));
-    return *this;
-}
-CArchive& CArchive::operator<<(int i) {
-    Write(&i, sizeof(i));
-    return *this;
-}
-CArchive& CArchive::operator<<(unsigned int i) {
-    Write(&i, sizeof(i));
-    return *this;
-}
-CArchive& CArchive::operator<<(long l) {
-    Write(&l, sizeof(l));
-    return *this;
-}
-CArchive& CArchive::operator<<(unsigned long l) {
-    Write(&l, sizeof(l));
-    return *this;
-}
-CArchive& CArchive::operator<<(float f) {
-    Write(&f, sizeof(f));
-    return *this;
-}
-CArchive& CArchive::operator<<(double d) {
-    Write(&d, sizeof(d));
-    return *this;
-}
 CArchive& CArchive::operator<<(const void* p) {
     uintptr_t value = reinterpret_cast<uintptr_t>(p);
     Write(&value, sizeof(value));
     return *this;
-}
-CArchive& CArchive::operator<<(const CString& str) {
-    // Write string length and data
-    UINT nLen = str.GetLength();
-    Write(&nLen, sizeof(nLen));
-
-    if (nLen > 0) {
-        Write((const wchar_t*)str, nLen * sizeof(wchar_t));
-    }
-    return *this;
-}
-wchar_t* CArchive::ReadString(wchar_t* lpsz, UINT nMax) {
-    if (!lpsz || nMax == 0) return nullptr;
-
-    UINT nRead = 0;
-    while (nRead < nMax - 1) {
-        wchar_t ch;
-        if (Read(&ch, sizeof(ch)) != sizeof(ch)) break;
-        if (ch == L'\n') {
-            lpsz[nRead++] = ch;
-            break;
-        }
-        if (ch == L'\r') continue;  // Skip CR
-        lpsz[nRead++] = ch;
-    }
-    lpsz[nRead] = L'\0';
-    return nRead != 0 ? lpsz : nullptr;
-}
-int CArchive::ReadString(CString& rString) {
-    rString.Empty();
-    wchar_t buf[256];
-    int nTotal = 0;
-
-    while (true) {
-        if (!ReadString(buf, 256)) break;
-        int nRead = static_cast<int>(wcslen(buf));
-        rString += buf;
-        nTotal += nRead;
-        if (buf[nRead - 1] == L'\n') break;
-    }
-    return nTotal;
-}
-void CArchive::WriteString(const wchar_t* lpsz) {
-    if (!lpsz) return;
-    UINT nLen = (UINT)wcslen(lpsz);
-    Write(lpsz, nLen * sizeof(wchar_t));
 }
 // ---------------------------------------------------------------------------
 // IMPLEMENT_SERIAL extraction operators:  CArchive& operator>>(CArchive&, T*&)
@@ -582,7 +410,7 @@ extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCComBSTR_ATL___Z(
     }
 
     unsigned int nLen = 0;
-    ar->Read(&nLen, sizeof(nLen));
+    *ar>>nLen;
 
     BSTR bstrTmp = *pbstr;
     *pbstr = nullptr;
@@ -620,20 +448,6 @@ extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCComBSTR_ATL___Z(
 // The throw cause is CArchiveException::writeOnly (4) for a load from a storing
 // archive and ::readOnly (2) for a store into a loading archive.
 //
-// OpenMFC's CArchive (include/openmfc/afx.h) has a different member layout, so
-// those inline sequences are re-expressed with the ArRequire*/ArPut/ArGet
-// helpers in the anonymous namespace at the top of this file, which go through
-// CArchive::Read/Write (defined in this TU).  Deviations, all deliberate:
-//   * m_strFileName does not exist in OpenMFC's CArchive, so NULL is passed as
-//     the archive name to AfxThrowArchiveException (same as the CComBSTR
-//     loader above).
-//   * Retail's underflow path is FillBuffer; OpenMFC's Read returns short on
-//     EOF instead of throwing (retail FillBuffer throws ::endOfFile (3)), so
-//     ArGet zero-initialises its value first and a truncated archive yields
-//     zero or partially filled fields rather than an exception.
-//   * Retail tests the mode before EVERY primitive; the helpers do the same
-//     per primitive, so the observable order (which step throws) is unchanged.
-// ---------------------------------------------------------------------------
 
 // Symbol: ??5@YAAEAVCArchive@@AEAV0@AEAVCOleCurrency@@@Z
 // CArchive& operator>>(CArchive& ar, COleCurrency& curSrc)
@@ -719,23 +533,16 @@ extern "C" CArchive* MS_ABI impl___5_YAAEAVCArchive__AEAV0_AEAVCTimeSpan_ATL___Z
 // The CComBSTR is passed by value; under the MSVC x64 ABI a non-trivially-
 // copyable argument arrives as a pointer to the caller's temporary and the
 // CALLEE destroys it, hence the SysFreeString at the end and BSTR* here.
-// Deviation: on the loading-archive throw path this frees the BSTR before
-// throwing.  Retail leaves that to unwinding (its unwind tables were not
-// inspected); this code has no MSVC unwind funclet to do it, so freeing first
-// keeps ownership identical without leaking.
 extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCComBSTR_ATL___Z(
         CArchive* ar, BSTR* pbstr) {
     if (ar == nullptr || pbstr == nullptr) return ar;
-    const unsigned int nLen = ::SysStringLen(*pbstr);
-    if (ar->IsLoading()) {
-        ::SysFreeString(*pbstr);
-        ArRequireStoring(ar);
-        return ar;
-    }
-    ArPut<unsigned int>(ar, nLen);
+    struct ArgumentLifetime {
+        BSTR* argument;
+        ~ArgumentLifetime() {::SysFreeString(*argument);}
+    } lifetime{pbstr};
+    ArPut<unsigned int>(ar, ::SysStringLen(*pbstr));
     if (::SysStringLen(*pbstr) != 0)
         ar->Write(*pbstr, ::SysStringLen(*pbstr) * 2u);
-    ::SysFreeString(*pbstr);
     return ar;
 }
 
@@ -804,74 +611,4 @@ extern "C" CArchive* MS_ABI impl___6_YAAEAVCArchive__AEAV0_VCTimeSpan_ATL___Z(
     }
     ArPut<unsigned int>(ar, static_cast<unsigned int>(span));
     return ar;
-}
-
-// Symbol: ?AfxReadStringLength@@YA_KAEAVCArchive@@AEAH@Z
-// ULONGLONG AfxReadStringLength(CArchive& ar, int& nCharSize)
-// Transcribed from retail RVA 0x1d0c10 (mfc140u):
-//     nCharSize = 1;                         ; written before the first mode test
-//     b = <BYTE>;  if (b < 0xFF) return b;
-//     w = <WORD>;
-//     if (w == 0xFFFE) {                     ; Unicode marker
-//         nCharSize = 2;
-//         b = <BYTE>;  if (b < 0xFF) return b;
-//         w = <WORD>;
-//     }
-//     if (w < 0xFFFF) return w;
-//     d = <DWORD>;  if (d < 0xFFFFFFFF) return d;
-//     return <QWORD>;
-// Every load is the inline primitive (mode test -> writeOnly (4) throw).
-extern "C" unsigned long long MS_ABI impl__AfxReadStringLength__YA_KAEAVCArchive__AEAH_Z(
-        CArchive* ar, int* pnCharSize) {
-    if (ar == nullptr || pnCharSize == nullptr) return 0;
-    *pnCharSize = 1;
-    unsigned char b = ArGet<unsigned char>(ar);
-    if (b < 0xFF) return b;
-    unsigned short w = ArGet<unsigned short>(ar);
-    if (w == 0xFFFE) {
-        *pnCharSize = 2;
-        b = ArGet<unsigned char>(ar);
-        if (b < 0xFF) return b;
-        w = ArGet<unsigned short>(ar);
-    }
-    if (w < 0xFFFF) return w;
-    const unsigned int d = ArGet<unsigned int>(ar);
-    if (d < 0xFFFFFFFFu) return d;
-    return ArGet<unsigned long long>(ar);
-}
-
-// Symbol: ?AfxWriteStringLength@@YAXAEAVCArchive@@_KH@Z
-// void AfxWriteStringLength(CArchive& ar, ULONGLONG nLength, BOOL bUnicode)
-// Transcribed from retail RVA 0x1d0e40 (mfc140u):
-//     if (bUnicode) { <BYTE 0xFF>; <WORD 0xFFFE>; }
-//     if      (nLength < 0xFF)       <BYTE nLength>;
-//     else if (nLength < 0xFFFE)     <BYTE 0xFF>; <WORD nLength>;
-//     else if (nLength < 0xFFFFFFFF) <BYTE 0xFF>; <WORD 0xFFFF>; <DWORD nLength>;
-//     else    <BYTE 0xFF>; <WORD 0xFFFF>; <DWORD 0xFFFFFFFF>; <QWORD nLength>;
-// Every store is the inline primitive (mode test -> readOnly (2) throw).
-// Note the WORD tier's bound is 0xFFFE, not 0xFFFF: 0xFFFE itself is the
-// Unicode marker, so a length of 0xFFFE must take the DWORD tier.
-// This is the exact inverse of AfxReadStringLength above.
-extern "C" void MS_ABI impl__AfxWriteStringLength__YAXAEAVCArchive___KH_Z(
-        CArchive* ar, unsigned long long nLength, int bUnicode) {
-    if (ar == nullptr) return;
-    if (bUnicode != 0) {
-        ArPut<unsigned char>(ar, 0xFF);
-        ArPut<unsigned short>(ar, 0xFFFE);
-    }
-    if (nLength < 0xFFull) {
-        ArPut<unsigned char>(ar, static_cast<unsigned char>(nLength));
-    } else if (nLength < 0xFFFEull) {
-        ArPut<unsigned char>(ar, 0xFF);
-        ArPut<unsigned short>(ar, static_cast<unsigned short>(nLength));
-    } else if (nLength < 0xFFFFFFFFull) {
-        ArPut<unsigned char>(ar, 0xFF);
-        ArPut<unsigned short>(ar, 0xFFFF);
-        ArPut<unsigned int>(ar, static_cast<unsigned int>(nLength));
-    } else {
-        ArPut<unsigned char>(ar, 0xFF);
-        ArPut<unsigned short>(ar, 0xFFFF);
-        ArPut<unsigned int>(ar, 0xFFFFFFFFu);
-        ArPut<unsigned long long>(ar, nLength);
-    }
 }

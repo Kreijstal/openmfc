@@ -8,15 +8,6 @@
 #include "../phase4/src/core/collections/CWordArray.cpp"
 #include "../phase4/src/core/collections/Globals.cpp"
 
-// The real CArchive insertion/extraction operators live in phase4/src/filecore.cpp,
-// which is not part of this standalone test TU. Serialize() references a few of
-// them, so provide minimal link-time definitions here. The test never calls
-// Serialize, so these bodies never execute; they only satisfy the linker.
-CArchive& CArchive::operator<<(unsigned int v) { (void)v; return *this; }
-CArchive& CArchive::operator<<(unsigned short v) { (void)v; return *this; }
-CArchive& CArchive::operator>>(unsigned int& v) { (void)v; return *this; }
-CArchive& CArchive::operator>>(unsigned short& v) { (void)v; return *this; }
-
 static int g_failures = 0;
 
 #define CHECK(cond, msg) do { \

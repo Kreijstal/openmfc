@@ -16,6 +16,7 @@ SOURCES = [
     "phase4/src/detail/CFixedAllocSupport.cpp",
     "phase4/src/core/collections/CMapPtrToPtrStorage.cpp",
     "phase4/src/core/collections/CPlex.cpp",
+    "phase4/src/core/runtime/CArchiveStorage.cpp",
     "tests/test_cimagelist_handle_map.cpp",
 ]
 

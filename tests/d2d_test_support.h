@@ -17,8 +17,6 @@ HINSTANCE AFXAPI AfxGetInstanceHandle() {
 }
 HINSTANCE AFXAPI AfxGetResourceHandle() { return g_d2dTestResourceModule ? g_d2dTestResourceModule : GetModuleHandleW(nullptr); }
 // List serialization is linked for its vtable but is outside these drawing tests.
-CArchive& CArchive::operator<<(unsigned short) { std::abort(); }
-CArchive& CArchive::operator>>(unsigned short&) { std::abort(); }
 // Command routing is outside these rendering tests.
 int CCmdTarget::OnCmdMsg(unsigned int,int,void*,AFX_CMDHANDLERINFO*) { std::abort(); }
 CRuntimeClass CCmdTarget::classCCmdTarget{};
@@ -84,8 +82,6 @@ extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ() { throw 19; }
 // Pointer-array serialization is unrelated to connection enumeration.
 CArchive& CArchive::operator<<(const void*) { std::abort(); }
 CArchive& CArchive::operator>>(void*&) { std::abort(); }
-CArchive& CArchive::operator<<(unsigned int) { std::abort(); }
-CArchive& CArchive::operator>>(unsigned int&) { std::abort(); }
 
 // Connection-array allocation failures use the framework memory exception.
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ() {
@@ -308,8 +304,6 @@ int CException::ReportError(UINT type,UINT message) {return impl__ReportError_CE
 
 // Primitive collection operators are peripheral to DLGINIT storage tests.
 // Archive buffering and count methods use their real production owner.
-CArchive& CArchive::operator<<(unsigned long) {std::abort();}
-CArchive& CArchive::operator>>(unsigned long&) {std::abort();}
 // Control subclassing is modeled at its attachment boundary; container ownership,
 // map storage and Win32 DLGINIT message delivery are all production code.
 BOOL g_containerSubclassResult=TRUE;
@@ -344,10 +338,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeC
 extern "C" BYTE impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720]{};
 extern "C" void MS_ABI impl__Initialize_AFX_GLOBAL_DATA__QEAAXXZ(void*){std::abort();}
 
-CArchive& CArchive::operator>>(int&){std::abort();}
-CArchive& CArchive::operator<<(int){std::abort();}
-CArchive& CArchive::operator>>(CString&){std::abort();}
-CArchive& CArchive::operator<<(const CString&){std::abort();}
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CObject__UEBAPEAUCRuntimeClass__XZ(const CObject*){return CObject::GetThisClass();}
 extern "C" BOOL MS_ABI impl__Create_CComboBox__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(CComboBox*,DWORD,const RECT*,CWnd*,UINT){std::abort();}
 extern "C" void MS_ABI impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(const CWnd*,CString*){std::abort();}
