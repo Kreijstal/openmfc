@@ -9,6 +9,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/PaneContainerLayout.h"
+#include "detail/MultiPaneFrameSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/CRecentPaneContainerInfoSupport.h"
 
@@ -261,6 +262,7 @@ extern "C" void* impl__m_pSliderRTC_CPaneDivider__2PEAUCRuntimeClass__EA;
 extern "C" void MS_ABI impl__RemovePaneDivider_CPaneContainerManager__UEAAXPEAVCPaneDivider___Z(void*, void*);
 extern "C" void* MS_ABI impl__CreatePaneDivider_CPaneContainerManager__IEAAPEAVCPaneDivider__VCRect__KH_Z(
     void*, const RECT*, unsigned long, int);
+extern "C" unsigned int impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
 extern "C" int MS_ABI impl__GetResizeStep_CPaneContainer__UEBAHXZ(const void*);
 
 namespace {
@@ -548,6 +550,22 @@ extern "C" unsigned int MS_ABI impl__FindPane_CPaneContainerManager__IEAAIVCRect
     if (ppPos) *ppPos = nullptr;
     return foundPane != nullptr ? 1U : 0U;
 }
+std::vector<CDockablePane*> openmfc::detail::ContainerPanes(const void* manager) {
+    std::vector<CDockablePane*> panes;
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    if (const auto* registered = PaneListLocked(manager)) {
+        panes.reserve(registered->size());
+        for (void* pane : *registered) panes.push_back(static_cast<CDockablePane*>(pane));
+    }
+    return panes;
+}
+
+bool openmfc::detail::ContainerHasPane(const void* manager, const CDockablePane* pane) {
+    std::lock_guard<std::mutex> lock(g_wave2Mutex);
+    const auto* registered = PaneListLocked(manager);
+    return registered && std::find(registered->begin(), registered->end(), pane) != registered->end();
+}
+
 // Symbol: ?FindPaneContainer@CPaneContainerManager@@UEAAPEAVCPaneContainer@@PEAVCDockablePane@@AEAH@Z
 extern "C" void* MS_ABI impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
     void* pThis, void* pPane, int* pIndex) {
@@ -570,8 +588,10 @@ extern "C" void* MS_ABI impl__GetFirstPane_CPaneContainerManager__UEBAPEAVCBaseP
 }
 // Symbol: ?GetFirstVisiblePane@CPaneContainerManager@@UEBAPEAVCWnd@@XZ
 extern "C" void* MS_ABI impl__GetFirstVisiblePane_CPaneContainerManager__UEBAPEAVCWnd__XZ(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    return FirstPane(g_containerManagerPanes[pThis]);
+    for (auto* pane : ContainerPanes(pThis)) {
+        if (pane && (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE)) return pane;
+    }
+    return nullptr;
 }
 
 // Symbol: ?AddPaneAndPaneContainer@CPaneContainerManager@@IEAAHPEAVCDockablePane@@PEAVCPaneContainer@@K@Z
@@ -677,85 +697,224 @@ extern "C" int MS_ABI impl__AddPaneAndPaneDivider_CPaneContainerManager__IEAAHPE
     return TRUE;
 }
 
+namespace {
+struct MovedWindow {
+    HWND hwnd;
+    RECT bounds;
+};
+
+bool ReparentTreeWindows(std::vector<MovedWindow>& windows, HWND from, HWND to) {
+    if (from == to) return true;
+    for (auto& window : windows) {
+        if (!window.hwnd || ::GetParent(window.hwnd) != from || !::GetWindowRect(window.hwnd, &window.bounds))
+            return false;
+        ::MapWindowPoints(nullptr, from, reinterpret_cast<POINT*>(&window.bounds), 2);
+    }
+    auto moved = windows.begin();
+    for (; moved != windows.end(); ++moved) {
+        ::SetLastError(ERROR_SUCCESS);
+        if (!::SetParent(moved->hwnd, to) && ::GetLastError() != ERROR_SUCCESS) break;
+    }
+    if (moved == windows.end()) return true;
+    while (moved != windows.begin()) {
+        const auto& window = *--moved;
+        ::SetParent(window.hwnd, from);
+        const RECT& rect = window.bounds;
+        ::SetWindowPos(window.hwnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+    return false;
+}
+
+void ChangeTreeManager(S_CPaneContainer& node, void* manager) {
+    node.m_pContainerManager = manager;
+    if (auto* divider = static_cast<CPaneDivider*>(node.m_pSlider)) divider->m_dividerData.pContainerManager = manager;
+    for (auto* child : {node.m_pLeftPaneContainer, node.m_pRightPaneContainer}) {
+        if (child) ChangeTreeManager(*child, manager);
+    }
+}
+
+bool HasOwnedChildren(const S_CPaneContainer& node) {
+    for (auto* child : {node.m_pLeftPaneContainer, node.m_pRightPaneContainer}) {
+        if (child && (!IsOwnedSplitNode(child) || !HasOwnedChildren(*child))) return false;
+    }
+    return true;
+}
+
+void ReconcileSliderIDs(const std::vector<void*>& sliders, HWND host) {
+    std::unordered_set<HWND> transferred;
+    for (void* value : sliders) transferred.insert(static_cast<CPaneDivider*>(value)->m_hWnd);
+    std::unordered_set<UINT> ids;
+    for (HWND child = ::GetWindow(host, GW_CHILD); child; child = ::GetWindow(child, GW_HWNDNEXT)) {
+        if (!transferred.count(child)) ids.insert(static_cast<UINT>(::GetDlgCtrlID(child)));
+    }
+    for (void* value : sliders) {
+        auto* divider = static_cast<CPaneDivider*>(value);
+        UINT id = divider->m_dividerData.nID;
+        while (!ids.insert(id).second) ++id;
+        divider->m_dividerData.nID = id;
+        ::SetWindowLongPtrW(divider->m_hWnd, GWLP_ID, id);
+    }
+}
+
+bool TransferPaneTree(void* destination, void* source, CDockablePane* target, DWORD alignment, bool outerEdge) {
+    auto* dest = Root(destination);
+    auto* src = Root(source);
+    if (!src || !dest || src == dest) return false;
+    if (impl__GetTotalReferenceCount_CPaneContainer__QEBAHXZ(src) || !HasOwnedChildren(*src)) return false;
+    auto* from = Field<CWnd*>(source, kOffDockSite);
+    auto* to = Field<CWnd*>(destination, kOffDockSite);
+    if (!from || !to || !from->m_hWnd || !to->m_hWnd) return false;
+    const auto panes = ContainerPanes(source);
+    if (panes.empty()) return false;
+
+    S_CPaneContainer* parent = dest;
+    int leading = TRUE;
+    RECT bounds{};
+    if (target) {
+        parent = static_cast<S_CPaneContainer*>(
+            impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+                destination, target, &leading));
+        if (!parent || !::GetWindowRect(target->m_hWnd, &bounds) || ::GetParent(target->m_hWnd) != to->m_hWnd)
+            return false;
+        ::MapWindowPoints(nullptr, to->m_hWnd, reinterpret_cast<POINT*>(&bounds), 2);
+    } else {
+        if (dest->m_pLeftPane || dest->m_pRightPane || dest->m_pLeftPaneContainer ||
+            dest->m_pRightPaneContainer || !::GetClientRect(to->m_hWnd, &bounds)) return false;
+    }
+    const bool horizontal = alignment == kCbrsAlignTop || alignment == kCbrsAlignBottom;
+    const bool incomingFirst = alignment == kCbrsAlignLeft || alignment == kCbrsAlignTop;
+    if (target && !horizontal && !incomingFirst && alignment != kCbrsAlignRight) return false;
+
+    std::vector<MovedWindow> windows;
+    for (auto* pane : panes) {
+        if (!pane || !pane->CanBeDocked() || pane->IsAutoHideMode() ||
+            (target && !target->CanAcceptPane(pane))) return false;
+        windows.push_back({pane->m_hWnd});
+    }
+    std::vector<void*> sliders;
+    {
+        std::lock_guard<std::mutex> guard(g_wave2Mutex);
+        sliders = SliderList(source);
+    }
+    for (void* slider : sliders) windows.push_back({static_cast<CPaneDivider*>(slider)->m_hWnd});
+    auto moved = std::make_unique<S_CPaneContainer>();
+    auto join = target ? std::make_unique<S_CPaneContainer>() : nullptr;
+    CPaneDivider* sash = nullptr;
+    if (join) {
+        const RECT initial{0, 0, kPaneDividerThickness, kPaneDividerThickness};
+        sash = static_cast<CPaneDivider*>(
+            impl__CreatePaneDivider_CPaneContainerManager__IEAAPEAVCPaneDivider__VCRect__KH_Z(
+                destination, &initial, horizontal ? kSliderStyleHorz : kSliderStyleVert, -1));
+        if (!sash) return false;
+    }
+
+    RECT sourceBounds{};
+    ::GetClientRect(from->m_hWnd, &sourceBounds);
+    if (!ReparentTreeWindows(windows, from->m_hWnd, to->m_hWnd)) {
+        if (sash) sash->DestroyWindow();
+        return false;
+    }
+
+    if (from != to) ReconcileSliderIDs(sliders, to->m_hWnd);
+    for (void* slider : sliders) static_cast<CPaneDivider*>(slider)->m_dividerData.pContainerManager = destination;
+
+    auto* attached = moved.get();
+    impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
+        attached, destination, nullptr, nullptr, nullptr);
+    if (join) {
+        impl___0CPaneContainer__QEAA_PEAVCPaneContainerManager__PEAVCDockablePane__1PEAVCPaneDivider___Z(
+            join.get(), destination, nullptr, nullptr, nullptr);
+    }
+    const auto attachLeaf = [&](bool first, void* pane) {
+        SetLeaf(*src, first, nullptr);
+        SetLeaf(*attached, first, pane);
+    };
+    attachLeaf(true, src->m_pLeftPane);
+    attachLeaf(false, src->m_pRightPane);
+    attached->m_pLeftPaneContainer = std::exchange(src->m_pLeftPaneContainer, nullptr);
+    attached->m_pRightPaneContainer = std::exchange(src->m_pRightPaneContainer, nullptr);
+    attached->m_pSlider = std::exchange(src->m_pSlider, nullptr);
+    attached->m_bDividerHorz = src->m_bDividerHorz;
+    attached->m_nPercent = src->m_nPercent;
+    attached->m_nField60 = src->m_nField60;
+    for (auto* child : {attached->m_pLeftPaneContainer, attached->m_pRightPaneContainer})
+        if (child) child->m_pParentContainer = attached;
+    ChangeTreeManager(*attached, destination);
+
+    auto* divider = Field<CPaneDivider*>(destination, kOffDefaultSlider);
+    auto* oldDivider = Field<CPaneDivider*>(source, kOffDefaultSlider);
+    {
+        std::lock_guard<std::mutex> guard(g_wave2Mutex);
+        OwnedSplitNodes().insert(attached);
+        moved.release();
+        if (join) OwnedSplitNodes().insert(join.get());
+        g_containerManagerPanes[source].panes.clear();
+        if (oldDivider) g_dividerPanes[oldDivider].panes.clear();
+        auto& receiving = SliderList(destination);
+        receiving.insert(receiving.end(), sliders.begin(), sliders.end());
+        SliderList(source).clear();
+    }
+
+    if (join) {
+        SetLeaf(*parent, leading != FALSE, nullptr);
+        auto* split = join.release();
+        split->m_pSlider = sash;
+        split->m_bDividerHorz = horizontal;
+        split->m_nField60 = horizontal ? kSliderStyleHorz : kSliderStyleVert;
+        SetLeaf(*split, !incomingFirst, target);
+        (incomingFirst ? split->m_pLeftPaneContainer : split->m_pRightPaneContainer) = attached;
+        attached->m_pParentContainer = split;
+        attached = split;
+    }
+    attached->m_pParentContainer = parent;
+    (leading ? parent->m_pLeftPaneContainer : parent->m_pRightPaneContainer) = attached;
+    if (::IsRectEmpty(&dest->m_rect74) && parent == dest) dest->m_rect74 = bounds;
+
+    {
+        std::lock_guard<std::mutex> guard(g_wave2Mutex);
+        auto insert = [&](PaneState& state) {
+            auto position = std::find(state.panes.begin(), state.panes.end(), target);
+            if (position != state.panes.end() && !incomingFirst) ++position;
+            state.panes.insert(position, panes.begin(), panes.end());
+        };
+        insert(g_containerManagerPanes[destination]);
+        if (divider) insert(g_dividerPanes[divider]);
+    }
+    for (auto* pane : panes) AdoptTransferredPane(*pane, *to, from, divider);
+    if (oldDivider) ::ShowWindow(oldDivider->m_hWnd, SW_HIDE);
+    if (from->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
+        ::PostMessageW(from->m_hWnd, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
+
+    if (divider) {
+        CGlobalUtils utils;
+        auto* manager = utils.GetDockingManager(to);
+        if (manager && !target) {
+            const DWORD side = divider->GetPaneAlignment();
+            const LONG size = (side == kCbrsAlignLeft || side == kCbrsAlignRight)
+                ? sourceBounds.right - sourceBounds.left : sourceBounds.bottom - sourceBounds.top;
+            RegisterFrameEdgeDivider(*manager, *divider, (std::max)(1L, size), outerEdge, nullptr);
+        }
+        RefreshDividerPanes(divider);
+        if (manager) manager->RecalcLayout();
+    } else {
+        impl__Resize_CPaneContainer__UEAAXVCRect__AEAPEAXH_Z(attached, &bounds, nullptr, TRUE);
+    }
+    return true;
+}
+}
+
 // Symbol: ?AddPaneContainerManager@CPaneContainerManager@@UEAAHAEAV1@H@Z
-// STUB. Retail entry RVA 0xa82e0 (mfc140.dll), body 0xa82e0..0xa853e with the
-// throw tail at 0xa853f. The shipping afxpanecontainermanager.h declares it
-// `BOOL AddPaneContainerManager(CPaneContainerManager& srcManager, BOOL bOuterEdge)`.
-// What it actually does (an earlier revision of this comment said it builds two
-// temporary CObLists on the stack -- it does not; it clears and reuses its own
-// two member lists):
-//
-//   if (m_pRootContainer == NULL) AfxThrowInvalidArgException();   // 0xa8313
-//   if (!m_pRootContainer->IsEmpty()) return FALSE;                // 0xa8319
-//   CDockingManager* pMgr = afxGlobalUtils.GetDockingManager(m_pDockSite); // 0x6ccc0
-//   if (pMgr == NULL) return FALSE;
-//   m_lstControlBars.RemoveAll();  m_lstSliders.RemoveAll();       // 0xa834f/0xa835b
-//   srcManager.AddPanesToList(&m_lstControlBars, &m_lstSliders);   // 0xa8369
-//   srcManager.RemoveAllPanesAndPaneDividers();                    // 0xa8371
-//   CPaneContainer* pCopy =
-//       srcManager.m_pRootContainer->Copy(m_pRootContainer);       // vtable +0xb0
-//   m_pRootContainer->m_pLeftPaneContainer = pCopy;                // +0x20
-//   if (pCopy != NULL) pCopy->m_pParentContainer = m_pRootContainer;  // +0x30
-//   pCopy->SetPaneContainerManager(this, TRUE);                    // 0xa7c00
-//   afxGlobalUtils.SetNewParent(m_lstControlBars, m_pDockSite, TRUE);  // 0x6cef0
-//   afxGlobalUtils.SetNewParent(m_lstSliders,     m_pDockSite, TRUE);
-//   for (each o in m_lstControlBars) {                             // 0xa83dd
-//       CDockablePane* p = DYNAMIC_DOWNCAST(CDockablePane, o);
-//       CRect r; ::GetWindowRect(p->m_hWnd, &r);
-//       CWnd::FromHandle(::GetParent(p->m_hWnd))->ScreenToClient(&r);  // r discarded
-//   }
-//   for (each o in m_lstSliders) o->m_pContainerManager = this;    // +0x208
-//   for (each o in m_lstControlBars) {                             // 0xa8458
-//       CDockablePane* p = DYNAMIC_DOWNCAST(CDockablePane, o);
-//       p->SetDefaultPaneDivider(m_pDefaultSlider->m_hWnd);        // 0x455f0
-//       p->{vtable +0x3d0}(m_pDefaultSlider->GetCurrentAlignment());  // vt +0x338
-//       pMgr->AddPane(p, bOuterEdge == 0, FALSE, bOuterEdge);      // 0x476b0
-//       p->EnableGripper(TRUE);                                    // vtable +0x3f0
-//   }
-//   m_pRootContainer->CheckPaneDividerVisibility();  m_pRootContainer->CalculateRecentSize();
-//   return TRUE;
-//
-// Left a stub: ?Copy@CPaneContainer@@ (the vtable +0xb0 target, 0xa7ca0) is a
-// stub in docking/CPaneContainer.cpp -- it returns NULL, so the clone this merge
-// exists to produce is never made. (?SetPaneContainerManager@CPaneContainer@@ is
-// implemented there now; an earlier revision of this comment called it a stub
-// too.) ?SetNewParent@CGlobalUtils@@ and
-// ?AddPane@CDockingManager@@ are not reachable from here, and CDockablePane
-// vtable +0x3d0 is not identified -- so the copy that is the whole point of the
-// merge cannot be made.
 extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHAEAV1_H_Z(
     void* pThis, void* pSrcManager, int bOuterEdge) {
-    (void)pThis; (void)pSrcManager; (void)bOuterEdge;
-    // STUB: the required CPaneContainer::Copy export is still a documented stub.
-    return 0;
+    return TransferPaneTree(pThis, pSrcManager, nullptr, 0, bOuterEdge != FALSE);
 }
 
 // Symbol: ?AddPaneContainerManager@CPaneContainerManager@@UEAAHPEAVCDockablePane@@KAEAV1@H@Z
-// STUB. Retail entry RVA 0xa8550 (mfc140.dll); the body runs to the `ret` at
-// 0xa88d9 by way of the early `ret` at 0xa8639. (An earlier revision of this
-// comment said 401 instructions; that is how many disas.py prints before the
-// next known export, not this function's length.) The shipping header declares
-// `BOOL AddPaneContainerManager(CDockablePane* pTargetControlBar, DWORD dwAlignment,
-//                               CPaneContainerManager& srcManager, BOOL bCopy)`.
-// Unlike the two-argument overload this one really does build two CObLists on
-// the stack (their vftable, 0x180328538, is stored at 0xa8580/0xa85a4), fills
-// them with srcManager.AddPanesToList (0xa85c5), then locates the target with
-// this->FindPaneContainer (vtable +0x128, 0xa85e2) and a walk of
-// m_lstControlBars; when either lookup fails it empties both stack lists and
-// returns at 0xa8639. The success path runs the same
-// SetPaneContainerManager / RemoveAllPanesAndPaneDividers / SetNewParent
-// sequence as the two-argument overload, calls AddPaneAndPaneContainer
-// (0xa9770), splices the moved panes in with CObList InsertBefore (0x230630),
-// InsertAfter (0x230690) and AddTail (0x230490), then ::RedrawWindow's the dock
-// site and finishes with CheckPaneDividerVisibility and CalculateRecentSize.
-// Left a stub for the same reasons as the overload above, plus
-// AddPaneAndPaneContainer, which is itself a stub in this file.
 extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(
-    void* pThis, void* pTargetControlBar, unsigned long dwAlignment,
-    void* pSrcManager, int bCopy) {
-    (void)pThis; (void)pTargetControlBar; (void)dwAlignment; (void)pSrcManager; (void)bCopy;
-    // STUB: this merge depends on CPaneContainer::Copy and AddPaneAndPaneContainer, both unavailable.
-    return 0;
+    void* pThis, void* pTargetControlBar, unsigned long dwAlignment, void* pSrcManager, int) {
+    return pTargetControlBar && TransferPaneTree(pThis, pSrcManager,
+        static_cast<CDockablePane*>(pTargetControlBar), dwAlignment & kCbrsAlignAny, false);
 }
 
 // Symbol: ?AddPaneContainerManagerToDockablePane@CPaneContainerManager@@UEAAHPEAVCDockablePane@@AEAV1@@Z
@@ -2295,6 +2454,11 @@ extern "C" int MS_ABI impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockabl
     }
     if (node && !pBarNew) CollapseSplit(node);
     return TRUE;
+}
+
+bool openmfc::detail::DetachContainerPane(void* manager, CDockablePane& pane) {
+    return ContainerHasPane(manager, &pane) &&
+        impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockablePane__0_Z(manager, &pane, nullptr);
 }
 
 void openmfc::detail::AttachDividerPane(CPaneDivider* divider, CDockablePane* pane) {

@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/PaneContainerLayout.h"
+#include "detail/MultiPaneFrameSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/CMFCAutoHideButtonSupport.h"
 #include "detail/FeaturePackDockSite.h"
@@ -1656,38 +1657,57 @@ extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPan
     return group.release();
 }
 
-// STUB. Retail entry RVA 0x44540 (mfc140u; 0x44390 in mfc140), fully decoded
-// (%r9d, the AFX_DOCK_METHOD, is never read):
-//     if (m_hDefaultSlider == NULL || !::IsWindow(m_hDefaultSlider)) return FALSE;   // +0x4c0
-//     CObList lst;                                                    // stack, vftable 0x328538
-//     barContainerManager.AddPanesToList(&lst, NULL);                 // RVA 0xaa960
-//     for (POSITION pos = lst.GetHeadPosition(); pos != NULL; ) {
-//         CDockablePane* pPane = DYNAMIC_DOWNCAST(CDockablePane, lst.GetNext(pos));   // RTC 0x3aa178
-//         InsertPane(pPane, this, TRUE);                              // CBasePane::InsertPane, RVA 0xbc50
-//         pPane->SetDefaultPaneDivider(m_hDefaultSlider);             // RVA 0x455f0, pPane unchecked
-//         pPane->SetPaneAlignment(GetCurrentAlignment());             // pane slot 0x3d0 <- this slot 0x338
-//     }
-//     CPaneDivider* pSlider = GetDefaultPaneDivider();                // RVA 0x45cd0
-//     if (pSlider == NULL) return FALSE;                              // (after lst's dtor, RVA 0x83d0)
-//     return pSlider->AddPaneContainer(this, barContainerManager, dwAlignment);   // divider slot 0x520
-// Left a stub. The CObList walk itself is not the blocker: AddPanesToList is
-// implemented over the docking manager's side-state graph, and this unit can
-// traverse the list. The terminal CBasePane::InsertPane export is still a stub;
-// CPaneDivider::AddPaneContainer has a side-state body, but its downstream
-// CPaneContainerManager::AddPaneContainerManager export is still a placeholder.
-// In addition, GetDefaultPaneDivider() cannot return this build's compact
-// CPaneDivider object, so the final divider operation is unavailable. A partial
-// list walk would still perform per-pane divider/alignment side effects without
-// completing the container dock; m_hDefaultSlider itself is in DockablePaneExtra.
-// Signature corrected: the generated 16-parameter list was garbage.
+void openmfc::detail::AdoptTransferredPane(
+    CDockablePane& pane, CWnd& host, CWnd* previous, CPaneDivider* divider) {
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(&host);
+    const bool floating = host.IsKindOf(RUNTIME_CLASS(CPaneFrameWnd));
+    const bool visible = (::GetWindowLongPtrW(pane.m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0;
+    impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(&pane, divider ? divider->m_hWnd : nullptr);
+    if (floating) {
+        if (previous && previous != &host && previous->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
+            static_cast<CPaneFrameWnd*>(previous)->RemovePane(&pane);
+        static_cast<CPaneFrameWnd&>(host).CPaneFrameWnd::AddPane(&pane);
+        pane.m_dwStyle |= CBRS_FLOATING;
+        pane.m_bRecentFloatingState = TRUE;
+        pane.m_recentDockInfo.m_layout.m_hRecentMiniFrame = host.m_hWnd;
+    } else {
+        pane.ReleaseFloatingFrame();
+        pane.m_pDockSite = reinterpret_cast<CDockSite*>(&host);
+        const DWORD alignment = divider ? divider->GetPaneAlignment() : pane.GetPaneAlignment();
+        pane.m_dwStyle = (pane.m_dwStyle & ~(CBRS_FLOATING | CBRS_ALIGN_ANY)) | alignment;
+        pane.SetPaneAlignment(alignment);
+        impl__EnableGripper_CDockablePane__UEAAXH_Z(&pane, TRUE);
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[&pane];
+        state.parent = &host;
+        state.visible = visible;
+        state.tabbed = FALSE;
+        state.tabWindow = nullptr;
+        state.floatingFrame = floating ? host.m_hWnd : nullptr;
+    }
+    if (manager) {
+        manager->DockPane(&pane);
+        auto& state = EnsureDockingState(manager);
+        if (floating) state.floatingPanes.insert(&pane);
+        if (!visible) state.hiddenPanes.insert(&pane);
+    }
+}
+
+extern "C" int MS_ABI impl__AddPaneContainer_CPaneDivider__UEAAHPEAVCDockablePane__AEAVCPaneContainerManager__K_Z(
+    void*, void*, void*, unsigned long);
+extern "C" int MS_ABI impl__InsertPane_CPaneContainerManager__UEAAHPEAVCDockablePane__0KPEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+    void*, void*, void*, unsigned long, const RECT*, int);
+
 // Symbol: ?DockPaneContainer@CDockablePane@@UEAAHAEAVCPaneContainerManager@@KW4AFX_DOCK_METHOD@@@Z
 extern "C" int MS_ABI impl__DockPaneContainer_CDockablePane__UEAAHAEAVCPaneContainerManager__KW4AFX_DOCK_METHOD___Z(
-    CDockablePane* pThis, void* pBarContainerManager, unsigned long dwAlignment, int dockMethod) {
-    (void)pThis;
-    (void)pBarContainerManager;
-    (void)dwAlignment;
-    (void)dockMethod;
-    return 0;
+    CDockablePane* pane, void* manager, unsigned long alignment, int) {
+    auto* divider = pane ? impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(pane) : nullptr;
+    return divider && manager && !pane->IsAutoHideMode() &&
+        impl__AddPaneContainer_CPaneDivider__UEAAHPEAVCDockablePane__AEAVCPaneContainerManager__K_Z(
+            divider, pane, manager, alignment);
 }
 
 extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT___Z(
@@ -1731,7 +1751,19 @@ extern "C" int MS_ABI impl__DockToWindow_CDockablePane__UEAAHPEAV1_KPEBUtagRECT_
     if (!pane || !target || !pane->m_hWnd || pane->IsAutoHideMode() || !pane->CanBeDocked()) return FALSE;
     auto* divider = static_cast<CPaneDivider*>(
         impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(target));
-    if (!divider || divider->m_dividerData.bAutoHideMode) return FALSE;
+    if (!divider) {
+        auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(target->m_hWnd)));
+        auto* previous = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(pane->m_hWnd)));
+        if (!parent || !parent->IsKindOf(CMultiPaneFrameWnd::GetThisClass()) || !previous ||
+            previous == parent || !previous->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))) return FALSE;
+        auto* mini = static_cast<CMultiPaneFrameWnd*>(parent);
+        if (!impl__InsertPane_CPaneContainerManager__UEAAHPEAVCDockablePane__0KPEBUtagRECT__W4AFX_DOCK_METHOD___Z(
+                mini->GetContainerManager(), pane, target, alignment, bounds, 0)) return FALSE;
+        openmfc::detail::AdoptTransferredPane(*pane, *mini, previous, nullptr);
+        mini->AdjustLayout();
+        return TRUE;
+    }
+    if (divider->m_dividerData.bAutoHideMode) return FALSE;
     auto* owner = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(divider->m_hWnd)));
     if (!owner || !owner->m_hWnd) return FALSE;
     auto* oldGroup = static_cast<CBaseTabbedPane*>(

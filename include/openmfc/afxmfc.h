@@ -1611,6 +1611,7 @@ public:
 protected:
     char _paneFrameState[0x170]{};
 
+    void DestroyPaneFrameWindow();
     void PostNcDestroy() override;
     DECLARE_MESSAGE_MAP()
 

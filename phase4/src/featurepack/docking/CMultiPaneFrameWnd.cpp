@@ -9,77 +9,10 @@
 // Every RVA quoted is a FUNCTION ENTRY unless the text says otherwise.
 //
 // ---------------------------------------------------------------------------
-// Retail CMultiPaneFrameWnd instance layout
-//
-// CMultiPaneFrameWnd has no declaration in include/openmfc/, so this
-// translation unit models the retail object directly, the way
-// docking/CPaneContainerManager.cpp does for its class.  The retail
-// constructor ??0CMultiPaneFrameWnd@@QEAA@XZ (entry RVA 0x92450) is:
-//
-//     CPaneFrameWnd::CPaneFrameWnd();                       // call 0xad6d0
-//     vfptr = &CMultiPaneFrameWnd::vftable;                 // .rdata 0x2ee738
-//     CPaneContainerManager::CPaneContainerManager(          // call 0xa80b0
-//         (CPaneContainerManager*)((char*)this + 0x258));   //   m_barContainerManager
-//     m_hWndLastFocused /*+0x2f8*/ = NULL;
-//     m_bHostsToolbar /*+0x104*/ = FALSE;   // CPaneFrameWnd's ctor stores 1 there
-//                                           // (0xad80d); not modelled -- see below
-//
-// so the object is
-//
-//   +0x000  CPaneFrameWnd sub-object (retail sizeof 0x258 -- docking/
-//           RuntimeClasses.cpp records 600 for CPaneFrameWnd)
-//   +0x258  CPaneContainerManager m_barContainerManager   (sizeof 0xa0, see
-//           the layout comment at the top of docking/CPaneContainerManager.cpp)
-//   +0x2f8  HWND m_hWndLastFocused
-//   sizeof == 0x300
-//
-// sizeof is not a guess: ?CreateObject@CMultiPaneFrameWnd@@SAPEAVCObject@@XZ
-// (entry RVA 0x923d0) does `mov $0x300,%ecx; call operator new` before running
-// the constructor, the deleting destructor at 0x924a0 frees 0x300 bytes, and
-// the CRuntimeClass at .data 0x3aa2f8 ("CMultiPaneFrameWnd") records
-// m_nObjectSize 0x300 (docking/RuntimeClasses.cpp records the same 768).
-//
-// The derived fields use their retail offsets in the 0x300-byte allocation.
-//
-// Retail CPaneFrameWnd member names used in this file follow the shipping
-// atlmfc afxpaneframewnd.h member order laid over the constructor's stores
-// (0xad6d0): m_bHostsToolbar 0x104, m_bDelayShow 0x108, m_nCaptionHeight 0x114,
-// m_nRestoredEmbeddedBarID 0x128, m_hParentWnd 0x130, m_hEmbeddedBar 0x148,
-// m_rectRecentFloatingRect 0x150, m_dragFrameImpl 0x1c8 (its m_bDockToTab at
-// +0x30 == 0x1f8 and m_pFinalTargetBar at +0x40 == 0x208), m_pDockManager 0x248.
-//
-// The base occupies the retail 0x258 bytes. Fields mentioned above are
-// accessed through the CPaneFrameWnd exports and their side tables.
-//
-// The embedded manager has no retail vtable here (OpenMFC's
-// ??0CPaneContainerManager@@ zero-fills the object and sets no vfptr), so every
-// `m_barContainerManager.<virtual>()` in the retail bodies is dispatched
-// statically to the CPaneContainerManager export.  Likewise this class's own
-// virtuals (OnSetRollUpTimer, OnPaneRecalcLayout, CheckGripperVisibility, ...)
-// are called directly.  Both are deviations: an override in a further-derived
-// class is not reached.  Each body notes the slots it resolved this way.
-//
-// LIST REPRESENTATION.  Retail reaches m_barContainerManager.m_lstControlBars
-// two ways: (1) through CPaneContainerManager::AddPanesToList(&lst, NULL)
-// (0xaa960), which copies the entries that are CWnds carrying WS_VISIBLE into
-// a caller-owned CObList, and (2) by walking the raw CObList nodes (head
-// pointer at +0x268 == 0x258 + CObList m_pNodeHead +0x10; `node->pNext` at
-// +0, `node->data` at +0x10).  OpenMFC's CPaneContainerManager keeps that list
-// in a side table and never populates the raw node words (see the LIST
-// REPRESENTATION note in docking/CPaneContainerManager.cpp), and that side
-// table is reachable from another translation unit only through the
-// CPaneContainerManager exports.  So every walk below goes through (1): a
-// CObList built on the stack with the exported CObList constructor, filled by
-// the AddPanesToList export, and read through the exported FindIndex thunk plus
-// a node view (the pattern visualmanager/CMFCVisualManager.cpp and
-// docking/CDockSite.cpp use).  For the four bodies that retail walks the raw
-// list (AdjustPaneFrames, CanBeDockedToPane, LoadState, SaveState) that is a
-// DEVIATION -- panes without WS_VISIBLE are not visited -- and each of those
-// bodies says so.  Head-to-tail order is preserved either way.  The
-// `m_lstControlBars.m_nCount == 0` tests are the exported IsEmpty (0xaa8e0 is
-// exactly that compare).
-//
-// ---------------------------------------------------------------------------
+// The native window wrapper uses the retail 0x300-byte allocation. It embeds
+// the pane container manager after the 0x258-byte CPaneFrameWnd base. The
+// container manager owns the split tree and supplies the pane enumeration.
+
 // Retail CMultiPaneFrameWnd vftable (.rdata 0x2ee738 in mfc140.dll, the address
 // the constructor stores at +0).  Slots the bodies below dispatch through:
 //   0x0d0 CWnd::DestroyWindow              0x340 OnDockToRecentPos
@@ -113,13 +46,17 @@
 
 #define OPENMFC_APPCORE_IMPL
 
-#include "detail/CbarcoreSupport.h"
+#include "detail/PaneContainerLayout.h"
+#include "detail/MultiPaneFrameSupport.h"
+#include "detail/MfccoreSupport.h"
+#include "detail/Pane16MsgmapSupport.h"
 #include "detail/CPaneFrameWndSupport.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
+#include <new>
 #include <vector>
 
 // ---------------------------------------------------------------------------
@@ -295,23 +232,19 @@ extern "C" void  MS_ABI impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(voi
 extern "C" void  MS_ABI impl__OnShowPane_CMultiPaneFrameWnd__UEAAXPEAVCDockablePane__H_Z(void* pThis, void* pBar, int bShow);
 extern "C" void  MS_ABI impl__CheckGripperVisibility_CMultiPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnDockToRecentPos_CMultiPaneFrameWnd__UEAAXXZ(void* pThis);
+extern "C" void MS_ABI impl__CloseMiniFrame_CMultiPaneFrameWnd__UEAAXXZ(void*);
+extern "C" int MS_ABI impl__OnCreate_CMultiPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(void*, CREATESTRUCTW*);
 extern "C" void* MS_ABI impl___0CMultiPaneFrameWnd__QEAA_XZ(void* pThis);
 
 namespace {
 
-constexpr size_t kOffContainerManager     = 0x258;   // CPaneContainerManager m_barContainerManager
-constexpr size_t kOffLastFocused          = 0x2f8;   // HWND m_hWndLastFocused
-constexpr size_t kSizeCMultiPaneFrameWnd  = 0x300;
-constexpr size_t kSizeCPaneContainerManager = 0xa0;  // pinned in docking/CPaneContainerManager.cpp
+static_assert(sizeof(CPaneFrameWnd) == 0x258, "embedded manager follows the retail base");
+static_assert(offsetof(CMultiPaneFrameWnd, m_hWndLastFocused) == 0x2f8, "multi-frame last-focused HWND");
+static_assert(sizeof(CMultiPaneFrameWnd) == 0x300, "multi-frame retail size");
 // Manager-relative offset of CPaneContainerManager::m_pRootContainer, the same
 // 0x78 docking/CPaneContainerManager.cpp pins; the retail bodies below read it
 // as `0x2d0(%rcx)` == 0x258 + 0x78.
 constexpr size_t kOffMgrRootContainer     = 0x78;
-static_assert(kOffContainerManager + kSizeCPaneContainerManager == kOffLastFocused,
-              "m_hWndLastFocused follows the embedded manager");
-static_assert(kOffLastFocused + sizeof(HWND) == kSizeCMultiPaneFrameWnd, "CMultiPaneFrameWnd tail");
-static_assert(sizeof(CPaneFrameWnd) <= kSizeCMultiPaneFrameWnd,
-              "OpenMFC's CPaneFrameWnd must fit inside the retail-sized allocation");
 // CPane::m_recentDockInfo (+0x2b8) is a CRecentDockSiteInfo whose retail layout
 // is the CObject vfptr at +0 followed by CRect m_rectRecentFloatingRect at +8
 // (its first data member in the shipping afxrecentdocksiteinfo.h; retail pane
@@ -342,10 +275,10 @@ static_assert(kSwpResize == 0x16, "SWP immediate");
 constexpr int kDockMethodDblClick = 2;
 
 inline void* Mgr(void* pThis) {
-    return static_cast<char*>(pThis) + kOffContainerManager;
+    return static_cast<CMultiPaneFrameWnd*>(pThis)->GetContainerManager();
 }
 inline HWND& LastFocused(void* pThis) {
-    return *reinterpret_cast<HWND*>(static_cast<char*>(pThis) + kOffLastFocused);
+    return static_cast<CMultiPaneFrameWnd*>(pThis)->m_hWndLastFocused;
 }
 inline void* MgrRootContainer(void* pThis) {
     return *reinterpret_cast<void**>(static_cast<char*>(Mgr(pThis)) + kOffMgrRootContainer);
@@ -514,135 +447,104 @@ CWnd* GrandParentWnd(HWND hwnd) {
 
 }  // namespace
 
+CMultiPaneFrameWnd::CMultiPaneFrameWnd() {
+    impl___0CPaneContainerManager__QEAA_XZ(GetContainerManager());
+}
+
+CMultiPaneFrameWnd::~CMultiPaneFrameWnd() {
+    DestroyPaneFrameWindow();
+    impl___1CPaneContainerManager__UEAA_XZ(GetContainerManager());
+}
+
+CRuntimeClass* AFXAPI CMultiPaneFrameWnd::GetThisClass() {
+    static CRuntimeClass type = {"CMultiPaneFrameWnd", sizeof(CMultiPaneFrameWnd), 0x80000002,
+        []() -> CObject* { return new CMultiPaneFrameWnd; }, &CPaneFrameWnd::GetThisClass, nullptr, nullptr};
+    return &type;
+}
+
+CRuntimeClass* CMultiPaneFrameWnd::GetRuntimeClass() const { return GetThisClass(); }
+
+const AFX_MSGMAP* CMultiPaneFrameWnd::GetMessageMap() const {
+    return &openmfc::detail::pane16msgmap::classCMultiPaneFrameWnd_msgmap;
+}
+
+void CMultiPaneFrameWnd::AddPane(CBasePane* pane) {
+    if (!AsDockable(pane) || !ManagerIsEmpty(this)) return;
+    impl__AddPane_CPaneContainerManager__UEAAXPEAVCDockablePane___Z(GetContainerManager(), pane);
+    CPaneFrameWnd::AddPane(pane);
+    AdjustLayout();
+}
+
+void CMultiPaneFrameWnd::RemovePane(CBasePane* pane, BOOL destroy) {
+    if (auto* dockable = AsDockable(pane)) openmfc::detail::DetachContainerPane(GetContainerManager(), *dockable);
+    CPaneFrameWnd::RemovePane(pane, destroy && ManagerIsEmpty(this));
+    AdjustLayout();
+}
+
+CWnd* CMultiPaneFrameWnd::GetPane() const {
+    return static_cast<CWnd*>(impl__GetFirstPane_CPaneContainerManager__UEBAPEAVCBasePane__XZ(
+        const_cast<void*>(GetContainerManager())));
+}
+
+CWnd* CMultiPaneFrameWnd::GetFirstVisiblePane() const {
+    return static_cast<CWnd*>(impl__GetFirstVisiblePane_CPaneContainerManager__UEBAPEAVCWnd__XZ(
+        const_cast<void*>(GetContainerManager())));
+}
+
+void CMultiPaneFrameWnd::AdjustLayout() {
+    RECT bounds{};
+    if (!::GetClientRect(m_hWnd, &bounds)) return;
+    void* batch = ::BeginDeferWindowPos(8);
+    impl__ResizePaneContainers_CPaneContainerManager__UEAAXVCRect__AEAPEAX_Z(GetContainerManager(), &bounds, &batch);
+    if (batch) ::EndDeferWindowPos(static_cast<HDWP>(batch));
+}
+
+int CMultiPaneFrameWnd::OnCreate(CREATESTRUCTW* create) {
+    return impl__OnCreate_CMultiPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(this, create);
+}
+
+void CMultiPaneFrameWnd::OnClose() {
+    impl__CloseMiniFrame_CMultiPaneFrameWnd__UEAAXXZ(this);
+}
+
+void CMultiPaneFrameWnd::OnSize(UINT type, int, int) {
+    Default();
+    if (type != SIZE_MINIMIZED) AdjustLayout();
+}
+
+LRESULT CMultiPaneFrameWnd::OnCaptionDoubleClick(WPARAM hit, LPARAM) {
+    if (hit != HTCAPTION) return Default();
+    impl__OnDockToRecentPos_CMultiPaneFrameWnd__UEAAXXZ(this);
+    return 0;
+}
+
+// Symbol: ?GetThisClass@CMultiPaneFrameWnd@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ() {
+    return CMultiPaneFrameWnd::GetThisClass();
+}
+// Symbol: ?GetRuntimeClass@CMultiPaneFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMultiPaneFrameWnd__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMultiPaneFrameWnd::GetThisClass();
+}
 // Symbol: ??0CMultiPaneFrameWnd@@QEAA@XZ
-// Decoded from retail entry RVA 0x92450 -- see the layout comment at the top of
-// this file for the instruction-by-instruction reading.  The base constructor
-// thunk placement-news OpenMFC's CPaneFrameWnd (docking/Thunks.cpp:1138), the
-// embedded manager is then constructed at +0x258 and m_hWndLastFocused zeroed.
-// Deviations: (1) no vfptr is stored -- this DLL has no retail-shaped
-// CMultiPaneFrameWnd vtable; the vfptr the base placement-new installed stays
-// (see the family note at the top of docking/CPaneFrameWnd.cpp); (2) the store
-// of FALSE to CPaneFrameWnd::m_bHostsToolbar (+0x104 by the shipping
-// afxpaneframewnd.h member order; CPaneFrameWnd::AddPane, 0xaf330, reads and
-// writes it) is NOT made: +0x104 of OpenMFC's CPaneFrameWnd is inside the live
-// CWnd/CFrameWnd sub-object, and the flag has no side-table counterpart;
-// (3) the g_multiFramePanes entry the pre-existing side-table bodies
-// (GetCaptionText) read is still created.
 extern "C" void* MS_ABI impl___0CMultiPaneFrameWnd__QEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return pThis;
-    impl___0CPaneFrameWnd__QEAA_XZ(pThis);
-    impl___0CPaneContainerManager__QEAA_XZ(Mgr(pThis));
-    LastFocused(pThis) = nullptr;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    g_multiFramePanes[pThis] = {};
-    return pThis;
+    return pThis ? ::new (pThis) CMultiPaneFrameWnd : nullptr;
 }
 // Symbol: ??1CMultiPaneFrameWnd@@UEAA@XZ
-// Decoded from retail entry RVA 0x924f0:
-//     vfptr = &CMultiPaneFrameWnd::vftable;
-//     m_barContainerManager.~CPaneContainerManager();       // call 0xa8180
-//     CPaneFrameWnd::~CPaneFrameWnd();                      // tail jump 0xad890
-// The vfptr store is not made (see the constructor).  The side-table entry is
-// dropped first so no thunk called during base destruction re-creates it.
 extern "C" void* MS_ABI impl___1CMultiPaneFrameWnd__UEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return pThis;
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        g_multiFramePanes.erase(pThis);
-    }
-    impl___1CPaneContainerManager__UEAA_XZ(Mgr(pThis));
-    impl___1CPaneFrameWnd__UEAA_XZ(pThis);
+    if (pThis) static_cast<CMultiPaneFrameWnd*>(pThis)->CMultiPaneFrameWnd::~CMultiPaneFrameWnd();
     return pThis;
 }
 // Symbol: ?AddPane@CMultiPaneFrameWnd@@UEAAXPEAVCBasePane@@@Z
-// Decoded from retail entry RVA 0x928c0 (mfc140u; vtable +0x300):
-//     CDockablePane* p = DYNAMIC_DOWNCAST(CDockablePane, pWnd);       // RTC 0x3aa178
-//     if (m_barContainerManager.m_lstControlBars.m_nCount == 0) {     // cmpq $0,0x20(mgr)
-//         m_barContainerManager.AddPane(p);                           // mgr slot 0x48
-//         CPaneFrameWnd::AddPane(pWnd);                               // call 0xaf330
-//     }
-//     OnSetRollUpTimer();                                             // tail, slot 0x3f8
-// The count test is the IsEmpty export (ManagerIsEmpty).  The pre-existing
-// g_multiFramePanes bookkeeping is kept for GetCaptionText.
-// NOTE: docking/CPaneContainerManager.cpp's AddPane only records the pane in
-// its side table; retail's (0xa82c0) also stores it into
-// m_pRootContainer->m_pLeftPane, so after this call the root container still
-// reads as empty in this build -- see OnCheckEmptyState.
-extern "C" void MS_ABI impl__AddPane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane) {
-    if (pThis == nullptr) return;
-    void* pDockable = AsDockable(pPane);
-    if (ManagerIsEmpty(pThis)) {
-        impl__AddPane_CPaneContainerManager__UEAAXPEAVCDockablePane___Z(Mgr(pThis), pDockable);
-        impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(pThis, pPane);
-    }
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        AddUniquePane(g_multiFramePanes[pThis], pPane);
-    }
-    impl__OnSetRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+extern "C" void MS_ABI impl__AddPane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pane) {
+    if (pThis) static_cast<CMultiPaneFrameWnd*>(pThis)->AddPane(static_cast<CBasePane*>(pane));
 }
 // Symbol: ?RemovePane@CMultiPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
-// Decoded from retail vtable +0x308, entry RVA 0x92cf0 (mfc140u; the third argument, %r9d, is never read):
-//     if (pWnd->IsKindOf(RUNTIME_CLASS(CDockablePane))) {            // 0x233310, RTC 0x3aa178
-//         m_barContainerManager.RemovePaneFromPaneContainer(pWnd);  // mgr slot 0x78
-//         if (m_barContainerManager.m_lstControlBars.m_nCount != 0) // cmpq $0,0x278(this)
-//             CPaneFrameWnd::ReplacePane(pWnd,                      // call 0xaf880
-//                 m_barContainerManager.GetFirstPane());            // mgr slot 0xf0
-//         else {
-//             CPaneFrameWnd::RemovePane(pWnd, FALSE, FALSE);        // call 0xaf680
-//             if (CWnd::FromHandlePermanent(m_hEmbeddedBar /*0x148*/) == NULL) {
-//                 CBasePane* p = m_barContainerManager.GetFirstPane();
-//                 m_hEmbeddedBar = p ? p->m_hWnd : NULL;
-//             }
-//         }
-//     }
-//     if (bDestroy && m_barContainerManager.m_lstControlBars.m_nCount == 0)  // slot 0x350
-//         ::PostMessage(m_hWnd, AFX_WM_CHECKEMPTYMINIFRAME, 0, 0);  // import 0x2c52d8
-//     else {
-//         CheckGripperVisibility();                                 // slot 0x320
-//         OnPaneRecalcLayout();                                     // slot 0x3a8
-//         ::SendMessage(m_hWnd, WM_NCPAINT /*0x85*/, 0, 0);         // import 0x2c5378
-//     }
-//     OnKillRollUpTimer();                                          // tail, slot 0x400
-// 0x148 has no member here; docking/CPaneFrameWnd.cpp models it as the
-// g_framePanes list, whose GetPane export (0xaf900 is exactly
-// `FromHandlePermanent(m_hEmbeddedBar)`) stands in for the read and whose AddPane
-// export stands in for the store (deviation: that export also clears the
-// side-table roll-up flag).  Further deviations: a NULL pWnd is skipped
-// (retail's IsKindOf would fault); the RemovePaneFromPaneContainer export is
-// still a placeholder (see its declaration), so the manager's list does not
-// shrink here and the "!= 0" branch is the one taken whenever the pane was
-// ever added; the pre-existing g_multiFramePanes entry is still removed for
-// GetCaptionText.
-extern "C" void MS_ABI impl__RemovePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int bDestroy, int) {
-    if (pThis == nullptr) return;
-    if (AsDockable(pPane) != nullptr) {
-        impl__RemovePaneFromPaneContainer_CPaneContainerManager__UEAAHPEAVCDockablePane___Z(Mgr(pThis), pPane);
-        if (!ManagerIsEmpty(pThis)) {
-            void* pFirst = impl__GetFirstPane_CPaneContainerManager__UEBAPEAVCBasePane__XZ(Mgr(pThis));
-            impl__ReplacePane_CPaneFrameWnd__UEAAXPEAVCBasePane__0_Z(pThis, pPane, pFirst);
-        } else {
-            impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(pThis, pPane, FALSE, FALSE);
-            if (impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(pThis) == nullptr) {
-                void* pFirst = impl__GetFirstPane_CPaneContainerManager__UEBAPEAVCBasePane__XZ(Mgr(pThis));
-                if (pFirst != nullptr) impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(pThis, pFirst);
-            }
-        }
-    }
-    {
-        std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        RemovePane(g_multiFramePanes[pThis], pPane);
-    }
-    HWND hwnd = FrameHwnd(pThis);
-    if (bDestroy && ManagerIsEmpty(pThis)) {
-        if (hwnd) ::PostMessage(hwnd, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
-    } else {
-        impl__CheckGripperVisibility_CMultiPaneFrameWnd__UEAAXXZ(pThis);
-        impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(pThis);
-        if (hwnd) ::SendMessage(hwnd, WM_NCPAINT, 0, 0);
-    }
-    impl__OnKillRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(pThis);
+extern "C" void MS_ABI impl__RemovePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(
+    void* pThis, void* pane, int destroy, int) {
+    if (pThis) static_cast<CMultiPaneFrameWnd*>(pThis)->RemovePane(static_cast<CBasePane*>(pane), destroy);
 }
+
 // Symbol: ?GetPane@CMultiPaneFrameWnd@@UEBAPEAVCWnd@@XZ
 // Decoded from retail entry RVA 0x94ce0:
 //     CWnd* p = CWnd::FromHandlePermanent(m_hEmbeddedBar /*0x148*/);   // 0x2891d0
@@ -653,19 +555,14 @@ extern "C" void MS_ABI impl__RemovePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane__
 // The first step is exactly the CPaneFrameWnd::GetPane export (0xaf900 is
 // `mov 0x148(%rcx),%rcx; jmp FromHandlePermanent`), so it is called for it.
 extern "C" void* MS_ABI impl__GetPane_CMultiPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThis) {
-    if (pThis == nullptr) return nullptr;
-    void* p = impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(pThis);
-    if (p != nullptr) return p;
-    p = impl__GetFirstVisiblePane_CPaneContainerManager__UEBAPEAVCWnd__XZ(Mgr(pThis));
-    if (p != nullptr) return p;
-    return impl__GetFirstPane_CPaneContainerManager__UEBAPEAVCBasePane__XZ(Mgr(pThis));
+    return pThis ? static_cast<CMultiPaneFrameWnd*>(pThis)->GetPane() : nullptr;
 }
 // Symbol: ?GetCaptionText@CMultiPaneFrameWnd@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 extern "C" void MS_ABI impl__GetCaptionText_CMultiPaneFrameWnd__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
     CString* pRet, void* pThis) {
     if (!pRet) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    pRet->Format(L"Pane group (%d)", static_cast<int>(g_multiFramePanes[pThis].panes.size()));
+    pRet->Format(L"Pane group (%d)", static_cast<int>(
+        openmfc::detail::ContainerPanes(Mgr(pThis)).size()));
 }
 // Symbol: ?CalcExpectedDockedRect@CMultiPaneFrameWnd@@UEAAXPEAVCWnd@@VCPoint@@AEAVCRect@@AEAHPEAPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__CalcExpectedDockedRect_CMultiPaneFrameWnd__UEAAXPEAVCWnd__VCPoint__AEAVCRect__AEAHPEAPEAVCDockablePane___Z(
@@ -829,11 +726,17 @@ extern "C" void MS_ABI impl__CheckGripperVisibility_CMultiPaneFrameWnd__UEAAXXZ(
 // Static dispatch on both slots.
 // Signature corrected: the generated list dropped `this`.
 extern "C" void MS_ABI impl__CloseMiniFrame_CMultiPaneFrameWnd__UEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    if (impl__OnCloseMiniFrame_CPaneFrameWnd__MEAAHXZ(pThis)) {
-        impl__ShowWindow_CWnd__QEAAHH_Z(AsWnd(pThis), SW_HIDE);
-        impl__HideAll_CPaneContainerManager__UEAAXXZ(Mgr(pThis));
+    if (!pThis || !impl__OnCloseMiniFrame_CPaneFrameWnd__MEAAHXZ(pThis)) return;
+    auto* frame = static_cast<CMultiPaneFrameWnd*>(pThis);
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(frame);
+    if (manager) {
+        for (auto* pane : openmfc::detail::ContainerPanes(frame->GetContainerManager()))
+            manager->HidePane(pane);
+    } else {
+        impl__HideAll_CPaneContainerManager__UEAAXXZ(frame->GetContainerManager());
     }
+    ::ShowWindow(frame->m_hWnd, SW_HIDE);
 }
 
 // Symbol: ?ConvertToTabbedDocument@CMultiPaneFrameWnd@@UEAAXXZ
@@ -865,49 +768,69 @@ extern "C" void MS_ABI impl__ConvertToTabbedDocument_CMultiPaneFrameWnd__UEAAXXZ
 }
 
 // Symbol: ?CreateObject@CMultiPaneFrameWnd@@SAPEAVCObject@@XZ
-// Decoded from retail entry RVA 0x923d0:
-//     void* p = operator new(0x300);          // call 0x2840 (??2@YAPEAX_K@Z)
-//     if (p) CMultiPaneFrameWnd::CMultiPaneFrameWnd(p);   // call 0x92450
-//     return p;
-// The same exported operator new is used.  The allocation is zero-filled first
-// (retail leaves it uninitialised) because the OpenMFC base constructor does not
-// write every retail CPaneFrameWnd offset that later bodies in this family may
-// read.
 extern "C" void* MS_ABI impl__CreateObject_CMultiPaneFrameWnd__SAPEAVCObject__XZ() {
-    void* p = impl___2_YAPEAX_K_Z(kSizeCMultiPaneFrameWnd);
-    if (p == nullptr) return nullptr;
-    std::memset(p, 0, kSizeCMultiPaneFrameWnd);
-    impl___0CMultiPaneFrameWnd__QEAA_XZ(p);
-    return p;
+    return CMultiPaneFrameWnd::GetThisClass()->CreateObject();
+}
+
+extern "C" int impl__m_nDockSensitivity_CDockingManager__2HA;
+extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(
+    void*, void*, unsigned long, void*, int);
+extern "C" int MS_ABI impl__AddPaneContainer_CPaneDivider__UEAAHAEAVCPaneContainerManager__H_Z(void*, void*, int);
+extern "C" int MS_ABI impl__DockPaneContainer_CDockablePane__UEAAHAEAVCPaneContainerManager__KW4AFX_DOCK_METHOD___Z(
+    CDockablePane*, void*, unsigned long, int);
+extern "C" CPaneDivider* MS_ABI impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
+    DWORD, CWnd*, CRuntimeClass*);
+
+namespace {
+CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMultiPaneFrameWnd* receiver) {
+    auto* first = AsDockable(source.GetFirstVisiblePane());
+    if (!first) return nullptr;
+    CGlobalUtils utils;
+    auto* manager = utils.GetDockingManager(&source);
+    const auto* state = FindDockingState(manager);
+    if (!state || !state->parentFrame) return nullptr;
+    DWORD allowed = CBRS_ALIGN_ANY;
+    for (auto* pane : openmfc::detail::ContainerPanes(source.GetContainerManager()))
+        allowed &= pane->m_dwEnabledAlignment;
+    const auto drop = DockingTarget(manager, point, impl__m_nDockSensitivity_CDockingManager__2HA, allowed, first, first);
+    if (drop.change != DelayDock || !drop.alignment) return nullptr;
+    if (drop.pane) {
+        auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(drop.pane->m_hWnd)));
+        if (parent == &source || (receiver && receiver != parent)) return nullptr;
+        if (parent && parent->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
+            auto* mini = static_cast<CMultiPaneFrameWnd*>(parent);
+            if (impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(
+                    mini->GetContainerManager(), drop.pane, drop.alignment, source.GetContainerManager(), TRUE)) return first;
+        } else if (impl__DockPaneContainer_CDockablePane__UEAAHAEAVCPaneContainerManager__KW4AFX_DOCK_METHOD___Z(
+                       drop.pane, source.GetContainerManager(), drop.alignment, 5)) return first;
+        return nullptr;
+    }
+    if (receiver) return nullptr;
+    auto* divider = impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
+        drop.alignment, state->parentFrame, nullptr);
+    if (!divider) return nullptr;
+    if (impl__AddPaneContainer_CPaneDivider__UEAAHAEAVCPaneContainerManager__H_Z(
+            divider, source.GetContainerManager(), drop.outerEdge)) return first;
+    divider->DestroyWindow();
+    return nullptr;
+}
+}
+
+CDockablePane* openmfc::detail::DockMultiPaneFrameAtPoint(CMultiPaneFrameWnd& frame, CPoint point, BOOL& docked) {
+    auto* pane = DropMultiPaneFrame(frame, point, nullptr);
+    docked = pane != nullptr;
+    return pane;
 }
 
 // Symbol: ?DockFrame@CMultiPaneFrameWnd@@UEAAHPEAVCPaneFrameWnd@@W4AFX_DOCK_METHOD@@@Z
-// STUB.  Retail entry RVA 0x91fb0 (mfc140u).  After requiring pDockedFrame to
-// be a CMultiPaneFrameWnd (RTC 0x3aa2f8) whose GetFirstVisiblePane (slot 0x368)
-// is a CBasePane (RTC 0x2da490) passing the unexported CBasePane virtual at
-// slot 0x340, it: for DM_MOUSE (1) / DM_STANDARD (5) asks
-// CGlobalUtils::GetPaneAndAlignFromPoint (entry RVA 0x6d6c0, mfc140u) for the
-// target pane and alignment at the cursor; then either merges the other frame's
-// manager into this one through AddPaneContainerManagerToDockablePane (mgr slot
-// 0x40) -- after possibly re-targeting through a CBaseTabbedPane virtual
-// (+0x7b0) -- or AddPaneContainerManager (mgr slot 0x30); posts
-// AFX_WM_CHECKEMPTYMINIFRAME to the other frame, re-applies its 0x150
-// rectangle, calls OnPaneRecalcLayout, for DM_MOUSE re-enters drag mode on the
-// target pane (slot 0x638) or synthesises WM_LBUTTONDOWN, and ends in
-// OnSetRollUpTimer.  Not reproduced: both AddPaneContainerManager exports are
-// stubs in docking/CPaneContainerManager.cpp (their required pane-container
-// creation/merge operations are unavailable); the slots 0x340/0x7b0 are
-// unexported. GetPaneAndAlignFromPoint is implemented in
-// core/runtime/CGlobalUtils.cpp:575; it is not the missing infrastructure.
-// Signature corrected: the generated 15-parameter list was garbage.
 extern "C" int MS_ABI impl__DockFrame_CMultiPaneFrameWnd__UEAAHPEAVCPaneFrameWnd__W4AFX_DOCK_METHOD___Z(
     void* pThis, void* pDockedFrame, int dockMethod) {
-    (void)pThis;
-    (void)pDockedFrame;
-    (void)dockMethod;
-    // Still stubbed: the merge needs manager-merge exports that are themselves
-    // stubs, plus unexported virtual slots; TRUE is retail's "nothing was docked" value.
-    return TRUE;
+    auto* source = static_cast<CPaneFrameWnd*>(pDockedFrame);
+    POINT cursor{};
+    if (!pThis || !source || !source->IsKindOf(CMultiPaneFrameWnd::GetThisClass()) ||
+        pThis == pDockedFrame || (dockMethod != 1 && dockMethod != 5) || !::GetCursorPos(&cursor)) return TRUE;
+    return DropMultiPaneFrame(*static_cast<CMultiPaneFrameWnd*>(source), CPoint(cursor),
+        static_cast<CMultiPaneFrameWnd*>(pThis)) == nullptr;
 }
 
 // Symbol: ?DockPane@CMultiPaneFrameWnd@@UEAAHPEAVCDockablePane@@@Z
@@ -1106,50 +1029,16 @@ extern "C" __int64 MS_ABI impl__OnCheckEmptyState_CMultiPaneFrameWnd__IEAA_J_K_J
 extern "C" int MS_ABI impl__OnCreate_CMultiPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(void* pThis, CREATESTRUCTW* lpCreateStruct) {
     if (pThis == nullptr) return -1;
     if (impl__OnCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(pThis, lpCreateStruct) == -1) return -1;
-    impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPaneDivider__PEAUCRuntimeClass___Z(Mgr(pThis), pThis, nullptr, nullptr);
-    return 0;
+    return impl__Create_CPaneContainerManager__UEAAHPEAVCWnd__PEAVCPaneDivider__PEAUCRuntimeClass___Z(
+        Mgr(pThis), pThis, nullptr, nullptr) ? 0 : -1;
 }
 
 // Symbol: ?OnDockToRecentPos@CMultiPaneFrameWnd@@UEAAXXZ
-// Decoded from retail entry RVA 0x940f0 (mfc140u; vtable +0x340):
-//     CDockingManager* pDM = m_pDockManager /*0x248*/;
-//     if (!pDM) pDM = afxGlobalUtils.GetDockingManager(this);        // call 0x6ccc0
-//     CObList lst;  m_barContainerManager.AddPanesToList(&lst, NULL); // call 0xaa960
-//     for (each entry) DYNAMIC_DOWNCAST(CDockablePane, entry)->StoreRecentDockSiteInfo();   // pane slot 0x648
-//     for (each entry) {
-//         CDockablePane* p = DYNAMIC_DOWNCAST(CDockablePane, entry);
-//         CPaneFrameWnd::AddRemovePaneFromGlobalList(p, FALSE);      // call 0xaf740
-//         p->DockPane(p, NULL, DM_DBL_CLICK /*2*/);                  // pane slot 0x400
-//     }
-//     afxGlobalUtils.ForceAdjustLayout(pDM, FALSE, FALSE);           // call 0x6d800
-//     ::PostMessage(m_hWnd, AFX_WM_CHECKEMPTYMINIFRAME, 0, 0);       // import 0x2c52d8
-// Deviations: the 0x248 member is not modelled in OpenMFC's CPaneFrameWnd, so
-// the docking manager always comes from afxGlobalUtils.GetDockingManager(this)
-// (retail's fallback); NULL downcasts are skipped rather than faulted on;
-// static dispatch (slot 0x400 is ?DockPane@CPane@@, 0xa04b0); ForceAdjustLayout
-// is a generated placeholder (see its declaration) so that call is a no-op.
-// Signature corrected: the generated list dropped `this`.
 extern "C" void MS_ABI impl__OnDockToRecentPos_CMultiPaneFrameWnd__UEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    CGlobalUtils* pUtils = reinterpret_cast<CGlobalUtils*>(impl__afxGlobalUtils__3VCGlobalUtils__A);
-    CDockingManager* pDM = impl__GetDockingManager_CGlobalUtils__QEAAPEAVCDockingManager__PEAVCWnd___Z(pUtils, AsWnd(pThis));
-    {
-        VisiblePaneList lst(pThis);
-        for (ObNode* n = lst.First(); n != nullptr; n = n->pNext) {
-            CDockablePane* p = AsDockable(n->data);
-            if (p != nullptr) impl__StoreRecentDockSiteInfo_CDockablePane__MEAAXXZ(p);
-        }
-        for (ObNode* n = lst.First(); n != nullptr; n = n->pNext) {
-            CDockablePane* p = AsDockable(n->data);
-            if (p == nullptr) continue;
-            impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(p, FALSE);
-            impl__DockPane_CPane__UEAAHPEAVCBasePane__PEBUtagRECT__W4AFX_DOCK_METHOD___Z(
-                static_cast<CPane*>(p), static_cast<CBasePane*>(p), nullptr, kDockMethodDblClick);
-        }
+    if (!pThis) return;
+    for (auto* pane : openmfc::detail::ContainerPanes(Mgr(pThis))) {
+        if (pane && (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE)) pane->DockToRecentPosition();
     }
-    impl__ForceAdjustLayout_CGlobalUtils__QEAAXPEAVCDockingManager__HH_Z(pUtils, pDM, FALSE, FALSE);
-    HWND hwnd = FrameHwnd(pThis);
-    if (hwnd) ::PostMessage(hwnd, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
 }
 
 // Symbol: ?OnGetMinMaxInfo@CMultiPaneFrameWnd@@IEAAXPEAUtagMINMAXINFO@@@Z
@@ -1375,13 +1264,8 @@ extern "C" void MS_ABI impl__OnShowPane_CMultiPaneFrameWnd__UEAAXPEAVCDockablePa
 //     ::SendMessage(m_hWnd, WM_NCPAINT /*0x85*/, 0, 0);    // tail, import 0x2c5378
 // Static dispatch on slot 0x3a8.
 // Signature corrected: the generated list dropped `this`.
-extern "C" void MS_ABI impl__OnSize_CMultiPaneFrameWnd__IEAAXIHH_Z(void* pThis, unsigned int, int, int) {
-    if (pThis == nullptr) return;
-    impl__Default_CWnd__IEAA_JXZ(AsWnd(pThis));
-    impl__OnPaneRecalcLayout_CMultiPaneFrameWnd__UEAAXXZ(pThis);
-    impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
-    HWND hwnd = FrameHwnd(pThis);
-    if (hwnd) ::SendMessage(hwnd, WM_NCPAINT, 0, 0);
+extern "C" void MS_ABI impl__OnSize_CMultiPaneFrameWnd__IEAAXIHH_Z(void* pThis, unsigned int type, int cx, int cy) {
+    if (pThis) static_cast<CMultiPaneFrameWnd*>(pThis)->OnSize(type, cx, cy);
 }
 
 // Symbol: ?OnSizing@CMultiPaneFrameWnd@@IEAAXIPEAUtagRECT@@@Z

@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/PaneContainerLayout.h"
+#include "detail/MultiPaneFrameSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/FeaturePackDockSite.h"
 
@@ -823,6 +824,8 @@ CDockingManager* PaneDockingManager(const CPane& pane, CFrameWnd*& owner) {
 
 CPaneFrameWnd* CreatePaneFrame(CPane& pane, CFrameWnd* owner, CDockingManager* manager, const RECT& rect) {
     auto* type = pane.m_pMiniFrameRTC;
+    if (type == RUNTIME_CLASS(CPaneFrameWnd) && (pane.m_dwStyle & CBRS_FLOAT_MULTI) &&
+        pane.IsKindOf(RUNTIME_CLASS(CDockablePane))) type = CMultiPaneFrameWnd::GetThisClass();
     if (!owner || !owner->m_hWnd || !manager || !type || !type->IsDerivedFrom(RUNTIME_CLASS(CPaneFrameWnd)))
         return nullptr;
     std::unique_ptr<CPaneFrameWnd> frame(static_cast<CPaneFrameWnd*>(type->CreateObject()));
@@ -1019,7 +1022,12 @@ BOOL CPane::FloatPaneWindow(const RECT& requested, int method, bool show, CDocki
 BOOL CPane::DockToRecentPosition() {
     if (!m_hWnd) return FALSE;
     auto* mini = FloatingFrame(::GetParent(m_hWnd));
-    if (!mini || mini->GetPane() != this) return FALSE;
+    if (!mini) return FALSE;
+    if (mini->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
+        if (!IsKindOf(RUNTIME_CLASS(CDockablePane)) ||
+            !openmfc::detail::ContainerHasPane(static_cast<CMultiPaneFrameWnd*>(mini)->GetContainerManager(),
+                static_cast<CDockablePane*>(this))) return FALSE;
+    } else if (mini->GetPane() != this) return FALSE;
     std::optional<openmfc::docking_state::PaneFloatRestore> restore;
     {
         std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);

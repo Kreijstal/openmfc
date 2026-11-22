@@ -5,6 +5,7 @@
 
 #include "detail/MfccoreSupport.h"
 #include "detail/PaneContainerLayout.h"
+#include "detail/MultiPaneFrameSupport.h"
 #include "detail/CSmartDockingInfoSupport.h"
 #include "detail/FeaturePackDockSite.h"
 #include "detail/CMFCAutoHideButtonSupport.h"
@@ -771,7 +772,12 @@ extern "C" CBasePane* MS_ABI impl__PaneFromPoint_CDockingManager__UEBAPEAVCBaseP
     };
     auto* frame = static_cast<CPaneFrameWnd*>(
         impl__FrameFromPoint_CDockingManager__UEBAPEAVCPaneFrameWnd__VCPoint__PEAV2_H_Z(manager, point, ignoredFrame, FALSE));
-    if (frame) {
+    if (frame && frame->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
+        const auto* multi = static_cast<const CMultiPaneFrameWnd*>(frame);
+        for (auto* pane : openmfc::detail::ContainerPanes(multi->GetContainerManager())) {
+            if (matches(pane, 0)) return pane;
+        }
+    } else if (frame) {
         auto* pane = frame->GetPane();
         if (matches(pane, 0)) return static_cast<CBasePane*>(pane);
     }
@@ -1077,7 +1083,15 @@ void ShowDockingWindows(DockingManagerState& state, CBasePane* pane, int command
     if (!pane->m_hWnd) return;
     if (state.floatingPanes.count(pane)) {
         ::ShowWindow(pane->m_hWnd, command);
-        ::ShowWindow(::GetParent(pane->m_hWnd), command);
+        const HWND parent = ::GetParent(pane->m_hWnd);
+        auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(parent));
+        if (window && window->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
+            auto* multi = static_cast<CMultiPaneFrameWnd*>(window);
+            ::ShowWindow(parent, multi->GetFirstVisiblePane() ? SW_SHOWNOACTIVATE : SW_HIDE);
+            multi->AdjustLayout();
+        } else {
+            ::ShowWindow(parent, command);
+        }
     } else if (auto* divider = DockedPaneDivider(pane)) {
         ::ShowWindow(pane->m_hWnd, command);
         using namespace openmfc::detail;

@@ -1,5 +1,5 @@
 #include "Pane16MsgmapSupport.h"
-#include "openmfc/afxmfc.h"
+#include "detail/MultiPaneFrameSupport.h"
 
 extern "C" UINT impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
 
@@ -12,10 +12,20 @@ const AFX_MSGMAP* AFXAPI gbm_CPaneDivider() { return impl__GetThisMessageMap_CBa
 const AFX_MSGMAP* AFXAPI gbm_CPaneFrameWnd() { return impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ(); }
 const AFX_MSGMAP* AFXAPI gbm_CPaneTrackingWnd() { return impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ(); }
 const AFX_MSGMAP* AFXAPI gbm_CSmartDockingGroupGuidesWnd() { return impl__GetThisMessageMap_CWnd__KAPEBUAFX_MSGMAP__XZ(); }
-const AFX_MSGMAP classCMultiPaneFrameWnd_msgmap = { gbm_CMultiPaneFrameWnd, g_emptyMsgEntries_Pane16Msgmap };
+
 const AFX_MSGMAP classCPane_msgmap = { gbm_CPane, g_emptyMsgEntries_Pane16Msgmap };
 const AFX_MSGMAP classCPaneDialog_msgmap = { gbm_CPaneDialog, g_emptyMsgEntries_Pane16Msgmap };
 namespace {
+namespace multi_frame_map {
+using ThisClass = CMultiPaneFrameWnd;
+const AFX_MSGMAP_ENTRY entries[] = {
+    ON_WM_CREATE()
+    ON_WM_CLOSE()
+    ON_WM_SIZE()
+    OPENMFC_MAP_ENTRY(WM_NCLBUTTONDBLCLK, 0, 0, 0, AfxSig_l_w_l, &ThisClass::OnCaptionDoubleClick)
+    {0, 0, 0, 0, AfxSig_end, nullptr}
+};
+}
 namespace divider_map {
 using ThisClass = CPaneDivider;
 const AFX_MSGMAP_ENTRY dividerEntries[] = {
@@ -53,6 +63,7 @@ const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
 };
 }
 }
+const AFX_MSGMAP classCMultiPaneFrameWnd_msgmap = { gbm_CMultiPaneFrameWnd, multi_frame_map::entries };
 const AFX_MSGMAP classCPaneDivider_msgmap = { gbm_CPaneDivider, divider_map::dividerEntries };
 const AFX_MSGMAP classCPaneFrameWnd_msgmap = { gbm_CPaneFrameWnd, frame_map::paneFrameEntries };
 const AFX_MSGMAP classCPaneTrackingWnd_msgmap = { gbm_CPaneTrackingWnd, g_emptyMsgEntries_Pane16Msgmap };

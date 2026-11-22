@@ -79,7 +79,6 @@ DT_DESC(CDockablePaneAdapter, 1280, 0x80000002, &CDockablePane::classCDockablePa
 #define FRAMES_DOCS_PREVIEW_DESC(Cls, Size, Schema, BaseDesc) \
     static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
-FRAMES_DOCS_PREVIEW_DESC(CMultiPaneFrameWnd, 768, 0x80000002, &CPaneFrameWnd::classCPaneFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleCntrFrameWndEx, 1352, 0xFFFF, &CFrameWnd::classCFrameWnd);
 FRAMES_DOCS_PREVIEW_DESC(COleDBRecordView, 360, 0xFFFF, &CFormView::classCFormView);
 FRAMES_DOCS_PREVIEW_DESC(COlePropertyPage, 512, 0xFFFF, &CDialog::classCDialog);
@@ -222,11 +221,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CTabbedPane__UEBAPEAUCRun
 #define FRAMES_DOCS_PREVIEW_GETTERS(Cls, GetThisSym, GetRtSym) \
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
-// Symbol: ?GetThisClass@CMultiPaneFrameWnd@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetRuntimeClass@CMultiPaneFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
-FRAMES_DOCS_PREVIEW_GETTERS(CMultiPaneFrameWnd,
-           impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMultiPaneFrameWnd__UEBAPEAUCRuntimeClass__XZ)
 // Symbol: ?GetThisClass@CSmartDockingGroupGuidesManager@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CSmartDockingGroupGuidesManager@@UEBAPEAUCRuntimeClass@@XZ
 FRAMES_DOCS_PREVIEW_GETTERS(CSmartDockingGroupGuidesManager,

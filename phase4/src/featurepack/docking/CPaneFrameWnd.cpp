@@ -3,6 +3,8 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/MultiPaneFrameSupport.h"
+#include "detail/PaneContainerLayout.h"
 #include "detail/CbarcoreSupport.h"
 #include "detail/CPaneFrameWndSupport.h"
 #include "detail/MfccoreSupport.h"
@@ -835,12 +837,16 @@ extern "C" void MS_ABI impl__OnLButtonUp_CPaneFrameWnd__IEAAXIVCPoint___Z(
 }
 CPaneFrameWnd::CPaneFrameWnd() = default;
 
-CPaneFrameWnd::~CPaneFrameWnd() {
+void CPaneFrameWnd::DestroyPaneFrameWindow() {
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         if (auto* state = FindStatePtr(this)) state->destroyWithWindow = false;
     }
     if (m_hWnd) DestroyWindow();
+}
+
+CPaneFrameWnd::~CPaneFrameWnd() {
+    DestroyPaneFrameWindow();
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         const auto it = g_other6State.find(this);
@@ -1166,7 +1172,13 @@ CDockablePane* DropFramePane(CPaneFrameWnd* frame, BOOL& docked) {
     if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CDockablePane)) || ::GetKeyState(VK_CONTROL) < 0)
         return nullptr;
     POINT point{};
-    return ::GetCursorPos(&point) ? DockPaneAtPoint(*static_cast<CDockablePane*>(pane), point, docked) : nullptr;
+    if (!::GetCursorPos(&point)) return nullptr;
+    if (frame->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
+        auto* multi = static_cast<CMultiPaneFrameWnd*>(frame);
+        if (openmfc::detail::ContainerPanes(multi->GetContainerManager()).size() > 1)
+            return openmfc::detail::DockMultiPaneFrameAtPoint(*multi, CPoint(point), docked);
+    }
+    return DockPaneAtPoint(*static_cast<CDockablePane*>(pane), point, docked);
 }
 }
 

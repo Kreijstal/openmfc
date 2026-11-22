@@ -89,5 +89,8 @@ bool ReserveDividerPane(CPaneDivider& divider, CDockablePane& pane, const RECT& 
 CPaneDivider* ReservedPaneDivider(CPane& pane);
 void ForgetDividerPane(CPane& pane);
 void TransferDividerPane(CPane& previous, CPane& replacement);
+std::vector<CDockablePane*> ContainerPanes(const void* manager);
+bool ContainerHasPane(const void* manager, const CDockablePane* pane);
+bool DetachContainerPane(void* manager, CDockablePane& pane);
 
 } // namespace openmfc::detail
