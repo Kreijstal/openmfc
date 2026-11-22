@@ -114,7 +114,7 @@ class CImageList;
 // CMiniFrameWnd — needed by CMFCPopupMenu, CPaneFrameWnd (must be defined before use)
 class CMiniFrameWnd : public CFrameWnd {
     DECLARE_DYNAMIC(CMiniFrameWnd)
-public: CMiniFrameWnd(); virtual ~CMiniFrameWnd(); protected: char _pad[32]; };
+public: CMiniFrameWnd(); virtual ~CMiniFrameWnd(); protected: char _pad[24]; };
 
 // AFX_IDW_RIBBON_BAR — needed before CMFCRibbonBar::Create default arg
 #ifndef AFX_IDW_RIBBON_BAR

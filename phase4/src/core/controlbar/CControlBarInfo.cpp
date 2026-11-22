@@ -1,9 +1,11 @@
 #define OPENMFC_APPCORE_IMPL
-#include "detail/CControlBarInfoSupport.h"
+#include "detail/DockStateSupport.h"
 #include "detail/AppProfile.h"
+#include <cstdlib>
 #include <cwchar>
 #include <new>
 
+extern "C" void* impl___2_YAPEAX_K_Z(size_t);
 extern "C" CWinApp* impl__AfxGetApp__YAPEAVCWinApp__XZ();
 extern "C" DWORD impl__GetVersion_CDockState__QEAAKXZ(void* state);
 extern "C" void impl__ScalePoint_CDockState__QEAAXAEAVCPoint___Z(void* state, POINT* point);
@@ -28,6 +30,20 @@ void ClipFloatingBar(POINT& point) {
 // Symbol: ??0CControlBarInfo@@QEAA@XZ
 extern "C" void* impl___0CControlBarInfo__QEAA_XZ(void* storage) {
     return ::new (storage) S_Ccontrolbarinfo;
+}
+
+namespace openmfc::detail::dock {
+S_Ccontrolbarinfo* NewBarInfo() {
+    void* memory = impl___2_YAPEAX_K_Z(sizeof(S_Ccontrolbarinfo));
+    return memory ? ::new (memory) S_Ccontrolbarinfo : nullptr;
+}
+
+void DeleteBarInfo(S_Ccontrolbarinfo* info) {
+    if (info) {
+        info->~S_Ccontrolbarinfo();
+        std::free(info);
+    }
+}
 }
 
 // Symbol: ?Serialize@CControlBarInfo@@QEAAXAEAVCArchive@@PEAVCDockState@@@Z

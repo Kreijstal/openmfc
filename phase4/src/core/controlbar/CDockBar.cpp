@@ -32,39 +32,16 @@
 //   sizeof 0x190 -- the m_nObjectSize (400) core/controlbar/RuntimeClasses.cpp
 //   records for the class.
 //
-// m_arrBars.  Retail manipulates it through the exported CPtrArray methods
-// (SetAtGrow 0x1d4910, InsertAt 0x1d4960, RemoveAt 0x1d4a60) and reads
-// m_pData / m_nSize directly (every GetDockedControlBar / FindBar / operator[]
-// site below is such a direct read).  OpenMFC's CPtrArray (afx.h
-// OPENMFC_DECLARE_ARRAY_WRAPPER) keeps its elements in a side table keyed by
-// the object address and never touches +0x158 / +0x160, so routing through
-// its impl__ thunks would leave the retail fields -- the ones MSVC clients
-// inline GetSize()/operator[] against -- permanently empty.  The bodies below
-// therefore keep the retail fields themselves, with the file-local helpers in
-// RetailArray reproducing CPtrArray::SetSize / SetAtGrow / InsertAt / RemoveAt
-// (MFC array_p.cpp semantics: grow-by heuristic max(4, min(1024, size/8)),
-// zero-fill on growth, memmove on insert/remove).  The buffer is allocated and
-// freed only inside this DLL (the constructor's Add(NULL), the destructor's
-// free), so the allocator is consistent.  DEVIATION: the CPtrArray vfptr at
-// +0x150 is stored as nullptr, not the retail vftable (no MSVC-layout vtable
-// exists for it here -- the same choice featurepack/ribbon/CMFCRibbonInfo.cpp
-// makes for embedded CArrays), and a client that calls the exported
-// CPtrArray::SetSize/SetAtGrow on m_arrBars itself would update the side table
-// rather than these fields.
-//
-// vtable pointer.  The retail constructor and destructor store the CDockBar
-// vftable (0x180321dc8, mfc140u) at +0.  There is no C++ CDockBar class in
-// OpenMFC, so the object keeps the CControlBar (mingw) vtable the base
-// constructor thunk installs; nothing in this file dispatches through it.
-// Wherever retail calls through a vtable slot the bodies call the target's
-// impl__ thunk directly (marked "vslot NN"), as CControlBar.cpp does; a
-// client-derived override of such a slot is therefore not honoured.
-//
+// RetailArray owns the embedded buffer at +0x158. The CDockBar class installs
+// its runtime class and handles owned-window destruction. The classic dock
+// helpers call their named control-bar operations directly.
+
 // Placeholders.  m_arrBars elements are CControlBar* for docked bars, NULL for
 // a row separator, and small integers (<= 0xffff, a bar's dialog-control ID)
 // for a "place holder" that remembers where a hidden bar used to sit.  Retail
 // tests `cmp $0xffff` to tell the two apart; so does this file.
 
+#include "detail/FrameLifetimeSupport.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
 #include "detail/CControlBarInfoSupport.h"
 #include <cstddef>
@@ -451,64 +428,71 @@ inline void RemoveAtAndCollapseRow(void* pThis, INT_PTR nPos) {
 
 } // namespace
 
-// Transcribed from retail RVA 0x1d8040 (mfc140u):
-//     CControlBar::CControlBar();                                  // 0x1d5ef0
-//     vfptr = &CDockBar::`vftable' (0x180321dc8);                  // not reproduced (file header)
-//     m_arrBars.vfptr = &CPtrArray::`vftable' (0x180321190);       // stored as nullptr (file header)
-//     m_arrBars.m_pData = m_nSize = m_nMaxSize = m_nGrowBy = 0;
-//     m_rectLayout = {0};
-//     m_bFloating = bFloating;                                     // +0x148
-//     m_bAutoDelete = TRUE;                                        // +0xf0
-//     m_arrBars.Add(NULL);   i.e. SetAtGrow(m_arrBars.m_nSize, NULL)   // 0x1d4910
-//     m_bLayoutQuery = FALSE;                                      // +0x178
-//     ::SetRectEmpty(&m_rectLayout);                               // IAT SetRectEmpty
-//     m_cyTopBorder = m_cyBottomBorder = 0;                        // one qword store at +0xfc
-//     m_cxLeftBorder = m_cxRightBorder = 0;                        // one qword store at +0xf4
-//     return this;
-// Symbol: ??0CDockBar@@QEAA@H@Z
-extern "C" void* MS_ABI impl___0CDockBar__QEAA_H_Z(void* pThis, int bFloating) {
-    if (pThis == nullptr) return nullptr;   // deviation: retail has no NULL check
-    impl___0CControlBar__IEAA_XZ(pThis);
-    DockBarTail& t = Tail(pThis);
-    t.m_arrBars_vfptr = nullptr;
-    t.m_arrBars_pData = nullptr;
-    t.m_arrBars_nSize = 0;
-    t.m_arrBars_nMaxSize = 0;
-    t.m_arrBars_nGrowBy = 0;
-    std::memset(&t.m_rectLayout, 0, sizeof(t.m_rectLayout));
-    t.m_bFloating = bFloating;
-    AsBar(pThis)->m_bAutoDelete = TRUE;
-    Bars(pThis).SetAtGrow(t.m_arrBars_nSize, nullptr);
-    t.m_bLayoutQuery = FALSE;
-    ::SetRectEmpty(&t.m_rectLayout);
-    AsBar(pThis)->m_cyTopBorder = 0;
-    AsBar(pThis)->m_cyBottomBorder = 0;
-    AsBar(pThis)->m_cxLeftBorder = 0;
-    AsBar(pThis)->m_cxRightBorder = 0;
-    return pThis;
-}
-// Transcribed from retail RVA 0x1d8130 (mfc140u):
-//     vfptr = &CDockBar::`vftable' (0x180321dc8);                  // not reproduced (file header)
-//     for (int i = 0; i < m_arrBars.m_nSize; i++) {
-//         CControlBar* pBar = GetDockedControlBar(i);              // 0x1d95f0
-//         if (pBar != NULL && pBar->m_pDockBar == this) pBar->m_pDockBar = NULL;   // +0x138
-//     }
-//     m_arrBars.~CPtrArray();   inlined: vfptr = &CPtrArray::`vftable'; free(m_pData)   // IAT free
-//     CControlBar::~CControlBar();                                 // tail jump 0x1d6100
-// Symbol: ??1CDockBar@@UEAA@XZ
-extern "C" void MS_ABI impl___1CDockBar__UEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return;   // deviation: retail has no NULL check
-    DockBarTail& t = Tail(pThis);
-    for (int i = 0; i < t.m_arrBars_nSize; i++) {
-        CControlBar* pBar = impl__GetDockedControlBar_CDockBar__IEBAPEAVCControlBar__H_Z(pThis, i);
-        if (pBar != nullptr && pBar->m_pDockBar == pThis) {
-            pBar->m_pDockBar = nullptr;
-        }
+extern "C" CRuntimeClass* impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();
+extern "C" void impl__PostNcDestroy_CControlBar__UEAAXXZ(CControlBar*);
+extern "C" void* impl___2_YAPEAX_K_Z(size_t);
+
+class CDockBar : public CControlBar {
+public:
+    explicit CDockBar(BOOL floating);
+    ~CDockBar() override;
+    CRuntimeClass* GetRuntimeClass() const override {
+        return impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();
     }
-    std::free(t.m_arrBars_pData);
-    t.m_arrBars_pData = nullptr;
-    impl___1CControlBar__UEAA_XZ(pThis);
+    void PostNcDestroy() override {
+        if (m_pDockSite) {
+            openmfc::detail::frame::UnregisterControlBar(static_cast<CFrameWnd*>(m_pDockSite), this);
+            m_pDockSite = nullptr;
+        }
+        impl__PostNcDestroy_CControlBar__UEAAXXZ(this);
+    }
+private:
+    DockBarTail tail{};
+};
+
+static_assert(sizeof(CDockBar) == kSizeofCDockBar);
+
+CDockBar::CDockBar(BOOL floating) {
+    tail.m_bFloating = floating;
+    m_bAutoDelete = TRUE;
+    Bars(this).SetAtGrow(0, nullptr);
 }
+
+CDockBar::~CDockBar() {
+    for (INT_PTR i = 0; i < tail.m_arrBars_nSize; ++i) {
+        auto* bar = impl__GetDockedControlBar_CDockBar__IEBAPEAVCControlBar__H_Z(this, static_cast<int>(i));
+        if (bar && bar->m_pDockBar == this) bar->m_pDockBar = nullptr;
+    }
+    std::free(tail.m_arrBars_pData);
+}
+
+// Symbol: ??0CDockBar@@QEAA@H@Z
+extern "C" void* MS_ABI impl___0CDockBar__QEAA_H_Z(void* self, int floating) {
+    return ::new (self) CDockBar(floating);
+}
+
+// Symbol: ??1CDockBar@@UEAA@XZ
+extern "C" void MS_ABI impl___1CDockBar__UEAA_XZ(void* self) {
+    if (self) static_cast<CDockBar*>(self)->CDockBar::~CDockBar();
+}
+
+namespace openmfc::detail::dock {
+CControlBar* NewDockBar() {
+    void* memory = impl___2_YAPEAX_K_Z(sizeof(CDockBar));
+    if (!memory) return nullptr;
+    try {
+        return ::new (memory) CDockBar(FALSE);
+    } catch (...) {
+        std::free(memory);
+        throw;
+    }
+}
+
+bool IsFloatingBar(const void* bar) {
+    return bar && Tail(bar).m_bFloating != FALSE;
+}
+}
+
 // Transcribed from retail RVA 0x1d8c20 (mfc140u; vslot 91):
 //     CSize sizeFixed = CControlBar::CalcFixedLayout(bStretch, bHorz);   // inlined; the retail base (0xac30) is exactly:
 //         sizeFixed.cx = (bStretch && bHorz) ? 32767 : 0;  sizeFixed.cy = (bStretch && !bHorz) ? 32767 : 0;
@@ -760,8 +744,16 @@ extern "C" int MS_ABI impl__Create_CDockBar__UEAAHPEAVCWnd__KI_Z(void* pThis, CW
     impl__AfxEndDeferRegisterClass__YAHJ_Z(kAFX_WNDCONTROLBAR_REG);
     RECT rect = {};
     ::SetRectEmpty(&rect);
-    return impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
-        AsWnd(pThis), nullptr, nullptr, static_cast<DWORD>(dwStyle), rect, pParentWnd, nID, nullptr);
+    if (!impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
+            AsWnd(pThis), nullptr, nullptr, static_cast<DWORD>(dwStyle), rect, pParentWnd, nID, nullptr))
+        return FALSE;
+    if (pParentWnd->IsFrameWnd()) {
+        auto* frame = static_cast<CFrameWnd*>(pParentWnd);
+        auto* bar = AsBar(pThis);
+        openmfc::detail::frame::RegisterControlBar(frame, bar);
+        bar->m_pDockSite = frame;
+    }
+    return TRUE;
 }
 
 // Transcribed from retail RVA 0x1d8330 (mfc140u):

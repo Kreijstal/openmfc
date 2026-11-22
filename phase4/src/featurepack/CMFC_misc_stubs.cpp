@@ -3021,10 +3021,7 @@ extern "C" void MS_ABI impl__ControlBarCleanUp__YAXXZ() {
     // not here; TRUE is passed so this call becomes correct the moment the
     // flag is honoured.
     //
-    // Not touched: detail/WincoreSupport.h's g_frameWndRuntimeStates /
-    // g_dockStateSnapshots / g_barStateStore are per-frame data keyed by a
-    // live CFrameWnd and are released by that frame's own teardown, not by a
-    // module-wide hook.
+
 }
 // Symbol: ?GetCmdMgr@@YAPEAVCCommandManager@@XZ
 extern "C" void* MS_ABI impl__GetCmdMgr__YAPEAVCCommandManager__XZ() {

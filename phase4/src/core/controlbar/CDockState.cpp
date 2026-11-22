@@ -38,7 +38,7 @@
 //                               retail CRuntimeClass (0x1803b18f8) has m_nObjectSize 0x60
 //
 #include "detail/ManualSmallStubImplementationsSupport.h"
-#include "detail/CControlBarInfoSupport.h"
+#include "detail/DockStateSupport.h"
 #include "detail/AppProfile.h"
 #include <cstddef>
 #include <cstdlib>
@@ -51,7 +51,6 @@
 // definition was located with grep before use.
 // ---------------------------------------------------------------------------
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CDockState__UEBAPEAUCRuntimeClass__XZ(const void* pThis); // core/controlbar/RuntimeClasses.cpp
-extern "C" void* MS_ABI impl___0CControlBarInfo__QEAA_XZ(void* pThis);                                      // core/controlbar/CControlBarInfo.cpp
 extern "C" void MS_ABI impl__Serialize_CControlBarInfo__QEAAXAEAVCArchive__PEAVCDockState___Z(
     void* pThis, void* ar, void* pDockState);                                                              // core/controlbar/CControlBarInfo.cpp
 extern "C" BOOL MS_ABI impl__LoadState_CControlBarInfo__QEAAHPEB_WHPEAVCDockState___Z(
@@ -71,30 +70,12 @@ extern "C" void MS_ABI impl__SetScreenSize_CDockState__QEAAXAEAVCSize___Z(void* 
 extern "C" void MS_ABI impl__Serialize_CDockState__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar);
 
 namespace {
+using namespace openmfc::detail::dock;
 
 // ---------------------------------------------------------------------------
 // Layout view (see the file header for where every offset comes from).
 // ---------------------------------------------------------------------------
-struct DockStateLayout {
-    void*    vfptr;               // 0x00
-    CPtrArray bars;               // 0x08
-    int      m_bScaling;          // 0x30
-    RECT     m_rectDevice;        // 0x34
-    RECT     m_rectClip;          // 0x44
-    SIZE     m_sizeLogical;       // 0x54
-    DWORD    m_dwVersion;         // 0x5c
-};
-static_assert(offsetof(DockStateLayout, bars) == 0x08, "CDockState::m_arrBarInfo");
-static_assert(offsetof(DockStateLayout, m_bScaling)    == 0x30, "CDockState::m_bScaling");
-static_assert(offsetof(DockStateLayout, m_rectDevice)  == 0x34, "CDockState::m_rectDevice");
-static_assert(offsetof(DockStateLayout, m_rectClip)    == 0x44, "CDockState::m_rectClip");
-static_assert(offsetof(DockStateLayout, m_sizeLogical) == 0x54, "CDockState::m_sizeLogical");
-static_assert(offsetof(DockStateLayout, m_dwVersion)   == 0x5c, "CDockState::m_dwVersion");
-static_assert(sizeof(DockStateLayout) == 0x60, "CDockState size (retail CreateObject allocates 0x60)");
-
 constexpr std::size_t kDockStateSize = 0x60;
-constexpr std::size_t kControlBarInfoSize = 0x78;   // retail `mov $0x78,%ecx` before operator new
-static_assert(sizeof(S_Ccontrolbarinfo) == kControlBarInfoSize, "CControlBarInfo size");
 
 inline DockStateLayout* DS(void* p) { return static_cast<DockStateLayout*>(p); }
 
@@ -111,23 +92,6 @@ inline SIZE DeviceSize(const DockStateLayout* s) {
 // fields (grow-by heuristic max(4, min(1024, size/8)), zero-fill on growth).  Mirrors
 // RetailArray in core/controlbar/CDockBar.cpp.
 // ---------------------------------------------------------------------------
-// `delete (CControlBarInfo*)p` as Clear and the destructor inline it: ~CControlBarInfo
-// runs ~CUIntArray on m_arrBarID (+0x48: retail stores the CUIntArray vftable there, then
-// free(m_pData at +0x50)), then operator delete(p, 0x78) -> ucrt free.  The vftable store
-// into memory about to be freed is not reproduced.
-void DeleteBarInfo(void* p) {
-    if (p == nullptr) return;
-    static_cast<S_Ccontrolbarinfo*>(p)->~S_Ccontrolbarinfo();
-    std::free(p);
-}
-
-// `new CControlBarInfo`: retail calls ??2@YAPEAX_K@Z (0x27f0) with 0x78 and runs the
-// constructor (0x21fb00) only when the allocation is non-null.
-void* NewBarInfo() {
-    void* p = impl___2_YAPEAX_K_Z(kControlBarInfoSize);
-    return p ? impl___0CControlBarInfo__QEAA_XZ(p) : nullptr;
-}
-
 // "%Ts-Summary" (string at 0x18034cd28), formatted by LoadState/SaveState into a 256-TCHAR
 // stack buffer through __stdio_common_vsnwprintf_s(buf, 0x100, 0xff, ...), i.e.
 // _sntprintf_s(buf, 256, 255, ...).  DEVIATION: retail wraps the call in ATL's
@@ -215,7 +179,6 @@ void* const kDockStateVtbl[5] = {
 //   m_rectClip.bottom  -= GetSystemMetrics(SM_CYSMCAPTION) + GetSystemMetrics(SM_CYICON)  (0x33, 0xc)
 // (IAT 0x1802c6bd8 -> USER32!GetSystemMetrics.)  Retail really stores the virtual-screen
 // WIDTH/HEIGHT as right/bottom, not left+width; that is transcribed as-is.
-// Drop any CFrameWnd snapshot left at this address by a previous object.
 extern "C" void* MS_ABI impl___0CDockState__QEAA_XZ(void* pThis) {
     auto* s = ::new (pThis) DockStateLayout;
     s->vfptr = const_cast<void**>(kDockStateVtbl);
@@ -233,7 +196,6 @@ extern "C" void* MS_ABI impl___0CDockState__QEAA_XZ(void* pThis) {
     s->m_rectClip.right   -= ::GetSystemMetrics(SM_CXICON);
     const int cySmCaption  = ::GetSystemMetrics(SM_CYSMCAPTION);
     s->m_rectClip.bottom  -= cySmCaption + ::GetSystemMetrics(SM_CYICON);
-    OpenMfcResetDockState(pThis);
     return pThis;
 }
 
@@ -248,10 +210,9 @@ extern "C" void MS_ABI impl___1CDockState__UEAA_XZ(void* pThis) {
     DockStateLayout* s = DS(pThis);
     s->vfptr = const_cast<void**>(kDockStateVtbl);
     for (INT_PTR i = 0; i < s->bars.GetSize(); ++i) {
-        DeleteBarInfo(s->bars[i]);
+        DeleteBarInfo(static_cast<S_Ccontrolbarinfo*>(s->bars[i]));
     }
     s->~DockStateLayout();
-    OpenMfcResetDockState(pThis);
 }
 
 // Symbol: ?Clear@CDockState@@QEAAXXZ
@@ -263,7 +224,7 @@ extern "C" void MS_ABI impl___1CDockState__UEAA_XZ(void* pThis) {
 extern "C" void MS_ABI impl__Clear_CDockState__QEAAXXZ(void* pThis) {
     DockStateLayout* s = DS(pThis);
     for (INT_PTR i = 0; i < s->bars.GetSize(); ++i) {
-        DeleteBarInfo(s->bars[i]);
+        DeleteBarInfo(static_cast<S_Ccontrolbarinfo*>(s->bars[i]));
     }
     s->bars.RemoveAll();
 }
@@ -354,7 +315,7 @@ extern "C" void MS_ABI impl__LoadState_CDockState__QEAAXPEB_W_Z(void* pThis, con
     impl__SetScreenSize_CDockState__QEAAXAEAVCSize___Z(pThis, &size);
     impl__Clear_CDockState__QEAAXXZ(pThis);
     for (int i = 0; i < nBars; ++i) {
-        void* pInfo = NewBarInfo();
+        auto* pInfo = NewBarInfo();
         s->bars.Add(pInfo);
         impl__LoadState_CControlBarInfo__QEAAHPEB_WHPEAVCDockState___Z(pInfo, lpszProfileName, i, pThis);
     }

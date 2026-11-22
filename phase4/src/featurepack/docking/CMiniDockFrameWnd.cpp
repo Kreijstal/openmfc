@@ -49,28 +49,12 @@
 //     slots (g_DockContextVtbl), and a client-built one carries the retail
 //     layout, so the bodies below dispatch through the object's own vtable at
 //     the retail slot, as retail does.
-//   * CDockBar vslot 108 (Create, `call *0x360(%rax)` on m_wndDockBar).  The
-//     embedded CDockBar keeps the CControlBar mingw vtable its constructor
-//     thunk installs (CDockBar.cpp file header), so the CDockBar::Create thunk
-//     is called directly; a client-derived override is not honoured.
-//   * Nothing else: CMiniFrameWnd::CreateEx, CFrameWnd::RecalcLayout and
-//     CWnd::Default are DIRECT calls in retail.
+//   * CDockBar creation uses the embedded bar at +0x1f0.
+//   * CMiniFrameWnd::CreateEx, CFrameWnd::RecalcLayout and CWnd::Default use
+//     their base implementations.
 //
-// vtable pointer.  The retail constructor stores the CMiniDockFrameWnd
-// vftable (0x180321960, mfc140u) at +0.  OpenMFC has no C++ CMiniDockFrameWnd
-// class, so an object built by the constructor below keeps the mingw
-// CMiniFrameWnd vtable its base constructor thunk installs.  KNOWN GAPS that
-// follow from that (not fixable in this file): OpenMFC-internal virtual calls
-// on such an object reach CMiniFrameWnd/CFrameWnd, not the Create/RecalcLayout
-// exports below; its GetRuntimeClass reports CMiniFrameWnd; and deleting it
-// through that vtable runs ~CMiniFrameWnd without destroying m_wndDockBar
-// (in retail the compiler-generated destructor destroys the member; its
-// body was not disassembled for this file).  An MSVC client that makes a
-// virtual call on such an object (e.g. `pFrame->Create(...)`, compiled
-// against the retail CMiniDockFrameWnd vftable layout) indexes this mingw
-// vtable with a retail slot number and is not routed to these exports
-// either; the old stub constructor returned unconstructed memory, so this is
-// no regression, but it is not retail behaviour.
+// CMiniDockFrameWnd owns the embedded bar and supplies the runtime class,
+// window teardown and RecalcLayout through its C++ vtable.
 //
 // Message map.  The retail map (AFX_MSGMAP at 0x180321d08, mfc140u, returned
 // by GetThisMessageMap at RVA 0x1d98b0 (mfc140u); entries dumped with
@@ -226,16 +210,40 @@ inline bool DockBarIsFloatMulti(void* pThis) {
 //     m_wndDockBar.CDockBar::CDockBar(TRUE);                  // +0x1f0, 0x1d8040
 //     m_wndDockBar.m_bAutoDelete = FALSE;                     // +0x2e0
 //     return this;
-// OpenMFC's CMiniFrameWnd constructor writes its _pad block up to +0x1f4
-// (core/frame/CMiniFrameWnd.cpp); the CDockBar constructor runs after it and
-// owns +0x1f0 onward from then on, so the overlap is harmless.
+extern "C" void impl___1CDockBar__UEAA_XZ(void*);
+extern "C" CRuntimeClass* impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ();
+extern "C" void impl__RecalcLayout_CMiniDockFrameWnd__UEAAXH_Z(void*, int);
+
+class CMiniDockFrameWnd : public CMiniFrameWnd {
+public:
+    CMiniDockFrameWnd() {
+        m_retailTail.m_reserved_1a4 = 0;
+        impl___0CDockBar__QEAA_H_Z(dockBar, TRUE);
+        DockBarAsBar(this)->m_bAutoDelete = FALSE;
+    }
+    ~CMiniDockFrameWnd() override { impl___1CDockBar__UEAA_XZ(dockBar); }
+    CRuntimeClass* GetRuntimeClass() const override {
+        return impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ();
+    }
+    void PostNcDestroy() override {
+        if (WindowOwnsObject()) delete this;
+    }
+    void RecalcLayout(BOOL notify) override {
+        impl__RecalcLayout_CMiniDockFrameWnd__UEAAXH_Z(this, notify);
+    }
+    void EnableWindowOwnership() { m_retailTail.m_reserved_1a4 = 1; }
+
+private:
+    bool WindowOwnsObject() const { return m_retailTail.m_reserved_1a4 == 1; }
+    alignas(CControlBar) BYTE dockBar[0x190];
+};
+
+static_assert(sizeof(CMiniFrameWnd) == kOffDockBar);
+static_assert(sizeof(CMiniDockFrameWnd) == kSizeofMiniDock);
+
 // Symbol: ??0CMiniDockFrameWnd@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CMiniDockFrameWnd__QEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return nullptr;   // deviation: retail has no NULL check
-    impl___0CMiniFrameWnd__QEAA_XZ(pThis);
-    impl___0CDockBar__QEAA_H_Z(DockBar(pThis), TRUE);
-    DockBarAsBar(pThis)->m_bAutoDelete = FALSE;
-    return pThis;
+extern "C" void* MS_ABI impl___0CMiniDockFrameWnd__QEAA_XZ(void* self) {
+    return ::new (self) CMiniDockFrameWnd;
 }
 
 // Transcribed from retail RVA 0x1d9990 (mfc140u):
@@ -319,6 +327,26 @@ extern "C" void* MS_ABI impl__CreateObject_CMiniDockFrameWnd__SAPEAVCObject__XZ(
     void* p = impl___2_YAPEAX_K_Z(kSizeofMiniDock);
     if (p == nullptr) return nullptr;
     return impl___0CMiniDockFrameWnd__QEAA_XZ(p);
+}
+
+namespace openmfc::detail::dock {
+CMiniDockFrameWnd* CreateFloatingFrame(CFrameWnd* owner, DWORD style) {
+    auto* frame = static_cast<CMiniDockFrameWnd*>(impl__CreateObject_CMiniDockFrameWnd__SAPEAVCObject__XZ());
+    if (!frame) return nullptr;
+    if (!impl__Create_CMiniDockFrameWnd__UEAAHPEAVCWnd__K_Z(frame, owner, style)) {
+        if (frame->m_hWnd) frame->DestroyWindow();
+        delete frame;
+        return nullptr;
+    }
+    frame->EnableWindowOwnership();
+    return frame;
+}
+
+CFrameWnd* FrameWindow(CMiniDockFrameWnd* frame) { return frame; }
+
+CControlBar* FloatingDockBar(CMiniDockFrameWnd* frame) {
+    return DockBarAsBar(frame);
+}
 }
 
 // Transcribed from retail RVA 0x1d9c10 (mfc140u): a tail jump to
@@ -417,21 +445,10 @@ extern "C" void MS_ABI impl__OnNcLButtonDown_CMiniDockFrameWnd__QEAAXIVCPoint___
 //         m_wndDockBar.GetWindowText(szTitle, _countof(szTitle)); // +0x1f0, 0x2a9810
 //         AfxSetWindowText(m_hWnd, szTitle);                      // 0x2ae4b0
 //     }
-// DEVIATION: retail's CFrameWnd::RecalcLayout call is non-virtual, but it is
-// made here through OpenMFC's impl__RecalcLayout_CFrameWnd__UEAAXH_Z
-// (core/frame/Thunks.cpp), whose body is `pThis->RecalcLayout(p0)`, a C++
-// virtual call through the object's mingw vtable.  For an object built by
-// this file's constructor that reaches CFrameWnd::RecalcLayout (OpenMFC's
-// CMiniFrameWnd, include/openmfc/afxmfc.h, declares no override); for an
-// MSVC client-derived object it would index an MSVC vtable with a mingw slot
-// number.  A qualified `CFrameWnd::RecalcLayout(bNotify)` call to the C++
-// definition in core/frame/CFrameWnd.cpp would avoid that, but this tree's
-// link audit rejects new C++ method references from thunk files, so the
-// thunk is kept and the fix is requested there (make the thunk non-virtual).
 // Symbol: ?RecalcLayout@CMiniDockFrameWnd@@UEAAXH@Z
 extern "C" void MS_ABI impl__RecalcLayout_CMiniDockFrameWnd__UEAAXH_Z(void* pThis, int bNotify) {
     if (InRecalcLayout(pThis)) return;
-    impl__RecalcLayout_CFrameWnd__UEAAXH_Z(static_cast<CFrameWnd*>(pThis), bNotify);   // see DEVIATION above
+    static_cast<CFrameWnd*>(pThis)->CFrameWnd::RecalcLayout(bNotify);
     wchar_t szTitle[MAX_PATH];
     static_assert(MAX_PATH == 0x104, "retail passes 0x104");
     impl__GetWindowTextW_CWnd__QEBAHPEA_WH_Z(DockBarAsBar(pThis), szTitle, MAX_PATH);

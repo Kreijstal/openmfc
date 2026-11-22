@@ -30,7 +30,6 @@ using namespace openmfc::detail::manualsmallstubimplementations;
 #  define MS_ABI
 #endif
 
-extern "C" void OpenMfcResetDockState(void* pState);
 
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
 struct CMFCBaseToolBarObject : public CObject {};

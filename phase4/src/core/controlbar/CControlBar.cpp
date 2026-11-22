@@ -25,6 +25,9 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/DockContextSupport.h"
+#include "detail/CControlBarInfoSupport.h"
+#include "detail/FrameLifetimeSupport.h"
 #include "detail/OlecoreSupport.h"
 #include <uxtheme.h>
 #include <cstddef>
@@ -1100,11 +1103,6 @@ extern "C" void MS_ABI impl__ResetTimer_CControlBar__QEAAX_KI_Z(CControlBar* pTh
 //     if (IsKindOf(RUNTIME_CLASS(CToolBar)) || IsKindOf(RUNTIME_CLASS(CDockBar)))   // 0x234cf0; 0x3227b0 / 0x3218f8
 //         if (::IsAppThemed()) m_hReBarTheme = ::OpenThemeData(m_hWnd, L"REBAR");   // IAT IsAppThemed / OpenThemeData; +0x118
 //     return 0;
-// DEVIATIONS: OpenMFC's CFrameWnd has no m_listControlBars (its bar list is a
-// runtime-state vector private to core/frame/CFrameWnd.cpp with no exported
-// "add" entry point), so the AddTail is dropped -- m_pDockSite is still set.
-// EnableToolTips goes through the CWnd thunk (OpenMFC keeps a per-window
-// flag; there is no tool-tip filter hook to install).
 // Symbol: ?OnCreate@CControlBar@@QEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CControlBar__QEAAHPEAUtagCREATESTRUCTW___Z(CControlBar* pThis, CREATESTRUCTW* pCreateStruct) {
     (void)pCreateStruct;
@@ -1116,9 +1114,9 @@ extern "C" int MS_ABI impl__OnCreate_CControlBar__QEAAHPEAUtagCREATESTRUCTW___Z(
         impl__EnableToolTips_CWnd__QEAAHH_Z(pThis, TRUE);
     }
     CWnd* pFrameWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_hWnd));
-    if (pFrameWnd != nullptr && impl__IsFrameWnd_CWnd__UEBAHXZ(pFrameWnd)) {   // CWnd vslot 86
+    if (pFrameWnd && pFrameWnd->IsFrameWnd()) {
+        openmfc::detail::frame::RegisterControlBar(static_cast<CFrameWnd*>(pFrameWnd), pThis);
         pThis->m_pDockSite = pFrameWnd;
-        // retail: pFrameWnd->m_listControlBars.AddTail(this) -- not modelled
     }
     if (IsToolBarOrDockBar(pThis)) {
         if (::IsAppThemed()) {
@@ -1435,45 +1433,58 @@ extern "C" int MS_ABI impl__DrawThemedGripper_CControlBar__UEAAHPEAVCDC__AEBVCRe
                                              static_cast<const RECT*>(rectGripper), static_cast<const RECT*>(rectClip));
     return SUCCEEDED(hr) ? TRUE : FALSE;
 }
+extern "C" void impl__GetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo___Z(void*, void*);
+extern "C" void impl__SetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo__PEAVCFrameWnd___Z(void*, void*, CFrameWnd*);
+
 // Symbol: ?GetBarInfo@CControlBar@@QEAAXPEAVCControlBarInfo@@@Z
-extern "C" void MS_ABI impl__GetBarInfo_CControlBar__QEAAXPEAVCControlBarInfo___Z(CControlBar* pThis, void* pInfo) {
-    // CControlBarInfo layout (from global_ccontrolbarinfo.cpp):
-    // offset 0: m_nBarID, offset 4: m_bVisible, offset 8: m_bFloating,
-    // offset 12: m_bHorz, offset 16: m_bDockBar, offset 20: m_pointPos (x,y),
-    // offset 28: m_nMRUWidth, offset 32: m_bDocking, offset 40: m_rectMRUDockPos,
-    // offset 56: m_dwMRUFloatStyle, offset 60: m_ptMRUFloatPos, offset 72: m_arrBarID
-    if (!pInfo) return;
-    unsigned char* p = (unsigned char*)pInfo;
-    *(UINT*)(p + 0)  = pThis->m_hWnd ? (UINT)::GetWindowLongPtrW(pThis->m_hWnd, GWLP_ID) : 0;
-    *(int*)(p + 4)   = (pThis->m_hWnd && ::IsWindowVisible(pThis->m_hWnd));
-    *(int*)(p + 8)   = ((pThis->m_dwStyle & CBRS_FLOATING) != 0);
-    *(int*)(p + 12)  = ((pThis->m_dwStyle & (CBRS_TOP | CBRS_BOTTOM)) == 0);  // bHorz
-    *(int*)(p + 16)  = FALSE;  // CControlBar is not a dock bar
-    // m_pointPos: use current window position
-    if (pThis->m_hWnd) {
-        RECT rc = {};
-        ::GetWindowRect(pThis->m_hWnd, &rc);
-        *(LONG*)(p + 20) = rc.left;
-        *(LONG*)(p + 24) = rc.top;
+extern "C" void MS_ABI impl__GetBarInfo_CControlBar__QEAAXPEAVCControlBarInfo___Z(
+    CControlBar* bar, void* storage) {
+    auto& info = *static_cast<S_Ccontrolbarinfo*>(storage);
+    info.m_nBarID = static_cast<UINT>(::GetDlgCtrlID(bar->m_hWnd));
+    info.m_pBar = bar;
+    info.m_bVisible = impl__IsVisible_CControlBar__UEBAHXZ(bar);
+    info.m_nMRUWidth = bar->m_nMRUWidth;
+    if (bar->m_pDockBar) {
+        RECT rect{};
+        ::GetWindowRect(bar->m_hWnd, &rect);
+        auto* dockBar = static_cast<CControlBar*>(bar->m_pDockBar);
+        ::MapWindowPoints(nullptr, dockBar->m_hWnd, reinterpret_cast<POINT*>(&rect), 2);
+        info.m_pointPos = {rect.left, rect.top};
+        if (auto* context = static_cast<openmfc::detail::dock::DockContext*>(bar->m_pDockContext)) {
+            info.m_bDocking = TRUE;
+            info.m_uMRUDockID = context->m_uMRUDockID;
+            info.m_rectMRUDockPos = context->m_rectMRUDockPos;
+            info.m_dwMRUFloatStyle = context->m_dwMRUFloatStyle;
+            info.m_ptMRUFloatPos = context->m_ptMRUFloatPos;
+        }
     }
-    *(UINT*)(p + 28)  = pThis->m_nMRUWidth;
-    *(int*)(p + 32)   = (pThis->m_dwDockStyle != 0);
-    *(DWORD*)(p + 56) = pThis->m_dwDockStyle;
+
+    if (KindOf(bar, impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ()))
+        impl__GetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo___Z(bar, storage);
 }
+
 // Symbol: ?SetBarInfo@CControlBar@@QEAAXPEAVCControlBarInfo@@PEAVCFrameWnd@@@Z
-extern "C" void MS_ABI impl__SetBarInfo_CControlBar__QEAAXPEAVCControlBarInfo__PEAVCFrameWnd___Z(CControlBar* pThis, void* pInfo, CFrameWnd* pFrame) {
-    if (!pInfo) return;
-    unsigned char* p = (unsigned char*)pInfo;
-    int bVisible = *(int*)(p + 4);
-    DWORD dwDockStyle = *(DWORD*)(p + 56);
-    pThis->m_dwDockStyle = dwDockStyle;
-    pThis->m_nMRUWidth = *(UINT*)(p + 28);
-    if (pFrame) {
-        pThis->m_pDockSite = pFrame;
+extern "C" void MS_ABI impl__SetBarInfo_CControlBar__QEAAXPEAVCControlBarInfo__PEAVCFrameWnd___Z(
+    CControlBar* bar, void* storage, CFrameWnd* frame) {
+    if (KindOf(bar, impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ())) {
+        impl__SetBarInfo_CDockBar__QEAAXPEAVCControlBarInfo__PEAVCFrameWnd___Z(bar, storage, frame);
+        return;
     }
-    if (pThis->m_hWnd && bVisible) {
-        ::ShowWindow(pThis->m_hWnd, SW_SHOW);
+    const auto& info = *static_cast<const S_Ccontrolbarinfo*>(storage);
+    bar->m_nMRUWidth = info.m_nMRUWidth;
+    CallCalcDynamicLayout(bar, 0, 0x40 | kLM_MRUWIDTH | kLM_HORZ);
+    if (info.m_bDocking) {
+        if (auto* context = static_cast<openmfc::detail::dock::DockContext*>(bar->m_pDockContext)) {
+            context->m_uMRUDockID = info.m_uMRUDockID;
+            context->m_rectMRUDockPos = info.m_rectMRUDockPos;
+            context->m_dwMRUFloatStyle = info.m_dwMRUFloatStyle;
+            context->m_ptMRUFloatPos = info.m_ptMRUFloatPos;
+        }
     }
+    UINT flags = SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE;
+    if (!bar->m_pDockBar) flags |= SWP_NOMOVE;
+    flags |= info.m_bVisible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW;
+    ::SetWindowPos(bar->m_hWnd, nullptr, info.m_pointPos.x, info.m_pointPos.y, 0, 0, flags);
 }
 // Transcribed from retail RVA 0x1d71f0 (mfc140u; vftable slot 103 in the
 // CDialogBar / CStatusBar / CToolBar / CDockBar vftables):

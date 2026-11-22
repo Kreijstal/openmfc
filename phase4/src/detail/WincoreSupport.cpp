@@ -5,13 +5,6 @@
 extern "C" LRESULT MS_ABI impl__AfxCallWndProc__YA_JPEAVCWnd__PEAUHWND____I_K_J_Z(
     CWnd* pThis, HWND, UINT message, WPARAM wParam, LPARAM lParam);
 
-extern "C" void OpenMfcResetDockState(void* pState) {
-    if (!pState) {
-        return;
-    }
-    std::lock_guard<std::mutex> lk(g_wndStateMutex);
-    g_dockStateSnapshots.erase(static_cast<const CDockState*>(pState));
-}
 IMPLEMENT_DYNAMIC(CWnd, CCmdTarget)
 ATOM RegisterOpenMFCClass(HINSTANCE hInstance)
 {
@@ -37,9 +30,7 @@ namespace openmfc { namespace detail { namespace wincore {
 std::map<const CWnd*, COleControlContainer*> g_controlContainerMap;
 std::map<CWnd*, CWndRuntimeState> g_wndRuntimeStates;
 std::map<CFrameWnd*, CFrameWndRuntimeState> g_frameWndRuntimeStates;
-std::map<const CDockState*, std::vector<DockBarSnapshot>> g_dockStateSnapshots;
 std::mutex g_wndStateMutex;
-std::map<std::wstring, std::vector<int>> g_barStateStore;
 CWndRuntimeState& GetWindowRuntimeState(CWnd* pWnd) {
     std::lock_guard<std::mutex> lk(g_wndStateMutex);
     return g_wndRuntimeStates[pWnd];

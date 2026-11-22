@@ -148,4 +148,14 @@ def main():
     assert reports[0]==reports[1], f'Dock archive/profile outputs differ in {out}'
     print(reports[0].splitlines()[-1].decode(),flush=True)
 
+    frame_objects = [compile_one(source) for source in [
+        'tests/test_archive_dock_frame.cpp',
+        'phase4/src/core/frame/CFrameWndDockState.cpp',
+        'phase4/src/detail/CPtrListSupport.cpp',
+    ]]
+    link_response('dock_frame',['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF',
+                                '/OUT:'+str(out/'test_archive_dock_frame.exe'),
+                                *libraries,*objects,*frame_objects,*libs])
+    execute('test_archive_dock_frame.exe')
+
 if __name__=='__main__':main()

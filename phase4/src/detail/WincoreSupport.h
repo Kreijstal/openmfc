@@ -70,26 +70,12 @@ struct CFrameWndRuntimeState {
     int progressMin = 0;
     int progressMax = 100;
     int progressPos = 0;
-    DWORD dockingStyle = 0;
     int modalDepth = 0;
     HWND modalOwner = nullptr;
-    std::vector<CControlBar*> controlBars;
 };
 namespace openmfc { namespace detail { namespace wincore {
 extern std::map<CFrameWnd*, CFrameWndRuntimeState> g_frameWndRuntimeStates;
 } } }
-
-struct DockBarSnapshot {
-    CControlBar* bar = nullptr;
-    UINT id = 0;
-    bool visible = false;
-    DWORD dockStyle = 0;
-    RECT windowRect{};
-};
-namespace openmfc { namespace detail { namespace wincore {
-extern std::map<const CDockState*, std::vector<DockBarSnapshot>> g_dockStateSnapshots;
-} } }
-
 
 // Guards the process-wide runtime-state registries above. MFC apps may create
 // and destroy windows on several UI threads, so the map/set structural
@@ -101,15 +87,6 @@ namespace openmfc { namespace detail { namespace wincore {
 extern std::mutex g_wndStateMutex;
 } } }
 
-// In-memory control-bar visibility persistence keyed by profile name. Real MFC
-// serializes bar layout to the application profile (registry); this clean-room
-// CWinApp exposes no profile API yet, so Save/LoadBarState round-trip within the
-// process, which is enough to actually restore bar visibility rather than fake
-// it. Guarded by g_wndStateMutex.
-namespace openmfc { namespace detail { namespace wincore {
-extern std::map<std::wstring, std::vector<int>> g_barStateStore;
-} } }
-
 namespace openmfc { namespace detail { namespace wincore {
 CWndRuntimeState& GetWindowRuntimeState(CWnd* pWnd);
 } } }
@@ -117,8 +94,6 @@ CWndRuntimeState& GetWindowRuntimeState(CWnd* pWnd);
 namespace openmfc { namespace detail { namespace wincore {
 CFrameWndRuntimeState& GetFrameRuntimeState(CFrameWnd* pWnd);
 } } }
-
-extern "C" void OpenMfcResetDockState(void* pState);
 
 namespace openmfc { namespace detail { namespace wincore {
 void CleanupWindowRuntimeState(CWnd* pWnd);

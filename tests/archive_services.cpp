@@ -10,6 +10,3 @@ extern "C" int impl__AfxMessageBox__YAHIII_Z(UINT,UINT,UINT){std::abort();}
 extern "C" AFX_MODULE_THREAD_STATE* impl__AfxGetModuleThreadState__YAPEAVAFX_MODULE_THREAD_STATE__XZ(){std::abort();}
 template class ATL::CSimpleStringT<char,true>;
 template class ATL::CSimpleStringT<wchar_t,true>;
-
-// The archive fixture has no frame windows or window-state snapshots.
-extern "C" void OpenMfcResetDockState(void*) {}
