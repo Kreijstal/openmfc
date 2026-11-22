@@ -7,6 +7,7 @@
 #include "detail/FrameLifetimeSupport.h"
 #include "detail/ClassicDockingSupport.h"
 #include "detail/WincoreSupport.h"
+#include "detail/WindowCreationSupport.h"
 #include <dde.h>
 
 using openmfc::detail::frame::ControlBars;
@@ -316,12 +317,25 @@ int CFrameWnd::CanEnterHelpMode() {
 }
 
 CWnd* CFrameWnd::CreateView(CCreateContext* pContext, unsigned int nID) {
-    (void)pContext;
-    if (!m_hWnd || !nID) {
-        return nullptr;
+    if (!m_hWnd) return nullptr;
+    if (!pContext || !pContext->m_pNewViewClass) {
+        HWND existing = nID ? ::GetDlgItem(m_hWnd, static_cast<int>(nID)) : nullptr;
+        return existing ? CWnd::FromHandle(existing) : nullptr;
     }
-    HWND hWndView = ::GetDlgItem(m_hWnd, static_cast<int>(nID));
-    return hWndView ? CWnd::FromHandle(hWndView) : nullptr;
+
+    auto* viewClass = pContext->m_pNewViewClass;
+    if (!viewClass->IsDerivedFrom(RUNTIME_CLASS(CView))) return nullptr;
+    auto* view = static_cast<CView*>(viewClass->CreateObject());
+    if (!view) return nullptr;
+
+    openmfc::detail::WindowCreationOwner owner(view);
+    if (auto* document = pContext->m_pCurrentDoc) document->AddView(view);
+    view->m_bFrameOwnsView = TRUE;
+    RECT bounds{};
+    ::GetClientRect(m_hWnd, &bounds);
+    if (!view->Create(nullptr, nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
+                      bounds, this, nID, pContext)) return nullptr;
+    return owner.Release();
 }
 
 
@@ -523,7 +537,7 @@ int CFrameWnd::OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext) {
         ::ShowWindow(pClient->m_hWnd, SW_SHOW);
     }
 
-    return TRUE;
+    return pClient || !pContext || !pContext->m_pNewViewClass;
 }
 int CFrameWnd::OnCreateHelper(CREATESTRUCTW* lpcs, CCreateContext* pContext) {
     AddFrameWnd();

@@ -71,7 +71,6 @@ namespace openmfc { namespace detail { namespace ole09msgmap {
 extern const AFX_MSGMAP classCOleDocIPFrameWndEx_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace ole09msgmap {
-extern const AFX_MSGMAP classCOleIPFrameWnd_msgmap;
 } } }
 namespace openmfc { namespace detail { namespace ole09msgmap {
 extern const AFX_MSGMAP classCOleIPFrameWndEx_msgmap;

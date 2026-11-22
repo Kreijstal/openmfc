@@ -80,11 +80,11 @@ struct DocumentExtraState {
 namespace openmfc { namespace detail { namespace docview {
 struct TemplateExtraState {
     UINT containerId = 0;
-    UINT serverId = 0;
-    UINT serverEmbeddingId = 0;
+    UINT oleEmbeddingId = 0;
+    UINT oleInPlaceServerId = 0;
     UINT previewId = 0;
-    CRuntimeClass* serverDocClass = nullptr;
-    CRuntimeClass* serverFrameClass = nullptr;
+    CRuntimeClass* oleFrameClass = nullptr;
+    CRuntimeClass* oleViewClass = nullptr;
     CRuntimeClass* previewViewClass = nullptr;
     CRuntimeClass* previewFrameClass = nullptr;
 };

@@ -190,6 +190,10 @@ extern "C" int MS_ABI impl__OnMouseActivate_CView__IEAAHPEAVCWnd__II_Z(CView*, C
 // Symbol: ?PostNcDestroy@CView@@MEAAXXZ
 extern "C" void MS_ABI impl__PostNcDestroy_CView__MEAAXXZ(CView* pThis) {
     if (pThis && pThis->m_pDocument) pThis->m_pDocument->RemoveView(pThis);
+    if (pThis && pThis->m_bFrameOwnsView) delete pThis;
+}
+void CView::PostNcDestroy() {
+    impl__PostNcDestroy_CView__MEAAXXZ(this);
 }
 // Symbol: ?PreCreateWindow@CView@@MEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_CView__MEAAHAEAUtagCREATESTRUCTW___Z(CView*, CREATESTRUCTW* cs) {

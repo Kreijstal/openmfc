@@ -75,7 +75,7 @@ struct S_CDocumentRetailTail {             // mapped at doc+0x90
 const size_t kRetailTailOffset = 0x90;
 static_assert(sizeof(CDocument) == 0x180, "OpenMFC CDocument must stay retail-sized (0x180)");
 static_assert(offsetof(CDocument, m_pNextDoc) == 0x68,
-              "document members end at +0x70 before the retail tail overlay");
+              "document list link at +0x68");
 static_assert(sizeof(S_CDocumentRetailTail) == 0x180 - kRetailTailOffset, "overlay must end exactly at sizeof(CDocument)");
 static_assert(offsetof(S_CDocumentRetailTail, bOLELocked) + kRetailTailOffset == 0x98, "m_bOLELocked");
 static_assert(offsetof(S_CDocumentRetailTail, hWndHost) + kRetailTailOffset == 0xa0, "m_hWndHost");
@@ -143,6 +143,7 @@ extern "C" void MS_ABI impl___0CDocument__QEAA_XZ(CDocument* pThis) {
     pThis->m_pFirstView = nullptr;
     pThis->m_pLastView = nullptr;
     pThis->m_pNextDoc = nullptr;
+    pThis->m_pDocTemplate = nullptr;
 
     S_CDocumentRetailTail* t = Tail(pThis);
     t->bFinalRelease = FALSE;
@@ -166,6 +167,7 @@ extern "C" void MS_ABI impl___0CDocument__QEAA_XZ(CDocument* pThis) {
 // Symbol: ??1CDocument@@UEAA@XZ
 extern "C" void MS_ABI impl___1CDocument__UEAA_XZ(CDocument* pThis) {
     if (!pThis) return;
+    if (auto* documentTemplate = pThis->GetDocTemplate()) documentTemplate->RemoveDocument(pThis);
     // Disconnect all views
     CView* pView = pThis->m_pFirstView;
     while (pView) {

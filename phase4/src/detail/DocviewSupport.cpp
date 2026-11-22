@@ -120,6 +120,7 @@ extern "C" void MS_ABI impl___0CView__QEAA_XZ(CView* pThis) {
     pThis->m_hWnd = nullptr;
     pThis->m_pDocument = nullptr;
     pThis->m_bInitialRedraw = FALSE;
+    pThis->m_bFrameOwnsView = FALSE;
 }
 extern "C" CDocument* MS_ABI impl__GetDocument_CView__UEBAPEAVCDocument__XZ(
     const CView* pThis)

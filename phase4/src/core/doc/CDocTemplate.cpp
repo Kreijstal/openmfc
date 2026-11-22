@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/DocviewSupport.h"
+#include "detail/WindowCreationSupport.h"
 
 
 // Implementations this unit calls that are defined with their own class.
@@ -20,8 +21,10 @@ extern "C" void MS_ABI impl___0CDocTemplate__IEAA_IPEAUCRuntimeClass__00_Z(
 // Destructor
 // Symbol: ??1CDocTemplate@@UEAA@XZ
 extern "C" void MS_ABI impl___1CDocTemplate__UEAA_XZ(CDocTemplate* pThis) {
-    (void)pThis;
-    // Note: Documents should be closed before template destruction
+    if (!pThis) return;
+    while (pThis->m_pFirstDoc)
+        pThis->CDocTemplate::RemoveDocument(pThis->m_pFirstDoc);
+    g_templateExtraStates.erase(pThis);
 }
 // CreateNewDocument
 // Symbol: ?CreateNewDocument@CDocTemplate@@UEAAPEAVCDocument@@XZ
@@ -101,42 +104,41 @@ extern "C" CFrameWnd* MS_ABI impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWn
 extern "C" void MS_ABI impl__AddDocument_CDocTemplate__UEAAXPEAVCDocument___Z(
     CDocTemplate* pThis, CDocument* pDoc)
 {
-    if (!pThis || !pDoc) return;
-
-    pDoc->m_pNextDoc = nullptr;
-
-    if (!pThis->m_pFirstDoc) {
-        pThis->m_pFirstDoc = pDoc;
-        pThis->m_pLastDoc = pDoc;
-    } else {
-        pThis->m_pLastDoc->m_pNextDoc = pDoc;
-        pThis->m_pLastDoc = pDoc;
-    }
+    if (pThis) pThis->CDocTemplate::AddDocument(pDoc);
 }
-// RemoveDocument
+
+void CDocTemplate::AddDocument(CDocument* document) {
+    if (!document || document->m_pDocTemplate == this) return;
+    if (auto* previous = document->m_pDocTemplate) previous->RemoveDocument(document);
+
+    document->m_pDocTemplate = this;
+    document->m_pNextDoc = nullptr;
+    if (m_pLastDoc) m_pLastDoc->m_pNextDoc = document;
+    else m_pFirstDoc = document;
+    m_pLastDoc = document;
+}
+
 // Symbol: ?RemoveDocument@CDocTemplate@@UEAAXPEAVCDocument@@@Z
 extern "C" void MS_ABI impl__RemoveDocument_CDocTemplate__UEAAXPEAVCDocument___Z(
     CDocTemplate* pThis, CDocument* pDoc)
 {
-    if (!pThis || !pDoc) return;
+    if (pThis) pThis->CDocTemplate::RemoveDocument(pDoc);
+}
 
-    CDocument* pPrev = nullptr;
-    CDocument* pCur = pThis->m_pFirstDoc;
-    while (pCur) {
-        if (pCur == pDoc) {
-            if (pPrev) {
-                pPrev->m_pNextDoc = pCur->m_pNextDoc;
-            } else {
-                pThis->m_pFirstDoc = pCur->m_pNextDoc;
-            }
-            if (pThis->m_pLastDoc == pDoc) {
-                pThis->m_pLastDoc = pPrev;
-            }
-            pDoc->m_pNextDoc = nullptr;
-            break;
+void CDocTemplate::RemoveDocument(CDocument* document) {
+    if (!document || document->m_pDocTemplate != this) return;
+    CDocument* previous = nullptr;
+    for (auto* current = m_pFirstDoc; current; current = current->m_pNextDoc) {
+        if (current != document) {
+            previous = current;
+            continue;
         }
-        pPrev = pCur;
-        pCur = pCur->m_pNextDoc;
+        if (previous) previous->m_pNextDoc = current->m_pNextDoc;
+        else m_pFirstDoc = current->m_pNextDoc;
+        if (m_pLastDoc == current) m_pLastDoc = previous;
+        document->m_pNextDoc = nullptr;
+        document->m_pDocTemplate = nullptr;
+        return;
     }
 }
 // InitialUpdateFrame
@@ -195,78 +197,47 @@ extern "C" int MS_ABI impl__OnCmdMsg_CDocTemplate__UEAAHIHPEAXPEAUAFX_CMDHANDLER
 // Symbol: ?SetContainerInfo@CDocTemplate@@QEAAXI@Z
 extern "C" void MS_ABI impl__SetContainerInfo_CDocTemplate__QEAAXI_Z(CDocTemplate* pThis, unsigned int id) { if (pThis) g_templateExtraStates[pThis].containerId = id; }
 // Symbol: ?SetServerInfo@CDocTemplate@@QEAAXIIPEAUCRuntimeClass@@0@Z
-extern "C" void MS_ABI impl__SetServerInfo_CDocTemplate__QEAAXIIPEAUCRuntimeClass__0_Z(CDocTemplate* pThis, unsigned int id, unsigned int embedId, CRuntimeClass* docClass, CRuntimeClass* frameClass) { if (pThis) { auto& s=g_templateExtraStates[pThis]; s.serverId=id; s.serverEmbeddingId=embedId; s.serverDocClass=docClass; s.serverFrameClass=frameClass; } }
+extern "C" void MS_ABI impl__SetServerInfo_CDocTemplate__QEAAXIIPEAUCRuntimeClass__0_Z(
+    CDocTemplate* pThis, UINT embeddingId, UINT inPlaceId, CRuntimeClass* frameClass, CRuntimeClass* viewClass) {
+    if (pThis) pThis->SetServerInfo(embeddingId, inPlaceId, frameClass, viewClass);
+}
+
+void CDocTemplate::SetServerInfo(UINT embeddingId, UINT inPlaceId,
+                                 CRuntimeClass* frameClass, CRuntimeClass* viewClass) {
+    auto& state = g_templateExtraStates[this];
+    state.oleEmbeddingId = embeddingId;
+    state.oleInPlaceServerId = inPlaceId;
+    state.oleFrameClass = frameClass;
+    state.oleViewClass = viewClass;
+}
 // Symbol: ?SetPreviewInfo@CDocTemplate@@QEAAXIPEAUCRuntimeClass@@0@Z
 extern "C" void MS_ABI impl__SetPreviewInfo_CDocTemplate__QEAAXIPEAUCRuntimeClass__0_Z(CDocTemplate* pThis, unsigned int id, CRuntimeClass* viewClass, CRuntimeClass* frameClass) { if (pThis) { auto& s=g_templateExtraStates[pThis]; s.previewId=id; s.previewViewClass=viewClass; s.previewFrameClass=frameClass; } }
 // Symbol: ?CreatePreviewFrame@CDocTemplate@@QEAAPEAVCFrameWnd@@PEAVCWnd@@PEAVCDocument@@@Z
 extern "C" CFrameWnd* MS_ABI impl__CreatePreviewFrame_CDocTemplate__QEAAPEAVCFrameWnd__PEAVCWnd__PEAVCDocument___Z(CDocTemplate* pThis, CWnd*, CDocument* doc) { return pThis ? pThis->CreateNewFrame(doc, nullptr) : nullptr; }
-// CDocTemplate::CreateOleFrame — builds the in-place container frame used when a
-// document is activated inside an OLE container.
-//
-// Retail mfc140u reads the OLE frame/view runtime classes SetContainerInfo()
-// stashed at this+0xC8 / this+0xD0, fills a CCreateContext (m_pCurrentDoc = pDoc,
-// m_pCurrentDocTemplate = this, m_pNewViewClass = the OLE view class only when
-// bCreateView is set), and creates the frame from it. With SetContainerInfo()
-// never called those pointers are null and retail yields no frame.
-//
-// OpenMFC keeps the container registration as the resource id recorded by
-// SetContainerInfo (g_templateExtraStates), so the same contract is honoured
-// here: no container id means no OLE frame, otherwise the frame is loaded from
-// that id and the view is attached only when bCreateView requests it.
 // Symbol: ?CreateOleFrame@CDocTemplate@@QEAAPEAVCFrameWnd@@PEAVCWnd@@PEAVCDocument@@H@Z
 extern "C" CFrameWnd* MS_ABI impl__CreateOleFrame_CDocTemplate__QEAAPEAVCFrameWnd__PEAVCWnd__PEAVCDocument__H_Z(
-    CDocTemplate* pThis, CWnd* pParentWnd, CDocument* pDoc, int bCreateView)
-{
-    if (!pThis || !pThis->m_pFrameClass) return nullptr;
+    CDocTemplate* pThis, CWnd* parent, CDocument* document, BOOL createView) {
+    return pThis ? pThis->CreateOleFrame(parent, document, createView) : nullptr;
+}
 
-    auto itState = g_templateExtraStates.find(pThis);
-    const unsigned int containerId =
-        (itState == g_templateExtraStates.end()) ? 0u : itState->second.containerId;
-    if (containerId == 0) return nullptr;   // SetContainerInfo() never called
+// Retail mfc140u RVA 0x226730 loads the registered server frame as a child and
+// passes the server's view class in the creation context only when requested.
+CFrameWnd* CDocTemplate::CreateOleFrame(CWnd* parent, CDocument* document, BOOL createView) {
+    auto state = g_templateExtraStates.find(this);
+    if (state == g_templateExtraStates.end() || !state->second.oleFrameClass) return nullptr;
+    const auto& server = state->second;
+    if (!server.oleFrameClass->IsDerivedFrom(RUNTIME_CLASS(CFrameWnd))) return nullptr;
 
-    CObject* pObj = pThis->m_pFrameClass->CreateObject();
-    if (!pObj) return nullptr;
-    CFrameWnd* pFrame = static_cast<CFrameWnd*>(pObj);
-
-    if (!pFrame->m_hWnd) {
-        if (!pFrame->CFrameWnd::LoadFrame(containerId, WS_OVERLAPPEDWINDOW, pParentWnd, nullptr)) {
-            RECT rect = { CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT };
-            if (!pFrame->CFrameWnd::Create(nullptr, L"OpenMFC Container",
-                                           WS_OVERLAPPEDWINDOW, rect, pParentWnd,
-                                           nullptr, 0, nullptr)) {
-                // CreateObject() handed us ownership; nothing else can free the
-                // frame once we return null, so release it here.
-                delete pFrame;
-                return nullptr;
-            }
-        }
-    }
-
-    if (bCreateView && pThis->m_pViewClass && pDoc) {
-        CObject* pViewObj = pThis->m_pViewClass->CreateObject();
-        if (pViewObj) {
-            CView* pView = static_cast<CView*>(pViewObj);
-            // Create the view window BEFORE registering it with the document.
-            // Registering first would leave a windowless view attached to the
-            // document (and installed as m_pViewActive) if creation failed.
-            BOOL bViewReady = (pView->m_hWnd != nullptr);
-            if (!bViewReady && pFrame->m_hWnd) {
-                RECT rcClient = {};
-                ::GetClientRect(pFrame->m_hWnd, &rcClient);
-                bViewReady = pView->CWnd::Create(
-                    nullptr, nullptr,
-                    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-                    rcClient, pFrame, AFX_IDW_PANE_FIRST, nullptr);
-            }
-            if (bViewReady) {
-                pDoc->AddView(pView);
-                pFrame->m_pViewActive = pView;
-            } else {
-                delete pView;   // never reached the document; we still own it
-            }
-        }
-    }
-    return pFrame;
+    const UINT frameId = server.oleInPlaceServerId;
+    CCreateContext context{};
+    context.m_pCurrentDoc = document;
+    context.m_pNewDocTemplate = this;
+    if (createView) context.m_pNewViewClass = server.oleViewClass;
+    auto* frame = static_cast<CFrameWnd*>(server.oleFrameClass->CreateObject());
+    if (!frame) return nullptr;
+    openmfc::detail::WindowCreationOwner owner(frame);
+    if (!frame->LoadFrame(frameId, WS_CHILD | WS_CLIPSIBLINGS, parent, &context)) return nullptr;
+    return static_cast<CFrameWnd*>(owner.Release());
 }
 CDocTemplate::CDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,
                            CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass) {
@@ -315,7 +286,5 @@ void CDocTemplate::InitialUpdateFrame(CFrameWnd* pFrame, CDocument* pDoc, int bM
 void CDocTemplate::SetDefaultTitle(CDocument* pDoc) { impl__SetDefaultTitle_CDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
 int CDocTemplate::GetDocString(CString& rString, int nID) const { return impl__GetDocString_CDocTemplate__UEBAHAEAVCString__H_Z(this, &rString, nID); }
 int CDocTemplate::MatchDocType(const wchar_t* lpszPathName, CDocument*& rpDocMatch) { return impl__MatchDocType_CDocTemplate__UEAAHPEB_WAEAPEAVCDocument___Z(this, lpszPathName, rpDocMatch); }
-void CDocTemplate::AddDocument(CDocument* pDoc) { impl__AddDocument_CDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
-void CDocTemplate::RemoveDocument(CDocument* pDoc) { impl__RemoveDocument_CDocTemplate__UEAAXPEAVCDocument___Z(this, pDoc); }
 void* CDocTemplate::GetFirstDocPosition() const { return impl__GetFirstDocPosition_CDocTemplate__UEBAPEAXXZ(this); }
 CDocument* CDocTemplate::GetNextDoc(void*& rPos) const { return impl__GetNextDoc_CDocTemplate__UEBAPEAVCDocument__AEAPEAX_Z(this, rPos); }

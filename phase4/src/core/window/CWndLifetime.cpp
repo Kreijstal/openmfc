@@ -1,8 +1,9 @@
 // Native window destruction: messages release live-window services; the C++
 // destructor releases the remaining owned members and then CCmdTarget.
 #include "detail/WindowHandleMapSupport.h"
-#include "detail/WindowMessageSupport.h"
+#include "detail/WindowCreationSupport.h"
 #include <cstdlib>
+#include <utility>
 extern "C" void AFXAPI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" void AFXAPI impl__AfxPostQuitMessage__YAXH_Z(int);
 namespace {
@@ -17,7 +18,31 @@ template<class T> T& Field(void* object,size_t offset) {
     return *reinterpret_cast<T*>(static_cast<BYTE*>(object)+offset);
 }
 }
+namespace openmfc::detail {
+thread_local WindowCreationOwner* WindowCreationOwner::current_ = nullptr;
+
+WindowCreationOwner::WindowCreationOwner(CWnd* window)
+    : window_(window), previous_(std::exchange(current_, this)) {}
+
+WindowCreationOwner::~WindowCreationOwner() {
+    current_ = previous_;
+    delete window_;
+}
+
+CWnd* WindowCreationOwner::Release() {
+    return std::exchange(window_, nullptr);
+}
+
+void WindowCreationOwner::OnDestroy(CWnd* window) {
+    // PostNcDestroy can delete an object before its creation method returns.
+    for (auto* owner = current_; owner; owner = owner->previous_) {
+        if (owner->window_ == window) owner->window_ = nullptr;
+    }
+}
+}
+
 extern "C" void AFXAPI OpenMfcDestroyCWndMembers(CWnd* self) {
+    openmfc::detail::WindowCreationOwner::OnDestroy(self);
     const void* identity=self;
     if(self->m_hWnd && identity!=&impl__wndBottom_CWnd__2V1_B &&
         identity!=&impl__wndNoTopMost_CWnd__2V1_B && identity!=&impl__wndTop_CWnd__2V1_B &&

@@ -1876,11 +1876,15 @@ protected:
 //=============================================================================
 // COleIPFrameWnd - OLE In-place Frame Window
 //=============================================================================
+extern "C" int __cdecl impl__OnCreate_COleIPFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(COleIPFrameWnd*, CREATESTRUCTW*);
 class COleIPFrameWnd : public CFrameWnd {
-    DECLARE_DYNAMIC(COleIPFrameWnd)
+    DECLARE_DYNCREATE(COleIPFrameWnd)
 public:
     COleIPFrameWnd();
     virtual ~COleIPFrameWnd();
+    BOOL LoadFrame(UINT resourceId, DWORD style, CWnd* parent, CCreateContext* context) override;
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
+    const AFX_MSGMAP* GetMessageMap() const override;
 
     virtual BOOL OnCreateAggregates();
     virtual BOOL OnCreateControlBars(CFrameWnd* pWndFrame, CFrameWnd* pWndDoc);
@@ -1892,6 +1896,8 @@ public:
     COleResizeBar* m_pResizeBar;
 
 protected:
+    friend int __cdecl impl__OnCreate_COleIPFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(COleIPFrameWnd*, CREATESTRUCTW*);
+    int OnCreate(CREATESTRUCTW* creation);
     char _oleipframewnd_padding[160];
 };
 

@@ -4,6 +4,7 @@
 #include "detail/Ole09MsgmapSupport.h"
 #include "detail/Ole10MsgmapSupport.h"
 #include "detail/Other11MsgmapSupport.h"
+#include "openmfc/afxole.h"
 
 #define DEF_MM(Cls, GMSym, GTMSym) \
     extern "C" const AFX_MSGMAP* MS_ABI GMSym(const void*) { return &class##Cls##_msgmap; } \
@@ -30,9 +31,12 @@ DEF_MM(COleDocIPFrameWndEx,
        impl__GetThisMessageMap_COleDocIPFrameWndEx__KAPEBUAFX_MSGMAP__XZ)
 // Symbol: ?GetMessageMap@COleIPFrameWnd@@MEBAPEBUAFX_MSGMAP@@XZ
 // Symbol: ?GetThisMessageMap@COleIPFrameWnd@@KAPEBUAFX_MSGMAP@@XZ
-DEF_MM(COleIPFrameWnd,
-       impl__GetMessageMap_COleIPFrameWnd__MEBAPEBUAFX_MSGMAP__XZ,
-       impl__GetThisMessageMap_COleIPFrameWnd__KAPEBUAFX_MSGMAP__XZ)
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_COleIPFrameWnd__MEBAPEBUAFX_MSGMAP__XZ(const void*) {
+    return COleIPFrameWnd::GetThisMessageMap();
+}
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_COleIPFrameWnd__KAPEBUAFX_MSGMAP__XZ() {
+    return COleIPFrameWnd::GetThisMessageMap();
+}
 // Symbol: ?GetMessageMap@COleIPFrameWndEx@@MEBAPEBUAFX_MSGMAP@@XZ
 // Symbol: ?GetThisMessageMap@COleIPFrameWndEx@@KAPEBUAFX_MSGMAP@@XZ
 DEF_MM(COleIPFrameWndEx,

@@ -109,11 +109,6 @@
 // to diverge from retail in a way that matters here, the call site says so.)
 extern "C" void MS_ABI impl__Enable_CCmdUI__UEAAXH_Z(CCmdUI* pThis, int enable);
 // core/window/CWnd.cpp
-extern "C" int MS_ABI impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
-    CWnd* pThis, const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
-    DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID, CCreateContext* pContext);
-extern "C" int MS_ABI impl__ModifyStyleEx_CWnd__QEAAHKKI_Z(
-    CWnd* pThis, unsigned long dwRemove, unsigned long dwAdd, unsigned int nFlags);
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);
 extern "C" CWnd* MS_ABI impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(const CWnd* pThis, int nID);
 extern "C" void MS_ABI impl__RepositionBars_CWnd__QEAAXIIIIPEAUtagRECT__PEBU2_H_Z(
@@ -125,13 +120,10 @@ extern "C" void MS_ABI impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(const CWn
 extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
 extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* pThis);
 // core/frame/Thunks.cpp
-extern "C" int MS_ABI impl__LoadAccelTable_CFrameWnd__QEAAHPEB_W_Z(CFrameWnd* pThis, const wchar_t* lpszResourceName);
 extern "C" CControlBar* MS_ABI impl__GetControlBar_CFrameWnd__QEAAPEAVCControlBar__I_Z(CFrameWnd* pThis, unsigned int nID);
 extern "C" int MS_ABI impl__OnBarCheck_CFrameWnd__QEAAHI_Z(CFrameWnd* pThis, unsigned int nID);
 extern "C" int MS_ABI impl__CanEnterHelpMode_CFrameWnd__QEAAHXZ(CFrameWnd* pThis);
 extern "C" void MS_ABI impl__OnContextHelp_CFrameWnd__QEAAXXZ(CFrameWnd* pThis);
-extern "C" int MS_ABI impl__OnCreateHelper_CFrameWnd__IEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
-    CFrameWnd* pThis, CREATESTRUCTW* lpcs, CCreateContext* pContext);
 extern "C" void MS_ABI impl__DestroyDockBars_CFrameWnd__QEAAXXZ(CFrameWnd* pThis);
 extern "C" void MS_ABI impl__OnDestroy_CFrameWnd__IEAAXXZ(CFrameWnd* pThis);
 // core/frame/CFrameWnd.cpp
@@ -305,6 +297,11 @@ COleIPFrameWnd::COleIPFrameWnd()
 }
 COleIPFrameWnd::~COleIPFrameWnd() {
 }
+
+BEGIN_MESSAGE_MAP(COleIPFrameWnd, CFrameWnd)
+    ON_WM_CREATE()
+END_MESSAGE_MAP()
+
 BOOL COleIPFrameWnd::OnCreateAggregates() {
     return TRUE;
 }
@@ -382,11 +379,7 @@ extern "C" int MS_ABI impl__BuildSharedMenu_COleIPFrameWnd__MEAAHXZ(COleIPFrameW
 // Both calls go to this DLL's own exports: the MFC operator new
 // (detail/MemcoreSupport.cpp:5, malloc-based) and the ctor thunk
 // (core/ole/Thunks.cpp:1158), which placement-constructs the C++ class of
-// this file.  The object therefore carries OpenMFC's g++ vftable, not
-// retail's (see the header comment).  Retail's class descriptor points
-// m_pfnCreateObject here; OpenMFC's (core/ole/RuntimeClasses.cpp:241)
-// currently holds nullptr, so RUNTIME_CLASS(COleIPFrameWnd)->CreateObject()
-// does not reach this yet.
+// this file. The source runtime class also provides its C++ factory.
 // Symbol: ?CreateObject@COleIPFrameWnd@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_COleIPFrameWnd__SAPEAVCObject__XZ() {
     void* p = impl___2_YAPEAX_K_Z(kSizeof_COleIPFrameWnd);
@@ -435,15 +428,14 @@ extern "C" void MS_ABI impl__DestroySharedMenu_COleIPFrameWnd__MEAAXXZ(COleIPFra
 // (mfc140u 0x226240) fills it with ::LoadMenuW of the resource ID at +0x9c,
 // which CDocTemplate::SetServerInfo (mfc140u 0x226390) stores from its
 // nIDOleInPlaceServer argument.)  STUB: OpenMFC's
-// CDocument declares no m_pDocTemplate (see also core/frame/CSplitterWnd.cpp:469)
-// and OpenMFC's CDocTemplate declares no in-place-server menu member, so the
+// CDocTemplate declares no in-place-server menu member, so the
 // menu cannot be reached.  NULL is
 // what BuildSharedMenu / DestroySharedMenu treat as "server has no in-place
 // menu".
 // Symbol: ?GetInPlaceMenu@COleIPFrameWnd@@MEAAPEAUHMENU__@@XZ
 extern "C" HMENU MS_ABI impl__GetInPlaceMenu_COleIPFrameWnd__MEAAPEAUHMENU____XZ(COleIPFrameWnd* pThis) {
     (void)pThis;
-    return nullptr;   // TODO(clean-room): needs CDocument::m_pDocTemplate and CDocTemplate::m_hMenuInPlaceServer
+    return nullptr;   // TODO(clean-room): load the in-place server menu from the template.
 }
 
 // COleIPFrameWnd::LoadFrame(UINT, DWORD, CWnd*, CCreateContext*) -- retail
@@ -455,19 +447,20 @@ extern "C" HMENU MS_ABI impl__GetInPlaceMenu_COleIPFrameWnd__MEAAPEAUHMENU____XZ
 //         return FALSE;
 //     LoadAccelTable(MAKEINTRESOURCE(nIDResource));       // `movzwl %bx,%edx`
 //     return TRUE;
-// Retail deliberately does not call CFrameWnd::LoadFrame.  m_nIDHelp is
-// written at its retail offset; OpenMFC's own CFrameWnd::m_nIDHelp (+0xf8) is
-// left alone (see the header comment).
+// The in-place frame loads its accelerator and creates a child window with
+// the supplied resource ID as its control ID.
 // Symbol: ?LoadFrame@COleIPFrameWnd@@UEAAHIKPEAVCWnd@@PEAUCCreateContext@@@Z
 extern "C" int MS_ABI impl__LoadFrame_COleIPFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateContext___Z(
     COleIPFrameWnd* pThis, UINT nIDResource, DWORD dwDefaultStyle, CWnd* pParentWnd,
     CCreateContext* pContext) {
-    FrameInt(pThis, kOff_CFrameWnd_m_nIDHelp) = static_cast<int>(nIDResource);
+    return pThis ? pThis->COleIPFrameWnd::LoadFrame(nIDResource, dwDefaultStyle, pParentWnd, pContext) : FALSE;
+}
+
+BOOL COleIPFrameWnd::LoadFrame(UINT resourceId, DWORD style, CWnd* parent, CCreateContext* context) {
+    m_nIDHelp = resourceId;
     RECT rect = {0, 0, 0, 0};
-    if (!impl__Create_CWnd__UEAAHPEB_W0KAEBUtagRECT__PEAV1_IPEAUCCreateContext___Z(
-            AsWnd(pThis), nullptr, nullptr, dwDefaultStyle, rect, pParentWnd, nIDResource, pContext))
-        return FALSE;
-    impl__LoadAccelTable_CFrameWnd__QEAAHPEB_W_Z(AsFrame(pThis), MAKEINTRESOURCEW(nIDResource));
+    if (!CWnd::Create(nullptr, nullptr, style, rect, parent, resourceId, context)) return FALSE;
+    LoadAccelTable(MAKEINTRESOURCEW(resourceId));
     return TRUE;
 }
 
@@ -574,15 +567,15 @@ extern "C" void MS_ABI impl__OnContextHelp_COleIPFrameWnd__IEAAXXZ(COleIPFrameWn
 // Symbol: ?OnCreate@COleIPFrameWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_COleIPFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(
     COleIPFrameWnd* pThis, CREATESTRUCTW* lpCreateStruct) {
-    if (lpCreateStruct == nullptr)
-        impl__AfxThrowInvalidArgException__YAXXZ();
-    if (impl__OnCreateHelper_CFrameWnd__IEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
-            AsFrame(pThis), lpCreateStruct,
-            static_cast<CCreateContext*>(lpCreateStruct->lpCreateParams)) < 0)
-        return -1;
-    impl__ModifyStyleEx_CWnd__QEAAHKKI_Z(AsWnd(pThis), WS_EX_CLIENTEDGE, 0, 0);
+    return pThis->OnCreate(lpCreateStruct);
+}
+
+int COleIPFrameWnd::OnCreate(CREATESTRUCTW* creation) {
+    if (!creation) impl__AfxThrowInvalidArgException__YAXXZ();
+    if (CFrameWnd::OnCreate(creation) == -1) return -1;
+    CWnd::ModifyStyleEx(m_hWnd, WS_EX_CLIENTEDGE, 0, 0);
     MSG msg;
-    ::PeekMessageW(&msg, AsWnd(pThis)->m_hWnd, kWM_SETMESSAGESTRING, kWM_SETMESSAGESTRING,
+    ::PeekMessageW(&msg, m_hWnd, kWM_SETMESSAGESTRING, kWM_SETMESSAGESTRING,
                    PM_REMOVE | PM_NOYIELD);
     return 0;
 }

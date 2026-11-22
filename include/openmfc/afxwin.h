@@ -211,11 +211,19 @@ class CDockBar;
 class CDockState;
 class CView;
 class CDocument;
+class CDocTemplate;
 class CCmdUI;
 class CUserException;
 class CPrintPreviewState;
 class CMiniDockFrameWnd;
 class CFrameWnd;
+struct CCreateContext {
+    CRuntimeClass* m_pNewViewClass = nullptr;
+    CDocument* m_pCurrentDoc = nullptr;
+    CDocTemplate* m_pNewDocTemplate = nullptr;
+    CView* m_pLastView = nullptr;
+    CFrameWnd* m_pCurrentFrame = nullptr;
+};
 struct _AFX_OCC_DIALOG_INFO {
     DLGTEMPLATE* m_pNewTemplate;
     DLGITEMTEMPLATE** m_ppOleDlgItems;
@@ -3460,10 +3468,10 @@ public:
 //=============================================================================
 
 // Forward declarations
-class CDocTemplate;
 class CDocument;
 class CView;
 class CArchive;
+extern "C" void __cdecl impl___0CDocument__QEAA_XZ(CDocument*);
 
 // CDocument - Document base class
 class CDocument : public CCmdTarget {
@@ -3471,6 +3479,7 @@ class CDocument : public CCmdTarget {
 public:
     CDocument();
     virtual ~CDocument();
+    CDocTemplate* GetDocTemplate() const { return m_pDocTemplate; }
 
     // Document operations
     virtual int OnNewDocument();
@@ -3517,8 +3526,10 @@ public:
     CDocument* m_pNextDoc;        // Next document in template's list
 
 protected:
-    // Padding for ABI compatibility
-    char _document_padding[272];
+    friend class CDocTemplate;
+    friend void __cdecl impl___0CDocument__QEAA_XZ(CDocument*);
+    CDocTemplate* m_pDocTemplate = nullptr;
+    char _document_padding[264];
 };
 
 class CPreviewView;
@@ -3560,6 +3571,9 @@ public:
     CFrameWnd* GetParentFrame() const;
     CDocument* m_pDocument;
     BOOL m_bInitialRedraw;
+    BOOL m_bFrameOwnsView;
+protected:
+    void PostNcDestroy() override;
 };
 static_assert(sizeof(CView)==248,"native CView layout");
 
@@ -4135,6 +4149,9 @@ public:
     CDocTemplate(unsigned int nIDResource, CRuntimeClass* pDocClass,
                  CRuntimeClass* pFrameClass, CRuntimeClass* pViewClass);
     virtual ~CDocTemplate();
+    void SetServerInfo(UINT embeddingId, UINT inPlaceId = 0,
+                       CRuntimeClass* frameClass = nullptr, CRuntimeClass* viewClass = nullptr);
+    CFrameWnd* CreateOleFrame(CWnd* parent, CDocument* document, BOOL createView);
 
     // Document creation
     virtual CDocument* CreateNewDocument();
