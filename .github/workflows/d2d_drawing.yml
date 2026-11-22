@@ -158,10 +158,13 @@ on:
       - 'tests/window_form_routing_tests.h'
       - 'phase4/src/core/frame/CFrameWnd.cpp'
       - 'phase4/src/core/frame/CFrameWndDockState.cpp'
+      - 'phase4/src/core/frame/CFrameWndClassicDocking.cpp'
       - 'phase4/src/core/frame/CMiniFrameWnd.cpp'
       - 'phase4/src/core/controlbar/CControlBar.cpp'
+      - 'phase4/src/core/controlbar/CControlBarDocking.cpp'
       - 'phase4/src/core/controlbar/CDockBar.cpp'
       - 'phase4/src/core/controlbar/CDockContext.cpp'
+      - 'phase4/src/core/controlbar/CDockContextLifetime.cpp'
       - 'phase4/src/featurepack/docking/CMiniDockFrameWnd.cpp'
       - 'phase4/src/detail/ClassicDockingSupport.h'
       - 'phase4/src/detail/DockStateSupport.h'
@@ -480,10 +483,13 @@ on:
       - 'tests/window_form_routing_tests.h'
       - 'phase4/src/core/frame/CFrameWnd.cpp'
       - 'phase4/src/core/frame/CFrameWndDockState.cpp'
+      - 'phase4/src/core/frame/CFrameWndClassicDocking.cpp'
       - 'phase4/src/core/frame/CMiniFrameWnd.cpp'
       - 'phase4/src/core/controlbar/CControlBar.cpp'
+      - 'phase4/src/core/controlbar/CControlBarDocking.cpp'
       - 'phase4/src/core/controlbar/CDockBar.cpp'
       - 'phase4/src/core/controlbar/CDockContext.cpp'
+      - 'phase4/src/core/controlbar/CDockContextLifetime.cpp'
       - 'phase4/src/featurepack/docking/CMiniDockFrameWnd.cpp'
       - 'phase4/src/detail/ClassicDockingSupport.h'
       - 'phase4/src/detail/DockStateSupport.h'
@@ -1309,10 +1315,13 @@ jobs:
             echo "%GITHUB_WORKSPACE%/phase4/src/core/window/Thunks.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CFrameWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CFrameWndDockState.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CFrameWndClassicDocking.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CMiniFrameWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CControlBar.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CControlBarDocking.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CDockBar.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CDockContext.cpp"
+            echo "%GITHUB_WORKSPACE%/phase4/src/core/controlbar/CDockContextLifetime.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/featurepack/docking/CMiniDockFrameWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/frame/CSplitterWnd.cpp"
             echo "%GITHUB_WORKSPACE%/phase4/src/core/animation/RuntimeClasses.cpp"

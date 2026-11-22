@@ -1,7 +1,6 @@
 #include "OlecoreSupport.h"
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
-IMPLEMENT_DYNAMIC(CControlBar, CWnd)
 IMPLEMENT_DYNAMIC(CDocItem, CObject)
 extern "C" {
 MS_ABI void impl__AfxOleInit() {

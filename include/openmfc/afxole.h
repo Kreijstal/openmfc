@@ -69,6 +69,8 @@ class CControlBar : public CWnd {
 public:
     CControlBar();
     virtual ~CControlBar();
+    BOOL DestroyWindow() override;
+    void PostNcDestroy() override;
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 
     // Faithful MSVC mfc140u CControlBar layout (size 328; members begin where

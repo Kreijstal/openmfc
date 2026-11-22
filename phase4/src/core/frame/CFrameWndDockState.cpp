@@ -47,7 +47,7 @@ void CFrameWnd::LoadBarState(const wchar_t* profile) {
 }
 
 CMiniDockFrameWnd* CFrameWnd::CreateFloatingFrame(DWORD style) {
-    return m_hWnd ? openmfc::detail::dock::CreateFloatingFrame(this, style) : nullptr;
+    return m_hWnd ? openmfc::detail::dock::CreateFloatingFrame(this, style, m_retailTail.m_pFloatingFrameClass) : nullptr;
 }
 
 void CFrameWnd::SetDockState(const CDockState& state) {

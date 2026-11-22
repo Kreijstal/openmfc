@@ -151,6 +151,8 @@ def main():
     frame_objects = [compile_one(source) for source in [
         'tests/test_archive_dock_frame.cpp',
         'phase4/src/core/frame/CFrameWndDockState.cpp',
+        'phase4/src/core/frame/CFrameWndClassicDocking.cpp',
+        'phase4/src/core/controlbar/CDockContextLifetime.cpp',
         'phase4/src/detail/CPtrListSupport.cpp',
     ]]
     link_response('dock_frame',['/nologo','/SUBSYSTEM:CONSOLE','/OPT:REF',

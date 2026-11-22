@@ -429,7 +429,6 @@ inline void RemoveAtAndCollapseRow(void* pThis, INT_PTR nPos) {
 } // namespace
 
 extern "C" CRuntimeClass* impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();
-extern "C" void impl__PostNcDestroy_CControlBar__UEAAXXZ(CControlBar*);
 extern "C" void* impl___2_YAPEAX_K_Z(size_t);
 
 class CDockBar : public CControlBar {
@@ -439,13 +438,7 @@ public:
     CRuntimeClass* GetRuntimeClass() const override {
         return impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ();
     }
-    void PostNcDestroy() override {
-        if (m_pDockSite) {
-            openmfc::detail::frame::UnregisterControlBar(static_cast<CFrameWnd*>(m_pDockSite), this);
-            m_pDockSite = nullptr;
-        }
-        impl__PostNcDestroy_CControlBar__UEAAXXZ(this);
-    }
+
 private:
     DockBarTail tail{};
 };

@@ -1141,7 +1141,7 @@ extern "C" void* MS_ABI impl___0CToolBar__QEAA_XZ(void* pThis) {
 // Symbol: ??1CControlBar@@UEAA@XZ
 // Destructor: CControlBar::~CControlBar
 extern "C" void MS_ABI impl___1CControlBar__UEAA_XZ(void* pThis) {
-    ((CControlBar*)pThis)->~CControlBar();
+    static_cast<CControlBar*>(pThis)->CControlBar::~CControlBar();
 }
 // Symbol: ??1CDialogBar@@UEAA@XZ
 // Destructor: CDialogBar::~CDialogBar

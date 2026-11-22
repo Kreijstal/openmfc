@@ -49,7 +49,6 @@ DT_DESC(CDockingPanesRow,     112,  0xFFFF,     &CObject::classCObject);        
 DT_DESC(CDockablePaneAdapter, 1280, 0x80000002, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
 DT_DESC(CBaseTabbedPane,      1304, 0xFFFF,     &CDockablePane::classCDockablePane); // DECLARE_DYNAMIC
 DT_DESC(CTabbedPane,          1304, 0x80000002, &classCBaseTabbedPane);           // DECLARE_SERIAL
-DT_DESC(CMiniDockFrameWnd,    896,  0xFFFF,     &CMiniFrameWnd::classCMiniFrameWnd); // DECLARE_DYNCREATE
 #undef DT_DESC
 
 // Two exported getters per class via a macro; the literal "// Symbol:" marker
@@ -218,11 +217,6 @@ DT_GETTERS(CTabbedPane,
            impl__GetThisClass_CTabbedPane__SAPEAUCRuntimeClass__XZ,
            impl__GetRuntimeClass_CTabbedPane__UEBAPEAUCRuntimeClass__XZ)
 
-// Symbol: ?GetThisClass@CMiniDockFrameWnd@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetRuntimeClass@CMiniDockFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
-DT_GETTERS(CMiniDockFrameWnd,
-           impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMiniDockFrameWnd__UEBAPEAUCRuntimeClass__XZ)
 
 #undef DT_GETTERS
 #undef DT_GETTERS

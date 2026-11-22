@@ -24,11 +24,10 @@
 #define CONTROLBAR_KEYFRAME_DESC(Cls, Size, Schema, BaseDesc) \
     static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
-CONTROLBAR_KEYFRAME_DESC(CControlBar, 328, 0xFFFF, &CWnd::classCWnd);
-CONTROLBAR_KEYFRAME_DESC(CDockBar, 400, 0xFFFF, &classCControlBar);
-CONTROLBAR_KEYFRAME_DESC(COleResizeBar, 408, 0xFFFF, &classCControlBar);
-CONTROLBAR_KEYFRAME_DESC(CReBar, 336, 0xFFFF, &classCControlBar);
-CONTROLBAR_KEYFRAME_DESC(CStatusBar, 336, 0xFFFF, &classCControlBar);
+CONTROLBAR_KEYFRAME_DESC(CDockBar, 400, 0xFFFF, &CControlBar::classCControlBar);
+CONTROLBAR_KEYFRAME_DESC(COleResizeBar, 408, 0xFFFF, &CControlBar::classCControlBar);
+CONTROLBAR_KEYFRAME_DESC(CReBar, 336, 0xFFFF, &CControlBar::classCControlBar);
+CONTROLBAR_KEYFRAME_DESC(CStatusBar, 336, 0xFFFF, &CControlBar::classCControlBar);
 CONTROLBAR_KEYFRAME_DESC(CBaseKeyFrame, 24, 0xFFFF, &CObject::classCObject);
 CONTROLBAR_KEYFRAME_DESC(CKeyFrame, 48, 0xFFFF, &classCBaseKeyFrame);
 CONTROLBAR_KEYFRAME_DESC(CPreviewView, 536, 0xFFFF, &CScrollView::classCScrollView);
@@ -107,7 +106,6 @@ DT_DESC(CDockingPanesRow,     112,  0xFFFF,     &CObject::classCObject);        
 DT_DESC(CDockablePaneAdapter, 1280, 0x80000002, &CDockablePane::classCDockablePane); // DECLARE_SERIAL
 DT_DESC(CBaseTabbedPane,      1304, 0xFFFF,     &CDockablePane::classCDockablePane); // DECLARE_DYNAMIC
 DT_DESC(CTabbedPane,          1304, 0x80000002, &classCBaseTabbedPane);           // DECLARE_SERIAL
-DT_DESC(CMiniDockFrameWnd,    896,  0xFFFF,     &CMiniFrameWnd::classCMiniFrameWnd); // DECLARE_DYNCREATE
 #undef DT_DESC
 
 // Two exported getters per class via a macro; the literal "// Symbol:" marker
@@ -138,11 +136,6 @@ DT_DESC(CMiniDockFrameWnd,    896,  0xFFFF,     &CMiniFrameWnd::classCMiniFrameW
 #define CONTROLBAR_KEYFRAME_GETTERS(Cls, GetThisSym, GetRtSym) \
     extern "C" CRuntimeClass* MS_ABI GetThisSym() { return &class##Cls; } \
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
-// Symbol: ?GetThisClass@CControlBar@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetRuntimeClass@CControlBar@@UEBAPEAUCRuntimeClass@@XZ
-CONTROLBAR_KEYFRAME_GETTERS(CControlBar,
-           impl__GetThisClass_CControlBar__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CControlBar__UEBAPEAUCRuntimeClass__XZ)
 // Symbol: ?GetThisClass@CDockBar@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CDockBar@@UEBAPEAUCRuntimeClass@@XZ
 CONTROLBAR_KEYFRAME_GETTERS(CDockBar,

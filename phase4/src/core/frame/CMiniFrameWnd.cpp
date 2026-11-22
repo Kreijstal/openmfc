@@ -179,6 +179,17 @@ extern "C" int MS_ABI impl__CreateEx_CMiniFrameWnd__UEAAHKPEB_W0KAEBUtagRECT__PE
         hWndParent, reinterpret_cast<HMENU>(static_cast<UINT_PTR>(nID)), nullptr);
 }
 
+BOOL CMiniFrameWnd::Create(const wchar_t* className, const wchar_t* title, DWORD style,
+                           const RECT& rect, CWnd* parent, UINT id) {
+    return CMiniFrameWnd::CreateEx(0, className, title, style, rect, parent, id);
+}
+
+BOOL CMiniFrameWnd::CreateEx(DWORD exStyle, const wchar_t* className, const wchar_t* title,
+                             DWORD style, const RECT& rect, CWnd* parent, UINT id) {
+    return impl__CreateEx_CMiniFrameWnd__UEAAHKPEB_W0KAEBUtagRECT__PEAVCWnd__I_Z(
+        this, exStyle, className, title, style, rect, parent, id);
+}
+
 // Symbol: ?CreateObject@CMiniFrameWnd@@SAPEAVCObject@@XZ
 // Transcribed from RVA 0x2a9270 (mfc140u): operator new(0x1f0), and when that
 // returns non-NULL, CMiniFrameWnd::CMiniFrameWnd() on it; the result (possibly
@@ -436,4 +447,8 @@ extern "C" int MS_ABI impl__PreCreateWindow_CMiniFrameWnd__MEAAHAEAUtagCREATESTR
     impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(pThis, cs);
     cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
     return TRUE;
+}
+
+BOOL CMiniFrameWnd::PreCreateWindow(CREATESTRUCTW& create) {
+    return impl__PreCreateWindow_CMiniFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(this, create);
 }

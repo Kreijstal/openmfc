@@ -114,7 +114,17 @@ class CImageList;
 // CMiniFrameWnd — needed by CMFCPopupMenu, CPaneFrameWnd (must be defined before use)
 class CMiniFrameWnd : public CFrameWnd {
     DECLARE_DYNAMIC(CMiniFrameWnd)
-public: CMiniFrameWnd(); virtual ~CMiniFrameWnd(); protected: char _pad[24]; };
+public:
+    CMiniFrameWnd();
+    ~CMiniFrameWnd() override;
+    virtual BOOL Create(const wchar_t* className, const wchar_t* title, DWORD style,
+                        const RECT& rect, CWnd* parent = nullptr, UINT id = 0);
+    virtual BOOL CreateEx(DWORD exStyle, const wchar_t* className, const wchar_t* title,
+                          DWORD style, const RECT& rect, CWnd* parent = nullptr, UINT id = 0);
+protected:
+    BOOL PreCreateWindow(CREATESTRUCTW& create) override;
+    char _pad[24];
+};
 
 // AFX_IDW_RIBBON_BAR — needed before CMFCRibbonBar::Create default arg
 #ifndef AFX_IDW_RIBBON_BAR

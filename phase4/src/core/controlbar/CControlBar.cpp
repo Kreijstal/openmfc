@@ -337,10 +337,6 @@ extern "C" int MS_ABI impl__IsFloating_CControlBar__QEBAHXZ(const CControlBar* p
 extern "C" int MS_ABI impl__IsVisible_CControlBar__UEBAHXZ(const CControlBar* pThis) {
     return (pThis->m_hWnd && ::IsWindowVisible(pThis->m_hWnd)) ? TRUE : FALSE;
 }
-// Symbol: ?EnableDocking@CControlBar@@QEAAXK@Z
-extern "C" void MS_ABI impl__EnableDocking_CControlBar__QEAAXK_Z(CControlBar* pThis, DWORD dwDockStyle) {
-    pThis->m_dwDockStyle = dwDockStyle;
-}
 // Symbol: ?SetBarStyle@CControlBar@@QEAAXK@Z
 extern "C" void MS_ABI impl__SetBarStyle_CControlBar__QEAAXK_Z(CControlBar* pThis, DWORD dwStyle) {
     pThis->m_dwStyle = dwStyle;
@@ -429,13 +425,6 @@ extern "C" void MS_ABI impl__DelayShow_CControlBar__UEAAXH_Z(CControlBar* pThis,
     if (pThis->m_hWnd) {
         ::ShowWindow(pThis->m_hWnd, bShow ? SW_SHOWNA : SW_HIDE);
     }
-}
-// Symbol: ?DestroyWindow@CControlBar@@UEAAHXZ
-extern "C" int MS_ABI impl__DestroyWindow_CControlBar__UEAAHXZ(CControlBar* pThis) {
-    if (!pThis->m_hWnd) return FALSE;
-    BOOL result = ::DestroyWindow(pThis->m_hWnd);
-    if (result) pThis->m_hWnd = nullptr;
-    return result;
 }
 // Transcribed from retail RVA 0x1d74e0 (mfc140u):
 //     CRect rect;  ::GetClientRect(m_hWnd, &rect);   // IAT GetClientRect
@@ -1059,12 +1048,6 @@ extern "C" void MS_ABI impl__OnWindowPosChanging_CControlBar__QEAAXPEAUtagWINDOW
         ::InvalidateRect(pThis->m_hWnd, &rect, TRUE);
     }
 }
-// Symbol: ?PostNcDestroy@CControlBar@@UEAAXXZ
-extern "C" void MS_ABI impl__PostNcDestroy_CControlBar__UEAAXXZ(CControlBar* pThis) {
-    if (pThis->m_bAutoDelete) {
-        delete pThis;
-    }
-}
 // Symbol: ?PreCreateWindow@CControlBar@@UEAAHAEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__PreCreateWindow_CControlBar__UEAAHAEAUtagCREATESTRUCTW___Z(CControlBar* pThis, CREATESTRUCTW& cs) {
     (void)pThis;
@@ -1533,33 +1516,4 @@ extern "C" DWORD MS_ABI impl__RecalcDelayShow_CControlBar__UEAAKPEAUAFX_SIZEPARE
         }
     }
     return dwResult;
-}
-CControlBar::CControlBar()
-    : m_pInPlaceOwner(nullptr), m_bAutoDelete(FALSE),
-      m_cxLeftBorder(0), m_cxRightBorder(0), m_cyTopBorder(0), m_cyBottomBorder(0),
-      m_cxDefaultGap(0), m_nMRUWidth(0), m_nCount(0), m_pData(nullptr),
-      m_hReBarTheme(nullptr), m_nStateFlags(0), m_dwStyle(0), m_dwDockStyle(0),
-      m_pDockSite(nullptr), m_pDockBar(nullptr), m_pDockContext(nullptr) {
-}
-CControlBar::~CControlBar() {}
-BOOL CControlBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
-    if (!pParentWnd) return FALSE;
-
-    m_dwStyle = dwStyle;
-    DWORD winStyle = dwStyle & 0xFFFF;
-    if ((winStyle & WS_CHILD) == 0) winStyle |= WS_CHILD;
-
-    m_hWnd = ::CreateWindowExW(0, L"STATIC", nullptr, winStyle,
-                               0, 0, 0, 0,
-                               pParentWnd->GetSafeHwnd(),
-                               (HMENU)(UINT_PTR)nID,
-                               AfxGetInstanceHandle(), nullptr);
-
-    if (!m_hWnd) return FALSE;
-
-    ::SetWindowLongPtrW(m_hWnd, GWLP_ID, nID);
-    if (dwStyle & WS_VISIBLE) {
-        ::ShowWindow(m_hWnd, SW_SHOW);
-    }
-    return TRUE;
 }

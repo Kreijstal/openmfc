@@ -5,13 +5,11 @@
 
 #include "detail/FrameFontExportsSupport.h"
 #include "detail/FrameLifetimeSupport.h"
-#include "detail/ClassicDockingSupport.h"
 #include "detail/WincoreSupport.h"
 #include <dde.h>
 
 using openmfc::detail::frame::ControlBars;
 using openmfc::detail::frame::RegisterControlBar;
-using openmfc::detail::frame::UnregisterControlBar;
 
 // Symbol: ?CreateObject@CFrameWnd@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CFrameWnd__SAPEAVCObject__XZ() {
@@ -317,13 +315,6 @@ void CFrameWnd::BringToTop(int nCmdShow) {
     ::ShowWindow(m_hWnd, showCmd);
     ::BringWindowToTop(m_hWnd);
 }
-DWORD CFrameWnd::CanDock(CRect rect, DWORD dwDockStyle, CDockBar** ppDockBar) {
-    (void)rect;
-    if (ppDockBar) {
-        *ppDockBar = nullptr;
-    }
-    return (m_hWnd && dwDockStyle != 0) ? 1 : 0;
-}
 int CFrameWnd::CanEnterHelpMode() {
     return m_hWnd ? TRUE : FALSE;
 }
@@ -336,75 +327,8 @@ CWnd* CFrameWnd::CreateView(CCreateContext* pContext, unsigned int nID) {
     HWND hWndView = ::GetDlgItem(m_hWnd, static_cast<int>(nID));
     return hWndView ? CWnd::FromHandle(hWndView) : nullptr;
 }
-void CFrameWnd::DestroyDockBars() {
-    for (auto* node = ControlBars(this).m_pNodeHead; node; node = node->pNext) {
-        auto* pBar = static_cast<CControlBar*>(node->data);
-        if (pBar && pBar->m_hWnd) {
-            ::ShowWindow(pBar->m_hWnd, SW_HIDE);
-        }
-    }
-    ControlBars(this).RemoveAll();
-}
-void CFrameWnd::DockControlBar(CControlBar* pBar, unsigned int nDockBarID, const RECT* lpRect) {
-    if (!pBar) {
-        return;
-    }
 
-    if (!nDockBarID) {
-        using namespace openmfc::detail::dock;
-        const DWORD bars = pBar->m_dwDockStyle;
-        if ((bars & alignTop) && GetControlBar(topBarId)) nDockBarID = topBarId;
-        else if ((bars & alignBottom) && GetControlBar(bottomBarId)) nDockBarID = bottomBarId;
-        else if ((bars & alignLeft) && GetControlBar(leftBarId)) nDockBarID = leftBarId;
-        else if ((bars & alignRight) && GetControlBar(rightBarId)) nDockBarID = rightBarId;
-    }
-    if (auto* dockBar = GetControlBar(nDockBarID)) {
-        if (dockBar->IsKindOf(impl__GetThisClass_CDockBar__SAPEAUCRuntimeClass__XZ())) {
-            DockControlBar(pBar, reinterpret_cast<CDockBar*>(dockBar), lpRect);
-            return;
-        }
-    }
 
-    RegisterControlBar(this, pBar);
-
-    if (pBar->m_hWnd && lpRect) {
-        ::MoveWindow(pBar->m_hWnd,
-                     lpRect->left, lpRect->top,
-                     lpRect->right - lpRect->left,
-                     lpRect->bottom - lpRect->top,
-                     TRUE);
-    }
-    if (pBar->m_hWnd) {
-        ::ShowWindow(pBar->m_hWnd, SW_SHOW);
-    }
-}
-void CFrameWnd::DockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect) {
-    if (!pBar) return;
-    if (!pDockBar) {
-        DockControlBar(pBar, 0u, lpRect);
-        return;
-    }
-    RegisterControlBar(this, pBar);
-    impl__DockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRECT___Z(pDockBar, pBar, lpRect);
-}
-void CFrameWnd::EnableDocking(DWORD dwDockStyle) {
-    using namespace openmfc::detail::dock;
-    constexpr struct { DWORD alignment; DWORD border; UINT id; } sides[] = {
-        {alignTop, borderBottom, topBarId}, {alignBottom, borderTop, bottomBarId},
-        {alignLeft, borderRight, leftBarId}, {alignRight, borderLeft, rightBarId}
-    };
-    for (const auto& side : sides) {
-        if (!(dwDockStyle & side.alignment) || GetControlBar(side.id)) continue;
-        auto* dock = NewDockBar();
-        if (!dock) AfxThrowMemoryException();
-        const DWORD style = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN |
-                            side.alignment | side.border;
-        if (!impl__Create_CDockBar__UEAAHPEAVCWnd__KI_Z(dock, this, style, side.id)) {
-            delete dock;
-            AfxThrowResourceException();
-        }
-    }
-}
 void CFrameWnd::EndModalState() {
     auto& state = GetFrameRuntimeState(this);
     if (state.modalDepth == 0) {
@@ -426,22 +350,7 @@ void CFrameWnd::ExitHelpMode() {
     }
     ::SetCursor(::LoadCursorW(nullptr, MAKEINTRESOURCEW(IDC_ARROW)));
 }
-void CFrameWnd::FloatControlBar(CControlBar* pBar, CPoint pt, DWORD dwStyle) {
-    (void)dwStyle;
-    if (!pBar || !pBar->m_hWnd) {
-        return;
-    }
-    RECT windowRect{};
-    int width = 200;
-    int height = 150;
-    if (::GetWindowRect(pBar->m_hWnd, &windowRect)) {
-        width = windowRect.right - windowRect.left;
-        height = windowRect.bottom - windowRect.top;
-    }
-    ::SetWindowPos(pBar->m_hWnd, nullptr,
-                   pt.x, pt.y, width, height,
-                   SWP_NOZORDER | SWP_NOACTIVATE);
-}
+
 
 const wchar_t* CFrameWnd::GetIconWndClass(DWORD dwDefaultStyle, unsigned int nIDResource) {
     (void)dwDefaultStyle;
@@ -1097,20 +1006,6 @@ int CFrameWnd::ProcessHelpMsg(MSG& msg, DWORD* pContext) {
         return 1;
     }
     return 0;
-}
-void CFrameWnd::ReDockControlBar(CControlBar* pBar, CDockBar* pDockBar, const RECT* lpRect) {
-    (void)pDockBar;
-    DockControlBar(pBar, 0u, lpRect);
-}
-void CFrameWnd::RemoveControlBar(CControlBar* pBar) {
-    if (!pBar) {
-        return;
-    }
-
-    UnregisterControlBar(this, pBar);
-    if (pBar->m_hWnd) {
-        ::ShowWindow(pBar->m_hWnd, SW_HIDE);
-    }
 }
 
 

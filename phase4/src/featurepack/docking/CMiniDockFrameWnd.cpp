@@ -67,7 +67,11 @@
 // forwarding to CMiniDockFrameWnd::OnNcLButtonDown), never through that map.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/ClassicDockingSupport.h"
+#include <cstdlib>
+#include <new>
 #include <cstddef>
+#include <memory>
 
 // ---------------------------------------------------------------------------
 // Sibling / base thunks, declared with the signature their mangled name
@@ -211,7 +215,7 @@ inline bool DockBarIsFloatMulti(void* pThis) {
 //     m_wndDockBar.m_bAutoDelete = FALSE;                     // +0x2e0
 //     return this;
 extern "C" void impl___1CDockBar__UEAA_XZ(void*);
-extern "C" CRuntimeClass* impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ();
+extern "C" int impl__Create_CMiniDockFrameWnd__UEAAHPEAVCWnd__K_Z(void*, CWnd*, DWORD);
 extern "C" void impl__RecalcLayout_CMiniDockFrameWnd__UEAAXH_Z(void*, int);
 
 class CMiniDockFrameWnd : public CMiniFrameWnd {
@@ -230,6 +234,9 @@ public:
     }
     void RecalcLayout(BOOL notify) override {
         impl__RecalcLayout_CMiniDockFrameWnd__UEAAXH_Z(this, notify);
+    }
+    virtual BOOL Create(CWnd* parent, DWORD style) {
+        return impl__Create_CMiniDockFrameWnd__UEAAHPEAVCWnd__K_Z(this, parent, style);
     }
     void EnableWindowOwnership() { m_retailTail.m_reserved_1a4 = 1; }
 
@@ -323,22 +330,47 @@ extern "C" int MS_ABI impl__Create_CMiniDockFrameWnd__UEAAHPEAVCWnd__K_Z(void* p
 // the result (possibly NULL) is returned.  Allocated through the DLL's
 // exported ::operator new thunk, as core/frame/CMiniFrameWnd.cpp does.
 // Symbol: ?CreateObject@CMiniDockFrameWnd@@SAPEAVCObject@@XZ
-extern "C" void* MS_ABI impl__CreateObject_CMiniDockFrameWnd__SAPEAVCObject__XZ() {
-    void* p = impl___2_YAPEAX_K_Z(kSizeofMiniDock);
-    if (p == nullptr) return nullptr;
-    return impl___0CMiniDockFrameWnd__QEAA_XZ(p);
+extern "C" CObject* MS_ABI impl__CreateObject_CMiniDockFrameWnd__SAPEAVCObject__XZ() {
+    void* memory = impl___2_YAPEAX_K_Z(kSizeofMiniDock);
+    if (!memory) return nullptr;
+    try {
+        return ::new (memory) CMiniDockFrameWnd;
+    } catch (...) {
+        std::free(memory);
+        throw;
+    }
+}
+
+namespace {
+CRuntimeClass* AFXAPI MiniDockBase() { return CMiniFrameWnd::GetThisClass(); }
+CRuntimeClass miniDockType{
+    "CMiniDockFrameWnd", sizeof(CMiniDockFrameWnd), 0xffff,
+    &impl__CreateObject_CMiniDockFrameWnd__SAPEAVCObject__XZ, &MiniDockBase, nullptr, nullptr
+};
+}
+
+// Symbol: ?GetThisClass@CMiniDockFrameWnd@@SAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetThisClass_CMiniDockFrameWnd__SAPEAUCRuntimeClass__XZ() {
+    return &miniDockType;
+}
+
+// Symbol: ?GetRuntimeClass@CMiniDockFrameWnd@@UEBAPEAUCRuntimeClass@@XZ
+extern "C" CRuntimeClass* impl__GetRuntimeClass_CMiniDockFrameWnd__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return &miniDockType;
 }
 
 namespace openmfc::detail::dock {
-CMiniDockFrameWnd* CreateFloatingFrame(CFrameWnd* owner, DWORD style) {
-    auto* frame = static_cast<CMiniDockFrameWnd*>(impl__CreateObject_CMiniDockFrameWnd__SAPEAVCObject__XZ());
-    if (!frame) return nullptr;
-    if (!impl__Create_CMiniDockFrameWnd__UEAAHPEAVCWnd__K_Z(frame, owner, style)) {
-        if (frame->m_hWnd) frame->DestroyWindow();
-        delete frame;
-        return nullptr;
+CMiniDockFrameWnd* CreateFloatingFrame(CFrameWnd* owner, DWORD style, CRuntimeClass* type) {
+    if (!type) type = &miniDockType;
+    auto* frame = static_cast<CMiniDockFrameWnd*>(type->CreateObject());
+    if (!frame) AfxThrowMemoryException();
+
+    std::unique_ptr<CMiniDockFrameWnd> pending(type == &miniDockType ? frame : nullptr);
+    if (!frame->Create(owner, style)) AfxThrowResourceException();
+    if (pending) {
+        frame->EnableWindowOwnership();
+        pending.release();
     }
-    frame->EnableWindowOwnership();
     return frame;
 }
 
