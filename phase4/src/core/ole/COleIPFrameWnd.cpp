@@ -173,7 +173,7 @@ struct RetailIPFrameTail {
     BOOL                 m_bInsideRecalc;  // +0x268  RepositionFrame re-entrancy guard
     BOOL                 m_bPreviewMode;   // +0x26c  (declaration order; not touched here)
     HMENU                m_hMenuHelpPopup; // +0x270  `mov %rax,0x270(%rbx)` 0x25dc5b
-    HMENU                _m_Reserved;      // +0x278
+    BOOL                 m_bLayoutInitialized; // +0x278
 };
 #pragma pack(pop)
 
@@ -801,61 +801,52 @@ extern "C" int MS_ABI impl__PreTranslateMessage_COleIPFrameWnd__UEAAHPEAUtagMSG_
 //     pParentWnd->ClientToScreen(&rect);
 //     ScreenToClient(&rect);                              // this
 //     RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposDefault, NULL, &rect, TRUE);
-// Retail uses the constant INT_MAX/2 for rectBig.right/bottom after the query
-// pass (it never re-reads them); the same constant is used here.
-// bDocObject: retail reads COleServerDoc::m_pDocObjectServer at document
-// +0x268 (`cmp %rdi,0x268(%rax)` at 0x25d651) with no class check, and so does
-// this.  OpenMFC's COleServerDoc declares no such member, but it is
-// retail-sized (0x298) and +0x268 lies inside its _coleserverdoc_padding,
-// which its ctor zero-fills (core/ole/COleServerDoc.cpp:443); the same offset
-// is read raw by core/ole/CDocObjectServer.cpp (kOwnerOff_m_pDocObjectServer).
-// No OpenMFC code writes it, so on an OpenMFC-constructed server document the
-// test yields FALSE, as retail's does for a document with no DocObject server.
 // Symbol: ?RecalcLayout@COleIPFrameWnd@@UEAAXH@Z
-extern "C" void MS_ABI impl__RecalcLayout_COleIPFrameWnd__UEAAXH_Z(COleIPFrameWnd* pThis, BOOL bNotify) {
-    (void)bNotify;
-    CWnd* pSelf = AsWnd(pThis);
-    CWnd* pParentWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pSelf->m_hWnd));
-    CDocument* pDoc = GetActiveDocumentV(pThis);
-    const BOOL bDocObject = pDoc != nullptr &&
-        *reinterpret_cast<void* const*>(reinterpret_cast<const unsigned char*>(pDoc) +
-                                        kOff_COleServerDoc_m_pDocObjectServer) != nullptr;
+extern "C" void MS_ABI impl__RecalcLayout_COleIPFrameWnd__UEAAXH_Z(COleIPFrameWnd* frame, BOOL notify) {
+    if (frame) frame->COleIPFrameWnd::RecalcLayout(notify);
+}
 
-    constexpr LONG kBig = 0x3fffffff;   // INT_MAX / 2
-    RECT rectBig = {0, 0, kBig, kBig};
-    RECT rectLeft = {0, 0, 0, 0};
-    impl__RepositionBars_CWnd__QEAAXIIIIPEAUtagRECT__PEBU2_H_Z(
-        pSelf, 0, 0xffff, kAFX_IDW_PANE_FIRST, kReposQuery, &rectLeft, &rectBig, TRUE);
-
-    RetailIPFrameTail* t = Tail(pThis);
-    RECT rect = t->m_rectPos;
-    rect.left   -= rectLeft.left;
-    rect.top    -= rectLeft.top;
-    rect.right  += kBig - rectLeft.right;
-    rect.bottom += kBig - rectLeft.bottom;
-
-    CWnd* pLeftOver = impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(pSelf, kAFX_IDW_PANE_FIRST);
-    if (pLeftOver != nullptr) {
-        rectBig = t->m_rectPos;
-        CalcWindowRectV(pLeftOver, &rectBig, kAdjustOutside);
-        rect.left   += rectBig.left   - t->m_rectPos.left;
-        rect.top    += rectBig.top    - t->m_rectPos.top;
-        rect.right  += rectBig.right  - t->m_rectPos.right;
-        rect.bottom += rectBig.bottom - t->m_rectPos.bottom;
+void COleIPFrameWnd::RecalcLayout(BOOL notify) {
+    auto* state = Tail(this);
+    if (!state->m_bLayoutInitialized) {
+        CFrameWnd::RecalcLayout(notify);
+        return;
     }
+    if (!m_hWnd || state->m_bInsideRecalc) return;
+    state->m_bInsideRecalc = TRUE;
+    struct Restore {
+        BOOL& flag;
+        ~Restore() { flag = FALSE; }
+    } restore{state->m_bInsideRecalc};
 
-    CalcWindowRectV(pSelf, &rect, bDocObject ? kAdjustOutside : kAdjustBorder);
+    auto* document = GetActiveDocument();
+    const bool docObject = document && document->IsKindOf(RUNTIME_CLASS(COleServerDoc)) &&
+        static_cast<COleServerDoc*>(document)->m_retailTail.m_pDocObjectServer;
+    constexpr LONG extent = 0x3fffffff;
+    RECT big{0, 0, extent, extent};
+    RECT remaining{};
+    RepositionBars(0, 0xffff, kAFX_IDW_PANE_FIRST, kReposQuery, &remaining, &big, TRUE);
 
-    RECT rectClip = {0, 0, 0, 0};
-    ::IntersectRect(&rectClip, &rect, &t->m_rectClip);
+    RECT bounds = state->m_rectPos;
+    bounds.left -= remaining.left;
+    bounds.top -= remaining.top;
+    bounds.right += extent - remaining.right;
+    bounds.bottom += extent - remaining.bottom;
+    if (const HWND child = ::GetDlgItem(m_hWnd, kAFX_IDW_PANE_FIRST)) {
+        RECT adjusted = state->m_rectPos;
+        CWnd::FromHandle(child)->CalcWindowRect(&adjusted, kAdjustOutside);
+        bounds.left += adjusted.left - state->m_rectPos.left;
+        bounds.top += adjusted.top - state->m_rectPos.top;
+        bounds.right += adjusted.right - state->m_rectPos.right;
+        bounds.bottom += adjusted.bottom - state->m_rectPos.bottom;
+    }
+    CalcWindowRect(&bounds, docObject ? kAdjustOutside : kAdjustBorder);
+    RECT clipped{};
+    ::IntersectRect(&clipped, &bounds, &state->m_rectClip);
     impl__AfxRepositionWindow__YAXPEAUAFX_SIZEPARENTPARAMS__PEAUHWND____PEBUtagRECT___Z(
-        nullptr, pSelf->m_hWnd, &rectClip);
-
-    impl__ClientToScreen_CWnd__QEBAXPEAUtagRECT___Z(pParentWnd, &rect);
-    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(pSelf, &rect);
-
-    impl__RepositionBars_CWnd__QEAAXIIIIPEAUtagRECT__PEBU2_H_Z(
-        pSelf, 0, 0xffff, kAFX_IDW_PANE_FIRST, kReposDefault, nullptr, &rect, TRUE);
+        nullptr, m_hWnd, &clipped);
+    ::MapWindowPoints(::GetParent(m_hWnd), m_hWnd, reinterpret_cast<POINT*>(&bounds), 2);
+    RepositionBars(0, 0xffff, kAFX_IDW_PANE_FIRST, kReposDefault, nullptr, &bounds, TRUE);
 }
 
 // COleIPFrameWnd::RepositionFrame(LPCRECT, LPCRECT) -- retail mfc140u 0x25d800
@@ -869,12 +860,22 @@ extern "C" void MS_ABI impl__RecalcLayout_COleIPFrameWnd__UEAAXH_Z(COleIPFrameWn
 // Symbol: ?RepositionFrame@COleIPFrameWnd@@UEAAXPEBUtagRECT@@0@Z
 extern "C" void MS_ABI impl__RepositionFrame_COleIPFrameWnd__UEAAXPEBUtagRECT__0_Z(
     COleIPFrameWnd* pThis, const RECT* lpPosRect, const RECT* lpClipRect) {
-    RetailIPFrameTail* t = Tail(pThis);
-    if (t->m_bInsideRecalc)
-        return;
-    t->m_bInsideRecalc = TRUE;
-    ::CopyRect(&t->m_rectPos, lpPosRect);
-    ::CopyRect(&t->m_rectClip, lpClipRect);
-    VSlot<Fn_RecalcLayout>(pThis, kSlot_RecalcLayout)(pThis, TRUE);
-    t->m_bInsideRecalc = FALSE;
+    if (pThis) pThis->COleIPFrameWnd::RepositionFrame(lpPosRect, lpClipRect);
+}
+
+void COleIPFrameWnd::RepositionFrame(LPCRECT position, LPCRECT clip) {
+    auto* state = Tail(this);
+    if (!position || !clip || state->m_bInsideRecalc) return;
+    state->m_rectPos = *position;
+    state->m_rectClip = *clip;
+    state->m_bLayoutInitialized = TRUE;
+    RecalcLayout(TRUE);
+}
+
+RECT COleIPFrameWnd::GetInPlacePosition() const {
+    return Tail(const_cast<COleIPFrameWnd*>(this))->m_rectPos;
+}
+
+RECT COleIPFrameWnd::GetInPlaceClipRect() const {
+    return Tail(const_cast<COleIPFrameWnd*>(this))->m_rectClip;
 }

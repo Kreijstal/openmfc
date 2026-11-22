@@ -4,6 +4,7 @@
 #include "openmfc/afxole.h"
 
 class CDocObjectServer;
+extern "C" long __cdecl impl__OnActivateView_CDocObjectServer__MEAAJXZ(void*);
 
 namespace openmfc::detail::olecore {
 HRESULT QueryDocObjectServer(CDocObjectServer*, bool queryOwner, REFIID, void**);
@@ -99,6 +100,8 @@ public:
     } m_xPrint;
 
 protected:
+    friend long __cdecl impl__OnActivateView_CDocObjectServer__MEAAJXZ(void*);
+    virtual HRESULT OnActivateView();
     const AFX_INTERFACEMAP* GetInterfaceMap() const override;
 };
 

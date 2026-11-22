@@ -6,6 +6,7 @@
 #include "detail/OlecoreSupport.h"
 #include "openmfc/afxdocob.h"
 #include "detail/CCmdTargetVirtualsSupport.h"
+#include "detail/WindowCreationSupport.h"
 #include <memory>
 #include <utility>
 
@@ -108,7 +109,49 @@ extern "C" int MS_ABI impl__OnQueryUpdateItems_COleServerItem__UEAAHXZ(
 extern "C" void MS_ABI impl__OnUpdateItems_COleServerItem__UEAAXXZ(
     COleServerItem* pThis);                                  // core/ole/COleServerItem.cpp
 
+namespace openmfc::detail::olecore {
+struct ReleaseInterface {
+    void operator()(IUnknown* value) const { value->Release(); }
+};
+template<class Interface>
+using SiteRef = std::unique_ptr<Interface, ReleaseInterface>;
+
+struct ServerInPlaceState {
+    struct ReparentedView {
+        HWND window = nullptr;
+        HWND parent = nullptr;
+        RECT bounds{};
+        LONG_PTR style = 0;
+        LONG_PTR extendedStyle = 0;
+        LONG_PTR id = 0;
+        bool wasActive = false;
+    };
+
+    SiteRef<IOleInPlaceSite> site;
+    SiteRef<IOleInPlaceFrame> frame;
+    SiteRef<IOleInPlaceUIWindow> document;
+    BOOL uiActive = FALSE;
+    BOOL activeObjectSet = FALSE;
+    ReparentedView reusedView;
+};
+
+struct ServerDocAccess {
+    static COleIPFrameWnd* CreateFrame(COleServerDoc* doc, CWnd* parent) {
+        return doc->COleServerDoc::CreateInPlaceFrame(parent);
+    }
+    static void DestroyFrame(COleServerDoc* doc, COleIPFrameWnd* frame) {
+        doc->COleServerDoc::DestroyInPlaceFrame(frame);
+    }
+    static void SetItemRects(COleServerDoc* doc, LPCRECT position, LPCRECT clip) {
+        doc->COleServerDoc::OnSetItemRects(position, clip);
+    }
+};
+}
+
 namespace {
+using openmfc::detail::olecore::ServerDocAccess;
+using openmfc::detail::olecore::ServerInPlaceState;
+using openmfc::detail::olecore::SiteRef;
 // Retail COleServerDoc offsets used by the bodies that recover the document
 // from `this` or read its in-place frame.  Each is read out of the mfc140u
 // disassembly cited at its use; the part offsets are also the nOffset fields
@@ -123,6 +166,7 @@ constexpr size_t kOff_m_xPersistFile      = 0x220;  // COleLinkingDoc's XPersist
 constexpr size_t kOff_m_xPersistStorage   = 0x270;
 constexpr size_t kOff_m_xOleObject        = 0x278;
 constexpr size_t kOff_m_xOleInPlaceObject = 0x288;
+constexpr size_t kOff_m_xOleInPlaceActiveObject = 0x290;
 static_assert(sizeof(COleServerDoc) == 0x298, "OpenMFC COleServerDoc must be retail-sized (0x298)");
 static_assert(offsetof(COleServerDoc, m_retailTail) +
                   offsetof(COleServerDoc::RetailTailStorage, m_pInPlaceFrame) == kOff_m_pInPlaceFrame);
@@ -137,12 +181,48 @@ const GUID kIID_IPersistFile = { 0x0000010B, 0x0000, 0x0000, { 0xC0,0,0,0,0,0,0,
 inline COleServerDoc* DocFromPart(void* pThisItf, size_t off) {
     return reinterpret_cast<COleServerDoc*>(static_cast<char*>(pThisItf) - off);
 }
-inline void*& InPlaceFrameWord(COleServerDoc* pDoc) {
-    return *reinterpret_cast<void**>(reinterpret_cast<char*>(pDoc) + kOff_m_pInPlaceFrame);
-}
 inline LONG volatile* RefWord(COleServerDoc* pDoc) {
     return reinterpret_cast<LONG volatile*>(reinterpret_cast<char*>(pDoc) + kOff_CCmdTarget_m_dwRef);
 }
+class InPlaceTransition {
+public:
+    explicit InPlaceTransition(BOOL& active) : active_(active) { active_ = TRUE; }
+    ~InPlaceTransition() { active_ = FALSE; }
+private:
+    BOOL& active_;
+};
+
+SiteRef<IOleInPlaceSite> QueryInPlaceSite(IOleClientSite* client) {
+    IOleInPlaceSite* site = nullptr;
+    if (client) client->QueryInterface(IID_IOleInPlaceSite, reinterpret_cast<void**>(&site));
+    return SiteRef<IOleInPlaceSite>(site);
+}
+
+CFrameWnd* FindFrame(HWND window) {
+    auto* wrapper = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+    return wrapper && wrapper->IsFrameWnd() ? static_cast<CFrameWnd*>(wrapper) : nullptr;
+}
+
+CFrameWnd* GetContainerFrame(IOleWindow* window) {
+    HWND handle = nullptr;
+    return window && SUCCEEDED(window->GetWindow(&handle)) ? FindFrame(handle) : nullptr;
+}
+
+HRESULT InPlaceResult(HRESULT status) {
+    return status == S_OK || FAILED(status) ? status : E_FAIL;
+}
+
+HRESULT GetInPlaceWindowContext(IOleInPlaceSite& site, ServerInPlaceState& state,
+                                RECT& position, RECT& clip, OLEINPLACEFRAMEINFO& info) {
+    IOleInPlaceFrame* frame = nullptr;
+    IOleInPlaceUIWindow* document = nullptr;
+    const HRESULT status = site.GetWindowContext(&frame, &document, &position, &clip, &info);
+    state.frame.reset(frame);
+    state.document.reset(document);
+    if (status != S_OK) return InPlaceResult(status);
+    return frame ? S_OK : E_FAIL;
+}
+
 void ReleaseClientSite(COleServerDoc* document) {
     auto*& current = document->m_retailTail.m_clientSite;
     auto* site = current;
@@ -206,21 +286,115 @@ extern "C" void MS_ABI impl__ActivateDocObject_COleServerDoc__QEAAXXZ(
     if (pThis && pThis->m_retailTail.m_pDocObjectServer)
         pThis->m_retailTail.m_pDocObjectServer->ActivateDocObject();
 }
-// COleServerDoc::ActivateInPlace() — retail (mfc140u 0x266da0 = mfc140
-// 0x265b50) is the full in-place activation handshake over m_lpClientSite@0x230
-// / m_pInPlaceFrame@0x250 and the frame-creation virtuals. None of that state
-// is modeled, so the safe answer is FALSE (no in-place activation); callers
-// fall back to non-inplace editing rather than corrupting state.
 // Symbol: ?ActivateInPlace@COleServerDoc@@QEAAHXZ
-extern "C" int MS_ABI impl__ActivateInPlace_COleServerDoc__QEAAHXZ(
-    COleServerDoc* pThis)
-{
-    if (!pThis) return FALSE;
-    // TODO(clean-room): transcribed partially. Retail negotiates with the
-    // client site (m_lpClientSite@0x230) and creates the in-place frame
-    // (m_pInPlaceFrame@0x250); neither member is modeled.
-    return FALSE;
+extern "C" int MS_ABI impl__ActivateInPlace_COleServerDoc__QEAAHXZ(COleServerDoc* document) {
+    return document && document->ActivateInPlace();
 }
+
+BOOL COleServerDoc::ActivateInPlace() {
+    auto& tail = m_retailTail;
+    auto* client = tail.m_clientSite;
+    if (!client) return FALSE;
+    client->AddRef();
+    SiteRef<IOleClientSite> clientRef(client);
+    if (!tail.m_inPlaceState || !tail.m_inPlaceState->uiActive ||
+        !tail.m_pInPlaceFrame || !::IsWindow(tail.m_pInPlaceFrame->m_hWnd)) {
+        if (auto* server = tail.m_pDocObjectServer; server && server->m_pViewSite) {
+            if (ActivateInPlace(server->m_pViewSite, true) != S_OK) return FALSE;
+        } else {
+            auto site = QueryInPlaceSite(client);
+            if (ActivateInPlace(site.get(), false) != S_OK) return FALSE;
+        }
+    }
+    client->ShowObject();
+    return TRUE;
+}
+
+HRESULT COleServerDoc::ActivateInPlace(IOleInPlaceSite* site, bool docObject) {
+    if (!site) return E_FAIL;
+    auto& tail = m_retailTail;
+    if (tail.m_inPlaceTransition) return E_UNEXPECTED;
+    site->AddRef();
+    SiteRef<IOleInPlaceSite> siteRef(site);
+    if (tail.m_inPlaceState && (tail.m_inPlaceState->site.get() != site ||
+        (tail.m_pInPlaceFrame && !::IsWindow(tail.m_pInPlaceFrame->m_hWnd)))) OnDeactivate();
+    InPlaceTransition transition(tail.m_inPlaceTransition);
+
+    const bool creating = tail.m_pInPlaceFrame == nullptr;
+    auto activate = [&]() -> HRESULT {
+        RECT position{}, clip{};
+        OLEINPLACEFRAMEINFO info{};
+        info.cb = sizeof(info);
+        if (creating) {
+            auto state = std::make_unique<ServerInPlaceState>();
+            state->site = std::move(siteRef);
+            if (!docObject) {
+                const HRESULT allowed = site->CanInPlaceActivate();
+                if (allowed != S_OK) return InPlaceResult(allowed);
+            }
+            const HRESULT activated = site->OnInPlaceActivate();
+            if (activated != S_OK) return InPlaceResult(activated);
+            tail.m_inPlaceState = state.release();
+
+            HWND parent = nullptr;
+            const HRESULT gotWindow = site->GetWindow(&parent);
+            if (FAILED(gotWindow)) return gotWindow;
+            if (!::IsWindow(parent)) return E_FAIL;
+            tail.m_pInPlaceFrame = CreateInPlaceFrame(CWnd::FromHandle(parent));
+            if (!tail.m_pInPlaceFrame) return E_FAIL;
+        }
+
+        auto& state = *tail.m_inPlaceState;
+        if (state.uiActive) return S_OK;
+        auto* frame = tail.m_pInPlaceFrame;
+        if (creating && docObject) {
+            const HRESULT status = GetInPlaceWindowContext(*site, state, position, clip, info);
+            if (status != S_OK) return status;
+        }
+
+        const HRESULT ui = site->OnUIActivate();
+        if (ui != S_OK) return InPlaceResult(ui);
+        state.uiActive = TRUE;
+        if (creating && !docObject) {
+            const HRESULT status = GetInPlaceWindowContext(*site, state, position, clip, info);
+            if (status != S_OK) return status;
+        }
+
+        if (creating) {
+            if (!frame->OnCreateAggregates() ||
+                !frame->OnCreateControlBars(GetContainerFrame(state.frame.get()),
+                                            GetContainerFrame(state.document.get()))) return E_FAIL;
+            OnSetItemRects(&position, &clip);
+        }
+        if (!::IsWindow(frame->m_hWnd)) return E_FAIL;
+        state.activeObjectSet = TRUE;
+        auto* active = &tail.m_xOleInPlaceActiveObject;
+        state.frame->SetActiveObject(active, GetTitle());
+        if (state.document) state.document->SetActiveObject(active, GetTitle());
+        ::ShowWindow(frame->m_hWnd, SW_SHOWNA);
+        if (auto* view = frame->GetActiveView()) ::SetFocus(view->m_hWnd);
+        return S_OK;
+    };
+
+    HRESULT status = E_UNEXPECTED;
+    try {
+        status = activate();
+    } catch (CException* error) {
+        if (error) {
+            status = impl__Process_COleException__SAJPEBVCException___Z(error);
+            error->Delete();
+        }
+    } catch (const std::bad_alloc&) {
+        status = E_OUTOFMEMORY;
+    } catch (...) {
+    }
+    if (status != S_OK) {
+        if (creating) DeactivateInPlace();
+        else DeactivateInPlaceUI(FALSE);
+    }
+    return status;
+}
+
 // COleServerDoc::CanCloseFrame(CFrameWnd*) — retail (0x2660a0):
 //     m_bInPlaceCloseDeactivate@0x244 = 1;
 //     if (CDocument::CanCloseFrame(pFrameWnd)) return TRUE;
@@ -250,20 +424,56 @@ extern "C" void MS_ABI impl__ConnectView_COleServerDoc__IEAAXPEAVCWnd__PEAVCView
     // frame window and notifies the frame (virtual OnActivateView, vtable slot
     // 0x2B0); the frame/view association is not modeled.
 }
-// COleServerDoc::CreateInPlaceFrame(CWnd*) — retail (0x2674b0) allocates a
-// COleIPFrameWnd (retail helper 0x28e560, id 0xE900), fills the frame's
-// window-context data and stores the menu/accelerator ids into unmodeled
-// members (0x260/0x264). Not reproducible; return NULL (conservative).
 // Symbol: ?CreateInPlaceFrame@COleServerDoc@@MEAAPEAVCOleIPFrameWnd@@PEAVCWnd@@@Z
 extern "C" COleIPFrameWnd* MS_ABI
 impl__CreateInPlaceFrame_COleServerDoc__MEAAPEAVCOleIPFrameWnd__PEAVCWnd___Z(
-    COleServerDoc* pThis, CWnd* /*pParentWnd*/)
-{
-    if (!pThis) return nullptr;
-    // TODO(clean-room): transcribed partially. Retail news a COleIPFrameWnd,
-    // initializes it with the frame/menu resources and stores the resulting
-    // resource ids in unmodeled members at 0x260/0x264.
-    return nullptr;
+    COleServerDoc* document, CWnd* parent) {
+    return document ? ServerDocAccess::CreateFrame(document, parent) : nullptr;
+}
+
+COleIPFrameWnd* COleServerDoc::CreateInPlaceFrame(CWnd* parent) {
+    auto* documentTemplate = GetDocTemplate();
+    if (!documentTemplate || !parent || !::IsWindow(parent->m_hWnd)) return nullptr;
+
+    auto position = GetFirstViewPosition();
+    auto* view = position ? GetNextView(position) : nullptr;
+    const bool reuse = view && ::IsWindow(view->m_hWnd);
+    auto* created = documentTemplate->CreateOleFrame(parent, this, !reuse);
+    if (!created) return nullptr;
+    openmfc::detail::WindowCreationOwner owner(created);
+    if (!created->IsKindOf(RUNTIME_CLASS(COleIPFrameWnd))) return nullptr;
+    auto* frame = static_cast<COleIPFrameWnd*>(created);
+    if (!reuse) {
+        auto* child = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetDlgItem(frame->m_hWnd, AFX_IDW_PANE_FIRST)));
+        if (child && child->IsKindOf(RUNTIME_CLASS(CView))) {
+            frame->SetActiveView(static_cast<CView*>(child), FALSE);
+            static_cast<CView*>(child)->OnInitialUpdate();
+        }
+        return static_cast<COleIPFrameWnd*>(owner.Release());
+    }
+
+    ServerInPlaceState::ReparentedView saved;
+    const HWND window = saved.window = view->m_hWnd;
+    saved.parent = ::GetParent(window);
+    saved.style = ::GetWindowLongPtrW(window, GWL_STYLE);
+    saved.extendedStyle = ::GetWindowLongPtrW(window, GWL_EXSTYLE);
+    saved.id = ::GetWindowLongPtrW(window, GWLP_ID);
+    ::GetWindowRect(window, &saved.bounds);
+    ::MapWindowPoints(nullptr, saved.parent, reinterpret_cast<POINT*>(&saved.bounds), 2);
+    auto* previous = view->GetParentFrame();
+    saved.wasActive = previous && previous->GetActiveView() == view;
+
+    auto& tail = m_retailTail;
+    if (!tail.m_inPlaceState) tail.m_inPlaceState = new ServerInPlaceState;
+    ::SetLastError(0);
+    if (!::SetParent(window, frame->m_hWnd) && ::GetLastError()) return nullptr;
+    tail.m_inPlaceState->reusedView = saved;
+    if (saved.wasActive) previous->SetActivePreviewView(nullptr);
+    ::SetWindowLongPtrW(window, GWL_STYLE, (saved.style & ~(WS_POPUP | WS_BORDER)) | WS_CHILD);
+    ::SetWindowLongPtrW(window, GWL_EXSTYLE, saved.extendedStyle & ~WS_EX_CLIENTEDGE);
+    ::SetWindowLongPtrW(window, GWLP_ID, AFX_IDW_PANE_FIRST);
+    frame->SetActiveView(view, FALSE);
+    return static_cast<COleIPFrameWnd*>(owner.Release());
 }
 // COleServerDoc::DeactivateAndUndo() — retail (0x2680d0):
 //     pSite = QueryInterface(m_lpClientSite@0x230, IID_IOleInPlaceSite);
@@ -298,18 +508,39 @@ extern "C" void MS_ABI impl__DeleteContents_COleServerDoc__UEAAXXZ(
     // document's COleClientItem list and calls Delete(TRUE) on each; the item
     // list iteration is not modeled in OpenMFC.
 }
-// COleServerDoc::DestroyInPlaceFrame(COleIPFrameWnd*) — retail (0x2675a0)
-// hides/removes the shared menus and destroys the in-place frame window
-// (helpers 0x28e560 and the frame destroy path). Not reproducible; a no-op is
-// the safe, type-correct body.
 // Symbol: ?DestroyInPlaceFrame@COleServerDoc@@MEAAXPEAVCOleIPFrameWnd@@@Z
 extern "C" void MS_ABI impl__DestroyInPlaceFrame_COleServerDoc__MEAAXPEAVCOleIPFrameWnd___Z(
-    COleServerDoc* pThis, COleIPFrameWnd* /*pFrameWnd*/)
-{
-    if (!pThis) return;
-    // TODO(clean-room): transcribed partially. Retail removes the shared
-    // menu/accelerator from the in-place frame and destroys its window; the
-    // frame-shared-menu machinery is not modeled.
+    COleServerDoc* document, COleIPFrameWnd* frame) {
+    if (document) ServerDocAccess::DestroyFrame(document, frame);
+}
+
+void COleServerDoc::DestroyInPlaceFrame(COleIPFrameWnd* frame) {
+    if (!frame) return;
+    openmfc::detail::WindowCreationOwner owner(frame);
+    if (auto* state = m_retailTail.m_inPlaceState) {
+        const auto saved = std::exchange(state->reusedView, {});
+        const HWND view = saved.window;
+        if (::IsWindow(view) && ::GetParent(view) == frame->m_hWnd && ::IsWindow(saved.parent)) {
+            ::SetParent(view, saved.parent);
+            ::SetWindowLongPtrW(view, GWL_STYLE, saved.style);
+            ::SetWindowLongPtrW(view, GWL_EXSTYLE, saved.extendedStyle);
+            ::SetWindowLongPtrW(view, GWLP_ID, saved.id);
+            const auto& bounds = saved.bounds;
+            ::SetWindowPos(view, nullptr, bounds.left, bounds.top, bounds.right - bounds.left,
+                           bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            ::ShowWindow(view, saved.style & WS_VISIBLE ? SW_SHOWNA : SW_HIDE);
+            if (saved.wasActive) {
+                auto* wrapper = static_cast<CWnd*>(CWnd::FromHandlePermanent(view));
+                if (wrapper && wrapper->IsKindOf(RUNTIME_CLASS(CView))) {
+                    auto* originalView = static_cast<CView*>(wrapper);
+                    if (auto* originalFrame = originalView->GetParentFrame())
+                        originalFrame->SetActivePreviewView(originalView);
+                }
+            }
+        }
+    }
+    frame->SetActivePreviewView(nullptr);
+    if (::IsWindow(frame->m_hWnd)) frame->DestroyWindow();
 }
 // COleServerDoc::DiscardUndoState() — retail (mfc140u 0x268130 = mfc140
 // 0x266ef0): mirror image of DeactivateAndUndo using
@@ -392,31 +623,20 @@ extern "C" IUnknown* MS_ABI impl__GetInterfaceHook_COleServerDoc__MEAAPEAUIUnkno
 IUnknown* COleServerDoc::GetInterfaceHook(const void* iid) {
     return impl__GetInterfaceHook_COleServerDoc__MEAAPEAUIUnknown__PEBX_Z(this, iid);
 }
-// COleServerDoc::GetItemClipRect(RECT*) const — retail (mfc140u 0x265e20 =
-// mfc140 0x264bd0) copies 16 bytes from m_pInPlaceFrame@0x250 + 0x258.  Note
-// retail does NOT null-check the frame here.  The frame member is not modeled,
-// so an empty rect is returned (type-correct).
 // Symbol: ?GetItemClipRect@COleServerDoc@@QEBAXPEAUtagRECT@@@Z
 extern "C" void MS_ABI impl__GetItemClipRect_COleServerDoc__QEBAXPEAUtagRECT___Z(
-    const COleServerDoc* pThis, RECT* lpRect)
-{
-    if (!pThis || !lpRect) return;
-    // TODO(clean-room): transcribed partially. Retail copies the clip rect
-    // stored in the in-place frame (m_pInPlaceFrame, retail offset 0x250); the
-    // frame member is not modeled, so an empty rect is reported.
-    lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
+    const COleServerDoc* document, RECT* clip) {
+    if (!clip) return;
+    auto* frame = document ? document->m_retailTail.m_pInPlaceFrame : nullptr;
+    *clip = frame ? frame->GetInPlaceClipRect() : RECT{};
 }
-// COleServerDoc::GetItemPosition(RECT*) const — retail (mfc140u 0x265e00 =
-// mfc140 0x264bb0) copies 16 bytes from m_pInPlaceFrame@0x250 + 0x248 (again
-// with no null check).  Not modeled; empty rect reported.
+
 // Symbol: ?GetItemPosition@COleServerDoc@@QEBAXPEAUtagRECT@@@Z
 extern "C" void MS_ABI impl__GetItemPosition_COleServerDoc__QEBAXPEAUtagRECT___Z(
-    const COleServerDoc* pThis, RECT* lpRect)
-{
-    if (!pThis || !lpRect) return;
-    // TODO(clean-room): transcribed partially. Retail copies the item rect from
-    // the in-place frame (m_pInPlaceFrame, retail offset 0x250); not modeled.
-    lpRect->left = lpRect->top = lpRect->right = lpRect->bottom = 0;
+    const COleServerDoc* document, RECT* position) {
+    if (!position) return;
+    auto* frame = document ? document->m_retailTail.m_pInPlaceFrame : nullptr;
+    *position = frame ? frame->GetInPlacePosition() : RECT{};
 }
 // COleServerDoc::GetMoniker(OLEGETMONIKER) — retail (mfc140u 0x266330 = mfc140
 // 0x2650e0):
@@ -495,6 +715,7 @@ COleServerDoc::COleServerDoc()
     GetServerDocState(this, true);
 }
 COleServerDoc::~COleServerDoc() {
+    COleServerDoc::OnDeactivate();
     m_retailTail.m_pDocObjectServer = nullptr;
     delete std::exchange(m_retailTail.m_ownedDocObjectServer, nullptr);
     ReleaseClientSite(this);
@@ -705,8 +926,7 @@ extern "C" void MS_ABI impl__OnClose_COleServerDoc__MEAAXW4tagOLECLOSE___Z(
                 impl__AfxThrowOleException__YAXJ_Z(OLE_E_PROMPTSAVECANCELLED);
         }
     }
-    // TODO(clean-room): retail deactivates the in-place frame here
-    // (m_pInPlaceFrame, retail offset 0x250); not modeled.
+    if (document->m_retailTail.m_pInPlaceFrame) document->OnDeactivate();
     const BOOL autoDelete = std::exchange(document->m_bAutoDelete, FALSE);
     try {
         document->OnCloseDocument();
@@ -776,14 +996,11 @@ extern "C" void MS_ABI impl__OnCloseDocument_COleServerDoc__UEAAXXZ(COleServerDo
     if (!pThis) return;
     if (impl__IsSearchAndOrganizeHandler_CDocument__QEBAHXZ(pThis)) return;
 
-    void*& pInPlaceFrame = InPlaceFrameWord(pThis);
-    if (pInPlaceFrame != nullptr) {
-        if (impl__GetFirstViewPosition_CDocument__UEBAPEAU__POSITION__XZ(pThis) != nullptr)
-            return;
-        pInPlaceFrame = nullptr;
-    }
-
+    if (pThis->m_retailTail.m_inPlaceTransition) return;
     ::InterlockedIncrement(RefWord(pThis));
+    if (pThis->m_retailTail.m_inPlaceState || pThis->m_retailTail.m_pInPlaceFrame)
+        pThis->OnDeactivate();
+
     impl__UpdateVisibleLock_COleLinkingDoc__IEAAXHH_Z(pThis, FALSE, FALSE);
     impl__NotifyAllItems_COleServerDoc__IEAAXW4OLE_NOTIFICATION___K_Z(pThis, 2 /*OLE_CLOSED*/, 0);
 
@@ -803,45 +1020,48 @@ void COleServerDoc::OnCloseDocument() {
     impl__OnCloseDocument_COleServerDoc__UEAAXXZ(this);
 }
 
-// COleServerDoc::OnDeactivate() — retail RVA 0x267d70 (mfc140u; 0x266b30 in
-// mfc140), read from the mfc140u disassembly:
-//     COleIPFrameWnd* pFrame = m_pInPlaceFrame@0x250;  // NOT null-checked first
-//     if (pFrame->[0x1d8] != 0) {                // retail COleIPFrameWnd::m_bUIActive
-//         OnDeactivateUI(FALSE);                 // vtable byte 0x2e8 (slot 93)
-//         if (m_pInPlaceFrame == NULL) return;   // re-read on this path only
-//     }
-//     m_pInPlaceFrame->vtbl[0x3b8/8 = 119]();    // a frame virtual, not named here
-//     RELEASE(m_pInPlaceFrame->[0x200]);         // call 0x26ccc4 = Release + NULL,
-//     RELEASE(m_pInPlaceFrame->[0x208]);         //   the frame's m_lpFrame / m_lpDocFrame
-//     DestroyInPlaceFrame(m_pInPlaceFrame);      // vtable byte 0x320 (slot 100)
-//     m_pInPlaceFrame = NULL;
-//     IOleInPlaceSite* p = QI(m_lpClientSite@0x230, IID_IOleInPlaceSite);
-//                              // helper 0x26cc90; IID {00000119-...} at .rdata 0x2d9c18
-//     if (p) { p->OnInPlaceDeactivate();         // byte 0x58 (slot 11)
-//              p->Release(); }
-// (An earlier note here said +0x200/+0x208 were CStrings; 0x26ccc4 is the
-// interface Release-and-NULL helper, and core/ole/COleIPFrameWnd.cpp pins
-// those two words as m_lpFrame / m_lpDocFrame.)
-// Stubbed: every step goes through the in-place frame, which OpenMFC never
-// creates (+0x250 stays zero; XOleInPlaceObject::InPlaceDeactivate below tests
-// it before calling here, as retail 0x269890 does), and through
-// retail's COleIPFrameWnd vtable slot 119 and m_bUIActive@0x1d8, neither of
-// which OpenMFC's COleIPFrameWnd has (its +0x1d8 is m_pResizeBar); the
-// client-site QI would read +0x230, which is OpenMFC's m_bEmbedded.
 // Symbol: ?OnDeactivate@COleServerDoc@@UEAAXXZ
-extern "C" void MS_ABI impl__OnDeactivate_COleServerDoc__UEAAXXZ(COleServerDoc* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl__OnDeactivate_COleServerDoc__UEAAXXZ(COleServerDoc* document) {
+    if (document) document->COleServerDoc::OnDeactivate();
 }
 
-// COleServerDoc::OnDeactivateUI(BOOL) — retail 0x266c10 returns immediately
-// unless m_pInPlaceFrame@0x250 is non-null and UI-active (frame+0x1d8); the
-// whole body then drives the frame's two shared menu/toolbar objects
-// (frame+0x200/+0x208/+0x210/+0x218) and the doc-object server at +0x268.
-// None of that is modeled; left a no-op.
+void COleServerDoc::OnDeactivate() {
+    auto& tail = m_retailTail;
+    if (tail.m_inPlaceTransition || (!tail.m_pInPlaceFrame && !tail.m_inPlaceState)) return;
+    InPlaceTransition transition(tail.m_inPlaceTransition);
+    if (tail.m_inPlaceState && tail.m_inPlaceState->uiActive) OnDeactivateUI(FALSE);
+    DeactivateInPlace();
+}
+
+void COleServerDoc::DeactivateInPlace() {
+    auto& tail = m_retailTail;
+    DeactivateInPlaceUI(FALSE);
+    if (auto* frame = std::exchange(tail.m_pInPlaceFrame, nullptr)) DestroyInPlaceFrame(frame);
+    std::unique_ptr<ServerInPlaceState> state(std::exchange(tail.m_inPlaceState, nullptr));
+    if (state && state->site) state->site->OnInPlaceDeactivate();
+}
+
 // Symbol: ?OnDeactivateUI@COleServerDoc@@UEAAXH@Z
 extern "C" void MS_ABI impl__OnDeactivateUI_COleServerDoc__UEAAXH_Z(
-    COleServerDoc* pThis, int bUndoable) {
-    (void)pThis; (void)bUndoable;
+    COleServerDoc* document, BOOL undoable) {
+    if (document) document->COleServerDoc::OnDeactivateUI(undoable);
+}
+
+void COleServerDoc::OnDeactivateUI(BOOL undoable) {
+    auto& tail = m_retailTail;
+    if (tail.m_inPlaceTransition) return;
+    InPlaceTransition transition(tail.m_inPlaceTransition);
+    DeactivateInPlaceUI(undoable);
+}
+
+void COleServerDoc::DeactivateInPlaceUI(BOOL undoable) {
+    auto* state = m_retailTail.m_inPlaceState;
+    if (!state || !std::exchange(state->uiActive, FALSE)) return;
+    if (std::exchange(state->activeObjectSet, FALSE)) {
+        if (state->document) state->document->SetActiveObject(nullptr, nullptr);
+        if (state->frame) state->frame->SetActiveObject(nullptr, nullptr);
+    }
+    state->site->OnUIDeactivate(undoable);
 }
 
 // COleServerDoc::OnDocWindowActivate(BOOL) — retail 0x266600 works on
@@ -1061,16 +1281,15 @@ extern "C" void MS_ABI impl__OnSaveEmbedding_COleServerDoc__MEAAXPEAUIStorage___
     (void)pThis; (void)lpStorage;
 }
 
-// COleServerDoc::OnSetItemRects(LPCRECT, LPCRECT) — retail 0x266da0 is four
-// instructions:
-//     if (m_pInPlaceFrame@0x250 != NULL)
-//         m_pInPlaceFrame->vtbl[0x3a0](lpPosRect, lpClipRect);   // slot 116
-// m_pInPlaceFrame is not modeled, so the guard is always false and the whole
-// function is a no-op here.
 // Symbol: ?OnSetItemRects@COleServerDoc@@MEAAXPEBUtagRECT@@0@Z
 extern "C" void MS_ABI impl__OnSetItemRects_COleServerDoc__MEAAXPEBUtagRECT__0_Z(
-    COleServerDoc* pThis, const RECT* lpPosRect, const RECT* lpClipRect) {
-    (void)pThis; (void)lpPosRect; (void)lpClipRect;
+    COleServerDoc* document, LPCRECT position, LPCRECT clip) {
+    if (document) ServerDocAccess::SetItemRects(document, position, clip);
+}
+
+void COleServerDoc::OnSetItemRects(LPCRECT position, LPCRECT clip) {
+    auto* frame = m_retailTail.m_pInPlaceFrame;
+    if (frame && position && clip) frame->RepositionFrame(position, clip);
 }
 
 // COleServerDoc::OnShowControlBars(CFrameWnd*, BOOL) — retail 0x266850 walks
@@ -1309,10 +1528,16 @@ extern "C" long MS_ABI impl__DoVerb_XOleObject_COleServerDoc__UEAAJJPEAUtagMSG__
         const HRESULT attached = document->m_retailTail.m_xOleObject.SetClientSite(site);
         if (FAILED(attached)) return attached;
     }
-    auto* server = document->m_retailTail.m_pDocObjectServer;
-    if (server && (verb == OLEIVERB_PRIMARY || verb == OLEIVERB_SHOW ||
-                   verb == OLEIVERB_INPLACEACTIVATE || verb == OLEIVERB_UIACTIVATE))
-        return server->RequestActivation();
+    if (verb == OLEIVERB_HIDE) {
+        document->OnDeactivate();
+        return S_OK;
+    }
+    if (verb == OLEIVERB_PRIMARY || verb == OLEIVERB_SHOW ||
+        verb == OLEIVERB_INPLACEACTIVATE || verb == OLEIVERB_UIACTIVATE) {
+        if (auto* server = document->m_retailTail.m_pDocObjectServer)
+            return server->RequestActivation();
+        if (document->ActivateInPlace()) return S_OK;
+    }
     return OLEOBJ_E_INVALIDVERB;
 }
 
@@ -1580,48 +1805,20 @@ extern "C" long MS_ABI impl__GetUserType_XOleObject_COleServerDoc__UEAAJKPEAPEA_
     return FAILED(result) ? result : ::OleRegGetUserType(clsid, dwFormOfType, ppszUserType);
 }
 
-// COleServerDoc::XOleInPlaceActiveObject::GetWindow(HWND*) -- retail 0x268870.
-// This one never materialises the document; it indexes off its own sub-object,
-// which is why it is ten instructions with no prologue (an earlier revision of
-// this comment said nine; the body is mov/test/je/mov/mov/neg/sbb/not/and/ret,
-// identical in mfc140u at 0x269ab0).  Transcribed in full:
-//     COleIPFrameWnd* pFrame = *(this - 0x40);   // == doc+0x250 for a
-//                                                // sub-object at doc+0x290
-//     HWND h = pFrame != NULL ? pFrame->m_hWnd@0x40 : NULL;
-//     *phwnd = h;                                 // written unconditionally
-//     return h != NULL ? S_OK : E_FAIL;           // neg/sbb/not/and 0x80004005
-// IMPLEMENTED: OpenMFC models no in-place frame for a server document at all
-// (there is no m_pInPlaceFrame member and nothing ever creates one), so the
-// pFrame == NULL branch is the only one that can be reached and its result is
-// determinate: *phwnd = NULL, E_FAIL.  DEVIATION: a NULL check on phwnd is
-// added, which retail does not have (retail would fault).  The generated
-// `return 0` was S_OK with *phwnd left uninitialised.
 // Symbol: ?GetWindow@XOleInPlaceActiveObject@COleServerDoc@@UEAAJPEAPEAUHWND__@@@Z
 extern "C" long MS_ABI impl__GetWindow_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(
-    void* pThisItf, HWND* phwnd)
-{
-    (void)pThisItf;
-    if (phwnd) *phwnd = nullptr;
-    return (long)0x80004005L;               // E_FAIL -- no in-place frame
+    void* part, HWND* window) {
+    if (!window) return E_POINTER;
+    auto* frame = part ? DocFromPart(part, kOff_m_xOleInPlaceActiveObject)->m_retailTail.m_pInPlaceFrame : nullptr;
+    *window = frame ? frame->GetSafeHwnd() : nullptr;
+    return *window ? S_OK : E_FAIL;
 }
 
-// COleServerDoc::XOleInPlaceObject::GetWindow(HWND*) -- retail 0x2685d0,
-// transcribed in full (again a tail-jump):
-//     COleServerDoc* pThis = this - 0x288;
-//     return ((IOleInPlaceActiveObject*)
-//                 pThis->GetInterface(&IID_IOleInPlaceActiveObject))
-//                ->GetWindow(phwnd);       // IOleWindow slot 3 (0x18)
-// i.e. it delegates to XOleInPlaceActiveObject::GetWindow above.
-// IMPLEMENTED: the delegation target is decoded (it is the function directly
-// above) and its OpenMFC result is determinate, so the composed answer is the
-// same -- *phwnd = NULL, E_FAIL.  Same phwnd NULL-check deviation.
 // Symbol: ?GetWindow@XOleInPlaceObject@COleServerDoc@@UEAAJPEAPEAUHWND__@@@Z
 extern "C" long MS_ABI impl__GetWindow_XOleInPlaceObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(
-    void* pThisItf, HWND* phwnd)
-{
-    (void)pThisItf;
-    if (phwnd) *phwnd = nullptr;
-    return (long)0x80004005L;               // E_FAIL -- delegate has no window
+    void* part, HWND* window) {
+    void* active = part ? &DocFromPart(part, kOff_m_xOleInPlaceObject)->m_retailTail.m_xOleInPlaceActiveObject : nullptr;
+    return impl__GetWindow_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(active, window);
 }
 
 // COleServerDoc::XPersistStorage::HandsOffStorage() -- retail 0x267290,
@@ -1708,8 +1905,7 @@ extern "C" long MS_ABI impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__
 {
     COleServerDoc* pThis = DocFromPart(pThisItf, kOff_m_xOleInPlaceObject);
     ::InterlockedIncrement(RefWord(pThis));
-    if (InPlaceFrameWord(pThis) != nullptr)
-        impl__OnDeactivate_COleServerDoc__UEAAXXZ(pThis);
+    pThis->OnDeactivate();
     impl__InternalRelease_CCmdTarget__QEAAKXZ(pThis);
     return S_OK;
 }
@@ -2034,6 +2230,7 @@ HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetClientSite(IOleClientSit
     auto* document = DocFromPart(this, kOff_m_xOleObject);
     openmfc::detail::CmdTargetModuleScope module(document->m_pModuleState);
     auto& tail = document->m_retailTail;
+    if (tail.m_inPlaceTransition) return site == tail.m_clientSite ? S_OK : E_UNEXPECTED;
     const auto release = [](IUnknown* value) { value->Release(); };
     if (site) site->AddRef();
     std::unique_ptr<IOleClientSite, decltype(release)> newClient(site, release);
@@ -2065,6 +2262,8 @@ HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetClientSite(IOleClientSit
         server->SetDocSite(newSite.release());
     }
 
+    if (site != tail.m_clientSite && (tail.m_inPlaceState || tail.m_pInPlaceFrame))
+        document->OnDeactivate();
     tail.m_pDocObjectServer = server && server->m_pDocSite ? server : nullptr;
     auto* previous = std::exchange(tail.m_clientSite, newClient.release());
     if (previous) previous->Release();
@@ -2230,51 +2429,17 @@ extern "C" long MS_ABI impl__SetMoniker_XOleObject_COleServerDoc__UEAAJKPEAUIMon
 extern "C" long MS_ABI impl__SetObjectRects_XOleInPlaceObject_COleServerDoc__UEAAJPEBUtagRECT__0_Z(
     void* pThisItf, const RECT* lprcPosRect, const RECT* lprcClipRect)
 {
-    (void)pThisItf; (void)lprcPosRect; (void)lprcClipRect;
-    return 0;
+    if (!pThisItf) return E_UNEXPECTED;
+    auto* part = static_cast<COleServerDoc::XOleInPlaceObject*>(pThisItf);
+    return part->COleServerDoc::XOleInPlaceObject::SetObjectRects(lprcPosRect, lprcClipRect);
 }
 
-// COleServerDoc::XOleInPlaceActiveObject::TranslateAccelerator(MSG*).
-// CORRECTION (wave-6 review): the previous note here claimed the Unicode name
-// "?TranslateAcceleratorW@... has no entry in the RVA map" and fell back to the
-// MBCS twin ?TranslateAcceleratorA@... at mfc140 0x268930.  That is only true of
-// the MBCS map -- exactly the trap already flagged for OnReactivateAndUndo and
-// XDataObject::GetCanonicalFormatEtc earlier in this file.  The W symbol IS in
-// the mfc140u map, at RVA 0x269b70, and it has been re-disassembled here in the
-// Unicode image; the two bodies agree instruction for instruction.  Transcribed
-// from mfc140u 0x269b70:
-//     COleServerDoc* pThis = this - 0x290;
-//     AFX_MANAGE_STATE(pThis->m_pModuleState@0x38);
-//     pThis->InternalAddRef();                     // lock incl 0x8(%rbx)
-//     MSG msg = *lpmsg;                            // 48 bytes copied via xmm
-//     BOOL b = pThis->m_pInPlaceFrame@0x250->PreTranslateMessage(&msg);
-//                                       // COleIPFrameWnd virtual at 0x228.
-//                                       // Both frame vftables carry
-//                                       // ?PreTranslateMessage@COleIPFrameWnd@@
-//                                       // at +0x228, checked in BOTH images:
-//                                       // mfc140 0x32d9a8 / 0x32cb60 and
-//                                       // mfc140u 0x32fb58 / 0x32ed10, each
-//                                       // identified by its slot 0
-//                                       // ?GetThisClass@COleIPFrameWnd@@ /
-//                                       // @COleDocIPFrameWnd@@
-//     *lpmsg = msg;                                // copied back
-//     pThis->InternalRelease();                    // mfc140u 0x26cdb0
-//     return b ? S_OK : S_FALSE;                   // sete: 1 when b was 0
-// Note the frame pointer is dereferenced WITHOUT a NULL check, so retail is
-// only correct while the document is in-place active.
-// IMPLEMENTED as a DEVIATION: the document is not recoverable and OpenMFC never
-// has an in-place frame, so no translation can happen; the body reports
-// S_FALSE, "this message was not consumed".  That is the answer the retail
-// contract requires for an unhandled message and is what a live frame would
-// return for a message it did not translate.  The generated `return 0` reported
-// S_OK, which tells the container the keystroke was swallowed and silently eats
-// input.  Nothing about the frame's behaviour is being claimed here.
 // Symbol: ?TranslateAcceleratorW@XOleInPlaceActiveObject@COleServerDoc@@UEAAJPEAUtagMSG@@@Z
 extern "C" long MS_ABI impl__TranslateAcceleratorW_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAUtagMSG___Z(
-    void* pThisItf, void* lpmsg)
-{
-    (void)pThisItf; (void)lpmsg;
-    return 1;                               // S_FALSE -- message not translated
+    void* part, void* message) {
+    if (!message) return E_POINTER;
+    auto* frame = part ? DocFromPart(part, kOff_m_xOleInPlaceActiveObject)->m_retailTail.m_pInPlaceFrame : nullptr;
+    return frame && frame->PreTranslateMessage(static_cast<MSG*>(message)) ? S_OK : S_FALSE;
 }
 
 // COleServerDoc::XOleInPlaceObject::UIDeactivate() -- retail RVA 0x269920
@@ -2318,8 +2483,7 @@ extern "C" long MS_ABI impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJ
 {
     COleServerDoc* pThis = DocFromPart(pThisItf, kOff_m_xOleInPlaceObject);
     ::InterlockedIncrement(RefWord(pThis));
-    if (InPlaceFrameWord(pThis) != nullptr)
-        impl__OnDeactivateUI_COleServerDoc__UEAAXH_Z(pThis, FALSE);
+    pThis->OnDeactivateUI(FALSE);
     impl__InternalRelease_CCmdTarget__QEAAKXZ(pThis);
     return S_OK;
 }
@@ -2375,6 +2539,71 @@ extern "C" long MS_ABI impl__Update_XOleObject_COleServerDoc__UEAAJXZ(
     return S_OK;
 }
 
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::QueryInterface(REFIID iid, void** result) {
+    return DocFromPart(this, kOff_m_xOleInPlaceObject)->m_retailTail.m_xOleObject.QueryInterface(iid, result);
+}
+ULONG STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::AddRef() {
+    return DocFromPart(this, kOff_m_xOleInPlaceObject)->m_retailTail.m_xOleObject.AddRef();
+}
+ULONG STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::Release() {
+    return DocFromPart(this, kOff_m_xOleInPlaceObject)->m_retailTail.m_xOleObject.Release();
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::GetWindow(HWND* window) {
+    return impl__GetWindow_XOleInPlaceObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(this, window);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::ContextSensitiveHelp(BOOL enter) {
+    return impl__ContextSensitiveHelp_XOleInPlaceObject_COleServerDoc__UEAAJH_Z(this, enter);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::InPlaceDeactivate() {
+    return impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(this);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::UIDeactivate() {
+    return impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(this);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::SetObjectRects(LPCRECT position, LPCRECT clip) {
+    if (!position || !clip) return E_POINTER;
+    auto* document = DocFromPart(this, kOff_m_xOleInPlaceObject);
+    openmfc::detail::CmdTargetModuleScope module(document->m_pModuleState);
+    document->OnSetItemRects(position, clip);
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceObject::ReactivateAndUndo() {
+    return impl__ReactivateAndUndo_XOleInPlaceObject_COleServerDoc__UEAAJXZ(this);
+}
+
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::QueryInterface(REFIID iid, void** result) {
+    return DocFromPart(this, kOff_m_xOleInPlaceActiveObject)->m_retailTail.m_xOleObject.QueryInterface(iid, result);
+}
+ULONG STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::AddRef() {
+    return DocFromPart(this, kOff_m_xOleInPlaceActiveObject)->m_retailTail.m_xOleObject.AddRef();
+}
+ULONG STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::Release() {
+    return DocFromPart(this, kOff_m_xOleInPlaceActiveObject)->m_retailTail.m_xOleObject.Release();
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::GetWindow(HWND* window) {
+    return impl__GetWindow_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAPEAUHWND_____Z(this, window);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::ContextSensitiveHelp(BOOL enter) {
+    return impl__ContextSensitiveHelp_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(this, enter);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::TranslateAccelerator(LPMSG message) {
+    return impl__TranslateAcceleratorW_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEAUtagMSG___Z(this, message);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::OnFrameWindowActivate(BOOL active) {
+    return impl__OnFrameWindowActivate_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(this, active);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::OnDocWindowActivate(BOOL active) {
+    return impl__OnDocWindowActivate_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(this, active);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::ResizeBorder(
+    LPCRECT border, IOleInPlaceUIWindow* window, BOOL frame) {
+    return impl__ResizeBorder_XOleInPlaceActiveObject_COleServerDoc__UEAAJPEBUtagRECT__PEAUIOleInPlaceUIWindow__H_Z(
+        this, border, window, frame);
+}
+HRESULT STDMETHODCALLTYPE COleServerDoc::XOleInPlaceActiveObject::EnableModeless(BOOL enable) {
+    return impl__EnableModeless_XOleInPlaceActiveObject_COleServerDoc__UEAAJH_Z(this, enable);
+}
+
 HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::GetClientSite(IOleClientSite** site) {
     return impl__GetClientSite_XOleObject_COleServerDoc__UEAAJPEAPEAUIOleClientSite___Z(this, site);
 }
@@ -2386,6 +2615,7 @@ HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::SetHostNames(LPCOLESTR app,
 HRESULT STDMETHODCALLTYPE COleServerDoc::XOleObject::Close(DWORD save) {
     auto* document = DocFromPart(this, kOff_m_xOleObject);
     openmfc::detail::CmdTargetModuleScope module(document->m_pModuleState);
+    if (document->m_retailTail.m_inPlaceTransition) return E_UNEXPECTED;
     ::InterlockedIncrement(RefWord(document));
     HRESULT status = S_OK;
     try {

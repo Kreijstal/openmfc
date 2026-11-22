@@ -15,15 +15,15 @@ static_assert(sizeof(COleServerDoc) == 0x298,
               "COleServerDoc size remains retail-sized");
 static_assert(offsetof(COleServerDoc, m_retailTail) == 0x234,
               "COleServerDoc retail tail begins at +0x234");
-ASSERT_SERVERDOC_TAIL(m_reserved_234, 0x234);
+ASSERT_SERVERDOC_TAIL(m_inPlaceTransition, 0x234);
 ASSERT_SERVERDOC_TAIL(m_pInPlaceFrame, 0x250);
-ASSERT_SERVERDOC_TAIL(m_reserved_258, 0x258);
+ASSERT_SERVERDOC_TAIL(m_inPlaceState, 0x258);
 ASSERT_SERVERDOC_TAIL(m_pDocObjectServer, 0x268);
 ASSERT_SERVERDOC_TAIL(m_xPersistStorageVftable, 0x270);
 ASSERT_SERVERDOC_TAIL(m_xOleObject, 0x278);
 ASSERT_SERVERDOC_TAIL(m_xDataObjectVftable, 0x280);
-ASSERT_SERVERDOC_TAIL(m_xOleInPlaceObjectVftable, 0x288);
-ASSERT_SERVERDOC_TAIL(m_xOleInPlaceActiveObjectVftable, 0x290);
+ASSERT_SERVERDOC_TAIL(m_xOleInPlaceObject, 0x288);
+ASSERT_SERVERDOC_TAIL(m_xOleInPlaceActiveObject, 0x290);
 #undef ASSERT_SERVERDOC_TAIL
 
 // ---------------------------------------------------------------------------
@@ -81,9 +81,8 @@ ASSERT_SERVERDOC_TAIL(m_xOleInPlaceActiveObjectVftable, 0x290);
 // 8-byte sub-object that retail dispatches through.
 //
 // COleServerDoc's tail preserves these offsets and the retail size of 0x298.
-// OpenMFC constructs XOleObject at +0x278. The +0x288 XOleInPlaceObject slot
-// is still reserved. Both parts are called through their impl__ entry points
-// with the same sub-object address used by retail virtual dispatch.
+// OpenMFC constructs XOleObject at +0x278 and XOleInPlaceObject at +0x288.
+// The DocObject parts use the owning document's OLE interfaces.
 //
 // XOleObject and XOleInPlaceObject are BEGIN_INTERFACE_PART nested classes
 // (declared under `public:` in the real afxole.h, read on this host, so "public
@@ -497,56 +496,15 @@ extern "C" CFrameWnd* MS_ABI impl__GetControllingFrame_CDocObjectServer__QEBAPEA
     return pFrame;
 }
 
-// STUB: CDocObjectServer::OnActivateView -- retail (0x2586a0 in mfc140; RVA
-// 0x259620 in mfc140u, 326 instructions up to the `ret` at 0x259b65, re-read
-// there: `mov 0x48(%rcx),%rax` at 0x25964a, then the test `cmpq
-// $0,0x230(%rax); jne` at 0x25964e, with `xor %eax,%eax` and a jump to the
-// epilogue on the fall-through) is the in-place
-// activation path and is far outside what this DLL can express.  Note that
-// +0x230 of the owner is retail's m_lpClientSite but OpenMFC's m_bEmbedded
-// (layout note at the top), so the retail test cannot safely be applied to this
-// object: m_bEmbedded is a BOOL, not an IOleClientSite pointer, and can be
-// nonzero.  Although OpenMFC's XOleObject::SetClientSite thunk stores no site
-// (and no member or side table holds one), that does NOT prove every document
-// follows retail's NULL-client-site early-out; a nonzero m_bEmbedded would make
-// retail take the other branch if it read this object.  The return 0 below is
-// therefore only known to match the retail NULL-client-site branch; this body
-// remains a stub because the non-null activation path needs client-site state
-// and in-place activation infrastructure.  What was read from the disassembly,
-// so the next reader does not have to start over (addresses are mfc140u
-// unless marked; callees named through the mfc140u export table, the owner
-// slots through the COleServerDocEx vtable at .rdata 0x2efe28 in mfc140):
-//     if (m_pOwner->[0x230] == NULL) return S_OK;   // 0x25964e (0x2586ce mfc140)
-//     three default-constructed, i.e. EMPTY, CStrings: each is the static
-//         string manager's vtable slot 3 (0x18) plus 0x18 past the
-//         CStringData header; the object is .data 0x3b25e8 (mfc140u) /
-//         0x3ab440 (mfc140), and that slot in mfc140 is
-//         ?GetNilString@CAfxStringMgr@@ -- nothing here reads the module state;
-//     if (!m_pOwner->vtbl[0x330/8 = 102](&strFileType)) goto fail;
-//         // slot 102 = ?GetFileTypeString@COleServerDoc@@
-//     AfxFormatStrings(strTitle, 0xE005, { AfxGetModuleState()->[0x20],
-//                      strFileType }, 2);       // call 0x1cdc90 at 0x259702
-//         // 0x133930 = AfxGetModuleState, +0x20 = m_lpszCurrentAppName
-//         // (i.e. AfxGetAppName()), 0xE005 = AFX_IDS_OBJ_TITLE_INPLACE
-//         // (afxres.h); this is AfxFormatString2 with TWO inserts
-//     pViewSite = m_pViewSite (+0x60); if (pViewSite == NULL) goto fail;
-//     pViewSite->AddRef();                        // slot 1
-//     if ((hr = pViewSite->vtbl[0x30/8 = 6]()) != S_OK) goto release;
-//         // IOleInPlaceSite::OnInPlaceActivate
-//     pViewSite->vtbl[0x18/8 = 3](&hwnd);         // IOleWindow::GetWindow
-//     CWnd::FromHandle(hwnd)                      // call 0x28ad70
-//     if (m_pOwner->[0x250] == NULL)              // m_pInPlaceFrame
-//         m_pOwner->[0x250] = m_pOwner->vtbl[0x318/8 = 99](pParent)
-//         // slot 99 = ?CreateInPlaceFrame@COleServerDoc@@
-//     ...  IOleInPlaceSite slots 8 (GetWindowContext) and 7 (OnUIActivate),
-//     and on from there.
-// It needs the retail COleServerDoc layout (+0x230, +0x250, vtable slots 99
-// and 102), the in-place frame and the CWnd side of activation, none of which
-// exist here.
 // Symbol: ?OnActivateView@CDocObjectServer@@MEAAJXZ
-extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* pThis) {
-    (void)pThis;
-    return 0;
+extern "C" long MS_ABI impl__OnActivateView_CDocObjectServer__MEAAJXZ(void* server) {
+    return server ? static_cast<CDocObjectServer*>(server)->CDocObjectServer::OnActivateView() : E_UNEXPECTED;
+}
+
+HRESULT CDocObjectServer::OnActivateView() {
+    if (!m_pOwner) return E_UNEXPECTED;
+    if (!m_pOwner->m_retailTail.m_clientSite) return S_OK;
+    return m_pOwner->ActivateInPlace(m_pViewSite, true);
 }
 
 // Symbol: ?OnApplyViewState@CDocObjectServer@@MEAAXAEAVCArchive@@@Z
@@ -1164,16 +1122,7 @@ extern "C" long MS_ABI impl__GetPageInfo_XPrint_CDocObjectServer__UEAAJPEAJ0_Z(
 //                                                            //   +0x250, then one
 //                                                            //   movups/movdqu pair
 //     return S_OK                                            // xor %eax,%eax
-// That 16-byte copy is COleServerDoc::GetItemPosition inlined: its own retail
-// body (core/ole/COleServerDoc.cpp cites it, mfc140u 0x265e00) is the same
-// load of m_pInPlaceFrame + 0x248 with the same absent null check.
-// GetItemPosition is non-virtual, so the forward to its impl__ thunk below IS
-// the retail call; no dispatch is bypassed.  PARTIAL only in that the thunk is
-// itself a documented partial today: it reports an empty rect because OpenMFC
-// models no in-place frame.  When it starts copying the real rect, so does
-// this.  Deviations: pThis / m_pOwner / prcView null guards (retail faults on
-// a NULL frame, and m_pInPlaceFrame is never set in this DLL, so the thunk's
-// empty rect is what a caller sees today rather than a fault).
+// OpenMFC returns an empty rectangle until the view has a frame.
 extern "C" long MS_ABI impl__GetRect_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT___Z(
     void* pThis, RECT* prcView) {
     COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
@@ -1508,24 +1457,15 @@ extern "C" long MS_ABI impl__SetHostNames_XOleObject_CDocObjectServer__UEAAJPEB_
 //     m_pViewSite = pIPSite;                           // 0x259ce6
 //     if (pIPSite != NULL) pIPSite->AddRef();          // slot 0x8/8 = 1
 //     return S_OK;                                     // xor %eax,%eax at 0x259d17
-// The guard reads m_pOwner + 0x250 exactly as retail does; in this DLL that
-// word is zero-filled padding (layout note at the top), so the deactivation is
-// skipped -- retail's own behaviour for a document with no in-place frame --
-// and it starts firing when COleServerDoc.cpp models the frame.  The
-// deactivation goes to COleServerDoc's own XOleInPlaceObject thunk with the
-// sub-object address as `this`.  The reference-counting half is exact and is
-// safe because the constructor seeds m_pViewSite = NULL.  Deviation: the pThis
-// / m_pOwner null guard; retail would fault.
 extern "C" long MS_ABI impl__SetInPlaceSite_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite___Z(
     void* pThis, IOleInPlaceSite* pIPSite) {
     COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
     if (pOwner == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
-    if (*static_cast<void**>(OwnerAt(pOwner, kOwnerOff_m_pInPlaceFrame)) != nullptr) {
-        impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(       // 0x259cca
-            OwnerAt(pOwner, kOwnerOff_m_xOleInPlaceObject));
-    }
     void* pServer = ServerFromPart(pThis, kOff_m_xOleDocumentView);
     IOleInPlaceSite*& pViewSite = Member<IOleInPlaceSite*>(pServer, kOff_m_pViewSite);
+    if (pOwner->m_retailTail.m_inPlaceTransition) return pIPSite == pViewSite ? S_OK : E_UNEXPECTED;
+    if (pOwner->m_retailTail.m_pInPlaceFrame)
+        pOwner->m_retailTail.m_xOleInPlaceObject.InPlaceDeactivate();
     if (pIPSite) pIPSite->AddRef();
     if (auto* old = std::exchange(pViewSite, pIPSite)) old->Release();
     return S_OK;
@@ -1578,26 +1518,11 @@ extern "C" long MS_ABI impl__SetMoniker_XOleObject_CDocObjectServer__UEAAJKPEAUI
 // ?OnSetItemRects@COleServerDoc@@MEAAXPEBUtagRECT@@0@Z, the same virtual
 // CDocObjectServer::OnSetItemRects above forwards to; note that retail passes
 // prcView as BOTH the position and the clip rectangle.
-// PARTIAL, for the same two reasons spelled out at OnSetItemRects: the forward
-// goes to COleServerDoc's impl__ thunk rather than through a vtable, so a
-// client override is bypassed, and that thunk is an empty stub today (it
-// guards on an m_pInPlaceFrame OpenMFC does not model), so this currently has
-// no observable effect -- but it will pick one up automatically.  Retail's
-// TRY/CATCH -> E_UNEXPECTED is not reproduced; nothing here can throw.  The
-// signature is corrected: the generated stub's single parameter was silently
-// receiving `this` and dropping prcView.
 extern "C" long MS_ABI impl__SetRect_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT___Z(
-    void* pThis, RECT* prcView) {
-    if (pThis == nullptr) {
-        return E_UNEXPECTED;   // deviation: retail has no such guard
-    }
-    void* pServer = ServerFromPart(pThis, kOff_m_xOleDocumentView);
-    COleServerDoc* pOwner = Member<COleServerDoc*>(pServer, kOff_m_pOwner);
-    if (pOwner == nullptr) {
-        return E_UNEXPECTED;   // deviation: retail would fault
-    }
-    impl__OnSetItemRects_COleServerDoc__MEAAXPEBUtagRECT__0_Z(pOwner, prcView, prcView);
-    return S_OK;
+    void* part, RECT* rect) {
+    auto* owner = OwnerFromDocumentViewPart(part);
+    if (!owner) return E_UNEXPECTED;
+    return owner->m_retailTail.m_xOleInPlaceObject.SetObjectRects(rect, rect);
 }
 
 // Symbol: ?SetRectComplex@XOleDocumentView@CDocObjectServer@@UEAAJPEAUtagRECT@@000@Z
@@ -1628,66 +1553,17 @@ extern "C" long MS_ABI impl__SetRectComplex_XOleDocumentView_CDocObjectServer__U
 //         hr = (m_pOwner + 0x288)->vtbl[0x28/8 = 5]();   // IOleInPlaceObject::InPlaceDeactivate
 //     }
 //     return hr
-// ActivateInPlace is a plain (non-virtual) member, so the call to its thunk is
-// the retail call; the InPlaceDeactivate arm goes to COleServerDoc's own
-// XOleInPlaceObject thunk with the sub-object address as `this` (layout note
-// at the top).  Today both targets are documented stubs in
-// core/ole/COleServerDoc.cpp -- ActivateInPlace returns FALSE, so bShow != 0
-// yields E_FAIL here, which is retail's own answer when in-place activation
-// fails; InPlaceDeactivate returns S_OK, which is retail's value on every
-// normal path.  Deviation: the pThis / m_pOwner null guard; retail would fault.
-extern "C" long MS_ABI impl__Show_XOleDocumentView_CDocObjectServer__UEAAJH_Z(void* pThis, int bShow) {
-    COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
-    if (pOwner == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
-    if (bShow != 0) {
-        return impl__ActivateInPlace_COleServerDoc__QEAAHXZ(pOwner) ? S_OK : E_FAIL;
-    }
-    return impl__InPlaceDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
-        OwnerAt(pOwner, kOwnerOff_m_xOleInPlaceObject));
+extern "C" long MS_ABI impl__Show_XOleDocumentView_CDocObjectServer__UEAAJH_Z(void* part, BOOL show) {
+    auto* owner = OwnerFromDocumentViewPart(part);
+    if (!owner) return E_UNEXPECTED;
+    if (show) return owner->ActivateInPlace() ? S_OK : E_FAIL;
+    return owner->m_retailTail.m_xOleInPlaceObject.InPlaceDeactivate();
 }
 
 // Symbol: ?UIActivate@XOleDocumentView@CDocObjectServer@@UEAAJH@Z
-// IOleDocumentView::UIActivate -- retail (0x258ff0):
-//     AFX_MANAGE_STATE(server + 0x38)          // server = this - 0x78
-//     if (fUIActivate != 0)                    // test %ebx,%ebx; je, 0x25900e
-//         return server->vtbl[0xc0/8 = 24]();  // CDocObjectServer::OnActivateView
-//     return (m_pOwner + 0x288)->vtbl[0x30/8 = 6]();   // IOleInPlaceObject::UIDeactivate
-// Both arms are a single call (through the CFG dispatch pointer, followed by
-// the module-state restore) whose HRESULT is returned unchanged.  Slot 24 is
-// OnActivateView: the class vtable at .rdata 0x32d2e8 holds 0x2586a0 there, and
-// 0x2586a0 is the RVA the map gives for
-// ?OnActivateView@CDocObjectServer@@MEAAJXZ.  m_pOwner + 0x288 is
-// COleServerDoc::m_xOleInPlaceObject (see the layout note at the top).
-// Re-read in mfc140u at RVA 0x259f70 (same body): `lea -0x78(%rcx),%rdi`,
-// `test %ebx,%ebx; je` at 0x259f8e, slot 0xc0 on the server for the non-zero
-// arm and `add $0x288` / slot 0x30 on m_pOwner for the zero arm.
-// PARTIAL, in one respect:
-//   * fUIActivate != 0 IS reproduced, as a direct call to OnActivateView's own
-//     impl__ thunk (defined above in this file) instead of a dispatch through
-//     the CDocObjectServer vtable, which this DLL does not build.  Consequence,
-//     stated plainly: a derived class that overrides OnActivateView is bypassed.
-//     Today that thunk is itself a documented stub returning S_OK, so this arm
-//     has no observable effect yet -- it picks one up automatically.
-//   * fUIActivate == 0 is reproduced as a direct call to COleServerDoc's own
-//     XOleInPlaceObject::UIDeactivate thunk with the sub-object address
-//     m_pOwner + 0x288 as `this` (layout note at the top: a nested interface
-//     class with one vtable, so the direct call is the retail dispatch).  That
-//     thunk is a documented stub returning S_OK today, which is also retail's
-//     value on every normal path of UIDeactivate.
-// Deviations: the pThis / m_pOwner null guards; retail would fault.
-extern "C" long MS_ABI impl__UIActivate_XOleDocumentView_CDocObjectServer__UEAAJH_Z(
-    void* pThis, int fUIActivate) {
-    if (pThis == nullptr) {
-        return E_UNEXPECTED;   // deviation: retail has no such guard
-    }
-    if (fUIActivate != 0) {
-        void* pServer = ServerFromPart(pThis, kOff_m_xOleDocumentView);
-        return impl__OnActivateView_CDocObjectServer__MEAAJXZ(pServer);
-    }
-    COleServerDoc* pOwner = OwnerFromDocumentViewPart(pThis);
-    if (pOwner == nullptr) return E_UNEXPECTED;   // deviation: retail would fault
-    return impl__UIDeactivate_XOleInPlaceObject_COleServerDoc__UEAAJXZ(
-        OwnerAt(pOwner, kOwnerOff_m_xOleInPlaceObject));
+extern "C" long MS_ABI impl__UIActivate_XOleDocumentView_CDocObjectServer__UEAAJH_Z(void* part, BOOL activate) {
+    if (!part) return E_UNEXPECTED;
+    return static_cast<CDocObjectServer::XOleDocumentView*>(part)->CDocObjectServer::XOleDocumentView::UIActivate(activate);
 }
 
 // Symbol: ?Unadvise@XOleObject@CDocObjectServer@@UEAAJK@Z
@@ -1840,7 +1716,11 @@ HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::Show(BOOL show) {
 }
 
 HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::UIActivate(BOOL activate) {
-    return impl__UIActivate_XOleDocumentView_CDocObjectServer__UEAAJH_Z(this, activate);
+    auto* server = Server();
+    openmfc::detail::CmdTargetModuleScope module(server->m_pModuleState);
+    if (activate) return server->OnActivateView();
+    auto* owner = server->m_pOwner;
+    return owner ? owner->m_retailTail.m_xOleInPlaceObject.UIDeactivate() : E_UNEXPECTED;
 }
 
 HRESULT STDMETHODCALLTYPE CDocObjectServer::XOleDocumentView::Open() {

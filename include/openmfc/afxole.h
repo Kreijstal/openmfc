@@ -1238,6 +1238,7 @@ public:
 //=============================================================================
 // COleServerDoc - OLE Server Document
 //=============================================================================
+namespace openmfc::detail::olecore { struct ServerInPlaceState; struct ServerDocAccess; }
 class COleServerDoc : public COleLinkingDoc {
     DECLARE_DYNAMIC(COleServerDoc)
 public:
@@ -1245,6 +1246,7 @@ public:
     virtual ~COleServerDoc();
 
     // Server activation
+    BOOL ActivateInPlace();
     void NotifyChanged();
     void NotifyClosed();
     void NotifyRename(const wchar_t* lpszNewName);
@@ -1272,6 +1274,20 @@ protected:
     virtual CDocObjectServer* GetDocObjectServer(IOleDocumentSite* site);
     const AFX_INTERFACEMAP* GetInterfaceMap() const override;
     IUnknown* GetInterfaceHook(const void* iid) override;
+public:
+    virtual void OnDeactivate();
+    virtual void OnDeactivateUI(BOOL undoable);
+protected:
+    virtual void OnSetItemRects(LPCRECT position, LPCRECT clip);
+    virtual COleIPFrameWnd* CreateInPlaceFrame(CWnd* parent);
+    virtual void DestroyInPlaceFrame(COleIPFrameWnd* frame);
+
+private:
+    friend class CDocObjectServer;
+    friend struct openmfc::detail::olecore::ServerDocAccess;
+    HRESULT ActivateInPlace(IOleInPlaceSite* site, bool docObject);
+    void DeactivateInPlace();
+    void DeactivateInPlaceUI(BOOL undoable);
 
 public:
     BOOL m_bEmbedded;
@@ -1304,21 +1320,47 @@ public:
         HRESULT STDMETHODCALLTYPE SetColorScheme(LOGPALETTE*) override;
     };
 
+    struct XOleInPlaceObject : IOleInPlaceObject {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE GetWindow(HWND*) override;
+        HRESULT STDMETHODCALLTYPE ContextSensitiveHelp(BOOL) override;
+        HRESULT STDMETHODCALLTYPE InPlaceDeactivate() override;
+        HRESULT STDMETHODCALLTYPE UIDeactivate() override;
+        HRESULT STDMETHODCALLTYPE SetObjectRects(LPCRECT, LPCRECT) override;
+        HRESULT STDMETHODCALLTYPE ReactivateAndUndo() override;
+    };
+
+    struct XOleInPlaceActiveObject : IOleInPlaceActiveObject {
+        HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, void**) override;
+        ULONG STDMETHODCALLTYPE AddRef() override;
+        ULONG STDMETHODCALLTYPE Release() override;
+        HRESULT STDMETHODCALLTYPE GetWindow(HWND*) override;
+        HRESULT STDMETHODCALLTYPE ContextSensitiveHelp(BOOL) override;
+        HRESULT STDMETHODCALLTYPE TranslateAccelerator(LPMSG) override;
+        HRESULT STDMETHODCALLTYPE OnFrameWindowActivate(BOOL) override;
+        HRESULT STDMETHODCALLTYPE OnDocWindowActivate(BOOL) override;
+        HRESULT STDMETHODCALLTYPE ResizeBorder(LPCRECT, IOleInPlaceUIWindow*, BOOL) override;
+        HRESULT STDMETHODCALLTYPE EnableModeless(BOOL) override;
+    };
+
     // Site references occupy formerly reserved fields in the server tail.
 #pragma pack(push, 4)
     struct RetailTailStorage {
-        DWORD m_reserved_234;
+        BOOL m_inPlaceTransition;
         IOleClientSite* m_clientSite;           // OpenMFC uses +0x230 for m_bEmbedded.
         CDocObjectServer* m_ownedDocObjectServer; // Retained through a client-site disconnect.
         BYTE m_reserved_248[8];
         COleIPFrameWnd* m_pInPlaceFrame;         // +0x250; ctor RVA 0x2657b0 (mfc140u)
-        BYTE m_reserved_258[0x10];               // through +0x268; ctor RVA 0x2657b0 (mfc140u)
+        openmfc::detail::olecore::ServerInPlaceState* m_inPlaceState; // +0x258
+        BYTE m_reserved_260[8];
         CDocObjectServer* m_pDocObjectServer;    // +0x268; ctor RVA 0x2657b0 (mfc140u)
         void* m_xPersistStorageVftable;          // interface part +0x270; ctor RVA 0x2657b0 (mfc140u)
         XOleObject m_xOleObject;                  // interface part +0x278; ctor RVA 0x2657b0 (mfc140u)
         void* m_xDataObjectVftable;               // interface part +0x280; ctor RVA 0x2657b0 (mfc140u)
-        void* m_xOleInPlaceObjectVftable;         // interface part +0x288; ctor RVA 0x2657b0 (mfc140u)
-        void* m_xOleInPlaceActiveObjectVftable;   // interface part +0x290; ctor RVA 0x2657b0 (mfc140u)
+        XOleInPlaceObject m_xOleInPlaceObject;             // +0x288
+        XOleInPlaceActiveObject m_xOleInPlaceActiveObject; // +0x290
     };
 #pragma pack(pop)
     RetailTailStorage m_retailTail{};
@@ -1883,6 +1925,10 @@ public:
     COleIPFrameWnd();
     virtual ~COleIPFrameWnd();
     BOOL LoadFrame(UINT resourceId, DWORD style, CWnd* parent, CCreateContext* context) override;
+    void RecalcLayout(BOOL notify = TRUE) override;
+    virtual void RepositionFrame(LPCRECT position, LPCRECT clip);
+    RECT GetInPlacePosition() const;
+    RECT GetInPlaceClipRect() const;
     static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
     const AFX_MSGMAP* GetMessageMap() const override;
 

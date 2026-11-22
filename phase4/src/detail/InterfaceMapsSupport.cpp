@@ -99,8 +99,16 @@ namespace {
 constexpr auto serverObject = offsetof(COleServerDoc, m_retailTail) +
     offsetof(COleServerDoc::RetailTailStorage, m_xOleObject);
 static_assert(serverObject == 0x278);
+constexpr auto serverInPlaceObject = offsetof(COleServerDoc, m_retailTail) +
+    offsetof(COleServerDoc::RetailTailStorage, m_xOleInPlaceObject);
+constexpr auto serverInPlaceActiveObject = offsetof(COleServerDoc, m_retailTail) +
+    offsetof(COleServerDoc::RetailTailStorage, m_xOleInPlaceActiveObject);
+static_assert(serverInPlaceObject == 0x288 && serverInPlaceActiveObject == 0x290);
 const AFX_INTERFACEMAP_ENTRY serverDocInterfaces[] = {
     { &IID_IOleObject, serverObject },
+    { &IID_IOleWindow, serverInPlaceObject },
+    { &IID_IOleInPlaceObject, serverInPlaceObject },
+    { &IID_IOleInPlaceActiveObject, serverInPlaceActiveObject },
     { nullptr, static_cast<size_t>(-1) }
 };
 }

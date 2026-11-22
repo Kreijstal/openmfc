@@ -52,8 +52,6 @@ extern "C" int MS_ABI impl__DoScrollBy_CSplitterWnd__UEAAHPEAVCView__VCSize__H_Z
         CSplitterWnd* pThis, CView* pView, long long sizeExtent, int bDoScroll);
 extern "C" int MS_ABI impl__OnScrollBy_CView__UEAAHVCSize__H_Z(
         CView* pThis, long long sizeExtent, int bDoScroll);
-extern "C" void MS_ABI impl__OnShowItem_COleClientItem__MEAAXXZ(
-        COleClientItem* pThis);
 extern "C" void MS_ABI impl__OnDeactivateAndUndo_COleClientItem__MEAAXXZ(
         COleClientItem* pThis);
 extern "C" void MS_ABI impl__OnDiscardUndoState_COleClientItem__MEAAXXZ(
@@ -2825,11 +2823,7 @@ extern "C" long MS_ABI impl__Scroll_XOleIPSite_COleClientItem__UEAAJUtagSIZE___Z
 }
 
 // Symbol: ?ShowObject@XOleClientSite@COleClientItem@@UEAAJXZ
-// Retail mfc140.dll (ANSI twin) entry RVA 0x245e20 recovers the item from its
-// +0xd8 part, dispatches OnShowItem, and returns S_OK. The local callback is
-// wired through its impl__ thunk; this omits the unavailable retail module-state
-// prologue, and the raw interface slot is not installed. The --u lookup did not
-// resolve this symbol.
+// Retail mfc140.dll RVA 0x245e20 dispatches OnShowItem from the +0xd8 part.
 extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ(
         void* pThisItf) {
     if (!pThisItf) return E_UNEXPECTED;
@@ -2837,7 +2831,8 @@ extern "C" long MS_ABI impl__ShowObject_XOleClientSite_COleClientItem__UEAAJXZ(
     auto* item = reinterpret_cast<COleClientItem*>(
         const_cast<unsigned char*>(part) -
         offsetof(openmfc::detail::olecore::RetailCOleClientItemLayout, m_xOleClientSiteVftable));
-    impl__OnShowItem_COleClientItem__MEAAXXZ(item);
+    openmfc::detail::CmdTargetModuleScope module(item->m_pModuleState);
+    item->OnShowItem();
     return S_OK;
 }
 
