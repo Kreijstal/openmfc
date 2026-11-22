@@ -74,6 +74,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include "detail/ClassicDockingSupport.h"
 
 #include "openmfc/afxole.h"
 #include "openmfc/afxmfc.h"
@@ -119,9 +120,6 @@ extern "C" int MS_ABI impl__NotifyAllInPlace_COleFrameHook__QEAAHHP81_EAAHH_Z_Z(
 extern "C" void* MS_ABI impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(
     void* pThis, AFX_MODULE_STATE* pState);
 extern "C" void MS_ABI impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(void* pThis);
-extern "C" int MS_ABI impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(
-    COleClientItem* pThis, CFrameWnd* pFrameWnd, int bShow);
-extern "C" void MS_ABI impl__RecalcLayout_CFrameWnd__UEAAXH_Z(CFrameWnd* pThis, int bNotify);
 extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(
     const CWnd* pThis);
 extern "C" int MS_ABI impl__CanEnterHelpMode_CFrameWnd__QEAAHXZ(CFrameWnd* pThis);
@@ -204,6 +202,13 @@ IOleInPlaceActiveObject* ActiveObject(const COleFrameHook* hook) {
 }
 COleClientItem* ActiveItem(const COleFrameHook* hook) {
     return hook ? hook->m_pActiveItem : nullptr;
+}
+
+template<class Interface>
+auto Retain(Interface* object) {
+    if (object) object->AddRef();
+    const auto release = [](Interface* value) { value->Release(); };
+    return std::unique_ptr<Interface, decltype(release)>(object, release);
 }
 
 // Retail guards these callbacks with a non-null active object and verifies
@@ -320,30 +325,36 @@ COleFrameHook::~COleFrameHook() {
     }
     if (auto* object = std::exchange(m_lpActiveObject, nullptr)) object->Release();
 }
-// STUB. Retail OnDocActivate entry RVA 0x247f70 (mfc140u, vftable slot 25). Its first act is
-//     if (m_lpActiveObject == NULL) return TRUE;
-// (mfc140u entry RVA 0x247f70: the null check is the first body operation).
-//     m_lpActiveObject->OnDocWindowActivate(bActivate);      // vtbl 0x38, slot 7
-//     COleFrameHook* pHook = m_pActiveItem->[+0xa8];         // 0x247fa1
-//     pHook->m_pFrameWnd->[+0x1d0] |= 2;                     // 0x247fac
-//     if (bActivate) {
-//         pHook->m_pFrameWnd->[+0x120] = pHook;              // 0x248021
-//     } else {
-//         IOleInPlaceFrame* f = &pHook->m_xOleInPlaceFrame;  // pHook + 0x80
-//         f->SetBorderSpace(NULL);                           // vtbl 0x38, slot 7
-//         if (m_pActiveItem->[+0xb0] != NULL)                // the doc-frame hook
-//             ((IOleInPlaceFrame*)(m_pActiveItem->[+0xb0] + 0x80))->SetBorderSpace(NULL);
-//         f->SetMenu(NULL, NULL, NULL);                      // vtbl 0x50, slot 10
-//         if (pHook != this) pHook->m_pFrameWnd->[+0x120] = NULL;   // 0x248014
-//     }
-//     return bActivate;                                      // NOT TRUE  (0x24802c)
-// The active-object value is populated through IOleInPlaceFrame::SetActiveObject.
-// This typed method returns TRUE unconditionally and therefore matches only the
-// null-active-object early-out; the later retail path remains unimplemented.
-// The exported thunk for this symbol lives in core/ole/Thunks.cpp, not here.
-BOOL COleFrameHook::OnDocActivate(BOOL bActivate) {
-    (void)bActivate;
-    return TRUE;
+// Retail mfc140u 0x247f70 notifies the object before changing the main frame's hook.
+BOOL COleFrameHook::OnDocActivate(BOOL activate) {
+    if (!m_lpActiveObject) return TRUE;
+    auto keepAlive = Retain(&m_retailTail.m_xOleInPlaceFrame);
+    Retain(m_lpActiveObject)->OnDocWindowActivate(activate);
+
+    auto* item = m_pActiveItem;
+    auto* main = item ? item->m_retailTail.m_pInPlaceFrame : nullptr;
+    if (!main || !main->m_pFrameWnd) return activate;
+    constexpr DWORD idleTitle = 0x02;
+    main->m_pFrameWnd->m_retailTail.m_dwBorderFlags |= idleTitle;
+    if (activate) {
+        auto& notify = main->m_pFrameWnd->m_retailMiddle.m_pNotifyHook;
+        std::memcpy(&notify, &main, sizeof(main));
+        return activate;
+    }
+
+    auto* doc = item->m_retailTail.m_pInPlaceDoc;
+    auto mainFrame = Retain(&main->m_retailTail.m_xOleInPlaceFrame);
+    auto docFrame = Retain(doc ? &doc->m_retailTail.m_xOleInPlaceFrame : nullptr);
+    mainFrame->SetBorderSpace(nullptr);
+    if (docFrame && doc != main) docFrame->SetBorderSpace(nullptr);
+    mainFrame->SetMenu(nullptr, nullptr, nullptr);
+    if (main != this && main->m_pFrameWnd) {
+        auto& notify = main->m_pFrameWnd->m_retailMiddle.m_pNotifyHook;
+        COleFrameHook* current;
+        std::memcpy(&current, &notify, sizeof(current));
+        if (current == main) std::memset(&notify, 0, sizeof(notify));
+    }
+    return activate;
 }
 BOOL COleFrameHook::OnContextHelp() {
     return FALSE;
@@ -637,20 +648,14 @@ extern "C" int MS_ABI impl__OnQueryNewPalette_COleFrameHook__UEAAHXZ(COleFrameHo
 }
 
 // Symbol: ?OnRecalcLayout@COleFrameHook@@UEAAXXZ
-// STUB.  vftable slot 22, mfc140u 0x247ef0 / mfc140 0x246350, whole body:
-//     if (m_lpActiveObject == NULL) return;
-//     RECT rc;
-//     m_pFrameWnd->NegotiateBorderSpace(1 /* borderGet */, &rc);   // vtbl 0x348
-//     m_lpActiveObject->ResizeBorder(&rc, &m_xOleInPlaceFrame,     // vtbl 0x40 = slot 8
-//                                    m_pActiveItem->m_pInPlaceFrame == this);
-// The second argument is the hook's own XOleInPlaceFrame sub-object (this+0x80).
-// OpenMFC names that same-sized storage but has no compatible vtable there,
-// and its interface map exposes no IOleInPlaceUIWindow. Passing that zeroed
-// slot would not provide the callback target ResizeBorder requires. The
-// NegotiateBorderSpace(borderGet) call alone only fills a local RECT, so no
-// partial body is useful. See state_ole.md for the remaining interface blocker.
-extern "C" void MS_ABI impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(COleFrameHook* pThis) {
-    (void)pThis;
+// Retail mfc140u 0x247ef0 gives the active object both the available border and its frame interface.
+extern "C" void MS_ABI impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(COleFrameHook* hook) {
+    if (!ActiveObject(hook) || !hook->m_pFrameWnd) return;
+    auto keepAlive = Retain(&hook->m_retailTail.m_xOleInPlaceFrame);
+    RECT border{};
+    if (!hook->m_pFrameWnd->NegotiateBorderSpace(CFrameWnd::borderGet, &border)) return;
+    if (auto active = Retain(ActiveObject(hook)))
+        active->ResizeBorder(&border, keepAlive.get(), ActiveForThisFrame(hook));
 }
 
 // Symbol: ?OnUpdateFrameTitle@COleFrameHook@@UEAAHXZ
@@ -877,26 +882,24 @@ extern "C" long MS_ABI impl__Exec_XOleCommandTarget_COleFrameHook__UEAAJPEBU_GUI
 }
 
 // Symbol: ?GetBorder@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAUtagRECT@@@Z
-// Retail entry RVA 0x247a20 (mfc140 ANSI twin): hide the active item's bars,
-// save the frame border RECT, negotiate commands 3/1/3 (the caller's output
-// pointer is passed unchecked), then restore the bars only if they were
-// initially shown. The needed frame fields and both sibling thunks are
-// available.
+// Retail mfc140 0x247a20 measures the frame without its in-place-hidden bars or reserved border.
 extern "C" long MS_ABI impl__GetBorder_XOleInPlaceFrame_COleFrameHook__UEAAJPEAUtagRECT___Z(
-    void* pThis, RECT* lprectBorder) {
-    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    void* part, RECT* border) {
+    if (!border) return E_POINTER;
+    auto* hook = HookFromInPlaceFrameInterface(part);
     FrameHookModuleStateScope state(hook->m_pModuleState);
-    CFrameWnd* frame = hook->m_pFrameWnd;
-    COleClientItem* item = ActiveItem(hook);
-    const int barsWereShown =
-        impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(item, frame, FALSE);
-    RECT savedBorder = frame->m_retailMiddle.m_rectBorder;
-    CallRetailCFrameWndNegotiateBorderSpace(frame, 3, nullptr);
-    CallRetailCFrameWndNegotiateBorderSpace(frame, 1, lprectBorder);
-    CallRetailCFrameWndNegotiateBorderSpace(frame, 3, &savedBorder);
-    if (barsWereShown)
-        impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(item, frame, TRUE);
-    return S_OK;
+    auto* frame = hook->m_pFrameWnd;
+    if (!frame) return E_UNEXPECTED;
+    auto* item = ActiveItem(hook);
+    const BOOL barsWereShown = item && item->OnShowControlBars(frame, FALSE);
+    RECT saved = frame->m_retailMiddle.m_rectBorder;
+    frame->NegotiateBorderSpace(CFrameWnd::borderSet, nullptr);
+    const BOOL measured = frame->NegotiateBorderSpace(CFrameWnd::borderGet, border);
+    frame->NegotiateBorderSpace(CFrameWnd::borderSet, &saved);
+    if (barsWereShown) {
+        if (auto* current = ActiveItem(hook)) current->OnShowControlBars(frame, TRUE);
+    }
+    return measured ? S_OK : E_FAIL;
 }
 
 // Symbol: ?GetWindow@XOleInPlaceFrame@COleFrameHook@@UEAAJPEAPEAUHWND__@@@Z
@@ -970,16 +973,14 @@ extern "C" long MS_ABI impl__RemoveMenus_XOleInPlaceFrame_COleFrameHook__UEAAJPE
 }
 
 // Symbol: ?RequestBorderSpace@XOleInPlaceFrame@COleFrameHook@@UEAAJPEBUtagRECT@@@Z
-// Retail entry RVA 0x247b30 (mfc140 ANSI twin): call the frame's
-// NegotiateBorderSpace(2, pborderwidths), mapping TRUE to S_OK and FALSE to
-// OLE_E_INVALIDRECT. The adapter uses the verified retail vtable byte offset
-// +0x348 from OlecoreSupport.h.
 extern "C" long MS_ABI impl__RequestBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAAJPEBUtagRECT___Z(
-    void* pThis, const RECT* pborderwidths) {
-    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    void* part, const RECT* requested) {
+    if (!requested) return E_POINTER;
+    auto* hook = HookFromInPlaceFrameInterface(part);
     FrameHookModuleStateScope state(hook->m_pModuleState);
-    return CallRetailCFrameWndNegotiateBorderSpace(
-               hook->m_pFrameWnd, 2, const_cast<RECT*>(pborderwidths))
+    if (!hook->m_pFrameWnd) return E_UNEXPECTED;
+    RECT widths = *requested;
+    return hook->m_pFrameWnd->NegotiateBorderSpace(CFrameWnd::borderRequest, &widths)
         ? S_OK : OLE_E_INVALIDRECT;
 }
 
@@ -1005,23 +1006,21 @@ extern "C" long MS_ABI impl__SetActiveObject_XOleInPlaceFrame_COleFrameHook__UEA
 }
 
 // Symbol: ?SetBorderSpace@XOleInPlaceFrame@COleFrameHook@@UEAAJPEBUtagRECT@@@Z
-// Retail entry RVA 0x247ba0 (mfc140 ANSI twin): on successful command-3
-// negotiation clear frame border flags 0xc and recalculate layout; regardless
-// of that result, tell the active item whether to show its control bars and
-// return S_OK.
+// Retail mfc140 0x247ba0 recalculates changed borders without recursively notifying the active object.
 extern "C" long MS_ABI impl__SetBorderSpace_XOleInPlaceFrame_COleFrameHook__UEAAJPEBUtagRECT___Z(
-    void* pThis, const RECT* pborderwidths) {
-    COleFrameHook* hook = HookFromInPlaceFrameInterface(pThis);
+    void* part, const RECT* requested) {
+    auto* hook = HookFromInPlaceFrameInterface(part);
     FrameHookModuleStateScope state(hook->m_pModuleState);
-    CFrameWnd* frame = hook->m_pFrameWnd;
-    COleClientItem* item = ActiveItem(hook);
-    if (CallRetailCFrameWndNegotiateBorderSpace(
-            frame, 3, const_cast<RECT*>(pborderwidths))) {
-        frame->m_retailTail.m_dwBorderFlags &= ~0xcu;
-        impl__RecalcLayout_CFrameWnd__UEAAXH_Z(frame, FALSE);
+    auto* frame = hook->m_pFrameWnd;
+    if (!frame) return E_UNEXPECTED;
+    RECT widths{};
+    if (requested) widths = *requested;
+    if (frame->NegotiateBorderSpace(CFrameWnd::borderSet, requested ? &widths : nullptr)) {
+        using namespace openmfc::detail::dock;
+        frame->m_retailTail.m_dwBorderFlags &= ~(idleLayout | idleNotify);
+        frame->RecalcLayout(FALSE);
     }
-    impl__OnShowControlBars_COleClientItem__UEAAHPEAVCFrameWnd__H_Z(
-        item, frame, pborderwidths == nullptr);
+    if (auto* item = ActiveItem(hook)) item->OnShowControlBars(frame, requested == nullptr);
     return S_OK;
 }
 

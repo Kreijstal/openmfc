@@ -448,15 +448,17 @@ BOOL CFrameWnd::LoadAccelTable(const wchar_t* lpszAccelTable) {
 }
 
 int CFrameWnd::NegotiateBorderSpace(unsigned int nBorderCmd, RECT* lpRectBorder) {
-    if (!m_hWnd || !lpRectBorder || nBorderCmd == 0) {
-        return 0;
+    // mfc140u 0x2a03a0. The pending border is applied when the frame lays out its pane.
+    if (nBorderCmd == borderGet) {
+        if (!m_hWnd || !lpRectBorder) return FALSE;
+        RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, lpRectBorder);
+    } else if (nBorderCmd == borderSet) {
+        const RECT border = lpRectBorder ? *lpRectBorder : RECT{};
+        auto& current = m_retailMiddle.m_rectBorder;
+        if (::EqualRect(&border, &current)) return FALSE;
+        current = border;
     }
-    RECT clientRect;
-    if (!::GetClientRect(m_hWnd, &clientRect)) {
-        return 0;
-    }
-    *lpRectBorder = clientRect;
-    return 1;
+    return TRUE;
 }
 void CFrameWnd::NotifyFloatingWindows(DWORD dwFlags) {
     ShowOwnedWindows(dwFlags ? TRUE : FALSE);

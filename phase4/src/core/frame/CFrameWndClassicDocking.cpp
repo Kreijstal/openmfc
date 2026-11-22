@@ -9,7 +9,6 @@
 extern "C" void impl__ReDockControlBar_CDockBar__QEAAXPEAVCControlBar__PEBUtagRECT___Z(
     void*, CControlBar*, const RECT*);
 extern "C" int impl__FindBar_CDockBar__QEAAHPEAVCControlBar__H_Z(void*, CControlBar*, int);
-extern "C" void impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(COleFrameHook*);
 
 using namespace openmfc::detail::dock;
 using openmfc::detail::frame::ControlBars;
@@ -50,7 +49,7 @@ void CFrameWnd::RecalcLayout(BOOL notify) {
     if (notify || (flags & idleNotify)) {
         COleFrameHook* hook = nullptr;
         std::memcpy(&hook, m_retailMiddle.m_pNotifyHook, sizeof(hook));
-        if (hook) impl__OnRecalcLayout_COleFrameHook__UEAAXXZ(hook);
+        if (hook) hook->OnRecalcLayout();
     }
 
     constexpr UINT paneId = 0xe900;

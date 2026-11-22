@@ -1042,6 +1042,7 @@ public:
     virtual DWORD GetMenuBarState() const;
     virtual void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState);
     virtual CWnd* GetMessageBar();
+    enum { borderGet = 1, borderRequest = 2, borderSet = 3 };
     virtual BOOL NegotiateBorderSpace(UINT nBorderCmd, RECT* lpRectBorder);
 protected:
     virtual BOOL OnCreateClient(CREATESTRUCTW* lpcs, CCreateContext* pContext);

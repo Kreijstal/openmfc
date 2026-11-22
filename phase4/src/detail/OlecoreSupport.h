@@ -1054,31 +1054,6 @@ struct ClientItemState {
 } } }
 
 namespace openmfc { namespace detail { namespace olecore {
-// Retail COleFrameHook::OnRecalcLayout entry RVA 0x247ef0 (mfc140u) dispatches
-// CFrameWnd::NegotiateBorderSpace through vtable byte offset +0x348. Keep this
-// slot-preserving path available to OLE implementations; a direct C++ method
-// call would use OpenMFC's abbreviated declaration order instead.
-constexpr size_t kRetailCFrameWndNegotiateBorderSpaceSlot = 0x348 / sizeof(void*);
-static_assert(kRetailCFrameWndNegotiateBorderSpaceSlot * sizeof(void*) == 0x348,
-              "retail CFrameWnd NegotiateBorderSpace slot");
-#if defined(__GNUC__)
-using RetailCFrameWndNegotiateBorderSpaceFn =
-    int (__attribute__((ms_abi)) *)(CFrameWnd*, unsigned int, RECT*);
-#else
-using RetailCFrameWndNegotiateBorderSpaceFn =
-    int (*)(CFrameWnd*, unsigned int, RECT*);
-#endif
-inline int CallRetailCFrameWndNegotiateBorderSpace(CFrameWnd* frame,
-                                                    unsigned int command,
-                                                    RECT* border) {
-    void** vtable = *reinterpret_cast<void***>(frame);
-    auto fn = reinterpret_cast<RetailCFrameWndNegotiateBorderSpaceFn>(
-        vtable[kRetailCFrameWndNegotiateBorderSpaceSlot]);
-    return fn(frame, command, border);
-}
-} } }
-
-namespace openmfc { namespace detail { namespace olecore {
 struct ServerDocState {
     COleServerDoc* document = nullptr;
     std::vector<COleServerItem*> items;

@@ -8,6 +8,7 @@
 
 #include "detail/OlecoreSupport.h"
 #include "detail/CCmdTargetVirtualsSupport.h"
+#include "detail/FrameLifetimeSupport.h"
 #include <memory>
 #include <new>
 #include <utility>
@@ -1418,9 +1419,25 @@ void COleClientItem::OnClose() {
     m_bInPlaceActive = FALSE;
 }
 BOOL COleClientItem::OnShowControlBars(CFrameWnd* pFrameWnd, BOOL bShow) {
-    if (!pFrameWnd) return TRUE;
-    pFrameWnd->RedrawWindow(nullptr, nullptr, bShow ? RDW_UPDATENOW : 0);
-    return TRUE;
+    if (!pFrameWnd) return FALSE;
+    constexpr int hiddenForInPlace = 0x04;
+    BOOL changed = FALSE;
+    auto* node = openmfc::detail::frame::ControlBars(pFrameWnd).m_pNodeHead;
+    while (node) {
+        auto* bar = static_cast<CControlBar*>(node->data);
+        node = node->pNext;
+        if (!bar || !(bar->GetBarStyle() & CBRS_HIDE_INPLACE)) continue;
+        if (bShow) {
+            if (!(bar->m_nStateFlags & hiddenForInPlace)) continue;
+            bar->m_nStateFlags &= ~hiddenForInPlace;
+        } else {
+            if (!bar->IsVisible()) continue;
+            bar->m_nStateFlags |= hiddenForInPlace;
+        }
+        pFrameWnd->ShowControlBar(bar, bShow, TRUE);
+        changed = TRUE;
+    }
+    return changed;
 }
 HGLOBAL COleClientItem::GetIconicMetafile() {
     ClientItemState* state = FindClientItemState(this);
