@@ -71,7 +71,6 @@ extern "C" void* MS_ABI impl___0CPaneFrameWnd__QEAA_XZ(void* pThis);
 extern "C" void  MS_ABI impl___1CPaneFrameWnd__UEAA_XZ(void* pThis);
 extern "C" void  MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane);
 extern "C" void  MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int bDestroy, int bNoDelayedDestroy);
-extern "C" void  MS_ABI impl__ReplacePane_CPaneFrameWnd__UEAAXPEAVCBasePane__0_Z(void* pThis, void* pOldBar, void* pNewBar);
 extern "C" int   MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(void* pPane, int bAdd);
 extern "C" int   MS_ABI impl__OnCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(void* pThis, CREATESTRUCTW* lpCreateStruct);
 extern "C" __int64 MS_ABI impl__OnIdleUpdateCmdUI_CPaneFrameWnd__IEAA_J_K_J_Z(void* pThis, unsigned __int64 wParam, __int64 lParam);
@@ -369,10 +368,9 @@ BOOL DockableCanAcceptPane(const CDockablePane* pThis, const void* pBar) {
 // 0x92d30): TRUE when any visible pane in the frame is a CBasePane whose
 // control-bar style has AFX_CBRS_AUTO_ROLLUP.
 bool AnyVisiblePaneAutoRollsUp(void* pThis) {
-    VisiblePaneList lst(pThis);
-    for (ObNode* n = lst.First(); n != nullptr; n = n->pNext) {
-        CBasePane* p = AsBasePane(n->data);
-        if (p != nullptr && (p->m_dwControlBarStyle & kCbrsAutoRollUp)) return true;
+    for (const auto* pane : openmfc::detail::ContainerPanes(Mgr(pThis))) {
+        if (pane && (pane->m_dwControlBarStyle & kCbrsAutoRollUp) &&
+            (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE)) return true;
     }
     return false;
 }
@@ -793,10 +791,12 @@ CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMul
     for (auto* pane : openmfc::detail::ContainerPanes(source.GetContainerManager()))
         allowed &= pane->m_dwEnabledAlignment;
     const auto drop = DockingTarget(manager, point, impl__m_nDockSensitivity_CDockingManager__2HA, allowed, first, first);
-    if (drop.change != DelayDock || !drop.alignment) return nullptr;
+    if (drop.change != DelayDockToTab && (drop.change != DelayDock || !drop.alignment)) return nullptr;
     if (drop.pane) {
         auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(drop.pane->m_hWnd)));
         if (parent == &source || (receiver && receiver != parent)) return nullptr;
+        if (drop.change == DelayDockToTab)
+            return openmfc::detail::MergeContainerTabs(*drop.pane, source.GetContainerManager());
         if (parent && parent->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
             auto* mini = static_cast<CMultiPaneFrameWnd*>(parent);
             if (impl__AddPaneContainerManager_CPaneContainerManager__UEAAHPEAVCDockablePane__KAEAV1_H_Z(
@@ -805,7 +805,7 @@ CDockablePane* DropMultiPaneFrame(CMultiPaneFrameWnd& source, CPoint point, CMul
                        drop.pane, source.GetContainerManager(), drop.alignment, 5)) return first;
         return nullptr;
     }
-    if (receiver) return nullptr;
+    if (receiver || !drop.alignment) return nullptr;
     auto* divider = impl__CreateDefaultPaneDivider_CDockablePane__SAPEAVCPaneDivider__KPEAVCWnd__PEAUCRuntimeClass___Z(
         drop.alignment, state->parentFrame, nullptr);
     if (!divider) return nullptr;
@@ -1324,7 +1324,10 @@ extern "C" void MS_ABI impl__RemoveNonValidPanes_CMultiPaneFrameWnd__UEAAXXZ(voi
 // already calls this export with (this, pOld, pNew)).
 extern "C" void MS_ABI impl__ReplacePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane__0_Z(void* pThis, void* pBarOrg, void* pBarReplaceWith) {
     if (pThis == nullptr) return;
-    impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockablePane__0_Z(Mgr(pThis), pBarOrg, pBarReplaceWith);
+    if (impl__ReplacePane_CPaneContainerManager__UEAAHPEAVCDockablePane__0_Z(Mgr(pThis), pBarOrg, pBarReplaceWith) &&
+        pBarOrg && pBarReplaceWith && pBarOrg != pBarReplaceWith)
+        openmfc::detail::ReplaceFloatingPaneRegistration(*static_cast<CPaneFrameWnd*>(pThis),
+            *static_cast<CBasePane*>(pBarOrg), *static_cast<CBasePane*>(pBarReplaceWith));
     impl__OnSetRollUpTimer_CMultiPaneFrameWnd__UEAAXXZ(pThis);
 }
 

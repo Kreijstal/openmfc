@@ -1064,6 +1064,226 @@ extern "C" void MS_ABI impl__AdjustPaneToPaneContainer_CDockablePane__MEAAXPEAVC
 extern "C" void* MS_ABI impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPane__XZ(CDockablePane*);
 extern "C" int MS_ABI impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(
     CDockingManager*, CDockablePane*, CDockablePane*);
+extern "C" unsigned int impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
+
+namespace {
+CBaseTabbedPane* TabGroupFor(CDockablePane& pane) {
+    return pane.IsKindOf(RUNTIME_CLASS(CBaseTabbedPane)) ? static_cast<CBaseTabbedPane*>(&pane) :
+        static_cast<CBaseTabbedPane*>(impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(&pane));
+}
+
+void CommitNewTabGroup(CDockablePane& target, CBaseTabbedPane& group, CWnd* oldParent) {
+    if (auto* divider = impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(&target)) {
+        if (impl__ReplacePane_CPaneDivider__UEAAHPEAVCDockablePane__0_Z(divider, &target, &group))
+            impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(&target, nullptr);
+    }
+    auto* manager = FindPaneDockingManager(&group);
+    if (manager) impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(manager, &target, &group);
+    if (oldParent && oldParent->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))) {
+        auto* frame = static_cast<CPaneFrameWnd*>(oldParent);
+        if (frame->IsKindOf(CMultiPaneFrameWnd::GetThisClass())) {
+            impl__ReplacePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane__0_Z(frame, &target, &group);
+        } else {
+            impl__ReplacePane_CPaneFrameWnd__UEAAXPEAVCBasePane__0_Z(frame, &target, &group);
+        }
+        target.m_dwStyle &= ~CBRS_FLOATING;
+        group.m_dwStyle |= CBRS_FLOATING;
+        group.m_recentDockInfo.m_layout = target.m_recentDockInfo.m_layout;
+        group.m_recentDockInfo.m_layout.m_pBar = &group;
+        group.m_recentDockInfo.m_layout.m_nRecentTabNumber = -1;
+        {
+            std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+            const auto record = g_paneCoreState_Mfccore.find(&target);
+            if (record != g_paneCoreState_Mfccore.end()) {
+                auto restore = std::exchange(record->second.floatRestore, std::nullopt);
+                record->second.floatingFrame = nullptr;
+                if (restore) {
+                    if (restore->tabGroup) restore->parent = restore->owner;
+                    restore->tabGroup = nullptr;
+                    restore->tabIndex = -1;
+                    g_paneCoreState_Mfccore[&group].floatRestore = restore;
+                }
+            }
+            auto& state = g_paneCoreState_Mfccore[&group];
+            state.parent = oldParent;
+            state.floatingFrame = frame->m_hWnd;
+        }
+        openmfc::detail::TransferDividerPane(target, group);
+        if (manager) {
+            AddDockingPane(manager, &group);
+            EnsureDockingState(manager).floatingPanes.insert(&group);
+        }
+        ::ShowWindow(group.m_hWnd, SW_SHOWNOACTIVATE);
+        frame->AdjustLayout();
+    } else {
+        ::ShowWindow(group.m_hWnd, SW_SHOWNOACTIVATE);
+    }
+}
+
+struct IncomingTab {
+    CDockablePane* pane;
+    CBaseTabbedPane* oldGroup = nullptr;
+    std::wstring label;
+    UINT image = static_cast<UINT>(-1);
+    BOOL visible = TRUE;
+    BOOL detachable = TRUE;
+};
+
+struct AbsorbedTabGroup {
+    CBaseTabbedPane* group;
+    CBaseTabbedPane* parent;
+};
+
+bool CollectIncomingTabs(CDockablePane& target, IncomingTab tab,
+    std::vector<IncomingTab>& incoming, std::vector<AbsorbedTabGroup>& absorbed) {
+    auto* pane = tab.pane;
+    if (pane == &target || !::IsWindow(pane->m_hWnd) || pane->IsAutoHideMode() ||
+        !pane->CanBeDocked() || !pane->CanBeAttached() || !target.CanAcceptPane(pane)) return false;
+    if (!pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) {
+        incoming.push_back(std::move(tab));
+        return true;
+    }
+    auto* group = static_cast<CBaseTabbedPane*>(pane);
+    auto* tabs = group->GetTabs();
+    const auto* state = tabs ? FindTabCtrlState(tabs) : nullptr;
+    if (!state || state->tabs.empty()) return false;
+    for (const auto& child : state->tabs) {
+        if (!child.window || ::GetParent(child.window->m_hWnd) != tabs->m_hWnd ||
+            !child.window->IsKindOf(RUNTIME_CLASS(CDockablePane))) return false;
+        if (!CollectIncomingTabs(target, {static_cast<CDockablePane*>(child.window), group,
+                child.label, child.image, tab.visible && child.visible, child.detachable}, incoming, absorbed))
+            return false;
+    }
+    absorbed.push_back({group, tab.oldGroup});
+    return true;
+}
+
+struct StagedTab {
+    HWND window;
+    HWND parent;
+    RECT bounds;
+    bool visible;
+    int index = -1;
+};
+}
+
+CDockablePane* openmfc::detail::AttachContainerTabs(CDockablePane& target, CWnd& sourceHost,
+    const std::vector<CDockablePane*>& panes, void* sourceManager) {
+    if (!::IsWindow(target.m_hWnd) || target.IsAutoHideMode()) return nullptr;
+    auto* group = TabGroupFor(target);
+    const HWND targetWindow = group ? group->m_hWnd : target.m_hWnd;
+
+    std::vector<IncomingTab> incoming;
+    std::vector<AbsorbedTabGroup> absorbed;
+    for (auto* pane : panes) {
+        if (!pane || ::GetParent(pane->m_hWnd) != sourceHost.m_hWnd) return nullptr;
+        if (pane->m_hWnd == targetWindow || ::IsChild(pane->m_hWnd, targetWindow)) return nullptr;
+        if (!(::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE)) continue;
+        if (!CollectIncomingTabs(target, IncomingTab{pane}, incoming, absorbed)) return nullptr;
+    }
+    if (incoming.empty()) return nullptr;
+
+    const bool createGroup = group == nullptr;
+    const HWND targetParent = ::GetParent(target.m_hWnd);
+    auto* oldParent = static_cast<CWnd*>(CWnd::FromHandlePermanent(targetParent));
+    CGlobalUtils utils;
+    auto* oldManager = utils.GetDockingManager(&sourceHost);
+    std::vector<StagedTab> staged;
+    staged.reserve(incoming.size() + (createGroup ? 1 : 0));
+    if (createGroup) {
+        group = static_cast<CTabbedPane*>(impl__CreateTabbedPane_CDockablePane__UEAAPEAVCTabbedPane__XZ(&target));
+        if (!group) return nullptr;
+    }
+    auto* tabs = group->GetTabs();
+    if (!tabs || !::IsWindow(tabs->m_hWnd)) {
+        if (createGroup) group->DestroyWindow();
+        return nullptr;
+    }
+    const int previousActive = tabs->GetActiveTab();
+    int lastVisible = -1;
+    // Keep the source tree and membership intact until every page has been inserted.
+    auto stage = [&](const IncomingTab& tab) {
+        auto* pane = tab.pane;
+        StagedTab window{pane->m_hWnd, ::GetParent(pane->m_hWnd), {},
+            (::GetWindowLongPtrW(pane->m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0};
+        if (!::GetWindowRect(window.window, &window.bounds)) return false;
+        ::MapWindowPoints(nullptr, window.parent, reinterpret_cast<POINT*>(&window.bounds), 2);
+        ::SetLastError(ERROR_SUCCESS);
+        if (!::SetParent(window.window, tabs->m_hWnd) && ::GetLastError() != ERROR_SUCCESS) return false;
+        staged.push_back(window);
+        const int index = tabs->GetTabsCount();
+        if (!tabs->InsertTab(pane, tab.oldGroup ? tab.label.c_str() : nullptr, index, tab.image, tab.detachable))
+            return false;
+        staged.back().index = index;
+        tabs->ShowTab(index, tab.visible, TRUE, FALSE);
+        if (tab.visible) lastVisible = index;
+        return true;
+    };
+    auto rollback = [&] {
+        for (auto it = staged.rbegin(); it != staged.rend(); ++it) {
+            if (it->index >= 0) tabs->RemoveTab(it->index);
+            ::SetParent(it->window, it->parent);
+            const RECT& rect = it->bounds;
+            ::SetWindowPos(it->window, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                SWP_NOZORDER | SWP_NOACTIVATE | (it->visible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
+        }
+        tabs->SetActiveTab(previousActive);
+        if (createGroup) group->DestroyWindow();
+    };
+    if (createGroup && !stage({&target, nullptr, {}, static_cast<UINT>(-1),
+            (::GetWindowLongPtrW(target.m_hWnd, GWL_STYLE) & WS_VISIBLE) != 0})) {
+        rollback();
+        return nullptr;
+    }
+    for (const auto& tab : incoming) {
+        if (!stage(tab)) {
+            rollback();
+            return nullptr;
+        }
+    }
+
+    auto* sourceFrame = sourceHost.IsKindOf(CMultiPaneFrameWnd::GetThisClass())
+        ? static_cast<CMultiPaneFrameWnd*>(&sourceHost) : nullptr;
+    auto removeSourcePane = [&](CDockablePane& pane, CBaseTabbedPane* originalGroup) {
+        if (originalGroup) {
+            originalGroup->RemovePane(&pane);
+        } else if (sourceFrame && sourceFrame->GetContainerManager() == sourceManager) {
+            sourceFrame->RemovePane(&pane);
+        } else {
+            DetachContainerPane(sourceManager, pane);
+        }
+        impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(&pane, nullptr);
+        if (oldManager) RemoveDockingPane(oldManager, &pane);
+    };
+    if (createGroup) {
+        FinishTabInsertion(*group, target, targetParent);
+        CommitNewTabGroup(target, *group, oldParent);
+    }
+    size_t stageIndex = createGroup ? 1 : 0;
+    for (const auto& tab : incoming) {
+        FinishTabInsertion(*group, *tab.pane, staged[stageIndex++].parent);
+        removeSourcePane(*tab.pane, tab.oldGroup);
+    }
+    for (const auto& old : absorbed) {
+        old.group->ReleaseFloatingFrame();
+        removeSourcePane(*old.group, old.parent);
+        old.group->DestroyWindow();
+    }
+    if (sourceFrame) {
+        if (!sourceFrame->GetPane())
+            ::PostMessageW(sourceHost.m_hWnd, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
+        else if (!sourceFrame->GetFirstVisiblePane())
+            ::ShowWindow(sourceHost.m_hWnd, SW_HIDE);
+    } else if (oldManager) {
+        oldManager->RecalcLayout();
+    }
+    if (auto* divider = static_cast<CPaneDivider*>(
+            impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(group)))
+        RefreshDividerPanes(divider);
+    tabs->RefreshTabs();
+    if (lastVisible >= 0) tabs->ActivateTab(lastVisible);
+    return group;
+}
 
 // Symbol: ?AttachToTabWnd@CDockablePane@@UEAAPEAV1@PEAV1@W4AFX_DOCK_METHOD@@HPEAPEAV1@@Z
 extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AFX_DOCK_METHOD__HPEAPEAV1__Z(
@@ -1075,15 +1295,12 @@ extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AF
     auto* sourceManager = FindPaneDockingManager(pane);
     auto* sourceGroup = static_cast<CBaseTabbedPane*>(
         impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(pane));
-    auto* group = target->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane)) ? static_cast<CBaseTabbedPane*>(target) :
-        static_cast<CBaseTabbedPane*>(impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(target));
+    auto* group = TabGroupFor(*target);
     if (group == pane || (group && ::IsChild(pane->m_hWnd, group->m_hWnd))) return nullptr;
 
     const bool createGroup = group == nullptr;
     const HWND targetParent = ::GetParent(target->m_hWnd);
     auto* oldParent = static_cast<CWnd*>(CWnd::FromHandlePermanent(targetParent));
-    auto* targetFrame = createGroup && oldParent && oldParent->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd))
-        ? static_cast<CPaneFrameWnd*>(oldParent) : nullptr;
     const auto targetStyle = ::GetWindowLongPtrW(target->m_hWnd, GWL_STYLE);
     RECT targetBounds{};
     if (createGroup) {
@@ -1109,45 +1326,7 @@ extern "C" void* MS_ABI impl__AttachToTabWnd_CDockablePane__UEAAPEAV1_PEAV1_W4AF
     }
 
     if (sourceGroup && sourceGroup != group) sourceGroup->RemovePane(pane);
-    if (createGroup) {
-        if (auto* divider = impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(target)) {
-            if (impl__ReplacePane_CPaneDivider__UEAAHPEAVCDockablePane__0_Z(divider, target, group))
-                impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(target, nullptr);
-        }
-        auto* manager = FindPaneDockingManager(group);
-        if (manager) impl__ReplacePane_CDockingManager__QEAAHPEAVCDockablePane__0_Z(manager, target, group);
-        if (targetFrame && targetFrame->GetPane() == target) {
-            targetFrame->RemovePane(target);
-            target->m_dwStyle &= ~CBRS_FLOATING;
-            group->m_dwStyle |= CBRS_FLOATING;
-            group->m_recentDockInfo.m_layout = target->m_recentDockInfo.m_layout;
-            group->m_recentDockInfo.m_layout.m_pBar = group;
-            group->m_recentDockInfo.m_layout.m_nRecentTabNumber = -1;
-            {
-                std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
-                const auto targetRecord = g_paneCoreState_Mfccore.find(target);
-                if (targetRecord != g_paneCoreState_Mfccore.end()) {
-                    auto restore = std::exchange(targetRecord->second.floatRestore, std::nullopt);
-                    targetRecord->second.floatingFrame = nullptr;
-                    if (restore) {
-                        // The combined group returns to the floating target's original dock.
-                        if (restore->tabGroup) restore->parent = restore->owner;
-                        restore->tabGroup = nullptr;
-                        restore->tabIndex = -1;
-                        g_paneCoreState_Mfccore[group].floatRestore = restore;
-                    }
-                }
-                g_paneCoreState_Mfccore[group].floatingFrame = targetParent;
-            }
-            openmfc::detail::TransferDividerPane(*target, *group);
-            if (manager) {
-                AddDockingPane(manager, group);
-                EnsureDockingState(manager).floatingPanes.insert(group);
-            }
-            targetFrame->AddPane(group);
-        }
-        ::ShowWindow(group->m_hWnd, SW_SHOWNOACTIVATE);
-    }
+    if (createGroup) CommitNewTabGroup(*target, *group, oldParent);
     impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(pane, nullptr);
     if (sourceManager) RemoveDockingPane(sourceManager, pane);
     if (result) *result = group;

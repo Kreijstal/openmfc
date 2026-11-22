@@ -2337,24 +2337,29 @@ extern "C" void MS_ABI impl__ReplaceButton_CPaneFrameWnd__IEAAXII_Z(
 //     further-derived override is not reached.
 extern "C" void MS_ABI impl__ReplacePane_CPaneFrameWnd__UEAAXPEAVCBasePane__0_Z(
     void* pThis, void* pOldBar, void* pNewBar) {
-    if (pThis == nullptr) return;
-    if (pOldBar == nullptr || pNewBar == nullptr || pOldBar == pNewBar) return;
-    impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pOldBar, FALSE);
-    HWND hOld = reinterpret_cast<CWnd*>(pOldBar)->GetSafeHwnd();
-    HWND hNew = reinterpret_cast<CWnd*>(pNewBar)->GetSafeHwnd();
+    if (!pThis || !pOldBar || !pNewBar || pOldBar == pNewBar) return;
+    openmfc::detail::ReplaceFloatingPaneRegistration(*static_cast<CPaneFrameWnd*>(pThis),
+        *static_cast<CBasePane*>(pOldBar), *static_cast<CBasePane*>(pNewBar));
+    impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(pThis);
+}
+
+void openmfc::detail::ReplaceFloatingPaneRegistration(
+    CPaneFrameWnd& frame, CBasePane& oldPane, CBasePane& newPane) {
+    impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(&oldPane, FALSE);
+    const HWND hOld = oldPane.GetSafeHwnd();
+    const HWND hNew = newPane.GetSafeHwnd();
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState& st = GetState(pThis);
+        PaneFrameState& st = GetState(&frame);
         if (st.paneHwnd == hOld) st.paneHwnd = hNew;
     }
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
-        PaneState& state = g_framePanes[pThis];
-        RemovePane(state, pOldBar);
-        AddUniquePane(state, pNewBar);
+        PaneState& state = g_framePanes[&frame];
+        RemovePane(state, &oldPane);
+        AddUniquePane(state, &newPane);
     }
-    impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pNewBar, TRUE);
-    impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(pThis);
+    impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(&newPane, TRUE);
 }
 
 // Symbol: ?SaveRecentFloatingState@CPaneFrameWnd@@MEAAXXZ

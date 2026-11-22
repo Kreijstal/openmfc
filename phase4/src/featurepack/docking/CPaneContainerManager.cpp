@@ -917,33 +917,22 @@ extern "C" int MS_ABI impl__AddPaneContainerManager_CPaneContainerManager__UEAAH
         static_cast<CDockablePane*>(pTargetControlBar), dwAlignment & kCbrsAlignAny, false);
 }
 
+CDockablePane* openmfc::detail::MergeContainerTabs(CDockablePane& target, void* sourceManager) {
+    if (!Root(sourceManager)) return nullptr;
+    auto* sourceHost = Field<CWnd*>(sourceManager, kOffDockSite);
+    return sourceHost && ::IsWindow(sourceHost->m_hWnd)
+        ? AttachContainerTabs(target, *sourceHost, ContainerPanes(sourceManager), sourceManager) : nullptr;
+}
+
 // Symbol: ?AddPaneContainerManagerToDockablePane@CPaneContainerManager@@UEAAHPEAVCDockablePane@@AEAV1@@Z
-// STUB. Retail entry RVA 0xa8820 (mfc140.dll), body 0xa8820..0xa89c1 with the
-// throw tail at 0xa89c2. (An earlier revision of this comment said 313
-// instructions and named a CPaneContainer::Copy dependency; 313 is the
-// print-until-next-export count, and there is no Copy call in this body.)
-// The shipping header declares
-// `BOOL AddPaneContainerManagerToDockablePane(CDockablePane* pTargetControlBar,
-//                                             CPaneContainerManager& srcManager)`.
-//
-//   CObList lstBars;                                   // stack, vftable 0x180328538
-//   srcManager.AddPanesToList(&lstBars, NULL);         // 0xa8876, r8 = NULL
-//   BOOL bLeftBar = FALSE;
-//   if (this->FindPaneContainer(pTargetControlBar, bLeftBar) == NULL ||   // vt +0x128
-//       <pTargetControlBar is not in m_lstControlBars>)
-//       { lstBars.RemoveAll(); return FALSE; }         // 0xa88b5..0xa88d9
-//   ... two IsKindOf tests (0xa88ee, 0xa8923) and one virtual call (0xa8954) ...
-//   return AddPaneAndPaneDivider(...);                 // 0xa89b4 -> 0xa9a00
-//
-// Left a stub: AddPaneAndPaneDivider is itself a stub in this file, and the
-// middle section depends on the same CPaneContainer plumbing the overloads above
-// need. The two IsKindOf descriptors and the virtual slot were not resolved, so
-// nothing is claimed about them here.
+// The retail entry walks the visible source leaves and attaches them to the
+// target's tab group. Require the target to participate in this manager's tree.
 extern "C" int MS_ABI impl__AddPaneContainerManagerToDockablePane_CPaneContainerManager__UEAAHPEAVCDockablePane__AEAV1__Z(
     void* pThis, void* pTargetControlBar, void* pSrcManager) {
-    (void)pThis; (void)pTargetControlBar; (void)pSrcManager;
-    // STUB: retail delegates to AddPaneAndPaneDivider, which cannot create its required divider.
-    return 0;
+    auto* target = static_cast<CDockablePane*>(pTargetControlBar);
+    return target && pThis != pSrcManager && ContainerHasPane(pThis, target) &&
+        impl__FindPaneContainer_CPaneContainerManager__UEAAPEAVCPaneContainer__PEAVCDockablePane__AEAH_Z(
+            pThis, target, nullptr) && MergeContainerTabs(*target, pSrcManager);
 }
 
 // Symbol: ?AddPanesToList@CPaneContainerManager@@QEAAXPEAVCObList@@0@Z

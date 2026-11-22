@@ -3,6 +3,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/MultiPaneFrameSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/Pane15MsgmapSupport.h"
 #include <utility>
@@ -34,6 +35,11 @@ void RecordTabMembership(CWnd* window, CWnd* parent, BOOL tabbed) {
 }
 }
 
+void openmfc::detail::FinishTabInsertion(CBaseTabbedPane& group, CWnd& pane, HWND previous) {
+    if (previous != ::GetParent(group.m_hWnd) && pane.IsKindOf(RUNTIME_CLASS(CPane)))
+        static_cast<CPane&>(pane).ReleaseFloatingFrame();
+    RecordTabMembership(&pane, group.GetTabs(), TRUE);
+}
 
 // Symbol: ??0CBaseTabbedPane@@QEAA@H@Z
 extern "C" void* MS_ABI impl___0CBaseTabbedPane__QEAA_H_Z(void* pThis, int iStyle) { return new (pThis) CBaseTabbedPane(iStyle); }
@@ -95,9 +101,7 @@ BOOL CBaseTabbedPane::InsertTab(CWnd* window, int index, BOOL visible, BOOL acti
         if (oldParent != m_pTabWnd->m_hWnd) ::SetParent(window->m_hWnd, oldParent);
         return FALSE;
     }
-    if (oldParent != ::GetParent(m_hWnd) && window->IsKindOf(RUNTIME_CLASS(CPane)))
-        static_cast<CPane*>(window)->ReleaseFloatingFrame();
-    RecordTabMembership(window, m_pTabWnd, TRUE);
+    openmfc::detail::FinishTabInsertion(*this, *window, oldParent);
     m_pTabWnd->ShowTab(index, visible, TRUE, FALSE);
     if (visible && activate) m_pTabWnd->ActivateTab(index);
     return TRUE;
