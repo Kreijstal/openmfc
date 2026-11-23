@@ -244,14 +244,6 @@ struct COutlookCustomizeButtonState {
 };
 } } }
 
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-struct CMFCCaptionButtonState {
-    unsigned int m_hit = 0;
-    int m_lastX = 0;
-    int m_lastY = 0;
-    unsigned int m_lastImageId = 0;
-};
-} } }
 
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
 struct CMFCPrintPreviewToolBarState {
@@ -360,12 +352,6 @@ namespace openmfc { namespace detail { namespace manualsmallstubimplementations 
 extern std::unordered_map<void*, COutlookCustomizeButtonState> g_outlookCustomizeButtonStates;
 } } }
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-extern std::mutex g_cmfccaptionButtonStateMutex;
-} } }
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-extern std::unordered_map<void*, CMFCCaptionButtonState> g_cmfccaptionButtonStates;
-} } }
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
 extern std::mutex g_printPreviewToolBarStateMutex;
 } } }
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
@@ -442,9 +428,6 @@ namespace openmfc { namespace detail { namespace manualsmallstubimplementations 
 void ClearCOutlookCustomizeButtonState(void* pThis);
 } } }
 
-namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
-CMFCCaptionButtonState& EnsureCMFCCaptionButtonState(void* pThis);
-} } }
 
 namespace openmfc { namespace detail { namespace manualsmallstubimplementations {
 CMFCPrintPreviewToolBarState& EnsureCMFCPrintPreviewToolBarState(void* pThis);

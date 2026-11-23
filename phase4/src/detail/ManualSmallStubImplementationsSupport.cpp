@@ -61,8 +61,6 @@ std::mutex g_hotKeyCtrlStateMutex;
 std::unordered_map<void*, CHotKeyCtrlState> g_hotKeyCtrlStates;
 std::mutex g_outlookCustomizeButtonStateMutex;
 std::unordered_map<void*, COutlookCustomizeButtonState> g_outlookCustomizeButtonStates;
-std::mutex g_cmfccaptionButtonStateMutex;
-std::unordered_map<void*, CMFCCaptionButtonState> g_cmfccaptionButtonStates;
 std::mutex g_printPreviewToolBarStateMutex;
 std::unordered_map<void*, CMFCPrintPreviewToolBarState> g_printPreviewToolBarStates;
 std::mutex g_colorPopupMenuStateMutex;
@@ -189,14 +187,6 @@ void ClearCOutlookCustomizeButtonState(void* pThis) {
         delete reinterpret_cast<CObject*>(it->second.m_popupMenu);
     }
     g_outlookCustomizeButtonStates.erase(it);
-}
-CMFCCaptionButtonState& EnsureCMFCCaptionButtonState(void* pThis) {
-    std::lock_guard<std::mutex> lock(g_cmfccaptionButtonStateMutex);
-    auto [it, inserted] = g_cmfccaptionButtonStates.try_emplace(pThis);
-    if (inserted) {
-        it->second = CMFCCaptionButtonState{};
-    }
-    return it->second;
 }
 CMFCPrintPreviewToolBarState& EnsureCMFCPrintPreviewToolBarState(void* pThis) {
     std::lock_guard<std::mutex> lock(g_printPreviewToolBarStateMutex);

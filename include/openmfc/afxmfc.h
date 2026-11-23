@@ -144,7 +144,7 @@ private:
 // CMenuImages — needed by CMFCVisualManager method signatures (uses IMAGES_IDS)
 class CMenuImages {
 public:
-    enum IMAGES_IDS { IdMin = 0, IdMax = 30 };
+    enum IMAGES_IDS { IdInvalid = -1, IdMin = 0, IdMax = 30 };
     CMenuImages() {}
     char _pad[16];
 };
@@ -1607,6 +1607,10 @@ public:
     LRESULT OnEnterSizeMove(WPARAM, LPARAM);
     LRESULT OnExitSizeMove(WPARAM, LPARAM);
     LRESULT OnCaptionButtonDown(WPARAM hit, LPARAM);
+    LRESULT OnCaptionHitTest(WPARAM, LPARAM position);
+    LRESULT OnCaptionMouseMove(WPARAM hit, LPARAM position);
+    LRESULT OnCaptionMouseLeave(WPARAM, LPARAM);
+    LRESULT OnCaptionPaint(WPARAM, LPARAM);
     LRESULT OnPaneDragKey(WPARAM key, LPARAM);
     LRESULT OnCaptureChanged(WPARAM, LPARAM);
     LRESULT OnCancelPaneDrag(WPARAM, LPARAM);
@@ -1714,9 +1718,31 @@ protected:
 //=============================================================================
 class CMFCCaptionButton : public CObject {
 public:
-    CMFCCaptionButton() {}
-    char _pad[16];
+    CMFCCaptionButton() = default;
+    CMFCCaptionButton(UINT hit, BOOL leftAlign = FALSE) : m_bLeftAlign(leftAlign), m_nHit(hit) {}
+
+    void Move(const CPoint& origin, BOOL hidden = FALSE) { m_ptOrg = origin; m_bHidden = hidden; }
+    virtual CRect GetRect() const;
+    static CSize GetSize();
+    virtual void OnDraw(CDC* dc, BOOL active, BOOL horizontal, BOOL maximized, BOOL disabled);
+    virtual CMenuImages::IMAGES_IDS GetIconID(BOOL horizontal, BOOL maximized) const;
+    void SetMiniFrameButton(BOOL miniFrame = TRUE) { m_bIsMiniFrameButton = miniFrame; }
+
+    BOOL m_bPushed = FALSE;
+    BOOL m_bFocused = FALSE;
+    BOOL m_bHidden = FALSE;
+    BOOL m_bEnabled = TRUE;
+    BOOL m_bDroppedDown = FALSE;
+    BOOL m_bLeftAlign = FALSE;
+    UINT m_nHit = 0;
+    COLORREF m_clrForeground = CLR_INVALID;
+
+protected:
+    CPoint m_ptOrg{0, 0};
+    BOOL m_bIsMiniFrameButton = FALSE;
 };
+static_assert(sizeof(CMFCCaptionButton) == 0x38);
+static_assert(offsetof(CMFCCaptionButton, m_nHit) == 0x20);
 
 class CMFCHeaderCtrl : public CWnd {
 public:

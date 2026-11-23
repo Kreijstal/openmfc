@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <new>
+#include <windowsx.h>
 
 static_assert(sizeof(CPaneFrameWnd) == 0x258);
 
@@ -87,6 +88,8 @@ extern "C" void  MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(void* pT
 extern "C" void  MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis);
+extern "C" void  MS_ABI impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(void*, UINT);
+extern "C" void  MS_ABI impl__OnNcPaint_CPaneFrameWnd__IEAAXXZ(void*);
 extern "C" void  MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCaptionButton___Z(
     void* pThis, void* pButton);
 
@@ -132,38 +135,44 @@ std::unordered_map<int, HWND>& FloatingPaneMap() {
     return m;
 }
 
-using CaptionButtonState = openmfc::docking_state::CaptionButtonState;
+CMFCCaptionButton* FindCaptionButton(const PaneFrameState& state, UINT id) {
+    for (const auto& button : state.captionButtons)
+        if (button->m_nHit == id) return button.get();
+    return nullptr;
+}
 
-CaptionButtonState* FindCaptionButton(PaneFrameState& state, unsigned int id) {
-    for (std::size_t i = 0; state.captionButtons != nullptr && i < state.captionButtonCount; ++i) {
-        if (state.captionButtons[i].id == id) return &state.captionButtons[i];
+CMFCCaptionButton* HitCaptionButton(const void* frame, CPoint screen) {
+    const HWND window = HwndOf(const_cast<void*>(frame));
+    RECT bounds{};
+    if (!::GetWindowRect(window, &bounds)) return nullptr;
+    CPoint point(screen.x - bounds.left, screen.y - bounds.top);
+    if (::GetWindowLongPtrW(window, GWL_EXSTYLE) & WS_EX_LAYOUTRTL)
+        point.x = bounds.right - bounds.left - 1 - point.x;
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    if (const auto* state = FindStatePtr(frame)) {
+        for (const auto& button : state->captionButtons)
+            if (button->GetRect().PtInRect(point)) return button.get();
     }
     return nullptr;
 }
 
-bool EnsureCaptionButtonCapacity(PaneFrameState& state) {
-    if (state.captionButtons != nullptr && state.captionButtonCount < state.captionButtonCapacity) {
-        return true;
+CPoint CaptionMessagePoint(LPARAM position) {
+    return CPoint(GET_X_LPARAM(position), GET_Y_LPARAM(position));
+}
+
+void TrackCaptionButton(void* frame, UINT id) {
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto* state = FindStatePtr(frame);
+        if (!state || state->dragging || state->hotButtonID == id) return;
+        if (auto* previous = FindCaptionButton(*state, state->hotButtonID))
+            previous->m_bFocused = FALSE;
+        state->hotButtonID = id;
+        if (auto* current = FindCaptionButton(*state, id)) current->m_bFocused = TRUE;
+        if (auto* pressed = FindCaptionButton(*state, state->hitButtonID))
+            pressed->m_bPushed = pressed->m_nHit == id;
     }
-    std::size_t nextCapacity = state.captionButtonCapacity == 0 ? 4 : state.captionButtonCapacity * 2;
-    if (nextCapacity < state.captionButtonCapacity || nextCapacity <= state.captionButtonCount) {
-        nextCapacity = state.captionButtonCount + 1;
-        if (nextCapacity <= state.captionButtonCount) return false;
-    }
-    if (nextCapacity > static_cast<std::size_t>(-1) / sizeof(CaptionButtonState)) return false;
-    auto* replacement = static_cast<CaptionButtonState*>(
-        std::malloc(nextCapacity * sizeof(CaptionButtonState)));
-    if (replacement == nullptr) return false;
-    for (std::size_t i = 0; i < nextCapacity; ++i) {
-        ::new (static_cast<void*>(&replacement[i])) CaptionButtonState{};
-    }
-    for (std::size_t i = 0; state.captionButtons != nullptr && i < state.captionButtonCount; ++i) {
-        replacement[i] = state.captionButtons[i];
-    }
-    std::free(state.captionButtons);
-    state.captionButtons = replacement;
-    state.captionButtonCapacity = nextCapacity;
-    return true;
+    ::SendMessageW(HwndOf(frame), WM_NCPAINT, 0, 0);
 }
 }  // namespace
 
@@ -180,10 +189,14 @@ extern "C" int MS_ABI impl__Create_CPaneFrameWnd__UEAAHPEB_WKAEBUtagRECT__PEAVCW
 // side-table handle in sync with the pane-pointer list used by GetPane().
 extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void* pThis, void* pPane) {
     if (!pThis || !pPane) return;
-    const HWND paneHwnd = static_cast<CBasePane*>(pPane)->GetSafeHwnd();
+    auto* pane = static_cast<CBasePane*>(pPane);
+    const HWND paneHwnd = pane->GetSafeHwnd();
+    bool first = false;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
-        GetState(pThis).paneHwnd = paneHwnd;
+        auto& state = GetState(pThis);
+        first = !state.paneHwnd && !state.captionButtonsConfigured;
+        state.paneHwnd = paneHwnd;
     }
     {
         std::lock_guard<std::mutex> lock(g_wave2Mutex);
@@ -192,6 +205,9 @@ extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void*
         state.rollUp = FALSE;
     }
     impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(pPane, TRUE);
+    if (first && paneHwnd && pane->CanBeClosed() &&
+        (::GetWindowLongPtrW(HwndOf(pThis), GWL_STYLE) & WS_SYSMENU))
+        impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(pThis, 2);
 }
 // Symbol: ?RemovePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
 // Retail mfc140.dll (ANSI twin) entry RVA 0xaf680 clears +0x148 only when it
@@ -272,18 +288,18 @@ extern "C" void MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagM
     pSize->cy = std::max(40, state.minSize.cy) + kPaneFrameCaptionHeight + border;
 }
 // Symbol: ?GetCaptionRect@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
-extern "C" void MS_ABI impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(void* pThis, CRect* pRect) {
-    if (!pRect) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    const PaneState& state = g_framePanes[pThis];
-    const CRect frameRect = (state.recentRect.Width() > 0 && state.recentRect.Height() > 0)
-                                ? state.recentRect
-                                : CRect(0, 0, kPaneFrameDefaultWidth, kPaneFrameDefaultHeight);
-    pRect->left = frameRect.left;
-    pRect->top = frameRect.top;
-    pRect->right = frameRect.right;
-    pRect->bottom = frameRect.top + std::min(kPaneFrameCaptionHeight, frameRect.Height());
+extern "C" void MS_ABI impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(void* pThis, CRect* rect) {
+    if (!rect) return;
+    WINDOWINFO info{sizeof(info)};
+    const HWND window = pThis ? HwndOf(pThis) : nullptr;
+    if (!::GetWindowInfo(window, &info) || (info.dwStyle & WS_CAPTION) != WS_CAPTION) {
+        rect->SetRectEmpty();
+        return;
+    }
+    rect->SetRect(info.rcClient.left - info.rcWindow.left, info.cyWindowBorders,
+                  info.rcClient.right - info.rcWindow.left, info.rcClient.top - info.rcWindow.top);
 }
+
 // Symbol: ?GetCaptionText@CPaneFrameWnd@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
 extern "C" void MS_ABI impl__GetCaptionText_CPaneFrameWnd__UEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
     CString* pRet, void* pThis) {
@@ -327,48 +343,22 @@ extern "C" int MS_ABI impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu__
     return pThis != nullptr;
 }
 // Symbol: ?StopCaptionButtonsTracking@CPaneFrameWnd@@MEAAXXZ
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb2280 (the mfc140u symbol map did
-// not resolve this export): for each nonzero pressed/hot ID at +0x118/+0x11c,
-// it clears the ID, calls USER32!ReleaseCapture (import slot 0x1802c5280),
-// clears the matching button state at +0x8/+0xc, then redraws that button.
-// The semantic CaptionButtonState list now carries the IDs and flags. Deviation:
-// updates are protected by the side-table mutex, and RedrawCaptionButton receives
-// a temporary semantic record; its current implementation redraws the full
-// non-client area because the retail button object/rect is not modeled.
 extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    auto stopOne = [pThis](bool pressed) {
-        unsigned int id = 0;
-        {
-            std::lock_guard<std::mutex> lock(g_other6Mutex);
-            PaneFrameState* state = FindStatePtr(pThis);
-            if (state == nullptr) return;
-            unsigned int& trackedID = pressed ? state->hitButtonID : state->hotButtonID;
-            id = trackedID;
-            if (id == 0) return;
-            trackedID = 0;
-        }
-        ::ReleaseCapture();
-        CaptionButtonState snapshot{};
-        bool found = false;
-        {
-            std::lock_guard<std::mutex> lock(g_other6Mutex);
-            PaneFrameState* state = FindStatePtr(pThis);
-            if (state != nullptr) {
-                if (CaptionButtonState* button = FindCaptionButton(*state, id)) {
-                    if (pressed) button->pressed = FALSE;
-                    else button->hot = FALSE;
-                    snapshot = *button;
-                    found = true;
-                }
-            }
-        }
-        if (found) impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCaptionButton___Z(
-            pThis, &snapshot);
-    };
-    stopOne(true);
-    stopOne(false);
+    if (!pThis) return;
+    const HWND window = HwndOf(pThis);
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto* state = FindStatePtr(pThis);
+        if (!state || (!state->hitButtonID && !state->hotButtonID)) return;
+        if (auto* button = FindCaptionButton(*state, std::exchange(state->hitButtonID, 0u)))
+            button->m_bPushed = FALSE;
+        if (auto* button = FindCaptionButton(*state, std::exchange(state->hotButtonID, 0u)))
+            button->m_bFocused = FALSE;
+    }
+    if (::GetCapture() == window) ::ReleaseCapture();
+    ::SendMessageW(window, WM_NCPAINT, 0, 0);
 }
+
 // Symbol: ?StoreRecentDockSiteInfo@CPaneFrameWnd@@UEAAXPEAVCPane@@@Z
 extern "C" void MS_ABI impl__StoreRecentDockSiteInfo_CPaneFrameWnd__UEAAXPEAVCPane___Z(void* pThis, void* pPane) {
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
@@ -445,6 +435,7 @@ extern "C" __int64 MS_ABI impl__HitTest_CPaneFrameWnd__UEAA_JVCPoint__H_Z(
     if (pThis == nullptr) return 1;
     HWND hwnd = HwndOf(pThis);
     if (hwnd == nullptr) return 1;
+    if (const auto* button = HitCaptionButton(pThis, point)) return button->m_nHit;
 
     RECT wr;
     ::GetWindowRect(hwnd, &wr);
@@ -696,14 +687,21 @@ extern "C" void MS_ABI impl__OnDrawBorder_CPaneFrameWnd__MEAAXPEAVCDC___Z(
     if (pThis == nullptr) return;
 }
 // Symbol: ?OnDrawCaptionButtons@CPaneFrameWnd@@MEAAXPEAVCDC@@@Z
-// Retail walks the caption-button list (retail +0x188) and draws each button
-// through its vtable. Semantic records now model IDs/flags/rectangles, but the
-// native CMFCCaptionButton object/vtable and visual-manager drawing path remain
-// absent. Safe no-op.
-// TODO(clean-room): transcribed partially.
+// Draw the caption list in native order. The pin glyph follows the pin state.
 extern "C" void MS_ABI impl__OnDrawCaptionButtons_CPaneFrameWnd__MEAAXPEAVCDC___Z(
-    void* pThis, void* /*pDC*/) {
-    if (pThis == nullptr) return;
+    void* pThis, CDC* dc) {
+    if (!pThis || !dc) return;
+    std::vector<CMFCCaptionButton*> buttons;
+    const BOOL active = ::GetActiveWindow() == HwndOf(pThis);
+    BOOL pinned = FALSE;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(pThis)) {
+            for (const auto& button : state->captionButtons) buttons.push_back(button.get());
+            pinned = state->pinned;
+        }
+    }
+    for (auto* button : buttons) button->OnDraw(dc, active, TRUE, pinned, FALSE);
 }
 // Symbol: ?OnEraseBkgnd@CPaneFrameWnd@@IEAAHPEAVCDC@@@Z
 // Retail body is literally `mov $1,%eax; ret` - always TRUE.
@@ -867,7 +865,6 @@ CPaneFrameWnd::~CPaneFrameWnd() {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         const auto it = g_other6State.find(this);
         if (it != g_other6State.end()) {
-            std::free(it->second.captionButtons);
             g_other6State.erase(it);
         }
     }
@@ -944,7 +941,6 @@ void CPaneFrameWnd::PostNcDestroy() {
         const auto it = g_other6State.find(this);
         if (it != g_other6State.end()) {
             destroy = it->second.destroyWithWindow;
-            std::free(it->second.captionButtons);
             g_other6State.erase(it);
         }
     }
@@ -1040,25 +1036,16 @@ void CPaneFrameWnd::RemovePane(CBasePane* pBar, BOOL bDestroy) {
 extern "C" alignas(8) unsigned char impl__m_mapFloatingBars_CPaneFrameWnd__1V__CMap_IIPEAUHWND____PEAU1___A[0x38] = {};
 
 // Symbol: ?AddButton@CPaneFrameWnd@@MEAAXI@Z
-// Retail mfc140u entry RVA 0xb0f50 first ignores a duplicate ID, otherwise
-// constructs the matching caption-button type, AddHead()s it, and marks it
-// enabled and unhidden (the base member order is in afxcaptionbutton.h).
-// Deviation: store those semantic fields in PaneFrameState's ordered side array;
-// do not create a guessed CMFCCaptionButton/vtable or CMFCCaptionMenuButton.
-extern "C" void MS_ABI impl__AddButton_CPaneFrameWnd__MEAAXI_Z(void* pThis, unsigned int uiID) {
-    if (pThis == nullptr) return;
+// mfc140u 0xb0f50 adds each new hit code at the head of the caption list.
+extern "C" void MS_ABI impl__AddButton_CPaneFrameWnd__MEAAXI_Z(void* pThis, UINT id) {
+    if (!pThis) return;
     std::lock_guard<std::mutex> lock(g_other6Mutex);
-    PaneFrameState& state = GetState(pThis);
-    if (FindCaptionButton(state, uiID) != nullptr || !EnsureCaptionButtonCapacity(state)) return;
-    for (std::size_t i = state.captionButtonCount; i > 0; --i) {
-        state.captionButtons[i] = state.captionButtons[i - 1];
-    }
-    CaptionButtonState button{};
-    button.id = uiID;
-    button.visible = TRUE;
-    button.enabled = TRUE;
-    state.captionButtons[0] = button;
-    ++state.captionButtonCount;
+    auto& state = GetState(pThis);
+    if (FindCaptionButton(state, id)) return;
+    state.captionButtonsConfigured = true;
+    auto button = std::make_unique<CMFCCaptionButton>(id);
+    button->SetMiniFrameButton();
+    state.captionButtons.insert(state.captionButtons.begin(), std::move(button));
 }
 
 // Symbol: ?AddRemovePaneFromGlobalList@CPaneFrameWnd@@SAHPEAVCBasePane@@H@Z
@@ -1088,14 +1075,37 @@ extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCB
 }
 
 // Symbol: ?ArrangeCaptionButtons@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140u entry RVA 0xb13d0 obtains GetCaptionRect(), lays visible
-// caption buttons out using their size/alignment fields, then unconditionally
-// calls UpdateTooltips. The ordered semantic side array now exists, but the
-// native button-size/visual-manager path and full button layout model do not;
-// this helper therefore retains only the verified unconditional tooltip call.
-// TODO(clean-room): button geometry/layout remains unimplemented.
+// mfc140u 0xb13d0 lays out the list from tail to head with four pixels between buttons.
 extern "C" void MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
+    if (!pThis) return;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(pThis);
+        if (!state || state->captionButtons.empty()) return;
+    }
+    CRect caption;
+    static_cast<CPaneFrameWnd*>(pThis)->GetCaptionRect(caption);
+    const CSize size = CMFCCaptionButton::GetSize();
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(pThis)) {
+            const LONG y = caption.top + (caption.Height() - size.cy) / 2;
+            LONG left = caption.left;
+            LONG right = caption.right;
+            for (auto it = state->captionButtons.rbegin(); it != state->captionButtons.rend(); ++it) {
+                auto& button = **it;
+                if (button.m_bHidden) continue;
+                if (button.m_bLeftAlign) {
+                    button.Move(CPoint(left, y));
+                    left += size.cx + 4;
+                } else {
+                    right = (std::max<LONG>)(caption.left, right - size.cx);
+                    button.Move(CPoint(right, y));
+                    right -= 4;
+                }
+            }
+        }
+    }
     impl__UpdateTooltips_CPaneFrameWnd__IEAAXXZ(pThis);
 }
 
@@ -1289,7 +1299,7 @@ void CPaneFrameWnd::BeginPaneDrag() {
     ::SetCursor(::LoadCursorW(nullptr, IDC_SIZEALL));
 }
 
-void CPaneFrameWnd::OnMouseMove(UINT, CPoint) {
+void CPaneFrameWnd::OnMouseMove(UINT, CPoint clientPoint) {
     const HWND frame = m_hWnd;
     if (::GetCapture() != frame) {
         Default();
@@ -1298,13 +1308,21 @@ void CPaneFrameWnd::OnMouseMove(UINT, CPoint) {
     RECT original{};
     POINT start{};
     bool outlineOnly = false;
+    bool dragging = false;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         const auto* state = FindStatePtr(this);
-        if (!state || !state->dragging) return;
+        if (!state) return;
+        dragging = state->dragging;
         original = state->dragStartBounds;
         start = state->dragStartPoint;
         outlineOnly = state->dragOutlineOnly;
+    }
+    if (!dragging) {
+        POINT screen{clientPoint.x, clientPoint.y};
+        ::ClientToScreen(frame, &screen);
+        impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint___Z(this, CPoint(screen));
+        return;
     }
     POINT point{};
     if (!::GetCursorPos(&point)) return;
@@ -1314,19 +1332,43 @@ void CPaneFrameWnd::OnMouseMove(UINT, CPoint) {
     if (auto* drag = FrameDrag(*this)) openmfc::detail::UpdateDockDragPreview(*drag, outlineOnly, false);
 }
 
-void CPaneFrameWnd::OnLButtonUp(UINT, CPoint) {
+void CPaneFrameWnd::OnLButtonUp(UINT, CPoint clientPoint) {
     bool dragging = false;
     bool outlineOnly = false;
+    UINT pressed = 0;
     RECT startingBounds{};
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         if (auto* state = FindStatePtr(this)) {
             dragging = std::exchange(state->dragging, false);
+            pressed = state->hitButtonID;
             startingBounds = state->dragStartBounds;
             outlineOnly = state->dragOutlineOnly;
         }
     }
     if (!dragging) {
+        if (pressed) {
+            const HWND window = m_hWnd;
+            POINT point{clientPoint.x, clientPoint.y};
+            ::ClientToScreen(window, &point);
+            const auto* button = HitCaptionButton(this, CPoint(point));
+            const bool activate = button && button->m_bEnabled && button->m_nHit == pressed;
+            impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(this);
+            if (!activate || CWnd::FromHandlePermanent(window) != this) return;
+            if (pressed == HTOBJECT || pressed == HTCLOSE) {
+                ::SendMessageW(window, WM_CLOSE, 0, 0);
+            } else if (pressed == 9) {
+                {
+                    std::lock_guard<std::mutex> lock(g_other6Mutex);
+                    auto& state = GetState(this);
+                    state.pinned = !state.pinned;
+                }
+                ::SendMessageW(window, WM_NCPAINT, 0, 0);
+            } else {
+                impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(this, pressed);
+            }
+            return;
+        }
         Default();
         return;
     }
@@ -1346,11 +1388,61 @@ void CPaneFrameWnd::OnLButtonUp(UINT, CPoint) {
         FinishPaneFrameMove(*this);
 }
 
-LRESULT CPaneFrameWnd::OnCaptionButtonDown(WPARAM hit, LPARAM) {
+LRESULT CPaneFrameWnd::OnCaptionButtonDown(WPARAM hit, LPARAM position) {
+    if (auto* button = HitCaptionButton(this, CaptionMessagePoint(position))) {
+        if (button->m_nHit == hit) {
+            if (!button->m_bEnabled) return 0;
+            const UINT id = button->m_nHit;
+            {
+                std::lock_guard<std::mutex> lock(g_other6Mutex);
+                auto& state = GetState(this);
+                state.hitButtonID = id;
+                button->m_bPushed = TRUE;
+            }
+            ::SetCapture(m_hWnd);
+            TrackCaptionButton(this, id);
+            ::SendMessageW(m_hWnd, WM_NCPAINT, 0, 0);
+            return 0;
+        }
+    }
     if (hit != HTCAPTION || !GetPane()) return Default();
     ::SetActiveWindow(m_hWnd);
     BeginPaneDrag();
     return 0;
+}
+
+LRESULT CPaneFrameWnd::OnCaptionHitTest(WPARAM, LPARAM position) {
+    if (const auto* button = HitCaptionButton(this, CaptionMessagePoint(position))) return button->m_nHit;
+    const LRESULT result = Default();
+    if (result == HTCLOSE) {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(this); state && state->captionButtonsConfigured) return HTCAPTION;
+    }
+    return result;
+}
+
+LRESULT CPaneFrameWnd::OnCaptionMouseMove(WPARAM, LPARAM position) {
+    const auto* button = HitCaptionButton(this, CaptionMessagePoint(position));
+    TrackCaptionButton(this, button && button->m_bEnabled ? button->m_nHit : 0);
+    TRACKMOUSEEVENT tracking{sizeof(tracking), TME_NONCLIENT | TME_LEAVE, m_hWnd, 0};
+    ::TrackMouseEvent(&tracking);
+    return button ? 0 : Default();
+}
+
+LRESULT CPaneFrameWnd::OnCaptionMouseLeave(WPARAM, LPARAM) {
+    TrackCaptionButton(this, 0);
+    return Default();
+}
+
+LRESULT CPaneFrameWnd::OnCaptionPaint(WPARAM, LPARAM paint) {
+    bool partial = false;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(this)) partial = !::IsRectEmpty(&state->redrawRect);
+    }
+    const LRESULT result = partial ? 0 : Default();
+    if (paint != -1) impl__OnNcPaint_CPaneFrameWnd__IEAAXXZ(this);
+    return result;
 }
 
 LRESULT CPaneFrameWnd::OnPaneDragKey(WPARAM key, LPARAM) {
@@ -1421,10 +1513,12 @@ LRESULT CPaneFrameWnd::OnCaptureChanged(WPARAM, LPARAM) {
         if (auto* state = FindStatePtr(this)) lostDrag = std::exchange(state->dragging, false);
     }
     if (lostDrag) openmfc::detail::ClearPaneFrameDockPreview(*this);
+    impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(this);
     return Default();
 }
 
 LRESULT CPaneFrameWnd::OnCancelPaneDrag(WPARAM, LPARAM) {
+    impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(this);
     bool dragging = false;
     RECT bounds{};
     {
@@ -1445,32 +1539,17 @@ LRESULT CPaneFrameWnd::OnCancelPaneDrag(WPARAM, LPARAM) {
 }
 
 // Symbol: ?FindButton@CPaneFrameWnd@@IEBAPEAVCMFCCaptionButton@@I@Z
-// Retail mfc140u entry RVA 0xb1140 walks the caption-button CObList head at
-// 0x188 (node layout
-// pNext/pPrev/data at +0/+8/+0x10) and returns the first button whose id
-// (CMFCCaptionButton +0x20) equals uiID, else NULL.
-// STUB: the semantic array can locate an ID, but this export must return a
-// native CMFCCaptionButton* with a usable vtable; that object is not modeled.
-extern "C" void* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__I_Z(
-    const void* pThis, unsigned int uiID) {
-    (void)pThis;
-    (void)uiID;
-    return nullptr;
+extern "C" CMFCCaptionButton* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__I_Z(
+    const void* pThis, UINT id) {
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    const auto* state = FindStatePtr(pThis);
+    return state ? FindCaptionButton(*state, id) : nullptr;
 }
 
 // Symbol: ?FindButton@CPaneFrameWnd@@IEBAPEAVCMFCCaptionButton@@VCPoint@@@Z
-// Retail mfc140u entry RVA 0xb1160 gets the window rect, mirrors the hit point
-// when the window has WS_EX_LAYOUTRTL, then walks the caption-button list at
-// 0x188 asking each
-// button for its rect (its vtable +0x28), offsetting that rect by the window
-// origin and returning the first button whose rect contains the point.
-// STUB: semantic rectangles exist, but the current layout does not populate
-// native button geometry, and the return value must be a real CMFCCaptionButton*.
-extern "C" void* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__VCPoint___Z(
+extern "C" CMFCCaptionButton* MS_ABI impl__FindButton_CPaneFrameWnd__IEBAPEAVCMFCCaptionButton__VCPoint___Z(
     const void* pThis, CPoint point) {
-    (void)pThis;
-    (void)point;
-    return nullptr;
+    return HitCaptionButton(pThis, point);
 }
 
 // Symbol: ?FindFloatingPaneByID@CPaneFrameWnd@@SAPEAVCBasePane@@I@Z
@@ -1515,13 +1594,13 @@ extern "C" void* MS_ABI impl__FrameFromPoint_CPaneFrameWnd__SAPEAV1_VCPoint__HPE
 }
 
 // Symbol: ?GetCaptionButtonTotalWidth@CPaneFrameWnd@@IEBAHXZ
-// Retail mfc140u entry RVA 0xb1dc0 sums GetRect().Width() for every native
-// caption-button object. The semantic records do not receive geometry because
-// ArrangeCaptionButtons lacks the native sizing/layout path; returning their
-// currently-zero rectangles would merely disguise a stub as an implementation.
 extern "C" int MS_ABI impl__GetCaptionButtonTotalWidth_CPaneFrameWnd__IEBAHXZ(const void* pThis) {
-    (void)pThis;
-    return 0;
+    int width = 0;
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    if (const auto* state = FindStatePtr(pThis)) {
+        for (const auto& button : state->captionButtons) width += button->GetRect().Width();
+    }
+    return width;
 }
 
 // Symbol: ?GetDockingMode@CPaneFrameWnd@@UEBA?AW4AFX_DOCK_TYPE@@XZ
@@ -1802,14 +1881,62 @@ extern "C" void MS_ABI impl__OnNcMouseMove_CPaneFrameWnd__IEAAXIVCPoint___Z(
 }
 
 // Symbol: ?OnNcPaint@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140.dll entry RVA 0xaf9d0 resolves the docking manager, gets a
-// window DC, and asks CMFCVisualManager to draw the border, caption, and caption
-// buttons. Manager association, caption height, and semantic button records are
-// now represented in side state. STUB: the native button objects, visual-manager
-// drawing dispatch, and glyph resources are still unavailable; a hand-made
-// approximation would not reproduce retail's non-client paint path.
+// The system paints the resize border. Paint the managed strip in the same coordinates as hit testing.
 extern "C" void MS_ABI impl__OnNcPaint_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
+    if (!frame || !frame->m_hWnd) return;
+    CRect caption;
+    frame->GetCaptionRect(caption);
+    if (caption.IsRectEmpty()) return;
+    CRect title = caption;
+    title.DeflateRect(3, 0);
+    RECT redraw{};
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(pThis);
+        if (!state || !state->captionButtonsConfigured) return;
+        redraw = state->redrawRect;
+        for (const auto& button : state->captionButtons) {
+            if (button->m_bHidden) continue;
+            const CRect bounds = button->GetRect();
+            if (button->m_bLeftAlign) title.left = (std::max)(title.left, bounds.right + 3);
+            else title.right = (std::min)(title.right, bounds.left - 3);
+        }
+    }
+    const HWND window = frame->m_hWnd;
+    const HDC hdc = ::GetWindowDC(window);
+    if (!hdc) return;
+    const int saved = ::SaveDC(hdc);
+    if (!saved) {
+        ::ReleaseDC(window, hdc);
+        return;
+    }
+    ::IntersectClipRect(hdc, caption.left, caption.top, caption.right, caption.bottom);
+    if (!::IsRectEmpty(&redraw))
+        ::IntersectClipRect(hdc, redraw.left, redraw.top, redraw.right, redraw.bottom);
+    const bool active = ::GetActiveWindow() == window;
+    ::FillRect(hdc, caption, ::GetSysColorBrush(active ? COLOR_ACTIVECAPTION : COLOR_INACTIVECAPTION));
+    ::SetBkMode(hdc, TRANSPARENT);
+    ::SetTextColor(hdc, ::GetSysColor(active ? COLOR_CAPTIONTEXT : COLOR_INACTIVECAPTIONTEXT));
+    NONCLIENTMETRICSW metrics{sizeof(metrics)};
+    HFONT font = nullptr;
+    if (::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, 0)) {
+        const bool toolWindow = (::GetWindowLongPtrW(window, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) != 0;
+        font = ::CreateFontIndirectW(toolWindow ? &metrics.lfSmCaptionFont : &metrics.lfCaptionFont);
+    }
+    if (font) ::SelectObject(hdc, font);
+    std::wstring text(::GetWindowTextLengthW(window) + 1, L'\0');
+    const int length = ::GetWindowTextW(window, text.data(), static_cast<int>(text.size()));
+    if (!title.IsRectEmpty())
+        ::DrawTextW(hdc, text.data(), length, title, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
+
+    CDC dc;
+    dc.SetOutputDC(hdc);
+    impl__OnDrawCaptionButtons_CPaneFrameWnd__MEAAXPEAVCDC___Z(frame, &dc);
+    dc.ReleaseOutputDC();
+    ::RestoreDC(hdc, saved);
+    if (font) ::DeleteObject(font);
+    ::ReleaseDC(window, hdc);
 }
 
 // Symbol: ?OnNeedTipText@CPaneFrameWnd@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
@@ -2038,6 +2165,7 @@ extern "C" void MS_ABI impl__OnSize_CPaneFrameWnd__IEAAXIHH_Z(
 void CPaneFrameWnd::OnSize(UINT type, int width, int height) {
     Default();
     if (type == SIZE_MINIMIZED) return;
+    impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(this);
     if (auto* pane = GetPane(); pane && ::GetParent(pane->m_hWnd) == m_hWnd) {
         ::SetWindowPos(pane->m_hWnd, nullptr, 0, 0, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
     }
@@ -2089,16 +2217,11 @@ extern "C" void MS_ABI impl__OnTimer_CPaneFrameWnd__IEAAX_K_Z(
 }
 
 // Symbol: ?OnTrackCaptionButtons@CPaneFrameWnd@@MEAAXVCPoint@@@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb2170 returns while a popup is
-// active; otherwise it hit-tests buttons, updates the hot ID/flag, redraws
-// changed buttons, applies the customize-mode ID filter, and takes/releases
-// capture as the cursor enters/leaves. Semantic IDs and flags now exist.
-// STUB: current button rectangles are not populated by the incomplete layout
-// path, and the native hit-test/redraw/capture lifecycle is not yet modeled.
 extern "C" void MS_ABI impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint___Z(
     void* pThis, CPoint point) {
-    (void)pThis;
-    (void)point;
+    if (!pThis) return;
+    const auto* button = HitCaptionButton(pThis, point);
+    TrackCaptionButton(pThis, button && button->m_bEnabled ? button->m_nHit : 0);
 }
 
 // Symbol: ?OnUpdateToolTips@CPaneFrameWnd@@IEAA_J_K_J@Z
@@ -2286,71 +2409,48 @@ extern "C" void MS_ABI impl__RedrawAll_CPaneFrameWnd__SAXXZ() {}
 //     ::SendMessage(m_hWnd, WM_NCPAINT, 0, 0);
 //     ::SetRectEmpty(&m_rectRedraw);
 //     ::UpdateWindow(m_hWnd);
-// (OnNcPaint consults m_rectRedraw so that the repaint is clipped to the one
-// button; clearing it afterwards restores full-frame painting.)
-// TODO(clean-room): transcribed partially -- CMFCCaptionButton is not modelled
-// and there is no m_rectRedraw member here, so the clip rect is not set and the
-// whole non-client area is repainted instead of just the button.  The NULL
-// guard and the WM_NCPAINT + UpdateWindow pair are reproduced exactly.
+// The redraw rectangle limits non-client painting to the requested button.
 extern "C" void MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCaptionButton___Z(
     void* pThis, void* pButton) {
     if (pThis == nullptr || pButton == nullptr) return;
     HWND hwnd = HwndOf(pThis);
     if (hwnd == nullptr) return;
-    ::SendMessage(hwnd, WM_NCPAINT, 0, 0);
+    const CRect bounds = static_cast<CMFCCaptionButton*>(pButton)->GetRect();
+    if (bounds.IsRectEmpty()) return;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        GetState(pThis).redrawRect = *static_cast<const RECT*>(bounds);
+    }
+    ::SendMessageW(hwnd, WM_NCPAINT, 0, 0);
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(pThis)) ::SetRectEmpty(&state->redrawRect);
+    }
     ::UpdateWindow(hwnd);
 }
 
 // Symbol: ?RemoveAllCaptionButtons@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140.dll entry RVA 0xb1810, transcribed in full:
-//     m_dwCaptionButtons /*0x12c*/ = 0;             // unconditional, first
-//     while (m_lstCaptionButtons.GetCount() /*0x198*/ != 0) {
-//         CObject* p = m_lstCaptionButtons.RemoveHead();   // 0x230560
-//         if (p) p-><vtable slot 1>(1);             // scalar deleting dtor
-//     }
-// (m_lstCaptionButtons is the CObList embedded at 0x180: head 0x188, tail
-// 0x190, count 0x198.)
-// Deviation: clear the semantic array count and caption-button mask, retaining
-// its allocation for reuse. Retail destroys CMFCCaptionButton objects from a
-// CObList; this model owns only POD records.
 extern "C" void MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
+    if (!pThis) return;
+    impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(pThis);
     std::lock_guard<std::mutex> lock(g_other6Mutex);
-    PaneFrameState& state = GetState(pThis);
+    auto& state = GetState(pThis);
+    state.captionButtonsConfigured = true;
     state.rollupFlags = 0;
-    state.captionButtonCount = 0;
+    state.captionButtons.clear();
 }
 
 // Symbol: ?RemoveButton@CPaneFrameWnd@@IEAAXI@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb1630:
-//     for (POSITION p = m_lstCaptionButtons.GetHeadPosition() /*0x188*/; p; ) {
-//         CMFCCaptionButton* b = <node data at +0x10>;
-//         if (b->m_nHit /*+0x20*/ == uiID) {
-//             m_lstCaptionButtons.RemoveAt(p);      // 0x2306f0
-//             b-><vtable slot 1>(1);                // scalar deleting dtor
-//             break;
-//         }
-//         p = <node pNext at +0>;
-//     }
-//     ArrangeCaptionButtons();                      // unconditional tail jump
-// The semantic side array removes the first matching ID. Deviation: POD records
-// need no scalar deleting destructor; ArrangeCaptionButtons is still called
-// unconditionally as in retail, but its native geometry work remains absent.
-extern "C" void MS_ABI impl__RemoveButton_CPaneFrameWnd__IEAAXI_Z(
-    void* pThis, unsigned int uiID) {
-    if (pThis == nullptr) return;
+extern "C" void MS_ABI impl__RemoveButton_CPaneFrameWnd__IEAAXI_Z(void* pThis, UINT id) {
+    if (!pThis) return;
+    impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(pThis);
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState* state = FindStatePtr(pThis);
-        if (state != nullptr) {
-            for (std::size_t i = 0; i < state->captionButtonCount; ++i) {
-                if (state->captionButtons[i].id != uiID) continue;
-                for (std::size_t j = i + 1; j < state->captionButtonCount; ++j) {
-                    state->captionButtons[j - 1] = state->captionButtons[j];
-                }
-                --state->captionButtonCount;
-                break;
-            }
+        if (auto* state = FindStatePtr(pThis)) {
+            auto& buttons = state->captionButtons;
+            const auto item = std::find_if(buttons.begin(), buttons.end(),
+                [id](const auto& button) { return button->m_nHit == id; });
+            if (item != buttons.end()) buttons.erase(item);
         }
     }
     impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
@@ -2418,15 +2518,17 @@ extern "C" void MS_ABI impl__RemoveNonValidPanes_CPaneFrameWnd__UEAAXXZ(void* pT
 //         CMFCCaptionButton* b = <node data at +0x10>;
 //         if (b->m_nHit /*+0x20*/ == uiOldID) { b->m_nHit = uiNewID; return; }
 //     }
-// The same first-match rewrite is applied to the semantic side array; it does
-// not fabricate or modify a native CMFCCaptionButton object.
 extern "C" void MS_ABI impl__ReplaceButton_CPaneFrameWnd__IEAAXII_Z(
     void* pThis, unsigned int uiOldID, unsigned int uiNewID) {
     if (pThis == nullptr) return;
     std::lock_guard<std::mutex> lock(g_other6Mutex);
     PaneFrameState* state = FindStatePtr(pThis);
     if (state == nullptr) return;
-    if (CaptionButtonState* button = FindCaptionButton(*state, uiOldID)) button->id = uiNewID;
+    if (auto* button = FindCaptionButton(*state, uiOldID)) {
+        button->m_nHit = uiNewID;
+        if (state->hitButtonID == uiOldID) state->hitButtonID = uiNewID;
+        if (state->hotButtonID == uiOldID) state->hotButtonID = uiNewID;
+    }
 }
 
 // Symbol: ?ReplacePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@0@Z
@@ -2616,27 +2718,14 @@ void CPaneFrameWnd::Serialize(CArchive& archive) {
 //     SetCaptionButtonsToolTips();                      // entry RVA 0xb4300 (mfc140.dll)
 //     ArrangeCaptionButtons();                          // entry RVA 0xb13d0 (mfc140u.dll)
 //     ::SendMessage(m_hWnd, WM_NCPAINT, 0, 0);          // mfc140.dll USER32 import slot VA 0x1802c5378, tail jump
-// The four AddButton calls and RemoveAllCaptionButtons now populate/clear the
-// semantic side array. The native button objects, exact size/layout, and drawing
-// are still absent. The mask store is real: it goes to the side
-// table's `rollupFlags`, which is retail's 0x12c -- SetRollUpTimer and
-// RemoveAllCaptionButtons below read and clear the same word.
-// TODO(clean-room): transcribed partially -- the extra CBasePane virtual
-// (+0x3a0) that retail requires before adding button 0x14 cannot be called, so
-// the bit-1 branch is taken on the CBasePane test alone. The semantic records
-// now expose this branch's behavior, but the native-object/layout deviation remains.
 extern "C" void MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(
     void* pThis, unsigned long dwButtons) {
     if (pThis == nullptr) return;
     impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
     if ((dwButtons & 0x2) != 0) {
-        CWnd* pPane = reinterpret_cast<CWnd*>(
-            impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(pThis));
-        CRuntimeClass* pPaneClass = impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();
-        if (pPane != nullptr && pPaneClass != nullptr &&
-            impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(pPane, pPaneClass)) {
-            impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, 0x14);
-        }
+        auto* pane = static_cast<CPaneFrameWnd*>(pThis)->GetPane();
+        if (pane && pane->IsKindOf(RUNTIME_CLASS(CBasePane)) && static_cast<CBasePane*>(pane)->CanBeClosed())
+            impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, HTCLOSE);
     }
     if ((dwButtons & 0x1) != 0)  impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, 9);
     if ((dwButtons & 0x4) != 0)  impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, 8);
@@ -2806,34 +2895,18 @@ extern "C" void MS_ABI impl__SetRollUpTimer_CPaneFrameWnd__IEAAXXZ(void* pThis) 
 }
 
 // Symbol: ?ShowButton@CPaneFrameWnd@@IEAAXIH@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb16c0, transcribed in full:
-//     for (POSITION p = m_lstCaptionButtons.GetHeadPosition() /*0x188*/; p;
-//          p = <node pNext at +0>) {
-//         CMFCCaptionButton* b = <node data at +0x10>;
-//         if (b->m_nHit /*+0x20*/ == uiID) {
-//             b->m_bHidden? /*+0x10*/ = bShow;
-//             ArrangeCaptionButtons();
-//             return;
-//         }
-//     }
-// The retail store is to m_bHidden (+0x10), so the semantic `visible` flag is
-// the inverse of bShow. ArrangeCaptionButtons is called only after a match.
-// Its native-size layout remains unavailable; this updates the modeled state.
-extern "C" void MS_ABI impl__ShowButton_CPaneFrameWnd__IEAAXIH_Z(
-    void* pThis, unsigned int uiID, int bShow) {
-    if (pThis == nullptr) return;
-    bool found = false;
+// The Boolean is copied into the hidden field by retail.
+extern "C" void MS_ABI impl__ShowButton_CPaneFrameWnd__IEAAXIH_Z(void* pThis, UINT id, BOOL hidden) {
+    if (!pThis) return;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
-        PaneFrameState* state = FindStatePtr(pThis);
-        if (state != nullptr) {
-            if (CaptionButtonState* button = FindCaptionButton(*state, uiID)) {
-                button->visible = bShow == FALSE;
-                found = true;
-            }
-        }
+        const auto* state = FindStatePtr(pThis);
+        auto* button = state ? FindCaptionButton(*state, id) : nullptr;
+        if (!button) return;
+        button->m_bHidden = hidden;
     }
-    if (found) impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
+    impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
+    if (HWND window = HwndOf(pThis)) ::SendMessageW(window, WM_NCPAINT, 0, 0);
 }
 
 // Symbol: ?SizeToContent@CPaneFrameWnd@@UEAAXXZ

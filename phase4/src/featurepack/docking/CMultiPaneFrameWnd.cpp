@@ -441,9 +441,14 @@ void CMultiPaneFrameWnd::OnClose() {
     impl__CloseMiniFrame_CMultiPaneFrameWnd__UEAAXXZ(this);
 }
 
+extern "C" void MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void*);
+
 void CMultiPaneFrameWnd::OnSize(UINT type, int, int) {
     Default();
-    if (type != SIZE_MINIMIZED) AdjustLayout();
+    if (type != SIZE_MINIMIZED) {
+        impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(this);
+        AdjustLayout();
+    }
 }
 
 LRESULT CMultiPaneFrameWnd::OnCaptionDoubleClick(WPARAM hit, LPARAM) {

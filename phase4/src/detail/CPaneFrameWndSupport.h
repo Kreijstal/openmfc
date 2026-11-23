@@ -15,6 +15,9 @@ using namespace openmfc::detail::cpaneframewnd;
 // Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass drops the
 // generated stubs for these ordinals.
 
+#include <memory>
+#include <vector>
+
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
 #include "detail/DockingState.h"
@@ -75,10 +78,9 @@ struct PaneFrameState {
     SIZE minSize{};                         // m_sizeMinSize +0x160
     RECT redrawRect{};                      // m_rectRedraw +0x168
     POINT captionButtonHotPoint{};          // m_ptHot +0x178
+    bool captionButtonsConfigured = false;
     CMFCDragFrameImpl dragFrame{};           // m_dragFrameImpl +0x1c8
-    openmfc::docking_state::CaptionButtonState* captionButtons = nullptr; // side data for m_lstCaptionButtons @+0x180
-    std::size_t captionButtonCount = 0;      // retail CObList m_nCount +0x198
-    std::size_t captionButtonCapacity = 0;   // side-table allocation capacity
+    std::vector<std::unique_ptr<CMFCCaptionButton>> captionButtons; // m_lstCaptionButtons +0x180
     CToolTipCtrl* toolTip = nullptr;         // m_pToolTip +0x1b8
     CDockablePane* preDockPane = nullptr;    // m_pPreDockBar +0x1c0
     openmfc::docking_state::DockingTooltipState* toolTips = nullptr;
