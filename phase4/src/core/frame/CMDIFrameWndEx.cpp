@@ -5,6 +5,8 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/CMDITabInfoSupport.h"
+#include "detail/MDIClientSupport.h"
 
 // OpenMFC — CMDIFrameWndEx methods (wave1_other-3, revised; 2026-09-14
 // implementation pass on the remaining stubs).
@@ -343,6 +345,7 @@ struct FrameExtra {
     BOOL bInRecalcLayout;             // stand-in for CFrameWnd::m_bInRecalcLayout (retail this+0x1a0)
     wchar_t* pszWindowsDlgMenuText;   // stand-in for the CString at retail this+0x1e0 (EnableWindowsDialog)
     size_t cbWindowsDlgMenuText;      // its allocation size (sized operator delete)
+    void* clientArea = nullptr;
     FrameExtra* pNext;
 };
 
@@ -408,6 +411,7 @@ void DetachExtra(CMDIFrameWndEx* pFrame) {
     if (p == nullptr) {
         return;
     }
+    openmfc::detail::mdi::DeleteClientArea(p->clientArea);
     impl___1CFrameImpl__UEAA_XZ(p->pImpl);
     delete p->pImpl;
     impl___1CDockingManager__UEAA_XZ(p->pDockManager);
@@ -423,6 +427,13 @@ void DetachExtra(CMDIFrameWndEx* pFrame) {
 void* FrameImplOf(CMDIFrameWndEx* pThis) {
     FrameExtra* p = AttachExtra(pThis);
     return p != nullptr ? static_cast<void*>(p->pImpl) : nullptr;
+}
+void* ClientAreaOf(CMDIFrameWndEx* frame) {
+    auto* extra = AttachExtra(frame);
+    if (!extra->clientArea) extra->clientArea = openmfc::detail::mdi::CreateClientArea();
+    if (frame->m_hWndMDIClient)
+        openmfc::detail::mdi::AttachClientArea(extra->clientArea, frame->m_hWndMDIClient);
+    return extra->clientArea;
 }
 CDockingManager* DockManagerOf(CMDIFrameWndEx* pThis) {
     FrameExtra* p = AttachExtra(pThis);
@@ -1023,27 +1034,40 @@ CMDIFrameWndEx::~CMDIFrameWndEx() {
     DetachExtra(this);
 }
 CMFCVisualManager* CMDIFrameWndEx::GetVisualManager() const { return m_pVisualManager; }
-// CMDIFrameWndEx::EnableMDITabs(BOOL, BOOL, CMFCBaseTabCtrl::Location, BOOL,
-// CMFCTabCtrl::Style, BOOL, BOOL) — retail entry RVA 0x89500. Retail default-
-// constructs a CMDITabInfo on the stack (call to ??0CMDITabInfo@@QEAA@XZ at
-// RVA 0x7c9d0), fills it from the arguments — +0x00 = tabLocation,
-// +0x04 = tabStyle, +0x08 = bTabIcons, +0x0c = bTabCloseButton,
-// +0x10 = bTabCustomTooltips, +0x24 = bActiveTabCloseButton (the four stack
-// arguments are read at rsp+0xa0/0xa8/0xb0/0xb8, i.e. declared parameters
-// 4, 5, 6 and 7) — and tail-calls
-// ?EnableMDITabs@CMDIClientAreaWnd@@QEAAXHAEBVCMDITabInfo@@@Z (RVA 0x7d2b0) on
-// the embedded CMDIClientAreaWnd at this+0x720, passing bEnable and that info.
-// Left a stub: OpenMFC's CMDIFrameWndEx has no CMDIClientAreaWnd sub-object,
-// so there is no tab control to configure. Signature corrected from the
-// generated stub's 46 placeholder parameters to the real seven.
+extern "C" void* MS_ABI impl___0CMDITabInfo__QEAA_XZ(void*);
+extern "C" void MS_ABI impl__EnableMDITabs_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(void*, int, const void*);
+
+void CMDIFrameWndEx::EnableMDITabs(BOOL enable, BOOL icons, CMFCBaseTabCtrl::Location location,
+    BOOL closeButton, CMFCTabCtrl::Style style, BOOL customTooltips, BOOL activeCloseButton) {
+    S_Cmditabinfo params{};
+    impl___0CMDITabInfo__QEAA_XZ(&params);
+    params.m_tabLocation = location;
+    params.m_style = style;
+    params.m_bTabIcons = icons;
+    params.m_bTabCloseButton = closeButton;
+    params.m_bTabCustomTooltips = customTooltips;
+    params.m_bActiveTabCloseButton = activeCloseButton;
+    impl__EnableMDITabs_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(ClientAreaOf(this), enable, &params);
+}
+
+BOOL CMDIFrameWndEx::AreMDITabs(int* type) const {
+    const auto* extra = FindExtra(this);
+    const int mode = openmfc::detail::mdi::TabMode(extra ? extra->clientArea : nullptr);
+    if (type) *type = mode;
+    return mode != 0;
+}
+
+CMFCTabCtrl& CMDIFrameWndEx::GetMDITabs() {
+    return openmfc::detail::mdi::Tabs(ClientAreaOf(this));
+}
+
 // Symbol: ?EnableMDITabs@CMDIFrameWndEx@@QEAAXHHW4Location@CMFCBaseTabCtrl@@HW4Style@CMFCTabCtrl@@HH@Z
 extern "C" void MS_ABI impl__EnableMDITabs_CMDIFrameWndEx__QEAAXHHW4Location_CMFCBaseTabCtrl__HW4Style_CMFCTabCtrl__HH_Z(
     CMDIFrameWndEx* pThis, int bEnable, int bTabIcons, int tabLocation,
     int bTabCloseButton, int tabStyle, int bTabCustomTooltips,
     int bActiveTabCloseButton) {
-    (void)pThis; (void)bEnable; (void)bTabIcons; (void)tabLocation;
-    (void)bTabCloseButton; (void)tabStyle; (void)bTabCustomTooltips;
-    (void)bActiveTabCloseButton;
+    if (pThis) pThis->EnableMDITabs(bEnable, bTabIcons, static_cast<CMFCBaseTabCtrl::Location>(tabLocation),
+        bTabCloseButton, static_cast<CMFCTabCtrl::Style>(tabStyle), bTabCustomTooltips, bActiveTabCloseButton);
 }
 
 // CMDIFrameWndEx::EnableWindowsDialog(UINT, UINT, BOOL, BOOL) — retail entry
@@ -1551,25 +1575,27 @@ extern "C" int MS_ABI impl__OnCreate_CMDIFrameWndEx__IEAAHPEAUtagCREATESTRUCTW__
     return 0;
 }
 
-// CMDIFrameWndEx::OnCreateClient(LPCREATESTRUCT, CCreateContext*) — the wide
-// export has no RVA; transcribed from its ANSI twin at entry RVA 0x88400:
-//     if (!CMDIFrameWnd::OnCreateClient(lpcs, pContext)) return FALSE;  // 0x2a45c0
-//     if (this->+0x1fc != 0)                       // MDI tabbed groups enabled
-//         CWnd::SubclassWindow(this + 0x720, this->m_hWndMDIClient /* +0x1d8 */);
-//     return TRUE;
-// DEVIATION: the subclassing arm is skipped — this+0x1fc (the tabbed-groups
-// flag) and the CMDIClientAreaWnd at this+0x720 are not modeled here — so the
-// MDI client window is left unsubclassed, which is exactly retail's behaviour
-// when MDI tabbed groups were never enabled.
+int CMDIFrameWndEx::CreateClient(void* create, CMenu* menu) {
+    if (!CMDIFrameWnd::CreateClient(create, menu)) return FALSE;
+    ::SetWindowLongPtrW(m_hWndMDIClient, GWLP_ID, 0xe900); // AFX_IDW_PANE_FIRST
+    RECT bounds{};
+    if (::GetClientRect(m_hWnd, &bounds))
+        ::SetWindowPos(m_hWndMDIClient, nullptr, 0, 0, bounds.right, bounds.bottom,
+            SWP_NOACTIVATE | SWP_NOZORDER);
+    auto* extra = FindExtra(this);
+    if (extra && extra->clientArea)
+        openmfc::detail::mdi::AttachClientArea(extra->clientArea, m_hWndMDIClient);
+    return TRUE;
+}
+
+BOOL CMDIFrameWndEx::OnCreateClient(CREATESTRUCTW* create, CCreateContext*) {
+    return CreateClient(create, nullptr);
+}
+
 // Symbol: ?OnCreateClient@CMDIFrameWndEx@@MEAAHPEAUtagCREATESTRUCTW@@PEAUCCreateContext@@@Z
 extern "C" int MS_ABI impl__OnCreateClient_CMDIFrameWndEx__MEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
     CMDIFrameWndEx* pThis, CREATESTRUCTW* lpcs, CCreateContext* pContext) {
-    if (!pThis) return FALSE;
-    if (!impl__OnCreateClient_CMDIFrameWnd__UEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
-            pThis, lpcs, pContext)) {
-        return FALSE;
-    }
-    return TRUE;
+    return pThis && pThis->OnCreateClient(lpcs, pContext);
 }
 
 // CMDIFrameWndEx::OnDestroy() — retail entry RVA 0x893b0. In order:
@@ -1943,6 +1969,8 @@ extern "C" void MS_ABI impl__OnSetPreviewMode_CMDIFrameWndEx__UEAAXHPEAUCPrintPr
 }
 
 void CMDIFrameWndEx::OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) {
+    if (auto* extra = FindExtra(this))
+        openmfc::detail::mdi::SetTabsVisible(extra->clientArea, !bPreview);
     impl__SetPrintPreviewMode_CDockingManager__QEAAXHPEAUCPrintPreviewState___Z(DockManagerOf(this), bPreview, pState);
     int saved = 0;
     if (pState != nullptr) {

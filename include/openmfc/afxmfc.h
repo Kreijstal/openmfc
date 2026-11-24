@@ -1280,6 +1280,7 @@ protected:
 class CMFCBaseTabCtrl : public CWnd {
     DECLARE_DYNAMIC(CMFCBaseTabCtrl)
 public:
+    enum Location { LOCATION_BOTTOM, LOCATION_TOP };
     CMFCBaseTabCtrl();
     virtual ~CMFCBaseTabCtrl();
 
@@ -1392,6 +1393,11 @@ protected:
 class CMFCTabCtrl : public CMFCBaseTabCtrl {
     DECLARE_DYNCREATE(CMFCTabCtrl)
 public:
+    enum Style {
+        STYLE_3D, STYLE_3D_ONENOTE, STYLE_3D_VS2005, STYLE_FLAT,
+        STYLE_3D_SCROLLED, STYLE_FLAT_SHARED_HORZ_SCROLL, STYLE_3D_ROUNDED,
+        STYLE_3D_ROUNDED_SCROLL
+    };
     CMFCTabCtrl();
     virtual ~CMFCTabCtrl();
 
@@ -1717,6 +1723,14 @@ public:
     void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) override;
 
     CMFCVisualManager* GetVisualManager() const;
+    int CreateClient(void* create, CMenu* windowMenu) override;
+    BOOL OnCreateClient(CREATESTRUCTW* create, CCreateContext* context) override;
+    void EnableMDITabs(BOOL enable = TRUE, BOOL icons = TRUE,
+        CMFCBaseTabCtrl::Location location = CMFCBaseTabCtrl::LOCATION_BOTTOM, BOOL closeButton = FALSE,
+        CMFCTabCtrl::Style style = CMFCTabCtrl::STYLE_3D_SCROLLED, BOOL customTooltips = FALSE,
+        BOOL activeCloseButton = FALSE);
+    BOOL AreMDITabs(int* type = nullptr) const;
+    CMFCTabCtrl& GetMDITabs();
     virtual CMDIChildWndEx* ControlBarToTabbedDocument(CDockablePane* pane);
     virtual BOOL TabbedDocumentToControlBar(CMDIChildWndEx* document);
 

@@ -325,6 +325,7 @@ struct TabEntry {
     COLORREF textColor = static_cast<COLORREF>(-1);
     COLORREF backgroundColor = static_cast<COLORREF>(-1);
     bool temporary = false;
+    HICON windowIcon = nullptr;
 };
 
 struct RestoredTab {
@@ -353,6 +354,8 @@ struct TabCtrlState {
     BOOL tabSwapEnabled = TRUE;
     int tabBorderSize = 0;
     int tabsHeight = 0;
+    BOOL mdiCloseButton = FALSE;
+    BOOL mdiActiveCloseButton = FALSE;
 };
 } } }
 

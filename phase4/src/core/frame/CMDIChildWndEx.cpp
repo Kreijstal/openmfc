@@ -1935,27 +1935,10 @@ extern "C" int MS_ABI impl__IsRegisteredWithTaskbarTabs_CMDIChildWndEx__QEAAHXZ(
     return FALSE;
 }
 
-// CMDIChildWndEx::IsTabbedMDIChild() — retail mfc140u.dll entry RVA 0x86ad0:
-//     if (m_pMDIFrame == NULL) return FALSE;                        // this+0x718
-//     return m_pMDIFrame->m_wndClientArea.m_bTabIsEnabled            // frame+0x4574
-//         || m_pMDIFrame->m_wndClientArea.m_bIsMDITabbedGroup;       // frame+0x4668
-// (frame+0x4574 / +0x4668 are m_wndClientArea (frame+0x720) + 0x3e54 / + 0x3f48,
-// the two offsets core/frame/CMDIClientAreaWnd.cpp pins for those members.)
-// The m_pMDIFrame test is reproduced from ChildExtra (OnCreate stores it).
-// The two flags live in the frame's m_wndClientArea, which
-// core/frame/CMDIFrameWndEx.cpp does not construct, so they cannot be read
-// here; FALSE is the value both hold while that file's EnableMDITabs /
-// EnableMDITabbedGroups stay no-ops (true as of this pass).
-// STUB past the null test -- the two flag reads are missing.
 // Symbol: ?IsTabbedMDIChild@CMDIChildWndEx@@UEAAHXZ
-extern "C" int MS_ABI impl__IsTabbedMDIChild_CMDIChildWndEx__UEAAHXZ(
-    CMDIChildWndEx* pThis) {
-    if (!pThis || MDIFrameOf(pThis) == nullptr) {
-        return FALSE;
-    }
-    // TODO(clean-room): m_wndClientArea.m_bTabIsEnabled / m_bIsMDITabbedGroup
-    // of the owning frame are not constructed in this tree.
-    return FALSE;
+extern "C" int MS_ABI impl__IsTabbedMDIChild_CMDIChildWndEx__UEAAHXZ(CMDIChildWndEx* child) {
+    auto* frame = child ? MDIFrameOf(child) : nullptr;
+    return frame && frame->AreMDITabs();
 }
 
 // CMDIChildWndEx::IsTaskbarTabsSupportEnabled() — retail mfc140u.dll entry RVA

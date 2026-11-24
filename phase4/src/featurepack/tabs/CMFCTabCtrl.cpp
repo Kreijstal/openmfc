@@ -616,6 +616,26 @@ BOOL CMFCTabCtrl::CreateTabs(int, const RECT& rect, CWnd* parent, UINT id, int l
     return TRUE;
 }
 
+namespace {
+int TabIconWidth(const TabEntry& tab) {
+    return tab.windowIcon ? ::GetSystemMetrics(SM_CXSMICON) + 4 : 0;
+}
+
+RECT TabCloseBounds(const CRect& strip, const CRect& area) {
+    const int size = (std::min)(15, strip.Height() - 4);
+    if (size <= 0 || area.Width() < size + 4 || strip.IsRectEmpty()) return RECT{};
+    const int top = strip.top + (strip.Height() - size) / 2;
+    return RECT{area.right - size - 2, top, area.right - 2, top + size};
+}
+
+RECT MDICloseBounds(const TabCtrlState& state) {
+    if (state.activeTab < 0 || state.activeTab >= static_cast<int>(state.tabs.size())) return RECT{};
+    if (state.mdiActiveCloseButton) return TabCloseBounds(state.strip, state.tabs[state.activeTab].rect);
+    if (state.mdiCloseButton) return TabCloseBounds(state.strip, state.strip);
+    return RECT{};
+}
+}
+
 void CMFCTabCtrl::RecalcLayout() {
     if (!m_hWnd) return;
     auto& state = EnsureTabCtrlState(this);
@@ -647,6 +667,8 @@ void CMFCTabCtrl::RecalcLayout() {
     const auto font = dc ? ::SelectObject(dc, ::GetStockObject(DEFAULT_GUI_FONT)) : nullptr;
     int x = state.strip.left;
     int remaining = count;
+    const int lastX = state.mdiCloseButton && !state.mdiActiveCloseButton
+        ? state.strip.right - (std::min)(19, state.strip.Width()) : state.strip.right;
     std::vector<std::pair<HWND, BOOL>> windows;
     for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
         auto& tab = state.tabs[i];
@@ -654,8 +676,9 @@ void CMFCTabCtrl::RecalcLayout() {
         if (height > 0 && tab.visible) {
             SIZE text{};
             if (dc) ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
-            const int space = state.strip.right - x;
-            const int wanted = (std::max)(32, static_cast<int>(text.cx) + 20);
+            const int space = (std::max)(0, lastX - x);
+            const int closeWidth = state.mdiActiveCloseButton && i == state.activeTab ? 19 : 0;
+            const int wanted = (std::max)(32, static_cast<int>(text.cx) + 20 + TabIconWidth(tab) + closeWidth);
             const int width = (std::min)(wanted, space - (std::min)(space / 2, remaining - 1));
             tab.rect.SetRect(x, state.strip.top, x + width, state.strip.bottom);
             x += width;
@@ -725,9 +748,21 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
         }
         ::SetTextColor(handle, tab.textColor == static_cast<COLORREF>(-1) ? defaultText : tab.textColor);
         text.DeflateRect(6, 0);
+        if (tab.windowIcon && TabIconWidth(tab) < text.Width()) {
+            const int height = ::GetSystemMetrics(SM_CYSMICON);
+            ::DrawIconEx(handle, text.left, text.top + (text.Height() - height) / 2, tab.windowIcon,
+                ::GetSystemMetrics(SM_CXSMICON), height, 0, nullptr, DI_NORMAL);
+            text.left += TabIconWidth(tab);
+        }
+        if (state->mdiActiveCloseButton && state->activeTab == i) {
+            const RECT close = TabCloseBounds(state->strip, tab.rect);
+            if (!::IsRectEmpty(&close)) text.right = (std::min)(text.right, static_cast<int>(close.left - 1));
+        }
         ::DrawTextW(handle, tab.label.c_str(), static_cast<int>(tab.label.size()), text,
             DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
     }
+    RECT close = MDICloseBounds(*state);
+    if (!::IsRectEmpty(&close)) ::DrawFrameControl(handle, &close, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
     if (saved) ::RestoreDC(handle, saved);
 }
 
@@ -737,6 +772,13 @@ void CMFCTabCtrl::OnPaint() {
 }
 
 void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
+    if (const auto* state = FindTabCtrlState(this)) {
+        const RECT close = MDICloseBounds(*state);
+        if (::PtInRect(&close, point)) {
+            if (auto* page = GetTabWnd(state->activeTab)) ::SendMessageW(page->m_hWnd, WM_CLOSE, 0, 0);
+            return;
+        }
+    }
     const int index = impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(this, point);
     if (index >= 0) {
         const HWND control = m_hWnd;
