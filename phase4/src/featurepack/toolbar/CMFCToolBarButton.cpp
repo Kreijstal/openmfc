@@ -7,6 +7,8 @@
 #include "detail/CMFCToolBarButtonSupport.h"
 #include "detail/MfccoreSupport.h"
 
+#include <string>
+
 static_assert(sizeof(CMFCToolBarButton) == 0x88, "retail CMFCToolBarButton size");
 static_assert(offsetof(CMFCToolBarButton, m_bUserButton) == 0x08, "m_bUserButton @0x08");
 static_assert(offsetof(CMFCToolBarButton, m_bText) == 0x0c, "m_bText @0x0c");
@@ -95,15 +97,117 @@ extern "C" BOOL MS_ABI impl__ExportToMenuButton_CMFCToolBarButton__UEBAHAEAVCMFC
     return FALSE;
 }
 
-// Stub: retail mfc140u RVA 0x15e300 dispatches visual-manager fill behavior using global UI state, not modeled here.
+extern "C" void* impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
+extern "C" int impl__m_bCustomizeMode_CMFCToolBar__1HA;
+extern "C" int impl__m_bAltCustomizeMode_CMFCToolBar__1HA;
+extern "C" void* impl__afxUserToolsManager__3PEAVCUserToolsManager__EA;
+extern "C" void* MS_ABI impl__FindTool_CUserToolsManager__QEBAPEAVCUserTool__I_Z(const void*, UINT);
+extern "C" void MS_ABI impl__DrawToolIcon_CUserTool__QEAAXPEAVCDC__AEBVCRect___Z(void*, CDC*, const CRect*);
+extern "C" void MS_ABI impl__OnFillButtonInterior_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1__Z(
+    CMFCVisualManager*, CDC*, CMFCToolBarButton*, CRect, int);
+
+namespace {
+constexpr UINT kPaintChecked = UINT(TBSTATE_CHECKED) << 16;
+constexpr UINT kPaintPressed = UINT(TBSTATE_PRESSED) << 16;
+constexpr UINT kPaintDisabled = UINT(TBSTATE_ENABLED) << 16;
+constexpr UINT kPaintIndeterminate = UINT(TBSTATE_INDETERMINATE) << 16;
+
+CMFCVisualManager* ToolbarPaintManager() {
+    return static_cast<CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
+}
+
+CMFCVisualManager::AFX_BUTTON_STATE ToolbarPaintState(const CMFCToolBarButton& button, BOOL hot, BOOL customize) {
+    if (!customize) {
+        if (hot) return CMFCVisualManager::ButtonsIsHighlighted;
+        if (button.m_nStyle & (kPaintChecked | kPaintPressed)) return CMFCVisualManager::ButtonsIsPressed;
+    }
+    return CMFCVisualManager::ButtonsIsRegular;
+}
+
+struct ToolbarLabel {
+    std::wstring text;
+    size_t mnemonic = std::wstring::npos;
+};
+
+ToolbarLabel ParseToolbarLabel(const CMFCToolBarButton& button) {
+    ToolbarLabel label;
+    const auto* text = static_cast<const wchar_t*>(button.m_strText);
+    for (size_t i = 0; text && text[i]; ++i) {
+        if (text[i] == L'&' && !(button.m_nStyle & TBSTYLE_NOPREFIX)) {
+            if (!text[i + 1]) break;
+            if (text[i + 1] != L'&' && label.mnemonic == std::wstring::npos)
+                label.mnemonic = label.text.size();
+            ++i;
+        }
+        label.text.push_back(text[i]);
+    }
+    return label;
+}
+
+SIZE ToolbarTextExtent(HDC dc, const std::wstring& label) {
+    SIZE size{};
+    if (dc && !label.empty())
+        ::GetTextExtentPoint32W(dc, label.data(), static_cast<int>(label.size()), &size);
+    return size;
+}
+
+void PaintVerticalToolbarText(HDC dc, const CRect& bounds, const CMFCToolBarButton& button, BOOL noCues) {
+    const auto label = ParseToolbarLabel(button);
+    if (label.text.empty()) return;
+    LOGFONTW logFont{};
+    if (!::GetObjectW(::GetCurrentObject(dc, OBJ_FONT), sizeof(logFont), &logFont)) return;
+    const SIZE textSize = ToolbarTextExtent(dc, label.text);
+    const int x = bounds.left + (bounds.Width() - textSize.cy) / 2;
+    const int y = bounds.bottom - (std::max)(0, (bounds.Height() - static_cast<int>(textSize.cx)) / 2);
+    SIZE prefix{}, mnemonic{};
+    const bool underline = !noCues && label.mnemonic < label.text.size();
+    if (underline) {
+        ::GetTextExtentPoint32W(dc, label.text.data(), static_cast<int>(label.mnemonic), &prefix);
+        ::GetTextExtentPoint32W(dc, label.text.data() + label.mnemonic, 1, &mnemonic);
+    }
+    logFont.lfEscapement = logFont.lfOrientation = 900;
+    const HFONT font = ::CreateFontIndirectW(&logFont);
+    if (!font) return;
+    const auto old = ::SelectObject(dc, font);
+    if (old) {
+        ::SetTextAlign(dc, TA_LEFT | TA_TOP | TA_NOUPDATECP);
+        ::TextOutW(dc, x, y, label.text.data(), static_cast<int>(label.text.size()));
+        if (underline) {
+            const int lineX = x + textSize.cy - 1;
+            const int lineY = y - prefix.cx;
+            const HPEN pen = ::CreatePen(PS_SOLID, 1, ::GetTextColor(dc));
+            if (pen) {
+                const auto oldPen = ::SelectObject(dc, pen);
+                if (oldPen) {
+                    ::MoveToEx(dc, lineX, lineY, nullptr);
+                    ::LineTo(dc, lineX, lineY - mnemonic.cx);
+                    ::SelectObject(dc, oldPen);
+                }
+                ::DeleteObject(pen);
+            }
+        }
+        ::SelectObject(dc, old);
+    }
+    ::DeleteObject(font);
+}
+} // namespace
+
 // Symbol: ?FillInterior@CMFCToolBarButton@@IEAAXPEAVCDC@@AEBVCRect@@HH@Z
 extern "C" void MS_ABI impl__FillInterior_CMFCToolBarButton__IEAAXPEAVCDC__AEBVCRect__HH_Z(
-    void* pThis, CDC* pDC, const CRect* pRect, int bHighlight, int bMenuImage) {
-    (void)pThis;
-    (void)pDC;
-    (void)pRect;
-    (void)bHighlight;
-    (void)bMenuImage;
+    void* self, CDC* dc, const CRect* bounds, BOOL hot, BOOL)
+{
+    auto* button = static_cast<CMFCToolBarButton*>(self);
+    if (!button || !dc || !dc->GetSafeHdc() || !bounds || bounds->IsRectEmpty() || button->m_bDisableFill)
+        return;
+    const bool customize = impl__m_bCustomizeMode_CMFCToolBar__1HA &&
+        !impl__m_bAltCustomizeMode_CMFCToolBar__1HA && !button->m_bLocked;
+    const auto state = ToolbarPaintState(*button, hot, customize);
+    if (auto* visual = ToolbarPaintManager()) {
+        impl__OnFillButtonInterior_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolBarButton__VCRect__W4AFX_BUTTON_STATE_1__Z(
+            visual, dc, button, *bounds, state);
+    } else if (!customize && (button->m_nStyle & (kPaintChecked | kPaintIndeterminate))) {
+        ::FillRect(dc->GetSafeHdc(), *bounds, ::GetSysColorBrush(COLOR_BTNFACE));
+    }
 }
 
 // Retail mfc140u RVA 0x15eab0 returns zero unless the button is visible and
@@ -160,20 +264,48 @@ extern "C" BOOL MS_ABI impl__IsLastInGroup_CMFCToolBarButton__UEBAHXZ(const void
     return FALSE;
 }
 
-// Stub: retail mfc140u RVA 0x15d680 calculates text/image dimensions through CDC and font/toolbar state; not transcribed.
-// Its tagSIZE result uses the x64 member-function hidden result buffer in RDX.
+SIZE CMFCToolBarButton::OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal) {
+    m_sizeText = CSize(0, 0);
+    if (!m_bVisible || m_bIsHidden) return {};
+    SIZE size{defaultSize.cx, defaultSize.cy};
+    if (m_nStyle & TBSTYLE_SEP) {
+        if (horizontal) size.cx = m_iImage > 0 ? m_iImage : 8;
+        else size.cy = 8;
+        return size;
+    }
+    const bool hasImage = m_bImage && GetImage() >= 0;
+    if (!hasImage) {
+        if (horizontal) size.cx = 0;
+        else size.cy = 0;
+    }
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || m_strText.IsEmpty()) return size;
+    if (m_bTextBelow && horizontal) {
+        CRect bounds(0, 0, (std::max)(0, defaultSize.cx) * 3, defaultSize.cy);
+        const UINT prefix = m_nStyle & TBSTYLE_NOPREFIX ? DT_NOPREFIX : 0;
+        ::DrawTextW(hdc, m_strText, m_strText.GetLength(), bounds,
+                    DT_CALCRECT | DT_CENTER | DT_WORDBREAK | prefix);
+        m_sizeText = CSize(bounds.Width() + 6, bounds.Height());
+        size.cx = (std::max)(size.cx, static_cast<LONG>(m_sizeText.cx)) + 12;
+        size.cy += m_sizeText.cy + 1;
+    } else if (m_bText) {
+        const SIZE extent = ToolbarTextExtent(hdc, ParseToolbarLabel(*this).text);
+        const LONG span = extent.cx + (hasImage ? 6 : 9);
+        if (horizontal) size.cx += span;
+        else size.cy += span;
+    }
+    return size;
+}
+
 // Symbol: ?OnCalculateSize@CMFCToolBarButton@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z
 extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(
-    void* pThis, SIZE* pRet, CDC* pDC, const SIZE* pSizeDefault, int bHorz) {
-    (void)pThis;
-    (void)pDC;
-    (void)pSizeDefault;
-    (void)bHorz;
-    if (pRet != nullptr) {
-        pRet->cx = 0;
-        pRet->cy = 0;
+    void* self, SIZE* result, CDC* dc, const SIZE* defaultSize, BOOL horizontal)
+{
+    if (result) {
+        *result = self && defaultSize ? static_cast<CMFCToolBarButton*>(self)->OnCalculateSize(
+            dc, CSize(defaultSize->cx, defaultSize->cy), horizontal) : SIZE{};
     }
-    return pRet;
+    return result;
 }
 
 // Retail mfc140u RVA 0x15e570 stores the parent and clears m_bExtraSize, then tests
@@ -193,20 +325,97 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd_
     }
 }
 
-// Stub: retail mfc140u RVA 0x15c910 performs visual-manager and image-list drawing; the rendering path is not modeled.
+void CMFCToolBarButton::OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images,
+                              BOOL horizontal, BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled) {
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || !m_bVisible || m_bIsHidden || (m_nStyle & TBSTYLE_SEP) || bounds.IsRectEmpty()) return;
+    const int saved = ::SaveDC(hdc);
+    if (!saved) return;
+    ::IntersectClipRect(hdc, bounds.left, bounds.top, bounds.right, bounds.bottom);
+
+    const bool disabled = !customize && (m_nStyle & kPaintDisabled) != 0;
+    const bool pressed = !customize && (m_nStyle & (kPaintPressed | kPaintChecked)) != 0;
+    const bool below = horizontal && m_bTextBelow && !m_strText.IsEmpty();
+    const bool label = !m_strText.IsEmpty() && (m_bText || below);
+    const auto state = ToolbarPaintState(*this, hot, customize);
+    impl__FillInterior_CMFCToolBarButton__IEAAXPEAVCDC__AEBVCRect__HH_Z(this, dc, &bounds, hot, FALSE);
+
+    void* userTool = nullptr;
+    if (m_bImage && impl__afxUserToolsManager__3PEAVCUserToolsManager__EA)
+        userTool = impl__FindTool_CUserToolsManager__QEBAPEAVCUserTool__I_Z(
+            impl__afxUserToolsManager__3PEAVCUserToolsManager__EA, m_nID);
+    const int index = GetImage();
+    const bool indexed = images && m_bImage && index >= 0 && index < images->GetCount();
+    CSize image = indexed ? images->GetImageSize(TRUE) : CSize(0, 0);
+    if (indexed && (image.cx <= 0 || image.cy <= 0)) image = images->GetImageSize();
+    if (userTool && (image.cx <= 0 || image.cy <= 0))
+        image = CSize(::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
+
+    const UINT prefix = m_nStyle & TBSTYLE_NOPREFIX ? DT_NOPREFIX : 0;
+    const BOOL hideCues = m_pWndParent && m_pWndParent->GetSafeHwnd() &&
+        (::SendMessageW(m_pWndParent->GetSafeHwnd(), WM_QUERYUISTATE, 0, 0) & UISF_HIDEACCEL);
+    const UINT cues = hideCues ? DT_HIDEPREFIX : 0;
+    CRect text = bounds;
+    text.DeflateRect(3, 2);
+    if (below) {
+        CRect measured(0, 0, text.Width(), 0);
+        ::DrawTextW(hdc, m_strText, m_strText.GetLength(), measured,
+                    DT_CALCRECT | DT_WORDBREAK | DT_CENTER | prefix);
+        text.top = (std::max)(text.top, text.bottom - measured.Height());
+    }
+
+    if (userTool || indexed) {
+        int x = bounds.left + (bounds.Width() - image.cx) / 2;
+        int y = bounds.top + (bounds.Height() - image.cy) / 2;
+        if (below) y = bounds.top + (std::max)(0, (text.top - bounds.top - image.cy) / 2);
+        else if (label && horizontal) {
+            x = text.left;
+            text.left = x + image.cx + 3;
+        } else if (label) {
+            y = text.top;
+            text.top = y + image.cy + 3;
+        }
+        if (pressed) { ++x; ++y; }
+        if (userTool) {
+            const CRect icon(x, y, x + image.cx, y + image.cy);
+            impl__DrawToolIcon_CUserTool__QEAAXPEAVCDC__AEBVCRect___Z(userTool, dc, &icon);
+        } else {
+            images->Draw(dc, x, y, index, FALSE, disabled && grayDisabled,
+                         !customize && (m_nStyle & kPaintIndeterminate), FALSE, !hot);
+        }
+    }
+
+    if (label && !text.IsRectEmpty()) {
+        if (pressed) text.OffsetRect(1, 1);
+        ::SetBkMode(hdc, TRANSPARENT);
+        ::SetTextColor(hdc, ::GetSysColor(disabled ? COLOR_GRAYTEXT : COLOR_BTNTEXT));
+        if (horizontal) {
+            const UINT layout = below ? DT_CENTER | DT_WORDBREAK : DT_SINGLELINE | DT_VCENTER |
+                (indexed || userTool ? DT_LEFT : DT_CENTER);
+            ::DrawTextW(hdc, m_strText, m_strText.GetLength(), text, layout | prefix | cues | DT_END_ELLIPSIS);
+        } else {
+            PaintVerticalToolbarText(hdc, text, *this, hideCues);
+        }
+    }
+    if (drawBorder && !disabled && state != CMFCVisualManager::ButtonsIsRegular) {
+        if (auto* visual = ToolbarPaintManager()) {
+            visual->CMFCVisualManager::OnDrawButtonBorder(dc, this, bounds, state);
+        } else {
+            RECT border{bounds.left, bounds.top, bounds.right, bounds.bottom};
+            ::DrawEdge(hdc, &border, pressed ? BDR_SUNKENOUTER : BDR_RAISEDINNER, BF_RECT);
+        }
+    }
+    ::RestoreDC(hdc, saved);
+}
+
 // Symbol: ?OnDraw@CMFCToolBarButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z
 extern "C" void MS_ABI impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(
-    void* pThis, CDC* pDC, const RECT* pRect, CMFCToolBarImages* pImages,
-    int bHorz, int bCustomizeMode, int bHighlight, int bDrawBorder, int bGrayDisabledButtons) {
-    (void)pThis;
-    (void)pDC;
-    (void)pRect;
-    (void)pImages;
-    (void)bHorz;
-    (void)bCustomizeMode;
-    (void)bHighlight;
-    (void)bDrawBorder;
-    (void)bGrayDisabledButtons;
+    void* self, CDC* dc, const CRect* bounds, CMFCToolBarImages* images,
+    BOOL horizontal, BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled)
+{
+    if (self && bounds)
+        static_cast<CMFCToolBarButton*>(self)->OnDraw(dc, *bounds, images, horizontal, customize, hot,
+                                                     drawBorder, grayDisabled);
 }
 
 // Stub: retail mfc140u RVA 0x15db10 draws the customization item with theme, font, image, and text paths; not transcribed.

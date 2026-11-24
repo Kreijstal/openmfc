@@ -73,20 +73,17 @@ BOOL  MS_ABI v06_CanBeDropped(CMFCToolBarButton* p, void*) {
     return (p && p->m_nID != 0 && !p->m_bLocked) ? TRUE : FALSE;
 }
 void  MS_ABI v07_CopyFrom(CMFCToolBarButton* p, const CMFCToolBarButton* s) { tbb_CopyFrom(p, s); }
-void  MS_ABI v08_OnDraw(void* pThis, void* pDC, const void* pRect, void* pImageList, BOOL bHighlight, BOOL bPushed, BOOL bChecked, BOOL bDisabled, BOOL bFocused) {
-    if (!pThis) return;
-    auto* p = static_cast<CMFCToolBarButton*>(pThis);
-    if (!p || p->m_bIsHidden || !p->m_bVisible) return;
-    (void)pDC;
-    (void)pRect;
-    (void)pImageList;
-    (void)bHighlight;
-    (void)bPushed;
-    (void)bChecked;
-    (void)bDisabled;
-    (void)bFocused;
+void MS_ABI v08_OnDraw(CMFCToolBarButton* button, CDC* dc, const CRect* bounds,
+                      CMFCToolBarImages* images, BOOL horizontal, BOOL customize, BOOL hot,
+                      BOOL drawBorder, BOOL grayDisabled) {
+    if (button && bounds)
+        button->OnDraw(dc, *bounds, images, horizontal, customize, hot, drawBorder, grayDisabled);
 }
-SIZE  MS_ABI v09_OnCalculateSize(void*, void*, const SIZE* sizeDefault, BOOL) { return sizeDefault ? *sizeDefault : SIZE{0,0}; }
+SIZE* MS_ABI v09_OnCalculateSize(CMFCToolBarButton* button, SIZE* result, CDC* dc,
+                                const CSize* defaultSize, BOOL horizontal) {
+    if (result) *result = button && defaultSize ? button->OnCalculateSize(dc, *defaultSize, horizontal) : SIZE{};
+    return result;
+}
 BOOL  MS_ABI v10_OnClick(CMFCToolBarButton* p, void*, BOOL) {
     return (p && p->m_bVisible && !p->m_bIsHidden && !p->m_bLocked && p->m_nID != 0) ? TRUE : FALSE;
 }

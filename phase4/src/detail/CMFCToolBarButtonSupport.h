@@ -99,12 +99,9 @@ namespace openmfc { namespace detail { namespace cmfctoolbarbutton {
 void  MS_ABI v07_CopyFrom(CMFCToolBarButton* p, const CMFCToolBarButton* s);
 } } }
 namespace openmfc { namespace detail { namespace cmfctoolbarbutton {
-void  MS_ABI v08_OnDraw(void* pThis, void* pDC, const void* pRect, void* pImageList, BOOL bHighlight, BOOL bPushed, BOOL bChecked, BOOL bDisabled, BOOL bFocused);
-} } }
-namespace openmfc { namespace detail { namespace cmfctoolbarbutton {
-SIZE  MS_ABI v09_OnCalculateSize(void*, void*, const SIZE* sizeDefault, BOOL);
-} } }
-namespace openmfc { namespace detail { namespace cmfctoolbarbutton {
+void MS_ABI v08_OnDraw(CMFCToolBarButton*, CDC*, const CRect*, CMFCToolBarImages*,
+                      BOOL horizontal, BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled);
+SIZE* MS_ABI v09_OnCalculateSize(CMFCToolBarButton*, SIZE*, CDC*, const CSize*, BOOL horizontal);
 BOOL  MS_ABI v10_OnClick(CMFCToolBarButton* p, void*, BOOL);
 } } }
 namespace openmfc { namespace detail { namespace cmfctoolbarbutton {

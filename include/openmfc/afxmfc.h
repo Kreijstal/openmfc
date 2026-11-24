@@ -680,6 +680,9 @@ public:
     virtual ~CMFCToolBarButton();
 
     static void SetClipboardFormatName(const wchar_t* lpszClipboardFormatName);
+    SIZE OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal);
+    void OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL horizontal,
+                BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled);
 
     int GetImage() const { return m_bUserButton ? m_iUserImage : m_iImage; }
     BOOL IsLocked() const { return m_bLocked; }
@@ -750,7 +753,7 @@ public:
 
     int GetCount() const;
     BOOL IsValid() const;
-    CSize GetImageSize() const { return m_sizeImage; }
+    CSize GetImageSize(BOOL destination = FALSE) const { return destination ? m_sizeImageDest : m_sizeImage; }
     int GetResourceOffset(UINT resourceID) const;
     BOOL CopyTo(CMFCToolBarImages& destination) const;
     BOOL DeleteImage(int index);
@@ -857,6 +860,7 @@ public:
 
     virtual BOOL LoadToolBar(UINT uiResID, UINT uiColdResID = 0, UINT uiMenuResID = 0, BOOL bLocked = FALSE, UINT uiDisabledResID = 0, UINT uiMenuDisabledResID = 0, UINT uiHotResID = 0);
     BOOL LoadBitmap(UINT nIDResource);
+    void DoPaint(CDC* dc);
     virtual BOOL SetButtons(const UINT* lpIDArray, int nIDCount, BOOL bImages = TRUE);
     BOOL ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL bNotify = FALSE);
     int GetCount() const;

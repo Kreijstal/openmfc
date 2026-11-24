@@ -3438,6 +3438,108 @@ extern "C" void MS_ABI impl__GetButtonText_CMFCToolBar__QEBAXHAEAV__CStringT__WV
     const CMFCToolBar* pThis, int nIndex, CString* pStr) {
     pThis->GetButtonText(nIndex, *pStr);
 }
+extern "C" std::int32_t impl__m_bAltCustomizeMode_CMFCToolBar__1HA;
+
+namespace {
+constexpr UINT kToolbarPaintDisabled = UINT(TBSTATE_ENABLED) << 16;
+
+bool ToolbarIsHorizontal(const CMFCToolBar& toolbar) {
+    constexpr DWORD alignmentMask = 0xf000;
+    constexpr DWORD horizontalAlignment = 0xa000;
+    const DWORD alignment = toolbar.m_dwStyle & alignmentMask;
+    return !alignment || (alignment & horizontalAlignment) != 0;
+}
+
+struct ToolbarImageChoice {
+    CMFCToolBarImages* images = nullptr;
+    BOOL dedicatedDisabled = FALSE;
+};
+
+ToolbarImageChoice ToolbarImagesForButton(CMFCToolBar& toolbar, const CMFCToolBarButton& button, bool hot) {
+    const int index = button.GetImage();
+    if (!button.m_bImage || index < 0) return {};
+    const auto hasImage = [index](const CMFCToolBarImages* images) {
+        return images && index < images->GetCount() && images->IsValid();
+    };
+
+    if (button.m_bUserButton) {
+        auto* user = static_cast<CMFCToolBarImages*>(impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA);
+        if (hasImage(user)) return {user, FALSE};
+    }
+    const bool locked = toolbar.m_bLocked != 0;
+    const bool menu = toolbar.m_bMenuMode != 0;
+    const bool large = !menu && impl__m_bLargeIcons_CMFCToolBar__1HA != 0;
+    auto* regular = locked ? &toolbar.m_ImagesLocked : &impl__m_Images_CMFCToolBar__1VCMFCToolBarImages__A;
+    auto* cold = locked ? &toolbar.m_ColdImagesLocked : &impl__m_ColdImages_CMFCToolBar__1VCMFCToolBarImages__A;
+    auto* disabled = locked ? &toolbar.m_DisabledImagesLocked : &impl__m_DisabledImages_CMFCToolBar__1VCMFCToolBarImages__A;
+
+    if (menu) {
+        auto* menuImages = locked ? &toolbar.m_MenuImagesLocked : &impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A;
+        auto* menuDisabled = locked ? &toolbar.m_DisabledMenuImagesLocked : &impl__m_DisabledMenuImages_CMFCToolBar__1VCMFCToolBarImages__A;
+        if ((button.m_nStyle & kToolbarPaintDisabled) && hasImage(menuDisabled)) return {menuDisabled, TRUE};
+        if (hasImage(menuImages)) return {menuImages, FALSE};
+    } else if (large) {
+        const auto selectLarge = [&](CMFCToolBarImages* big, CMFCToolBarImages*& normal) {
+            if (hasImage(big)) normal = big;
+        };
+        selectLarge(locked ? &toolbar.m_LargeImagesLocked : &impl__m_LargeImages_CMFCToolBar__1VCMFCToolBarImages__A, regular);
+        selectLarge(locked ? &toolbar.m_LargeColdImagesLocked : &impl__m_LargeColdImages_CMFCToolBar__1VCMFCToolBarImages__A, cold);
+        selectLarge(locked ? &toolbar.m_LargeDisabledImagesLocked : &impl__m_LargeDisabledImages_CMFCToolBar__1VCMFCToolBarImages__A,
+                    disabled);
+    }
+    if ((button.m_nStyle & kToolbarPaintDisabled) && hasImage(disabled)) return {disabled, TRUE};
+    if (!hot && hasImage(cold)) return {cold, FALSE};
+    if (hasImage(regular)) return {regular, FALSE};
+    return {};
+}
+
+bool HasToolbarPaintContent(CMFCToolBar& toolbar) {
+    const int count = toolbar.GetCount();
+    for (int index = 0; index < count; ++index) {
+        const auto* button = toolbar.GetButton(index);
+        if (!button) continue;
+        if (((button->m_bText || button->m_bTextBelow) && !button->m_strText.IsEmpty()) ||
+            ToolbarImagesForButton(toolbar, *button, index == toolbar.m_iHighlighted).images)
+            return true;
+    }
+    return false;
+}
+
+void PaintToolbarClient(CMFCToolBar& toolbar, HDC hdc, const RECT& update) {
+    if (!hdc) return;
+    ::FillRect(hdc, &update, ::GetSysColorBrush(COLOR_BTNFACE));
+    const LRESULT windowFont = ::SendMessageW(toolbar.GetSafeHwnd(), WM_GETFONT, 0, 0);
+    const auto font = windowFont ? reinterpret_cast<HFONT>(windowFont) : static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT));
+    const auto previous = font ? ::SelectObject(hdc, font) : nullptr;
+    CDC dc;
+    dc.m_hDC = hdc;
+    toolbar.DoPaint(&dc);
+    dc.m_hDC = nullptr;
+    if (previous) ::SelectObject(hdc, previous);
+}
+
+LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp,
+                                           UINT_PTR id, DWORD_PTR data) {
+    auto* toolbar = reinterpret_cast<CMFCToolBar*>(data);
+    if (message == WM_NCDESTROY || g_toolBarStates.find(toolbar) == g_toolBarStates.end() ||
+        toolbar->GetSafeHwnd() != window) {
+        ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
+    } else if ((message == WM_PAINT || message == WM_PRINTCLIENT) && HasToolbarPaintContent(*toolbar)) {
+        if (message == WM_PRINTCLIENT) {
+            RECT client{};
+            if (::GetClientRect(window, &client)) PaintToolbarClient(*toolbar, reinterpret_cast<HDC>(wp), client);
+        } else {
+            PAINTSTRUCT paint{};
+            const HDC hdc = ::BeginPaint(window, &paint);
+            PaintToolbarClient(*toolbar, hdc, paint.rcPaint);
+            ::EndPaint(window, &paint);
+        }
+        return 0;
+    }
+    return ::DefSubclassProc(window, message, wp, lp);
+}
+} // namespace
+
 CMFCToolBar::CMFCToolBar() {
     // The eight CMFCToolBarImages members precede m_bLocked and keep their
     // constructed state. The span zeroed here is NOT purely POD, though: the
@@ -3469,6 +3571,7 @@ CMFCToolBar::CMFCToolBar() {
     m_bShowHotBorder = TRUE;
 }
 CMFCToolBar::~CMFCToolBar() {
+    if (m_hWnd) ::RemoveWindowSubclass(m_hWnd, FeatureToolbarPaintSubclass, reinterpret_cast<UINT_PTR>(this));
     // Retail (~CMFCToolBar, RVA 0x14d6b0 mfc140u) ends with
     // m_AccelKeys.RemoveAll() at 0x14d759; release the map's blocks the same
     // way.  (Retail also deletes the m_OrigButtons / m_OrigResetButtons items
@@ -3483,6 +3586,12 @@ BOOL CMFCToolBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
     const RECT bounds{};
     if (!CWnd::Create(TOOLBARCLASSNAMEW, nullptr, dwStyle, bounds, pParentWnd, nID)) return FALSE;
 
+    if (!::SetWindowSubclass(m_hWnd, FeatureToolbarPaintSubclass, reinterpret_cast<UINT_PTR>(this),
+                             reinterpret_cast<DWORD_PTR>(this))) {
+        DestroyWindow();
+        return FALSE;
+    }
+    m_dwStyle = (m_dwStyle & ~0xf000u) | (dwStyle & 0xf000u);
     g_toolBarStates[this].parent = pParentWnd;
     ::SendMessageW(m_hWnd, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     return TRUE;
@@ -4414,46 +4523,57 @@ extern "C" void MS_ABI impl__Deactivate_CMFCToolBar__UEAAXXZ(CMFCToolBar* pThis)
     impl__RestoreFocus_CMFCToolBar__UEAAXXZ(pThis);
 }
 
-// Retail (mfc140.dll RVA 0x14d900) is the whole toolbar paint: it takes the
-// DC clip box (CDC vtable +0xb0), reads GetCurrentAlignment() (CMFCToolBar
-// vtable 0x180313618 +0x338) to decide horizontal vs vertical, then walks
-// m_Buttons drawing separators and calling DrawButton for every visible
-// button, with the image collection picked by GetImageList.
-// Not implemented: the CDC clip/box virtuals and the per-button draw virtuals
-// are not modelled -- see the note on DrawButton below, which is the same
-// blocker one level down.
-// Symbol: ?DoPaint@CMFCToolBar@@MEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__DoPaint_CMFCToolBar__MEAAXPEAVCDC___Z(CMFCToolBar* pThis, CDC* pDC) {
-    (void)pThis; (void)pDC;
+extern "C" int MS_ABI impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBarButton__PEAVCMFCToolBarImages__HH_Z(
+    CMFCToolBar*, CDC*, CMFCToolBarButton*, CMFCToolBarImages*, BOOL, BOOL);
+extern "C" void MS_ABI impl__DrawSeparator_CMFCToolBar__MEAAXPEAVCDC__AEBVCRect__H_Z(
+    CMFCToolBar*, CDC*, const CRect*, BOOL);
+
+void CMFCToolBar::DoPaint(CDC* dc) {
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc) return;
+    const BOOL horizontal = ToolbarIsHorizontal(*this);
+    const int highlighted = m_iHighlighted >= 0 || !m_hWnd ? m_iHighlighted :
+        static_cast<int>(::SendMessageW(m_hWnd, TB_GETHOTITEM, 0, 0));
+    const int count = GetCount();
+    for (int index = 0; index < count; ++index) {
+        auto* button = GetButton(index);
+        if (!button || !button->IsVisible() || button->IsHidden()) continue;
+        if (button->m_rect.IsRectEmpty() && m_hWnd) {
+            RECT bounds{};
+            if (::SendMessageW(m_hWnd, TB_GETITEMRECT, index, reinterpret_cast<LPARAM>(&bounds)))
+                button->m_rect = CRect(bounds);
+        }
+        const CRect& bounds = button->m_rect;
+        if (bounds.IsRectEmpty() || !::RectVisible(hdc, bounds)) continue;
+        if (button->m_nStyle & TBSTYLE_SEP) {
+            impl__DrawSeparator_CMFCToolBar__MEAAXPEAVCDC__AEBVCRect__H_Z(this, dc, &bounds, horizontal);
+            continue;
+        }
+        const BOOL hot = index == highlighted || index == m_iButtonCapture;
+        const auto image = ToolbarImagesForButton(*this, *button, hot);
+        impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBarButton__PEAVCMFCToolBarImages__HH_Z(
+            this, dc, button, image.images, hot, image.dedicatedDisabled);
+    }
 }
 
-// Retail (mfc140.dll RVA 0x14e370), fully decoded but NOT implemented:
-//     if (!pButton->m_bVisible)  return TRUE;                  // +0x64
-//     if ( pButton->m_bIsHidden) return TRUE;                  // +0x54
-//     if (!pDC->RectVisible(pButton->m_rect)) return TRUE;     // CDC vtable +0xc0
-//     BOOL bHorz = (GetCurrentAlignment() & 0xA000) != 0;      // vtable +0x338
-//     BOOL bGray = m_bGrayDisabledButtons && !bDrawDisabledImages;   // +0x1100
-//     BOOL bCust = CMFCToolBar::m_bCustomizeMode &&            // 0x3b70bc
-//                  !CMFCToolBar::m_bAltCustomizeMode &&        // 0x3b70cc
-//                  !m_bLocked;                                 // +0x10b8
-//     pButton->OnDraw(pDC, pButton->m_rect, pImages, bHorz, bCust,
-//                     bHighlighted, m_bShowHotBorder /*+0x10fc*/, bGray);
-//     return TRUE;
-// (OnDraw is slot 8 of the button vtable -- +0x40 of both 0x180313e98 and
-// 0x180316338 resolves to ?OnDraw@CMFCToolBarButton@@ / @CMFCToolBarMenuButton@@.
-// The bGray expression is the `neg/sbb/and` idiom at 0x14e3e2; note it is the
-// NEGATION of the bDrawDisabledImages argument, not a copy of it.)
-// Left a stub deliberately: nothing in phase4/src defines a CDC::RectVisible
-// entry point at all (neither the C++ method nor an impl__ thunk),
-// and CMFCToolBarButton::OnDraw exists only as an empty exported stub with no
-// virtual dispatch behind it, so nothing would be drawn -- the flags above
-// would be computed and thrown away.
+// Symbol: ?DoPaint@CMFCToolBar@@MEAAXPEAVCDC@@@Z
+extern "C" void MS_ABI impl__DoPaint_CMFCToolBar__MEAAXPEAVCDC___Z(CMFCToolBar* toolbar, CDC* dc) {
+    if (toolbar) toolbar->DoPaint(dc);
+}
+
 // Symbol: ?DrawButton@CMFCToolBar@@MEAAHPEAVCDC@@PEAVCMFCToolBarButton@@PEAVCMFCToolBarImages@@HH@Z
 extern "C" int MS_ABI impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBarButton__PEAVCMFCToolBarImages__HH_Z(
-    CMFCToolBar* pThis, CDC* pDC, CMFCToolBarButton* pButton, CMFCToolBarImages* pImages,
-    int bHighlighted, int bDrawDisabledImages) {
-    (void)pThis; (void)pDC; (void)pButton; (void)pImages; (void)bHighlighted; (void)bDrawDisabledImages;
-    return 0;
+    CMFCToolBar* toolbar, CDC* dc, CMFCToolBarButton* button, CMFCToolBarImages* images,
+    BOOL hot, BOOL dedicatedDisabled)
+{
+    if (!toolbar || !dc || !dc->GetSafeHdc() || !button) return FALSE;
+    if (!button->IsVisible() || button->IsHidden() || button->m_rect.IsRectEmpty() ||
+        !::RectVisible(dc->GetSafeHdc(), button->m_rect)) return TRUE;
+    const BOOL customize = impl__m_bCustomizeMode_CMFCToolBar__1HA &&
+        !impl__m_bAltCustomizeMode_CMFCToolBar__1HA && !toolbar->m_bLocked;
+    button->OnDraw(dc, button->m_rect, images, ToolbarIsHorizontal(*toolbar), customize, hot,
+                   toolbar->m_bShowHotBorder, toolbar->m_bGrayDisabledButtons && !dedicatedDisabled);
+    return TRUE;
 }
 
 // Retail (mfc140.dll RVA 0x151410) draws the customize-drag insertion marker:
@@ -4491,12 +4611,7 @@ extern "C" void MS_ABI impl__DrawDragCursor_CMFCToolBar__MEAAXPEAVCDC___Z(CMFCTo
 // the draw goes through the exported OnDrawSeparator thunk
 // (featurepack/visualmanager/Thunks.cpp), which dispatches virtually on the C++
 // object -- so a derived visual manager's override IS reached.
-// Deviation: the lazy construction of a default manager is not reproduced --
-// there is no impl__ thunk for GetInstance (it is inline in afxvisualmanager.h,
-// hence 0x9774 is a private helper) and the C++ CMFCVisualManager::GetInstance()
-// cannot be called from this translation unit (AGENTS.md link rule) -- so with
-// no manager created yet nothing is drawn, where retail would have created the
-// default one first.
+// Use a system-color separator until the visual manager has been initialized.
 // Symbol: ?DrawSeparator@CMFCToolBar@@MEAAXPEAVCDC@@AEBVCRect@@H@Z
 extern "C" void MS_ABI impl__DrawSeparator_CMFCToolBar__MEAAXPEAVCDC__AEBVCRect__H_Z(
     CMFCToolBar* pThis, CDC* pDC, const CRect* pRect, int bHorz)
@@ -4505,8 +4620,17 @@ extern "C" void MS_ABI impl__DrawSeparator_CMFCToolBar__MEAAXPEAVCDC__AEBVCRect_
     CMFCVisualManager* pVM =
         static_cast<CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA);
     if (!pVM) {
-        // TODO(clean-room): retail's GetInstance() would create the default
-        // manager here; see the deviation note above.
+        if (pDC && pDC->GetSafeHdc()) {
+            RECT line = *static_cast<const RECT*>(*pRect);
+            if (bHorz) {
+                line.left = line.left + (line.right - line.left) / 2;
+                line.right = line.left + 1;
+            } else {
+                line.top = line.top + (line.bottom - line.top) / 2;
+                line.bottom = line.top + 1;
+            }
+            ::FillRect(pDC->GetSafeHdc(), &line, ::GetSysColorBrush(COLOR_BTNSHADOW));
+        }
         return;
     }
     CRect rect(*pRect);
