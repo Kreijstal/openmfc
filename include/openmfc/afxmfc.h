@@ -2072,6 +2072,43 @@ public:
     char _pad[192];  // CMFCToolBarComboBoxButton real sizeof 336 (base 136 + 8 + 192)
 };
 
+class CMFCFontInfo;
+
+class CMFCToolBarFontComboBox : public CMFCToolBarComboBoxButton {
+    DECLARE_SERIAL(CMFCToolBarFontComboBox)
+public:
+    CMFCToolBarFontComboBox();
+    CMFCToolBarFontComboBox(CObList* fonts, int types, BYTE charSet, BYTE pitch);
+    CMFCToolBarFontComboBox(UINT id, int image,
+        int types = DEVICE_FONTTYPE | RASTER_FONTTYPE | TRUETYPE_FONTTYPE,
+        BYTE charSet = DEFAULT_CHARSET, DWORD style = CBS_DROPDOWN, int width = 0,
+        BYTE pitch = DEFAULT_PITCH);
+    ~CMFCToolBarFontComboBox() override;
+    void Serialize(CArchive& archive) override;
+    BOOL SetFont(const wchar_t* name, BYTE charSet = DEFAULT_CHARSET, BOOL exact = FALSE);
+    const CMFCFontInfo* GetFontDesc(int index = -1) const;
+
+    struct {
+        int m_nFontType;
+        BYTE m_nCharSet;
+        BYTE m_nPitchAndFamily;
+        CObList* m_pLstFontsExternal;
+    } m_fontSettings;
+};
+
+class CMFCToolBarFontSizeComboBox : public CMFCToolBarComboBoxButton {
+    DECLARE_SERIAL(CMFCToolBarFontSizeComboBox)
+public:
+    CMFCToolBarFontSizeComboBox();
+    CMFCToolBarFontSizeComboBox(UINT id, int image, DWORD style = CBS_DROPDOWN, int width = 0);
+    ~CMFCToolBarFontSizeComboBox() override;
+    int GetTwipSize() const;
+    void SetTwipSize(int size);
+    void RebuildFontSizes(const CString& face);
+
+    int m_nLogVert = 0;
+};
+
 class CMFCToolBarEditBoxButton : public CMFCToolBarButton {
     DECLARE_SERIAL(CMFCToolBarEditBoxButton)
 public:

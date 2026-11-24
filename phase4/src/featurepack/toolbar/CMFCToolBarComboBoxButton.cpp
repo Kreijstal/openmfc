@@ -46,6 +46,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <utility>
 
 // ---------------------------------------------------------------------------
 // Cross-file thunks.  Each was grepped to its definition in the file named;
@@ -133,6 +134,9 @@ extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_
 
 extern "C" void* MS_ABI impl___0CMFCToolBarComboBoxEdit__QEAA_AEAVCMFCToolBarComboBoxButton___Z(void*, void*);
 extern "C" int MS_ABI impl__Create_CEdit__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(CEdit*, DWORD, const RECT*, CWnd*, UINT);
+
+extern "C" CComboBox* MS_ABI impl__CreateCombo_CMFCToolBarFontComboBox__MEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(void*, CWnd*, const RECT*);
+extern "C" CComboBox* MS_ABI impl__CreateCombo_CMFCToolBarFontSizeComboBox__MEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(void*, CWnd*, const RECT*);
 
 // Exports defined later in this file that earlier bodies call (all in this TU).
 extern "C" void MS_ABI impl__Initialize_CMFCToolBarComboBoxButton__IEAAXXZ(CMFCToolBarComboBoxButton* pThis);
@@ -617,6 +621,8 @@ BOOL CMFCToolBarComboBoxButton::SelectItem(int nIndex, BOOL bNotify) {
             if (static_cast<int>(::SendMessage(pCombo->m_hWnd, kCbSetCurSel, static_cast<WPARAM>(nIndex), 0)) == CB_ERR) return FALSE;
             if (bNotify) impl__NotifyCommand_CMFCToolBarComboBoxButton__UEAAHH_Z(this, kCbnSelEndOk);
         }
+    } else {
+        StrEdit(this) = SelIndex(this) >= 0 ? GetItem(SelIndex(this)) : L"";
     }
     return TRUE;
 }
@@ -853,16 +859,7 @@ CMFCToolBarComboBoxButton::CMFCToolBarComboBoxButton() {
 //     CMFCToolBarButton::~CMFCToolBarButton();
 // UnregisterComboButton drops the side-table entries (the two lists).
 CMFCToolBarComboBoxButton::~CMFCToolBarComboBoxButton() {
-    if (CComboBox* pCombo = WndCombo(this)) {
-        DestroyOwnedWindow(pCombo);
-        DeleteOwnedWindow(pCombo);
-        WndCombo(this) = nullptr;
-    }
-    if (CEdit* pEdit = WndEdit(this)) {
-        DestroyOwnedWindow(pEdit);
-        DeleteOwnedWindow(pEdit);
-        WndEdit(this) = nullptr;
-    }
+    openmfc::detail::ReleaseToolBarComboWindows(*this);
     UnregisterComboButton(this);
     StrEdit(this).~CString();
 }
@@ -1203,6 +1200,24 @@ void ApplyComboItemsToWindow(CMFCToolBarComboBoxButton* button, const ComboButto
 }
 }
 
+void openmfc::detail::RefreshToolBarComboItems(CMFCToolBarComboBoxButton& button) {
+    if (auto* combo = WndCombo(&button); HasWindow(combo))
+        ApplyComboItemsToWindow(&button, EnsureComboState(&button), combo);
+}
+
+void openmfc::detail::ReleaseToolBarComboWindows(CMFCToolBarComboBoxButton& button) {
+    if (auto* combo = std::exchange(WndCombo(&button), nullptr)) {
+        if (!DestroyToolBarFontWindow(combo)) {
+            DestroyOwnedWindow(combo);
+            DeleteOwnedWindow(combo);
+        }
+    }
+    if (auto* edit = std::exchange(WndEdit(&button), nullptr)) {
+        DestroyOwnedWindow(edit);
+        DeleteOwnedWindow(edit);
+    }
+}
+
 // Retail (RVA 0x162240, mfc140u), fully transcribed:
 //     CMFCToolBarButton::OnChangeParentWnd(pWndParent);                       // 0x15e570
 //     if (m_pWndCombo->GetSafeHwnd() != NULL) {
@@ -1255,18 +1270,9 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXP
     if (!pThis) return;
     impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(pThis, pWndParent);
 
-    if (HasWindow(WndCombo(pThis))) {
-        CWnd* pOldParent = ParentOf(WndCombo(pThis));
-        if (pOldParent != nullptr && pWndParent != nullptr && pOldParent->m_hWnd == pWndParent->m_hWnd) return;
-        DestroyOwnedWindow(WndCombo(pThis));
-        DeleteOwnedWindow(WndCombo(pThis));
-        WndCombo(pThis) = nullptr;
-        if (CEdit* pEdit = WndEdit(pThis)) {
-            DestroyOwnedWindow(pEdit);
-            DeleteOwnedWindow(pEdit);
-            WndEdit(pThis) = nullptr;
-        }
-    }
+    if (auto* combo = WndCombo(pThis); HasWindow(combo) && pWndParent &&
+        ::GetParent(combo->m_hWnd) == pWndParent->m_hWnd) return;
+    openmfc::detail::ReleaseToolBarComboWindows(*pThis);
     if (!HasWindow(pWndParent)) return;
 
     const int bEnable = (impl__m_bCustomizeMode_CMFCToolBar__1HA == 0 && (pThis->m_nStyle & kTbbsDisabled) == 0) ? 1 : 0;
@@ -1274,7 +1280,14 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXP
     ::InflateRect(&rect, -2, 0);
     rect.bottom = rect.top + DropDownHeight(pThis);
 
-    CComboBox* pCombo = impl__CreateCombo_CMFCToolBarComboBoxButton__UEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(pThis, pWndParent, &rect);
+    CComboBox* pCombo = nullptr;
+    if (pThis->IsKindOf(RUNTIME_CLASS(CMFCToolBarFontComboBox))) {
+        pCombo = impl__CreateCombo_CMFCToolBarFontComboBox__MEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(pThis, pWndParent, &rect);
+    } else if (pThis->IsKindOf(RUNTIME_CLASS(CMFCToolBarFontSizeComboBox))) {
+        pCombo = impl__CreateCombo_CMFCToolBarFontSizeComboBox__MEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(pThis, pWndParent, &rect);
+    } else {
+        pCombo = impl__CreateCombo_CMFCToolBarComboBoxButton__UEAAPEAVCComboBox__PEAVCWnd__AEBVCRect___Z(pThis, pWndParent, &rect);
+    }
     WndCombo(pThis) = pCombo;
     if (pCombo == nullptr) return;
     if (pCombo->m_hWnd != nullptr) {

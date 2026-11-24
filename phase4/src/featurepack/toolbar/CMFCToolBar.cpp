@@ -3568,6 +3568,16 @@ bool HandleToolbarDateTimeChange(CMFCToolBar& toolbar, const NMHDR& notify) {
     return false;
 }
 
+bool DrawToolbarFontItem(CMFCToolBar& toolbar, DRAWITEMSTRUCT& item) {
+    if (item.CtlType != ODT_COMBOBOX || !item.hwndItem) return false;
+    for (int i = 0; i < toolbar.GetCount(); ++i) {
+        auto* font = AsComboButton(toolbar.GetButton(i));
+        if (font && font->IsKindOf(RUNTIME_CLASS(CMFCToolBarFontComboBox)) &&
+            openmfc::detail::DrawToolBarFontComboItem(*font, item)) return true;
+    }
+    return false;
+}
+
 LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp,
                                            UINT_PTR id, DWORD_PTR data) {
     auto* toolbar = reinterpret_cast<CMFCToolBar*>(data);
@@ -3581,6 +3591,9 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
     } else if (message == WM_NOTIFY && lp &&
                HandleToolbarDateTimeChange(*toolbar, *reinterpret_cast<const NMHDR*>(lp))) {
         return 0;
+    } else if (message == WM_DRAWITEM && lp &&
+               DrawToolbarFontItem(*toolbar, *reinterpret_cast<DRAWITEMSTRUCT*>(lp))) {
+        return TRUE;
     } else if (message == WM_LBUTTONDOWN) {
         const POINT point{static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp))};
         for (int i = 0; i < toolbar->GetCount(); ++i) {

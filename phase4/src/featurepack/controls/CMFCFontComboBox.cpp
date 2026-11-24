@@ -524,7 +524,7 @@ extern "C" void* MS_ABI impl__GetSelFont_CMFCFontComboBox__QEBAPEAVCMFCFontInfo_
 // NULL object instead, so here m_bToolBarMode becomes FALSE and Setup runs.
 // That difference belongs to the IsKindOf thunk, not to this body.
 extern "C" void MS_ABI impl__Init_CMFCFontComboBox__IEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
+    if (pThis == nullptr || L(pThis)->m_bToolBarMode) return;
     CWnd* pParent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(HWndOf(pThis)));
     L(pThis)->m_bToolBarMode = impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
         pParent, impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ());

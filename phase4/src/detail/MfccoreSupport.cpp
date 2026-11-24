@@ -343,6 +343,9 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToo
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarDateTimeCtrl__UEAAXAEBVCMFCToolBarButton___Z(
     void*, const CMFCToolBarButton*);
 
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarFontComboBox__MEAAXAEBVCMFCToolBarButton___Z(
+    void*, const CMFCToolBarButton*);
+
 CMFCToolBarButton* CloneToolBarButton(const CMFCToolBarButton& button) {
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButtonsButton))) {
         auto* cloned = new (std::nothrow) CMFCToolBarMenuButtonsButton();
@@ -361,6 +364,19 @@ CMFCToolBarButton* CloneToolBarButton(const CMFCToolBarButton& button) {
         const auto& menuButton = static_cast<const CMFCToolBarMenuButton&>(button);
         auto* cloned = new (std::nothrow) CMFCToolBarMenuButton(menuButton);
         CopyMenuButtonState(cloned, &menuButton);
+        return cloned;
+    }
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarFontComboBox))) {
+        auto* cloned = new (std::nothrow) CMFCToolBarFontComboBox;
+        if (cloned) impl__CopyFrom_CMFCToolBarFontComboBox__MEAAXAEBVCMFCToolBarButton___Z(cloned, &button);
+        return cloned;
+    }
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarFontSizeComboBox))) {
+        auto* cloned = new (std::nothrow) CMFCToolBarFontSizeComboBox;
+        if (cloned) {
+            impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCToolBarButton___Z(cloned, &button);
+            cloned->m_nLogVert = static_cast<const CMFCToolBarFontSizeComboBox&>(button).m_nLogVert;
+        }
         return cloned;
     }
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {

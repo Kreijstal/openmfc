@@ -1,5 +1,5 @@
 #pragma once
-#include "afxwin.h"
+#include "afxmfc.h"
 class CMFCFontInfo:public CObject {
 public:
     CMFCFontInfo(const wchar_t* name,const wchar_t* script,BYTE charset,BYTE pitch,int type):m_strName(name),m_strScript(script),m_nCharSet(charset),m_nPitchAndFamily(pitch),m_nType(type){}

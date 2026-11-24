@@ -70,8 +70,6 @@ TOOLBAR_BUTTONS_DESC(CMFCRibbonGalleryMenuButton, 1568, 0xFFFF, CMFCToolBarMenuB
 TOOLBAR_BUTTONS_DESC(CMFCShowAllButton, 296, 0xFFFF, CMFCToolBarMenuButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarColorButton, 176, 0x00000001, CMFCToolBarButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarEditBoxButton, 176, 0x00000001, CMFCToolBarButton::GetThisClass());
-TOOLBAR_BUTTONS_DESC(CMFCToolBarFontComboBox, 352, 0x00000001, &classCMFCToolBarComboBoxButton);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarFontSizeComboBox, 344, 0x00000001, &classCMFCToolBarComboBoxButton);
 TOOLBAR_BUTTONS_DESC(CMFCToolBarMenuButtonsButton, 144, 0xFFFF, CMFCToolBarButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarSpinEditBoxButton, 440, 0x00000001, &classCMFCToolBarEditBoxButton);
 TOOLBAR_BUTTONS_DESC(CMFCToolBarSystemMenuButton, 312, 0x80000001, CMFCToolBarMenuButton::GetThisClass());
@@ -169,14 +167,20 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarEditBoxButton_
 }
 // Symbol: ?GetThisClass@CMFCToolBarFontComboBox@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarFontComboBox@@UEBAPEAUCRuntimeClass@@XZ
-TOOLBAR_BUTTONS_GETTERS(CMFCToolBarFontComboBox,
-           impl__GetThisClass_CMFCToolBarFontComboBox__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCToolBarFontComboBox__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarFontComboBox__SAPEAUCRuntimeClass__XZ() {
+    return CMFCToolBarFontComboBox::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarFontComboBox__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCToolBarFontComboBox::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCToolBarFontSizeComboBox@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarFontSizeComboBox@@UEBAPEAUCRuntimeClass@@XZ
-TOOLBAR_BUTTONS_GETTERS(CMFCToolBarFontSizeComboBox,
-           impl__GetThisClass_CMFCToolBarFontSizeComboBox__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCToolBarFontSizeComboBox__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarFontSizeComboBox__SAPEAUCRuntimeClass__XZ() {
+    return CMFCToolBarFontSizeComboBox::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarFontSizeComboBox__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCToolBarFontSizeComboBox::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCToolBarMenuButtonsButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarMenuButtonsButton@@UEBAPEAUCRuntimeClass@@XZ
 TOOLBAR_BUTTONS_GETTERS(CMFCToolBarMenuButtonsButton,
