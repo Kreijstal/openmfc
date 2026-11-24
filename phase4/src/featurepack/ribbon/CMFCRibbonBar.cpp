@@ -80,26 +80,9 @@ extern "C" void MS_ABI impl___1CMFCRibbonBar__UEAA_XZ(void* pThis) {
 // Symbol: ?AddCategory@CMFCRibbonBar@@QEAAPEAVCMFCRibbonCategory@@PEB_WIIVCSize@@1HPEAUCRuntimeClass@@@Z
 extern "C" CMFCRibbonCategory* MS_ABI impl__AddCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIIVCSize__1HPEAUCRuntimeClass___Z(
     CMFCRibbonBar* pThis, const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage,
-    CSize sizeSmall, unsigned int uiAnimLargeImage, int nInsertAt, CRuntimeClass*) {
-    if (!pThis) return nullptr;
-
-    auto* category = new CMFCRibbonCategory(lpszName, uiSmallImage, uiLargeImage);
-    (void)sizeSmall;
-    (void)uiAnimLargeImage;
-
-    std::lock_guard<std::mutex> lock(g_ribbonMutex);
-    auto& state = g_ribbonBars[pThis];
-    auto insertPos = state.categories.end();
-    if (nInsertAt >= 0 && nInsertAt < static_cast<int>(state.categories.size())) {
-        insertPos = state.categories.begin() + nInsertAt;
-    }
-    state.categories.insert(insertPos, category);
-    state.ownedCategories.insert(category);
-    if (state.activeCategory == nullptr) {
-        state.activeCategory = category;
-    }
-    g_ribbonCategories.try_emplace(category);
-    return category;
+    CSize sizeSmall, CSize sizeLarge, int nInsertAt, CRuntimeClass* categoryClass) {
+    return pThis ? pThis->AddCategory(lpszName, uiSmallImage, uiLargeImage, sizeSmall, sizeLarge,
+                                      nInsertAt, categoryClass) : nullptr;
 }
 // Symbol: ?GetCategory@CMFCRibbonBar@@QEBAPEAVCMFCRibbonCategory@@H@Z
 extern "C" CMFCRibbonCategory* MS_ABI impl__GetCategory_CMFCRibbonBar__QEBAPEAVCMFCRibbonCategory__H_Z(
@@ -1370,21 +1353,30 @@ BOOL CMFCRibbonBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
     }
     return TRUE;
 }
-CMFCRibbonCategory* CMFCRibbonBar::AddCategory(const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage, CSize, unsigned int, int nInsertAt, CRuntimeClass*) {
-    auto* category = new (std::nothrow) CMFCRibbonCategory(lpszName, uiSmallImage, uiLargeImage);
+CMFCRibbonCategory* CMFCRibbonBar::AddCategory(const wchar_t* lpszName, unsigned int uiSmallImage,
+                                             unsigned int uiLargeImage, CSize sizeSmall, CSize sizeLarge,
+                                             int nInsertAt, CRuntimeClass* categoryClass) {
+    std::unique_ptr<CMFCRibbonCategory> category;
+    if (categoryClass) {
+        if (!categoryClass->IsDerivedFrom(RUNTIME_CLASS(CMFCRibbonCategory))) return nullptr;
+        category.reset(static_cast<CMFCRibbonCategory*>(categoryClass->CreateObject()));
+    } else {
+        category.reset(new (std::nothrow) CMFCRibbonCategory);
+    }
     if (!category) return nullptr;
+    category->CommonInit(this, lpszName, uiSmallImage, uiLargeImage, sizeSmall, sizeLarge);
 
+    std::lock_guard<std::mutex> lock(g_ribbonMutex);
     RibbonBarState& state = g_ribbonBarStates[this];
-    auto insertPos = state.categories.end();
-    if (nInsertAt >= 0 && nInsertAt < static_cast<int>(state.categories.size())) {
-        insertPos = state.categories.begin() + nInsertAt;
-    }
-    state.categories.insert(insertPos, category);
-    state.ownedCategories.insert(category);
+    state.categories.reserve(state.categories.size() + 1);
+    state.ownedCategories.insert(category.get());
+    const auto insertPos = nInsertAt >= 0 && nInsertAt < static_cast<int>(state.categories.size())
+        ? state.categories.begin() + nInsertAt : state.categories.end();
+    state.categories.insert(insertPos, category.get());
     if (!state.activeCategory) {
-        state.activeCategory = category;
+        state.activeCategory = category.get();
     }
-    return category;
+    return category.release();
 }
 BOOL CMFCRibbonBar::AddCategory(CMFCRibbonCategory* pCategory) {
     if (!pCategory) return FALSE;
@@ -1394,6 +1386,7 @@ BOOL CMFCRibbonBar::AddCategory(CMFCRibbonCategory* pCategory) {
     }
     state.ownedCategories.insert(pCategory);
     g_ribbonCategoryStates[pCategory];
+    pCategory->SetParentRibbonBar(this);
     if (!state.activeCategory) {
         state.activeCategory = pCategory;
     }

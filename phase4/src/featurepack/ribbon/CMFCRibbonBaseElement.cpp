@@ -311,26 +311,17 @@ extern "C" void MS_ABI impl__SetKeys_CMFCRibbonBaseElement__UEAAXPEB_W0_Z(
 {
     if (!pThis) return;
 }
-// CMFCRibbonBaseElement::SetOriginal(CMFCRibbonBaseElement*) -- retail walks
-// the m_pOriginal chain (+0xe8) to the last non-null link and stores it into
-// +0xe8.  The original-link member is not modeled.
-// TODO(clean-room): transcribed partially -- m_pOriginal is not modeled.
 // Symbol: ?SetOriginal@CMFCRibbonBaseElement@@UEAAXPEAV1@@Z
 extern "C" void MS_ABI impl__SetOriginal_CMFCRibbonBaseElement__UEAAXPEAV1__Z(
-    CMFCRibbonBaseElement* pThis, CMFCRibbonBaseElement* /*pOriginal*/)
+    CMFCRibbonBaseElement* element, CMFCRibbonBaseElement* original)
 {
-    if (!pThis) return;
+    if (element) element->CMFCRibbonBaseElement::SetOriginal(original);
 }
-// CMFCRibbonBaseElement::SetParentCategory(CMFCRibbonCategory*) -- retail
-// stores the category pointer at +0xe0.  The parent-category member is not
-// modeled.
-// TODO(clean-room): transcribed partially -- the parent category is not
-// modeled.
 // Symbol: ?SetParentCategory@CMFCRibbonBaseElement@@UEAAXPEAVCMFCRibbonCategory@@@Z
 extern "C" void MS_ABI impl__SetParentCategory_CMFCRibbonBaseElement__UEAAXPEAVCMFCRibbonCategory___Z(
-    CMFCRibbonBaseElement* pThis, CMFCRibbonCategory* /*pCategory*/)
+    CMFCRibbonBaseElement* element, CMFCRibbonCategory* category)
 {
-    if (!pThis) return;
+    if (element) element->CMFCRibbonBaseElement::SetParentCategory(category);
 }
 // CMFCRibbonBaseElement::SetParentMenu(CMFCRibbonPanelMenuBar*) -- retail
 // stores the panel-menu-bar pointer at +0xf8.  The parent-menu member is not
@@ -460,7 +451,74 @@ extern "C" long MS_ABI impl__get_accParent_CMFCRibbonBaseElement__UEAAJPEAPEAUID
 CMFCRibbonBaseElement::CMFCRibbonBaseElement() : m_nID(0) {
     memset(_ribbonbaseelement_padding, 0, sizeof(_ribbonbaseelement_padding));
 }
-CMFCRibbonBaseElement::~CMFCRibbonBaseElement() {}
+namespace {
+auto& RibbonOriginals() {
+    static std::unordered_map<const CMFCRibbonBaseElement*, CMFCRibbonBaseElement*> originals;
+    return originals;
+}
+}
+
+CMFCRibbonBaseElement::~CMFCRibbonBaseElement() {
+    auto& originals = RibbonOriginals();
+    originals.erase(this);
+    for (auto it = originals.begin(); it != originals.end();) {
+        if (it->second == this) it = originals.erase(it);
+        else ++it;
+    }
+}
+
+void CMFCRibbonBaseElement::SetOriginal(CMFCRibbonBaseElement* original) {
+    while (original && original != this) {
+        auto* source = original->GetOriginal();
+        if (!source) break;
+        original = source;
+    }
+    if (original && original != this) RibbonOriginals()[this] = original;
+    else RibbonOriginals().erase(this);
+}
+
+CMFCRibbonBaseElement* CMFCRibbonBaseElement::GetOriginal() const {
+    const auto it = RibbonOriginals().find(this);
+    return it != RibbonOriginals().end() ? it->second : nullptr;
+}
+
+void CMFCRibbonBaseElement::SetParentCategory(CMFCRibbonCategory* category) {
+    m_ribbonCategory = category;
+}
+
+void CMFCRibbonBaseElement::SetParentRibbonBar(CMFCRibbonBar* bar) {
+    m_ribbonBar = bar;
+}
+
+CMFCRibbonCategory* CMFCRibbonBaseElement::GetParentCategory() const {
+    using namespace openmfc::ribbon_state;
+    std::lock_guard<std::mutex> guard(RibbonMutex());
+    if (m_ribbonCategory && RibbonCategoryStates().find(m_ribbonCategory) != RibbonCategoryStates().end())
+        return m_ribbonCategory;
+
+    // Panel membership is kept in the ribbon state. Looking it up also
+    // covers elements reached through Insert and Replace.
+    for (const auto& [category, state] : RibbonCategoryStates()) {
+        for (const auto* panel : state.panels) {
+            const auto found = RibbonPanelStates().find(panel);
+            if (found == RibbonPanelStates().end()) continue;
+            const auto& elements = found->second.elements;
+            if (std::find(elements.begin(), elements.end(), this) != elements.end())
+                return const_cast<CMFCRibbonCategory*>(category);
+        }
+    }
+    return nullptr;
+}
+
+CMFCRibbonBar* CMFCRibbonBaseElement::GetTopLevelRibbonBar() const {
+    if (m_ribbonBar) return m_ribbonBar;
+    const auto* category = GetParentCategory();
+    return category ? category->GetParentRibbonBar() : nullptr;
+}
+
+CSize CMFCRibbonBaseElement::GetImageSize(RibbonImageType) const { return CSize(0, 0); }
+void CMFCRibbonBaseElement::DrawImage(CDC*, RibbonImageType, CRect) {}
+
 UINT CMFCRibbonBaseElement::GetID() const { return m_nID; }
 void CMFCRibbonBaseElement::SetID(UINT nID) { m_nID = nID; }
 CString CMFCRibbonBaseElement::GetText() const { return m_strText; }
@@ -507,13 +565,11 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetPressed_CMFCRibbonBaseElement_
     return nullptr;
 }
 
-// Retail RVA 0x10140 (mfc140u) traverses the +0xd8/+0xe0/+0xf8 parent state;
-// those pointers and the panel-menu traversal state are not modeled.
 // Symbol: ?GetTopLevelRibbonBar@CMFCRibbonBaseElement@@QEBAPEAVCMFCRibbonBar@@XZ
 extern "C" CMFCRibbonBar* MS_ABI impl__GetTopLevelRibbonBar_CMFCRibbonBaseElement__QEBAPEAVCMFCRibbonBar__XZ(
-    const CMFCRibbonBaseElement* /*pThis*/)
+    const CMFCRibbonBaseElement* element)
 {
-    return nullptr;
+    return element ? element->GetTopLevelRibbonBar() : nullptr;
 }
 
 // Retail RVA 0x11b70 (mfc140u) appends this to the array only if the CRect at

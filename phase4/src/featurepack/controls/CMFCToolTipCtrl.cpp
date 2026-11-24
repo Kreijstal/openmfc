@@ -48,19 +48,6 @@
 //      are called and a derived manager's override (e.g. the Office2003 /
 //      Office2007 GetToolTipInfo thunks) is not reached.
 //
-//  (3) the ribbon-button arms.  GetIconSize (0x1816d0) and OnDrawIcon
-//      (0x181980) have a first arm for m_pRibbonButton != NULL that calls
-//      CMFCRibbonButton virtuals (+0x4e0, +0x238 GetImageSize, +0x250
-//      DrawImage) and reads ribbon-button members at +0x148/+0x1b8/+0x1bc/
-//      +0x1d8/+0x214.  OpenMFC's CMFCRibbonButton adds nothing but 64 bytes
-//      of opaque padding over CMFCRibbonBaseElement (afxmfc.h:844), and its
-//      ?DrawImage / ?GetImageSize thunks are still auto-generated placeholders
-//      -- 39- and 38-parameter garbage argument lists with an empty / `return
-//      nullptr` body (ribbon/CMFCRibbonButton.cpp:266/:303) -- so that arm is
-//      NOT transcribed: GetIconSize returns
-//      CSize(0,0) and OnDrawIcon returns FALSE when a ribbon button is set.
-//      Each site documents the retail control flow it skips.
-//
 //  (4) afxGlobalData.  Retail reads ?afxGlobalData@@3UAFX_GLOBAL_DATA@@A
 //      (0x3c1620) after the inlined one-time "if (!<+0>) Initialize()" gate:
 //      m_bIsRibbonImageScale (+0x2c0) / m_dblRibbonImageScale (+0x2b8) in
@@ -119,11 +106,6 @@ extern "C" void  MS_ABI impl__EndDrawImage_CMFCToolBarImages__QEAAXAEAUtagAFXDra
 // is still an EMPTY placeholder (toolbar/CMFCToolBarButton.cpp:105), so the
 // toolbar arm of OnDrawIcon below paints nothing until it is implemented.
 extern "C" void  MS_ABI impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(CMFCToolBarButton* pThis, CDC* pDC, const CRect* pRect, CMFCToolBarImages* pImages, int bHorz, int bCustomizeMode, int bHighlight, int bDrawBorder, int bGrayDisabledButtons);
-// CMFCRibbonBaseElement::GetTopLevelRibbonBar is still an argument-less
-// placeholder returning nullptr (ribbon/CMFCRibbonBaseElement.cpp:483); OnShow
-// only uses its result behind a NULL check, exactly as retail does.
-extern "C" void* MS_ABI impl__GetTopLevelRibbonBar_CMFCRibbonBaseElement__QEBAPEAVCMFCRibbonBar__XZ(const void* pThis);
-
 namespace {
 
 static_assert(sizeof(CString) == 8, "CString must be a single m_pszData pointer");
@@ -137,7 +119,6 @@ static_assert(sizeof(CMFCToolBarImages) == 0x198, "CMFCToolBarImages retail size
 static_assert(sizeof(CMFCToolBarButton) >= 0x50, "the CMFCToolBarButton members read below sit inside the afxmfc.h layout");
 
 inline CWnd* AsWnd(void* p) { return static_cast<CWnd*>(p); }
-inline HWND HwndOf(void* p) { return AsWnd(p)->m_hWnd; }   // CWnd::m_hWnd, +0x40
 
 // CMFCToolBar / CMFCToolBarButton / CMFCToolBarImages members the retail
 // bodies read directly.  afxmfc.h declares the three classes with the
@@ -453,29 +434,25 @@ extern "C" int MS_ABI impl__GetFixedWidth_CMFCToolTipCtrl__IEAAHXZ(CMFCToolTipCt
 
 // CMFCToolTipCtrl::GetIconSize() -- RVA 0x1816d0 (mfc140u).  The toolbar arm is
 // transcribed:
-//     if (m_pRibbonButton != NULL) { ... see below ... }
 //     if (m_pHotButton == NULL || m_pToolBarImages == NULL) return CSize(0,0);   // +0x130 / +0x128
 //     if (m_pToolBarImages->m_iCount == 0) return CSize(0,0);                    // +0x8
 //     if (m_pHotButton->GetImage() < 0) return CSize(0,0);                       // inline: +0x48 or +0x4c by m_bUserButton
 //     return m_pToolBarImages->m_sizeImage;                                       // +0x68
-// The ribbon arm (deviation (3), NOT transcribed -- OpenMFC's ribbon button is
-// opaque and its GetImageSize thunk is a placeholder) reads, in retail:
-//     if (!m_pRibbonButton->vslot(+0x4e0)()) return CSize(0,0);
-//     BOOL bLarge = m_pRibbonButton->[+0x214];
-//     if (m_pRibbonButton->[+0x1d8] != NULL) {                                   // an icon handle
-//         m_nRibbonImageType = bLarge ? 0 : 1;
-//         return m_pRibbonButton->GetImageSize(m_nRibbonImageType);              // vslot +0x238
-//     }
-//     CSize s(0,0);
-//     if (bLarge && m_pRibbonButton->[+0x1bc] >= 0) s = m_pRibbonButton->GetImageSize(0);
-//     if (s != CSize(0,0)) { m_nRibbonImageType = 0; return s; }
-//     if (m_pRibbonButton->[+0x1b8] >= 0) s = m_pRibbonButton->GetImageSize(1);
-//     m_nRibbonImageType = 1; return s;
-// Here that arm returns CSize(0,0) and leaves m_nRibbonImageType untouched.
 CSize CMFCToolTipCtrl::GetIconSize() {
     CSize size(0, 0);
     if (m_pRibbonButton != nullptr) {
-        return size;   // deviation (3)
+        if (!m_pRibbonButton->IsDrawTooltipImage()) return size;
+        using RibbonElement = CMFCRibbonBaseElement;
+        auto type = m_pRibbonButton->IsLargeImage() ? RibbonElement::RibbonImageLarge
+                                                     : RibbonElement::RibbonImageSmall;
+        size = m_pRibbonButton->GetImageSize(type);
+        if (size.cx <= 0 || size.cy <= 0) {
+            type = type == RibbonElement::RibbonImageLarge ? RibbonElement::RibbonImageSmall
+                                                            : RibbonElement::RibbonImageLarge;
+            size = m_pRibbonButton->GetImageSize(type);
+        }
+        m_nRibbonImageType = type;
+        return size;
     }
     if (m_pHotButton == nullptr || m_pToolBarImages == nullptr) return size;
     if (RdInt(m_pToolBarImages, kTiOffCount) == 0) return size;
@@ -621,7 +598,6 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCToolTipCtrl__UEAAXPEAVCDC__VCRect_
 
 // CMFCToolTipCtrl::OnDrawIcon(CDC* pDC, CRect rectImage) -- RVA 0x181980
 // (mfc140u).  The toolbar arm is transcribed:
-//     if (m_pRibbonButton != NULL) { ... see below ... }
 //     if (m_pHotButton == NULL || m_pToolBarImages == NULL) return FALSE;      // +0x130 / +0x128
 //     CAfxDrawState ds; m_pToolBarImages->PrepareDrawImage(ds, CSize(0,0), FALSE);   // 0x16c060 (result ignored)
 //     BOOL  bLargeIcons = CMFCToolBar::m_bLargeIcons;   UINT nStyle = m_pHotButton->m_nStyle;   // 0x3be368, +0x28
@@ -631,15 +607,14 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCToolTipCtrl__UEAAXPEAVCDC__VCRect_
 //     m_pHotButton->m_nStyle = nStyle; m_pHotButton->m_bText = bText; m_pHotButton->m_bImage = bImage; CMFCToolBar::m_bLargeIcons = bLargeIcons;
 //     m_pToolBarImages->EndDrawImage(ds);                                       // 0x16c270
 //     return TRUE;
-// The ribbon arm (deviation (3), NOT transcribed -- OpenMFC's ribbon button is
-// opaque and its DrawImage thunk is a placeholder) reads, in retail:
-//     BOOL bDisabled = m_pRibbonButton->[+0x148]; m_pRibbonButton->[+0x148] = FALSE;
-//     m_pRibbonButton->DrawImage(pDC, m_nRibbonImageType, rectImage);           // vslot +0x250
-//     m_pRibbonButton->[+0x148] = bDisabled; return TRUE;
-// Here that arm returns FALSE without drawing.
 BOOL CMFCToolTipCtrl::OnDrawIcon(CDC* pDC, CRect rectImage) {
     if (m_pRibbonButton != nullptr) {
-        return FALSE;   // deviation (3)
+        if (!pDC || !pDC->m_hDC || rectImage.IsRectEmpty()) return FALSE;
+        const CSize size = GetIconSize();
+        if (size.cx <= 0 || size.cy <= 0) return FALSE;
+        m_pRibbonButton->DrawImage(pDC,
+            static_cast<CMFCRibbonBaseElement::RibbonImageType>(m_nRibbonImageType), rectImage);
+        return TRUE;
     }
     if (m_pHotButton == nullptr || m_pToolBarImages == nullptr) return FALSE;
 
@@ -1035,10 +1010,10 @@ void CMFCToolTipCtrl::OnShow(NMHDR*, LRESULT* pResult) {
     if (nBottom > rectScreen.bottom) {
         y = ptCursor.y - cy - 1;
         if (m_pRibbonButton != nullptr && (m_ptLocation.x != -1 || m_ptLocation.y != -1)) {
-            void* pBar = impl__GetTopLevelRibbonBar_CMFCRibbonBaseElement__QEBAPEAVCMFCRibbonBar__XZ(m_pRibbonButton);
-            if (pBar != nullptr && HwndOf(pBar) != nullptr) {
+            const auto* pBar = m_pRibbonButton->GetTopLevelRibbonBar();
+            if (pBar != nullptr && pBar->GetSafeHwnd() != nullptr) {
                 RECT rectBar = { 0, 0, 0, 0 };
-                ::GetWindowRect(HwndOf(pBar), &rectBar);
+                ::GetWindowRect(pBar->GetSafeHwnd(), &rectBar);
                 y = rectBar.top - cy;
             }
         }

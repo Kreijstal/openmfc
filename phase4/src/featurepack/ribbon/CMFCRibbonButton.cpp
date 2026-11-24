@@ -195,58 +195,88 @@ extern "C" void MS_ABI impl__SetMenu_CMFCRibbonButton__QEAAXPEAUHMENU____HH_Z(
 {
     if (!pThis) return;
 }
-// CMFCRibbonButton::SetOriginal(CMFCRibbonBaseElement*) -- retail walks the
-// pOriginal chain (+0xe8) to the last non-null link and stores it at +0xe8.
-// If the source is a CMFCRibbonButton with the same sub-item count, it clones
-// those sub-items into this button. The link and sub-item array are not modeled.
-// TODO(clean-room): transcribed partially -- the original-link chain and
-// sub-items are not modeled.
 // Symbol: ?SetOriginal@CMFCRibbonButton@@MEAAXPEAVCMFCRibbonBaseElement@@@Z
 extern "C" void MS_ABI impl__SetOriginal_CMFCRibbonButton__MEAAXPEAVCMFCRibbonBaseElement___Z(
-    CMFCRibbonButton* pThis, CMFCRibbonBaseElement* /*pOriginal*/)
+    CMFCRibbonButton* button, CMFCRibbonBaseElement* original)
 {
-    if (!pThis) return;
+    if (button) button->CMFCRibbonBaseElement::SetOriginal(original);
 }
-// CMFCRibbonButton::SetParentCategory(CMFCRibbonCategory*) -- retail stores
-// the category at +0xe0 and propagates it to every sub-item (array
-// +0x250/+0x258) through the virtual SetParentCategory (vtable+0x2d8), also
-// setting each sub-item's flag at +0x160.  None of this state is modeled.
-// TODO(clean-room): transcribed partially -- category/sub-item state is not
-// modeled.
 // Symbol: ?SetParentCategory@CMFCRibbonButton@@UEAAXPEAVCMFCRibbonCategory@@@Z
 extern "C" void MS_ABI impl__SetParentCategory_CMFCRibbonButton__UEAAXPEAVCMFCRibbonCategory___Z(
-    CMFCRibbonButton* pThis, CMFCRibbonCategory* /*pCategory*/)
+    CMFCRibbonButton* button, CMFCRibbonCategory* category)
 {
-    if (!pThis) return;
+    if (button) button->CMFCRibbonBaseElement::SetParentCategory(category);
 }
-// CMFCRibbonButton::SetParentRibbonBar(CMFCRibbonBar*) -- retail stores the
-// bar at +0xd8 and propagates it to every sub-item (array +0x250/+0x258)
-// through the virtual SetParentRibbonBar (vtable+0x278).  None of this state
-// is modeled.
-// TODO(clean-room): transcribed partially -- ribbon-bar/sub-item state is not
-// modeled.
 // Symbol: ?SetParentRibbonBar@CMFCRibbonButton@@MEAAXPEAVCMFCRibbonBar@@@Z
 extern "C" void MS_ABI impl__SetParentRibbonBar_CMFCRibbonButton__MEAAXPEAVCMFCRibbonBar___Z(
-    CMFCRibbonButton* pThis, CMFCRibbonBar* /*pBar*/)
+    CMFCRibbonButton* button, CMFCRibbonBar* bar)
 {
-    if (!pThis) return;
+    if (button) button->CMFCRibbonBaseElement::SetParentRibbonBar(bar);
 }
-CMFCRibbonButton::CMFCRibbonButton() {
-    memset(_ribbonbutton_padding, 0, sizeof(_ribbonbutton_padding));
+
+CMFCRibbonButton::CMFCRibbonButton() = default;
+
+CMFCRibbonButton::CMFCRibbonButton(UINT id, const wchar_t* text, int smallImage, int large, BOOL)
+    : m_smallImageIndex(smallImage), m_largeImageIndex(large) {
+    SetID(id);
+    SetText(text);
 }
-CMFCRibbonButton::CMFCRibbonButton(UINT nID, const wchar_t* lpszText, int, int, BOOL)
-    : CMFCRibbonBaseElement() {
-    SetID(nID);
-    if (lpszText) SetText(lpszText);
-    memset(_ribbonbutton_padding, 0, sizeof(_ribbonbutton_padding));
+
+CMFCRibbonButton::CMFCRibbonButton(UINT id, const wchar_t* text, HICON large, BOOL, HICON smallImage,
+                                   BOOL autoDestroy, BOOL)
+    : m_largeIcon(large), m_smallIcon(smallImage), m_ownsRibbonIcons(autoDestroy) {
+    SetID(id);
+    SetText(text);
 }
-CMFCRibbonButton::CMFCRibbonButton(UINT nID, const wchar_t* lpszText, HICON, BOOL, HICON, BOOL, BOOL)
-    : CMFCRibbonBaseElement() {
-    SetID(nID);
-    if (lpszText) SetText(lpszText);
-    memset(_ribbonbutton_padding, 0, sizeof(_ribbonbutton_padding));
+
+CMFCRibbonButton::~CMFCRibbonButton() {
+    if (!m_ownsRibbonIcons) return;
+    if (m_largeIcon) ::DestroyIcon(m_largeIcon);
+    if (m_smallIcon && m_smallIcon != m_largeIcon) ::DestroyIcon(m_smallIcon);
 }
-CMFCRibbonButton::~CMFCRibbonButton() {}
+
+void CMFCRibbonButton::SetImageIndex(int index, BOOL large) {
+    (large ? m_largeImageIndex : m_smallImageIndex) = index;
+}
+
+BOOL CMFCRibbonButton::IsLargeImage() const {
+    return m_alwaysLargeImage || (m_smallImageIndex < 0 && m_largeImageIndex >= 0);
+}
+
+CSize CMFCRibbonButton::GetImageSize(RibbonImageType type) const {
+    if (auto* original = GetOriginal(); original && original->IsKindOf(RUNTIME_CLASS(CMFCRibbonButton)))
+        return original->GetImageSize(type);
+    const BOOL large = type == RibbonImageLarge;
+    if (m_largeIcon || (!large && m_smallIcon)) {
+        const int size = large ? 32 : 16;
+        return CSize(size, size);
+    }
+    const int index = GetImageIndex(large);
+    const auto* category = GetParentCategory();
+    return category && index >= 0 && index < category->GetImageCount(large)
+        ? category->GetImageSize(large) : CSize(0, 0);
+}
+
+void CMFCRibbonButton::DrawImage(CDC* dc, RibbonImageType type, CRect bounds) {
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || bounds.IsRectEmpty()) return;
+    if (auto* original = GetOriginal(); original && original->IsKindOf(RUNTIME_CLASS(CMFCRibbonButton))) {
+        original->DrawImage(dc, type, bounds);
+        return;
+    }
+    const BOOL large = type == RibbonImageLarge;
+    const HICON icon = !large && m_smallIcon ? m_smallIcon : m_largeIcon;
+    if (icon) {
+        const CSize size = GetImageSize(type);
+        ::DrawIconEx(hdc, bounds.left, bounds.top, icon,
+            (std::min)(size.cx, bounds.Width()), (std::min)(size.cy, bounds.Height()),
+            0, nullptr, DI_NORMAL);
+        return;
+    }
+    if (auto* category = GetParentCategory())
+        category->OnDrawImage(dc, bounds, this, large, GetImageIndex(large), FALSE);
+}
+
 // Stub: mfc140u RVA 0xe84a0 reads the parent-category pointer, sub-item array
 // (+0x248/+0x250/+0x258), and element state; these button fields are unmodeled.
 // Symbol: ?AddSubItem@CMFCRibbonButton@@QEAAXPEAVCMFCRibbonBaseElement@@H@Z
@@ -298,12 +328,11 @@ extern "C" CSize* MS_ABI impl__DrawBottomText_CMFCRibbonButton__QEAA_AVCSize__PE
     return pResult;
 }
 
-// Stub: mfc140u RVA 0xe7dd0 follows the original-element link and uses button
-// flags/geometry while drawing; those fields are not modeled.
 // Symbol: ?DrawImage@CMFCRibbonButton@@UEAAXPEAVCDC@@W4RibbonImageType@CMFCRibbonBaseElement@@VCRect@@@Z
 extern "C" void MS_ABI impl__DrawImage_CMFCRibbonButton__UEAAXPEAVCDC__W4RibbonImageType_CMFCRibbonBaseElement__VCRect___Z(
-    CMFCRibbonButton* pThis, CDC* pDC, int type, const CRect* rectImage) {
-    (void)pThis; (void)pDC; (void)type; (void)rectImage;
+    CMFCRibbonButton* button, CDC* dc, int type, const CRect* bounds) {
+    if (button && bounds)
+        button->CMFCRibbonButton::DrawImage(dc, static_cast<CMFCRibbonBaseElement::RibbonImageType>(type), *bounds);
 }
 
 // Stub: mfc140u RVA 0xe8a30 checks text-rendering context and performs text
@@ -380,13 +409,12 @@ extern "C" int MS_ABI impl__GetGroupButtonExtraWidth_CMFCRibbonButton__IEAAHXZ(C
     return 0;
 }
 
-// Partial: mfc140u RVA 0xe81c0 uses original-element, icon and resource state
-// that is not modeled. Initialize its MS ABI CSize result buffer safely.
 // Symbol: ?GetImageSize@CMFCRibbonButton@@UEBA?AVCSize@@W4RibbonImageType@CMFCRibbonBaseElement@@@Z
 extern "C" CSize* MS_ABI impl__GetImageSize_CMFCRibbonButton__UEBA_AVCSize__W4RibbonImageType_CMFCRibbonBaseElement___Z(
-    const CMFCRibbonButton* /*pThis*/, CSize* pResult, int /*type*/) {
-    BuildCSizeResult(pResult, 0, 0);
-    return pResult;
+    const CMFCRibbonButton* button, CSize* result, int type) {
+    if (result) *result = button ? button->CMFCRibbonButton::GetImageSize(
+        static_cast<CMFCRibbonBaseElement::RibbonImageType>(type)) : CSize(0, 0);
+    return result;
 }
 
 // Partial: mfc140u RVA 0xe8c20 calls a virtual sizing method and reads button

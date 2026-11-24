@@ -149,23 +149,12 @@ extern "C" void MS_ABI impl__CleanUpSizes_CMFCRibbonCategory__IEAAXXZ(
 {
     if (!pThis) return;
 }
-// CMFCRibbonCategory::CommonInit(CMFCRibbonBar*, const wchar_t*, unsigned int,
-// unsigned int, CSize, unsigned int) -- retail zeroes the size cache, writes
-// the name CString (+0xd0), stores the parent bar (+0x760) and image resource
-// IDs (+0x838/+0x9d0) and the tab color (+0xb28), then builds the scroll
-// buttons. OpenMFC's CMFCRibbonCategory ctor already initializes the object
-// and m_strName is not reachable from a free function (it is protected), so
-// the body keeps the type-correct no-op.
-// TODO(clean-room): transcribed partially -- category init state beyond the
-// declared members is not modeled.
 // Symbol: ?CommonInit@CMFCRibbonCategory@@IEAAXPEAVCMFCRibbonBar@@PEB_WIIVCSize@@2@Z
 extern "C" void MS_ABI impl__CommonInit_CMFCRibbonCategory__IEAAXPEAVCMFCRibbonBar__PEB_WIIVCSize__2_Z(
-    CMFCRibbonCategory* pThis, CMFCRibbonBar* /*pParentRibbonBar*/,
-    const wchar_t* /*lpszName*/, unsigned int /*uiSmallImageResID*/,
-    unsigned int /*uiLargeImageResID*/, CSize /*sizeSmallImage*/,
-    unsigned int /*uiAnimLargeImageResID*/)
+    CMFCRibbonCategory* category, CMFCRibbonBar* bar, const wchar_t* name,
+    UINT smallResource, UINT large, CSize smallSize, CSize largeSize)
 {
-    if (!pThis) return;
+    if (category) category->CommonInit(bar, name, smallResource, large, smallSize, largeSize);
 }
 // CMFCRibbonCategory::CopyFrom(CMFCRibbonCategory&) -- retail copies the base
 // object, ~20 scalar members, clones every panel via its runtime class
@@ -377,18 +366,12 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetHighlighted_CMFCRibbonCategory
     if (!pThis) return nullptr;
     return nullptr;
 }
-// CMFCRibbonCategory::GetImageSize(int) const -- retail returns
-// m_sizeSmallImage (+0x838) for nImageSizeType == 0 and m_sizeLargeImage
-// (+0x9d0) otherwise. Neither member is modeled, so an empty size is
-// returned.
-// TODO(clean-room): transcribed partially -- category image sizes are not
-// modeled.
 // Symbol: ?GetImageSize@CMFCRibbonCategory@@QEBA?AVCSize@@H@Z
-extern "C" void MS_ABI impl__GetImageSize_CMFCRibbonCategory__QEBA_AVCSize__H_Z(
-    void* pRet, const CMFCRibbonCategory* pThis, int /*nImageSizeType*/)
+extern "C" CSize* MS_ABI impl__GetImageSize_CMFCRibbonCategory__QEBA_AVCSize__H_Z(
+    const CMFCRibbonCategory* category, CSize* result, BOOL large)
 {
-    if (!pThis || !pRet) return;
-    new(pRet) CSize(0, 0);
+    if (result) *result = category ? category->GetImageSize(large) : CSize(0, 0);
+    return result;
 }
 // CMFCRibbonCategory::GetItemIDsList(CList<UINT, UINT>&, int) const --
 // retail, when nCategoryIndex == 0, appends every panel element ID via the
@@ -519,13 +502,111 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetParentButton_CMFCRibbonCategor
     if (!pThis) return nullptr;
     return nullptr;
 }
-CMFCRibbonCategory::CMFCRibbonCategory(const wchar_t* lpszName, UINT, UINT) {
-    if (lpszName) m_strName = lpszName;
-    memset(_ribboncategory_padding, 0, sizeof(_ribboncategory_padding));
+namespace {
+extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(const wchar_t*, const wchar_t*);
+extern "C" BOOL MS_ABI impl__Load_CPngImage__QEAAHIPEAUHINSTANCE_____Z(void*, UINT, HINSTANCE);
+
+HIMAGELIST LoadRibbonImageStrip(UINT resource, CSize size) {
+    if (!resource || resource > 0xffff || size.cx <= 0 || size.cy <= 0) return nullptr;
+    const wchar_t* name = MAKEINTRESOURCEW(resource);
+    const HINSTANCE pngModule = impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, L"PNG");
+    CBitmap png;
+    const bool decodedPng = pngModule && ::FindResourceW(pngModule, name, L"PNG") &&
+        impl__Load_CPngImage__QEAAHIPEAUHINSTANCE_____Z(&png, resource, pngModule);
+    const HINSTANCE bitmapModule = decodedPng ? nullptr :
+        impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, RT_BITMAP);
+    const auto image = decodedPng ? static_cast<HBITMAP>(png.Detach()) :
+        static_cast<HBITMAP>(::LoadImageW(bitmapModule ? bitmapModule : AfxGetInstanceHandle(), name,
+                                        IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    if (!image) return nullptr;
+    std::unique_ptr<std::remove_pointer_t<HBITMAP>, decltype(&::DeleteObject)> bitmap(image, &::DeleteObject);
+    BITMAP info{};
+    if (!::GetObjectW(image, sizeof(info), &info) || info.bmWidth <= 0 ||
+        info.bmHeight != size.cy || info.bmWidth % size.cx != 0) return nullptr;
+
+    const int count = info.bmWidth / size.cx;
+    bool hasAlpha = decodedPng;
+    if (!hasAlpha && info.bmBitsPixel == 32 && info.bmBits) {
+        const auto* pixels = static_cast<const BYTE*>(info.bmBits);
+        for (int row = 0; row < info.bmHeight && !hasAlpha; ++row) {
+            const auto* line = pixels + static_cast<size_t>(row) * info.bmWidthBytes;
+            for (int column = 0; column < info.bmWidth; ++column) {
+                if (line[static_cast<size_t>(column) * 4 + 3]) {
+                    hasAlpha = true;
+                    break;
+                }
+            }
+        }
+    }
+    const HIMAGELIST list = ::ImageList_Create(size.cx, size.cy, ILC_COLOR32 | (hasAlpha ? 0 : ILC_MASK), count, 1);
+    if (!list) return nullptr;
+    const int start = hasAlpha ? ::ImageList_Add(list, image, nullptr) :
+        ::ImageList_AddMasked(list, image, RGB(255, 0, 255));
+    if (start >= 0 && ::ImageList_GetImageCount(list) == count) return list;
+    ::ImageList_Destroy(list);
+    return nullptr;
+}
+}
+
+void CMFCRibbonCategory::SetImageResources(UINT smallResource, UINT large, CSize smallSize, CSize largeSize) {
+    const auto smallList = LoadRibbonImageStrip(smallResource, smallSize);
+    const auto largeList = LoadRibbonImageStrip(large, largeSize);
+    if (m_smallRibbonImages) ::ImageList_Destroy(m_smallRibbonImages);
+    if (m_largeRibbonImages) ::ImageList_Destroy(m_largeRibbonImages);
+    m_smallRibbonImages = smallList;
+    m_largeRibbonImages = largeList;
+    m_smallRibbonImageSize = smallSize;
+    m_largeRibbonImageSize = largeSize;
+}
+
+CSize CMFCRibbonCategory::GetImageSize(BOOL large) const {
+    return large ? m_largeRibbonImageSize : m_smallRibbonImageSize;
+}
+
+int CMFCRibbonCategory::GetImageCount(BOOL large) const {
+    const HIMAGELIST list = large ? m_largeRibbonImages : m_smallRibbonImages;
+    return list ? ::ImageList_GetImageCount(list) : 0;
+}
+
+BOOL CMFCRibbonCategory::OnDrawImage(CDC* dc, CRect rect, CMFCRibbonBaseElement*, BOOL large, int index, BOOL center) {
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || rect.IsRectEmpty() || index < 0 || index >= GetImageCount(large)) return FALSE;
+    const HIMAGELIST list = large ? m_largeRibbonImages : m_smallRibbonImages;
+    const CSize size = GetImageSize(large);
+    const int width = (std::min)(size.cx, rect.Width());
+    const int height = (std::min)(size.cy, rect.Height());
+    const int x = rect.left + (center ? (rect.Width() - width) / 2 : 0);
+    const int y = rect.top + (center ? (rect.Height() - height) / 2 : 0);
+    if (width == size.cx && height == size.cy)
+        return ::ImageList_Draw(list, index, hdc, x, y, ILD_TRANSPARENT);
+
+    const HICON icon = ::ImageList_GetIcon(list, index, ILD_TRANSPARENT);
+    if (!icon) return FALSE;
+    const BOOL drawn = ::DrawIconEx(hdc, x, y, icon, width, height, 0, nullptr, DI_NORMAL);
+    ::DestroyIcon(icon);
+    return drawn;
+}
+
+CMFCRibbonBar* CMFCRibbonCategory::GetParentRibbonBar() const {
+    const auto found = g_ribbonBarStates.find(m_parentRibbonBar);
+    return found == g_ribbonBarStates.end() ? nullptr : m_parentRibbonBar;
+}
+
+void CMFCRibbonCategory::CommonInit(CMFCRibbonBar* bar, const wchar_t* name, UINT smallResource, UINT large,
+                                    CSize smallSize, CSize largeSize) {
+    m_strName = name ? name : L"";
+    SetParentRibbonBar(bar);
+    SetImageResources(smallResource, large, smallSize, largeSize);
+}
+
+CMFCRibbonCategory::CMFCRibbonCategory(const wchar_t* name, UINT smallResource, UINT large) {
+    CommonInit(nullptr, name, smallResource, large, CSize(16, 16), CSize(32, 32));
     g_ribbonCategoryStates[this];
 }
 CMFCRibbonCategory::~CMFCRibbonCategory() {
     ClearRibbonCategoryState(this);
+    if (m_smallRibbonImages) ::ImageList_Destroy(m_smallRibbonImages);
+    if (m_largeRibbonImages) ::ImageList_Destroy(m_largeRibbonImages);
 }
 CMFCRibbonPanel* CMFCRibbonCategory::AddPanel(const wchar_t* lpszLabel, HICON hIcon, CRuntimeClass*) {
     auto* panel = new (std::nothrow) CMFCRibbonPanel(lpszLabel, hIcon);
@@ -557,15 +638,13 @@ CMFCRibbonPanel* CMFCRibbonCategory::GetPanel(int nIndex) const {
 }
 CString CMFCRibbonCategory::GetName() const { return m_strName; }
 // Symbol: ??0CMFCRibbonCategory@@IEAA@PEAVCMFCRibbonBar@@PEB_WIIVCSize@@2@Z
-// CMFCRibbonCategory::CMFCRibbonCategory()
 extern "C" void* MS_ABI impl___0CMFCRibbonCategory__IEAA_PEAVCMFCRibbonBar__PEB_WIIVCSize__2_Z(
-    void* /*p0*/, const wchar_t* p1, unsigned int p2, unsigned int p3, void* p4, unsigned int p5) {
-    (void)p1;
-    (void)p2;
-    (void)p3;
-    (void)p4;
-    (void)p5;
-    return new CMFCRibbonCategory();
+    void* storage, CMFCRibbonBar* bar, const wchar_t* name, UINT smallResource, UINT large,
+    CSize smallSize, CSize largeSize) {
+    if (!storage) return nullptr;
+    auto* category = new (storage) CMFCRibbonCategory();
+    category->CommonInit(bar, name, smallResource, large, smallSize, largeSize);
+    return category;
 }
 //=============================================================================
 // CMFCRibbonCategory — remaining exports.
@@ -811,22 +890,13 @@ extern "C" long MS_ABI impl__get_accParent_CMFCRibbonCategory__UEAAJPEAPEAUIDisp
     return S_FALSE;
 }
 
-// CMFCRibbonCategory::GetTextTopLine() const — retail (RVA 0xf03a0) loads as
-// one qword the packed CSize that is m_LargeImages(+0x968).m_sizeImage(+0x68)
-// = +0x9d0, and returns -1 when both halves are zero, otherwise cy + 5.
-// (GetImageSize at RVA 0xefce0 picks the same pair of lists: +0x838 for
-// nImageSizeType == 0, +0x9d0 otherwise.)
-// OpenMFC models no image sizes — GetImageSize above
-// returns CSize(0, 0) unconditionally — so the empty-size branch is the only
-// reachable one and -1 is retail's answer for it.
-// TODO(clean-room): transcribed partially — category image sizes are not
-// modeled.
 // Symbol: ?GetTextTopLine@CMFCRibbonCategory@@QEBAHXZ
 extern "C" int MS_ABI impl__GetTextTopLine_CMFCRibbonCategory__QEBAHXZ(
-    const CMFCRibbonCategory* pThis)
+    const CMFCRibbonCategory* category)
 {
-    if (!pThis) return -1;
-    return -1;
+    if (!category) return -1;
+    const CSize size = category->GetImageSize(TRUE);
+    return size.cx || size.cy ? size.cy + 5 : -1;
 }
 
 // CMFCRibbonCategory::GetVisibleElements(CArray<CMFCRibbonBaseElement*,
@@ -1006,27 +1076,12 @@ extern "C" void MS_ABI impl__OnDraw_CMFCRibbonCategory__UEAAXPEAVCDC___Z(
     if (!pThis) return;
 }
 
-// CMFCRibbonCategory::OnDrawImage(CDC*, CRect, CMFCRibbonBaseElement*, BOOL
-// bIsLargeImage, BOOL nImageIndex, BOOL bCenter) — retail (RVA 0xefb60)
-// selects one of the two embedded CMFCToolBarImages from bIsLargeImage —
-// m_SmallImages (+0x7d0) when it is zero, m_LargeImages (+0x968, that base
-// plus the 0x198 the prologue folds in) when it is not — returns FALSE when
-// nImageIndex is at or past that list's count (+8), and otherwise draws the
-// image into rectImage through PrepareDrawImage/DrawEx/EndDrawImage.  The
-// third int is the CENTERING flag, not a disabled flag: it is read only at
-// 0x1800efbae to gate the "centre the image size (+0x68 of the list) inside
-// rectImage" offset computation, and the disabled state comes instead from
-// the element's own virtual at vtable+0x1c8.  Neither image list is modeled.
-// TODO(clean-room): not transcribed — the category image lists are not
-// modeled.
 // Symbol: ?OnDrawImage@CMFCRibbonCategory@@UEAAHPEAVCDC@@VCRect@@PEAVCMFCRibbonBaseElement@@HHH@Z
 extern "C" int MS_ABI impl__OnDrawImage_CMFCRibbonCategory__UEAAHPEAVCDC__VCRect__PEAVCMFCRibbonBaseElement__HHH_Z(
-    CMFCRibbonCategory* pThis, CDC* /*pDC*/, CRect /*rectImage*/,
-    CMFCRibbonBaseElement* /*pElement*/, int /*bIsLargeImage*/,
-    int /*nImageIndex*/, int /*bCenter*/)
+    CMFCRibbonCategory* category, CDC* dc, CRect bounds,
+    CMFCRibbonBaseElement* element, BOOL large, int index, BOOL center)
 {
-    if (!pThis) return 0;
-    return 0;
+    return category && category->CMFCRibbonCategory::OnDrawImage(dc, bounds, element, large, index, center);
 }
 
 // CMFCRibbonCategory::OnKey(UINT) — retail (RVA 0xf0c20) switches on nChar

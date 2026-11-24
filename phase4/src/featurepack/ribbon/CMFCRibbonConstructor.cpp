@@ -127,7 +127,7 @@ extern "C" void MS_ABI impl__SetDescription_CMFCRibbonBaseElement__UEAAXPEB_W_Z(
     CMFCRibbonBaseElement* pElement, const wchar_t* text);
 extern "C" CMFCRibbonCategory* MS_ABI impl__AddCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIIVCSize__1HPEAUCRuntimeClass___Z(
     CMFCRibbonBar* pBar, const wchar_t* name, unsigned int smallImage,
-    unsigned int largeImage, CSize sizeSmall, unsigned int animLargeImage,
+    unsigned int largeImage, CSize sizeSmall, CSize sizeLarge,
     int insertAt, CRuntimeClass* runtimeClass);
 extern "C" CMFCRibbonPanel* MS_ABI impl__AddPanel_CMFCRibbonCategory__QEAAPEAVCMFCRibbonPanel__PEB_WPEAUHICON____PEAUCRuntimeClass___Z(
     CMFCRibbonCategory* pCategory, const wchar_t* label, HICON__* icon,
@@ -248,11 +248,6 @@ extern "C" void* MS_ABI impl__CreateApplicationButton_CMFCRibbonConstructor__MEB
 
 // RVA 0xf8150 (mfc140u) forwards the XCategory name and CMFCRibbonInfo image
 // sizes to CMFCRibbonBar::AddCategory (entry RVA 0xda450, mfc140u). The
-// The current impl__AddCategory body creates/registers an ordinary side-table
-// category, but its C prototype takes one CSize and ignores image metadata, so
-// this is intentionally partial. Its export mangling describes two CSize
-// values; the internal call below deliberately matches the existing body
-// prototype, and the mismatch must be corrected in CMFCRibbonBar.cpp.
 // Symbol: ?CreateCategory@CMFCRibbonConstructor@@MEBAPEAVCMFCRibbonCategory@@AEAVCMFCRibbonBar@@AEBVXCategory@CMFCRibbonInfo@@@Z
 extern "C" void* MS_ABI impl__CreateCategory_CMFCRibbonConstructor__MEBAPEAVCMFCRibbonCategory__AEAVCMFCRibbonBar__AEBVXCategory_CMFCRibbonInfo___Z(
     void* pThis, void* pBar, const void* pInfo) {
@@ -266,7 +261,7 @@ extern "C" void* MS_ABI impl__CreateCategory_CMFCRibbonConstructor__MEBAPEAVCMFC
     return impl__AddCategory_CMFCRibbonBar__QEAAPEAVCMFCRibbonCategory__PEB_WIIVCSize__1HPEAUCRuntimeClass___Z(
         static_cast<CMFCRibbonBar*>(pBar),
         static_cast<const wchar_t*>(category->m_strName), 0, 0,
-        info->m_sizeImage[0], 0, -1, nullptr);
+        info->m_sizeImage[0], info->m_sizeImage[1], -1, nullptr);
 }
 
 // Stub: RVA 0xf81a0 (mfc140u) forwards to CMFCRibbonBar::AddContextCategory (entry RVA 0xda650, mfc140u). That OpenMFC thunk exists but deliberately returns nullptr because context IDs, category visibility, and context-caption state are not modeled; making an ordinary tab instead would be incorrect.

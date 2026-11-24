@@ -1018,8 +1018,19 @@ protected:
 class CMFCRibbonBaseElement : public CObject {
     DECLARE_DYNAMIC(CMFCRibbonBaseElement)
 public:
+    enum RibbonImageType { RibbonImageLarge = 0, RibbonImageSmall = 1 };
+
     CMFCRibbonBaseElement();
     virtual ~CMFCRibbonBaseElement();
+
+    virtual void SetParentCategory(CMFCRibbonCategory* category);
+    virtual void SetParentRibbonBar(CMFCRibbonBar* bar);
+    virtual void SetOriginal(CMFCRibbonBaseElement* original);
+    virtual CSize GetImageSize(RibbonImageType type) const;
+    virtual void DrawImage(CDC* dc, RibbonImageType type, CRect bounds);
+    CMFCRibbonCategory* GetParentCategory() const;
+    CMFCRibbonBar* GetTopLevelRibbonBar() const;
+    CMFCRibbonBaseElement* GetOriginal() const;
 
     UINT GetID() const;
     void SetID(UINT nID);
@@ -1029,7 +1040,9 @@ public:
 protected:
     UINT m_nID;
     CString m_strText;
-    char _ribbonbaseelement_padding[32];
+    CMFCRibbonCategory* m_ribbonCategory = nullptr;
+    CMFCRibbonBar* m_ribbonBar = nullptr;
+    char _ribbonbaseelement_padding[16]{};
 };
 
 //=============================================================================
@@ -1043,8 +1056,23 @@ public:
     CMFCRibbonButton(UINT nID, const wchar_t* lpszText, HICON hIcon, BOOL bAlwaysShowDescription = FALSE, HICON hIconSmall = nullptr, BOOL bAutoDestroyIcon = FALSE, BOOL bAlphaBlendIcon = FALSE);
     virtual ~CMFCRibbonButton();
 
+    int GetImageIndex(BOOL large) const { return large ? m_largeImageIndex : m_smallImageIndex; }
+    void SetImageIndex(int index, BOOL large);
+    HICON GetIcon(BOOL large = TRUE) const { return large ? m_largeIcon : m_smallIcon; }
+    BOOL IsLargeImage() const;
+    void SetAlwaysLargeImage(BOOL large = TRUE) { m_alwaysLargeImage = large; }
+    virtual BOOL IsDrawTooltipImage() const { return TRUE; }
+    CSize GetImageSize(RibbonImageType type) const override;
+    void DrawImage(CDC* dc, RibbonImageType type, CRect bounds) override;
+
 protected:
-    char _ribbonbutton_padding[64];
+    int m_smallImageIndex = -1;
+    int m_largeImageIndex = -1;
+    HICON m_largeIcon = nullptr;
+    HICON m_smallIcon = nullptr;
+    BOOL m_ownsRibbonIcons = FALSE;
+    BOOL m_alwaysLargeImage = FALSE;
+    char _ribbonbutton_padding[32]{};
 };
 
 //=============================================================================
@@ -1077,6 +1105,14 @@ public:
     CMFCRibbonCategory(const wchar_t* lpszName = nullptr, UINT uiSmallImageResID = 0, UINT uiLargeImageResID = 0);
     virtual ~CMFCRibbonCategory();
 
+    void CommonInit(CMFCRibbonBar* bar, const wchar_t* name, UINT smallResource, UINT large, CSize smallSize, CSize largeSize);
+    void SetImageResources(UINT smallResource, UINT large, CSize smallSize, CSize largeSize);
+    CSize GetImageSize(BOOL large) const;
+    int GetImageCount(BOOL large) const;
+    virtual BOOL OnDrawImage(CDC* dc, CRect rect, CMFCRibbonBaseElement* element, BOOL large, int index, BOOL center);
+    void SetParentRibbonBar(CMFCRibbonBar* bar) { m_parentRibbonBar = bar; }
+    CMFCRibbonBar* GetParentRibbonBar() const;
+
     CMFCRibbonPanel* AddPanel(const wchar_t* lpszLabel, HICON hIcon, CRuntimeClass* pRTI = nullptr);
     void AddPanel(CMFCRibbonPanel* pPanel);
     int GetPanelCount() const;
@@ -1085,7 +1121,12 @@ public:
 
 protected:
     CString m_strName;
-    char _ribboncategory_padding[64];
+    HIMAGELIST m_smallRibbonImages = nullptr;
+    HIMAGELIST m_largeRibbonImages = nullptr;
+    CSize m_smallRibbonImageSize{16, 16};
+    CSize m_largeRibbonImageSize{32, 32};
+    CMFCRibbonBar* m_parentRibbonBar = nullptr;
+    char _ribboncategory_padding[24]{};
 };
 
 //=============================================================================
@@ -1098,7 +1139,7 @@ public:
     virtual ~CMFCRibbonBar();
 
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_RIBBON_BAR);
-    CMFCRibbonCategory* AddCategory(const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage, CSize sizeSmall, unsigned int uiAnimLargeImage, int nInsertAt = -1, CRuntimeClass* pRTI = nullptr);
+    CMFCRibbonCategory* AddCategory(const wchar_t* lpszName, unsigned int uiSmallImage, unsigned int uiLargeImage, CSize sizeSmall, CSize sizeLarge, int nInsertAt = -1, CRuntimeClass* pRTI = nullptr);
     BOOL AddCategory(CMFCRibbonCategory* pCategory);
     int GetCategoryCount() const;
     CMFCRibbonCategory* GetCategory(int nIndex) const;
