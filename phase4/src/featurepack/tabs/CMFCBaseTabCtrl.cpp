@@ -1809,6 +1809,9 @@ CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
     static_assert(offsetof(CMFCBaseTabCtrl, m_iEditedTab) == 0x220);
     static_assert(offsetof(CMFCBaseTabCtrl, m_pInPlaceEdit) == 0x228);
     static_assert(offsetof(CMFCBaseTabCtrl, m_bIsInPlaceEdit) == 0x230);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_closeButtonHighlighted) == 0x344);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_closeButtonPressed) == 0x348);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_closeButtonRect) == 0x34c);
 }
 
 CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {

@@ -1314,6 +1314,9 @@ public:
     BOOL EnableCustomToolTips(BOOL enable = TRUE);
     BOOL UsesCustomToolTips() const { return m_customToolTips; }
     BOOL OnNeedTipText(UINT id, NMHDR* header, LRESULT* result);
+    BOOL IsTabCloseButtonHighlighted() const { return m_closeButtonHighlighted; }
+    BOOL IsTabCloseButtonPressed() const { return m_closeButtonPressed; }
+    CRect GetTabCloseButton() const { return m_closeButtonRect; }
     BOOL SetImageList(UINT resource, int width = 15, COLORREF transparent = RGB(255, 0, 255));
     BOOL SetImageList(HIMAGELIST images);
     void ClearImageList();
@@ -1372,7 +1375,11 @@ protected:
     int m_iEditedTab = -1;
     CEdit* m_pInPlaceEdit = nullptr;
     BOOL m_bIsInPlaceEdit = FALSE;
-    char _baseTabCtrlTail[0x18c]{};
+    char _baseTabCtrlTail[0x110]{};
+    BOOL m_closeButtonHighlighted = FALSE;
+    BOOL m_closeButtonPressed = FALSE;
+    CRect m_closeButtonRect{};
+    char _baseTabCtrlCloseTail[0x64]{};
 };
 
 //=============================================================================
@@ -1470,6 +1477,13 @@ public:
 
     void SetTabMaxWidth(int width);
     void SetActiveTabBoldFont(BOOL bold);
+    void SetCloseButton(BOOL enable);
+    void EnableActiveTabCloseButton(BOOL enable = TRUE);
+    BOOL IsActiveTabCloseButton() const { return m_activeTabCloseButton; }
+    void SetDrawFrame(BOOL draw = TRUE) { m_drawFrame = draw; }
+    BOOL IsDrawFrame() const { return m_drawFrame; }
+    void SetFlatFrame(BOOL flat = TRUE, BOOL repaint = TRUE);
+    BOOL IsFlatFrame() const { return m_flatFrame; }
     CScrollBar* GetScrollBar();
     BOOL SynchronizeScrollBar(SCROLLINFO* info = nullptr);
     void HideActiveWindowHorzScrollBar();
@@ -1480,6 +1494,7 @@ public:
     void DrawResizeDragRect(const CRect& next, const CRect& previous);
     BOOL SetResizeCursor();
     void OnMouseMove(UINT flags, CPoint point);
+    void OnCancelMode();
     void OnLButtonUp(UINT flags, CPoint point);
     void OnHScroll(UINT code, UINT position, CScrollBar* source);
     LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
@@ -1505,7 +1520,15 @@ public:
     void OnSize(UINT type, int width, int height);
 
 protected:
-    char _mfctabctrl_scroll_prefix[0x4c]{};
+    char _mfctabctrl_scroll_prefix[0x18]{};
+    BOOL m_tabCloseButton = FALSE;
+    char _mfctabctrl_splitter_prefix[4]{};
+    BOOL m_flatFrame = TRUE;
+    char _mfctabctrl_frame_prefix[0xc]{};
+    BOOL m_drawFrame = TRUE;
+    char _mfctabctrl_close_prefix[8]{};
+    BOOL m_activeTabCloseButton = FALSE;
+    char _mfctabctrl_resize_flags[0xc]{};
     BOOL m_resizing = FALSE;
     char _mfctabctrl_resize_prefix[0x5c]{};
     CRect m_resizeGrip{};
@@ -1518,6 +1541,9 @@ protected:
 
 private:
     bool StartResize(CPoint point);
+    bool PressTabCloseButton(CPoint point);
+    void TrackTabCloseButton(CPoint point);
+    void CancelTabCloseButton();
 
 protected:
     DECLARE_MESSAGE_MAP()

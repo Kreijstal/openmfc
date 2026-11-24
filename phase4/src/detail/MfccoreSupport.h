@@ -357,8 +357,8 @@ struct TabCtrlState {
     BOOL tabSwapEnabled = TRUE;
     int tabBorderSize = 0;
     int tabsHeight = 0;
-    BOOL mdiCloseButton = FALSE;
-    BOOL mdiActiveCloseButton = FALSE;
+    BOOL closeButton = FALSE;
+    BOOL activeCloseButton = FALSE;
     BOOL autoColor = FALSE;
     BOOL documentsMenu = FALSE;
     std::vector<COLORREF> autoColors;
@@ -376,6 +376,8 @@ struct TabCtrlState {
     int sharedScrollDragOffset = 0;
     bool resizingSharedScrollbar = false;
     bool forwardingSharedScroll = false;
+    int closePressedTabId = -1;
+    bool closeButtonHot = false;
 };
 } } }
 

@@ -204,19 +204,11 @@ extern "C" void MS_ABI impl__DrawResizeDragRect_CMFCTabCtrl__MEAAXAEAVCRect__0_Z
 {
     if (pThis) pThis->DrawResizeDragRect(next, previous);
 }
-// Retail (0x18013c8e0) stores the flag at +0x3fc, then triggers a relayout/
-// redraw (vslot 0x318) unconditionally and a second redraw (vslot 0x458) when
-// the active tab index (+0x154) is valid. The flag member is not declared in
-// OpenMFC; the redraw side effect is kept.
 // Symbol: ?EnableActiveTabCloseButton@CMFCTabCtrl@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnableActiveTabCloseButton_CMFCTabCtrl__QEAAXH_Z(
-    CMFCTabCtrl* pThis, int bEnable)
+    CMFCTabCtrl* pThis, BOOL enable)
 {
-    (void)bEnable;
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the m_bActiveTabCloseButton
-    // flag (retail +0x3fc) has no declared member, so it is not stored.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
+    if (pThis) pThis->EnableActiveTabCloseButton(enable);
 }
 // Symbol: ?EnableInPlaceEdit@CMFCTabCtrl@@UEAAXH@Z
 extern "C" void MS_ABI impl__EnableInPlaceEdit_CMFCTabCtrl__UEAAXH_Z(CMFCTabCtrl* pThis, BOOL enable)
@@ -367,10 +359,7 @@ extern "C" void MS_ABI impl__MoveTab_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis, 
 // Symbol: ?OnCancelMode@CMFCTabCtrl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnCancelMode_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
 {
-    if (!pThis) return;
-    const HWND control = pThis->GetSafeHwnd();
-    pThis->StopResize(TRUE);
-    if (control && CWnd::FromHandlePermanent(control) == pThis) pThis->OnCancelMode();
+    if (pThis) pThis->OnCancelMode();
 }
 // Retail (0x18013ba70) first handles commands from its internal scrollbar
 // (+0x588) and documents-menu button (+0x10a8) by recomputing the scroll
@@ -511,6 +500,10 @@ extern "C" void MS_ABI impl__OnPaint_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
 static_assert(sizeof(CMFCTabCtrl) == 0x3d68);
 
 CMFCTabCtrl::CMFCTabCtrl() {
+    static_assert(offsetof(CMFCTabCtrl, m_tabCloseButton) == 0x3d8);
+    static_assert(offsetof(CMFCTabCtrl, m_flatFrame) == 0x3e0);
+    static_assert(offsetof(CMFCTabCtrl, m_drawFrame) == 0x3f0);
+    static_assert(offsetof(CMFCTabCtrl, m_activeTabCloseButton) == 0x3fc);
     static_assert(offsetof(CMFCTabCtrl, m_resizing) == 0x40c);
     static_assert(offsetof(CMFCTabCtrl, m_resizeGrip) == 0x46c);
     static_assert(offsetof(CMFCTabCtrl, m_resizeDrag) == 0x47c);
@@ -531,11 +524,12 @@ const AFX_MSGMAP* CMFCTabCtrl::GetMessageMap() const {
     return GetThisMessageMap();
 }
 
-BOOL CMFCTabCtrl::CreateTabs(int style, const RECT& rect, CWnd* parent, UINT id, int location, BOOL) {
+BOOL CMFCTabCtrl::CreateTabs(int style, const RECT& rect, CWnd* parent, UINT id, int location, BOOL closeButton) {
     if (m_hWnd || !parent || !parent->GetSafeHwnd()) return FALSE;
     SetLocation(location);
     if (!CMFCBaseTabCtrl::Create(WS_VISIBLE | WS_CLIPSIBLINGS, rect, parent, id)) return FALSE;
     SetTabStyleFlags(*this, style, true);
+    m_tabCloseButton = closeButton;
     if (auto* scrollbar = GetScrollBar()) {
         const RECT empty{};
         if (!scrollbar->Create(WS_CHILD | SBS_HORZ, empty, this, 0)) {
@@ -635,6 +629,83 @@ void CMFCTabCtrl::OnHScroll(UINT code, UINT position, CScrollBar* source) {
     }
 }
 
+void CMFCTabCtrl::SetCloseButton(BOOL enable) {
+    if (m_tabCloseButton == enable) return;
+    m_tabCloseButton = enable;
+    RefreshTabs();
+}
+
+void CMFCTabCtrl::EnableActiveTabCloseButton(BOOL enable) {
+    if (m_activeTabCloseButton == enable) return;
+    m_activeTabCloseButton = enable;
+    RefreshTabs();
+}
+
+void CMFCTabCtrl::SetFlatFrame(BOOL flat, BOOL repaint) {
+    if (m_flatFrame == flat) return;
+    m_flatFrame = flat;
+    if (repaint && m_hWnd) {
+        ::InvalidateRect(m_hWnd, nullptr, FALSE);
+        ::UpdateWindow(m_hWnd);
+    }
+}
+
+bool CMFCTabCtrl::PressTabCloseButton(CPoint point) {
+    const auto* current = FindTabCtrlState(this);
+    if (!current) return false;
+    const RECT bounds = TabCloseButtonBounds(*current);
+    if (!::PtInRect(&bounds, point)) return false;
+    const HWND control = m_hWnd;
+    const int id = current->tabs[current->activeTab].id;
+    ::SetCapture(control);
+    if (CWnd::FromHandlePermanent(control) != this || ::GetCapture() != control) return true;
+    auto& state = EnsureTabCtrlState(this);
+    state.closePressedTabId = id;
+    state.closeButtonHot = true;
+    m_closeButtonPressed = m_closeButtonHighlighted = m_activeTabCloseButton;
+    ::InvalidateRect(control, &bounds, FALSE);
+    return true;
+}
+
+void CMFCTabCtrl::TrackTabCloseButton(CPoint point) {
+    const auto* current = FindTabCtrlState(this);
+    if (!current) return;
+    const RECT bounds = TabCloseButtonBounds(*current);
+    const bool hot = ::PtInRect(&bounds, point) != FALSE;
+    if (current->closeButtonHot == hot) return;
+    auto& state = EnsureTabCtrlState(this);
+    state.closeButtonHot = hot;
+    m_closeButtonHighlighted = hot && m_activeTabCloseButton;
+    if (hot) {
+        TRACKMOUSEEVENT track{sizeof(track), TME_LEAVE, m_hWnd};
+        ::TrackMouseEvent(&track);
+    }
+    ::InvalidateRect(m_hWnd, &bounds, FALSE);
+}
+
+void CMFCTabCtrl::CancelTabCloseButton() {
+    const auto* current = FindTabCtrlState(this);
+    if (!current) return;
+    const bool pressed = current->closePressedTabId != -1;
+    if (!pressed && !current->closeButtonHot) return;
+    const RECT bounds = TabCloseButtonBounds(*current);
+    auto& state = EnsureTabCtrlState(this);
+    state.closePressedTabId = -1;
+    state.closeButtonHot = false;
+    m_closeButtonHighlighted = m_closeButtonPressed = FALSE;
+    const HWND control = m_hWnd;
+    ::InvalidateRect(control, &bounds, FALSE);
+    if (pressed && ::GetCapture() == control) ::ReleaseCapture();
+}
+
+void CMFCTabCtrl::OnCancelMode() {
+    const HWND control = m_hWnd;
+    CancelTabCloseButton();
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    StopResize(TRUE);
+    if (CWnd::FromHandlePermanent(control) == this) CMFCBaseTabCtrl::OnCancelMode();
+}
+
 void CMFCTabCtrl::SetResizeMode(ResizeMode mode) {
     const HWND control = m_hWnd;
     if (m_resizeMode != mode && m_resizing) {
@@ -682,7 +753,11 @@ bool CMFCTabCtrl::StartResize(CPoint point) {
 
 void CMFCTabCtrl::OnMouseMove(UINT, CPoint point) {
     POINT screen = point;
-    if (!m_resizing || !::ClientToScreen(m_hWnd, &screen)) return;
+    if (!m_resizing) {
+        TrackTabCloseButton(point);
+        return;
+    }
+    if (!::ClientToScreen(m_hWnd, &screen)) return;
     CRect next = m_resizeDrag;
     if (m_resizeMode == RESIZE_VERT) {
         const int width = next.Width();
@@ -697,8 +772,22 @@ void CMFCTabCtrl::OnMouseMove(UINT, CPoint point) {
     m_resizeDrag = next;
 }
 
-void CMFCTabCtrl::OnLButtonUp(UINT, CPoint) {
-    StopResize(FALSE);
+void CMFCTabCtrl::OnLButtonUp(UINT, CPoint point) {
+    if (m_resizing) {
+        StopResize(FALSE);
+        return;
+    }
+    const auto* state = FindTabCtrlState(this);
+    if (!state || state->closePressedTabId == -1) return;
+    const RECT bounds = TabCloseButtonBounds(*state);
+    HWND target = nullptr;
+    if (::PtInRect(&bounds, point) && state->tabs[state->activeTab].id == state->closePressedTabId) {
+        if (const auto* page = GetTabWnd(state->activeTab)) target = page->GetSafeHwnd();
+    }
+    const HWND control = m_hWnd;
+    CancelTabCloseButton();
+    if (target && CWnd::FromHandlePermanent(control) == this && ::IsWindow(target))
+        ::SendMessageW(target, WM_CLOSE, 0, 0);
 }
 
 void CMFCTabCtrl::StopResize(BOOL cancel) {
@@ -792,6 +881,21 @@ LRESULT CMFCTabCtrl::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
                 if (message != WM_CAPTURECHANGED && ::GetCapture() == control) ::ReleaseCapture();
                 if (message == WM_LBUTTONUP || CWnd::FromHandlePermanent(control) != this) return 0;
             }
+        }
+    }
+    if (message == WM_MOUSEMOVE) {
+        OnMouseMove(static_cast<UINT>(wParam), CPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)));
+    } else if (const auto* state = FindTabCtrlState(this)) {
+        if (message == WM_LBUTTONUP && state->closePressedTabId != -1) {
+            OnLButtonUp(static_cast<UINT>(wParam), CPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)));
+            return 0;
+        }
+        if (message == WM_MOUSELEAVE && state->closePressedTabId == -1) {
+            CancelTabCloseButton();
+        } else if (message == WM_CAPTURECHANGED || message == WM_CANCELMODE || message == WM_NCDESTROY) {
+            const HWND control = m_hWnd;
+            CancelTabCloseButton();
+            if (CWnd::FromHandlePermanent(control) != this) return 0;
         }
     }
     return CMFCBaseTabCtrl::WindowProc(message, wParam, lParam);
@@ -906,7 +1010,7 @@ bool HasOverflowedDocuments(const TabCtrlState& state) {
 }
 
 int TabStripEnd(const TabCtrlState& state) {
-    return state.mdiCloseButton && !state.mdiActiveCloseButton
+    return state.closeButton && !state.activeCloseButton
         ? state.strip.right - (std::min)(19, state.strip.Width()) : state.strip.right;
 }
 
@@ -925,8 +1029,8 @@ RECT DocumentsButtonBounds(const TabCtrlState& state) {
 
 RECT openmfc::detail::mfccore::TabCloseButtonBounds(const TabCtrlState& state) {
     if (state.activeTab < 0 || state.activeTab >= static_cast<int>(state.tabs.size())) return RECT{};
-    if (state.mdiActiveCloseButton) return TabCloseBounds(state.strip, state.tabs[state.activeTab].rect);
-    if (state.mdiCloseButton) return TabCloseBounds(state.strip, state.strip);
+    if (state.activeCloseButton) return TabCloseBounds(state.strip, state.tabs[state.activeTab].rect);
+    if (state.closeButton) return TabCloseBounds(state.strip, state.strip);
     return RECT{};
 }
 
@@ -935,6 +1039,8 @@ void CMFCTabCtrl::RecalcLayout() {
     auto& state = EnsureTabCtrlState(this);
     RECT client{};
     if (!::GetClientRect(m_hWnd, &client)) return;
+    state.closeButton = m_tabCloseButton;
+    state.activeCloseButton = m_activeTabCloseButton;
 
     m_resizeGrip.SetRectEmpty();
     constexpr LONG resizeSpace = 6;
@@ -1019,7 +1125,7 @@ void CMFCTabCtrl::RecalcLayout() {
             if (boldFont) ::SelectObject(dc, i == state.activeTab ? boldFont.get() : regularFont);
             ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
         }
-        const int closeWidth = state.mdiActiveCloseButton && i == state.activeTab ? 19 : 0;
+        const int closeWidth = state.activeCloseButton && i == state.activeTab ? 19 : 0;
         const int imageWidth = images.Size(tab).cx;
         const int padding = tab.iconOnly ? 12 : 20 + (imageWidth ? 4 : 0);
         fullWidths[i] = static_cast<int>((std::clamp)(
@@ -1116,6 +1222,12 @@ void CMFCTabCtrl::RecalcLayout() {
         if (tab.window && tab.window->GetSafeHwnd())
             windows.emplace_back(tab.window->GetSafeHwnd(), tab.visible && state.activeTab == index);
     }
+    const CRect close = m_activeTabCloseButton ? CRect(TabCloseButtonBounds(state)) : CRect{};
+    if (!::EqualRect(close, m_closeButtonRect)) state.closeButtonHot = false;
+    m_closeButtonRect = close;
+    m_closeButtonHighlighted = !close.IsRectEmpty() && state.closeButtonHot;
+    m_closeButtonPressed = !close.IsRectEmpty() && state.tabs[state.activeTab].id == state.closePressedTabId;
+
     TabControlFlag(*this, firstVisibleTabOffset) = (std::max)(0, firstDrawn);
     TabControlFlag(*this, hiddenDocumentsOffset) = documentsMenu && HasOverflowedDocuments(state);
     UpdateLabelTooltips(*this, state, fullWidths);
@@ -1204,6 +1316,15 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
     RECT client{};
     ::GetClientRect(m_hWnd, &client);
     ::FillRect(handle, &client, ::GetSysColorBrush(COLOR_BTNFACE));
+    if (m_drawFrame && !state->page.IsRectEmpty()) {
+        CRect pageFrame = state->page;
+        pageFrame.InflateRect(1, 1);
+        RECT frame{};
+        if (::IntersectRect(&frame, pageFrame, &client)) {
+            if (m_flatFrame) ::FrameRect(handle, &frame, ::GetSysColorBrush(COLOR_BTNSHADOW));
+            else ::DrawEdge(handle, &frame, EDGE_SUNKEN, BF_RECT);
+        }
+    }
     if (!m_resizeGrip.IsRectEmpty()) {
         RECT edge = *static_cast<const RECT*>(m_resizeGrip);
         if (m_resizeMode == RESIZE_VERT) edge.right = edge.left + 1;
@@ -1240,7 +1361,7 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
         ::SetTextColor(handle, tab.textColor != COLORREF(-1) ? tab.textColor
             : active ? GetActiveTabTextColor() : defaultText);
         text.DeflateRect(6, 0);
-        if (state->mdiActiveCloseButton && active) {
+        if (state->activeCloseButton && active) {
             const RECT close = TabCloseBounds(state->strip, tab.rect);
             if (!::IsRectEmpty(&close)) text.right = (std::min)(text.right, static_cast<int>(close.left - 1));
         }
@@ -1261,7 +1382,12 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
                 DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
     }
     RECT close = TabCloseButtonBounds(*state);
-    if (!::IsRectEmpty(&close)) ::DrawFrameControl(handle, &close, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
+    if (!::IsRectEmpty(&close)) {
+        UINT flags = DFCS_CAPTIONCLOSE;
+        if (!state->closeButtonHot) flags |= DFCS_FLAT;
+        else if (state->tabs[state->activeTab].id == state->closePressedTabId) flags |= DFCS_PUSHED;
+        ::DrawFrameControl(handle, &close, DFC_CAPTION, flags);
+    }
     RECT left = *static_cast<const RECT*>(state->scrollLeft);
     RECT right = *static_cast<const RECT*>(state->scrollRight);
     if (!::IsRectEmpty(&left)) {
@@ -1327,7 +1453,7 @@ void SelectTabAndFocus(CMFCTabCtrl& tabs, int index) {
 }
 
 void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
-    if (StartResize(point)) return;
+    if (StartResize(point) || PressTabCloseButton(point)) return;
     if (const auto* state = FindTabCtrlState(this)) {
         if (ScrollTabStrip(*this, *state, point)) return;
         const RECT documents = DocumentsButtonBounds(*state);
@@ -1335,11 +1461,6 @@ void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
             POINT anchor{documents.left, documents.bottom};
             ::ClientToScreen(m_hWnd, &anchor);
             OnShowTabDocumentsMenu(CPoint(anchor.x, anchor.y));
-            return;
-        }
-        const RECT close = TabCloseButtonBounds(*state);
-        if (::PtInRect(&close, point)) {
-            if (auto* page = GetTabWnd(state->activeTab)) ::SendMessageW(page->m_hWnd, WM_CLOSE, 0, 0);
             return;
         }
     }
@@ -1837,13 +1958,11 @@ extern "C" void MS_ABI impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(CMFCTabC
     if (pThis) pThis->SetActiveTabBoldFont(enable);
 }
 
-// STUB: Retail RVA 0x13d180 (mfc140 ANSI twin) only stores its argument at
-// +0x3f0, a field absent from the declared CMFCTabCtrl layout.
 // Symbol: ?SetDrawFrame@CMFCTabCtrl@@QEAAXH@Z
 extern "C" void MS_ABI impl__SetDrawFrame_CMFCTabCtrl__QEAAXH_Z(
-    CMFCTabCtrl* pThis, int bDrawFrame)
+    CMFCTabCtrl* pThis, BOOL draw)
 {
-    (void)pThis; (void)bDrawFrame;
+    if (pThis) pThis->SetDrawFrame(draw);
 }
 
 // Symbol: ?SetImageList@CMFCTabCtrl@@UEAAHIHK@Z

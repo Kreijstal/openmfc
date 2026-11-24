@@ -221,7 +221,6 @@ extern "C" void MS_ABI impl__SetTabBorderSize_CMFCBaseTabCtrl__UEAAXHH_Z(CMFCBas
 extern "C" void MS_ABI impl__SetLocation_CMFCBaseTabCtrl__UEAAXW4Location_1__Z(CMFCBaseTabCtrl* pThis, int location);
 extern "C" int MS_ABI impl__ModifyTabStyle_CMFCTabCtrl__QEAAHW4Style_1__Z(CMFCTabCtrl* pThis, int style);
 extern "C" void MS_ABI impl__EnableTabDocumentsMenu_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, int bEnable);
-extern "C" void MS_ABI impl__EnableActiveTabCloseButton_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, int bEnable);
 extern "C" void MS_ABI impl__HideNoTabs_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, int bHide);
 extern "C" void MS_ABI impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, int bBold);   // definition still carries a generated `(int)` list
 extern "C" int MS_ABI impl__SetActiveTab_CMFCTabCtrl__UEAAHH_Z(CMFCTabCtrl* pThis, int iTab);              // definition still carries a generated `(int)` list
@@ -1641,9 +1640,9 @@ extern "C" void MS_ABI impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl
     impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(pTab, TRUE);
     pTab->SetMDITab(TRUE);
     pTab->EnableTabSwap(params.m_bEnableTabSwap);
-    auto& state = openmfc::detail::mfccore::EnsureTabCtrlState(pTab);
-    state.mdiCloseButton = params.m_bTabCloseButton;
-    state.mdiActiveCloseButton = params.m_bActiveTabCloseButton;
+    pTab->SetCloseButton(params.m_bTabCloseButton);
+    pTab->EnableActiveTabCloseButton(params.m_bActiveTabCloseButton);
+    pTab->SetFlatFrame(params.m_bFlatFrame);
 }
 
 // Symbol: ?CalcWindowRect@CMDIClientAreaWnd@@MEAAXPEAUtagRECT@@I@Z
@@ -1883,7 +1882,6 @@ extern "C" void* MS_ABI impl__CreateTabGroup_CMDIClientAreaWnd__UEAAPEAVCMFCTabC
         }
         impl__ModifyTabStyle_CMFCTabCtrl__QEAAHW4Style_1__Z(static_cast<CMFCTabCtrl*>(pNew), params.m_style);
         impl__SetLocation_CMFCBaseTabCtrl__UEAAXW4Location_1__Z(AsBaseTab(pNew), params.m_tabLocation);
-        impl__EnableActiveTabCloseButton_CMFCTabCtrl__QEAAXH_Z(static_cast<CMFCTabCtrl*>(pNew), params.m_bTabCloseButton);
     }
     impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(pThis, pNew);
     if (self->m_bIsMDITabbedGroup)
