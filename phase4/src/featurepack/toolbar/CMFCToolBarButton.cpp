@@ -83,9 +83,9 @@ extern "C" void MS_ABI impl__SetImage_CMFCToolBarButton__UEAAXH_Z(void* pThis, i
 extern "C" void MS_ABI impl__ResetImageToDefault_CMFCToolBarButton__UEAAXXZ(void*) {
     /* base class: no-op (harvested from real mfc140u) */
 }
-// Stub: mfc140u data RVA 0x3b20c8 needs a 0x38-byte retail CList object; the local CList storage is not ABI-compatible.
 // Symbol: ?m_lstProtectedCommands@CMFCToolBarButton@@1V?$CList@II@@A
-extern "C" void* MS_ABI impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A = {};
+extern "C" CList<UINT, UINT> impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A;
+CList<UINT, UINT> impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A;
 
 // The OLE archive stores a runtime class followed by the button's Serialize data.
 CMFCToolBarButton* CMFCToolBarButton::CreateFromOleData(COleDataObject* pDataObject) {
@@ -559,6 +559,13 @@ BOOL CMFCToolBarButton::PrepareDrag(COleDataSource& source) {
     }
 }
 
+BOOL CMFCToolBarButton::IsEditable() const {
+    const UINT id = m_nID;
+    return id - 0xe110 > 0xf && id - 0xf000 > 0x1ef &&
+           static_cast<int>(id) < 0xff00 && id - 0xe210 > 0xf &&
+           impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A.Find(id) == nullptr;
+}
+
 // Symbol: ?PrepareDrag@CMFCToolBarButton@@UEAAHAEAVCOleDataSource@@@Z
 extern "C" BOOL MS_ABI impl__PrepareDrag_CMFCToolBarButton__UEAAHAEAVCOleDataSource___Z(
     CMFCToolBarButton* button, COleDataSource* source) {
@@ -575,9 +582,13 @@ extern "C" int MS_ABI impl__SetACCData_CMFCToolBarButton__UEAAHPEAVCWnd__AEAVCAc
     return 0;
 }
 
-// Stub: the mfc140u symbol map has no RVA for this export; its ANSI twin's body clears the global list and copies retail CList nodes (head +0x08, value +0x10, next +0x00). OpenMFC's CList layout/storage is incompatible.
 // Symbol: ?SetProtectedCommands@CMFCToolBarButton@@SAXAEBV?$CList@II@@@Z
 extern "C" void MS_ABI impl__SetProtectedCommands_CMFCToolBarButton__SAXAEBV__CList_II___Z(
-    const CList<UINT, UINT>* pCommands) {
-    (void)pCommands;
+    const CList<UINT, UINT>* commands) {
+    if (!commands) AfxThrowInvalidArgException();
+    auto& protectedCommands = impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A;
+    if (commands == &protectedCommands) return;
+    protectedCommands.RemoveAll();
+    for (auto position = commands->GetHeadPosition(); position != nullptr;)
+        protectedCommands.AddTail(commands->GetNext(position));
 }

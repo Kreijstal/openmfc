@@ -6,6 +6,7 @@
 
 extern "C" {
 extern BOOL impl__m_bCustomizeMode_CMFCToolBar__1HA;
+extern CMFCToolBarDropSource impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A;
 BOOL impl__OnDrop_CMFCToolBar__MEAAHPEAVCOleDataObject__KVCPoint___Z(
     CMFCToolBar*, COleDataObject*, DROPEFFECT, CPoint);
 DROPEFFECT impl__OnDragEnter_CMFCToolBar__MEAAKPEAVCOleDataObject__KVCPoint___Z(
@@ -51,8 +52,9 @@ DROPEFFECT CMFCToolBarDropTarget::OnDragOver(CWnd*, COleDataObject* data, DWORD 
 
 DROPEFFECT CMFCToolBarDropTarget::OnDropEx(CWnd*, COleDataObject* data, DROPEFFECT effect, DROPEFFECT, CPoint point) {
     if (!Accepts(data) || effect == DROPEFFECT_NONE) return DROPEFFECT_NONE;
-    return impl__OnDrop_CMFCToolBar__MEAAHPEAVCOleDataObject__KVCPoint___Z(m_pOwner, data, effect, point) ?
-        effect : DROPEFFECT_NONE;
+    const BOOL dropped = impl__OnDrop_CMFCToolBar__MEAAHPEAVCOleDataObject__KVCPoint___Z(m_pOwner, data, effect, point);
+    impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A.m_bDeleteOnDrop = FALSE;
+    return dropped ? effect : DROPEFFECT_NONE;
 }
 
 // Symbol: ??0CMFCToolBarDropTarget@@QEAA@XZ

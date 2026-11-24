@@ -56,20 +56,33 @@ BOOL COleDropSource::OnBeginDrag(CWnd* window) {
     m_bDragStarted=FALSE;m_dwButtonCancel=0;m_dwButtonDrop=0;
     if(::GetKeyState(VK_LBUTTON)<0) {m_dwButtonDrop|=MK_LBUTTON;m_dwButtonCancel|=MK_RBUTTON;}
     else if(::GetKeyState(VK_RBUTTON)<0) {m_dwButtonDrop|=MK_RBUTTON;m_dwButtonCancel|=MK_LBUTTON;}
-    ULONGLONG started=::GetTickCount64();
-    (void)CWnd::FromHandle(::SetCapture(window->m_hWnd));
-    while(!m_bDragStarted) {
-        if(CWnd::FromHandle(::GetCapture())!=window)break;
+    POINT cursor{};
+    if (!::GetCursorPos(&cursor)) return FALSE;
+    HWND capture = window ? window->GetSafeHwnd() : ::WindowFromPoint(cursor);
+    if (!capture || ::GetWindowThreadProcessId(capture, nullptr) != ::GetCurrentThreadId()) return FALSE;
+    ::SetCapture(capture);
+    const ULONGLONG started = ::GetTickCount64();
+    while (::GetCapture() == capture) {
         MSG message;
-        if(::PeekMessageW(&message,nullptr,WM_MOUSEFIRST,WM_MBUTTONDBLCLK,PM_REMOVE) ||
-           ::PeekMessageW(&message,nullptr,WM_KEYFIRST,WM_KEYLAST,PM_REMOVE)) {
-            if(message.message>WM_MOUSEMOVE && message.message<WM_RBUTTONDBLCLK && message.message!=WM_LBUTTONDBLCLK)break;
-            if(message.message==WM_KEYDOWN && message.wParam==VK_ESCAPE)break;
-            m_bDragStarted=!::PtInRect(reinterpret_cast<const RECT*>(&m_rectStartDrag),message.pt);
+        if (::PeekMessageW(&message, nullptr, WM_MOUSEFIRST, WM_MBUTTONDBLCLK, PM_REMOVE) ||
+            ::PeekMessageW(&message, nullptr, WM_KEYFIRST, WM_KEYLAST, PM_REMOVE)) {
+            if (message.message > WM_MOUSEMOVE && message.message < WM_RBUTTONDBLCLK &&
+                message.message != WM_LBUTTONDBLCLK) break;
+            if (message.message == WM_KEYDOWN && message.wParam == VK_ESCAPE) break;
+            if (!::PtInRect(reinterpret_cast<const RECT*>(&m_rectStartDrag), message.pt)) {
+                m_bDragStarted = TRUE;
+                break;
+            }
         }
-        if(::GetTickCount64()-started>nDragDelay)m_bDragStarted=TRUE;
+        const ULONGLONG elapsed = ::GetTickCount64() - started;
+        if (elapsed >= nDragDelay) {
+            m_bDragStarted = TRUE;
+            break;
+        }
+        ::MsgWaitForMultipleObjects(0, nullptr, FALSE, nDragDelay - static_cast<DWORD>(elapsed),
+                                    QS_MOUSE | QS_KEY);
     }
-    ::ReleaseCapture();
+    if (::GetCapture() == capture) ::ReleaseCapture();
     return m_bDragStarted;
 }
 const AFX_INTERFACEMAP* AFXAPI COleDropSource::GetThisInterfaceMap() {return &openmfc::detail::interfacemaps::g_imap_COleDropSource;}

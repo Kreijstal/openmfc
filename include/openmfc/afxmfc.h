@@ -461,6 +461,27 @@ static_assert(sizeof(CRecentDockSiteInfo) == 0x120, "CRecentDockSiteInfo retail 
 struct CMFCControlBarImpl {  // retail sizeof 16
     char _storage[16];
 };
+class CMFCToolBarDropSource : public COleDropSource {
+public:
+    CMFCToolBarDropSource();
+    ~CMFCToolBarDropSource() override;
+    SCODE QueryContinueDrag(BOOL escape, DWORD keys) override;
+    SCODE GiveFeedback(DROPEFFECT effect) override;
+    BOOL OnBeginDrag(CWnd* window) override;
+    bool DragReachedDrop() const { return m_bReleased != FALSE; }
+
+    BOOL m_bDeleteOnDrop;
+    BOOL m_bEscapePressed;
+    BOOL m_bDragStarted;
+    BOOL m_bReleased;  // Fits in the native alignment padding before the handles.
+    HCURSOR m_hcurDelete;
+    HCURSOR m_hcurMove;
+    HCURSOR m_hcurCopy;
+};
+static_assert(sizeof(CMFCToolBarDropSource) == 0x90 &&
+              offsetof(CMFCToolBarDropSource, m_bDeleteOnDrop) == 0x68 &&
+              offsetof(CMFCToolBarDropSource, m_hcurCopy) == 0x88, "native toolbar drop source");
+
 class CMFCToolBarDropTarget : public COleDropTarget {
 public:
     CMFCToolBarDropTarget();
@@ -720,7 +741,16 @@ public:
     virtual void OnDblClk(CWnd*) {}
     virtual BOOL CanBeStored() const { return TRUE; }
 
-    int OnDrawOnCustomizeList(CDC* dc, const CRect& bounds, BOOL selected);
+    virtual BOOL HaveHotBorder() const { return TRUE; }
+    virtual void OnCancelMode() {}
+    virtual void OnGlobalFontsChanged() {}
+    virtual BOOL IsEditable() const;
+    virtual BOOL OnContextHelp(CWnd*) { return FALSE; }
+    virtual BOOL OnCustomizeMenu(CMenu*) { return FALSE; }
+    virtual int OnDrawOnCustomizeList(CDC* dc, const CRect& bounds, BOOL selected);
+    virtual BOOL IsDroppedDown() const { return FALSE; }
+    virtual BOOL OnBeforeDrag() const { return TRUE; }
+    virtual BOOL OnBeforeDrop(CMFCToolBar*) { return TRUE; }
 
     int GetImage() const { return m_bUserButton ? m_iUserImage : m_iImage; }
     BOOL IsLocked() const { return m_bLocked; }

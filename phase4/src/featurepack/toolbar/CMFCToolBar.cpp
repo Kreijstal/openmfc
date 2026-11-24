@@ -274,27 +274,16 @@ extern "C" void  MS_ABI impl__RecalcLayout_CPane__UEAAXXZ(CPane* pThis);
 
 // Exports defined later in this file that the handlers below call.
 extern "C" void MS_ABI impl__SetHelpMode_CMFCToolBar__SAXH_Z(int bOn);
-extern "C" CToolBarDropSource_144Bytes impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A;
+extern "C" CMFCToolBarDropSource impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A;
+extern "C" BOOL impl__m_bAltCustomization_CMFCToolBar__1HA;
 
-// Two members of the static ?m_DropSource@CMFCToolBar@@1VCMFCToolBarDropSource@@A
-// (mfc140u 0x3c2510, a 144-byte blob here -- CMFCToolBarDropSource is not
-// declared in OpenMFC's headers).  The dynamic initialiser at RVA 0x1d60
-// (mfc140u) runs the COleDropSource ctor (0x25a350) on it, installs the
-// CMFCToolBarDropSource vftable (0x3178d8) and then stores a QWORD 1 at +0x68
-// and zeroes +0x70, +0x78 and +0x80..+0x8f, i.e. BOOL +0x68 = TRUE,
-// BOOL +0x6c = FALSE, BOOL +0x70 = FALSE.  OnDragEnter (0x152250) clears +0x68 and OnDragLeave
-// (0x152290) sets it; OnLButtonDown (0x150410) clears +0x70 before
-// COleDataSource::DoDragDrop and tests +0x70 and +0x6c afterwards.  That is the
-// afxtoolbar.h declaration order m_bDeleteOnDrop (TRUE by default),
-// m_bEscapePressed, m_bDragStarted; the names are taken from that header, the
-// offsets from the retail bodies.
 namespace {
-constexpr int kDropSourceDeleteOnDrop = 0x68;
-static_assert(kDropSourceDeleteOnDrop + 4 <= 144, "m_DropSource blob too small");
-inline void SetDropSourceDeleteOnDrop(int v)
-{
-    std::memcpy(impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A.data +
-                    kDropSourceDeleteOnDrop, &v, sizeof v);
+void RestoreNativeToolbarButtons(CMFCToolBar& toolbar);
+bool TryStartToolbarButtonDrag(CMFCToolBar& toolbar, CPoint point);
+bool ToolbarIsHorizontal(const CMFCToolBar& toolbar);
+
+void SetDropSourceDeleteOnDrop(BOOL value) {
+    impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A.m_bDeleteOnDrop = value;
 }
 
 // An unnamed CMFCToolBar* file-static of retail afxtoolbar.cpp (mfc140u
@@ -2632,6 +2621,38 @@ extern "C" void MS_ABI impl__RemoveAllButtons_CMFCToolBar__UEAAXXZ(CMFCToolBar* 
 
     pThis->m_pCustomizeBtn = nullptr;
 }
+namespace {
+bool RemoveLiveToolbarButton(CMFCToolBar& toolbar, ToolBarState& state, int index) {
+    const int count = static_cast<int>(state.buttons.size());
+    if (index < 0 || index >= count || (toolbar.m_pCustomizeBtn && index == count - 1)) return false;
+
+    const auto eraseAt = [&](int position) {
+        auto* button = state.buttons[position];
+        state.buttons.erase(state.buttons.begin() + position);
+        if (toolbar.m_pDragButton == button) toolbar.m_pDragButton = nullptr;
+        for (int* current : {&toolbar.m_iSelected, &toolbar.m_iButtonCapture, &toolbar.m_iHighlighted}) {
+            if (*current == position) *current = -1;
+            else if (*current > position) --*current;
+        }
+        if (button && state.ownedButtons.erase(button)) {
+            std::unique_ptr<CMFCToolBarButton> removed(button);
+            removed->OnCancelMode();
+        }
+    };
+    eraseAt(index);
+    const auto isSeparator = [&](int position) {
+        const auto* button = state.buttons[position];
+        return button && (button->m_nStyle & TBSTYLE_SEP) != 0;
+    };
+    int tail = static_cast<int>(state.buttons.size()) - 1;
+    if (tail >= 0 && toolbar.m_pCustomizeBtn && state.buttons[tail] == toolbar.m_pCustomizeBtn) --tail;
+    while (tail > 0 && isSeparator(tail)) eraseAt(tail--);
+    if (index > 0 && index < static_cast<int>(state.buttons.size()) &&
+        isSeparator(index - 1) && isSeparator(index))
+        eraseAt(index);
+    return true;
+}
+}
 // Retail (0x18014ecf0):
 //     if (iIndex < 0 || iIndex >= m_Buttons.GetCount()) return FALSE;
 //     if (iIndex == count-1 && m_pCustomizeBtn) return FALSE;
@@ -2642,12 +2663,20 @@ extern "C" void MS_ABI impl__RemoveAllButtons_CMFCToolBar__UEAAXXZ(CMFCToolBar* 
 //     remove trailing separator buttons;
 //     RebuildAccelerationKeys();
 //     return TRUE;
-// As with RemoveAllButtons, OpenMFC's live buttons are side-table backed, so
-// this operates on the (normally empty) compatibility CObList.
+// The live side table and the legacy CObList each retain their ownership rules.
 // Symbol: ?RemoveButton@CMFCToolBar@@UEAAHH@Z
 extern "C" int MS_ABI impl__RemoveButton_CMFCToolBar__UEAAHH_Z(CMFCToolBar* pThis, int iIndex)
 {
     if (!pThis) return FALSE;
+
+    const auto it = g_toolBarStates.find(pThis);
+    if (it != g_toolBarStates.end() && !it->second.buttons.empty()) {
+        if (!RemoveLiveToolbarButton(*pThis, it->second, iIndex)) return FALSE;
+        RestoreNativeToolbarButtons(*pThis);
+        impl__OnChangeHot_CMFCToolBar__UEAAXH_Z(pThis, -1);
+        impl__RebuildAccelerationKeys_CMFCToolBar__IEAAXXZ(pThis);
+        return TRUE;
+    }
 
     const INT_PTR nCount = pThis->m_Buttons.GetCount();
     if (iIndex < 0 || iIndex >= nCount) return FALSE;
@@ -2698,8 +2727,6 @@ extern "C" int MS_ABI impl__RemoveButton_CMFCToolBar__UEAAHH_Z(CMFCToolBar* pThi
 
     impl__RebuildAccelerationKeys_CMFCToolBar__IEAAXXZ(pThis);
 
-    // TODO(clean-room): side-table divergence (see RemoveAllButtons) -- when
-    // m_Buttons is empty this returns FALSE without touching the side table.
     return TRUE;
 }
 // Retail (0x18015b480): scans m_OrigResetButtons (0x11f8) for the button whose
@@ -2841,29 +2868,6 @@ constexpr CMap_IIHH_56Bytes MakeDefaultImagesInitialState()
 // Symbol: ?m_DefaultImages@CMFCToolBar@@1V?$CMap@IIHH@@A
 extern "C" CMap_IIHH_56Bytes impl__m_DefaultImages_CMFCToolBar__1V__CMap_IIHH__A =
     MakeDefaultImagesInitialState();
-// The retail dynamic initialiser for this object (RVA 0x1d60, mfc140u) runs
-// the COleDropSource constructor (0x25a350) on it, installs the
-// CMFCToolBarDropSource vftable (0x3178d8), stores a QWORD 1 at +0x68 and
-// zeroes +0x70..+0x8f (a DWORD, a QWORD and a 16-byte store; the object ends
-// at +0x90, where ?m_Images@ begins) -- i.e. m_bDeleteOnDrop (+0x68) starts TRUE and
-// m_bEscapePressed (+0x6c) / m_bDragStarted (+0x70) start FALSE (see the
-// notes near the top of this file for how those offsets are read by
-// OnDragEnter / OnDragLeave / OnLButtonDown).  The constant initialiser below
-// reproduces that member state; the COleDropSource base (its vfptr and
-// refcount) is not reproduced because CMFCToolBarDropSource is not declared in
-// OpenMFC's headers and nothing in this tree hands the object to
-// DoDragDrop.
-namespace {
-constexpr CToolBarDropSource_144Bytes MakeDropSourceInitialState()
-{
-    CToolBarDropSource_144Bytes s = {};
-    s.data[kDropSourceDeleteOnDrop] = 1;   // BOOL m_bDeleteOnDrop = TRUE (little-endian low byte)
-    return s;
-}
-} // namespace
-// Symbol: ?m_DropSource@CMFCToolBar@@1VCMFCToolBarDropSource@@A
-extern "C" CToolBarDropSource_144Bytes impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A =
-    MakeDropSourceInitialState();
 // The eight CMFCToolBarImages statics below are shared with other CMFCToolBar
 // code through their exported symbols, so they keep plain (non-static)
 // linkage; `extern "C"` plus an initializer in one declaration matches the
@@ -3623,6 +3627,7 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
         return TRUE;
     } else if (message == WM_LBUTTONDOWN) {
         const POINT point{static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp))};
+        if (TryStartToolbarButtonDrag(*toolbar, CPoint(point))) return 0;
         for (int i = 0; i < toolbar->GetCount(); ++i) {
             auto* button = toolbar->GetButton(i);
             if (!button || !button->m_rect.PtInRect(point)) continue;
@@ -3686,6 +3691,7 @@ CMFCToolBar::CMFCToolBar() {
     m_bShowHotBorder = TRUE;
 }
 CMFCToolBar::~CMFCToolBar() {
+    if (impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA == this) impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA = nullptr;
     m_DropTarget.Revoke();
     if (m_hWnd) CloseToolbarMenus(*this);
     if (m_hWnd) ::RemoveWindowSubclass(m_hWnd, FeatureToolbarPaintSubclass, reinterpret_cast<UINT_PTR>(this));
@@ -4115,42 +4121,31 @@ extern "C" void MS_ABI impl__AddCommandUsage_CMFCToolBar__SAXI_Z(unsigned int ui
         impl__m_UsageCount_CMFCToolBar__1VCMFCCmdUsageCount__A, uiCmd);
 }
 
-// Retail (0x180155fd0), transcribed but NOT implemented -- see below.
-//     iIndex = ButtonToIndex(pButton);
-//     if (iIndex <= 0) return;                       // nothing before button 0
-//     if (GetCurrentAlignment() & (CBRS_ALIGN_TOP|CBRS_ALIGN_BOTTOM))  // 0xa000
-//          nDelta = ptDrop.x - ptStart.x;            // horizontal bar
-//     else nDelta = ptDrop.y - ptStart.y;
-//     if (::abs(nDelta) < 6) return;
-//     pPrev = GetButton(iIndex - 1);
-//     if (nDelta > 0) {
-//         if (pPrev->m_nStyle & TBBS_SEPARATOR) return;      // already there
-//         InsertSeparator(iIndex);                           // vslot 0x6a0
-//     } else {
-//         if (!(pPrev->m_nStyle & TBBS_SEPARATOR)) return;
-//         if (pPrev->m_bVisible) RemoveButton(iIndex - 1);    // vslot 0x6a8
-//     }
-//     AdjustLayout();                                        // vslot 0x428
-//     m_iSelected = -1;
-//     ::RedrawWindow(m_hWnd, NULL, NULL, RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW|
-//                                        RDW_ALLCHILDREN|RDW_FRAME);  // 0x505
-// Vtable slots named from the retail CMFCToolBar vtable at 0x1803157c8
-// (0x338 -> CBasePane::GetCurrentAlignment, 0x6a0 -> InsertSeparator,
-//  0x6a8 -> RemoveButton, 0x428 -> AdjustLayout).
-//
-// Left a stub deliberately: InsertSeparator (now implemented below) inserts
-// into the mfccore.cpp side table that GetCount()/GetButton() read, while
-// RemoveButton above still operates on the m_Buttons CObList, so a
-// transcription would create separators during a customize drag that the
-// remove branch could never find again -- an asymmetry that is worse than
-// doing nothing until the two storages are unified.
+extern "C" int MS_ABI impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(
+    const CMFCToolBar*, const CMFCToolBarButton*);
+extern "C" int MS_ABI impl__InsertSeparator_CMFCToolBar__UEAAH_J_Z(CMFCToolBar*, __int64);
+
 // Symbol: ?AddRemoveSeparator@CMFCToolBar@@MEAAXPEBVCMFCToolBarButton@@AEBVCPoint@@1@Z
 extern "C" void MS_ABI impl__AddRemoveSeparator_CMFCToolBar__MEAAXPEBVCMFCToolBarButton__AEBVCPoint__1_Z(
-    CMFCToolBar* pThis, const CMFCToolBarButton* pButton,
-    const CPoint* ptStart, const CPoint* ptDrop)
+    CMFCToolBar* toolbar, const CMFCToolBarButton* button, const CPoint* start, const CPoint* drop)
 {
-    (void)pThis; (void)pButton; (void)ptStart; (void)ptDrop;
-    // TODO(clean-room): not implemented -- needs a working InsertSeparator.
+    if (!toolbar || !button || !start || !drop) return;
+    const int index = impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(toolbar, button);
+    if (index <= 0) return;
+
+    const int delta = ToolbarIsHorizontal(*toolbar) ? drop->x - start->x : drop->y - start->y;
+    const auto* previous = toolbar->GetButton(index - 1);
+    if (!previous || (delta > -6 && delta < 6)) return;
+    const bool separator = (previous->m_nStyle & TBSTYLE_SEP) != 0;
+    if (delta > 0) {
+        if (separator || impl__InsertSeparator_CMFCToolBar__UEAAH_J_Z(toolbar, index) < 0) return;
+        RestoreNativeToolbarButtons(*toolbar);
+    } else if (!separator || !previous->IsVisible() ||
+               !impl__RemoveButton_CMFCToolBar__UEAAHH_Z(toolbar, index - 1)) {
+        return;
+    }
+    toolbar->m_iSelected = -1;
+    ::RedrawWindow(toolbar->GetSafeHwnd(), nullptr, nullptr, 0x505);
 }
 
 // Retail (0x1801569b0), fully transcribed: it builds a throwaway CMFCToolBar on
@@ -5421,11 +5416,8 @@ extern "C" int MS_ABI impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(CMFCToolBar* p
     const int nCount = pThis->GetCount();
     for (int i = 0; i < nCount; ++i) {
         const CMFCToolBarButton* pButton = pThis->GetButton(i);
-        if (!pButton) continue;
-        RECT rc = { pButton->m_rect.left, pButton->m_rect.top,
-                    pButton->m_rect.right, pButton->m_rect.bottom };
-        POINT pt = { point.x, point.y };
-        if (::PtInRect(&rc, pt) && !pButton->m_bIsHidden) {
+        if (!pButton || pButton->IsHidden() || !pButton->IsVisible()) continue;
+        if (DropButtonRect(*pThis, *pButton, i).PtInRect(point)) {
             return (pButton->m_nStyle & 0x1) ? -1 : i;
         }
     }
@@ -5605,22 +5597,15 @@ extern "C" int MS_ABI impl__InsertResetStateButton_CMFCToolBar__IEAAHAEBVCMFCToo
 // Symbol: ?InsertSeparator@CMFCToolBar@@UEAAH_J@Z
 extern "C" int MS_ABI impl__InsertSeparator_CMFCToolBar__UEAAH_J_Z(CMFCToolBar* pThis, __int64 iInsertAt) {
     if (!pThis) return -1;
-    if (pThis->GetCount() == 0 || iInsertAt == 0) return -1;
+    if (pThis->GetCount() == 0 || iInsertAt == 0 || iInsertAt < -1 || iInsertAt > INT_MAX) return -1;
 
-    // `new CMFCToolBarButton()` as retail does it: raw allocation of the
-    // 0x88-byte object plus the exported default ctor (featurepack/toolbar/
-    // Thunks.cpp), since the C++ ctor is not linkable from this unit.
-    void* pMem = ::operator new(sizeof(CMFCToolBarButton), std::nothrow);
-    if (!pMem) return -1;
-    CMFCToolBarButton* pSep = static_cast<CMFCToolBarButton*>(impl___0CMFCToolBarButton__QEAA_XZ(pMem));
-    pSep->m_nStyle = 0x1;   // TBBS_SEPARATOR
-
-    const int iIndex = impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(
-        pThis, pSep, static_cast<int>(iInsertAt));
-    if (iIndex == -1) {
-        delete pSep;
-    }
-    return iIndex;
+    std::unique_ptr<CMFCToolBarButton> separator(new (std::nothrow) CMFCToolBarButton());
+    if (!separator) return -1;
+    separator->m_nStyle = TBSTYLE_SEP;
+    const int index = impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(
+        pThis, separator.get(), static_cast<int>(iInsertAt));
+    if (index >= 0) separator.release();
+    return index;
 }
 
 // Retail (RVA 0x152290, mfc140u), fully transcribed:
@@ -5770,17 +5755,7 @@ extern "C" unsigned long MS_ABI impl__OnDragOver_CMFCToolBar__MEAAKPEAVCOleDataO
 // (0x1802c72d8 = USER32!GetParent, 0x2c7130 = RedrawWindow; the retail
 // vtable at 0x1803157c8 names 0x7b8 OnDragLeave, 0x808 CreateDroppedButton,
 // 0x838 AddRemoveSeparator, 0x430 CPane::RecalcLayout, 0x428 AdjustLayout.)
-// Implemented up to CreateDroppedButton with the retail control flow; the
-// button vslots 0x100 (OnBeforeDrop, base returns TRUE -- 0x3a60) and 0x110
-// (SaveBarState, base is a bare `ret` -- 0x27d0) are assumed to be the base
-// bodies; AddRemoveSeparator is this file's export (a stub today) and the
-// grandparent's RecalcLayout goes through ?RecalcLayout@CPane@@UEAAXXZ in
-// featurepack/docking/Thunks.cpp, which dispatches virtually on the C++
-// object (retail slot 0x430 of the CMFCToolBar vftable is CPane::RecalcLayout
-// itself, 0x9fde0). The button storage split is described under
-// InsertButton: RemoveButton works on the m_Buttons CObList while
-// InsertButton / GetCount work on the side table, so the move branch's
-// RemoveButton would not find a side-table button.
+// The live toolbar owns the original and the restored button until a move succeeds.
 // Symbol: ?OnDrop@CMFCToolBar@@MEAAHPEAVCOleDataObject@@KVCPoint@@@Z
 extern "C" int MS_ABI impl__OnDrop_CMFCToolBar__MEAAHPEAVCOleDataObject__KVCPoint___Z(
     CMFCToolBar* pThis, COleDataObject* pDataObject, unsigned long dropEffect, CPoint point) {
@@ -5803,28 +5778,26 @@ extern "C" int MS_ABI impl__OnDrop_CMFCToolBar__MEAAHPEAVCOleDataObject__KVCPoin
             pThis, pDataObject);
     if (!pButton) return FALSE;
 
-    // TODO(clean-room): pButton->OnBeforeDrop(this) (vslot 0x100) is not
-    // dispatched; the base body returns TRUE.
-    pButton->m_bDragFromCollection = FALSE;
+    std::unique_ptr<CMFCToolBarButton> dropped(pButton);
+    if (!dropped->OnBeforeDrop(pThis)) return FALSE;
+    dropped->m_bDragFromCollection = FALSE;
 
-    if (pDragButton != nullptr && dropEffect != DROPEFFECT_COPY) {
-        const int iIndex = impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(pThis, pDragButton);
-        if (iDragIndex == iIndex || iDragIndex == iIndex + 1) {
-            CPoint ptStart = pThis->m_ptStartDrag;
-            impl__AddRemoveSeparator_CMFCToolBar__MEAAXPEBVCMFCToolBarButton__AEBVCPoint__1_Z(
-                pThis, pDragButton, &ptStart, &point);
-            delete pButton;
-            return TRUE;
-        }
-        impl__RemoveButton_CMFCToolBar__UEAAHH_Z(pThis, iIndex);
-        if (iDragIndex > iIndex) iDragIndex--;
-        const int nCount = pThis->GetCount();
-        if (iDragIndex > nCount) iDragIndex = nCount;
+    const int sourceIndex = pDragButton && dropEffect != DROPEFFECT_COPY ?
+        impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(pThis, pDragButton) : -1;
+    if (sourceIndex >= 0 && (iDragIndex == sourceIndex || iDragIndex == sourceIndex + 1)) {
+        impl__AddRemoveSeparator_CMFCToolBar__MEAAXPEBVCMFCToolBarButton__AEBVCPoint__1_Z(
+            pThis, pDragButton, &pThis->m_ptStartDrag, &point);
+        return TRUE;
     }
 
-    if (impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(pThis, pButton, iDragIndex) == -1) {
-        delete pButton;
+    // Insert first so a rejected insertion leaves the original button available.
+    if (impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(pThis, dropped.get(), iDragIndex) < 0)
         return FALSE;
+    dropped.release();
+    if (sourceIndex >= 0) {
+        const int originalIndex = impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(pThis, pDragButton);
+        if (auto it = g_toolBarStates.find(pThis); it != g_toolBarStates.end())
+            RemoveLiveToolbarButton(*pThis, it->second, originalIndex);
     }
 
     RestoreNativeToolbarButtons(*pThis);
@@ -6104,56 +6077,83 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCToolBar__IEAAXIVCPoint___Z(
     }
 }
 
-// Retail (RVA 0x150410, mfc140u; the WM_LBUTTONDOWN entry of the message map)
-// is ~330 instructions.  Decoded structure, NOT implemented:
-//     int iHit = HitTest(point);                                   // vslot 0x730
-//     if (m_pSelToolbar != this && m_bCustomizeMode) {             // 0x3be338 / 0x3be35c
-//         swap m_pSelToolbar to this, clearing the old one's m_iSelected
-//         via InvalidateButton (0x14fe50);
-//     }
-//     if (!m_bCustomizeMode && parent IsKindOf(CPane) (0x2f5918)) parent->SetFocus();  // 0x2a9b60, see OnRButtonDown
-//     if (iHit < 0) {                    // background click
-//         m_iButtonCapture = -1; drop the customize selection; OnChangeHot(-1);
-//         if (vslot 0x3a8) ::SetCursor(afxGlobalData+0x170);
-//         CPane::OnLButtonDown(nFlags, point) (0x9f810); return;
-//     }
-//     pButton = GetButton(iHit); vslot 0x4c8 (this, iHit);   // AccNotifyObjectFocusEvent
-//     m_bAltCustomizeMode = FALSE;
-//     if (m_bAltCustomization && vslot 0x850 && !m_bCustomizeMode &&
-//         ::GetAsyncKeyState(VK_MENU) < 0) { enter alt-customize: m_iSelected = iHit,
-//         m_iHighlighted = -1, m_pSelToolbar = this; }
-//     if ((m_bCustomizeMode || m_bAltCustomizeMode) && !m_bLocked && !m_bDisableCustomize) {
-//         // customize drag: m_pDragButton = pButton, vslots 0xd0 / 0x88 / 0xb0 / 0xf8
-//         // on the button, stretch-handle test (labs(x - rect.right) <= 6),
-//         // COleDataSource (0x252f90) + pButton->PrepareDrag (vslot 0x28) +
-//         // ShowCommandMessageString + COleDataSource::DoDragDrop (0x25a690)
-//         // with &m_DropSource, then RemoveButton / AdjustLocations /
-//         // RedrawWindow / vslot 0x5b8 / parent CMFCTabCtrl RecalcLayout,
-//         // finally OnChangeHot and the m_DropSource flags at +0x6c/+0x70.
-//     } else {
-//         m_iButtonCapture = iHit; 0x151e40(this, iHit);
-//         if ((pButton->m_nStyle & 0x40000) && !IsKindOf(0x3b11d8)) { m_iButtonCapture = -1; return; }
-//         pButton->m_nStyle |= 0x20000;  InvalidateButton; UpdateWindow;
-//         ShowCommandMessageString(pButton->m_nID);               // vslot 0x840
-//         BOOL bWasDropped = pButton->vslot 0xf0;
-//         if (pButton->OnClick(this, FALSE)) {                    // vslot 0x50
-//             (if the button is still in m_Buttons) pButton->m_nStyle &= ~0x20000;
-//             m_iButtonCapture = m_iHighlighted = -1; OnChangeHot(-1);
-//             InvalidateButton; UpdateWindow;
-//             if (dropped state changed) NotifyWinEvent(EVENT_OBJECT_STATECHANGE / EVENT_OBJECT_FOCUS ...)
-//         } else m_pWndLastCapture = CWnd::FromHandle(::SetCapture(m_hWnd));
-//     }
-//     if (m_bAltCustomizeMode) { m_bAltCustomizeMode = FALSE; m_pSelToolbar = NULL;
-//                                0x1527e0(0); RedrawWindow(0x505); }
-// Left a stub: every live branch ends in a CMFCToolBarButton virtual
-// (OnClick, PrepareDrag, CanBeStretched, IsDroppedDown ...) that OpenMFC
-// cannot dispatch (no button vtable), or in COleDataSource::DoDragDrop; a
-// half transcription would swallow the click without ever firing the command.
+namespace {
+bool TryStartToolbarButtonDrag(CMFCToolBar& toolbar, CPoint point) {
+    const bool alternate = !impl__m_bCustomizeMode_CMFCToolBar__1HA &&
+        impl__m_bAltCustomization_CMFCToolBar__1HA && (::GetKeyState(VK_MENU) < 0);
+    if ((!impl__m_bCustomizeMode_CMFCToolBar__1HA && !alternate) ||
+        toolbar.m_bLocked || toolbar.m_bDisableCustomize) return false;
+
+    const HWND window = toolbar.GetSafeHwnd();
+    if (!window) return false;
+    const int index = impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(&toolbar, point);
+    auto* button = toolbar.GetButton(index);
+    if (!button) {
+        toolbar.m_iSelected = -1;
+        return false;
+    }
+    if (toolbar.m_pDragButton || !button->IsEditable()) return true;
+    toolbar.m_iSelected = index;
+    impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA = &toolbar;
+
+    if (!button->CanBeStored() || !button->OnBeforeDrag()) return true;
+    auto& source = impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A;
+    source.m_bDeleteOnDrop = TRUE;
+    source.m_bDragStarted = FALSE;
+    source.m_bReleased = FALSE;
+    source.m_bEscapePressed = FALSE;
+    toolbar.m_pDragButton = button;
+    toolbar.m_ptStartDrag = point;
+
+    const auto bounds = DropButtonRect(toolbar, *button, index);
+    RECT start = *static_cast<const RECT*>(bounds);
+    ::MapWindowPoints(window, nullptr, reinterpret_cast<POINT*>(&start), 2);
+    if (alternate) {
+        impl__m_bCustomizeMode_CMFCToolBar__1HA = TRUE;
+        impl__m_bAltCustomizeMode_CMFCToolBar__1HA = TRUE;
+    }
+
+    DROPEFFECT effect = DROPEFFECT_NONE;
+    try {
+        COleDataSource data;
+        if (button->PrepareDrag(data))
+            effect = data.DoDragDrop(DROPEFFECT_COPY | DROPEFFECT_MOVE, &start, &source);
+    } catch (CException* error) {
+        error->Delete();
+    }
+    if (alternate) {
+        impl__m_bCustomizeMode_CMFCToolBar__1HA = FALSE;
+        impl__m_bAltCustomizeMode_CMFCToolBar__1HA = FALSE;
+        impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA = nullptr;
+    }
+    // The OLE message loop can destroy the toolbar or consume an in-place move.
+    if (CWnd::FromHandlePermanent(window) != &toolbar) {
+        if (impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA == &toolbar)
+            impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA = nullptr;
+        return true;
+    }
+
+    if (toolbar.m_pDragButton == button) {
+        toolbar.m_pDragButton = nullptr;
+        POINT cursor{};
+        const bool removedFromToolbar = effect == DROPEFFECT_NONE && source.m_bDeleteOnDrop &&
+            source.DragReachedDrop() && !source.m_bEscapePressed &&
+            ::GetCursorPos(&cursor) && !::PtInRect(&start, cursor);
+        if (effect == DROPEFFECT_MOVE || removedFromToolbar) {
+            const int sourceIndex = impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(&toolbar, button);
+            if (sourceIndex >= 0) impl__RemoveButton_CMFCToolBar__UEAAHH_Z(&toolbar, sourceIndex);
+        }
+    }
+    toolbar.m_ptStartDrag = CPoint(-1, -1);
+    ::RedrawWindow(window, nullptr, nullptr, 0x505);
+    return true;
+}
+}
+
 // Symbol: ?OnLButtonDown@CMFCToolBar@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCToolBar__IEAAXIVCPoint___Z(
-    CMFCToolBar* pThis, unsigned int nFlags, CPoint point) {
-    (void)pThis; (void)nFlags; (void)point;
-    // TODO(clean-room): not transcribed -- see the decoding above.
+    CMFCToolBar* toolbar, unsigned int, CPoint point) {
+    if (toolbar) TryStartToolbarButtonDrag(*toolbar, point);
 }
 
 // Retail (RVA 0x151260, mfc140u; the WM_LBUTTONUP entry of the message map)

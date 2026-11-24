@@ -16,17 +16,9 @@ using namespace openmfc::detail::mfcfeature5impl;
 // the observable side effects (member writes, region creation, WM_COMMAND
 // posts, VARIANT results) and marks the gaps with `// TODO(clean-room)`.
 //
-// The ten DATA exports (CMFCToolBar's static image lists plus the drop source
-// and the default-command map) are defined at the top of this file with
-// `extern "C"` storage; the `// Symbol:` comments exclude them from the
-// auto-generated stubs.  The eight CMFCToolBarImages statics use the modeled
-// 408-byte type; m_DefaultImages (retail CMap<UINT,UINT,int,int>, 56 bytes)
-// and m_DropSource (retail CMFCToolBarDropSource, 144 bytes) are opaque local
-// structs sized to the harvested retail layout because those classes are not
-// declared in the clean-room headers.  UpdateImagesColor drives
-// OnSysColorChange over 7 of the 8 statics (m_DisabledImages is skipped in
-// retail) plus all 8 *_Locked lists.
-
+// The toolbar image lists and default-command map are defined in CMFCToolBar.cpp.
+// The image lists use the modeled 408-byte structure. The command map keeps
+// the retail 56-byte layout.
 #include "openmfc/afxmfc.h"
 
 #include <cstdint>
@@ -63,20 +55,15 @@ extern "C" void MS_ABI impl__OnSysColorChange_CMFCToolBarImages__QEAAXXZ(CMFCToo
 //=============================================================================
 // Retail sizes harvested from the .data section of mfc140u.dll:
 //   m_DefaultImages (CMap<UINT,UINT,int,int>) = 56 bytes  (0x3b1f90)
-//   m_DropSource     (CMFCToolBarDropSource)  = 144 bytes (0x3c2510)
 //   eight CMFCToolBarImages (408 bytes each)  = 0x3c25a0..0x3c3100
 // The OpenMFC CMap<UINT,UINT,int,int> template is 40 bytes (no CObject base),
 // so m_DefaultImages uses an opaque 56-byte blob to keep the exported object
-// at retail size; CMFCToolBarDropSource is not declared in the clean-room
-// headers, so m_DropSource uses a local 144-byte blob.
+// at retail size.
 
 struct alignas(8) CMap_IIHH_56Bytes {
     unsigned char data[56];
 };
 
-struct alignas(8) CToolBarDropSource_144Bytes {
-    unsigned char data[144];
-};
 
 
 
