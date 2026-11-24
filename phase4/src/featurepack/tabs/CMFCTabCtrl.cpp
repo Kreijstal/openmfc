@@ -628,12 +628,13 @@ RECT TabCloseBounds(const CRect& strip, const CRect& area) {
     return RECT{area.right - size - 2, top, area.right - 2, top + size};
 }
 
-RECT MDICloseBounds(const TabCtrlState& state) {
+}
+
+RECT openmfc::detail::mfccore::TabCloseButtonBounds(const TabCtrlState& state) {
     if (state.activeTab < 0 || state.activeTab >= static_cast<int>(state.tabs.size())) return RECT{};
     if (state.mdiActiveCloseButton) return TabCloseBounds(state.strip, state.tabs[state.activeTab].rect);
     if (state.mdiCloseButton) return TabCloseBounds(state.strip, state.strip);
     return RECT{};
-}
 }
 
 void CMFCTabCtrl::RecalcLayout() {
@@ -761,7 +762,7 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
         ::DrawTextW(handle, tab.label.c_str(), static_cast<int>(tab.label.size()), text,
             DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
     }
-    RECT close = MDICloseBounds(*state);
+    RECT close = TabCloseButtonBounds(*state);
     if (!::IsRectEmpty(&close)) ::DrawFrameControl(handle, &close, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
     if (saved) ::RestoreDC(handle, saved);
 }
@@ -773,7 +774,7 @@ void CMFCTabCtrl::OnPaint() {
 
 void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
     if (const auto* state = FindTabCtrlState(this)) {
-        const RECT close = MDICloseBounds(*state);
+        const RECT close = TabCloseButtonBounds(*state);
         if (::PtInRect(&close, point)) {
             if (auto* page = GetTabWnd(state->activeTab)) ::SendMessageW(page->m_hWnd, WM_CLOSE, 0, 0);
             return;

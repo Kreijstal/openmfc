@@ -486,6 +486,7 @@ TabCtrlState& EnsureTabCtrlState(const CMFCBaseTabCtrl* pCtrl);
 
 namespace openmfc { namespace detail { namespace mfccore {
 const TabCtrlState* FindTabCtrlState(const CMFCBaseTabCtrl* pCtrl);
+RECT TabCloseButtonBounds(const TabCtrlState& state);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {

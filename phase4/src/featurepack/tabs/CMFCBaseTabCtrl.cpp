@@ -693,19 +693,11 @@ extern "C" int MS_ABI impl__EnableCustomToolTips_CMFCBaseTabCtrl__QEAAHH_Z(
     // are skipped.
     return TRUE;
 }
-// Retail (0x180016e10): bounds-checks `0 <= iTab < tabs count (+0x150)` and
-// stores bDetach at +0x58 of the tab record; returns 1 when applied, 0 when
-// out of bounds. The per-tab record is unmodeled; the bounds gate and the
-// terminal values are kept.
 // Symbol: ?EnableTabDetach@CMFCBaseTabCtrl@@UEAAHHH@Z
 extern "C" int MS_ABI impl__EnableTabDetach_CMFCBaseTabCtrl__UEAAHHH_Z(
-    CMFCBaseTabCtrl* pThis, int iTab, int /*bDetach*/)
-{
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab "detachable"
-    // flag at +0x58 of the tab record (tab array +0x108/+0x110) is not
-    // modeled.
+    CMFCBaseTabCtrl* tabs, int index, int detachable) {
+    if (!TabAt(tabs, index)) return FALSE;
+    EnsureTabCtrlState(tabs).tabs[index].detachable = detachable != FALSE;
     return TRUE;
 }
 // Retail (0x180017980): sets the +0x234 drag flag, resolves the parent frame
