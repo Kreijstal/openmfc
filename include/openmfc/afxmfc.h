@@ -461,9 +461,24 @@ static_assert(sizeof(CRecentDockSiteInfo) == 0x120, "CRecentDockSiteInfo retail 
 struct CMFCControlBarImpl {  // retail sizeof 16
     char _storage[16];
 };
-struct CMFCToolBarDropTarget { // retail sizeof 112
-    char _storage[112];
+class CMFCToolBarDropTarget : public COleDropTarget {
+public:
+    CMFCToolBarDropTarget();
+    ~CMFCToolBarDropTarget() override;
+    BOOL Register(CMFCToolBar* owner);
+
+    DROPEFFECT OnDragEnter(CWnd*, COleDataObject*, DWORD, CPoint) override;
+    void OnDragLeave(CWnd*) override;
+    DROPEFFECT OnDragOver(CWnd*, COleDataObject*, DWORD, CPoint) override;
+    DROPEFFECT OnDropEx(CWnd*, COleDataObject*, DROPEFFECT, DROPEFFECT, CPoint) override;
+
+    CMFCToolBar* m_pOwner;
+
+private:
+    bool Accepts(COleDataObject* data) const;
 };
+static_assert(sizeof(CMFCToolBarDropTarget) == 0x70 &&
+              offsetof(CMFCToolBarDropTarget, m_pOwner) == 0x68, "native toolbar drop target");
 class CMFCToolTipCtrl;
 
 //=============================================================================

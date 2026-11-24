@@ -1,30 +1,52 @@
 #include "OlecoreSupport.h"
+#include "RegcoreSupport.h"
+#include "openmfc/afxstat_.h"
+
+#include <memory>
 extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
 
 IMPLEMENT_DYNAMIC(CDocItem, CCmdTarget)
 extern "C" {
-MS_ABI void impl__AfxOleInit() {
-    if (!g_bOleInitialized) {
-        HRESULT hr = OleInitialize(nullptr);
-        if (SUCCEEDED(hr)) {
-            g_bOleInitialized = TRUE;
-            // Create default message filter
-            COleMessageFilter* pFilter = new COleMessageFilter();
-            g_pMessageFilter = pFilter;
-        }
+void AFXAPI impl__AfxOleTermOrFreeLib__YAXHH_Z(int terminate, int justRevoke);
+
+MS_ABI BOOL impl__AfxOleInit() {
+    auto* state = impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ();
+    if (state->m_bNeedTerm) return TRUE;
+
+    if (impl__AfxGetModuleState__YAPEAVAFX_MODULE_STATE__XZ()->m_bDLL) {
+        state->m_bNeedTerm = -1; // The application owns OLE initialization.
+        return TRUE;
     }
+    if (FAILED(::OleInitialize(nullptr))) return FALSE;
+
+    if (auto* thread = AfxGetThread()) {
+        if (!thread->m_pMessageFilter) {
+            try {
+                auto filter = std::make_unique<COleMessageFilter>();
+                filter->Register();
+                thread->m_pMessageFilter = g_pMessageFilter = filter.release();
+            } catch (...) {
+                ::OleUninitialize();
+                throw;
+            }
+        }
+        thread->m_lpfnOleTermOrFreeLib = impl__AfxOleTermOrFreeLib__YAXHH_Z;
+    }
+    state->m_bNeedTerm = TRUE;
+    return TRUE;
 }
-MS_ABI void impl__AfxOleTerm(int bExplicit) {
-    if (g_bOleInitialized) {
-        if (g_pMessageFilter) {
-            delete g_pMessageFilter;
-            g_pMessageFilter = nullptr;
-        }
-        if (bExplicit) {
-            OleUninitialize();
-        }
-        g_bOleInitialized = FALSE;
+MS_ABI void impl__AfxOleTerm(int bJustRevoke) {
+    auto* state = impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ();
+    if (bJustRevoke || state->m_bNeedTerm != TRUE) return;
+
+    if (auto* thread = AfxGetThread()) {
+        if (thread->m_pMessageFilter == g_pMessageFilter) thread->m_pMessageFilter = nullptr;
+        thread->m_lpfnOleTermOrFreeLib = nullptr;
     }
+    delete g_pMessageFilter;
+    g_pMessageFilter = nullptr;
+    state->m_bNeedTerm = FALSE;
+    ::OleUninitialize();
 }
 MS_ABI void impl__AfxOleLockApp() {
     g_nOleLockCount++;
@@ -140,10 +162,9 @@ MS_ABI int impl__AfxOleUnregisterTypeLib(REFGUID guid, WORD wVerMajor, WORD wVer
 }
 IMPLEMENT_DYNAMIC(COleDocObjectItem, COleClientItem)
 namespace openmfc { namespace detail { namespace olecore {
-int g_bOleInitialized = FALSE;
 int g_nOleLockCount = 0;
 BOOL g_bOleUserCtrl = FALSE;
-COleMessageFilter* g_pMessageFilter = nullptr;
+thread_local COleMessageFilter* g_pMessageFilter = nullptr;
 std::map<CString, CString> g_oleFactoryLicenseKeys;
 BOOL g_userOleControlMode = TRUE;
 std::map<void*, COleControl*> g_reflectorControls_Olecore;

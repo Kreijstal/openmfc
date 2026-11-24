@@ -3,6 +3,7 @@
 #include "detail/OleDropTargetSupport.h"
 #include "detail/InterfaceMapsSupport.h"
 #include <new>
+#include <utility>
 extern "C" {
 void AFXAPI impl__AfxLockGlobals__YAXH_Z(int);
 void AFXAPI impl__AfxUnlockGlobals__YAXH_Z(int);
@@ -25,7 +26,7 @@ public:
     ModuleScope(const ModuleScope&)=delete;
     ModuleScope& operator=(const ModuleScope&)=delete;
 };
-void ReleaseData(IDataObject*& data){if(auto* value=data){value->Release();data=nullptr;}}
+void ReleaseData(IDataObject*& data){if(auto* value=std::exchange(data,nullptr))value->Release();}
 DWORD Filter(DWORD effect,DWORD allowed){
     if(effect&allowed)return effect;
     if(effect==DROPEFFECT_COPY){if(allowed&DROPEFFECT_MOVE)return DROPEFFECT_MOVE;}
@@ -66,17 +67,30 @@ COleDropTarget::COleDropTarget():m_hWnd(nullptr),m_lpDataObject(nullptr),m_nTime
 }
 COleDropTarget::~COleDropTarget(){try{if(m_hWnd)COleDropTarget::Revoke();}catch(CException* error){Report(error);}}
 BOOL COleDropTarget::Register(CWnd* window){
-    auto* unknown=GetInterface(&IID_IUnknown);
-    if(::CoLockObjectExternal(unknown,TRUE,FALSE)!=S_OK)return FALSE;
-    auto* target=reinterpret_cast<IDropTarget*>(GetInterface(&IID_IDropTarget));
-    if(::RegisterDragDrop(window->m_hWnd,target)!=S_OK){::CoLockObjectExternal(unknown,FALSE,FALSE);return FALSE;}
-    m_hWnd=window->m_hWnd;window->m_pDropTarget=this;return TRUE;
+    if (!window || !window->GetSafeHwnd() || m_hWnd) return FALSE;
+    auto* unknown = GetInterface(&IID_IUnknown);
+    auto* target = reinterpret_cast<IDropTarget*>(GetInterface(&IID_IDropTarget));
+    if (!unknown || !target || ::CoLockObjectExternal(unknown, TRUE, FALSE) != S_OK) return FALSE;
+    if (::RegisterDragDrop(window->m_hWnd, target) != S_OK) {
+        ::CoLockObjectExternal(unknown, FALSE, FALSE);
+        return FALSE;
+    }
+    m_hWnd = window->m_hWnd;
+    window->m_pDropTarget = this;
+    return TRUE;
 }
 void COleDropTarget::Revoke(){
-    if(m_hWnd){
-        ::RevokeDragDrop(m_hWnd);
-        auto* unknown=GetInterface(&IID_IUnknown);::CoLockObjectExternal(unknown,FALSE,TRUE);
-        CWnd::FromHandle(m_hWnd)->m_pDropTarget=nullptr;m_hWnd=nullptr;
+    const HWND window = m_hWnd;
+    m_hWnd = nullptr;
+    if (window) {
+        auto* owner = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+        if (owner && owner->m_pDropTarget == this) owner->m_pDropTarget = nullptr;
+    }
+    ReleaseData(m_lpDataObject);
+    if (window) {
+        ::RevokeDragDrop(window);
+        auto* unknown = GetInterface(&IID_IUnknown);
+        ::CoLockObjectExternal(unknown, FALSE, TRUE);
     }
 }
 DROPEFFECT COleDropTarget::OnDragEnter(CWnd* w,COleDataObject* d,DWORD keys,CPoint pt){auto* v=View(w);return v ? v->OnDragEnter(d,keys,pt):0;}

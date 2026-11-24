@@ -9,7 +9,9 @@
 #include "detail/MfctoolbarBatch2Support.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/ToolBarComboSupport.h"
+#include "openmfc/afxstat_.h"
 
+#include <algorithm>
 #include <memory>
 
 // CMFCToolBar Feature Pack exports, wave 4 ("mfc-feature-4").
@@ -164,6 +166,9 @@ extern "C" unsigned char impl__afxGlobalData__3UAFX_GLOBAL_DATA__A[720];
 extern "C" int  MS_ABI impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(CMFCToolBar* pThis, CPoint point);
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCToolBar__IEAAXIVCPoint___Z(
                            CMFCToolBar* pThis, unsigned int nFlags, CPoint point);
+extern "C" DROPEFFECT MS_ABI impl__OnDragOver_CMFCToolBar__MEAAKPEAVCOleDataObject__KVCPoint___Z(
+    CMFCToolBar*, COleDataObject*, DWORD, CPoint);
+extern "C" int MS_ABI impl__GetRowHeight_CMFCToolBar__UEBAHXZ(const CMFCToolBar*);
 extern "C" int  MS_ABI impl__FindDropIndex_CMFCToolBar__MEBAHVCPoint__AEAVCRect___Z(
                            const CMFCToolBar* pThis, CPoint point, CRect* pRect);
 extern "C" int  MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(
@@ -1791,30 +1796,18 @@ extern "C" void MS_ABI impl__OnCopyImage_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThis
     impl__CopyImageToClipboard_CMFCToolBarImages__QEAAHH_Z(pImages, pButton->GetImage());
     if (pApp) impl__EndWaitCursor_CCmdTarget__QEAAXXZ(pApp);
 }
-// Retail (0x180151ff0).  The first call is CWnd::Default (0x18028ac80), not a
-// base-class OnCreate -- an earlier revision of this comment said otherwise.
-//     if (CWnd::Default() == -1) return -1;
-//     afxGlobalData.Initialize() if not yet initialised;         // 0x18006a790
-//     lazily LoadCursorW's 0x7904, 0x7905 and 0x7f86 into three afxGlobalData
-//         cursor slots (0x1803c1778 / 0x1803c1780 / 0x1803c1790);
-//     if (AFXGetParentFrame(this) != NULL)                       // 0x18006bd00
-//         cache (frame->GetStyle() & 0x400000) in the global at 0x1803be390;
-//     if (!m_bNoDropTarget && <module flag>) m_DropTarget.Register(this); // 0x1230
-//     create the drag pen into m_penDrag (0x12c0) and the tooltip control into
-//         m_pToolTip (0x12e8) with nType 2;
-//     m_bRoundShape = GetVisualManager()->IsToolBarRoundShape(this); // 0x1118
-//     if (m_bRoundShape) SetRoundedRgn(); else ::SetWindowRgn(m_hWnd, NULL, 0);
-//     add this toolbar to the global toolbar list at 0x1803b2090;
-//     return 0;
-// Not implemented: the afxGlobalData cursor cache, the visual manager and the
-// global toolbar list are all unmodelled, and a partial body would create a
-// tooltip and a drop target without the state the rest of the flow expects.
+namespace {
+void RegisterToolbarDropTarget(CMFCToolBar& toolbar) {
+    if (!toolbar.m_bNoDropTarget && impl__AfxGetThreadState__YAPEAV_AFX_THREAD_STATE__XZ()->m_bNeedTerm)
+        toolbar.m_DropTarget.Register(&toolbar);
+}
+}
+
 // Symbol: ?OnCreate@CMFCToolBar@@IEAAHPEAUtagCREATESTRUCTW@@@Z
 extern "C" int MS_ABI impl__OnCreate_CMFCToolBar__IEAAHPEAUtagCREATESTRUCTW___Z(
-    CMFCToolBar* pThis, LPCREATESTRUCTW lpCreateStruct)
+    CMFCToolBar* toolbar, LPCREATESTRUCTW)
 {
-    (void)pThis; (void)lpCreateStruct;
-    // TODO(clean-room): not transcribed -- base OnCreate + cursor/tooltip init.
+    if (toolbar) RegisterToolbarDropTarget(*toolbar);
     return 0;
 }
 // Retail (0x1801546e0): brush = base CWnd::OnCtlColor(...); when
@@ -1867,6 +1860,7 @@ extern "C" void MS_ABI impl__OnCustomizeMode_CMFCToolBar__MEAAXH_Z(CMFCToolBar* 
 extern "C" void MS_ABI impl__OnDestroy_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThis)
 {
     if (!pThis) return;
+    pThis->m_DropTarget.Revoke();
     // TODO(clean-room): partially transcribed -- CPen dtor, tooltip delete, base
     // OnDestroy and the global toolbar-list unlink are not modeled.
     pThis->m_pToolTip = nullptr;
@@ -1883,15 +1877,11 @@ extern "C" void MS_ABI impl__OnDestroy_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThis)
 extern "C" unsigned long MS_ABI impl__OnDragEnter_CMFCToolBar__MEAAKPEAVCOleDataObject__KVCPoint___Z(
     CMFCToolBar* pThis, COleDataObject* pDataObject, unsigned long dwKeyState, CPoint point)
 {
-    (void)pDataObject; (void)dwKeyState; (void)point;
-    if (!pThis) return 0;
-
-    if (pThis->m_bDisableCustomize) return 0;
-
+    if (!pThis || pThis->m_bDisableCustomize) return DROPEFFECT_NONE;
     pThis->m_iDragIndex = -1;
-    // TODO(clean-room): the global drag flag and the OnDragOver tail call
-    // (vslot0x7c0) are not modeled; DROPEFFECT_NONE is the safe default.
-    return DROPEFFECT_NONE;
+    SetDropSourceDeleteOnDrop(FALSE);
+    return impl__OnDragOver_CMFCToolBar__MEAAKPEAVCOleDataObject__KVCPoint___Z(
+        pThis, pDataObject, dwKeyState, point);
 }
 // Retail (0x180158660):
 //     CWnd::OnSetFocus(pOldWnd);
@@ -3532,6 +3522,38 @@ bool HasToolbarPaintContent(CMFCToolBar& toolbar) {
     return false;
 }
 
+void PaintToolbarDragMarker(const CMFCToolBar& toolbar, HDC dc) {
+    const CRect& marker = toolbar.m_rectDrag;
+    if (!dc || marker.IsRectEmpty()) return;
+
+    HGDIOBJ pen = toolbar.m_penDrag.GetSafeHandle();
+    const HGDIOBJ previous = ::SelectObject(dc, pen ? pen : ::GetStockObject(BLACK_PEN));
+    if (!previous || previous == HGDI_ERROR) return;
+    POINT position{};
+    if (!::GetCurrentPositionEx(dc, &position)) position = {};
+
+    // The vertical toolbar draws the same two-stroke caret with the axes exchanged.
+    const bool horizontal = ToolbarIsHorizontal(toolbar);
+    const CRect rect = horizontal ? marker : CRect(marker.top, marker.left, marker.bottom, marker.right);
+    const int center = rect.CenterPoint().x;
+    const auto line = [dc, horizontal](POINT start, POINT end) {
+        if (!horizontal) {
+            std::swap(start.x, start.y);
+            std::swap(end.x, end.y);
+        }
+        ::MoveToEx(dc, start.x, start.y, nullptr);
+        ::LineTo(dc, end.x, end.y);
+    };
+    for (int stroke = 0; stroke < 2; ++stroke) {
+        const int centerStroke = center - 1 + stroke;
+        line({centerStroke, rect.top}, {centerStroke, rect.bottom});
+        line({rect.left + stroke, rect.top + stroke}, {rect.right - stroke, rect.top + stroke});
+        line({rect.left + stroke, rect.bottom - 1 - stroke}, {rect.right - stroke, rect.bottom - 1 - stroke});
+    }
+    ::MoveToEx(dc, position.x, position.y, nullptr);
+    ::SelectObject(dc, previous);
+}
+
 void PaintToolbarClient(CMFCToolBar& toolbar, HDC hdc, const RECT& update) {
     if (!hdc) return;
     ::FillRect(hdc, &update, ::GetSysColorBrush(COLOR_BTNFACE));
@@ -3541,6 +3563,7 @@ void PaintToolbarClient(CMFCToolBar& toolbar, HDC hdc, const RECT& update) {
     CDC dc;
     dc.m_hDC = hdc;
     toolbar.DoPaint(&dc);
+    PaintToolbarDragMarker(toolbar, hdc);
     dc.m_hDC = nullptr;
     if (previous) ::SelectObject(hdc, previous);
 }
@@ -3585,6 +3608,8 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
     auto* toolbar = reinterpret_cast<CMFCToolBar*>(data);
     if (g_toolBarStates.find(toolbar) == g_toolBarStates.end() || toolbar->GetSafeHwnd() != window) {
         ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
+    } else if (message == WM_DESTROY) {
+        toolbar->m_DropTarget.Revoke();
     } else if (message == WM_NCDESTROY) {
         CloseToolbarMenus(*toolbar);
         ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
@@ -3619,25 +3644,31 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
             ::EndPaint(window, &paint);
         }
         return 0;
+    } else if ((message == WM_PAINT || message == WM_PRINTCLIENT) && !toolbar->m_rectDrag.IsRectEmpty()) {
+        const LRESULT result = ::DefSubclassProc(window, message, wp, lp);
+        if (message == WM_PRINTCLIENT) {
+            PaintToolbarDragMarker(*toolbar, reinterpret_cast<HDC>(wp));
+        } else if (HDC dc = ::GetDC(window)) {
+            PaintToolbarDragMarker(*toolbar, dc);
+            ::ReleaseDC(window, dc);
+        }
+        return result;
     }
     return ::DefSubclassProc(window, message, wp, lp);
 }
 } // namespace
 
 CMFCToolBar::CMFCToolBar() {
-    // The eight CMFCToolBarImages members precede m_bLocked and keep their
-    // constructed state. The span zeroed here is NOT purely POD, though: the
-    // three CObLists (4488/4544/4600) and m_penDrag (4800) all sit after
-    // m_bLocked, so they are re-constructed below. Zeroing already gives an
-    // empty list and a null pen handle; what the memset destroys and placement
-    // new restores is their vfptrs.
+    // Clear the value fields without overwriting the constructed lists, target or pen.
     char* const base = reinterpret_cast<char*>(this);
-    std::memset(base + offsetof(CMFCToolBar, m_bLocked), 0,
-                sizeof(CMFCToolBar) - offsetof(CMFCToolBar, m_bLocked));
-    new (&m_Buttons) CObList();
-    new (&m_OrigButtons) CObList();
-    new (&m_OrigResetButtons) CObList();
-    new (&m_penDrag) CPen();
+    constexpr auto flags = offsetof(CMFCToolBar, m_bLocked);
+    constexpr auto buttons = offsetof(CMFCToolBar, m_Buttons);
+    constexpr auto dragRect = offsetof(CMFCToolBar, m_rectDrag);
+    constexpr auto dragPen = offsetof(CMFCToolBar, m_penDrag);
+    constexpr auto startDrag = offsetof(CMFCToolBar, m_ptStartDrag);
+    std::memset(base + flags, 0, buttons - flags);
+    std::memset(base + dragRect, 0, dragPen - dragRect);
+    std::memset(base + startDrag, 0, sizeof(CMFCToolBar) - startDrag);
     // m_AccelKeys: the retail CMap constructor state (hash table size 17,
     // block size 10; see the AccelMap notes near the top of this file, taken
     // from the retail ctor at RVA 0x14d2b0, mfc140u).  Without this the
@@ -3655,6 +3686,7 @@ CMFCToolBar::CMFCToolBar() {
     m_bShowHotBorder = TRUE;
 }
 CMFCToolBar::~CMFCToolBar() {
+    m_DropTarget.Revoke();
     if (m_hWnd) CloseToolbarMenus(*this);
     if (m_hWnd) ::RemoveWindowSubclass(m_hWnd, FeatureToolbarPaintSubclass, reinterpret_cast<UINT_PTR>(this));
     // Retail (~CMFCToolBar, RVA 0x14d6b0 mfc140u) ends with
@@ -3679,6 +3711,7 @@ BOOL CMFCToolBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
     m_dwStyle = (m_dwStyle & ~0xf000u) | (dwStyle & 0xf000u);
     g_toolBarStates[this].parent = pParentWnd;
     ::SendMessageW(m_hWnd, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    RegisterToolbarDropTarget(*this);
     return TRUE;
 }
 BOOL CMFCToolBar::CreateEx(CWnd* pParentWnd, DWORD, DWORD dwStyle, CRect, UINT nID) {
@@ -4676,16 +4709,9 @@ extern "C" int MS_ABI impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBa
     return TRUE;
 }
 
-// Retail (mfc140.dll RVA 0x151410) draws the customize-drag insertion marker:
-// it reads GetCurrentAlignment() (vtable +0x338) to pick the horizontal or
-// vertical form, selects m_penDrag (+0x12c0) into the DC
-// (?SelectObject@CDC@@UEAAPEAVCFont@@PEAV2@@Z, 0x2a0670) and strokes a caret
-// around m_rectDrag (+0x12a0).
-// Not implemented: OpenMFC models neither CDC pen selection nor the drawing
-// primitives this needs.
 // Symbol: ?DrawDragCursor@CMFCToolBar@@MEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__DrawDragCursor_CMFCToolBar__MEAAXPEAVCDC___Z(CMFCToolBar* pThis, CDC* pDC) {
-    (void)pThis; (void)pDC;
+extern "C" void MS_ABI impl__DrawDragCursor_CMFCToolBar__MEAAXPEAVCDC___Z(CMFCToolBar* toolbar, CDC* dc) {
+    if (toolbar && dc) PaintToolbarDragMarker(*toolbar, dc->GetSafeHdc());
 }
 
 // Retail (RVA 0x1561a0, mfc140u) is a single forward, fully transcribed:
@@ -4836,25 +4862,96 @@ extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHIH_Z(
     if (toolbar) toolbar->EnableCustomizeButton(enable, command, textResource, quickCustomize);
 }
 
-// Retail (mfc140.dll RVA 0x151070) maps a screen point onto an insertion index
-// during a customize drag: it converts the incoming rect with a USER32 call
-// (import slot 0x2c5368), reads GetCurrentAlignment() (vtable +0x338) for the
-// horizontal/vertical split, then walks m_Buttons comparing the point against
-// each button rect and fills the reference rect with the drop marker.
-// Not implemented: the walk depends on laid-out button rectangles, which
-// OpenMFC does not produce (AdjustLocations and CalcLayout are stubs), so any
-// index returned here would be meaningless.
+namespace {
+CRect DropButtonRect(const CMFCToolBar& toolbar, const CMFCToolBarButton& button, int index) {
+    if (!button.m_rect.IsRectEmpty()) return button.m_rect;
+    RECT bounds{};
+    ::SendMessageW(toolbar.GetSafeHwnd(), TB_GETITEMRECT, index, reinterpret_cast<LPARAM>(&bounds));
+    return CRect(bounds);
+}
+}
+
 // Symbol: ?FindDropIndex@CMFCToolBar@@MEBAHVCPoint@@AEAVCRect@@@Z
-// NB: this stub returns 0 and leaves the caller's rect untouched; retail
-// returns -1 for "no drop position" and always rewrites the rect.  OnDragOver
-// below calls it, so once FindDropIndex is transcribed its -1 must be kept.
 extern "C" int MS_ABI impl__FindDropIndex_CMFCToolBar__MEBAHVCPoint__AEAVCRect___Z(
-    const CMFCToolBar* pThis, CPoint point, CRect* pRect) {
-    (void)pThis; (void)point; (void)pRect;
-    // TODO(clean-room): not transcribed.  Returns -1 ("no drop index"), which
-    // is retail's not-found value, rather than the generated 0 -- 0 would tell
-    // OnDragOver that a drop before button 0 is possible.
-    return -1;
+    const CMFCToolBar* toolbar, CPoint point, CRect* marker) {
+    if (!marker) return -1;
+    marker->SetRectEmpty();
+    RECT boundsClient{};
+    if (!toolbar || !::GetClientRect(toolbar->GetSafeHwnd(), &boundsClient)) return -1;
+    const CRect client(boundsClient);
+
+    const int count = toolbar->GetCount();
+    const bool horizontal = ToolbarIsHorizontal(*toolbar);
+    int index = -1;
+    int edge = 0;
+    if (count == 0 || (count == 1 && toolbar->m_pCustomizeBtn)) {
+        *marker = client;
+        index = 0;
+    } else if (!horizontal) {
+        for (int i = 0; i < count; ++i) {
+            const auto* button = toolbar->GetButton(i);
+            if (!button) continue;
+            const auto bounds = DropButtonRect(*toolbar, *button, i);
+            if (point.y > bounds.bottom) continue;
+            const bool after = (std::max)(point.y, 0) > bounds.CenterPoint().y;
+            *marker = bounds;
+            index = i + after;
+            edge = after ? bounds.bottom : bounds.top;
+            break;
+        }
+    } else {
+        const int height = (std::max)(1, impl__GetRowHeight_CMFCToolBar__UEBAHXZ(toolbar));
+        int rowGap = height;
+        CRect last(0, 0, 0, 0);
+        for (int i = 0; i < count; ++i) {
+            const auto* button = toolbar->GetButton(i);
+            if (!button || button->IsHidden() || !button->IsVisible()) continue;
+            const auto bounds = DropButtonRect(*toolbar, *button, i);
+            if (i > 0 && bounds.top > last.bottom) {
+                rowGap = bounds.top - last.bottom;
+                break;
+            }
+            last = bounds;
+        }
+        const int targetRow = (std::max)(0, point.y) / (height + rowGap);
+        int row = 0;
+        for (int i = 0; i < count; ++i) {
+            const auto* button = toolbar->GetButton(i);
+            if (!button || button->IsHidden() || !button->IsVisible()) continue;
+            const auto bounds = DropButtonRect(*toolbar, *button, i);
+            if (i > 0 && bounds.top >= last.bottom) ++row;
+            if (row > targetRow) {
+                *marker = last;
+                index = i - 1;
+                edge = last.right;
+                break;
+            }
+            if (row == targetRow && point.x <= bounds.right) {
+                const bool after = point.x > bounds.CenterPoint().x;
+                *marker = bounds;
+                index = i + after;
+                edge = after ? bounds.right : bounds.left;
+                break;
+            }
+            last = bounds;
+        }
+        if (index == -1 && row == targetRow) {
+            *marker = last;
+            index = count;
+            edge = last.right;
+        }
+    }
+
+    if (index < 0) return -1;
+    if (toolbar->m_pCustomizeBtn && index == count) index = (std::max)(0, count - 1);
+    if (horizontal) {
+        marker->left = (std::clamp)(edge - 3, client.left, (std::max)(client.left, client.right - 6));
+        marker->right = marker->left + 6;
+    } else {
+        marker->top = (std::clamp)(edge - 3, client.top, (std::max)(client.top, client.bottom - 6));
+        marker->bottom = marker->top + 6;
+    }
+    return index;
 }
 
 // Retail (mfc140.dll RVA 0x153270), fully transcribed: a linear scan of the
@@ -5613,8 +5710,8 @@ extern "C" unsigned long MS_ABI impl__OnDragOver_CMFCToolBar__MEAAKPEAVCOleDataO
         pThis, point, &pThis->m_rectDrag);
     RECT rectNew = { pThis->m_rectDrag.left, pThis->m_rectDrag.top,
                      pThis->m_rectDrag.right, pThis->m_rectDrag.bottom };
+    pThis->m_iDragIndex = iDragIndex;
     if (!::EqualRect(&rectOld, &rectNew)) {
-        pThis->m_iDragIndex = iDragIndex;
         ::InflateRect(&rectOld, 2, 2);
         ::InvalidateRect(pThis->m_hWnd, &rectOld, TRUE);
         RECT rectInflated = rectNew;
@@ -5730,7 +5827,7 @@ extern "C" int MS_ABI impl__OnDrop_CMFCToolBar__MEAAHPEAVCOleDataObject__KVCPoin
         return FALSE;
     }
 
-    impl__AdjustLayout_CMFCToolBar__UEAAXXZ(pThis);
+    RestoreNativeToolbarButtons(*pThis);
 
     CWnd* pParent = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_hWnd));
     if (pParent && impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(

@@ -125,16 +125,13 @@ extern "C" HFONT MS_ABI impl__GetFontHandle_CFontHolder__QEAAPEAUHFONT____XZ(voi
 // OLE State
 //=============================================================================
 namespace openmfc { namespace detail { namespace olecore {
-extern int g_bOleInitialized;
-} } }
-namespace openmfc { namespace detail { namespace olecore {
 extern int g_nOleLockCount;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern BOOL g_bOleUserCtrl;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
-extern COleMessageFilter* g_pMessageFilter;
+extern thread_local COleMessageFilter* g_pMessageFilter;
 } } }
 namespace openmfc { namespace detail { namespace olecore {
 extern std::map<CString, CString> g_oleFactoryLicenseKeys;
@@ -1400,9 +1397,9 @@ extern thread_local IMessageFilter* g_previousMessageFilter;
 extern "C" {
 
 
-MS_ABI void impl__AfxOleInit();
+MS_ABI BOOL impl__AfxOleInit();
 
-MS_ABI void impl__AfxOleTerm(int bExplicit);
+MS_ABI void impl__AfxOleTerm(int bJustRevoke);
 
 MS_ABI void impl__AfxOleLockApp();
 

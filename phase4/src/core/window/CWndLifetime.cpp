@@ -2,6 +2,7 @@
 // destructor releases the remaining owned members and then CCmdTarget.
 #include "detail/WindowHandleMapSupport.h"
 #include "detail/WindowCreationSupport.h"
+#include "openmfc/afxole.h"
 #include <cstdlib>
 #include <utility>
 extern "C" void AFXAPI impl__AfxThrowInvalidArgException__YAXXZ();
@@ -110,10 +111,9 @@ void CWnd::OnNcDestroy() {
         }
         if(Field<CWnd*>(thread,0x48)==this)Field<CWnd*>(thread,0x48)=nullptr;
     }
-    if(m_pDropTarget) {
-        using Revoke=void (AFXAPI*)(void*);
-        Slot<Revoke>(m_pDropTarget,22)(m_pDropTarget);
-        m_pDropTarget=nullptr;
+    if (auto* target = static_cast<COleDropTarget*>(m_pDropTarget)) {
+        m_pDropTarget = nullptr;
+        target->Revoke();
     }
     if(m_pCtrlCont)DeleteMember(m_pCtrlCont);
     m_pCtrlCont=nullptr;

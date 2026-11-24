@@ -1714,7 +1714,7 @@ extern "C" int MS_ABI impl__AfxOleGetUserCtrl__YAHXZ() {
 }
 // Symbol: ?AfxOleInit@@YAHXZ
 extern "C" int MS_ABI impl__AfxOleInit__YAHXZ() {
-    return SUCCEEDED(::OleInitialize(nullptr));
+    return impl__AfxOleInit();
 }
 // Symbol: ?AfxOleInprocRegisterHelper@@YAHPEAUHKEY__@@0H@Z
 // Decoded: int AfxOleInprocRegisterHelper(HKEY hkeyProgID, HKEY hkeyClassID,
@@ -2080,14 +2080,12 @@ extern "C" void MS_ABI impl__AfxOleSetUserCtrl__YAXH_Z(int p0) {
 }
 // Symbol: ?AfxOleTerm@@YAXH@Z
 extern "C" void MS_ABI impl__AfxOleTerm__YAXH_Z(int p0) {
-    (void)p0;
-    ::OleUninitialize();
+    impl__AfxOleTerm(p0);
 }
 // Symbol: ?AfxOleTermOrFreeLib@@YAXHH@Z
 extern "C" void MS_ABI impl__AfxOleTermOrFreeLib__YAXHH_Z(int p0, int p1) {
-    (void)p0;
-    (void)p1;
-    ::OleUninitialize();
+    if (p0) impl__AfxOleTerm(p1);
+    else ::CoFreeUnusedLibraries();
 }
 // Symbol: ?AfxOleUnlockAllControls@@YAXXZ
 extern "C" void MS_ABI impl__AfxOleUnlockAllControls__YAXXZ() {

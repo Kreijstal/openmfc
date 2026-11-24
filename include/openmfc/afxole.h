@@ -2637,17 +2637,17 @@ public:
 // OLE initialization (implemented as extern "C" thunks)
 extern "C" {
 #ifdef __GNUC__
-    void __attribute__((ms_abi)) impl__AfxOleInit();
-    void __attribute__((ms_abi)) impl__AfxOleTerm(int bExplicit);
+    BOOL __attribute__((ms_abi)) impl__AfxOleInit();
+    void __attribute__((ms_abi)) impl__AfxOleTerm(int bJustRevoke);
     void __attribute__((ms_abi)) impl__AfxOleLockApp();
 #else
-    void impl__AfxOleInit();
-    void impl__AfxOleTerm(int bExplicit);
+    BOOL impl__AfxOleInit();
+    void impl__AfxOleTerm(int bJustRevoke);
     void impl__AfxOleLockApp();
 #endif
 }
-inline void AFXAPI AfxOleInit() { impl__AfxOleInit(); }
-inline void AFXAPI AfxOleTerm(int bExplicit = 0) { impl__AfxOleTerm(bExplicit); }
+inline BOOL AFXAPI AfxOleInit() { return impl__AfxOleInit(); }
+inline void AFXAPI AfxOleTerm(int bJustRevoke = 0) { impl__AfxOleTerm(bJustRevoke); }
 inline void AFXAPI AfxOleLockApp() { impl__AfxOleLockApp(); }
 void AFXAPI AfxOleUnlockApp();
 BOOL AFXAPI AfxOleCanExitApp();
