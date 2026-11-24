@@ -245,6 +245,17 @@ struct PopupMenuState {
     CMFCPopupMenu* parentPopup = nullptr;
     CMFCPopupMenu* childPopup = nullptr;
     std::vector<CRect> rows;
+    RECT anchor{};
+    bool opensToSide = false;
+    CRect viewport{0, 0, 0, 0};
+    CRect scrollUp{0, 0, 0, 0};
+    CRect scrollDown{0, 0, 0, 0};
+    int scrollOffset = 0;
+    int maxScrollOffset = 0;
+    int scrollDirection = 0;
+    int wheelRemainder = 0;
+    bool pressedScrollArrow = false;
+    bool awaitingButtonRelease = false;
     bool closing = false;
     bool deleteOnClose = false;
     std::vector<CMFCToolBarMenuButton*> items;

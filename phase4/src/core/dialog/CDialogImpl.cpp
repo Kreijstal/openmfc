@@ -480,8 +480,11 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CDialogImpl__IEAAHPEAUtagMSG___Z
 
     case WM_MOUSEWHEEL: {
         CMFCPopupMenu* pPopup = impl__GetSafeActivePopupMenu_CMFCPopupMenu__SAPEAV1_XZ();
-        if (pPopup != nullptr && !openmfc::detail::mfccore::HasManagedPopupWindow(pPopup) &&
-            At<int>(pPopup, kOffPopupScrollable) != 0) {
+        if (openmfc::detail::mfccore::HasManagedPopupWindow(pPopup)) {
+            ::SendMessageW(pPopup->GetSafeHwnd(), WM_MOUSEWHEEL, pMsg->wParam, pMsg->lParam);
+            return TRUE;
+        }
+        if (pPopup != nullptr && At<int>(pPopup, kOffPopupScrollable) != 0) {
             ::SendMessage(HWndOf(pPopup), WM_MOUSEWHEEL, pMsg->wParam, pMsg->lParam);
         }
         return FALSE;

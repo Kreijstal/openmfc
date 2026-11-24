@@ -3293,7 +3293,11 @@ extern "C" int MS_ABI impl__ProcessMouseMove_CFrameImpl__IEAAHUtagPOINT___Z(void
 extern "C" int MS_ABI impl__ProcessMouseWheel_CFrameImpl__IEAAH_K_J_Z(void* pThis, unsigned long long wParam, long long lParam) {
     CMFCPopupMenu* pPopup = impl__GetSafeActivePopupMenu_CMFCPopupMenu__SAPEAV1_XZ();
     if (pPopup != nullptr) {
-        if (openmfc::detail::mfccore::HasManagedPopupWindow(pPopup)) return TRUE;
+        if (openmfc::detail::mfccore::HasManagedPopupWindow(pPopup)) {
+            ::SendMessageW(pPopup->GetSafeHwnd(), WM_MOUSEWHEEL, static_cast<WPARAM>(wParam),
+                           static_cast<LPARAM>(lParam));
+            return TRUE;
+        }
         const HWND hWndPopup = WndHandle(pPopup);
         int bScrollable = 0;
         memcpy(&bScrollable, reinterpret_cast<const unsigned char*>(pPopup) + 0x16a4, sizeof(bScrollable));
