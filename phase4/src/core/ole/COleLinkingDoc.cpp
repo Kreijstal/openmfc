@@ -1239,7 +1239,7 @@ ULONG STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::Release() {
     return impl__ExternalRelease_CCmdTarget__QEAAKXZ(DocFromItemContainer(this));
 }
 
-HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::GetObject(LPOLESTR name, DWORD speed, IBindCtx* context, REFIID iid, void** result) {
+HRESULT STDMETHODCALLTYPE COleLinkingDoc::XOleItemContainer::GetObjectW(LPOLESTR name, DWORD speed, IBindCtx* context, REFIID iid, void** result) {
     return impl__GetObjectW_XOleItemContainer_COleLinkingDoc__UEAAJPEA_WKPEAUIBindCtx__AEBU_GUID__PEAPEAX_Z(this, name, speed, context, iid, result);
 }
 

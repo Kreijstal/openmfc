@@ -1220,7 +1220,8 @@ public:
         HRESULT STDMETHODCALLTYPE ParseDisplayName(IBindCtx*, LPOLESTR, ULONG*, IMoniker**) override;
         HRESULT STDMETHODCALLTYPE EnumObjects(DWORD, IEnumUnknown**) override;
         HRESULT STDMETHODCALLTYPE LockContainer(BOOL) override;
-        HRESULT STDMETHODCALLTYPE GetObject(LPOLESTR, DWORD, IBindCtx*, REFIID, void**) override;
+        HRESULT STDMETHODCALLTYPE GetObjectW(  // oleidl.h declares GetObjectW under UNICODE; spelled out so TUs that #undef GetObject still match
+        LPOLESTR, DWORD, IBindCtx*, REFIID, void**) override;
         HRESULT STDMETHODCALLTYPE GetObjectStorage(LPOLESTR, IBindCtx*, REFIID, void**) override;
         HRESULT STDMETHODCALLTYPE IsRunning(LPOLESTR) override;
     };
