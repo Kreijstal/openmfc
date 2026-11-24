@@ -67,12 +67,12 @@ extern "C" std::int32_t impl__m_bIsRTL_CMFCToolBarImages__1HA;
 extern "C" int MS_ABI impl__DeleteDC_CDC__QEAAHXZ(CDC* pThis);
 extern "C" int MS_ABI impl__DeleteObject_CGdiObject__QEAAHXZ(CGdiObject* pThis);
 
-// Retail AFXDrawState (tagAFXDrawState) passed to EndDrawImage by reference.
-// Only the three handles EndDrawImage touches are modeled.
+// Retail AFXDrawState (tagAFXDrawState) filled by PrepareDrawImage and passed
+// back to EndDrawImage (afxtoolbarimages.h: hbmMono, hbmMonoOld, hbmOldGlyphs).
 struct tagAFXDrawState {
-    HGDIOBJ hOldPalette;    // 0x00 -- DeleteObject'd when m_bCreateMonoDC
-    HGDIOBJ hOldPattern;    // 0x08 -- selected back into the mono memory DC
-    HGDIOBJ hOldGrayPattern;// 0x10 -- selected back into the gray memory DC
+    HBITMAP hbmMono;        // 0x00 -- the (cx+2)x(cy+2) 1bpp bitmap, when m_bCreateMonoDC
+    HGDIOBJ hbmMonoOld;     // 0x08 -- what it displaced in the global mono DC
+    HGDIOBJ hbmOldGlyphs;   // 0x10 -- what the image well displaced in the global glyph DC
 };
 
 //=============================================================================

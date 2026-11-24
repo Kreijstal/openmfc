@@ -75,8 +75,8 @@ extern "C" std::int32_t impl__m_bIsRTL_CMFCToolBarImages__1HA = 0;
 // Symbol: ?m_bMultiThreaded@CMFCToolBarImages@@2HA
 extern "C" std::int32_t impl__m_bMultiThreaded_CMFCToolBarImages__2HA = 0;
 // Symbol: ?m_nDisabledImageAlpha@CMFCToolBarImages@@1EA
-extern "C" std::uint8_t impl__m_nDisabledImageAlpha_CMFCToolBarImages__1EA = 0;
+extern "C" std::uint8_t impl__m_nDisabledImageAlpha_CMFCToolBarImages__1EA = 127;
 // Symbol: ?m_nFadedImageAlpha@CMFCToolBarImages@@1EA
-extern "C" std::uint8_t impl__m_nFadedImageAlpha_CMFCToolBarImages__1EA = 0;
+extern "C" std::uint8_t impl__m_nFadedImageAlpha_CMFCToolBarImages__1EA = 127;
 // Symbol: ?m_bAlwaysCallOwnerDraw@CMFCToolBarMenuButton@@2HA
 extern "C" std::int32_t impl__m_bAlwaysCallOwnerDraw_CMFCToolBarMenuButton__2HA = 0;

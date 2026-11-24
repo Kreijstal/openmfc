@@ -17,6 +17,7 @@
 class CMFCToolBar;
 class CMFCToolBarButton;
 class CMFCToolBarImages;
+struct tagAFXDrawState;
 class CMFCVisualManager;
 class CMFCMenuBar;
 class CMFCRibbonBar;
@@ -755,6 +756,10 @@ public:
     BOOL DeleteImage(int index);
     HICON ExtractIcon(int index) const;
     BOOL CopyImageToClipboard(int index);
+    BOOL PrepareDrawImage(tagAFXDrawState& state, CSize size = CSize(0, 0), BOOL fadeInactive = FALSE);
+    void EndDrawImage(tagAFXDrawState& state);
+    BOOL Draw(CDC* dc, int x, int y, int index, BOOL highlighted = FALSE, BOOL disabled = FALSE,
+              BOOL indeterminate = FALSE, BOOL shadow = FALSE, BOOL inactive = FALSE, BYTE alpha = 255);
     BOOL DrawEx(CDC* dc, CRect bounds, int index, int horizontal = 0, int vertical = 0,
                 CRect source = CRect(0, 0, 0, 0), BYTE alpha = 255);
 

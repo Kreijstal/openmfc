@@ -733,22 +733,78 @@ extern "C" HBITMAP MS_ABI impl__Copy_CMFCToolBarImages__SAPEAUHBITMAP____PEAU2__
     ::DeleteDC(hdcSrc);
     return hNew;
 }
-// Retail (0x18016c6d0, ~9e0 bytes) draws image iImageIndex at (x, y) through
-// BeginDrawImage / the mono memory DC / the alpha pipeline and the visual
-// manager; not modeled.
-// Symbol: ?Draw@CMFCToolBarImages@@QEAAHPEAVCDC@@HHHHHHHHE@Z
-extern "C" int MS_ABI impl__Draw_CMFCToolBarImages__QEAAHPEAVCDC__HHHHHHHHE_Z(
-    CMFCToolBarImages* pThis, CDC* pDC,
-    int x, int y, int iImageIndex, int cx, int cy, int nGap,
-    int bDisabled, int bShadow, unsigned char alphaSrc)
-{
-    (void)pDC; (void)x; (void)y; (void)iImageIndex; (void)cx; (void)cy;
-    (void)nGap; (void)bDisabled; (void)bShadow; (void)alphaSrc;
-    if (!pThis) return 0;
-    // TODO(clean-room): transcribed partially -- the retail draw pipeline
-    // (0x18016c6d0) is not modeled.
-    return 0;
+namespace {
+struct ImageDCs {
+    HDC hDCGlyphs = nullptr;
+    HDC hDCMono = nullptr;
+    CRITICAL_SECTION cs;
+
+    ImageDCs() {
+        // The shared DCs must remain valid after the creating thread exits.
+        if (const auto screen = ::GetDC(nullptr)) {
+            hDCGlyphs = ::CreateCompatibleDC(screen);
+            hDCMono = ::CreateCompatibleDC(screen);
+            ::ReleaseDC(nullptr, screen);
+        }
+        ::InitializeCriticalSection(&cs);
+    }
+    ~ImageDCs() {
+        if (hDCGlyphs) ::DeleteDC(hDCGlyphs);
+        if (hDCMono) ::DeleteDC(hDCMono);
+        ::DeleteCriticalSection(&cs);
+    }
+};
+
+ImageDCs& GlobalImageDCs() {
+    static ImageDCs imageDCs;
+    return imageDCs;
 }
+
+class ImageDrawLock {
+public:
+    explicit ImageDrawLock(CRITICAL_SECTION& section) : section(section) {
+        ::EnterCriticalSection(&section);
+    }
+
+    ~ImageDrawLock() {
+        if (held) ::LeaveCriticalSection(&section);
+    }
+
+    void Transfer() { held = false; }
+
+private:
+    CRITICAL_SECTION& section;
+    bool held = true;
+};
+
+class ImageSourceDC {
+public:
+    ImageSourceDC(HDC destination, HBITMAP well) : lock(GlobalImageDCs().cs) {
+        const auto glyphs = GlobalImageDCs().hDCGlyphs;
+        if (glyphs && ::GetCurrentObject(glyphs, OBJ_BITMAP) == well) {
+            handle = glyphs;
+            return;
+        }
+
+        owned.reset(::CreateCompatibleDC(destination));
+        if (owned && ::SelectObject(owned.get(), well))
+            handle = owned.get();
+    }
+
+    HDC Get() const { return handle; }
+
+private:
+    ImageDrawLock lock;
+    MemoryDC owned{nullptr, &::DeleteDC};
+    HDC handle = nullptr;
+};
+} // namespace
+
+extern "C" std::int32_t impl__m_bDisableTrueColorAlpha_CMFCToolBarImages__2HA;
+extern "C" std::int32_t impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA;
+extern "C" std::uint8_t impl__m_nDisabledImageAlpha_CMFCToolBarImages__1EA;
+extern "C" std::uint8_t impl__m_nFadedImageAlpha_CMFCToolBarImages__1EA;
+
 namespace {
 void AlignImageAxis(int boundStart, int boundEnd, int& destStart, int& destEnd,
                     int& sourceStart, int& sourceEnd, int align) {
@@ -787,7 +843,105 @@ BOOL PaintImage(HDC dest, const CRect& rect, HDC src, const CRect& source,
     return ::StretchBlt(dest, rect.left, rect.top, rect.Width(), rect.Height(), src,
         source.left, source.top, source.Width(), source.Height(), SRCCOPY);
 }
+BOOL PaintDitheredRect(HDC dc, const CRect& bounds) {
+    constexpr WORD checker[] = {0x5555, 0xaaaa, 0x5555, 0xaaaa, 0x5555, 0xaaaa, 0x5555, 0xaaaa};
+    const OwnedBitmap pattern(::CreateBitmap(8, 8, 1, 1, checker), &::DeleteObject);
+    if (!pattern) return FALSE;
+    const auto brush = ::CreatePatternBrush(pattern.get());
+    if (!brush) return FALSE;
+    const auto oldText = ::SetTextColor(dc, ::GetSysColor(COLOR_BTNFACE));
+    const auto oldBackground = ::SetBkColor(dc, ::GetSysColor(COLOR_BTNHIGHLIGHT));
+    const BOOL painted = ::FillRect(dc, bounds, brush);
+    ::SetBkColor(dc, oldBackground);
+    ::SetTextColor(dc, oldText);
+    ::DeleteObject(brush);
+    return painted;
+}
+
+BOOL PaintLegacyImage(HDC dest, const CRect& bounds, HDC src, const CRect& source,
+                      int depth, COLORREF key, BYTE opacity, BOOL disabled, bool onGlass) {
+    if (!disabled && !onGlass && opacity == 255)
+        return PaintImage(dest, bounds, src, source, false, key, opacity);
+
+    const int width = source.Width();
+    const int height = source.Height();
+    void* bits = nullptr;
+    const auto bitmap = CreateImageBitmap(width, height, 32, &bits);
+    const MemoryDC converted(::CreateCompatibleDC(dest), &::DeleteDC);
+    if (!bitmap || !converted || !::SelectObject(converted.get(), bitmap.get()) ||
+        !::BitBlt(converted.get(), 0, 0, width, height, src, source.left, source.top, SRCCOPY)) return FALSE;
+
+    auto* pixels = static_cast<DWORD*>(bits);
+    ApplyColorKey(pixels, width, 0, width, height, key);
+    const CRect convertedBounds(0, 0, width, height);
+    if (disabled && depth < 24) {
+        const auto shadow = DibColor(::GetSysColor(COLOR_BTNSHADOW)) | 0xff000000;
+        const auto highlight = DibColor(::GetSysColor(COLOR_BTNHIGHLIGHT)) | 0xff000000;
+        const size_t count = static_cast<size_t>(width) * height;
+        for (size_t i = 0; i < count; ++i)
+            if (pixels[i]) pixels[i] = highlight;
+        CRect shifted = bounds;
+        shifted.OffsetRect(1, 1);
+        if (!PaintImage(dest, shifted, converted.get(), convertedBounds, true, CLR_INVALID, 255))
+            return FALSE;
+        ::GdiFlush();
+        for (size_t i = 0; i < count; ++i)
+            if (pixels[i]) pixels[i] = shadow;
+        opacity = 255;
+    } else if (disabled && !onGlass) {
+        const auto count = static_cast<size_t>(width) * height;
+        for (size_t i = 0; i < count; ++i) {
+            const auto color = pixels[i];
+            if (!color) continue;
+            const unsigned int gray = ((color >> 16 & 0xff) * 30 + (color >> 8 & 0xff) * 59 +
+                                      (color & 0xff) * 11) / 100;
+            pixels[i] = 0xff000000 | gray * 0x010101;
+        }
+    }
+    return PaintImage(dest, bounds, converted.get(), convertedBounds, true, CLR_INVALID, opacity);
+}
 } // namespace
+
+BOOL CMFCToolBarImages::Draw(CDC* dc, int x, int y, int index, BOOL highlighted, BOOL disabled,
+                           BOOL indeterminate, BOOL shadow, BOOL inactive, BYTE alpha) {
+    if (!m_hbmImageWell || index < 0 || index >= m_iCount) return FALSE;
+    if (shadow) return TRUE;
+    const HDC dest = dc ? dc->GetSafeHdc() : nullptr;
+    if (!dest) return FALSE;
+
+    const CRect cell(0, 0, m_sizeImage.cx, m_sizeImage.cy);
+    CRect source = m_rectSubImage.IsRectEmpty() ? cell : m_rectSubImage;
+    if (!source.IntersectRect(source, cell)) return FALSE;
+    const int width = m_sizeImageDest.cx > 0 ? m_sizeImageDest.cx : source.Width();
+    const int height = m_sizeImageDest.cy > 0 ? m_sizeImageDest.cy : source.Height();
+    if (x > INT_MAX - width || y > INT_MAX - height) return FALSE;
+    const CRect bounds(x, y, x + width, y + height);
+    m_rectLastDraw = bounds;
+    source.OffsetRect(index * m_sizeImage.cx, 0);
+
+    const ImageSourceDC src(dest, m_hbmImageWell);
+    if (!src.Get()) return FALSE;
+    const bool onGlass = impl__m_bIsDrawOnGlass_CMFCToolBarImages__2HA || m_bIsDrawOnGlass;
+    const bool disableTrueColorAlpha = impl__m_bDisableTrueColorAlpha_CMFCToolBarImages__2HA || m_bDisableTrueColorAlpha;
+    if (disabled && (m_nBitsPerPixel == 32 || !disableTrueColorAlpha))
+        alpha = impl__m_nDisabledImageAlpha_CMFCToolBarImages__1EA;
+    else if (inactive && m_bFadeInactive)
+        alpha = static_cast<BYTE>(alpha * impl__m_nFadedImageAlpha_CMFCToolBarImages__1EA / 255);
+    if (!m_bStretch && (highlighted || indeterminate)) PaintDitheredRect(dest, bounds);
+
+    if (m_nBitsPerPixel == 32)
+        return PaintImage(dest, bounds, src.Get(), source, true, CLR_INVALID, alpha);
+    return PaintLegacyImage(dest, bounds, src.Get(), source, m_nBitsPerPixel, m_clrTransparent,
+                            alpha, disabled, onGlass);
+}
+
+// Symbol: ?Draw@CMFCToolBarImages@@QEAAHPEAVCDC@@HHHHHHHHE@Z
+extern "C" int MS_ABI impl__Draw_CMFCToolBarImages__QEAAHPEAVCDC__HHHHHHHHE_Z(
+    CMFCToolBarImages* images, CDC* dc, int x, int y, int index, BOOL highlighted, BOOL disabled,
+    BOOL indeterminate, BOOL shadow, BOOL inactive, BYTE alpha)
+{
+    return images && images->Draw(dc, x, y, index, highlighted, disabled, indeterminate, shadow, inactive, alpha);
+}
 
 BOOL CMFCToolBarImages::DrawEx(CDC* dc, CRect bounds, int index, int horizontal, int vertical,
                               CRect source, BYTE alpha) {
@@ -802,13 +956,9 @@ BOOL CMFCToolBarImages::DrawEx(CDC* dc, CRect bounds, int index, int horizontal,
     AlignImageAxis(bounds.left, bounds.right, rect.left, rect.right, source.left, source.right, horizontal);
     AlignImageAxis(bounds.top, bounds.bottom, rect.top, rect.bottom, source.top, source.bottom, vertical);
     source.OffsetRect(index * m_sizeImage.cx, 0);
-    const MemoryDC src(::CreateCompatibleDC(dest), &::DeleteDC);
-    if (!src) return FALSE;
-    const auto old = ::SelectObject(src.get(), m_hbmImageWell);
-    if (!old) return FALSE;
-    const BOOL result = PaintImage(dest, rect, src.get(), source, m_nBitsPerPixel == 32, m_clrTransparent, alpha);
-    ::SelectObject(src.get(), old);
-    return result;
+    const ImageSourceDC src(dest, m_hbmImageWell);
+    return src.Get() && PaintImage(dest, rect, src.Get(), source, m_nBitsPerPixel == 32,
+                                  m_clrTransparent, alpha);
 }
 
 // Symbol: ?DrawEx@CMFCToolBarImages@@QEAAHPEAVCDC@@VCRect@@HW4ImageAlignHorz@1@W4ImageAlignVert@1@1E@Z
@@ -818,74 +968,37 @@ extern "C" int MS_ABI impl__DrawEx_CMFCToolBarImages__QEAAHPEAVCDC__VCRect__HW4I
 {
     return images && images->DrawEx(dc, bounds, index, horizontal, vertical, source, alpha);
 }
-#define TI_OFF_8(p, off)    (*reinterpret_cast<unsigned long long*>(reinterpret_cast<char*>(p) + (off)))
-#define TI_OFF_BOOL(p, off) (*reinterpret_cast<BOOL*>(reinterpret_cast<char*>(p) + (off)))
-#define TI_OFF_INT(p, off)  (*reinterpret_cast<int*>(reinterpret_cast<char*>(p) + (off)))
-#define TI_OFF_PTR(p, off)  (*reinterpret_cast<void**>(reinterpret_cast<char*>(p) + (off)))
-#define TI_OFF_ULONG(p, off)(*reinterpret_cast<unsigned long*>(reinterpret_cast<char*>(p) + (off)))
-// Retail (0x18016c270).  Observable member effects transcribed:
-//   - m_bCreateMonoDC: reselect the saved mono/gray DC handles and delete the
-//     saved palette.
-//   - m_sizeImageDest and m_rectLastDraw are cleared.
-//   - when m_bStretch or (bpp != 32 && clrTransparent != -1): restore the
-//     original bitmap, delete m_bmpMem and the memory DC, clear m_pBmpOriginal.
-// The global mono/gray DCs and the m_bIsDrawOnGlass cleanup are unmodeled.
+void CMFCToolBarImages::EndDrawImage(tagAFXDrawState& state) {
+    auto& dcs = GlobalImageDCs();
+    const ImageDrawLock lock(dcs.cs);
+    if (!m_hbmImageWell || !state.hbmOldGlyphs ||
+        ::GetCurrentObject(dcs.hDCGlyphs, OBJ_BITMAP) != m_hbmImageWell) return;
+
+    if (state.hbmMono) {
+        ::SelectObject(dcs.hDCMono, state.hbmMonoOld);
+        ::DeleteObject(state.hbmMono);
+    }
+    ::SelectObject(dcs.hDCGlyphs, state.hbmOldGlyphs);
+    state = {};
+    m_sizeImageDest = CSize(0, 0);
+    m_rectLastDraw.SetRectEmpty();
+    m_bStretch = FALSE;
+    m_bFadeInactive = FALSE;
+    ::LeaveCriticalSection(&dcs.cs);
+}
+
 // Symbol: ?EndDrawImage@CMFCToolBarImages@@QEAAXAEAUtagAFXDrawState@@@Z
 extern "C" void MS_ABI impl__EndDrawImage_CMFCToolBarImages__QEAAXAEAUtagAFXDrawState___Z(
-    CMFCToolBarImages* pThis, tagAFXDrawState* pState)
+    CMFCToolBarImages* images, tagAFXDrawState* state)
 {
-    if (!pThis) return;
-
-    if (TI_OFF_BOOL(pThis, 0x44)) {                 // m_bCreateMonoDC
-        // TODO(clean-room): retail reselects pState->hOldPattern into the
-        // global mono DC (0x1803c39b8) and pState->hOldGrayPattern into the
-        // gray DC (0x1803c38a8); not modeled.
-        if (pState && pState->hOldPalette) {
-            ::DeleteObject(pState->hOldPalette);
-            pState->hOldPalette = nullptr;
-        }
-    }
-
-    TI_OFF_8(pThis, 0x78) = 0;                      // m_sizeImageDest
-    std::memset(reinterpret_cast<char*>(pThis) + 0x80, 0, 16); // m_rectLastDraw
-
-    const BOOL bStretch = TI_OFF_BOOL(pThis, 0x24);
-    const int nBpp = TI_OFF_INT(pThis, 0x0C);
-    // Retail 0x16c2e1 (mfc140u): `cmpl $0,0x24(%rdi); jne <restore>`, then the
-    // (bpp == 32 ? -1 : m_clrTransparent) != -1 test -- i.e. m_bStretch OR
-    // the transparent-colour case, as the comment above says.
-    if (bStretch || (nBpp != 32 &&
-                     TI_OFF_ULONG(pThis, 0xD8) != static_cast<unsigned long>(-1))) {
-        if (TI_OFF_PTR(pThis, 0xD0)) {              // m_pBmpOriginal
-            // TODO(clean-room): retail first reselects the original bitmap
-            // into m_dcMem (0x18016c2fb); the mem-DC contents are not modeled.
-            // m_bmpMem @0xC0, m_dcMem @0x48 (both protected; reached by offset).
-            reinterpret_cast<CBitmap*>(reinterpret_cast<char*>(pThis) + 0xC0)->DeleteObject();
-            impl__DeleteDC_CDC__QEAAHXZ(
-                reinterpret_cast<CDC*>(reinterpret_cast<char*>(pThis) + 0x48));
-            TI_OFF_PTR(pThis, 0xD0) = nullptr;
-        }
-    }
+    if (images && state) images->EndDrawImage(*state);
 }
-#undef TI_OFF_8
-#undef TI_OFF_BOOL
-#undef TI_OFF_INT
-#undef TI_OFF_PTR
-#undef TI_OFF_ULONG
-// Retail (0x18016d4b0) fills the rect with the cached CMFCColorMaker dithered
-// brush (8x8 face/hilite hatch) via FillRect.  The maker singleton is not
-// modeled, so a solid button-face brush is used.
 // Symbol: ?FillDitheredRect@CMFCToolBarImages@@SAXPEAVCDC@@AEBVCRect@@@Z
 extern "C" void MS_ABI impl__FillDitheredRect_CMFCToolBarImages__SAXPEAVCDC__AEBVCRect___Z(
-    CDC* pDC, const CRect* pRect)
+    CDC* dc, const CRect* bounds)
 {
-    if (!pDC || !pRect) return;
-    // TODO(clean-room): retail fills with the dithered brush owned by the
-    // CMFCColorMaker (0x1803c1620); approximated here with the solid
-    // button-face brush.
-    HBRUSH hbr = ::GetSysColorBrush(COLOR_BTNFACE);
-    if (!hbr) return;
-    ::FillRect(pDC->GetSafeHdc(), *pRect, hbr);
+    if (dc && dc->GetSafeHdc() && bounds && !bounds->IsRectEmpty())
+        PaintDitheredRect(dc->GetSafeHdc(), *bounds);
 }
 BOOL CMFCToolBarImages::CopyImageToClipboard(int index) {
     if (!m_hbmImageWell || index < 0 || index >= m_iCount) return FALSE;
@@ -1514,30 +1627,40 @@ extern "C" int MS_ABI impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP__
     return TRUE;
 }
 
-// Retail RVA 0x16c060 (mfc140u).  LEFT A STUB (returns FALSE).  The body
-// (read in full): no m_hbmImageWell -> FALSE before any lock.  Otherwise it
-// enters the m_bMultiThreaded critical section (left held on success; the
-// matching LeaveCriticalSection is in EndDrawImage), clears m_bStretch,
-// requires m_dcMem, m_bmpMem and m_pBmpOriginal to be empty (else
-// AfxThrowInvalidArgException), selects the well into the global glyph DC
-// (mfc140u static 0x1803c38a8) storing the old bitmap in ds.hbmOldGlyphs,
-// and when m_bCreateMonoDC creates a (cx+2)x(cy+2) 1bpp ds.hbmMono selected
-// into the global mono DC (mfc140u static 0x1803c39b8).  m_sizeImageDest =
-// sizeImageDest when both extents are > 0, else m_sizeImage.  When
-// m_sizeImageDest != m_sizeImage, or when the image is not 32bpp and
-// m_clrTransparent != (COLORREF)-1, it sets m_bStretch = (sizes differ),
-// attaches CreateCompatibleDC(NULL) to m_dcMem and a (cx+2)x(cy+2) bitmap
-// compatible with the screen DC to m_bmpMem, and stores the bitmap it
-// displaces in m_pBmpOriginal.  bFadeInactive is never read.
-// OpenMFC does not model those two global DCs (EndDrawImage above leaves the
-// matching restore undone for the same reason), so the draw state cannot be
-// produced.  Parameters: CSize by value is one 8-byte register (long long).
+BOOL CMFCToolBarImages::PrepareDrawImage(tagAFXDrawState& state, CSize size, BOOL fadeInactive) {
+    auto& dcs = GlobalImageDCs();
+    ImageDrawLock lock(dcs.cs);
+    if (m_sizeImageDest.cx > 0 && m_sizeImageDest.cy > 0) return FALSE;
+    state = {};
+    if (!m_hbmImageWell || m_sizeImage.cx <= 0 || m_sizeImage.cy <= 0 || !dcs.hDCGlyphs) return FALSE;
+    if (m_bCreateMonoDC && (m_sizeImage.cx > INT_MAX - 2 || m_sizeImage.cy > INT_MAX - 2)) return FALSE;
+
+    const auto previous = ::SelectObject(dcs.hDCGlyphs, m_hbmImageWell);
+    if (!previous) return FALSE;
+    if (m_bCreateMonoDC) {
+        OwnedBitmap mono(::CreateBitmap(m_sizeImage.cx + 2, m_sizeImage.cy + 2, 1, 1, nullptr),
+                               &::DeleteObject);
+        const auto oldMono = mono && dcs.hDCMono ? ::SelectObject(dcs.hDCMono, mono.get()) : nullptr;
+        if (!oldMono) {
+            ::SelectObject(dcs.hDCGlyphs, previous);
+            return FALSE;
+        }
+        state.hbmMono = mono.release();
+        state.hbmMonoOld = oldMono;
+    }
+    state.hbmOldGlyphs = previous;
+    m_sizeImageDest = size.cx > 0 && size.cy > 0 ? size : m_sizeImage;
+    m_bStretch = m_sizeImageDest.cx != m_sizeImage.cx || m_sizeImageDest.cy != m_sizeImage.cy;
+    m_bFadeInactive = fadeInactive;
+    lock.Transfer();
+    return TRUE;
+}
+
 // Symbol: ?PrepareDrawImage@CMFCToolBarImages@@QEAAHAEAUtagAFXDrawState@@VCSize@@H@Z
 extern "C" int MS_ABI impl__PrepareDrawImage_CMFCToolBarImages__QEAAHAEAUtagAFXDrawState__VCSize__H_Z(
-    CMFCToolBarImages* pThis, tagAFXDrawState* pDrawState, long long sizeImageDest, int bFadeInactive)
+    CMFCToolBarImages* images, tagAFXDrawState* state, CSize size, BOOL fadeInactive)
 {
-    (void)pThis; (void)pDrawState; (void)sizeImageDest; (void)bFadeInactive;
-    return FALSE;
+    return images && state && images->PrepareDrawImage(*state, size, fadeInactive);
 }
 
 // Retail RVA 0x171320 (mfc140u).  Transcribed: when m_hbmImageWell is set and
