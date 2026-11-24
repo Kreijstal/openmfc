@@ -1394,13 +1394,16 @@ class CMFCTabCtrl : public CMFCBaseTabCtrl {
     DECLARE_DYNCREATE(CMFCTabCtrl)
 public:
     enum Style {
-        STYLE_3D, STYLE_3D_ONENOTE, STYLE_3D_VS2005, STYLE_FLAT,
-        STYLE_3D_SCROLLED, STYLE_FLAT_SHARED_HORZ_SCROLL, STYLE_3D_ROUNDED,
-        STYLE_3D_ROUNDED_SCROLL
+        STYLE_3D = 0, STYLE_FLAT = 1, STYLE_FLAT_SHARED_HORZ_SCROLL = 2,
+        STYLE_3D_SCROLLED = 3, STYLE_3D_ONENOTE = 4, STYLE_3D_VS2005 = 5,
+        STYLE_3D_ROUNDED = 6, STYLE_3D_ROUNDED_SCROLL = 7
     };
     CMFCTabCtrl();
     virtual ~CMFCTabCtrl();
 
+    void EnableTabDocumentsMenu(BOOL enable = TRUE);
+    static HICON GetDocumentIcon(UINT command);
+    virtual void OnShowTabDocumentsMenu(CPoint point);
     void EnableTabSwap(BOOL bEnable = TRUE);
     void SetTabBorderSize(int nTabBorderSize);
     void SetTabsHeight(int nTabHeight);
@@ -1720,7 +1723,7 @@ public:
     void Serialize(CArchive& archive);
 
     CMFCBaseTabCtrl::Location m_tabLocation = CMFCBaseTabCtrl::LOCATION_TOP;
-    CMFCTabCtrl::Style m_style = CMFCTabCtrl::STYLE_FLAT;
+    CMFCTabCtrl::Style m_style = CMFCTabCtrl::STYLE_3D_SCROLLED;
     BOOL m_bTabIcons = FALSE;
     BOOL m_bTabCloseButton = TRUE;
     BOOL m_bTabCustomTooltips = FALSE;

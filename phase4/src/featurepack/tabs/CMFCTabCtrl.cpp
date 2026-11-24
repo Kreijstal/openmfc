@@ -74,6 +74,7 @@ extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHPEAU_IMAGELIST___
 extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(const CMFCBaseTabCtrl*, CPoint&);
 extern "C" UINT impl__AFX_WM_CHANGING_ACTIVE_TAB__3IA;
 extern "C" UINT impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA;
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ();
 
 
 //=============================================================================
@@ -240,7 +241,7 @@ extern "C" void MS_ABI impl__EnableInPlaceEdit_CMFCTabCtrl__UEAAXH_Z(
 extern "C" void MS_ABI impl__EnableTabDocumentsMenu_CMFCTabCtrl__QEAAXH_Z(
     CMFCTabCtrl* pThis, BOOL enable)
 {
-    if (pThis) EnsureTabCtrlState(pThis).documentsMenu = enable;
+    if (pThis) pThis->EnableTabDocumentsMenu(enable);
 }
 // Retail (0x18013b730): bounds-check `0 <= iTab < tabs count (+0x150)`; when
 // out of bounds return FALSE (0x18013b944: xor eax,eax). Otherwise scroll the
@@ -273,16 +274,6 @@ extern "C" CWnd* MS_ABI impl__FindTargetWnd_CMFCTabCtrl__MEAAPEAVCWnd__AEBVCPoin
     // point is above the tab-header bottom (+0x1d8) or over a tab whose
     // +0x48 flag is set; the header bound and tab rects are not modeled.
     return pThis;
-}
-// Retail RVA 0x13cc80 (mfc140u) looks up the command ID in the static
-// document-icon map and returns the HICON at +0x8 of a matching entry, or NULL.
-// The map's CMap storage is not represented in OpenMFC.
-// Symbol: ?GetDocumentIcon@CMFCTabCtrl@@SAPEAUHICON__@@I@Z
-extern "C" HICON MS_ABI impl__GetDocumentIcon_CMFCTabCtrl__SAPEAUHICON____I_Z(
-    unsigned int /*nCmdID*/)
-{
-    // STUB: the retail map backing this lookup is not implemented.
-    return nullptr;
 }
 // Retail (0x18013c510): returns -1 when the point is outside the tab-area
 // rect (+0x44c), otherwise it scans the tab rect array (+0x108/+0x110, active
@@ -362,19 +353,40 @@ extern "C" int MS_ABI impl__IsPtInTabArea_CMFCTabCtrl__UEBAHVCPoint___Z(
     // rect at +0x44c; that member is not declared, so no point can match.
     return FALSE;
 }
-// Retail (0x18013c380) derives the four style flags from `style`:
-//   +0x3c0 = (style == 1); +0x3c4 = +0xf0 = (style == 4);
-//   +0x3c8 = (style == 5); +0x3cc = (6 <= style <= 7);
-// then relayouts (internal 0x18013c400 + vslot 0x300) and always returns 1.
-// The flags are unmodeled; the constant return value is kept.
+namespace {
+constexpr size_t flatTabOffset = 0x3c0;
+constexpr size_t tabScrollOffset = 0x3d4;
+constexpr size_t documentsMenuOffset = 0x400;
+constexpr size_t hiddenDocumentsOffset = 0x404;
+
+BOOL& TabControlFlag(CMFCTabCtrl& tabs, size_t offset) {
+    return *reinterpret_cast<BOOL*>(reinterpret_cast<BYTE*>(&tabs) + offset);
+}
+
+void SetTabStyleFlags(CMFCTabCtrl& tabs, int style, bool creating) {
+    const bool sharedScroll = style == CMFCTabCtrl::STYLE_FLAT_SHARED_HORZ_SCROLL;
+    const bool flat = style == CMFCTabCtrl::STYLE_FLAT || (creating && sharedScroll);
+    const bool oneNote = style == CMFCTabCtrl::STYLE_3D_ONENOTE;
+    TabControlFlag(tabs, flatTabOffset) = flat;
+    TabControlFlag(tabs, 0x3c4) = oneNote;
+    TabControlFlag(tabs, 0x3c8) = style == CMFCTabCtrl::STYLE_3D_VS2005;
+    TabControlFlag(tabs, 0x3cc) = style == CMFCTabCtrl::STYLE_3D_ROUNDED || style == CMFCTabCtrl::STYLE_3D_ROUNDED_SCROLL;
+    TabControlFlag(tabs, 0xf0) = oneNote;
+    if (creating) {
+        TabControlFlag(tabs, 0x3d0) = sharedScroll;
+        TabControlFlag(tabs, tabScrollOffset) = flat || oneNote || style == CMFCTabCtrl::STYLE_3D_VS2005 ||
+            style == CMFCTabCtrl::STYLE_3D_SCROLLED || style == CMFCTabCtrl::STYLE_3D_ROUNDED_SCROLL;
+    }
+}
+}
+
 // Symbol: ?ModifyTabStyle@CMFCTabCtrl@@QEAAHW4Style@1@@Z
 extern "C" int MS_ABI impl__ModifyTabStyle_CMFCTabCtrl__QEAAHW4Style_1__Z(
-    CMFCTabCtrl* pThis, int /*style*/)
+    CMFCTabCtrl* pThis, int style)
 {
     if (!pThis) return FALSE;
-    // TODO(clean-room): partially transcribed -- the four style flags at
-    // +0x3c0/+0x3c4/+0xf0/+0x3c8/+0x3cc are not declared, so the derived
-    // style state is not stored and no relayout is issued.
+    SetTabStyleFlags(*pThis, style, false);
+    pThis->RefreshTabs();
     return TRUE;
 }
 // Retail (0x18013c750): scrolls the strip (0x180018ec0), and when any of the
@@ -599,10 +611,11 @@ const AFX_MSGMAP* CMFCTabCtrl::GetMessageMap() const {
     return GetThisMessageMap();
 }
 
-BOOL CMFCTabCtrl::CreateTabs(int, const RECT& rect, CWnd* parent, UINT id, int location, BOOL) {
+BOOL CMFCTabCtrl::CreateTabs(int style, const RECT& rect, CWnd* parent, UINT id, int location, BOOL) {
     if (m_hWnd || !parent || !parent->GetSafeHwnd()) return FALSE;
     SetLocation(location);
     if (!CMFCBaseTabCtrl::Create(WS_VISIBLE | WS_CLIPSIBLINGS, rect, parent, id)) return FALSE;
+    SetTabStyleFlags(*this, style, true);
     EnsureTabCtrlState(this).liveLayout = true;
     RecalcLayout();
     return TRUE;
@@ -619,6 +632,27 @@ RECT TabCloseBounds(const CRect& strip, const CRect& area) {
     const int top = strip.top + (strip.Height() - size) / 2;
     return RECT{area.right - size - 2, top, area.right - 2, top + size};
 }
+
+bool HasOverflowedDocuments(const TabCtrlState& state) {
+    return std::any_of(state.tabs.begin(), state.tabs.end(),
+        [](const auto& tab) { return tab.visible && !tab.temporary && tab.rect.IsRectEmpty(); });
+}
+
+int TabStripEnd(const TabCtrlState& state) {
+    return state.mdiCloseButton && !state.mdiActiveCloseButton
+        ? state.strip.right - (std::min)(19, state.strip.Width()) : state.strip.right;
+}
+
+RECT DocumentsButtonBounds(const TabCtrlState& state) {
+    if (!state.documentsMenu || state.strip.IsRectEmpty() ||
+        std::none_of(state.tabs.begin(), state.tabs.end(),
+            [](const TabEntry& tab) { return tab.visible && !tab.temporary; }))
+        return RECT{};
+    CRect area = state.strip;
+    area.right = TabStripEnd(state);
+    return TabCloseBounds(state.strip, area);
+}
+
 
 }
 
@@ -658,32 +692,60 @@ void CMFCTabCtrl::RecalcLayout() {
 
     const HDC dc = ::GetDC(control);
     const auto font = dc ? ::SelectObject(dc, ::GetStockObject(DEFAULT_GUI_FONT)) : nullptr;
-    int x = state.strip.left;
-    int remaining = count;
-    const int lastX = state.mdiCloseButton && !state.mdiActiveCloseButton
-        ? state.strip.right - (std::min)(19, state.strip.Width()) : state.strip.right;
-    std::vector<std::pair<HWND, BOOL>> windows;
+    const RECT documentsButton = DocumentsButtonBounds(state);
+    const bool documentsMenu = !::IsRectEmpty(&documentsButton);
+    const int lastX = documentsMenu ? documentsButton.left - 2 : TabStripEnd(state);
+    std::vector<int> widths(state.tabs.size());
     for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
-        auto& tab = state.tabs[i];
-        tab.rect.SetRectEmpty();
-        if (height > 0 && tab.visible) {
-            SIZE text{};
-            if (dc) ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
-            const int space = (std::max)(0, lastX - x);
-            const int closeWidth = state.mdiActiveCloseButton && i == state.activeTab ? 19 : 0;
-            const int wanted = (std::max)(32, static_cast<int>(text.cx) + 20 + TabIconWidth(tab) + closeWidth);
-            const int width = (std::min)(wanted, space - (std::min)(space / 2, remaining - 1));
-            tab.rect.SetRect(x, state.strip.top, x + width, state.strip.bottom);
-            x += width;
-            --remaining;
-        }
-        if (tab.window && tab.window->GetSafeHwnd())
-            windows.emplace_back(tab.window->GetSafeHwnd(), tab.visible && state.activeTab == i);
+        const auto& tab = state.tabs[i];
+        if (!tab.visible || height <= 0) continue;
+        SIZE text{};
+        if (dc) ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
+        const int closeWidth = state.mdiActiveCloseButton && i == state.activeTab ? 19 : 0;
+        widths[i] = (std::max)(32, static_cast<int>(text.cx) + 20 + TabIconWidth(tab) + closeWidth);
     }
     if (dc) {
         if (font) ::SelectObject(dc, font);
         ::ReleaseDC(control, dc);
     }
+
+    int first = 0;
+    if (documentsMenu && state.activeTab >= 0) {
+        int space = lastX - state.strip.left;
+        for (int i = state.activeTab; i >= 0; --i) {
+            space -= widths[i];
+            if (space < 0) {
+                first = (std::min)(i + 1, state.activeTab);
+                break;
+            }
+        }
+    }
+    int x = state.strip.left;
+    int remaining = count;
+    std::vector<std::pair<HWND, BOOL>> windows;
+    for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
+        auto& tab = state.tabs[i];
+        tab.rect.SetRectEmpty();
+        if (widths[i] && i >= first) {
+            const int space = (std::max)(0, lastX - x);
+            if (documentsMenu) {
+                // Other documents may overflow, but the selected tab keeps a place on the strip.
+                if (space >= 32 || i == state.activeTab || (state.activeTab < 0 && x == state.strip.left)) {
+                    const int width = (std::min)(widths[i], space);
+                    tab.rect.SetRect(x, state.strip.top, x + width, state.strip.bottom);
+                    x += width;
+                }
+            } else {
+                const int width = (std::min)(widths[i], space - (std::min)(space / 2, remaining - 1));
+                tab.rect.SetRect(x, state.strip.top, x + width, state.strip.bottom);
+                x += width;
+                --remaining;
+            }
+        }
+        if (tab.window && tab.window->GetSafeHwnd())
+            windows.emplace_back(tab.window->GetSafeHwnd(), tab.visible && state.activeTab == i);
+    }
+    TabControlFlag(*this, hiddenDocumentsOffset) = documentsMenu && HasOverflowedDocuments(state);
     for (const auto& [window, show] : windows) {
         if (CWnd::FromHandlePermanent(control) != this) return;
         if (::GetParent(window) != control) continue;
@@ -759,6 +821,14 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
     }
     RECT close = TabCloseButtonBounds(*state);
     if (!::IsRectEmpty(&close)) ::DrawFrameControl(handle, &close, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
+    RECT documents = DocumentsButtonBounds(*state);
+    if (!::IsRectEmpty(&documents)) {
+        ::DrawFrameControl(handle, &documents, DFC_SCROLL, DFCS_SCROLLCOMBOBOX | DFCS_FLAT);
+        if (HasOverflowedDocuments(*state)) {
+            RECT overflow{documents.left + 4, documents.top + 4, documents.right - 4, documents.top + 5};
+            ::FillRect(handle, &overflow, ::GetSysColorBrush(COLOR_BTNTEXT));
+        }
+    }
     if (saved) ::RestoreDC(handle, saved);
 }
 
@@ -767,8 +837,24 @@ void CMFCTabCtrl::OnPaint() {
     DrawTabs(&dc);
 }
 
+namespace {
+void SelectTabAndFocus(CMFCTabCtrl& tabs, int index) {
+    const HWND control = tabs.m_hWnd;
+    if (!tabs.ActivateTab(index) || CWnd::FromHandlePermanent(control) != &tabs) return;
+    auto* page = tabs.GetTabWnd(tabs.GetActiveTab());
+    if (page && ::IsWindowVisible(page->GetSafeHwnd())) ::SetFocus(page->GetSafeHwnd());
+}
+}
+
 void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
     if (const auto* state = FindTabCtrlState(this)) {
+        const RECT documents = DocumentsButtonBounds(*state);
+        if (::PtInRect(&documents, point)) {
+            POINT anchor{documents.left, documents.bottom};
+            ::ClientToScreen(m_hWnd, &anchor);
+            OnShowTabDocumentsMenu(CPoint(anchor.x, anchor.y));
+            return;
+        }
         const RECT close = TabCloseButtonBounds(*state);
         if (::PtInRect(&close, point)) {
             if (auto* page = GetTabWnd(state->activeTab)) ::SendMessageW(page->m_hWnd, WM_CLOSE, 0, 0);
@@ -776,15 +862,8 @@ void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
         }
     }
     const int index = impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(this, point);
-    if (index >= 0) {
-        const HWND control = m_hWnd;
-        if (ActivateTab(index) && CWnd::FromHandlePermanent(control) == this) {
-            if (auto* page = GetTabWnd(GetActiveTab()); page && ::IsWindowVisible(page->GetSafeHwnd()))
-                ::SetFocus(page->GetSafeHwnd());
-        }
-    } else {
-        Default();
-    }
+    if (index >= 0) SelectTabAndFocus(*this, index);
+    else Default();
 }
 
 void CMFCTabCtrl::OnSize(UINT, int, int) {
@@ -805,10 +884,6 @@ void CMFCTabCtrl::SetTabsHeight(int nTabHeight) {
     state.tabsHeight = nTabHeight;
     RefreshTabs();
 }
-// Stub placeholder for the static CMap<UINT, UINT, HICON, HICON> export. No
-// retail-compatible map storage is available in this implementation.
-// Symbol: ?m_mapDocIcons@CMFCTabCtrl@@1V?$CMap@IIPEAUHICON__@@PEAU1@@@A
-extern "C" void* MS_ABI impl__m_mapDocIcons_CMFCTabCtrl__1V__CMap_IIPEAUHICON____PEAU1___A = nullptr;
 
 // STUB: Retail RVA 0x13db10 (mfc140 ANSI twin) resolves the selected tab's
 // MDI/window state and dispatches activation; the required state is unmodeled.
@@ -917,13 +992,239 @@ extern "C" void MS_ABI impl__OnSettingChange_CMFCTabCtrl__IEAAXIPEB_W_Z(
     // updates on +0x3c0; that member and the related geometry are unmodeled.
 }
 
-// STUB: Retail RVA 0x13d5b0 (mfc140 ANSI twin) builds and displays a document
-// menu from global menu-manager and per-tab/list state that is not modeled.
+namespace {
+struct DocumentIconAssociation {
+    UINT command;
+    HICON icon;
+    DocumentIconAssociation* next;
+    UINT hash;
+};
+
+struct DocumentIconMap {
+    void* vtable = nullptr;
+    DocumentIconAssociation** buckets = nullptr;
+    UINT bucketCount = 17;
+    INT_PTR count = 0;
+    DocumentIconAssociation* freeList = nullptr;
+    void* blocks = nullptr;
+    INT_PTR blockSize = 10;
+};
+static_assert(sizeof(DocumentIconAssociation) == 0x20);
+static_assert(sizeof(DocumentIconMap) == 0x38 && offsetof(DocumentIconMap, count) == 0x18);
+
+UINT DocumentIconHash(UINT command) {
+    const auto key = static_cast<LONG>(command);
+    const auto hash = 16807L * (key % 127773L) - 2836L * (key / 127773L);
+    return static_cast<UINT>(hash < 0 ? hash + 2147483647L : hash);
+}
+
+struct DocumentMenuEntry {
+    UINT command;
+    int tabId;
+    std::wstring label;
+    HWND window;
+    HICON icon = nullptr;
+};
+
+HBITMAP DocumentMenuBitmap(HICON icon) {
+    const int width = ::GetSystemMetrics(SM_CXSMICON);
+    const int height = ::GetSystemMetrics(SM_CYSMICON);
+    if (width <= 0 || height <= 0) return nullptr;
+    std::vector<DWORD> onBlack(static_cast<size_t>(width) * height);
+    BITMAPINFO format{};
+    format.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    format.bmiHeader.biWidth = width;
+    format.bmiHeader.biHeight = -height;
+    format.bmiHeader.biPlanes = 1;
+    format.bmiHeader.biBitCount = 32;
+    void* bits = nullptr;
+    const HBITMAP bitmap = ::CreateDIBSection(nullptr, &format, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!bitmap) return nullptr;
+    const HDC dc = ::CreateCompatibleDC(nullptr);
+    if (!dc) {
+        ::DeleteObject(bitmap);
+        return nullptr;
+    }
+    const HGDIOBJ old = ::SelectObject(dc, bitmap);
+    auto* pixels = static_cast<DWORD*>(bits);
+    std::fill_n(pixels, onBlack.size(), 0);
+    const BOOL drewBlack = ::DrawIconEx(dc, 0, 0, icon, width, height, 0, nullptr, DI_NORMAL);
+    ::GdiFlush();
+    std::copy_n(pixels, onBlack.size(), onBlack.begin());
+    std::fill_n(pixels, onBlack.size(), 0x00ffffff);
+    const BOOL drewWhite = ::DrawIconEx(dc, 0, 0, icon, width, height, 0, nullptr, DI_NORMAL);
+    ::GdiFlush();
+    // The difference between the two backgrounds gives the transparency for
+    // both alpha-channel icons and older icons with a separate AND mask.
+    for (size_t i = 0; i < onBlack.size(); ++i) {
+        const int background = static_cast<int>(pixels[i] & 0xff) - static_cast<int>(onBlack[i] & 0xff);
+        const DWORD alpha = static_cast<DWORD>(255 - (std::clamp)(background, 0, 255));
+        pixels[i] = (alpha << 24) | (onBlack[i] & 0x00ffffff);
+    }
+    ::SelectObject(dc, old);
+    ::DeleteDC(dc);
+    if (drewBlack && drewWhite) return bitmap;
+    ::DeleteObject(bitmap);
+    return nullptr;
+}
+
+CContextMenuManager* DocumentContextMenuManager() {
+    struct AppAccess : CWinAppEx { using CWinAppEx::m_pContextMenuManager; };
+    auto* app = AfxGetApp();
+    return app && app->IsKindOf(impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ())
+        ? static_cast<AppAccess*>(static_cast<CWinAppEx*>(app))->m_pContextMenuManager : nullptr;
+}
+
+std::wstring DocumentMenuLabel(const std::wstring& label) {
+    std::wstring text;
+    for (std::size_t i = 0; i < label.size(); ++i) {
+        text += label[i];
+        if (label[i] != L'&') continue;
+        text += L'&';
+        if (i + 1 < label.size() && label[i + 1] == L'&') ++i;
+    }
+    return text;
+}
+}
+
+// Symbol: ?m_mapDocIcons@CMFCTabCtrl@@1V?$CMap@IIPEAUHICON__@@PEAU1@@@A
+extern "C" DocumentIconMap impl__m_mapDocIcons_CMFCTabCtrl__1V__CMap_IIPEAUHICON____PEAU1___A{};
+
+namespace {
+class DocumentMenuIcons {
+public:
+    explicit DocumentMenuIcons(const std::vector<DocumentMenuEntry>& entries)
+        : m_associations(entries.size()) {
+        for (size_t i = 0; i < entries.size(); ++i) {
+            const auto& entry = entries[i];
+            if (!entry.icon) continue;
+            const UINT hash = DocumentIconHash(entry.command);
+            auto*& bucket = m_buckets[hash % ARRAYSIZE(m_buckets)];
+            m_associations[i] = {entry.command, entry.icon, bucket, hash};
+            bucket = &m_associations[i];
+            ++m_map.count;
+        }
+        m_map.buckets = m_buckets;
+        m_previous = s_active;
+        s_active = &m_map;
+        ::AcquireSRWLockExclusive(&s_exportLock);
+        m_previousExport = s_lastExport;
+        s_lastExport = this;
+        impl__m_mapDocIcons_CMFCTabCtrl__1V__CMap_IIPEAUHICON____PEAU1___A = m_map;
+        ::ReleaseSRWLockExclusive(&s_exportLock);
+    }
+
+    ~DocumentMenuIcons() {
+        s_active = m_previous;
+        ::AcquireSRWLockExclusive(&s_exportLock);
+        auto** entry = &s_lastExport;
+        while (*entry != this) entry = &(*entry)->m_previousExport;
+        *entry = m_previousExport;
+        impl__m_mapDocIcons_CMFCTabCtrl__1V__CMap_IIPEAUHICON____PEAU1___A =
+            s_lastExport ? s_lastExport->m_map : DocumentIconMap{};
+        ::ReleaseSRWLockExclusive(&s_exportLock);
+    }
+
+    static const DocumentIconMap* Active() { return s_active; }
+
+private:
+    static inline thread_local const DocumentIconMap* s_active = nullptr;
+    static inline SRWLOCK s_exportLock = SRWLOCK_INIT;
+    static inline DocumentMenuIcons* s_lastExport = nullptr;
+    const DocumentIconMap* m_previous = nullptr;
+    DocumentMenuIcons* m_previousExport = nullptr;
+    DocumentIconMap m_map;
+    DocumentIconAssociation* m_buckets[17]{};
+    std::vector<DocumentIconAssociation> m_associations;
+};
+}
+
+void CMFCTabCtrl::EnableTabDocumentsMenu(BOOL enable) {
+    auto& state = EnsureTabCtrlState(this);
+    if (state.documentsMenu == enable || (TabControlFlag(*this, flatTabOffset) && !TabControlFlag(*this, tabScrollOffset)))
+        return;
+    state.documentsMenu = enable;
+    TabControlFlag(*this, documentsMenuOffset) = enable;
+    RefreshTabs();
+}
+
+HICON CMFCTabCtrl::GetDocumentIcon(UINT command) {
+    const auto* map = DocumentMenuIcons::Active();
+    if (!map) return nullptr;
+    const UINT hash = DocumentIconHash(command);
+    for (auto* entry = map->buckets[hash % map->bucketCount]; entry; entry = entry->next) {
+        if (entry->command == command) return entry->icon;
+    }
+    return nullptr;
+}
+
+// Symbol: ?GetDocumentIcon@CMFCTabCtrl@@SAPEAUHICON__@@I@Z
+extern "C" HICON MS_ABI impl__GetDocumentIcon_CMFCTabCtrl__SAPEAUHICON____I_Z(UINT command) {
+    return CMFCTabCtrl::GetDocumentIcon(command);
+}
+
+void CMFCTabCtrl::OnShowTabDocumentsMenu(CPoint point) {
+    const HWND control = m_hWnd;
+    auto* manager = DocumentContextMenuManager();
+    const auto* state = FindTabCtrlState(this);
+    if (!control || !manager || !state) return;
+
+    std::vector<DocumentMenuEntry> entries;
+    for (size_t i = 0; i < state->tabs.size(); ++i) {
+        const auto& tab = state->tabs[i];
+        if (!tab.visible || tab.temporary || !tab.window || !tab.window->m_hWnd) continue;
+        entries.push_back({UINT(-100) - static_cast<UINT>(i), tab.id, DocumentMenuLabel(tab.label),
+            tab.window->m_hWnd, tab.windowIcon});
+    }
+    if (entries.empty()) return;
+    std::stable_sort(entries.begin(), entries.end(), [](const auto& left, const auto& right) {
+        return _wcsicmp(left.label.c_str(), right.label.c_str()) < 0;
+    });
+
+    using MenuBitmap = std::unique_ptr<std::remove_pointer_t<HBITMAP>, decltype(&::DeleteObject)>;
+    std::vector<MenuBitmap> bitmaps;
+    bitmaps.reserve(entries.size());
+    CMenu menu;
+    if (!menu.CreatePopupMenu()) return;
+    for (auto& item : entries) {
+        if (!item.icon && ::IsWindow(item.window)) {
+            item.icon = reinterpret_cast<HICON>(::SendMessageW(item.window, WM_GETICON, ICON_SMALL, 0));
+            if (!item.icon) item.icon = reinterpret_cast<HICON>(::GetClassLongPtrW(item.window, GCLP_HICONSM));
+        }
+        if (!menu.AppendMenu(MF_STRING, item.command, item.label.c_str()) || !item.icon) continue;
+        MenuBitmap bitmap(DocumentMenuBitmap(item.icon), &::DeleteObject);
+        if (!bitmap) continue;
+        MENUITEMINFOW information{sizeof(MENUITEMINFOW)};
+        information.fMask = MIIM_BITMAP;
+        information.hbmpItem = bitmap.get();
+        if (::SetMenuItemInfoW(menu.m_hMenu, item.command, FALSE, &information))
+            bitmaps.push_back(std::move(bitmap));
+    }
+    if (CWnd::FromHandlePermanent(control) != this) return;
+
+    manager = DocumentContextMenuManager();
+    if (!manager) return;
+    UINT command;
+    {
+        const DocumentMenuIcons icons(entries);
+        command = manager->TrackPopupMenu(menu.m_hMenu, point.x, point.y, this, FALSE);
+    }
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    const auto selected = std::find_if(entries.begin(), entries.end(), [command](const auto& entry) {
+        return entry.command == command;
+    });
+    state = FindTabCtrlState(this);
+    if (selected == entries.end() || !state) return;
+    const auto tab = std::find_if(state->tabs.begin(), state->tabs.end(), [&selected](const auto& candidate) {
+        return candidate.id == selected->tabId && candidate.window && candidate.window->m_hWnd == selected->window;
+    });
+    if (tab != state->tabs.end()) SelectTabAndFocus(*this, static_cast<int>(tab - state->tabs.begin()));
+}
+
 // Symbol: ?OnShowTabDocumentsMenu@CMFCTabCtrl@@UEAAXVCPoint@@@Z
 extern "C" void MS_ABI impl__OnShowTabDocumentsMenu_CMFCTabCtrl__UEAAXVCPoint___Z(
-    CMFCTabCtrl* pThis, long long point)
-{
-    (void)pThis; (void)point;
+    CMFCTabCtrl* pThis, CPoint point) {
+    if (pThis) pThis->CMFCTabCtrl::OnShowTabDocumentsMenu(point);
 }
 
 // Retail RVA 0x138d60 (mfc140 ANSI twin) first calls CWnd::Default, then
