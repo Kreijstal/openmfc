@@ -326,6 +326,9 @@ struct TabEntry {
     COLORREF backgroundColor = static_cast<COLORREF>(-1);
     bool temporary = false;
     HICON windowIcon = nullptr;
+    std::shared_ptr<std::remove_pointer_t<HICON>> customIcon;
+    BOOL iconOnly = FALSE;
+    BOOL tooltipAlways = FALSE;
 };
 
 struct RestoredTab {
@@ -365,6 +368,9 @@ struct TabCtrlState {
     CRect scrollLeft{};
     CRect scrollRight{};
     int maxTabScroll = 0;
+    HWND labelTooltips = nullptr;
+    std::vector<UINT_PTR> labelTooltipIds;
+    std::wstring tooltipText;
 };
 } } }
 

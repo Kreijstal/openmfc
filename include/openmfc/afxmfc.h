@@ -1305,6 +1305,23 @@ public:
     void SetLocation(int location);
     void HideSingleTab(BOOL hide);
     void RefreshTabs();
+    BOOL SetImageList(UINT resource, int width = 15, COLORREF transparent = RGB(255, 0, 255));
+    BOOL SetImageList(HIMAGELIST images);
+    void ClearImageList();
+    void ResetImageList();
+    const CImageList* GetImageList() const;
+    HIMAGELIST GetImageListHandle() const;
+    CSize GetImageSize() const { return m_sizeImage; }
+    BOOL SetTabIcon(int index, UINT image);
+    BOOL SetTabHicon(int index, HICON icon);
+    HICON GetTabHicon(int index) const;
+    BOOL HasImage(int index) const;
+    BOOL SetTabIconOnly(int index, BOOL iconOnly = TRUE, BOOL tooltipAlways = FALSE);
+    BOOL IsTabIconOnly(int index) const;
+    void SetActiveTabColor(COLORREF color);
+    void SetActiveTabTextColor(COLORREF color);
+    COLORREF GetActiveTabColor() const;
+    COLORREF GetActiveTabTextColor() const;
     virtual BOOL SetTabLabel(int index, const CString& label);
     virtual BOOL StartRenameTab(int index);
     virtual BOOL RenameTab();
@@ -1330,11 +1347,17 @@ protected:
     char _baseTabCtrlArrays[0x54]{};
     int m_iTabsNum = 0;
     int m_iActiveTab = -1;
-    char _baseTabCtrlOptions[0x9c]{};
+    char _baseTabCtrlImagePrefix[8]{};
+    CImageList m_Images;
+    HIMAGELIST m_hImageList = nullptr;
+    CSize m_sizeImage{0, 0};
+    char _baseTabCtrlOptions[0x74]{};
     BOOL m_bHideSingleTab = FALSE;
     char _baseTabCtrlFlags[8]{};
     BOOL m_bIsMDITab = FALSE;
-    char _baseTabCtrlEditPrefix[0x1c]{};
+    COLORREF m_activeTabColor = COLORREF(-1);
+    COLORREF m_activeTabTextColor = COLORREF(-1);
+    char _baseTabCtrlEditPrefix[0x14]{};
     int m_iEditedTab = -1;
     CEdit* m_pInPlaceEdit = nullptr;
     BOOL m_bIsInPlaceEdit = FALSE;
@@ -1433,6 +1456,9 @@ public:
     CMFCTabCtrl();
     virtual ~CMFCTabCtrl();
 
+    void SetTabMaxWidth(int width);
+    void SetActiveTabBoldFont(BOOL bold);
+    BOOL OnNotify(WPARAM id, LPARAM notification, LRESULT* result) override;
     void EnableInPlaceEdit(BOOL enable) override;
     void EnableTabDocumentsMenu(BOOL enable = TRUE);
     static HICON GetDocumentIcon(UINT command);

@@ -617,19 +617,10 @@ extern "C" void MS_ABI impl__CleanUp_CMFCBaseTabCtrl__UEAAXXZ(
     // +0x154) are not modeled; the side-table is cleared via the public
     // RemoveTab path instead.
 }
-// Retail (0x180019d90): destroys the embedded CImageList object at +0x160
-// (DeleteImageList 0x180296c80 when a handle is present), zeroes the size
-// member +0x178 and tail-calls the vslot-0x300 relayout. The image members
-// and the relayout virtual are unmodeled; the relayout is proxied by a redraw.
 // Symbol: ?ClearImageList@CMFCBaseTabCtrl@@UEAAXXZ
-extern "C" void MS_ABI impl__ClearImageList_CMFCBaseTabCtrl__UEAAXXZ(
-    CMFCBaseTabCtrl* pThis)
+extern "C" void MS_ABI impl__ClearImageList_CMFCBaseTabCtrl__UEAAXXZ(CMFCBaseTabCtrl* pThis)
 {
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the embedded CImageList
-    // (+0x160) and the size member (+0x178) and the vslot-0x300 relayout are
-    // not modeled; only the relayout redraw is kept.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
+    if (pThis) pThis->ClearImageList();
 }
 // Retail (0x1800192b0): resolves the parent frame (+0x288) and, when the tab
 // control class or state requires it, allocates the wrapper window (0x500),
@@ -933,28 +924,20 @@ extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z
     }
     return -1;
 }
-// Retail (0x180019b10): bounds-checks and returns the full width stored at
-// +0x38 of the tab record; out of bounds returns 0. The per-tab record is
-// unmodeled; the bounds gate and the terminal value are kept.
 // Symbol: ?GetTabFullWidth@CMFCBaseTabCtrl@@UEBAHH@Z
 extern "C" int MS_ABI impl__GetTabFullWidth_CMFCBaseTabCtrl__UEBAHH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
     const auto* tab = TabAt(pThis, iTab);
-    return tab ? tab->rect.Width() : 0;
+    if (!tab) return 0;
+    const auto& widths = FindTabCtrlState(pThis)->tabNaturalWidths;
+    return iTab < static_cast<int>(widths.size()) ? widths[iTab] : tab->rect.Width();
 }
-// Retail (0x180016bb0): bounds-checks and returns the HICON stored at +0x18
-// of the tab record; out of bounds returns NULL. The per-tab record is
-// unmodeled; the bounds gate and the terminal value are kept.
 // Symbol: ?GetTabHicon@CMFCBaseTabCtrl@@UEBAPEAUHICON__@@H@Z
 extern "C" HICON MS_ABI impl__GetTabHicon_CMFCBaseTabCtrl__UEBAPEAUHICON____H_Z(
-    const CMFCBaseTabCtrl* pThis, int iTab)
+    const CMFCBaseTabCtrl* pThis, int index)
 {
-    if (!pThis) return nullptr;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return nullptr;
-    // TODO(clean-room): partially transcribed -- the per-tab icon handle
-    // (record +0x18) is not modeled.
-    return nullptr;
+    return pThis ? pThis->GetTabHicon(index) : nullptr;
 }
 // Retail (0x180016860): bounds-checks and returns the ID stored at +0x3c of
 // the tab record; out of bounds returns -1. The per-tab record is unmodeled;
@@ -976,11 +959,6 @@ extern "C" unsigned int MS_ABI impl__GetTabIcon_CMFCBaseTabCtrl__UEBAIH_Z(
     const auto* tab = TabAt(pThis, iTab);
     return tab ? tab->image : static_cast<UINT>(-1);
 }
-// Retail (0x1800168a0): bounds-checks, then copies the tab label CString
-// (record +0x8) into strLabel -- or loads the default "Tab" label when the
-// icon-only flag (+0x50) is set -- and returns 1; out of bounds returns 0.
-// The per-tab records are unmodeled, so the output is emptied to a
-// well-defined value and the in-bounds terminal TRUE is kept.
 // Symbol: ?GetTabLabel@CMFCBaseTabCtrl@@UEBAHHAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI
 impl__GetTabLabel_CMFCBaseTabCtrl__UEBAHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
@@ -988,7 +966,7 @@ impl__GetTabLabel_CMFCBaseTabCtrl__UEBAHHAEAV__CStringT__WV__StrTraitMFC_DLL__WV
 {
     const auto* tab = TabAt(pThis, iTab);
     if (!tab) return FALSE;
-    strLabel = tab->label.c_str();
+    strLabel = tab->iconOnly ? L"" : tab->label.c_str();
     return TRUE;
 }
 // Retail (0x180017040): when iTab is -1 it substitutes the active tab
@@ -1062,19 +1040,10 @@ extern "C" int MS_ABI impl__GetVisibleTabsNum_CMFCBaseTabCtrl__UEBAHXZ(
     // (+0x48) is not modeled, so no tab can be counted.
     return nVisible;
 }
-// Retail (0x18001a900): bounds-checks and returns 1 when the tab's hicon
-// (record +0x18) is non-NULL, or when the vslot-0x488 image list is present
-// and the tab's icon index (record +0x10) is not -1; otherwise 0. The
-// per-tab records and the image list are unmodeled, so FALSE is returned.
 // Symbol: ?HasImage@CMFCBaseTabCtrl@@UEBAHH@Z
-extern "C" int MS_ABI impl__HasImage_CMFCBaseTabCtrl__UEBAHH_Z(
-    const CMFCBaseTabCtrl* pThis, int iTab)
+extern "C" int MS_ABI impl__HasImage_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl* pThis, int index)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab hicon (+0x18) and
-    // icon index (+0x10) and the vslot-0x488 image list are not modeled.
-    return FALSE;
+    return pThis && pThis->HasImage(index);
 }
 // Retail (0x180019ea0): early-returns when the +0x1f4 flag already equals
 // bHide; otherwise stores it and, when m_hWnd is valid, triggers the
@@ -1159,36 +1128,16 @@ extern "C" int MS_ABI impl__IsColored_CMFCBaseTabCtrl__UEBAHXZ(
     }
     return FALSE;
 }
-// Retail (0x180016b40): bounds-checks `0 <= iTab < count (+0x150)`, destroys
-// the previous per-tab hicon (record +0x18, DestroyIcon at 0x1802c7278),
-// stores uiIcon at +0x10 and nulls +0x18; returns 1 when applied, 0 when out
-// of bounds. The per-tab records are unmodeled; the bounds gate and the
-// terminal values are kept.
 // Symbol: ?SetTabIcon@CMFCBaseTabCtrl@@UEAAHHI@Z
-extern "C" int MS_ABI impl__SetTabIcon_CMFCBaseTabCtrl__UEAAHHI_Z(
-    CMFCBaseTabCtrl* pThis, int iTab, unsigned int /*uiIcon*/)
+extern "C" int MS_ABI impl__SetTabIcon_CMFCBaseTabCtrl__UEAAHHI_Z(CMFCBaseTabCtrl* pThis, int index, UINT icon)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab icon index
-    // (+0x10) and hicon (+0x18) of the tab record are not modeled.
-    return TRUE;
+    return pThis && pThis->SetTabIcon(index, icon);
 }
-// Retail (0x180016d70): bounds-checks, stores bIconOnly at +0x50 and the tab
-// width at +0x54 of the tab record, then runs the vslot-0x318 relayout and
-// returns 1; out of bounds returns 0. The per-tab record is unmodeled; the
-// bounds gate, the relayout redraw and the terminal values are kept.
 // Symbol: ?SetTabIconOnly@CMFCBaseTabCtrl@@UEAAHHHH@Z
 extern "C" int MS_ABI impl__SetTabIconOnly_CMFCBaseTabCtrl__UEAAHHHH_Z(
-    CMFCBaseTabCtrl* pThis, int iTab, int /*bIconOnly*/, int /*nTabWidth*/)
+    CMFCBaseTabCtrl* pThis, int index, BOOL iconOnly, BOOL tooltipAlways)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab "icon only" flag
-    // (+0x50) and width (+0x54) of the tab record are not modeled; the
-    // vslot-0x318 relayout is kept as a redraw.
-    pThis->RedrawWindow(nullptr, nullptr, 0x505);
-    return TRUE;
+    return pThis && pThis->SetTabIconOnly(index, iconOnly, tooltipAlways);
 }
 // Symbol: ?SetTabLabel@CMFCBaseTabCtrl@@UEAAHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI
@@ -1503,20 +1452,10 @@ extern "C" long MS_ABI impl__get_accValue_CMFCBaseTabCtrl__MEAAJUtagVARIANT__PEA
     // empty-string S_FALSE terminal is returned.
     return S_FALSE;
 }
-// Retail (0x180016d30): bounds-checks `0 <= iTab < tabs count (+0x150)` (and
-// against the array size +0x110) and returns the "icon only" flag at +0x50 of
-// the tab record at (+0x108 + iTab*8); 0 when out of bounds. The per-tab
-// records are unmodeled, so the default (flag clear) is returned.
 // Symbol: ?IsTabIconOnly@CMFCBaseTabCtrl@@UEBAHH@Z
-extern "C" int MS_ABI impl__IsTabIconOnly_CMFCBaseTabCtrl__UEBAHH_Z(
-    const CMFCBaseTabCtrl* pThis, int iTab)
+extern "C" int MS_ABI impl__IsTabIconOnly_CMFCBaseTabCtrl__UEBAHH_Z(const CMFCBaseTabCtrl* pThis, int index)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- retail reads the per-tab
-    // "icon only" flag at +0x50 of the tab record (tab array +0x108/+0x110);
-    // the per-tab records are not modeled, so no tab can report TRUE.
-    return FALSE;
+    return pThis && pThis->IsTabIconOnly(index);
 }
 // Retail (0x180017000): identical shape to IsTabIconOnly but returns the
 // per-tab "visible" flag at +0x48.
@@ -1713,16 +1652,10 @@ extern "C" int MS_ABI impl__RenameTab_CMFCBaseTabCtrl__UEAAHXZ(CMFCBaseTabCtrl* 
 {
     return pThis && pThis->CMFCBaseTabCtrl::RenameTab();
 }
-// Retail (0x180019de0): calls the vslot-0x2f8 virtual, nulls the stored image
-// list handle (+0x170) and tail-calls CMapPtrToPtr::RemoveAll (0x18001ba40)
-// on the map at +0x180. The image members and map are unmodeled.
 // Symbol: ?ResetImageList@CMFCBaseTabCtrl@@QEAAXXZ
-extern "C" void MS_ABI impl__ResetImageList_CMFCBaseTabCtrl__QEAAXXZ(
-    CMFCBaseTabCtrl* pThis)
+extern "C" void MS_ABI impl__ResetImageList_CMFCBaseTabCtrl__QEAAXXZ(CMFCBaseTabCtrl* pThis)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the vslot-0x2f8 virtual, the
-    // +0x170 image handle and the +0x180 image map; not modeled.
+    if (pThis) pThis->ResetImageList();
 }
 // Retail writes a signed count, then each label, visible flag, control ID,
 // detachable flag and two colors, followed by the active index and location.
@@ -1802,27 +1735,15 @@ extern "C" int MS_ABI impl__SetACCData_CMFCBaseTabCtrl__MEAAHPEAVCMFCTabInfo__AE
     // coordinates; only the numeric fields are filled.
     return TRUE;
 }
-// Retail (0x180019980): stores the color at +0x204, deletes the previous
-// solid brush (CGdiObject at +0x210, DeleteObject 0x1802a3f60) and creates/
-// attaches a new one from the vslot-0x470 color virtual. The +0x204 member
-// and the +0x210 brush object are unmodeled.
 // Symbol: ?SetActiveTabColor@CMFCBaseTabCtrl@@UEAAXK@Z
-extern "C" void MS_ABI impl__SetActiveTabColor_CMFCBaseTabCtrl__UEAAXK_Z(
-    CMFCBaseTabCtrl* pThis, unsigned long /*color*/)
+extern "C" void MS_ABI impl__SetActiveTabColor_CMFCBaseTabCtrl__UEAAXK_Z(CMFCBaseTabCtrl* pThis, COLORREF color)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the +0x204 color member and
-    // the +0x210 CGdiObject brush; not modeled.
+    if (pThis) pThis->SetActiveTabColor(color);
 }
-// Retail (0x180019970) is a single store: `mov %edx,0x208(%rcx); ret`. The
-// +0x208 member is not declared, so the store is skipped.
 // Symbol: ?SetActiveTabTextColor@CMFCBaseTabCtrl@@UEAAXK@Z
-extern "C" void MS_ABI impl__SetActiveTabTextColor_CMFCBaseTabCtrl__UEAAXK_Z(
-    CMFCBaseTabCtrl* pThis, unsigned long /*color*/)
+extern "C" void MS_ABI impl__SetActiveTabTextColor_CMFCBaseTabCtrl__UEAAXK_Z(CMFCBaseTabCtrl* pThis, COLORREF color)
 {
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- retail stores the color at
-    // +0x208 (m_activeTabTextColor); that member is not declared.
+    if (pThis) pThis->SetActiveTabTextColor(color);
 }
 // Symbol: ?SetAutoColors@CMFCBaseTabCtrl@@QEAAXAEBV?$CArray@KK@@@Z
 extern "C" void MS_ABI impl__SetAutoColors_CMFCBaseTabCtrl__QEAAXAEBV__CArray_KK___Z(
@@ -1852,35 +1773,17 @@ extern "C" void MS_ABI impl__SetDrawNoPrefix_CMFCBaseTabCtrl__QEAAXHH_Z(
         }
     }
 }
-// Retail (0x180019b50): loads the bitmap/icon resource, destroys the existing
-// CImageList embedded at +0x160 (DeleteImageList 0x180296c80), creates a new
-// one sized from the bitmap and stores it in that object; returns 0 when the
-// resource cannot be loaded. The embedded CImageList object is unmodeled, so
-// no image list can be created.
 // Symbol: ?SetImageList@CMFCBaseTabCtrl@@UEAAHIHK@Z
 extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHIHK_Z(
-    CMFCBaseTabCtrl* pThis, unsigned int /*nBitmapID*/, int /*cx*/,
-    unsigned long /*clrTransparent*/)
+    CMFCBaseTabCtrl* pThis, UINT resource, int width, COLORREF transparent)
 {
-    if (!pThis) return FALSE;
-    // TODO(clean-room): not transcribed -- needs the embedded CImageList at
-    // +0x160 (LoadBitmap/ImageList_Create from the resource); not modeled.
-    return FALSE;
+    return pThis && pThis->SetImageList(resource, width, transparent);
 }
-// Retail (0x180019cc0): destroys the existing CImageList at +0x160, resolves
-// the handle through CImageList::FromHandle (0x180296cb0), stores the size
-// (+0x178/+0x17c) and handle (+0x170), triggers the vslot-0x300 relayout and
-// returns 1. The image members are unmodeled; the terminal TRUE is kept.
 // Symbol: ?SetImageList@CMFCBaseTabCtrl@@UEAAHPEAU_IMAGELIST@@@Z
 extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHPEAU_IMAGELIST___Z(
-    CMFCBaseTabCtrl* pThis, HIMAGELIST hImageList)
+    CMFCBaseTabCtrl* pThis, HIMAGELIST images)
 {
-    if (!pThis) return FALSE;
-    if (!hImageList) return FALSE;   // retail fails/asserts on NULL here
-    // TODO(clean-room): partially transcribed -- the stored image-list
-    // members (+0x160 embedded CImageList, +0x170 handle, +0x178/+0x17c size)
-    // are not modeled, so the handle is not retained.
-    return TRUE;
+    return pThis && pThis->SetImageList(images);
 }
 // Retail (0x18001a6a0): stores the location enum at +0xf8, runs the vslot-0x318
 // relayout and posts a registered message (0x185) to the window. The +0xf8
@@ -1903,22 +1806,11 @@ extern "C" int MS_ABI impl__SetTabBkColor_CMFCBaseTabCtrl__UEAAHHK_Z(
     if (pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd, nullptr, FALSE);
     return TRUE;
 }
-// Retail (0x180016bf0): bounds-checks, destroys the previous icon (+0x18 of
-// the tab record) and copies the new one (0x1802c7260), stores it at +0x18
-// and resets +0x10 to -1, then reconciles the image-size members
-// (+0x178/+0x17c) with AFX_GLOBAL_DATA and runs the vslot-0x300 relayout;
-// returns 1 when applied, 0 when out of bounds. The per-tab records are
-// unmodeled; the bounds gate and the terminal values are kept.
 // Symbol: ?SetTabHicon@CMFCBaseTabCtrl@@UEAAHHPEAUHICON__@@@Z
 extern "C" int MS_ABI impl__SetTabHicon_CMFCBaseTabCtrl__UEAAHHPEAUHICON_____Z(
-    CMFCBaseTabCtrl* pThis, int iTab, HICON /*hIcon*/)
+    CMFCBaseTabCtrl* pThis, int index, HICON icon)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the per-tab icon record
-    // (+0x18/+0x10 of the tab struct) and the image-size members
-    // (+0x178/+0x17c) are not modeled.
-    return TRUE;
+    return pThis && pThis->SetTabHicon(index, icon);
 }
 static_assert(sizeof(CMFCBaseTabCtrl) == 0x3c0);
 
@@ -1926,6 +1818,11 @@ CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
     static_assert(offsetof(CMFCBaseTabCtrl, m_location) == 0xf8);
     static_assert(offsetof(CMFCBaseTabCtrl, m_iTabsNum) == 0x150);
     static_assert(offsetof(CMFCBaseTabCtrl, m_iActiveTab) == 0x154);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_Images) == 0x160);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_hImageList) == 0x170);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_sizeImage) == 0x178);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_activeTabColor) == 0x204);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_activeTabTextColor) == 0x208);
     static_assert(offsetof(CMFCBaseTabCtrl, m_bHideSingleTab) == 0x1f4);
     static_assert(offsetof(CMFCBaseTabCtrl, m_bIsMDITab) == 0x200);
     static_assert(offsetof(CMFCBaseTabCtrl, m_iEditedTab) == 0x220);
@@ -2184,6 +2081,123 @@ void CMFCBaseTabCtrl::OnLButtonDblClk(UINT, CPoint point) {
     const int active = GetActiveTab();
     const auto* tab = TabAt(this, active);
     if (tab && ::PtInRect(tab->rect, point)) StartRenameTab(active);
+}
+
+BOOL CMFCBaseTabCtrl::SetImageList(UINT resource, int width, COLORREF transparent) {
+    if (!resource || width <= 0) return FALSE;
+    CImageList loaded;
+    if (!loaded.Create(resource, width, 0, transparent)) return FALSE;
+    int cx = 0;
+    int cy = 0;
+    if (!::ImageList_GetIconSize(loaded.GetSafeHandle(), &cx, &cy)) return FALSE;
+    m_Images.DeleteImageList();
+    m_Images.Attach(loaded.Detach());
+    m_sizeImage = CSize(cx, cy);
+    RefreshTabs();
+    return TRUE;
+}
+
+BOOL CMFCBaseTabCtrl::SetImageList(HIMAGELIST images) {
+    if (!images) AfxThrowInvalidArgException();
+    int cx = 0;
+    int cy = 0;
+    if (!::ImageList_GetIconSize(images, &cx, &cy)) return FALSE;
+    if (images != m_Images.GetSafeHandle()) {
+        m_Images.DeleteImageList();
+        m_hImageList = images;
+    }
+    m_sizeImage = CSize(cx, cy);
+    RefreshTabs();
+    return TRUE;
+}
+
+void CMFCBaseTabCtrl::ClearImageList() {
+    m_Images.DeleteImageList();
+    m_sizeImage = CSize(0, 0);
+    RefreshTabs();
+}
+
+void CMFCBaseTabCtrl::ResetImageList() {
+    m_hImageList = nullptr;
+    ClearImageList();
+}
+
+HIMAGELIST CMFCBaseTabCtrl::GetImageListHandle() const {
+    return m_Images.GetSafeHandle() ? m_Images.GetSafeHandle() : m_hImageList;
+}
+
+const CImageList* CMFCBaseTabCtrl::GetImageList() const {
+    if (m_Images.GetSafeHandle()) return &m_Images;
+    return m_hImageList ? CImageList::FromHandle(m_hImageList) : nullptr;
+}
+
+BOOL CMFCBaseTabCtrl::SetTabIcon(int index, UINT image) {
+    if (!TabAt(this, index)) return FALSE;
+    auto& tab = EnsureTabCtrlState(this).tabs[index];
+    tab.image = image;
+    tab.customIcon.reset();
+    RefreshTabs();
+    return TRUE;
+}
+
+BOOL CMFCBaseTabCtrl::SetTabHicon(int index, HICON icon) {
+    if (!TabAt(this, index)) return FALSE;
+    auto& tab = EnsureTabCtrlState(this).tabs[index];
+    std::shared_ptr<std::remove_pointer_t<HICON>> copy;
+    if (icon) {
+        HICON handle = ::CopyIcon(icon);
+        if (!handle) return FALSE;
+        copy = {handle, ::DestroyIcon};
+        m_sizeImage.cx = (std::max)(m_sizeImage.cx, ::GetSystemMetrics(SM_CXSMICON));
+        m_sizeImage.cy = (std::max)(m_sizeImage.cy, ::GetSystemMetrics(SM_CYSMICON));
+    }
+    tab.customIcon = std::move(copy);
+    tab.image = UINT(-1);
+    RefreshTabs();
+    return TRUE;
+}
+
+HICON CMFCBaseTabCtrl::GetTabHicon(int index) const {
+    const auto* tab = TabAt(this, index);
+    return tab ? tab->customIcon.get() : nullptr;
+}
+
+BOOL CMFCBaseTabCtrl::HasImage(int index) const {
+    const auto* tab = TabAt(this, index);
+    return tab && (tab->customIcon || tab->windowIcon ||
+        (tab->image != UINT(-1) && GetImageListHandle()));
+}
+
+BOOL CMFCBaseTabCtrl::SetTabIconOnly(int index, BOOL iconOnly, BOOL tooltipAlways) {
+    if (!TabAt(this, index)) return FALSE;
+    auto& tab = EnsureTabCtrlState(this).tabs[index];
+    tab.iconOnly = iconOnly;
+    tab.tooltipAlways = tooltipAlways;
+    RefreshTabs();
+    return TRUE;
+}
+
+BOOL CMFCBaseTabCtrl::IsTabIconOnly(int index) const {
+    const auto* tab = TabAt(this, index);
+    return tab && tab->iconOnly;
+}
+
+void CMFCBaseTabCtrl::SetActiveTabColor(COLORREF color) {
+    m_activeTabColor = color;
+    if (m_hWnd) ::InvalidateRect(m_hWnd, nullptr, FALSE);
+}
+
+void CMFCBaseTabCtrl::SetActiveTabTextColor(COLORREF color) {
+    m_activeTabTextColor = color;
+    if (m_hWnd) ::InvalidateRect(m_hWnd, nullptr, FALSE);
+}
+
+COLORREF CMFCBaseTabCtrl::GetActiveTabColor() const {
+    return m_activeTabColor != COLORREF(-1) ? m_activeTabColor : ::GetSysColor(COLOR_WINDOW);
+}
+
+COLORREF CMFCBaseTabCtrl::GetActiveTabTextColor() const {
+    return m_activeTabTextColor != COLORREF(-1) ? m_activeTabTextColor : ::GetSysColor(COLOR_WINDOWTEXT);
 }
 
 int CMFCBaseTabCtrl::GetTabsCount() const {

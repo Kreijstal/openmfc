@@ -340,6 +340,8 @@ constexpr size_t documentsMenuOffset = 0x400;
 constexpr size_t hiddenDocumentsOffset = 0x404;
 constexpr size_t tabScrollPositionOffset = 0x414;
 constexpr size_t firstVisibleTabOffset = 0x420;
+constexpr size_t activeTabBoldOffset = 0x3f8;
+constexpr size_t tabMaxWidthOffset = 0x428;
 
 BOOL& TabControlFlag(CMFCTabCtrl& tabs, size_t offset) {
     return *reinterpret_cast<BOOL*>(reinterpret_cast<BYTE*>(&tabs) + offset);
@@ -540,23 +542,11 @@ extern "C" void MS_ABI impl__OnMouseMove_CMFCTabCtrl__IEAAXIVCPoint___Z(
     // TODO(clean-room): not transcribed -- needs the +0x40c drag flag, the
     // drag rects (+0x47c..+0x494) and the +0x3d28 style.
 }
-// Retail (0x18013b970) calls an internal helper (0x18028e150) first, then
-// special-cases the tooltip notifications (code 0xfffffdf7, windows +0x1b8/
-// +0x1c0) and the in-place edit close (code 0xfffffebf, internal relayout
-// 0x18013b4d0) and returns the helper's result. Those helpers and windows are
-// unmodeled; the base CWnd::OnNotify routing is the closest declared
-// equivalent and non-destructive.
 // Symbol: ?OnNotify@CMFCTabCtrl@@MEAAH_K_JPEA_J@Z
 extern "C" int MS_ABI impl__OnNotify_CMFCTabCtrl__MEAAH_K_JPEA_J_Z(
-    CMFCTabCtrl* pThis, unsigned long long wParam, long long lParam, long long* pResult)
+    CMFCTabCtrl* pThis, unsigned long long wParam, long long lParam, long long* result)
 {
-    if (!pThis) return FALSE;
-    // TODO(clean-room): partially transcribed -- the tooltip (+0x1b8/+0x1c0)
-    // and in-place-edit notifications are not modeled, so everything is
-    // routed to the base handler.
-    return impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(pThis,
-        static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam),
-        reinterpret_cast<LRESULT*>(pResult));
+    return pThis && pThis->CMFCTabCtrl::OnNotify(wParam, lParam, result);
 }
 // Symbol: ?OnPaint@CMFCTabCtrl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnPaint_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
@@ -590,8 +580,98 @@ BOOL CMFCTabCtrl::CreateTabs(int style, const RECT& rect, CWnd* parent, UINT id,
 }
 
 namespace {
-int TabIconWidth(const TabEntry& tab) {
-    return tab.windowIcon ? ::GetSystemMetrics(SM_CXSMICON) + 4 : 0;
+class TabImages {
+public:
+    explicit TabImages(const CMFCBaseTabCtrl& tabs)
+        : list_(tabs.GetImageListHandle()), size_(tabs.GetImageSize()),
+          count_(list_ ? ::ImageList_GetImageCount(list_) : 0) {
+        if (list_ && size_.cx && size_.cy)
+            ::ImageList_GetIconSize(list_, &listSize_.cx, &listSize_.cy);
+    }
+
+    CSize Size(const TabEntry& tab) const {
+        if (tab.customIcon)
+            return CSize((std::max)(size_.cx, ::GetSystemMetrics(SM_CXSMICON)),
+                         (std::max)(size_.cy, ::GetSystemMetrics(SM_CYSMICON)));
+        if (HasListImage(tab)) return listSize_;
+        if (tab.windowIcon) return CSize(::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
+        return CSize(0, 0);
+    }
+
+    void Draw(HDC dc, const TabEntry& tab, int x, int y, CSize size) const {
+        if (tab.customIcon || !HasListImage(tab)) {
+            const HICON icon = tab.customIcon ? tab.customIcon.get() : tab.windowIcon;
+            if (icon) ::DrawIconEx(dc, x, y, icon, size.cx, size.cy, 0, nullptr, DI_NORMAL);
+        } else {
+            ::ImageList_Draw(list_, static_cast<int>(tab.image), dc, x, y, ILD_TRANSPARENT);
+        }
+    }
+
+private:
+    bool HasListImage(const TabEntry& tab) const {
+        return count_ > 0 && tab.image < static_cast<UINT>(count_) && listSize_.cx > 0 && listSize_.cy > 0;
+    }
+
+    HIMAGELIST list_;
+    CSize size_;
+    CSize listSize_{0, 0};
+    int count_;
+};
+
+using TabFont = std::unique_ptr<std::remove_pointer_t<HFONT>, decltype(&::DeleteObject)>;
+
+TabFont CreateBoldTabFont(CMFCTabCtrl& tabs, HGDIOBJ regular) {
+    LOGFONTW font{};
+    if (!TabControlFlag(tabs, activeTabBoldOffset) ||
+        !::GetObjectW(regular, sizeof(font), &font)) return TabFont(nullptr, &::DeleteObject);
+    font.lfWeight = FW_BOLD;
+    return TabFont(::CreateFontIndirectW(&font), &::DeleteObject);
+}
+
+UINT_PTR TabTooltipId(const TabEntry& tab) {
+    return static_cast<UINT_PTR>(tab.id) + 1;
+}
+
+void UpdateLabelTooltips(CMFCTabCtrl& tabs, TabCtrlState& state, const std::vector<int>& fullWidths) {
+    const HWND owner = tabs.m_hWnd;
+    std::vector<UINT_PTR> updated;
+    for (size_t i = 0; i < state.tabs.size(); ++i) {
+        const auto& tab = state.tabs[i];
+        if (!tab.visible || tab.rect.IsRectEmpty() || tab.label.empty() ||
+            (!tab.iconOnly && !tab.tooltipAlways && tab.rect.Width() >= fullWidths[i])) continue;
+        if (!state.labelTooltips) {
+            const HWND tooltip = ::CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr,
+                WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX, CW_USEDEFAULT, CW_USEDEFAULT,
+                CW_USEDEFAULT, CW_USEDEFAULT, owner, nullptr, AfxGetInstanceHandle(), nullptr);
+            if (CWnd::FromHandlePermanent(owner) != &tabs) {
+                if (tooltip) ::DestroyWindow(tooltip);
+                return;
+            }
+            if (!tooltip) return;
+            state.labelTooltips = tooltip;
+            ::SendMessageW(tooltip, TTM_SETMAXTIPWIDTH, 0, 600);
+        }
+        TOOLINFOW tool{sizeof(TOOLINFOW)};
+        tool.hwnd = owner;
+        tool.uId = TabTooltipId(tab);
+        tool.uFlags = TTF_SUBCLASS;
+        tool.lpszText = LPSTR_TEXTCALLBACKW;
+        tool.rect = *static_cast<const RECT*>(tab.rect);
+        const bool existing = std::find(state.labelTooltipIds.begin(), state.labelTooltipIds.end(),
+            tool.uId) != state.labelTooltipIds.end();
+        const UINT message = existing ? TTM_NEWTOOLRECTW : TTM_ADDTOOLW;
+        const auto result = ::SendMessageW(state.labelTooltips, message, 0, reinterpret_cast<LPARAM>(&tool));
+        if (existing || result) updated.push_back(tool.uId);
+    }
+
+    for (UINT_PTR id : state.labelTooltipIds) {
+        if (std::find(updated.begin(), updated.end(), id) != updated.end()) continue;
+        TOOLINFOW tool{sizeof(TOOLINFOW)};
+        tool.hwnd = owner;
+        tool.uId = id;
+        ::SendMessageW(state.labelTooltips, TTM_DELTOOLW, 0, reinterpret_cast<LPARAM>(&tool));
+    }
+    state.labelTooltipIds = std::move(updated);
 }
 
 RECT TabCloseBounds(const CRect& strip, const CRect& area) {
@@ -642,7 +722,13 @@ void CMFCTabCtrl::RecalcLayout() {
     ::InflateRect(&client, -inset, -inset);
     const int count = static_cast<int>(std::count_if(state.tabs.begin(), state.tabs.end(),
         [](const TabEntry& tab) { return tab.visible != FALSE; }));
+    const TabImages images(*this);
     int height = state.tabsHeight > 0 ? state.tabsHeight : ::GetSystemMetrics(SM_CYSMCAPTION) + 7;
+    if (state.tabsHeight <= 0) {
+        for (const auto& tab : state.tabs) {
+            if (tab.visible) height = (std::max)(height, static_cast<int>(images.Size(tab).cy) + 6);
+        }
+    }
     height = (std::min)(height, static_cast<int>(client.bottom - client.top));
     if ((state.hideNoTabs && count == 0) || (state.hideSingleTab && count <= 1)) height = 0;
 
@@ -659,26 +745,36 @@ void CMFCTabCtrl::RecalcLayout() {
     const HWND control = m_hWnd;
 
     const HDC dc = ::GetDC(control);
-    const auto font = dc ? ::SelectObject(dc, ::GetStockObject(DEFAULT_GUI_FONT)) : nullptr;
+    const auto regularFont = ::GetStockObject(DEFAULT_GUI_FONT);
+    const auto oldFont = dc ? ::SelectObject(dc, regularFont) : nullptr;
+    const auto boldFont = CreateBoldTabFont(*this, regularFont);
     const RECT documentsButton = DocumentsButtonBounds(state);
     const bool documentsMenu = !::IsRectEmpty(&documentsButton);
     int lastX = documentsMenu ? documentsButton.left - 2 : TabStripEnd(state);
     auto& widths = state.tabNaturalWidths;
     widths.assign(state.tabs.size(), 0);
+    std::vector<int> fullWidths(state.tabs.size());
+    const int maxWidth = TabControlFlag(*this, tabMaxWidthOffset);
     LONGLONG totalWidth = 0;
     for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
         const auto& tab = state.tabs[i];
         if (!tab.visible || height <= 0) continue;
         SIZE text{};
-        if (dc) ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
+        if (dc && !tab.iconOnly) {
+            if (boldFont) ::SelectObject(dc, i == state.activeTab ? boldFont.get() : regularFont);
+            ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
+        }
         const int closeWidth = state.mdiActiveCloseButton && i == state.activeTab ? 19 : 0;
-        widths[i] = static_cast<int>((std::clamp)(
-            LONGLONG(text.cx) + 20 + TabIconWidth(tab) + closeWidth,
-            32LL, LONGLONG((std::numeric_limits<int>::max)())));
+        const int imageWidth = images.Size(tab).cx;
+        const int padding = tab.iconOnly ? 12 : 20 + (imageWidth ? 4 : 0);
+        fullWidths[i] = static_cast<int>((std::clamp)(
+            LONGLONG(text.cx) + padding + imageWidth + closeWidth,
+            tab.iconOnly ? 16LL : 32LL, LONGLONG((std::numeric_limits<int>::max)())));
+        widths[i] = maxWidth > 0 ? (std::min)(maxWidth, fullWidths[i]) : fullWidths[i];
         totalWidth += widths[i];
     }
     if (dc) {
-        if (font) ::SelectObject(dc, font);
+        if (oldFont) ::SelectObject(dc, oldFont);
         ::ReleaseDC(control, dc);
     }
 
@@ -773,6 +869,7 @@ void CMFCTabCtrl::RecalcLayout() {
         ::SetWindowPos(window, nullptr, page.left, page.top, page.Width(), page.Height(),
             SWP_NOACTIVATE | SWP_NOZORDER | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
     }
+    if (CWnd::FromHandlePermanent(control) == this) UpdateLabelTooltips(*this, state, fullWidths);
     if (CWnd::FromHandlePermanent(control) == this) {
         ::InvalidateRect(control, nullptr, FALSE);
         PositionTabEditor();
@@ -850,15 +947,21 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
     ::FillRect(handle, &client, ::GetSysColorBrush(COLOR_BTNFACE));
     auto* visualManager = CMFCVisualManager::GetInstance();
     const int saved = ::SaveDC(handle);
-    ::SelectObject(handle, ::GetStockObject(DEFAULT_GUI_FONT));
+    if (!saved) return;
+    const auto regularFont = ::GetStockObject(DEFAULT_GUI_FONT);
+    const auto boldFont = CreateBoldTabFont(*this, regularFont);
+    ::SelectObject(handle, regularFont);
     ::SetBkMode(handle, TRANSPARENT);
     const auto defaultText = ::GetSysColor(COLOR_BTNTEXT);
+    const TabImages images(*this);
     for (int i = 0; i < static_cast<int>(state->tabs.size()); ++i) {
         const auto& tab = state->tabs[i];
         if (!tab.visible || tab.rect.IsRectEmpty()) continue;
-        visualManager->OnDrawTab(dc, tab.rect, i, state->activeTab == i, this);
+        const bool active = state->activeTab == i;
+        visualManager->OnDrawTab(dc, tab.rect, i, active, this);
         CRect text = tab.rect;
-        const auto backgroundColor = impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(this, i);
+        auto backgroundColor = impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(this, i);
+        if (backgroundColor == COLORREF(-1) && active) backgroundColor = m_activeTabColor;
         if (backgroundColor != COLORREF(-1)) {
             CRect interior = tab.rect;
             interior.DeflateRect(1, 1);
@@ -868,20 +971,29 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
                 ::DeleteObject(background);
             }
         }
-        ::SetTextColor(handle, tab.textColor == static_cast<COLORREF>(-1) ? defaultText : tab.textColor);
+        if (boldFont) ::SelectObject(handle, active ? boldFont.get() : regularFont);
+        ::SetTextColor(handle, tab.textColor != COLORREF(-1) ? tab.textColor
+            : active ? GetActiveTabTextColor() : defaultText);
         text.DeflateRect(6, 0);
-        if (tab.windowIcon && TabIconWidth(tab) < text.Width()) {
-            const int height = ::GetSystemMetrics(SM_CYSMICON);
-            ::DrawIconEx(handle, text.left, text.top + (text.Height() - height) / 2, tab.windowIcon,
-                ::GetSystemMetrics(SM_CXSMICON), height, 0, nullptr, DI_NORMAL);
-            text.left += TabIconWidth(tab);
-        }
-        if (state->mdiActiveCloseButton && state->activeTab == i) {
+        if (state->mdiActiveCloseButton && active) {
             const RECT close = TabCloseBounds(state->strip, tab.rect);
             if (!::IsRectEmpty(&close)) text.right = (std::min)(text.right, static_cast<int>(close.left - 1));
         }
-        ::DrawTextW(handle, tab.label.c_str(), static_cast<int>(tab.label.size()), text,
-            DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
+        const CSize icon = images.Size(tab);
+        if (icon.cx > 0 && icon.cy > 0 && icon.cx <= text.Width()) {
+            const int x = tab.iconOnly ? text.left + (text.Width() - icon.cx) / 2 : text.left;
+            const int y = text.top + (text.Height() - icon.cy) / 2;
+            const int clip = ::SaveDC(handle);
+            if (clip) {
+                ::IntersectClipRect(handle, text.left, text.top, text.right, text.bottom);
+                images.Draw(handle, tab, x, y, icon);
+                ::RestoreDC(handle, clip);
+            }
+            text.left += icon.cx + 4;
+        }
+        if (!tab.iconOnly)
+            ::DrawTextW(handle, tab.label.c_str(), static_cast<int>(tab.label.size()), text,
+                DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
     }
     RECT close = TabCloseButtonBounds(*state);
     if (!::IsRectEmpty(&close)) ::DrawFrameControl(handle, &close, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
@@ -964,6 +1076,35 @@ void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
     const int index = impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(this, point);
     if (index >= 0) SelectTabAndFocus(*this, index);
     else Default();
+}
+
+void CMFCTabCtrl::SetTabMaxWidth(int width) {
+    TabControlFlag(*this, tabMaxWidthOffset) = width;
+    RefreshTabs();
+}
+
+void CMFCTabCtrl::SetActiveTabBoldFont(BOOL bold) {
+    if (TabControlFlag(*this, activeTabBoldOffset) == bold) return;
+    TabControlFlag(*this, activeTabBoldOffset) = bold;
+    RefreshTabs();
+}
+
+BOOL CMFCTabCtrl::OnNotify(WPARAM id, LPARAM notification, LRESULT* result) {
+    auto* header = reinterpret_cast<NMHDR*>(notification);
+    const auto* state = FindTabCtrlState(this);
+    if (!header || !state || header->hwndFrom != state->labelTooltips ||
+        header->code != static_cast<UINT>(TTN_GETDISPINFOW))
+        return CWnd::OnNotify(id, notification, result);
+
+    const auto entry = std::find_if(state->tabs.begin(), state->tabs.end(), [header](const auto& tab) {
+        return TabTooltipId(tab) == header->idFrom;
+    });
+    auto& text = EnsureTabCtrlState(this).tooltipText;
+    text = entry == state->tabs.end() ? L"" : entry->label;
+    auto* display = reinterpret_cast<NMTTDISPINFOW*>(header);
+    display->lpszText = text.data();
+    if (result) *result = 0;
+    return TRUE;
 }
 
 void CMFCTabCtrl::EnableInPlaceEdit(BOOL enable) {
@@ -1442,14 +1583,10 @@ extern "C" int MS_ABI impl__SetActiveTab_CMFCTabCtrl__UEAAHH_Z(
     return pThis && pThis->ActivateTab(iTab);
 }
 
-// STUB: Retail RVA 0x13cdd0 (mfc140 ANSI twin) stores the bold-font flag at
-// +0x3f8 and, when the HWND exists, invokes relayout (vslot 0x318) followed by
-// scroll synchronization. Those effects are not modeled.
 // Symbol: ?SetActiveTabBoldFont@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(
-    CMFCTabCtrl* pThis, int bEnable)
+extern "C" void MS_ABI impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, BOOL enable)
 {
-    (void)pThis; (void)bEnable;
+    if (pThis) pThis->SetActiveTabBoldFont(enable);
 }
 
 // STUB: Retail RVA 0x13d180 (mfc140 ANSI twin) only stores its argument at
@@ -1461,10 +1598,6 @@ extern "C" void MS_ABI impl__SetDrawFrame_CMFCTabCtrl__QEAAXH_Z(
     (void)pThis; (void)bDrawFrame;
 }
 
-// Retail RVA 0x13aa50 (mfc140 ANSI twin) tail-jumps to the base resource
-// overload at RVA 0x19b10 (mfc140 ANSI twin). Forward through its existing
-// thunk; that base implementation still lacks embedded CImageList state. The
-// NULL-this guard is defensive and differs from retail's unconditional tail jump.
 // Symbol: ?SetImageList@CMFCTabCtrl@@UEAAHIHK@Z
 extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHIHK_Z(
     CMFCTabCtrl* pThis, unsigned int nBitmapID, int cx, unsigned long clrTransparent)
@@ -1474,10 +1607,6 @@ extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHIHK_Z(
         static_cast<CMFCBaseTabCtrl*>(pThis), nBitmapID, cx, clrTransparent);
 }
 
-// Retail RVA 0x13aa60 (mfc140 ANSI twin) tail-jumps to the base handle
-// overload at RVA 0x19c80 (mfc140 ANSI twin). Forward through its existing
-// thunk; the base implementation does not retain the handle in its current model.
-// The NULL-this guard is defensive and differs from retail's unconditional tail jump.
 // Symbol: ?SetImageList@CMFCTabCtrl@@UEAAHPEAU_IMAGELIST@@@Z
 extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHPEAU_IMAGELIST___Z(
     CMFCTabCtrl* pThis, HIMAGELIST hImageList)
@@ -1504,13 +1633,10 @@ extern "C" void MS_ABI impl__SetScrollButtons_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* 
     (void)pThis;
 }
 
-// STUB: Retail RVA 0x13d940 (mfc140 ANSI twin) stores the maximum width at
-// +0x428 and invokes relayout; neither the field nor layout is modeled.
 // Symbol: ?SetTabMaxWidth@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetTabMaxWidth_CMFCTabCtrl__QEAAXH_Z(
-    CMFCTabCtrl* pThis, int nMaxWidth)
+extern "C" void MS_ABI impl__SetTabMaxWidth_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, int width)
 {
-    (void)pThis; (void)nMaxWidth;
+    if (pThis) pThis->SetTabMaxWidth(width);
 }
 
 // STUB: Retail RVA 0x13bb20 (mfc140 ANSI twin) exits resize-drag state,
