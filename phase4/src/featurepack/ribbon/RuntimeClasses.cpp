@@ -138,7 +138,12 @@ RIBBON_ELEMENTS_DESC(CMFCRibbonGallery, 1272, 0xFFFF, &classCMFCRibbonButton);
 RIBBON_ELEMENTS_DESC(CMFCRibbonColorButton, 1496, 0xFFFF, &classCMFCRibbonGallery);
 RIBBON_ELEMENTS_DESC(CMFCRibbonColorMenuButton, 640, 0xFFFF, &classCMFCRibbonButton);
 RIBBON_ELEMENTS_DESC(CMFCRibbonEdit, 688, 0xFFFF, &classCMFCRibbonButton);
-RIBBON_ELEMENTS_DESC(CMFCRibbonComboBox, 816, 0xFFFF, &classCMFCRibbonEdit);
+static CRuntimeClass* AFXAPI _openmfc_gb_CMFCRibbonComboBox() { return &classCMFCRibbonEdit; }
+static CObject* AFXAPI CreateRibbonCombo() { return new CMFCRibbonComboBox(0, FALSE); }
+CRuntimeClass classCMFCRibbonComboBox = {
+    "CMFCRibbonComboBox", sizeof(CMFCRibbonComboBox), 0xFFFF, CreateRibbonCombo,
+    &_openmfc_gb_CMFCRibbonComboBox, nullptr, nullptr
+};
 RIBBON_ELEMENTS_DESC(CMFCRibbonContextCaption, 640, 0xFFFF, &classCMFCRibbonButton);
 RIBBON_ELEMENTS_DESC(CMFCRibbonDefaultPanelButton, 640, 0xFFFF, &classCMFCRibbonButton);
 RIBBON_ELEMENTS_DESC(CMFCRibbonFontComboBox, 840, 0xFFFF, &classCMFCRibbonComboBox);

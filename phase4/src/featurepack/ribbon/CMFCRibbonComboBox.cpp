@@ -1,575 +1,620 @@
-// CMFCRibbonComboBox — OpenMFC implementation.
-// Sources: retail mfc140u disassembly where resolved, ANSI-twin bodies where noted,
-// and the retail afxribboncombobox.h declaration.
+// CMFCRibbonComboBox — item selection, editing, and popup tracking.
 
-#include "detail/ManualSmallStubImplementationsSupport.h"
+#define OPENMFC_APPCORE_IMPL
+#include "detail/CMFCDropDownListBoxSupport.h"
+#include "detail/CbarcoreSupport.h"
+#include "detail/MfccoreSupport.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
+#include <commctrl.h>
+#include <oleacc.h>
+#include <algorithm>
 #include <cstring>
+#include <memory>
+#include <new>
 
-// Verified thunk definitions used below (core/collections/CStringList.cpp,
-// core/collections/CStringT.cpp, and featurepack/ribbon/Globals.cpp).
-extern "C" CStringList::POSITION MS_ABI
-impl__FindIndex_CStringList__QEBAPEAU__POSITION____J_Z(const CStringList* pThis, long long nIndex);
-extern "C" CStringList::POSITION MS_ABI
-impl__AddTail_CStringList__QEAAPEAU__POSITION__PEB_W_Z(CStringList* pThis, const wchar_t* value);
-extern "C" void MS_ABI
-impl__RemoveAt_CStringList__QEAAXPEAU__POSITION___Z(CStringList* pThis, CStringList::POSITION* pPos);
-extern "C" int MS_ABI
-impl__CompareNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(
-    const CString* pThis, const wchar_t* psz);
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonComboBox__SAPEAUCRuntimeClass__XZ();
+extern "C" unsigned int impl__AFX_WM_ON_HIGHLIGHT_RIBBON_LIST_ITEM__3IA;
 extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
-extern "C" void MS_ABI impl__AfxThrowMemoryException__YAXXZ();
-extern "C" void MS_ABI impl___0CStringList__QEAA__J_Z(CStringList* pThis, long long blockSize);
-extern "C" void MS_ABI impl___1CStringList__UEAA_XZ(CStringList* pThis);
-extern "C" void* MS_ABI impl___0CMFCRibbonEdit__IEAA_XZ(void* pThis);
-extern "C" void* MS_ABI impl___0CMFCRibbonEdit__QEAA_IHPEB_WH_Z(
-    void* pThis, unsigned int id, int width, const wchar_t* text, int image);
-extern "C" void MS_ABI impl___1CMFCRibbonEdit__UEAA_XZ(void* pThis);
-extern "C" void MS_ABI impl__RemoveAll_CStringList__QEAAXXZ(CStringList* pThis);
-extern "C" int MS_ABI impl__SetACCData_CMFCRibbonEdit__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
-    void* pThis, void* pParent, void* pData);
-extern "C" int MS_ABI impl__FindItem_CMFCRibbonComboBox__QEBAHPEB_W_Z(
-    const void* pThis, const wchar_t* text);
-extern "C" int MS_ABI impl__DeleteItem_CMFCRibbonComboBox__QEAAHH_Z(
-    void* pThis, int index);
+
+static_assert(sizeof(CMFCRibbonComboBox) == 0x330);
+static_assert(offsetof(CMFCRibbonComboBox, m_comboRect) == 0xc8);
+static_assert(offsetof(CMFCRibbonComboBox, m_openList) == 0x108);
+static_assert(offsetof(CMFCRibbonComboBox, m_sdkCommandId) == 0x118);
+static_assert(offsetof(CMFCRibbonComboBox, m_droppedDown) == 0x154);
+static_assert(offsetof(CMFCRibbonComboBox, m_comboArrow) == 0x198);
+static_assert(offsetof(CMFCRibbonComboBox, m_editWidth) == 0x270);
+static_assert(offsetof(CMFCRibbonComboBox, m_editText) == 0x298);
+static_assert(offsetof(CMFCRibbonComboBox, m_editWindow) == 0x2a0);
+static_assert(offsetof(CMFCRibbonComboBox, m_itemStrings) == 0x2b0);
+static_assert(offsetof(CMFCRibbonComboBox, m_nativeStringCount) == 0x2c8);
+static_assert(offsetof(CMFCRibbonComboBox, m_itemData) == 0x2e8);
+static_assert(offsetof(CMFCRibbonComboBox, m_selectedIndex) == 0x320);
+static_assert(offsetof(CMFCRibbonComboBox, m_dropDownHeight) == 0x324);
+static_assert(offsetof(CMFCRibbonComboBox, m_hasEditBox) == 0x328);
+static_assert(offsetof(CMFCRibbonComboBox, m_resizeDropDownList) == 0x32c);
 
 namespace {
-// CMFCRibbonComboBox is not declared in include/openmfc, and has no shared
-// detail shadow. These are only the fields used by the decoded bodies below.
-// The two list objects begin at +0x2b0 and +0x2e8; the public list fields
-// follow at +0x320 (m_iSelIndex), +0x324 (m_nDropDownHeight), +0x328
-// (m_bHasEditBox), and +0x32c (m_bResizeDropDownList).
-struct RibbonComboLayout {
-    unsigned char beforeBaseField148[0x148];
-    int baseField_148;
-    unsigned char beforeBaseWidth[0x1c0 - 0x14c];
-    int baseField_1c0;
-    unsigned char beforeCommonFlag[0x288 - 0x1c4];
-    int baseField_288;
-    unsigned char beforeLists[0x2b0 - 0x28c];
-    unsigned char itemStrings[0x38];
-    unsigned char itemData[0x38];
-    int selectedIndex;
-    int dropDownHeight;
-    int hasEditBox;
-    int resizeDropDownList;
+struct ItemData {
+    ItemData* next;
+    ItemData* prev;
+    DWORD_PTR value;
 };
-static_assert(offsetof(RibbonComboLayout, baseField_148) == 0x148, "retail field @+0x148");
-static_assert(offsetof(RibbonComboLayout, baseField_1c0) == 0x1c0, "retail field @+0x1c0");
-static_assert(offsetof(RibbonComboLayout, baseField_288) == 0x288, "retail field @+0x288");
-static_assert(offsetof(RibbonComboLayout, itemStrings) == 0x2b0, "m_lstItems @+0x2b0");
-static_assert(offsetof(RibbonComboLayout, itemData) == 0x2e8, "m_lstItemData @+0x2e8");
-static_assert(offsetof(RibbonComboLayout, selectedIndex) == 0x320, "m_iSelIndex @+0x320");
-static_assert(offsetof(RibbonComboLayout, dropDownHeight) == 0x324, "m_nDropDownHeight @+0x324");
-static_assert(offsetof(RibbonComboLayout, hasEditBox) == 0x328, "m_bHasEditBox @+0x328");
-static_assert(offsetof(RibbonComboLayout, resizeDropDownList) == 0x32c, "m_bResizeDropDownList @+0x32c");
-static_assert(sizeof(RibbonComboLayout) == 0x330, "retail CMFCRibbonComboBox size is 0x330");
 
-// Retail afxtempl.h's CList derives from CObject, then stores head/tail/count,
-// free list, CPlex blocks, and block size. CMFCRibbonComboBox's ctor at RVA
-// 0xf5a80 (mfc140u) initializes the embedded list fields at +0x2b0 and +0x2e8;
-// GetItemData at RVA 0xf5c90 (mfc140u) confirms head/count/node-data offsets.
-// The {next, prev, data} node shape is also used by OpenMFC's CStringList nodes.
-struct RibbonComboDataNode {
-    RibbonComboDataNode* next;
-    RibbonComboDataNode* prev;
-    std::uintptr_t data;
-};
-struct RibbonComboNativeList {
-    void* vtable;
-    RibbonComboDataNode* head;
-    RibbonComboDataNode* tail;
-    long long count;
-    RibbonComboDataNode* freeNodes;
+struct ItemDataList {
+    void* vptr;
+    ItemData* head;
+    ItemData* tail;
+    INT_PTR count;
+    void* freeNodes;
     void* blocks;
-    long long blockSize;
+    INT_PTR blockSize;
 };
-struct RibbonComboStringNode {
-    RibbonComboStringNode* next;
-    RibbonComboStringNode* prev;
-    CString data;
-};
-struct RibbonComboAccessibilityDataLayout {
-    unsigned char beforeRole[0x30];
-    int role;
-    int state;
-};
-static_assert(offsetof(RibbonComboNativeList, head) == 0x08, "CList head @+0x08");
-static_assert(offsetof(RibbonComboNativeList, tail) == 0x10, "CList tail @+0x10");
-static_assert(offsetof(RibbonComboNativeList, count) == 0x18, "CList count @+0x18");
-static_assert(offsetof(RibbonComboNativeList, freeNodes) == 0x20, "CList free list @+0x20");
-static_assert(offsetof(RibbonComboNativeList, blocks) == 0x28, "CList blocks @+0x28");
-static_assert(offsetof(RibbonComboNativeList, blockSize) == 0x30, "CList block size @+0x30");
-static_assert(sizeof(RibbonComboNativeList) == 0x38, "retail CList size is 0x38");
-static_assert(offsetof(RibbonComboDataNode, data) == 0x10, "CList node data @+0x10");
-static_assert(sizeof(RibbonComboDataNode) == 0x18, "pointer-sized CList node is 0x18 bytes");
-static_assert(offsetof(RibbonComboStringNode, data) == 0x10, "CStringList node data @+0x10");
-static_assert(offsetof(RibbonComboAccessibilityDataLayout, role) == 0x30, "accessibility role @+0x30");
-static_assert(offsetof(RibbonComboAccessibilityDataLayout, state) == 0x34, "accessibility state @+0x34");
-static_assert(sizeof(CStringList::POSITION) == sizeof(void*), "CStringList POSITION is one pointer");
+static_assert(sizeof(ItemDataList) == sizeof(CMFCRibbonComboBox::m_itemData));
 
-RibbonComboLayout* Combo(void* pThis) {
-    return static_cast<RibbonComboLayout*>(pThis);
+ItemDataList& DataList(CMFCRibbonComboBox& combo) {
+    return *reinterpret_cast<ItemDataList*>(combo.m_itemData);
 }
-CStringList* ItemStrings(void* pThis) {
-    return reinterpret_cast<CStringList*>(static_cast<unsigned char*>(pThis) + 0x2b0);
-}
-RibbonComboNativeList* ItemData(void* pThis) {
-    return reinterpret_cast<RibbonComboNativeList*>(static_cast<unsigned char*>(pThis) + 0x2e8);
-}
-RibbonComboStringNode* StringNodeFromPosition(CStringList::POSITION position) {
-    RibbonComboStringNode* node = nullptr;
-    std::memcpy(&node, &position, sizeof(node));
+
+ItemData* FindData(const CMFCRibbonComboBox& combo, int index) {
+    if (index < 0) return nullptr;
+    const auto& list = *reinterpret_cast<const ItemDataList*>(combo.m_itemData);
+    if (index >= list.count) return nullptr;
+    auto* node = list.head;
+    while (index-- > 0) node = node->next;
     return node;
 }
-RibbonComboStringNode* StringNodeAt(void* pThis, int index) {
-    if (index < 0) return nullptr;
-    return StringNodeFromPosition(impl__FindIndex_CStringList__QEBAPEAU__POSITION____J_Z(
-        ItemStrings(pThis), static_cast<long long>(index)));
-}
-RibbonComboDataNode* DataNodeAt(void* pThis, int index) {
-    if (index < 0) return nullptr;
-    RibbonComboNativeList* list = ItemData(pThis);
-    if (static_cast<long long>(index) >= list->count) return nullptr;
-    RibbonComboDataNode* node = list->head;
-    while (node != nullptr && index-- != 0) node = node->next;
-    return node;
-}
-int ItemStringCount(void* pThis) {
-    int count = 0;
-    for (RibbonComboStringNode* node = StringNodeAt(pThis, 0);
-         node != nullptr; node = node->next) {
-        ++count;
-    }
-    return count;
-}
-void AppendItemData(void* pThis, std::uintptr_t data) {
-    RibbonComboNativeList* list = ItemData(pThis);
-    auto* node = static_cast<RibbonComboDataNode*>(std::malloc(sizeof(RibbonComboDataNode)));
-    if (node == nullptr) {
-        impl__AfxThrowMemoryException__YAXXZ();
-        return;
-    }
-    node->next = nullptr;
-    node->prev = list->tail;
-    node->data = data;
-    if (list->tail != nullptr) list->tail->next = node;
-    else list->head = node;
-    list->tail = node;
-    ++list->count;
-}
-void RemoveItemDataAt(void* pThis, int index) {
-    RibbonComboNativeList* list = ItemData(pThis);
-    RibbonComboDataNode* node = DataNodeAt(pThis, index);
-    if (node == nullptr) return;
-    if (node->prev != nullptr) node->prev->next = node->next;
-    else list->head = node->next;
-    if (node->next != nullptr) node->next->prev = node->prev;
-    else list->tail = node->prev;
-    --list->count;
-    std::free(node);
-}
-void ClearItemData(void* pThis) {
-    RibbonComboNativeList* list = ItemData(pThis);
-    RibbonComboDataNode* node = list->head;
-    while (node != nullptr) {
-        RibbonComboDataNode* next = node->next;
-        std::free(node);
-        node = next;
-    }
-    list->head = nullptr;
-    list->tail = nullptr;
-    list->count = 0;
-}
-void InitializeComboStorage(void* pThis) {
-    // Retail's constructors initialize these embedded collections and then
-    // store the same scalar defaults as CommonInit (RVA 0xf5a80/0xf5930,
-    // mfc140u). Initialize CStringList through its side-table constructor and
-    // only the item-data fields used by this file's custom node representation.
-    impl___0CStringList__QEAA__J_Z(ItemStrings(pThis), 10);
-    RibbonComboNativeList* data = ItemData(pThis);
-    data->head = nullptr;
-    data->tail = nullptr;
-    data->count = 0;
-    data->freeNodes = nullptr;
-    data->blocks = nullptr;
-    data->blockSize = 10;
-    RibbonComboLayout* self = Combo(pThis);
-    // The retail base-element constructor at RVA 0xfb30 (mfc140u) zeroes
-    // the qword at +0x144, which includes the +0x148 flag read by SetACCData.
-    self->baseField_148 = 0;
-    self->baseField_288 = 1;
-    self->selectedIndex = -1;
-    self->dropDownHeight = 150;
-    self->resizeDropDownList = 1;
-    self->baseField_1c0 = 3;
-}
-} // namespace
 
-// Retail RVA 0xf5a80 (mfc140u) constructs the edit base and initializes the
-// combo collections/defaults. The local edit-base constructor is called via
-// its verified thunk; item-data fields use this file's malloc-backed storage.
-// This local shadow cannot install the ComboBox-specific vftable, so its
-// initialized state supports explicit export thunks, not retail virtual dispatch.
-// Symbol: ??0CMFCRibbonComboBox@@IEAA@XZ
-extern "C" void* MS_ABI impl___0CMFCRibbonComboBox__IEAA_XZ(void* pThis) {
-    if (pThis == nullptr) return nullptr;
-    impl___0CMFCRibbonEdit__IEAA_XZ(pThis);
-    InitializeComboStorage(pThis);
-    return pThis;
-}
-// Retail RVA 0xf5930 (mfc140u) constructs the edit base with the ID, normalized
-// height, text, and image, then stores the width argument at +0x328.
-// Symbol: ??0CMFCRibbonComboBox@@QEAA@IHHPEB_WH@Z
-extern "C" void* MS_ABI impl___0CMFCRibbonComboBox__QEAA_IHHPEB_WH_Z(
-    void* pThis, unsigned int id, int width, int height, const wchar_t* text, int image) {
-    if (pThis == nullptr) return nullptr;
-    const int editHeight = height == -1 ? 108 : height;
-    impl___0CMFCRibbonEdit__QEAA_IHPEB_WH_Z(pThis, id, editHeight, text, image);
-    InitializeComboStorage(pThis);
-    Combo(pThis)->hasEditBox = width;
-    return pThis;
-}
-// Retail RVA 0xf5b90 (mfc140u) tears down item-data, CStringList, then the edit
-// base. This frees this file's malloc-backed data nodes and delegates the
-// side-table string/base teardown; it does not invoke retail's native CList
-// fixed-block allocator destructor or reproduce retail vftable resets.
-// Symbol: ??1CMFCRibbonComboBox@@UEAA@XZ
-extern "C" void MS_ABI impl___1CMFCRibbonComboBox__UEAA_XZ(void* pThis) {
-    ClearItemData(pThis);
-    impl___1CStringList__UEAA_XZ(ItemStrings(pThis));
-    impl___1CMFCRibbonEdit__UEAA_XZ(pThis);
+void ClearItemData(CMFCRibbonComboBox& combo) {
+    auto& list = DataList(combo);
+    while (list.head) {
+        auto* item = list.head;
+        list.head = item->next;
+        delete item;
+    }
+    list.tail = nullptr;
+    list.count = 0;
 }
 
-// Retail (RVA 0xf5be0 (mfc140u)) checks for an existing case-insensitive
-// string, appends the string and pointer-sized data only on a miss, and always
-// returns item-count minus one. The data nodes use native CList links, but
-// malloc replaces retail's fixed-block allocator. The caller must supply an
-// object whose CList subobject has been initialized by construction.
-// Symbol: ?AddItem@CMFCRibbonComboBox@@UEAA_JPEB_W_K@Z
-extern "C" __int64 MS_ABI impl__AddItem_CMFCRibbonComboBox__UEAA_JPEB_W_K_Z(
-    void* pThis, const wchar_t* text, unsigned __int64 data) {
-    if (text == nullptr) {
+CPoint UnpackPoint(long long point) {
+    POINT unpacked{};
+    std::memcpy(&unpacked, &point, sizeof(unpacked));
+    return CPoint(unpacked);
+}
+
+using RibbonElements = CArray<CMFCRibbonBaseElement*, CMFCRibbonBaseElement*&>;
+}
+
+extern "C" void MS_ABI impl__GetElementsByID_CMFCRibbonBar__QEAAXIAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(
+    CMFCRibbonBar* bar, UINT id, RibbonElements& elements);
+
+namespace {
+class RibbonComboList final : public openmfc::detail::mfccore::DropDownListBox {
+public:
+    explicit RibbonComboList(CMFCRibbonComboBox& combo) : m_combo(combo) {}
+    ~RibbonComboList() override { m_combo.OnListClosed(this); }
+    void OnChangeHot(int) override { if (m_combo.m_openList == this) m_combo.OnListHighlight(selection); }
+    void OnChooseItem(UINT command) override { m_combo.OnSelectItem(static_cast<int>(0xffffff38u - command)); }
+private:
+    CMFCRibbonComboBox& m_combo;
+};
+
+LRESULT CALLBACK RibbonComboEditProc(HWND window, UINT message, WPARAM wp, LPARAM lp, UINT_PTR id, DWORD_PTR data) {
+    auto& combo = *reinterpret_cast<CMFCRibbonComboBox*>(data);
+    if (message == WM_NCDESTROY) {
+        ::RemoveWindowSubclass(window, RibbonComboEditProc, id);
+        if (combo.m_editWindow && combo.m_editWindow->GetSafeHwnd() == window) combo.m_editWindow->Detach();
+    } else if ((message == WM_KEYDOWN && wp == VK_F4) || (message == WM_SYSKEYDOWN && wp == VK_DOWN)) {
+        if (combo.m_openList) combo.CloseDropDown();
+        else combo.DropDownList();
+        return 0;
+    } else if (message == WM_KEYDOWN && wp == VK_RETURN) {
+        combo.SyncEditText();
+        const int index = combo.FindItem(combo.GetEditText());
+        if (index >= 0) combo.OnSelectItem(index);
+        return 0;
+    }
+    return ::DefSubclassProc(window, message, wp, lp);
+}
+}
+
+CMFCRibbonComboBox::CMFCRibbonComboBox(UINT id, BOOL hasEditBox, int width, const wchar_t* label, int image)
+    : CMFCRibbonEdit(id, width, label, image), m_editWidth(width == -1 ? 108 : width), m_hasEditBox(hasEditBox) {
+    m_sdkCommandId = id;
+    new (m_itemData) ItemDataList{nullptr, nullptr, nullptr, 0, nullptr, nullptr, 10};
+}
+
+CMFCRibbonComboBox::~CMFCRibbonComboBox() {
+    CloseDropDown();
+    DestroyEditWindow();
+    ClearItemData(*this);
+}
+
+CRuntimeClass* PASCAL CMFCRibbonComboBox::GetThisClass() {
+    return impl__GetThisClass_CMFCRibbonComboBox__SAPEAUCRuntimeClass__XZ();
+}
+CRuntimeClass* CMFCRibbonComboBox::GetRuntimeClass() const { return GetThisClass(); }
+
+INT_PTR CMFCRibbonComboBox::AddItem(const wchar_t* text, DWORD_PTR data) {
+    if (!text) {
         impl__AfxThrowInvalidArgException__YAXXZ();
         return -1;
     }
-    if (impl__FindItem_CMFCRibbonComboBox__QEBAHPEB_W_Z(pThis, text) < 0) {
-        impl__AddTail_CStringList__QEAAPEAU__POSITION__PEB_W_Z(ItemStrings(pThis), text);
-        AppendItemData(pThis, static_cast<std::uintptr_t>(data));
+    if (FindItem(text) < 0) {
+        CloseDropDown();
+        auto& list = DataList(*this);
+        auto item = std::make_unique<ItemData>(ItemData{nullptr, list.tail, data});
+        m_itemStrings.AddTail(text);
+        if (list.tail) list.tail->next = item.get();
+        else list.head = item.get();
+        list.tail = item.release();
+        m_nativeStringCount = ++list.count;
     }
-    return static_cast<__int64>(ItemStringCount(pThis)) - 1;
+    return GetCount() - 1;
 }
 
-// The combo-specific ClearData export has no resolved body in either symbol
-// map; unlike RemoveAllItems, its exact cleanup contract is not established.
-// Symbol: ?ClearData@CMFCRibbonComboBox@@MEAAXXZ
-extern "C" void MS_ABI impl__ClearData_CMFCRibbonComboBox__MEAAXXZ(void* pThis) {
-    (void)pThis;
+INT_PTR CMFCRibbonComboBox::GetCount() const { return m_itemStrings.GetCount(); }
+
+const wchar_t* CMFCRibbonComboBox::GetItem(int index) const {
+    if (index == -1) index = m_selectedIndex;
+    if (index < 0) return nullptr;
+    auto pos = m_itemStrings.FindIndex(index);
+    if (pos == CStringList::POSITION(nullptr)) return nullptr;
+    return const_cast<CStringList&>(m_itemStrings).GetNext(pos).GetString();
 }
 
-// Retail RVA 0xf5b50 (mfc140u) initializes +0x288 to 1, selection to -1,
-// drop-down height to 150, resize flag to 1, and +0x1c0 to 3. It does not
-// write the edit-box field at +0x328; these offsets are pinned above.
-// Symbol: ?CommonInit@CMFCRibbonComboBox@@IEAAXXZ
-extern "C" void MS_ABI impl__CommonInit_CMFCRibbonComboBox__IEAAXXZ(void* pThis) {
-    RibbonComboLayout* self = Combo(pThis);
-    self->baseField_1c0 = 3;
-    self->baseField_288 = 1;
-    self->selectedIndex = -1;
-    self->dropDownHeight = 150;
-    self->resizeDropDownList = 1;
-}
-
-// Retail RVA 0xf6400 (mfc140u) first copies the base element, then copies the
-// inherited edit CString, destroys any edit control, clones both lists, and
-// copies selection/height/resize state. The base/edit-control state and the
-// full parent layout are not represented by this file's shadows.
-// Symbol: ?CopyFrom@CMFCRibbonComboBox@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
-extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonComboBox__MEAAXAEBVCMFCRibbonBaseElement___Z(
-    void* pThis, const void* pSource) {
-    (void)pThis;
-    (void)pSource;
-}
-
-// Retail RVA 0xf58e0 (mfc140u) allocates 0x330 bytes and calls the protected
-// constructor. The combo has no local C++ shadow/vtable, so this file cannot
-// produce an object with valid combo-specific virtual dispatch; do not expose
-// base-only constructed storage as a valid runtime-created combo.
-// Symbol: ?CreateObject@CMFCRibbonComboBox@@SAPEAVCObject@@XZ
-extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonComboBox__SAPEAVCObject__XZ() {
-    return nullptr;
-}
-
-// Retail RVA 0xf6000 (mfc140u) searches item-data nodes for the first matching
-// value and delegates to DeleteItem(index). The item-list mutation requires
-// the shared DeleteItem implementation below.
-// Symbol: ?DeleteItem@CMFCRibbonComboBox@@QEAAH_K@Z
-extern "C" int MS_ABI impl__DeleteItem_CMFCRibbonComboBox__QEAAH_K_Z(
-    void* pThis, unsigned __int64 data) {
-    int index = 0;
-    for (RibbonComboDataNode* node = ItemData(pThis)->head;
-         node != nullptr; node = node->next, ++index) {
-        if (node->data == static_cast<std::uintptr_t>(data)) {
-            return impl__DeleteItem_CMFCRibbonComboBox__QEAAHH_Z(pThis, index);
-        }
-    }
+DWORD_PTR CMFCRibbonComboBox::GetItemData(int index) const {
+    if (const auto* item = FindData(*this, index == -1 ? m_selectedIndex : index)) return item->value;
     return 0;
 }
 
-// Retail RVA 0xf5f40 (mfc140u) rejects out-of-range indices, removes both
-// list entries, and reselects only when the removed item was selected. This
-// transcription maintains those lists and the selection index; it cannot
-// reproduce the omitted inherited edit-control text/redraw and peer updates.
-// Symbol: ?DeleteItem@CMFCRibbonComboBox@@QEAAHH@Z
-extern "C" int MS_ABI impl__DeleteItem_CMFCRibbonComboBox__QEAAHH_Z(void* pThis, int index) {
-    if (index < 0 || index >= ItemStringCount(pThis)) return 0;
-    RibbonComboLayout* self = Combo(pThis);
-    RibbonComboStringNode* stringNode = StringNodeAt(pThis, index);
-    if (stringNode == nullptr) return 0;
-    CStringList::POSITION position = impl__FindIndex_CStringList__QEBAPEAU__POSITION____J_Z(
-        ItemStrings(pThis), static_cast<long long>(index));
-    impl__RemoveAt_CStringList__QEAAXPEAU__POSITION___Z(ItemStrings(pThis), &position);
-    // Retail removes the string node before checking the parallel item-data
-    // list; preserve that ordering even if the two lists are inconsistent.
-    if (DataNodeAt(pThis, index) == nullptr) return 0;
-    RemoveItemDataAt(pThis, index);
-    if (self->selectedIndex == index) {
-        const int remaining = ItemStringCount(pThis);
-        self->selectedIndex = remaining == 0 ? -1 : (index < remaining ? index : remaining - 1);
-    }
-    return 1;
-}
-
-// Retail RVA 0xf6030 (mfc140u) finds the string and delegates to the indexed
-// overload; a NULL string reaches AfxThrowInvalidArgException.
-// Symbol: ?DeleteItem@CMFCRibbonComboBox@@QEAAHPEB_W@Z
-extern "C" int MS_ABI impl__DeleteItem_CMFCRibbonComboBox__QEAAHPEB_W_Z(
-    void* pThis, const wchar_t* text) {
-    if (text == nullptr) {
-        impl__AfxThrowInvalidArgException__YAXXZ();
-        return 0;
-    }
-    const int index = impl__FindItem_CMFCRibbonComboBox__QEBAHPEB_W_Z(pThis, text);
-    if (index < 0) return 0;
-    return impl__DeleteItem_CMFCRibbonComboBox__QEAAHH_Z(pThis, index);
-}
-
-// Retail RVA 0xf6500 (mfc140u), when its inherited menu/control/bar guards
-// permit, creates and initializes the ribbon drop-down popup, copies the item
-// strings/data, selects the current row, and uses window/visual-manager state
-// absent from this implementation; other paths return early.
-// Symbol: ?DropDownList@CMFCRibbonComboBox@@MEAAXXZ
-extern "C" void MS_ABI impl__DropDownList_CMFCRibbonComboBox__MEAAXXZ(void* pThis) {
-    (void)pThis;
-}
-
-// Retail RVA 0xf6070 (mfc140u) scans the CStringList and calls _wcsicmp
-// (IAT slot 0x1802c7788, resolved by iatu.py) for each element. The existing
-// CStringT CompareNoCase thunk supplies that comparison in OpenMFC.
-// Symbol: ?FindItem@CMFCRibbonComboBox@@QEBAHPEB_W@Z
-extern "C" int MS_ABI impl__FindItem_CMFCRibbonComboBox__QEBAHPEB_W_Z(
-    const void* pThis, const wchar_t* text) {
-    if (text == nullptr) {
+int CMFCRibbonComboBox::FindItem(const wchar_t* text) const {
+    if (!text) {
         impl__AfxThrowInvalidArgException__YAXXZ();
         return -1;
     }
     int index = 0;
-    for (RibbonComboStringNode* node = StringNodeAt(const_cast<void*>(pThis), 0);
-         node != nullptr; node = node->next, ++index) {
-        if (impl__CompareNoCase___CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEBAHPEB_W_Z(
-                &node->data, text) == 0) {
-            return index;
-        }
+    for (auto pos = m_itemStrings.GetHeadPosition(); pos != CStringList::POSITION(nullptr); ++index) {
+        if (m_itemStrings.GetNext(pos).CompareNoCase(text) == 0) return index;
     }
     return -1;
 }
 
-// Stub: retail RVA 0xf60e0 (mfc140u) calls the inherited edit-size routine,
-// consults a virtual size slot, and adds a value derived from +0x1c0 to the
-// result. The required base sizing/vtable state is unavailable here.
+BOOL CMFCRibbonComboBox::ApplySelection(int index) {
+    if (index >= GetCount()) return FALSE;
+    m_selectedIndex = (std::max)(-1, index);
+    SetEditText(GetItem(m_selectedIndex));
+    return TRUE;
+}
+
+BOOL CMFCRibbonComboBox::SelectItem(int index) {
+    if (!ApplySelection(index)) return FALSE;
+    if (auto* bar = GetTopLevelRibbonBar()) {
+        RibbonElements peers;
+        impl__GetElementsByID_CMFCRibbonBar__QEAAXIAEAV__CArray_PEAVCMFCRibbonBaseElement__PEAV1____Z(bar, GetID(), peers);
+        for (INT_PTR i = 0; i < peers.GetSize(); ++i) {
+            auto* element = peers.GetAt(i);
+            if (element && element != this && element->IsKindOf(GetThisClass())) {
+                static_cast<CMFCRibbonComboBox*>(element)->ApplySelection(index);
+            }
+        }
+    }
+    return TRUE;
+}
+
+BOOL CMFCRibbonComboBox::SelectItem(DWORD_PTR data) {
+    int index = 0;
+    for (auto* item = DataList(*this).head; item; item = item->next, ++index) {
+        if (item->value == data) return SelectItem(index);
+    }
+    return FALSE;
+}
+
+BOOL CMFCRibbonComboBox::SelectItem(const wchar_t* text) {
+    const int index = FindItem(text);
+    return index >= 0 && SelectItem(index);
+}
+
+BOOL CMFCRibbonComboBox::DeleteItem(int index) {
+    auto* item = FindData(*this, index);
+    const auto pos = m_itemStrings.FindIndex(index);
+    if (!item || pos == CStringList::POSITION(nullptr) || index < 0) return FALSE;
+    CloseDropDown();
+    m_itemStrings.RemoveAt(pos);
+    auto& list = DataList(*this);
+    if (item->prev) item->prev->next = item->next;
+    else list.head = item->next;
+    if (item->next) item->next->prev = item->prev;
+    else list.tail = item->prev;
+    delete item;
+    m_nativeStringCount = --list.count;
+    if (index == m_selectedIndex) SelectItem((std::min)(index, static_cast<int>(list.count) - 1));
+    else if (index < m_selectedIndex) --m_selectedIndex;
+    return TRUE;
+}
+
+void CMFCRibbonComboBox::RemoveAllItems() {
+    CloseDropDown();
+    m_itemStrings.RemoveAll();
+    ClearItemData(*this);
+    m_nativeStringCount = 0;
+    m_selectedIndex = -1;
+    SetEditText(nullptr);
+}
+
+void CMFCRibbonComboBox::SetEditText(const wchar_t* text) {
+    m_editText = text ? text : L"";
+    if (m_editWindow && m_editWindow->GetSafeHwnd()) {
+        ::SetWindowTextW(m_editWindow->GetSafeHwnd(), m_editText);
+    }
+    if (auto* bar = GetTopLevelRibbonBar(); bar && bar->GetSafeHwnd()) {
+        ::InvalidateRect(bar->GetSafeHwnd(), m_comboRect, FALSE);
+    }
+}
+
+void CMFCRibbonComboBox::SyncEditText() {
+    const HWND window = m_editWindow ? m_editWindow->GetSafeHwnd() : nullptr;
+    if (!window) return;
+    const int length = ::GetWindowTextLengthW(window);
+    auto* buffer = m_editText.GetBuffer(length + 1);
+    m_editText.ReleaseBuffer(::GetWindowTextW(window, buffer, length + 1));
+}
+
+void CMFCRibbonComboBox::SetID(UINT id) {
+    CMFCRibbonBaseElement::SetID(id);
+    m_sdkCommandId = id;
+}
+
+CSize CMFCRibbonComboBox::GetIntermediateSize(CDC* dc) const {
+    const CString label = GetText();
+    RECT text{};
+    if (dc && dc->GetSafeHdc()) {
+        ::DrawTextW(dc->GetSafeHdc(), label, label.GetLength(), &text, DT_CALCRECT | DT_SINGLELINE);
+    }
+    return CSize((std::max)(m_editWidth, 48) + (text.right ? text.right + 8 : 0) +
+                 ::GetSystemMetrics(SM_CXVSCROLL), (std::max)(24L, text.bottom + 8));
+}
+
+void CMFCRibbonComboBox::OnDraw(CDC* dc) const {
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || m_comboRect.IsRectEmpty()) return;
+    const int saved = ::SaveDC(hdc);
+    CRect field = m_comboRect;
+    const CString label = GetText();
+    if (!label.IsEmpty()) {
+        CRect text(0, 0, 0, 0);
+        ::DrawTextW(hdc, label, label.GetLength(), text, DT_CALCRECT | DT_SINGLELINE);
+        field.left = (std::min)(m_comboArrow.left, m_comboRect.left + text.Width() + 8);
+        CRect labelRect = m_comboRect;
+        labelRect.right = field.left;
+        ::SetBkMode(hdc, TRANSPARENT);
+        ::SetTextColor(hdc, ::GetSysColor(COLOR_BTNTEXT));
+        ::DrawTextW(hdc, label, label.GetLength(), labelRect, DT_SINGLELINE | DT_VCENTER);
+    }
+    ::FillRect(hdc, field, ::GetSysColorBrush(COLOR_WINDOW));
+    ::FrameRect(hdc, field, ::GetSysColorBrush(COLOR_BTNSHADOW));
+    if (!m_editWindow || !m_editWindow->GetSafeHwnd()) {
+        CRect text(field.left + 3, field.top, m_comboArrow.left - 2, field.bottom);
+        ::SetBkMode(hdc, TRANSPARENT);
+        ::SetTextColor(hdc, ::GetSysColor(COLOR_WINDOWTEXT));
+        ::DrawTextW(hdc, m_editText, m_editText.GetLength(), text,
+                    DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+    }
+    RECT arrow = *static_cast<const RECT*>(m_comboArrow);
+    ::DrawFrameControl(hdc, &arrow, DFC_SCROLL, DFCS_SCROLLCOMBOBOX | (m_openList ? DFCS_PUSHED : 0));
+    if (saved) ::RestoreDC(hdc, saved);
+}
+
+void CMFCRibbonComboBox::SetRect(CRect rect) {
+    CRect arrow = rect;
+    arrow.left = (std::max)(rect.left, rect.right - ::GetSystemMetrics(SM_CXVSCROLL));
+    if (rect == m_comboRect && arrow == m_comboArrow && m_editWindow && m_editWindow->GetSafeHwnd()) return;
+    if (rect.IsRectEmpty() && m_openList) CloseDropDown();
+    m_comboRect = rect;
+    m_comboArrow = arrow;
+    UpdateEditWindow();
+}
+
+void CMFCRibbonComboBox::UpdateEditWindow() {
+    const auto* bar = GetTopLevelRibbonBar();
+    const HWND parent = bar ? bar->GetSafeHwnd() : nullptr;
+    HWND edit = m_editWindow ? m_editWindow->GetSafeHwnd() : nullptr;
+    if (!m_hasEditBox || m_comboRect.IsRectEmpty() || !parent) {
+        if (edit) ::ShowWindow(edit, SW_HIDE);
+        return;
+    }
+    if (!edit || ::GetParent(edit) != parent) {
+        DestroyEditWindow();
+        auto wrapper = std::make_unique<CWnd>();
+        edit = ::CreateWindowExW(0, L"EDIT", m_editText, WS_CHILD | WS_TABSTOP | ES_AUTOHSCROLL,
+                                 0, 0, 0, 0, parent, nullptr, ::GetModuleHandleW(nullptr), nullptr);
+        if (!edit) return;
+        if (!wrapper->Attach(edit)) {
+            ::DestroyWindow(edit);
+            return;
+        }
+        m_editWindow = wrapper.release();
+        ::SendMessageW(edit, WM_SETFONT, reinterpret_cast<WPARAM>(::GetStockObject(DEFAULT_GUI_FONT)), FALSE);
+        ::SetWindowSubclass(edit, RibbonComboEditProc, reinterpret_cast<UINT_PTR>(this), reinterpret_cast<DWORD_PTR>(this));
+    }
+    CRect editRect = m_comboRect;
+    const CString label = GetText();
+    if (!label.IsEmpty()) {
+        if (const HDC dc = ::GetDC(parent)) {
+            const auto font = ::SelectObject(dc, ::GetStockObject(DEFAULT_GUI_FONT));
+            RECT measure{};
+            ::DrawTextW(dc, label, label.GetLength(), &measure, DT_CALCRECT | DT_SINGLELINE);
+            editRect.left += measure.right + 8;
+            if (font) ::SelectObject(dc, font);
+            ::ReleaseDC(parent, dc);
+        }
+    }
+    editRect.right = m_comboArrow.left;
+    editRect.DeflateRect(2, 2);
+    if (editRect.IsRectEmpty()) {
+        ::ShowWindow(edit, SW_HIDE);
+        return;
+    }
+    ::SetWindowPos(edit, nullptr, editRect.left, editRect.top, editRect.Width(), editRect.Height(),
+                   SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+}
+
+void CMFCRibbonComboBox::DestroyEditWindow() {
+    std::unique_ptr<CWnd> edit(m_editWindow);
+    m_editWindow = nullptr;
+    if (edit && edit->GetSafeHwnd()) {
+        const HWND window = edit->Detach();
+        ::RemoveWindowSubclass(window, RibbonComboEditProc, reinterpret_cast<UINT_PTR>(this));
+        if (::IsWindow(window)) ::DestroyWindow(window);
+    }
+}
+
+void CMFCRibbonComboBox::OnLButtonDown(CPoint point) {
+    if (!(m_hasEditBox ? m_comboArrow : m_comboRect).PtInRect(point)) return;
+    if (m_openList) CloseDropDown();
+    else DropDownList();
+}
+
+HWND CMFCRibbonComboBox::CommandWindow() const {
+    auto* bar = GetTopLevelRibbonBar();
+    if (!bar) return nullptr;
+    return bar->m_hWndOwner ? bar->m_hWndOwner : ::GetParent(bar->GetSafeHwnd());
+}
+
+void CMFCRibbonComboBox::OnSelectItem(int index) {
+    if (index < 0 || !SelectItem(index)) return;
+    if (const HWND owner = CommandWindow(); owner && GetID() && GetID() != UINT(-1)) {
+        ::PostMessageW(owner, WM_COMMAND, MAKEWPARAM(GetID(), 0), 0);
+    }
+}
+
+void CMFCRibbonComboBox::OnListHighlight(int index) {
+    if (const HWND owner = CommandWindow(); owner && impl__AFX_WM_ON_HIGHLIGHT_RIBBON_LIST_ITEM__3IA) {
+        ::SendMessageW(owner, impl__AFX_WM_ON_HIGHLIGHT_RIBBON_LIST_ITEM__3IA, index, reinterpret_cast<LPARAM>(this));
+    }
+}
+
+void CMFCRibbonComboBox::DropDownList() {
+    auto* bar = GetTopLevelRibbonBar();
+    if (!bar || !bar->GetSafeHwnd() || m_comboRect.IsRectEmpty() || m_openList || !GetCount()) return;
+    auto list = std::make_unique<RibbonComboList>(*this);
+    list->edit = m_editWindow;
+    list->maxHeight = m_dropDownHeight;
+    list->minWidth = m_comboRect.Width();
+    for (auto pos = m_itemStrings.GetHeadPosition(); pos != CStringList::POSITION(nullptr);) list->AddString(m_itemStrings.GetNext(pos));
+    list->SetCurSel(m_selectedIndex);
+    if (m_resizeDropDownList) list->EnableVertResize();
+    POINT anchor{m_comboRect.left, m_comboRect.bottom};
+    ::ClientToScreen(bar->GetSafeHwnd(), &anchor);
+    list->Track(CPoint(anchor), bar);
+    if (list->GetSafeHwnd()) {
+        m_openList = list.release();
+        m_droppedDown = TRUE;
+        auto& state = openmfc::detail::mfccore::g_popupMenuStates.at(m_openList);
+        state.anchor = *static_cast<const RECT*>(m_comboRect);
+        ::MapWindowPoints(bar->GetSafeHwnd(), nullptr, reinterpret_cast<POINT*>(&state.anchor), 2);
+        state.awaitingButtonRelease = true;
+        ::InvalidateRect(bar->GetSafeHwnd(), m_comboRect, FALSE);
+    }
+}
+
+void CMFCRibbonComboBox::CloseDropDown() {
+    if (m_openList) m_openList->CloseMenu(TRUE);
+}
+
+void CMFCRibbonComboBox::OnListClosed(const CMFCPopupMenu* popup) {
+    if (m_openList != popup) return;
+    m_openList = nullptr;
+    m_droppedDown = FALSE;
+    if (auto* bar = GetTopLevelRibbonBar(); bar && bar->GetSafeHwnd()) {
+        ::InvalidateRect(bar->GetSafeHwnd(), m_comboRect, FALSE);
+    }
+}
+
+void CMFCRibbonComboBox::CopyFrom(const CMFCRibbonComboBox& source) {
+    if (this == &source) return;
+    RemoveAllItems();
+    DestroyEditWindow();
+    SetID(source.GetID());
+    SetText(source.GetText());
+    m_editWidth = source.m_editWidth;
+    m_hasEditBox = source.m_hasEditBox;
+    m_dropDownHeight = source.m_dropDownHeight;
+    m_resizeDropDownList = source.m_resizeDropDownList;
+    auto* data = DataList(const_cast<CMFCRibbonComboBox&>(source)).head;
+    for (auto pos = source.m_itemStrings.GetHeadPosition(); pos != CStringList::POSITION(nullptr);) {
+        AddItem(source.m_itemStrings.GetNext(pos), data ? data->value : 0);
+        if (data) data = data->next;
+    }
+    m_selectedIndex = source.m_selectedIndex;
+    SetEditText(source.m_editText);
+}
+
+// Symbol: ??0CMFCRibbonComboBox@@IEAA@XZ
+extern "C" void* MS_ABI impl___0CMFCRibbonComboBox__IEAA_XZ(void* storage) {
+    return storage ? new (storage) CMFCRibbonComboBox(0, FALSE) : nullptr;
+}
+
+// Symbol: ??0CMFCRibbonComboBox@@QEAA@IHHPEB_WH@Z
+extern "C" void* MS_ABI impl___0CMFCRibbonComboBox__QEAA_IHHPEB_WH_Z(
+    void* storage, UINT id, BOOL hasEditBox, int width, const wchar_t* label, int image) {
+    return storage ? new (storage) CMFCRibbonComboBox(id, hasEditBox, width, label, image) : nullptr;
+}
+
+// Symbol: ??1CMFCRibbonComboBox@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCRibbonComboBox__UEAA_XZ(CMFCRibbonComboBox* combo) {
+    if (combo) combo->~CMFCRibbonComboBox();
+}
+
+// Symbol: ?CreateObject@CMFCRibbonComboBox@@SAPEAVCObject@@XZ
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonComboBox__SAPEAVCObject__XZ() {
+    return new CMFCRibbonComboBox(0, FALSE);
+}
+
+// Symbol: ?AddItem@CMFCRibbonComboBox@@UEAA_JPEB_W_K@Z
+extern "C" INT_PTR MS_ABI impl__AddItem_CMFCRibbonComboBox__UEAA_JPEB_W_K_Z(
+    CMFCRibbonComboBox* combo, const wchar_t* text, DWORD_PTR data) {
+    return combo ? combo->AddItem(text, data) : -1;
+}
+
+// Base version has no item-data destructor callback.
+// Symbol: ?ClearData@CMFCRibbonComboBox@@MEAAXXZ
+extern "C" void MS_ABI impl__ClearData_CMFCRibbonComboBox__MEAAXXZ(CMFCRibbonComboBox*) {}
+
+// Symbol: ?CommonInit@CMFCRibbonComboBox@@IEAAXXZ
+extern "C" void MS_ABI impl__CommonInit_CMFCRibbonComboBox__IEAAXXZ(CMFCRibbonComboBox* combo) {
+    if (!combo) return;
+    combo->m_selectedIndex = -1;
+    combo->m_dropDownHeight = 150;
+    combo->m_resizeDropDownList = TRUE;
+}
+
+// Symbol: ?CopyFrom@CMFCRibbonComboBox@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
+extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonComboBox__MEAAXAEBVCMFCRibbonBaseElement___Z(
+    CMFCRibbonComboBox* combo, const CMFCRibbonBaseElement* source) {
+    if (combo && source && source->IsKindOf(CMFCRibbonComboBox::GetThisClass())) {
+        combo->CopyFrom(*static_cast<const CMFCRibbonComboBox*>(source));
+    }
+}
+
+// Symbol: ?DeleteItem@CMFCRibbonComboBox@@QEAAH_K@Z
+extern "C" BOOL MS_ABI impl__DeleteItem_CMFCRibbonComboBox__QEAAH_K_Z(CMFCRibbonComboBox* combo, DWORD_PTR data) {
+    if (!combo) return FALSE;
+    int index = 0;
+    for (auto* item = DataList(*combo).head; item; item = item->next, ++index) {
+        if (item->value == data) return combo->DeleteItem(index);
+    }
+    return FALSE;
+}
+
+// Symbol: ?DeleteItem@CMFCRibbonComboBox@@QEAAHH@Z
+extern "C" BOOL MS_ABI impl__DeleteItem_CMFCRibbonComboBox__QEAAHH_Z(CMFCRibbonComboBox* combo, int index) {
+    return combo && combo->DeleteItem(index);
+}
+
+// Symbol: ?DeleteItem@CMFCRibbonComboBox@@QEAAHPEB_W@Z
+extern "C" BOOL MS_ABI impl__DeleteItem_CMFCRibbonComboBox__QEAAHPEB_W_Z(CMFCRibbonComboBox* combo, const wchar_t* text) {
+    return combo && combo->DeleteItem(combo->FindItem(text));
+}
+
+// Symbol: ?DropDownList@CMFCRibbonComboBox@@MEAAXXZ
+extern "C" void MS_ABI impl__DropDownList_CMFCRibbonComboBox__MEAAXXZ(CMFCRibbonComboBox* combo) {
+    if (combo) combo->DropDownList();
+}
+
+// Symbol: ?FindItem@CMFCRibbonComboBox@@QEBAHPEB_W@Z
+extern "C" int MS_ABI impl__FindItem_CMFCRibbonComboBox__QEBAHPEB_W_Z(const CMFCRibbonComboBox* combo, const wchar_t* text) {
+    return combo ? combo->FindItem(text) : -1;
+}
+
 // Symbol: ?GetIntermediateSize@CMFCRibbonComboBox@@UEAA?AVCSize@@PEAVCDC@@@Z
-extern "C" void* MS_ABI impl__GetIntermediateSize_CMFCRibbonComboBox__UEAA_AVCSize__PEAVCDC___Z(
-    void* pThis, void* pResult, void* pDC) {
-    (void)pThis;
-    (void)pResult;
-    (void)pDC;
-    return nullptr;
+extern "C" CSize* MS_ABI impl__GetIntermediateSize_CMFCRibbonComboBox__UEAA_AVCSize__PEAVCDC___Z(
+    CMFCRibbonComboBox* combo, CSize* result, CDC* dc) {
+    if (result) *result = combo ? combo->GetIntermediateSize(dc) : CSize(0, 0);
+    return result;
 }
 
-// Retail RVA 0xf5c50 (mfc140u) treats index -1 as the current selection and
-// returns NULL when the resulting index is negative, outside the list, or has
-// no CStringList node.
 // Symbol: ?GetItem@CMFCRibbonComboBox@@QEBAPEB_WH@Z
-extern "C" const wchar_t* MS_ABI impl__GetItem_CMFCRibbonComboBox__QEBAPEB_WH_Z(
-    const void* pThis, int index) {
-    const auto* self = static_cast<const RibbonComboLayout*>(pThis);
-    if (index == -1) index = self->selectedIndex;
-    if (index < 0 || index >= ItemStringCount(const_cast<void*>(pThis))) return nullptr;
-    RibbonComboStringNode* node = StringNodeAt(const_cast<void*>(pThis), index);
-    return node != nullptr ? node->data.GetString() : nullptr;
+extern "C" const wchar_t* MS_ABI impl__GetItem_CMFCRibbonComboBox__QEBAPEB_WH_Z(const CMFCRibbonComboBox* combo, int index) {
+    return combo ? combo->GetItem(index) : nullptr;
 }
 
-// Retail RVA 0xf5c90 (mfc140u) treats index -1 as the current selection and
-// returns zero for invalid indices or a missing item-data node.
 // Symbol: ?GetItemData@CMFCRibbonComboBox@@QEBA_KH@Z
-extern "C" unsigned __int64 MS_ABI impl__GetItemData_CMFCRibbonComboBox__QEBA_KH_Z(
-    const void* pThis, int index) {
-    const auto* self = static_cast<const RibbonComboLayout*>(pThis);
-    if (index == -1) index = self->selectedIndex;
-    RibbonComboDataNode* node = DataNodeAt(const_cast<void*>(pThis), index);
-    return node != nullptr ? static_cast<unsigned __int64>(node->data) : 0;
+extern "C" DWORD_PTR MS_ABI impl__GetItemData_CMFCRibbonComboBox__QEBA_KH_Z(const CMFCRibbonComboBox* combo, int index) {
+    return combo ? combo->GetItemData(index) : 0;
 }
 
-// Retail RVA 0xf68a0 (mfc140u) calls the inherited edit rect-change handler
-// and then resizes/repositions its child control; that parent/control state is
-// not represented by the available shadows.
 // Symbol: ?OnAfterChangeRect@CMFCRibbonComboBox@@MEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonComboBox__MEAAXPEAVCDC___Z(
-    void* pThis, void* pDC) {
-    (void)pThis;
-    (void)pDC;
+extern "C" void MS_ABI impl__OnAfterChangeRect_CMFCRibbonComboBox__MEAAXPEAVCDC___Z(CMFCRibbonComboBox* combo, CDC*) {
+    if (combo) combo->SetRect(combo->GetRect());
 }
 
-// Retail RVA 0xf6130 (mfc140u) performs themed rendering using the inherited
-// ribbon geometry, text, visual manager, and edit-control state not modeled
-// here.
 // Symbol: ?OnDraw@CMFCRibbonComboBox@@MEAAXPEAVCDC@@@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCRibbonComboBox__MEAAXPEAVCDC___Z(
-    void* pThis, void* pDC) {
-    (void)pThis;
-    (void)pDC;
+extern "C" void MS_ABI impl__OnDraw_CMFCRibbonComboBox__MEAAXPEAVCDC___Z(CMFCRibbonComboBox* combo, CDC* dc) {
+    if (combo) combo->OnDraw(dc);
 }
 
-// This exact Unicode export has no resolved RVA; the ANSI twin's matching
-// virtual body is likewise not resolved. Its rendering contract needs the
-// unmodeled toolbar menu button and visual-manager state.
+// The default list renderer handles rows when the combo supplies no override.
 // Symbol: ?OnDrawDropListItem@CMFCRibbonComboBox@@MEAAHPEAVCDC@@HPEAVCMFCToolBarMenuButton@@H@Z
-extern "C" int MS_ABI impl__OnDrawDropListItem_CMFCRibbonComboBox__MEAAHPEAVCDC__HPEAVCMFCToolBarMenuButton__H_Z(
-    void* pThis, void* pDC, int index, void* pItem, int highlight) {
-    (void)pThis;
-    (void)pDC;
-    (void)index;
-    (void)pItem;
-    (void)highlight;
-    return 0;
-}
+extern "C" BOOL MS_ABI impl__OnDrawDropListItem_CMFCRibbonComboBox__MEAAHPEAVCDC__HPEAVCMFCToolBarMenuButton__H_Z(
+    void*, void*, int, void*, int) { return FALSE; }
 
-// No mfc140u RVA is resolved. The ANSI twin's body at RVA 0x8960 (mfc140)
-// writes a zero CSize to its hidden result buffer and returns that buffer.
-// This is the exact body behavior rather than a bare default return.
 // Symbol: ?OnGetDropListItemSize@CMFCRibbonComboBox@@MEAA?AVCSize@@PEAVCDC@@HPEAVCMFCToolBarMenuButton@@V2@@Z
-extern "C" void* MS_ABI impl__OnGetDropListItemSize_CMFCRibbonComboBox__MEAA_AVCSize__PEAVCDC__HPEAVCMFCToolBarMenuButton__V2__Z(
-    void* pThis, void* pResult, void* pDC, int index, void* pItem, long long sizeDefault) {
-    (void)pThis;
-    (void)pDC;
-    (void)index;
-    (void)pItem;
-    (void)sizeDefault;
-    const std::uint64_t emptySize = 0;
-    std::memcpy(pResult, &emptySize, sizeof(emptySize));
-    return pResult;
+extern "C" CSize* MS_ABI impl__OnGetDropListItemSize_CMFCRibbonComboBox__MEAA_AVCSize__PEAVCDC__HPEAVCMFCToolBarMenuButton__V2__Z(
+    void*, CSize* result, void*, int, void*, long long) {
+    if (result) *result = CSize(0, 0);
+    return result;
 }
 
-// The ANSI twin at RVA 0xf6f50 (mfc140) first calls an inherited mouse handler,
-// hit-tests the drop-down rectangle, and can dispatch two inherited virtual
-// slots. Those geometry/vtable thunks are not represented in this file.
-// CPoint is an 8-byte by-value aggregate under the MS ABI.
 // Symbol: ?OnLButtonDown@CMFCRibbonComboBox@@MEAAXVCPoint@@@Z
-extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonComboBox__MEAAXVCPoint___Z(
-    void* pThis, long long point) {
-    (void)pThis;
-    (void)point;
+extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonComboBox__MEAAXVCPoint___Z(CMFCRibbonComboBox* combo, long long point) {
+    if (combo) combo->OnLButtonDown(UnpackPoint(point));
 }
 
-// No matching body is resolved in either retail symbol map, and there is no
-// modeled mouse-release/window state to transcribe safely.
 // Symbol: ?OnLButtonUp@CMFCRibbonComboBox@@MEAAXVCPoint@@@Z
-extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonComboBox__MEAAXVCPoint___Z(
-    void* pThis, long long point) {
-    (void)pThis;
-    (void)point;
-}
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCRibbonComboBox__MEAAXVCPoint___Z(CMFCRibbonComboBox*, long long) {}
 
-// The ANSI twin at RVA 0xf7350 (mfc140) coordinates the parent ribbon's
-// notification, edit HWND text, and owner/category selection state. These
-// base/window dependencies are not available as faithful thunks here.
 // Symbol: ?OnSelectItem@CMFCRibbonComboBox@@UEAAXH@Z
-extern "C" void MS_ABI impl__OnSelectItem_CMFCRibbonComboBox__UEAAXH_Z(
-    void* pThis, int index) {
-    (void)pThis;
-    (void)index;
+extern "C" void MS_ABI impl__OnSelectItem_CMFCRibbonComboBox__UEAAXH_Z(CMFCRibbonComboBox* combo, int index) {
+    if (combo) combo->OnSelectItem(index);
 }
 
-// The ANSI twin at RVA 0xf6890 (mfc140) clears both lists, empties the
-// inherited edit CString, resets selection, and invokes a virtual update.
-// This implementation clears the modeled lists/selection but cannot reproduce
-// the edit-text clear or virtual update.
 // Symbol: ?RemoveAllItems@CMFCRibbonComboBox@@QEAAXXZ
-extern "C" void MS_ABI impl__RemoveAllItems_CMFCRibbonComboBox__QEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-    impl__RemoveAll_CStringList__QEAAXXZ(ItemStrings(pThis));
-    ClearItemData(pThis);
-    Combo(pThis)->selectedIndex = -1;
+extern "C" void MS_ABI impl__RemoveAllItems_CMFCRibbonComboBox__QEAAXXZ(CMFCRibbonComboBox* combo) {
+    if (combo) combo->RemoveAllItems();
 }
 
-// The ANSI twin at RVA 0xf6a90 (mfc140) searches item-data nodes and delegates
-// a match to the index selector; selection itself requires the missing edit
-// control and owner/window state.
 // Symbol: ?SelectItem@CMFCRibbonComboBox@@QEAAH_K@Z
-extern "C" int MS_ABI impl__SelectItem_CMFCRibbonComboBox__QEAAH_K_Z(
-    void* pThis, unsigned __int64 data) {
-    (void)pThis;
-    (void)data;
-    return 0;
+extern "C" BOOL MS_ABI impl__SelectItem_CMFCRibbonComboBox__QEAAH_K_Z(CMFCRibbonComboBox* combo, DWORD_PTR data) {
+    return combo && combo->SelectItem(data);
 }
 
-// The ANSI twin at RVA 0xf68f0 (mfc140) updates the selected index, inherited
-// edit CString/control text, and related ribbon elements. Those inherited
-// edit/window/ribbon states are not modeled, so this remains a documented stub
-// rather than an index-only approximation.
 // Symbol: ?SelectItem@CMFCRibbonComboBox@@QEAAHH@Z
-extern "C" int MS_ABI impl__SelectItem_CMFCRibbonComboBox__QEAAHH_Z(void* pThis, int index) {
-    (void)pThis;
-    (void)index;
-    return 0;
+extern "C" BOOL MS_ABI impl__SelectItem_CMFCRibbonComboBox__QEAAHH_Z(CMFCRibbonComboBox* combo, int index) {
+    return combo && combo->SelectItem(index);
 }
 
-// This exact Unicode overload has no resolved RVA. The ANSI PEBD counterpart
-// scans and selects by text, but the same unavailable edit/control selection
-// machinery prevents a faithful Unicode implementation.
 // Symbol: ?SelectItem@CMFCRibbonComboBox@@QEAAHPEB_W@Z
-extern "C" int MS_ABI impl__SelectItem_CMFCRibbonComboBox__QEAAHPEB_W_Z(
-    void* pThis, const wchar_t* text) {
-    (void)pThis;
-    (void)text;
-    return 0;
+extern "C" BOOL MS_ABI impl__SelectItem_CMFCRibbonComboBox__QEAAHPEB_W_Z(CMFCRibbonComboBox* combo, const wchar_t* text) {
+    return combo && combo->SelectItem(text);
 }
 
-// The ANSI twin at RVA 0xf7770 (mfc140) calls the CMFCRibbonEdit accessibility
-// handler, writes role 0x2e and conditionally writes state at +0x34, then
-// returns TRUE. The base edit thunk exists but is itself a stub in OpenMFC;
-// when neither combo state branch writes +0x34, the base handler's effect is
-// therefore not reproduced.
 // Symbol: ?SetACCData@CMFCRibbonComboBox@@MEAAHPEAVCWnd@@AEAVCAccessibilityData@@@Z
-extern "C" int MS_ABI impl__SetACCData_CMFCRibbonComboBox__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
-    void* pThis, void* pParent, void* pData) {
-    impl__SetACCData_CMFCRibbonEdit__UEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
-        pThis, pParent, pData);
-    auto* data = static_cast<RibbonComboAccessibilityDataLayout*>(pData);
-    data->role = 0x2e;
-    if (Combo(pThis)->hasEditBox == 0) data->state = 0x40;
-    if (Combo(pThis)->baseField_148 != 0) data->state = 1;
-    return 1;
+extern "C" BOOL MS_ABI impl__SetACCData_CMFCRibbonComboBox__MEAAHPEAVCWnd__AEAVCAccessibilityData___Z(
+    CMFCRibbonComboBox* combo, CWnd* parent, CAccessibilityData* data) {
+    if (!combo || !data) return FALSE;
+    data->m_strAccName = combo->GetText();
+    data->m_strAccValue = combo->GetEditText();
+    data->m_nAccRole = ROLE_SYSTEM_COMBOBOX;
+    data->m_bAccState = combo->m_openList ? STATE_SYSTEM_EXPANDED : STATE_SYSTEM_COLLAPSED;
+    if (!combo->m_hasEditBox) data->m_bAccState |= STATE_SYSTEM_READONLY;
+    data->m_rectAccLocation = combo->GetRect();
+    if (parent && parent->GetSafeHwnd()) {
+        ::MapWindowPoints(parent->GetSafeHwnd(), nullptr, reinterpret_cast<POINT*>(&data->m_rectAccLocation), 2);
+    }
+    return TRUE;
 }
 
-// The ANSI twin at RVA 0xf6c90 (mfc140) is a single store to
-// m_nDropDownHeight at +0x324. That offset is pinned above and agrees with
-// the retail public header's field order.
 // Symbol: ?SetDropDownHeight@CMFCRibbonComboBox@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetDropDownHeight_CMFCRibbonComboBox__QEAAXH_Z(
-    void* pThis, int height) {
-    Combo(pThis)->dropDownHeight = height;
+extern "C" void MS_ABI impl__SetDropDownHeight_CMFCRibbonComboBox__QEAAXH_Z(CMFCRibbonComboBox* combo, int height) {
+    if (combo) combo->SetDropDownHeight(height);
 }

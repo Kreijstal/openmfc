@@ -225,11 +225,13 @@ extern "C" int MS_ABI impl__SetACCData_CMFCRibbonEdit__UEAAHPEAVCWnd__AEAVCAcces
 
 // Symbol: ?SetEditText@CMFCRibbonEdit@@QEAAXV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 // The Unicode symbol has no resolved RVA; the ANSI twin has a distinct
-// CStringA overload, not this CStringW export. The edit-string field is absent.
+// CStringA overload, not this CStringW export. Combo boxes store the SDK edit text and synchronize it with the edit HWND.
 extern "C" void MS_ABI impl__SetEditText_CMFCRibbonEdit__QEAAXV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     void* pThis, const CString* strText) {
-    (void)pThis;
-    (void)strText;
+    auto* element = static_cast<CMFCRibbonEdit*>(pThis);
+    if (element && element->IsKindOf(CMFCRibbonComboBox::GetThisClass())) {
+        static_cast<CMFCRibbonComboBox*>(element)->SetEditText(strText ? strText->GetString() : nullptr);
+    }
 }
 
 // Symbol: ?SetTextAlign@CMFCRibbonEdit@@QEAAXH@Z

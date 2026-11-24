@@ -38,6 +38,7 @@
 
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
+#include <commctrl.h>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -45,6 +46,117 @@
   #define MS_ABI
 #endif
 
+
+namespace {
+template<class Visit>
+void VisitRibbonCombos(CMFCRibbonBar& bar, Visit visit) {
+    const auto found = RibbonBarStates().find(&bar);
+    if (found == RibbonBarStates().end()) return;
+    const auto& state = found->second;
+    const auto add = [&](CMFCRibbonBaseElement* element, bool visible) {
+        if (element && element->IsKindOf(CMFCRibbonComboBox::GetThisClass())) {
+            visit(*static_cast<CMFCRibbonComboBox*>(element), visible);
+        }
+    };
+    for (auto* element : state.tabs) add(element, !state.minimized);
+    for (auto* category : state.categories) {
+        if (!category) continue;
+        const bool visible = category == state.activeCategory && !state.minimized;
+        for (int i = 0; i < category->GetPanelCount(); ++i) {
+            auto* panel = category->GetPanel(i);
+            if (!panel) continue;
+            for (int j = 0; j < panel->GetCount(); ++j) add(panel->GetElement(j), visible);
+        }
+    }
+}
+
+void LayoutRibbonCombos(CMFCRibbonBar& bar) {
+    const HWND window = bar.GetSafeHwnd();
+    RECT client{};
+    if (!window || !::GetClientRect(window, &client)) return;
+    const HDC hdc = ::GetDC(window);
+    if (!hdc) return;
+    const HGDIOBJ font = ::SelectObject(hdc, ::GetStockObject(DEFAULT_GUI_FONT));
+    CDC dc;
+    dc.m_hDC = hdc;
+    LONG x = 5;
+    VisitRibbonCombos(bar, [&](CMFCRibbonComboBox& combo, bool visible) {
+        if (visible && x < client.right && client.bottom > 4) {
+            const CSize size = combo.GetIntermediateSize(&dc);
+            const LONG right = (std::min)(x + size.cx, client.right);
+            const LONG bottom = (std::min)(4L + size.cy, client.bottom);
+            combo.SetRect(CRect(x, 4, right, bottom));
+            x = right + 6;
+        } else {
+            combo.SetRect(CRect(0, 0, 0, 0));
+        }
+    });
+    dc.m_hDC = nullptr;
+    if (font) ::SelectObject(hdc, font);
+    ::ReleaseDC(window, hdc);
+}
+
+CMFCRibbonComboBox* HitRibbonCombo(CMFCRibbonBar& bar, CPoint point) {
+    CMFCRibbonComboBox* hit = nullptr;
+    VisitRibbonCombos(bar, [&](CMFCRibbonComboBox& combo, bool visible) {
+        if (!hit && visible && combo.GetRect().PtInRect(point)) hit = &combo;
+    });
+    return hit;
+}
+
+void PaintRibbonCombos(CMFCRibbonBar& bar, HDC hdc) {
+    if (!hdc) return;
+    RECT client{};
+    ::GetClientRect(bar.GetSafeHwnd(), &client);
+    ::FillRect(hdc, &client, ::GetSysColorBrush(COLOR_BTNFACE));
+    const auto font = ::SelectObject(hdc, ::GetStockObject(DEFAULT_GUI_FONT));
+    CDC dc;
+    dc.m_hDC = hdc;
+    VisitRibbonCombos(bar, [&](CMFCRibbonComboBox& combo, bool visible) {
+        if (visible) combo.OnDraw(&dc);
+    });
+    dc.m_hDC = nullptr;
+    if (font) ::SelectObject(hdc, font);
+}
+
+LRESULT CALLBACK RibbonWindowSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp, UINT_PTR id, DWORD_PTR data) {
+    auto& bar = *reinterpret_cast<CMFCRibbonBar*>(data);
+    if (message == WM_NCDESTROY) {
+        ::RemoveWindowSubclass(window, RibbonWindowSubclass, id);
+        VisitRibbonCombos(bar, [](CMFCRibbonComboBox& combo, bool) { combo.CloseDropDown(); });
+        bar.m_hWnd = nullptr;
+    } else if (message == WM_SIZE) {
+        LayoutRibbonCombos(bar);
+        ::InvalidateRect(window, nullptr, TRUE);
+    } else if (message == WM_COMMAND && HIWORD(wp) == EN_CHANGE && lp) {
+        const HWND edit = reinterpret_cast<HWND>(lp);
+        VisitRibbonCombos(bar, [&](CMFCRibbonComboBox& combo, bool) {
+            if (combo.m_editWindow && combo.m_editWindow->GetSafeHwnd() == edit) combo.SyncEditText();
+        });
+    } else if (message == WM_LBUTTONDOWN) {
+        const CPoint point(static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp)));
+        if (auto* combo = HitRibbonCombo(bar, point)) {
+            combo->OnLButtonDown(point);
+            return 0;
+        }
+    } else if (message == WM_PAINT || message == WM_PRINTCLIENT) {
+        bool hasCombo = false;
+        VisitRibbonCombos(bar, [&](CMFCRibbonComboBox&, bool visible) { hasCombo |= visible; });
+        if (hasCombo) {
+            LayoutRibbonCombos(bar);
+            if (message == WM_PAINT) {
+                PAINTSTRUCT paint{};
+                PaintRibbonCombos(bar, ::BeginPaint(window, &paint));
+                ::EndPaint(window, &paint);
+            } else {
+                PaintRibbonCombos(bar, reinterpret_cast<HDC>(wp));
+            }
+            return 0;
+        }
+    }
+    return ::DefSubclassProc(window, message, wp, lp);
+}
+} // namespace
 
 // Symbol: ??0CMFCRibbonBar@@QEAA@H@Z
 extern "C" void* MS_ABI impl___0CMFCRibbonBar__QEAA_H_Z(void* pThis, int bReplaceFrameCaption) {
@@ -476,10 +588,11 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__FindNextFocusedElement_CMFCRibbon
 // modeled.
 // Symbol: ?HitTest@CMFCRibbonBar@@UEAAPEAVCMFCRibbonBaseElement@@VCPoint@@HH@Z
 extern "C" CMFCRibbonBaseElement* MS_ABI impl__HitTest_CMFCRibbonBar__UEAAPEAVCMFCRibbonBaseElement__VCPoint__HH_Z(
-    CMFCRibbonBar* pThis, CPoint /*pt*/, int /*nRecalcLayout*/, int /*bCheckHighlighted*/)
+    CMFCRibbonBar* pThis, CPoint point, int recalcLayout, int /*bCheckHighlighted*/)
 {
     if (!pThis) return nullptr;
-    return nullptr;
+    if (recalcLayout) LayoutRibbonCombos(*pThis);
+    return HitRibbonCombo(*pThis, point);
 }
 // CMFCRibbonBar::GetDroppedDown() -- retail queries the main-button group,
 // the QAT group, the tab group and the active category's panel group for a
@@ -490,7 +603,11 @@ extern "C" CMFCRibbonBaseElement* MS_ABI impl__GetDroppedDown_CMFCRibbonBar__UEA
     CMFCRibbonBar* pThis)
 {
     if (!pThis) return nullptr;
-    return nullptr;
+    CMFCRibbonComboBox* dropped = nullptr;
+    VisitRibbonCombos(*pThis, [&](CMFCRibbonComboBox& combo, bool) {
+        if (combo.m_openList) dropped = &combo;
+    });
+    return dropped;
 }
 // CMFCRibbonBar::GetFocused() -- retail delegates to GetFocused() on the
 // main-button group, the QAT group, the tab group and the active category.
@@ -1078,7 +1195,9 @@ extern "C" void MS_ABI impl__SetKeyboardNavigationLevel_CMFCRibbonBar__QEAAXPEAV
 extern "C" void MS_ABI impl__RecalcLayout_CMFCRibbonBar__UEAAXXZ(
     CMFCRibbonBar* pThis)
 {
-    if (!pThis) return;
+    if (!pThis || !pThis->GetSafeHwnd()) return;
+    LayoutRibbonCombos(*pThis);
+    ::InvalidateRect(pThis->GetSafeHwnd(), nullptr, TRUE);
 }
 // CMFCRibbonBar::RemoveAllCategories() -- retail (RVA 0xdb150) clears
 // m_pPrintPreviewCategory when it is one of the removed categories, deletes
@@ -1338,6 +1457,7 @@ CMFCRibbonBar::CMFCRibbonBar(BOOL bReplaceFrameCaption) {
     g_ribbonBarStates[this];
 }
 CMFCRibbonBar::~CMFCRibbonBar() {
+    if (m_hWnd) ::RemoveWindowSubclass(m_hWnd, RibbonWindowSubclass, reinterpret_cast<UINT_PTR>(this));
     ClearRibbonBarState(this);
 }
 BOOL CMFCRibbonBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
@@ -1348,6 +1468,13 @@ BOOL CMFCRibbonBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
                                 pParentWnd->GetSafeHwnd(), (HMENU)(UINT_PTR)nID,
                                 AfxGetInstanceHandle(), nullptr);
     if (!m_hWnd) {
+        ClearRibbonBarState(this);
+        return FALSE;
+    }
+    if (!::SetWindowSubclass(m_hWnd, RibbonWindowSubclass, reinterpret_cast<UINT_PTR>(this),
+                             reinterpret_cast<DWORD_PTR>(this))) {
+        ::DestroyWindow(m_hWnd);
+        m_hWnd = nullptr;
         ClearRibbonBarState(this);
         return FALSE;
     }
@@ -1404,14 +1531,14 @@ CMFCRibbonCategory* CMFCRibbonBar::GetCategory(int nIndex) const {
 }
 BOOL CMFCRibbonBar::SetActiveCategory(CMFCRibbonCategory* pCategory, BOOL) {
     RibbonBarState& state = g_ribbonBarStates[this];
-    if (!pCategory) {
-        state.activeCategory = nullptr;
-        return TRUE;
-    }
-    if (std::find(state.categories.begin(), state.categories.end(), pCategory) == state.categories.end()) {
+    if (pCategory && std::find(state.categories.begin(), state.categories.end(), pCategory) == state.categories.end()) {
         return FALSE;
     }
     state.activeCategory = pCategory;
+    if (m_hWnd) {
+        LayoutRibbonCombos(*this);
+        ::InvalidateRect(m_hWnd, nullptr, TRUE);
+    }
     return TRUE;
 }
 void CMFCRibbonBar::AddToTabs(CMFCRibbonBaseElement* pElement) {
@@ -2800,6 +2927,10 @@ extern "C" void MS_ABI impl__OnLButtonDown_CMFCRibbonBar__IEAAXIVCPoint___Z(
     CMFCRibbonBar* pThis, unsigned int nFlags, CPoint point)
 {
     if (!pThis) return;
+    if (auto* combo = HitRibbonCombo(*pThis, point)) {
+        combo->OnLButtonDown(point);
+        return;
+    }
 
     impl__OnLButtonDown_CPane__IEAAXIVCPoint___Z(pThis, nFlags, point);
     impl__DeactivateKeyboardFocus_CMFCRibbonBar__QEAAXH_Z(pThis, TRUE);

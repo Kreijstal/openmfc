@@ -2486,6 +2486,77 @@ public:
 };
 class CMFCRibbonCheckBox : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonCheckBox) public: CMFCRibbonCheckBox(); CMFCRibbonCheckBox(UINT, const wchar_t*) : CMFCRibbonCheckBox() {} virtual ~CMFCRibbonCheckBox(); char _pad[32]; };
 class CMFCRibbonEdit : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonEdit) public: CMFCRibbonEdit(); CMFCRibbonEdit(UINT nID, int, const wchar_t* lpszText, int) : CMFCRibbonEdit() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonEdit(); char _pad[32]; };
+class CMFCRibbonComboBox : public CMFCRibbonEdit {
+public:
+    CMFCRibbonComboBox(UINT id = 0, BOOL hasEditBox = TRUE, int width = -1,
+                       const wchar_t* label = nullptr, int image = -1);
+    ~CMFCRibbonComboBox() override;
+    static CRuntimeClass* PASCAL GetThisClass();
+    CRuntimeClass* GetRuntimeClass() const override;
+
+    INT_PTR AddItem(const wchar_t* text, DWORD_PTR data = 0);
+    INT_PTR GetCount() const;
+    const wchar_t* GetItem(int index = -1) const;
+    DWORD_PTR GetItemData(int index = -1) const;
+    int GetCurSel() const { return m_selectedIndex; }
+    int FindItem(const wchar_t* text) const;
+    BOOL SelectItem(int index);
+    BOOL SelectItem(DWORD_PTR data);
+    BOOL SelectItem(const wchar_t* text);
+    BOOL DeleteItem(int index);
+    void RemoveAllItems();
+    CString GetEditText() const { return m_editText; }
+    void SetEditText(const wchar_t* text);
+    void SyncEditText();
+    void SetID(UINT id);
+    void SetDropDownHeight(int height) { m_dropDownHeight = height; }
+
+    void SetRect(CRect rect);
+    CRect GetRect() const { return m_comboRect; }
+    CSize GetIntermediateSize(CDC* dc) const;
+    void OnDraw(CDC* dc) const;
+    void OnLButtonDown(CPoint point);
+    void DropDownList();
+    void CloseDropDown();
+    void OnListClosed(const CMFCPopupMenu* popup);
+    void OnSelectItem(int index);
+    void OnListHighlight(int index);
+    void CopyFrom(const CMFCRibbonComboBox& source);
+
+    // Keep the slots used by SDK inline accessors in the ribbon combo layout.
+    unsigned char m_beforeRect[0xc8 - sizeof(CMFCRibbonEdit)]{};
+    CRect m_comboRect{0, 0, 0, 0};
+    unsigned char m_beforePopup[0x108 - 0xd8]{};
+    CMFCPopupMenu* m_openList = nullptr;
+    unsigned char m_beforeCommandId[0x118 - 0x110]{};
+    UINT m_sdkCommandId = 0;
+    unsigned char m_beforeDropDownFlag[0x154 - 0x11c]{};
+    BOOL m_droppedDown = FALSE;
+    unsigned char m_beforeArrow[0x198 - 0x158]{};
+    CRect m_comboArrow{0, 0, 0, 0};
+    unsigned char m_beforeWidth[0x270 - 0x1a8]{};
+    int m_editWidth = 108;
+    unsigned char m_beforeEditText[0x298 - 0x274]{};
+    CString m_editText;
+    CWnd* m_editWindow = nullptr;
+    unsigned char m_spinSlot[8]{};
+    CStringList m_itemStrings;
+    unsigned char m_beforeStringCount[0x18 - sizeof(CStringList)]{};
+    INT_PTR m_nativeStringCount = 0;
+    unsigned char m_afterStringCount[0x18]{};
+    alignas(8) unsigned char m_itemData[0x38]{};
+    int m_selectedIndex = -1;
+    int m_dropDownHeight = 150;
+    BOOL m_hasEditBox = TRUE;
+    BOOL m_resizeDropDownList = TRUE;
+
+private:
+    BOOL ApplySelection(int index);
+    void UpdateEditWindow();
+    void DestroyEditWindow();
+    HWND CommandWindow() const;
+};
+
 class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT nID, const wchar_t* lpszText, int, int, UINT, int) : CMFCRibbonGallery() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonGallery(); char _pad[32]; };
 class CMFCRibbonLabel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonLabel) public: CMFCRibbonLabel(); CMFCRibbonLabel(const wchar_t*, int) : CMFCRibbonLabel() {} virtual ~CMFCRibbonLabel(); char _pad[32]; };
 class CMFCRibbonMainPanel : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonMainPanel) public: CMFCRibbonMainPanel(); virtual ~CMFCRibbonMainPanel(); char _pad[32]; };
