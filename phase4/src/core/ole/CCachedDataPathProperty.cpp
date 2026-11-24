@@ -91,14 +91,13 @@ extern "C" void MS_ABI impl__ResetData_CCachedDataPathProperty__UEAAXXZ(void* pT
 }
 
 // Symbol: ?Close@CCachedDataPathProperty@@UEAAXXZ
-// Retail RVA 0x1ef620 (mfc140u) sets m_Cache length to zero, then tail-jumps
-// to CAsyncMonikerFile::Close (RVA 0x243240, mfc140u).  Do not chain to the
-// existing OpenMFC base thunk: its CMonikerFile close path reaches a local
-// COleStreamFile::Close view that reads m_lpStream at +0x18, while retail
-// COleStreamFile stores it at +0x28 (see CAsyncMonikerFile.cpp's layout note).
-// That can interpret the retail CString at +0x18 as an IStream*.  A faithful
-// complete close needs a compatible base path; leave this export stubbed rather
-// than risk corrupting a client object.
+// Retail RVA 0x1ef620 (mfc140u): m_Cache.SetLength(0) through m_Cache's vtable
+// slot 14 (+0x70), then tail-jmp to CAsyncMonikerFile::Close (0x243240), whose
+// OpenMFC thunk lives in core/ole/CAsyncMonikerFile.cpp.  That base path uses
+// the DLL's own COleStreamFile stream slot, consistently with the DLL-side
+// constructors (see CAsyncMonikerFile.cpp's layout note).
+extern "C" void MS_ABI impl__Close_CAsyncMonikerFile__UEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__Close_CCachedDataPathProperty__UEAAXXZ(void* pThis) {
-    (void)pThis;
+    resetCache(pThis);
+    impl__Close_CAsyncMonikerFile__UEAAXXZ(pThis);
 }

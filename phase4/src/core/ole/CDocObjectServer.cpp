@@ -733,31 +733,32 @@ extern "C" long MS_ABI impl__ApplyViewState_XOleDocumentView_CDocObjectServer__U
     return S_OK;                                        // retail 0x2592be, hr = 0
 }
 
+// Shared body of the COMDAT-folded Clone / SetRectComplex exports (below).
+// AFX_MAINTAIN_STATE2 thunks: core/runtime/AFX_MAINTAIN_STATE2.cpp (retail
+// ctor 0x133170; the dtor's restore is inlined at 0x259ee2..0x259ef1).
+extern "C" void* MS_ABI impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(void*, void*);
+extern "C" void MS_ABI impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(void*);
+namespace {
+long DocumentViewNotImplemented(void* part) {
+    // AFX_MANAGE_STATE(m_pModuleState): `mov -0x40(%rcx),%rdx` -- the
+    // XOleDocumentView part is server + 0x78, so this is server + 0x38.
+    void* moduleState = *reinterpret_cast<void**>(static_cast<char*>(part) - 0x40);
+    void* maintain[2];
+    impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE___Z(maintain, moduleState);
+    impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(maintain);
+    return E_NOTIMPL;                               // `mov $0x80004001,%eax`
+}
+}  // namespace
+
 // Symbol: ?Clone@XOleDocumentView@CDocObjectServer@@UEAAJPEAUIOleInPlaceSite@@PEAPEAUIOleDocumentView@@@Z
-// STUB under the campaign's bare-default-return rule: IOleDocumentView::Clone
-// has the verified constant E_NOTIMPL body. This export has no RVA of its own in the mfc140
-// map, but slot 15 of the XOleDocumentView vtable (.rdata 0x18032d1a8, inside
-// the vtable at 0x18032d130) holds 0x180258f50 -- byte-identical to the
-// SetRectComplex slot at 0x18032d170, i.e. the two bodies were COMDAT-folded.
-// That body (disassembled below, under SetRectComplex) is AFX_MANAGE_STATE
-// followed by `return E_NOTIMPL`.  In mfc140u the export (ordinal 2792)
-// resolves through the export address table to RVA 0x259ed0 (mfc140u) --
-// NOT a body of its own: the same table maps
-// ?SetRectComplex@XOleDocumentView@CDocObjectServer@@ there as well, so the
-// two are COMDAT-folded in mfc140u too.  That RVA was disassembled:
-// AFX_MANAGE_STATE on `mov -0x40(%rcx),%rdx`
-// -- the part is at server + 0x78, so that is server + 0x38, m_pModuleState --
-// then `mov $0x80004001,%eax` and return.  Neither parameter is read and
-// *ppViewNew is NOT written. The function therefore remains reported as a
-// stub rather than disguising its bare E_NOTIMPL return as an implementation;
-// the only omitted retail operation is the module-state push, which this file
-// does not reproduce anywhere (see the IOleObject forwards note).
+// Retail RVA 0x259ed0 (mfc140u), COMDAT-folded with SetRectComplex: only
+// AFX_MANAGE_STATE(server + 0x38), then E_NOTIMPL.  Neither parameter is read
+// and *ppViewNew is NOT written.
 extern "C" long MS_ABI impl__Clone_XOleDocumentView_CDocObjectServer__UEAAJPEAUIOleInPlaceSite__PEAPEAUIOleDocumentView___Z(
     void* pThis, IOleInPlaceSite* pIPSiteNew, IOleDocumentView** ppViewNew) {
-    (void)pThis;
     (void)pIPSiteNew;
     (void)ppViewNew;
-    return E_NOTIMPL;
+    return DocumentViewNotImplemented(pThis);
 }
 
 // Symbol: ?Close@XOleObject@CDocObjectServer@@UEAAJK@Z
@@ -1526,18 +1527,15 @@ extern "C" long MS_ABI impl__SetRect_XOleDocumentView_CDocObjectServer__UEAAJPEA
 }
 
 // Symbol: ?SetRectComplex@XOleDocumentView@CDocObjectServer@@UEAAJPEAUtagRECT@@000@Z
-// STUB under the campaign's bare-default-return rule. Retail
-// IOleDocumentView::SetRectComplex (entry RVA 0x259ed0, mfc140u; folded with
-// Clone) only performs AFX_MANAGE_STATE(this[-0x40]) and returns E_NOTIMPL;
-// it reads no parameter and touches no member.
+// Retail RVA 0x259ed0 (mfc140u; folded with Clone): AFX_MANAGE_STATE(server +
+// 0x38), then E_NOTIMPL; it reads no parameter and touches no member.
 extern "C" long MS_ABI impl__SetRectComplex_XOleDocumentView_CDocObjectServer__UEAAJPEAUtagRECT__000_Z(
     void* pThis, RECT* prcView, RECT* prcHScroll, RECT* prcVScroll, RECT* prcSizeBox) {
-    (void)pThis;
     (void)prcView;
     (void)prcHScroll;
     (void)prcVScroll;
     (void)prcSizeBox;
-    return E_NOTIMPL;
+    return DocumentViewNotImplemented(pThis);
 }
 
 // Symbol: ?Show@XOleDocumentView@CDocObjectServer@@UEAAJH@Z

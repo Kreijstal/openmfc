@@ -140,6 +140,10 @@ extern "C" int MS_ABI impl__CreateControlCommon_COleControlContainer__QEAAHPEAVC
     unsigned int nID, CFile* pPersist, int bStorage, wchar_t* bstrLicKey,
     COleControlSite** ppSite);
 
+namespace openmfc { namespace detail { namespace olecore {
+void ReleaseOccContainerSiteState(const COleControlContainer* pCont);   // core/ole/COleControlSite.cpp
+} } }
+
 namespace {
 
 // Container state the retail class keeps in members OpenMFC's
@@ -154,6 +158,10 @@ struct ContainerExtra {
     const COleControlContainer* owner         = nullptr;
     ContainerExtra*             next          = nullptr;
     COleControlSite*            pSiteUIActive = nullptr;                    // retail +0xc8
+    // retail +0xd8: written by COleControlSite::SetFocus(MSG*) (0x23a560)
+    // through SetOccContainerFocusSite below, read by HandleSetFocus
+    // (0x234ad0), cleared by OnUIDeactivate (0x2346a0).
+    COleControlSite*            pSiteFocus    = nullptr;
     IFont*                      pOleFont      = nullptr;                    // retail +0xc0
     // Never written: the only retail writer of site +0x90 is
     // XOleIPFrame::SetActiveObject (0x2350a0), which is a stub here because its
@@ -308,6 +316,21 @@ DWORD SiteMiscStatusOf(COleControlSite* pSite) {
 
 }  // namespace
 
+// Cross-TU access to the two container members above that other OLE
+// translation units touch in retail: COleControlSite::SetFocus(MSG*) stores
+// the focus site (+0xd8), and COccManager::UIDeactivateIfNecessary reads the
+// UI-active site (+0xc8).  Not exports; plain external-linkage helpers.
+namespace openmfc { namespace detail { namespace olecore {
+void SetOccContainerFocusSite(COleControlContainer* pCont, COleControlSite* pSite) {
+    if (pCont) {
+        ExtraOf(pCont).pSiteFocus = pSite;
+    }
+}
+COleControlSite* GetOccContainerUIActiveSite(const COleControlContainer* pCont) {
+    return pCont ? ExtraOf(pCont).pSiteUIActive : nullptr;
+}
+} } }
+
 // Symbol: ??0COleControlContainer@@QEAA@PEAVCWnd@@@Z
 // COleControlContainer::COleControlContainer(CWnd* pWnd)
 extern "C" void* MS_ABI impl___0COleControlContainer__QEAA_PEAVCWnd___Z(void* p0) {
@@ -328,6 +351,9 @@ COleControlContainer::~COleControlContainer() {
     // at 0x233b0e it passes &m_pOleFont (+0xc0) to the helper at 0x26ba84,
     // which is `if (*pp) { (*pp)->Release(); *pp = NULL; }`.
     ReleaseContainerExtra(this);
+    // Drop the capture-site / windowless-count state core/ole/COleControlSite.cpp
+    // keeps for this container (retail +0xd0 / +0xe0).
+    openmfc::detail::olecore::ReleaseOccContainerSiteState(this);
 }
 COleControlSite* COleControlContainer::CreateSite(COleControlContainer* pCtrlCont) {
     COleControlSite* pSite = new COleControlSite(pCtrlCont);
@@ -377,11 +403,11 @@ COleControlSite* COleControlContainer::FindItem(UINT nID) const {
 //         pWnd->m_pCtrlSite(+0xd0) = pSite;
 //         pSite->m_pWndCtrl(+0x50) = pWnd;
 //     }
-// Left a stub: every store this function makes targets a member OpenMFC does
-// not declare.  COleControlSite has no m_pWndCtrl and CWnd has no
-// m_pCtrlSite (both recorded as missing in the layout map at the head of
-// core/ole/COleControlSite.cpp), and the container has no m_siteMap, so the
-// whole body would be a lookup whose result is then discarded.
+// STUB: CWnd::m_pCtrlSite (+0xd0) is dispatched through RETAIL site vtable
+// slots by the DLL's CWnd (core/window/CWndCoordinates.cpp: slots 32/33/43/44)
+// and by the inline CWnd::ShowWindow (slot 42), but OpenMFC's COleControlSite
+// has no retail-layout vtable, so storing a site there would crash those
+// callers; needs a retail-shaped COleControlSite vftable first.
 extern "C" void MS_ABI impl__AttachControlSite_COleControlContainer__QEAAXPEAVCWnd__I_Z(
     COleControlContainer* pThis, CWnd* pWnd, unsigned int nIDC) {
     (void)pThis; (void)pWnd; (void)nIDC;
@@ -730,6 +756,7 @@ extern "C" void MS_ABI impl__CreateOleFont_COleControlContainer__QEAAXPEAVCFont_
 // include/openmfc/afxwin.h (no fields), and OpenMFC's m_listSites holds bare
 // COleControlSite* rather than site-or-window records, so neither the input
 // nor the output of this function is representable here.
+// STUB: OpenMFC m_listSites holds bare COleControlSite*, not retail COleControlSiteOrWnd records.
 extern "C" int MS_ABI impl__FillListSitesOrWnds_COleControlContainer__UEAAHPEAU_AFX_OCC_DIALOG_INFO___Z(
     COleControlContainer* pThis, void* pOccDialogInfo) {
     (void)pThis; (void)pOccDialogInfo;
@@ -1038,17 +1065,10 @@ extern "C" void* MS_ABI impl__GetThisDispatchMap_COleControlContainer__KAPEBUAFX
 // Symbol: ?HandleSetFocus@COleControlContainer@@UEAAHXZ
 // COleControlContainer::HandleSetFocus() — retail 0x234ad0 is exactly
 // `xor %eax,%eax; cmp %rax,0xd8(%rcx); setne %al; ret`, i.e.
-// `return m_pSiteFocus(+0xd8) != NULL;`.
-// Left a stub: +0xd8 is written by COleControlSite (its SetFocus stores the
-// site there, see the note at core/ole/COleControlSite.cpp:1341) and cleared
-// by OnUIDeactivate below.  It is therefore state shared with another
-// translation unit, and OpenMFC's COleControlContainer has no member for it,
-// so this file cannot make the answer true.  Returning FALSE keeps the
-// "nothing has the focus" answer rather than claiming a focus site exists.
+// `return m_pSiteFocus(+0xd8) != NULL;`.  +0xd8 is ContainerExtra::pSiteFocus.
 extern "C" int MS_ABI impl__HandleSetFocus_COleControlContainer__UEAAHXZ(
     COleControlContainer* pThis) {
-    (void)pThis;
-    return 0;
+    return ExtraOf(pThis).pSiteFocus != nullptr;
 }
 
 // Symbol: ?HandleWindowlessMessage@COleControlContainer@@UEAAHI_K_JPEA_J@Z
@@ -1195,8 +1215,7 @@ extern "C" void MS_ABI impl__OnUIActivate_COleControlContainer__UEAAXPEAVCOleCon
 // COleControlContainer::OnUIDeactivate(COleControlSite*) — retail 0x2346a0:
 //     if (m_pSiteUIActive(+0xc8) == pSite) m_pSiteUIActive = NULL;
 //     if (m_pSiteFocus(+0xd8)    == pSite) m_pSiteFocus    = NULL;
-// Only the first half is reproduced: OpenMFC's container has no focus-site
-// member (see HandleSetFocus above), so there is nothing to clear for +0xd8.
+// +0xc8 / +0xd8 are ContainerExtra::pSiteUIActive / pSiteFocus.
 extern "C" void MS_ABI impl__OnUIDeactivate_COleControlContainer__UEAAXPEAVCOleControlSite___Z(
     COleControlContainer* pThis, COleControlSite* pSite) {
     if (!pThis) {
@@ -1206,24 +1225,39 @@ extern "C" void MS_ABI impl__OnUIDeactivate_COleControlContainer__UEAAXPEAVCOleC
     if (extra.pSiteUIActive == pSite) {
         extra.pSiteUIActive = nullptr;
     }
+    if (extra.pSiteFocus == pSite) {
+        extra.pSiteFocus = nullptr;
+    }
 }
 
 // Symbol: ?ScrollChildren@COleControlContainer@@UEAAXHH@Z
-// COleControlContainer::ScrollChildren(int, int) — retail 0x2345e0.  For every
+// COleControlContainer::ScrollChildren(int, int) — retail 0x236000.  For every
 // element of m_listSitesOrWnds whose site (+0x08) is non-null:
 //     ::OffsetRect(&pSite->m_rect(+0x5c), dx, dy);
 //     pSite->m_lpInPlaceObject(+0x88)->SetObjectRects(&pSite->m_rect,
 //                                                     &pSite->m_rect);
 //                                        // IOleInPlaceObject slot 7 = 0x38
-// Left a stub: the whole function is an in-place edit of the site's *stored*
-// position rectangle at +0x5c, and OpenMFC's COleControlSite has no such
-// member -- detail::olecore::GetSitePositionRect derives the rectangle from
-// the live window instead, so offsetting what it returns and pushing it back
-// would apply the scroll a second time on top of a window that has already
-// moved.  Doing nothing is the honest result until the site owns a rect.
+// The site's stored rect (+0x5c) is OleControlSiteState::rect, the same model
+// core/ole/COleControlSite.cpp's SiteRect() uses.  A site that has never
+// recorded a rect is seeded from its live window, as SiteRect() does; retail
+// CWnd::ScrollWindow (0x28e9d0) calls ScrollChildren only AFTER ::ScrollWindow
+// has moved the child windows, so such a seed already includes (dx, dy) and is
+// not offset a second time.  Retail does not null-check m_lpInPlaceObject; the
+// check is OpenMFC hardening.
 extern "C" void MS_ABI impl__ScrollChildren_COleControlContainer__UEAAXHH_Z(
     COleControlContainer* pThis, int dx, int dy) {
-    (void)pThis; (void)dx; (void)dy;
+    ForEachSite(pThis, [dx, dy](COleControlSite* pSite) {
+        OleControlSiteState* state = GetOleControlSiteState(pSite, true);
+        if (state->rectValid) {
+            ::OffsetRect(&state->rect, dx, dy);
+        } else {
+            state->rect = GetSitePositionRect(pSite);
+            state->rectValid = true;
+        }
+        if (pSite->m_lpInPlaceObject) {
+            pSite->m_lpInPlaceObject->SetObjectRects(&state->rect, &state->rect);
+        }
+    });
 }
 
 // Symbol: ?SendDlgItemMessageW@COleControlContainer@@UEAA_JHI_K_J@Z
@@ -1490,6 +1524,7 @@ extern "C" long MS_ABI impl__RequestBorderSpace_XOleIPFrame_COleControlContainer
 // +0x90 member to store the active object in either.  Doing nothing and
 // returning S_OK is what retail does whenever no site is UI-active, which is
 // the only branch this file can justify.
+// STUB: OpenMFC container has no nested XOleIPFrame part at +0xe8, so this cannot be mapped back to its container.
 extern "C" long MS_ABI impl__SetActiveObject_XOleIPFrame_COleControlContainer__UEAAJPEAUIOleInPlaceActiveObject__PEB_W_Z(
     void* pThis, IOleInPlaceActiveObject* pActiveObject, const wchar_t* pszObjName) {
     (void)pThis; (void)pActiveObject; (void)pszObjName;

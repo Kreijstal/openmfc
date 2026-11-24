@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/OlecoreSupport.h"
+#include "detail/OleDataSourceSupport.h"
 
 #include "openmfc/afxole.h"
 #include "openmfc/afxdisp.h"
@@ -123,6 +124,33 @@ extern "C" unsigned long MS_ABI impl__InternalRelease_CCmdTarget__QEAAKXZ(CCmdTa
 extern "C" unsigned long MS_ABI impl__DoDragDrop_COleDataSource__QEAAKKPEBUtagRECT__PEAVCOleDropSource___Z(
     COleDataSource* pThis, unsigned long dwEffects, const RECT* lpRectStartDrag,
     COleDropSource* pDropSource);
+//   COleDataSource::GetCacheEntry / OnRenderData -- core/ole/COleDataSource.cpp
+//   CDC::Attach / CDC::Detach                     -- core/gdi/CDCHandleMap.cpp
+//   CMetaFileDC::SetAttribDC                      -- core/gdi/CMetaFileDC.cpp
+//   COleServerItem::OnDrawEx / OnGetExtent        -- core/ole/Thunks.cpp
+extern "C" AFX_DATACACHE_ENTRY* MS_ABI impl__GetCacheEntry_COleDataSource__IEAAPEAUAFX_DATACACHE_ENTRY__PEAUtagFORMATETC__W4tagDATADIR___Z(
+    COleDataSource* pThis, FORMATETC* lpFormatEtc, DATADIR nDataDir);
+extern "C" BOOL MS_ABI impl__OnRenderData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
+    COleDataSource* pThis, FORMATETC* lpFormatEtc, STGMEDIUM* lpStgMedium);
+extern "C" BOOL MS_ABI impl__Attach_CDC__QEAAHPEAUHDC_____Z(CDC* pThis, HDC hDC);
+extern "C" HDC MS_ABI impl__Detach_CDC__QEAAPEAUHDC____XZ(CDC* pThis);
+extern "C" void MS_ABI impl__SetAttribDC_CMetaFileDC__UEAAXPEAUHDC_____Z(CMetaFileDC* pThis, HDC hDC);
+extern "C" int MS_ABI impl__OnDrawEx_COleServerItem__UEAAHPEAVCDC__W4tagDVASPECT__AEAVCSize___Z(
+    COleServerItem* pThis, CDC* pDC, tagDVASPECT nDrawAspect, CSize* pSize);
+extern "C" int MS_ABI impl__OnGetExtent_COleServerItem__UEAAHW4tagDVASPECT__AEAVCSize___Z(
+    COleServerItem* pThis, tagDVASPECT nDrawAspect, CSize* pSize);
+// This file's own render/set/colour-scheme thunks (defined below), forwarded to
+// by the CItemDataSource and XOleObject bodies.
+extern "C" int MS_ABI impl__OnRenderData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
+    COleServerItem* pThis, FORMATETC* lpFormatEtc, STGMEDIUM* lpStgMedium);
+extern "C" int MS_ABI impl__OnRenderFileData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAVCFile___Z(
+    COleServerItem* pThis, FORMATETC* lpFormatEtc, CFile* pFile);
+extern "C" int MS_ABI impl__OnRenderGlobalData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAPEAX_Z(
+    COleServerItem* pThis, FORMATETC* lpFormatEtc, HGLOBAL* phGlobal);
+extern "C" int MS_ABI impl__OnSetData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(
+    COleServerItem* pThis, FORMATETC* lpFormatEtc, STGMEDIUM* lpStgMedium, int bRelease);
+extern "C" int MS_ABI impl__OnSetColorScheme_COleServerItem__UEAAHPEBUtagLOGPALETTE___Z(
+    COleServerItem* pThis, const LOGPALETTE* lpLogPalette);
 
 // Retail's OLE_NOTIFICATION values. Read out of the NotifyClient switch at RVA
 // 0x268ef0 (cases 0,1,2,3 select SendOnDataChange / SendOnSave / SendOnClose /
@@ -184,6 +212,87 @@ COleServerItem* ItemFromXOleObject(void* pXOleObject)
 {
     return reinterpret_cast<COleServerItem*>(
         static_cast<unsigned char*>(pXOleObject) - kXOleObjectOffset);
+}
+
+// IID_IOleObject {00000112-0000-0000-C000-000000000046}; retail passes the
+// one at 0x1802d9b98 (mfc140u), whose 16 bytes read exactly this GUID.  (The
+// IDataObject IID used by GetDataObject / NotifyClient / AddOtherClipboardData
+// is retail's 0x1802d9ab8, which reads {0000010E-...}, kIID_IDataObject above.)
+const IID kIID_IOleObject =
+    { 0x00000112, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
+
+// CCmdTarget::GetInterface on the item (retail call target 0x26ce40, mfc140u).
+// OpenMFC's COleServerItem is a CCmdTarget (CDocItem : CCmdTarget), so the
+// item is handed to the thunk directly.  Note g_imap_COleServerItem
+// (detail/InterfaceMapsSupport.cpp) currently has no entries of its own, so
+// today this yields NULL for IID_IOleObject / IID_IDataObject.
+IUnknown* ItemInterface(COleServerItem* pItem, const IID& iid)
+{
+    return impl__GetInterface_CCmdTarget__QEAAPEAUIUnknown__PEBX_Z(
+        static_cast<CCmdTarget*>(pItem), &iid);
+}
+
+// Retail COleServerItem's two advise holders: m_lpOleAdviseHolder at +0x60
+// (NotifyClient RVA 0x26a130, mfc140u: `mov 0x60(%rcx),%rcx`) and
+// m_lpDataAdviseHolder at +0x68 (`mov 0x68(%rcx),%rdi`).  OpenMFC's object
+// keeps m_pServerDoc at +0x48 and m_bAutoDelete at +0x50, and +0x54..+0xdc is
+// its zero-initialised _oleserveritem_padding, so both retail slots fall inside
+// that padding and are read through this view at their retail offsets (where
+// a retail-compiled derived class would also find them).
+struct ServerItemAdviseView {
+    unsigned char m_prefix[0x60];
+    IOleAdviseHolder* m_lpOleAdviseHolder;     // +0x60
+    IDataAdviseHolder* m_lpDataAdviseHolder;   // +0x68
+};
+static_assert(offsetof(ServerItemAdviseView, m_lpOleAdviseHolder) == 0x60,
+              "retail COleServerItem::m_lpOleAdviseHolder");
+static_assert(offsetof(ServerItemAdviseView, m_lpDataAdviseHolder) == 0x68,
+              "retail COleServerItem::m_lpDataAdviseHolder");
+static_assert(offsetof(COleServerItem, m_bAutoDelete) == 0x50 &&
+              offsetof(COleServerItem, m_bAutoDelete) + sizeof(BOOL) <= 0x60,
+              "the advise-holder view must start past OpenMFC's declared members");
+static_assert(sizeof(ServerItemAdviseView) <= sizeof(COleServerItem),
+              "the advise-holder view must lie inside COleServerItem");
+
+ServerItemAdviseView* AdviseView(COleServerItem* pItem)
+{
+    return reinterpret_cast<ServerItemAdviseView*>(pItem);
+}
+
+// COleServerItem::CItemDataSource is embedded in the retail item at +0x70:
+// each CItemDataSource override starts with `add $-0x70,%rcx` (RVAs
+// 0x26b7f0 / 0x26b810 / 0x26b830 / 0x26b890, mfc140u).
+constexpr unsigned int kItemDataSourceOffset = 0x70;
+COleServerItem* ItemFromDataSource(void* pDataSource)
+{
+    return reinterpret_cast<COleServerItem*>(
+        static_cast<unsigned char*>(pDataSource) - kItemDataSourceOffset);
+}
+
+// _AfxOleCreateDC (internal, RVA 0x260690, mfc140u): a NULL target device
+// gives CreateDCW(L"DISPLAY", NULL, NULL, NULL) (string at 0x18034c638 reads
+// "DISPLAY"); otherwise CreateDCW over the DVTARGETDEVICE's driver (+4),
+// device (+6) and port (+8) name offsets and its DEVMODE (+0xa, NULL when the
+// offset is 0).  Retail copies the three names through CString temporaries
+// first, which does not change the arguments in the Unicode build.
+HDC OleCreateDC(const DVTARGETDEVICE* ptd)
+{
+    if (ptd == nullptr)
+        return ::CreateDCW(L"DISPLAY", nullptr, nullptr, nullptr);
+    const BYTE* base = reinterpret_cast<const BYTE*>(ptd);
+    const DEVMODEW* pDevMode = ptd->tdExtDevmodeOffset == 0 ? nullptr
+        : reinterpret_cast<const DEVMODEW*>(base + ptd->tdExtDevmodeOffset);
+    return ::CreateDCW(reinterpret_cast<const wchar_t*>(base + ptd->tdDriverNameOffset),
+                       reinterpret_cast<const wchar_t*>(base + ptd->tdDeviceNameOffset),
+                       reinterpret_cast<const wchar_t*>(base + ptd->tdPortNameOffset),
+                       pDevMode);
+}
+
+// CMetaFileDC::Close as retail inlines it here (Detach 0x2a24d0, then
+// CloseMetaFile): returns the metafile handle.
+HMETAFILE CloseMetaFileDC(CMetaFileDC* pDC)
+{
+    return ::CloseMetaFile(impl__Detach_CDC__QEAAPEAUHDC____XZ(pDC));
 }
 } // namespace
 
@@ -326,14 +435,36 @@ COleServerDoc* COleServerItem::GetDocument() const {
 // ?GetInterface@CCmdTarget@@ on `this` with IID_IDataObject; the two ole32
 // calls resolve (iat.py) to ReleaseStgMedium (slot 0x1802c5a98) and
 // CoTaskMemFree (slot 0x1802c5b08).
-// Still a stub because COleServerItem does not yet provide its own native
-// IDataObject part at +0xd8; GetDataObject below returns NULL. COleDataSource
-// now supplies the native 64-byte cache entry and GetCacheEntry dependency.
+// mfc140u twin: RVA 0x26aa80 (same instruction sequence).  Deviation: retail
+// dereferences the IDataObject unchecked; GetInterface returns NULL for the
+// item today (see ItemInterface), and this returns without work in that case.
 // Symbol: ?AddOtherClipboardData@COleServerItem@@QEAAXPEAVCOleDataSource@@@Z
 extern "C" void MS_ABI impl__AddOtherClipboardData_COleServerItem__QEAAXPEAVCOleDataSource___Z(
     COleServerItem* pThis, COleDataSource* pDataSource)
 {
-    (void)pThis; (void)pDataSource;
+    IDataObject* lpDataObject = reinterpret_cast<IDataObject*>(
+        ItemInterface(pThis, kIID_IDataObject));
+    if (lpDataObject == nullptr) return;   // OpenMFC guard; see above
+    IEnumFORMATETC* lpEnumFORMATETC = nullptr;
+    if (lpDataObject->EnumFormatEtc(DATADIR_GET, &lpEnumFORMATETC) != S_OK)
+        return;
+    FORMATETC formatEtc;
+    while (lpEnumFORMATETC->Next(1, &formatEtc, nullptr) == S_OK) {
+        STGMEDIUM stgMedium;
+        if (lpDataObject->GetData(&formatEtc, &stgMedium) != S_OK) {
+            ::CoTaskMemFree(formatEtc.ptd);
+        } else if (stgMedium.pUnkForRelease != nullptr) {
+            ::ReleaseStgMedium(&stgMedium);
+            ::CoTaskMemFree(formatEtc.ptd);
+        } else {
+            formatEtc.tymed = stgMedium.tymed;
+            AFX_DATACACHE_ENTRY* pEntry =
+                impl__GetCacheEntry_COleDataSource__IEAAPEAUAFX_DATACACHE_ENTRY__PEAUtagFORMATETC__W4tagDATADIR___Z(
+                    pDataSource, &formatEtc, DATADIR_GET);
+            pEntry->m_stgMedium = stgMedium;
+        }
+    }
+    lpEnumFORMATETC->Release();
 }
 
 // COleServerItem::DoDragDrop(LPCRECT lpItemRect, CPoint ptOffset,
@@ -456,9 +587,11 @@ extern "C" unsigned long MS_ABI impl__DoDragDrop_COleServerItem__QEAAKPEBUtagREC
 //         GetObjectDescriptorData(lpOffset, lpSize, &stgMedium);
 //         pDataSource->CacheData(cfLinkSrcDescriptor, &stgMedium);
 //     }
-// Left a stub because all four data producers it calls are themselves stubs
-// here: caching the STGMEDIUMs they leave untouched would put uninitialised
-// handles into the data source and, from there, onto the clipboard.
+// Left a stub because three of the data producers it calls (GetEmbedSourceData,
+// GetObjectDescriptorData, GetLinkSourceData) are themselves stubs here:
+// caching the STGMEDIUMs they leave untouched would put uninitialised handles
+// into the data source and, from there, onto the clipboard.
+// STUB: GetEmbedSourceData / GetObjectDescriptorData / GetLinkSourceData it caches from are still stubs (see each).
 // Symbol: ?GetClipboardData@COleServerItem@@QEAAXPEAVCOleDataSource@@HPEAUtagPOINT@@PEAUtagSIZE@@@Z
 extern "C" void MS_ABI impl__GetClipboardData_COleServerItem__QEAAXPEAVCOleDataSource__HPEAUtagPOINT__PEAUtagSIZE___Z(
     COleServerItem* pThis, COleDataSource* pDataSource, int bIncludeLink,
@@ -492,10 +625,12 @@ extern "C" void MS_ABI impl__GetClipboardData_COleServerItem__QEAAXPEAVCOleDataS
 // { &IID_IOleObject, 0xd0 }, { &IID_IDataObject, 0xd8 }, { NULL, -1 } -- read
 // out of the image, and the source of the two sub-object offsets quoted at the
 // top of this file).
-// Left a stub for that reason. Even for classes that ARE CCmdTargets here,
-// CCmdTarget::GetInterface returns NULL for every IID today, because every
-// g_imap_* in detail/InterfaceMapsSupport.cpp holds only the shared terminator
-// entry. The natural substitute -- handing out the
+// UPDATE: CDocItem now derives from CCmdTarget (include/openmfc/afxole.h), so
+// the paragraph above no longer applies and the body below is the retail tail
+// call (mfc140u RVA 0x26a1d0: `lea IID_IDataObject,%rdx; jmp 0x26ce40`).
+// g_imap_COleServerItem has no entries yet, so GetInterface returns NULL until
+// the item's nested interfaces are installed; the rest of this comment is the
+// earlier rationale, kept for history. The natural substitute -- handing out the
 // forwarding target, GetDataSource()->GetInterface() -- is not taken here, for
 // two reasons, and note that neither of them is "the C++ method does not
 // exist": COleDataSource::GetInterface IS a real, linkable definition
@@ -516,8 +651,7 @@ extern "C" void MS_ABI impl__GetClipboardData_COleServerItem__QEAAXPEAVCOleDataS
 extern "C" void* MS_ABI impl__GetDataObject_COleServerItem__QEAAPEAUIDataObject__XZ(
     COleServerItem* pThis)
 {
-    (void)pThis;
-    return nullptr;
+    return ItemInterface(pThis, kIID_IDataObject);
 }
 
 // COleServerItem::GetEmbedSourceData(LPSTGMEDIUM) -- retail RVA 0x269730
@@ -557,6 +691,7 @@ extern "C" void* MS_ABI impl__GetDataObject_COleServerItem__QEAAPEAUIDataObject_
 // docfile that holds nothing. Its one caller here (GetClipboardData) is
 // stubbed for the same reason, so nothing in this file reads the medium this
 // leaves unwritten.
+// STUB: needs COleDocument's root storage / m_bSameAsLoad (OleDocExtra, private to core/ole/COleDocument.cpp) and a working OnSaveEmbedding.
 // Symbol: ?GetEmbedSourceData@COleServerItem@@QEAAXPEAUtagSTGMEDIUM@@@Z
 extern "C" void MS_ABI impl__GetEmbedSourceData_COleServerItem__QEAAXPEAUtagSTGMEDIUM___Z(
     COleServerItem* pThis, STGMEDIUM* lpStgMedium)
@@ -590,6 +725,7 @@ extern "C" void MS_ABI impl__GetEmbedSourceData_COleServerItem__QEAAXPEAUtagSTGM
 // returns NULL), and OpenMFC's COleServerDoc has no factory member to take the
 // CLSID from (retail's pDoc+0x1e8). The medium is not written, as retail
 // does not write it on the FALSE path either.
+// STUB: needs COleServerDoc::m_pFactory (retail doc+0x1e8 -> factory CLSID at +0x4c), not modelled by OpenMFC's COleServerDoc.
 // Symbol: ?GetLinkSourceData@COleServerItem@@QEAAHPEAUtagSTGMEDIUM@@@Z
 extern "C" int MS_ABI impl__GetLinkSourceData_COleServerItem__QEAAHPEAUtagSTGMEDIUM___Z(
     COleServerItem* pThis, STGMEDIUM* lpStgMedium)
@@ -611,15 +747,95 @@ extern "C" int MS_ABI impl__GetLinkSourceData_COleServerItem__QEAAHPEAUtagSTGMED
 // fills xExt/yExt from the extent the OnGetExtent virtual (slot 27, 0xd8)
 // returns when OnDrawEx left it at (0,0), negating a negative yExt, and
 // returns tymed 0x20 == TYMED_MFPICT.
-// Left a stub: OpenMFC has no metafile-DC rendering backend (COleServerItem::
-// OnDrawEx here explicitly documents itself as a lifecycle-only fallback), so
-// the metafile handed back would be empty.
+// mfc140u RVA 0x26a450, transcribed:
+//     if (!(lpFormatEtc->tymed & TYMED_MFPICT) || lpStgMedium->hGlobal != NULL)
+//         return FALSE;
+//     CMetaFileDC dc;                                         // vftable 0x324ff8
+//     if (!dc.Attach(::CreateMetaFileW(NULL))) return FALSE;  // Create(), 0x2a2480
+//     HDC hAttribDC = _AfxOleCreateDC(lpFormatEtc->ptd);      // 0x260690
+//     if (hAttribDC == NULL) return FALSE;
+//     dc.SetAttribDC(hAttribDC);                              // 0x2055a0
+//     CSize size(0, 0);
+//     BOOL bResult = OnDrawEx(&dc, lpFormatEtc->dwAspect, size);   // slot 25
+//     dc.SetAttribDC(NULL);                                   // inlined
+//     ::DeleteDC(hAttribDC);
+//     if (!bResult) return FALSE;
+//     HMETAFILE hMF = dc.Close();                             // Detach + CloseMetaFile
+//     if (hMF == NULL) return FALSE;
+//     HGLOBAL hPict = ::GlobalAlloc(GMEM_SHARE|GMEM_MOVEABLE /*0x2002*/, sizeof(METAFILEPICT));
+//     if (hPict == NULL) { ::DeleteMetaFile(hMF); return FALSE; }
+//     LPMETAFILEPICT lpPict = (LPMETAFILEPICT)::GlobalLock(hPict);
+//     if (lpPict == NULL) { ::DeleteMetaFile(hMF); ::GlobalFree(hPict); return FALSE; }
+//     lpPict->mm = MM_ANISOTROPIC (8); lpPict->hMF = hMF;
+//     if (size.cx == 0 && size.cy == 0)
+//         OnGetExtent(lpFormatEtc->dwAspect, size);           // slot 27, result ignored
+//     lpPict->xExt = size.cx; lpPict->yExt = abs(size.cy);
+//     ::GlobalUnlock(hPict);
+//     lpStgMedium->hGlobal = hPict; lpStgMedium->tymed = TYMED_MFPICT (0x20);
+//     return TRUE;
+// On every exit the CMetaFileDC destructor closes and deletes a metafile that
+// is still attached (retail 0x26a5a3..: Detach, CloseMetaFile, DeleteMetaFile).
+// Deviations: OnDrawEx / OnGetExtent go through their export thunks (OpenMFC's
+// C++ virtuals), not retail slots 25 / 27; the still-attached metafile is
+// closed here explicitly because OpenMFC's ~CMetaFileDC uses
+// CloseEnhMetaFile.
 // Symbol: ?GetMetafileData@COleServerItem@@MEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@@Z
 extern "C" int MS_ABI impl__GetMetafileData_COleServerItem__MEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
     COleServerItem* pThis, FORMATETC* lpFormatEtc, STGMEDIUM* lpStgMedium)
 {
-    (void)pThis; (void)lpFormatEtc; (void)lpStgMedium;
-    return 0;
+    if ((lpFormatEtc->tymed & TYMED_MFPICT) == 0 || lpStgMedium->hGlobal != nullptr)
+        return FALSE;
+
+    CMetaFileDC dc;
+    struct CloseOnExit {
+        CMetaFileDC* pDC;
+        ~CloseOnExit() {
+            if (pDC->m_hDC != nullptr) {
+                HMETAFILE hMF = CloseMetaFileDC(pDC);
+                if (hMF != nullptr) ::DeleteMetaFile(hMF);
+            }
+        }
+    } closeOnExit{ &dc };
+
+    if (!impl__Attach_CDC__QEAAHPEAUHDC_____Z(&dc, ::CreateMetaFileW(nullptr)))
+        return FALSE;
+    HDC hAttribDC = OleCreateDC(lpFormatEtc->ptd);
+    if (hAttribDC == nullptr)
+        return FALSE;
+    impl__SetAttribDC_CMetaFileDC__UEAAXPEAUHDC_____Z(&dc, hAttribDC);
+    CSize size(0, 0);
+    const BOOL bResult = impl__OnDrawEx_COleServerItem__UEAAHPEAVCDC__W4tagDVASPECT__AEAVCSize___Z(
+        pThis, &dc, static_cast<tagDVASPECT>(lpFormatEtc->dwAspect), &size);
+    impl__SetAttribDC_CMetaFileDC__UEAAXPEAUHDC_____Z(&dc, nullptr);
+    ::DeleteDC(hAttribDC);
+    if (!bResult)
+        return FALSE;
+
+    HMETAFILE hMF = CloseMetaFileDC(&dc);
+    if (hMF == nullptr)
+        return FALSE;
+    HGLOBAL hPict = ::GlobalAlloc(GMEM_SHARE | GMEM_MOVEABLE, sizeof(METAFILEPICT));
+    if (hPict == nullptr) {
+        ::DeleteMetaFile(hMF);
+        return FALSE;
+    }
+    METAFILEPICT* lpPict = static_cast<METAFILEPICT*>(::GlobalLock(hPict));
+    if (lpPict == nullptr) {
+        ::DeleteMetaFile(hMF);
+        ::GlobalFree(hPict);
+        return FALSE;
+    }
+    lpPict->mm = MM_ANISOTROPIC;
+    lpPict->hMF = hMF;
+    if (size.cx == 0 && size.cy == 0)
+        (void)impl__OnGetExtent_COleServerItem__UEAAHW4tagDVASPECT__AEAVCSize___Z(
+            pThis, static_cast<tagDVASPECT>(lpFormatEtc->dwAspect), &size);
+    lpPict->xExt = size.cx;
+    lpPict->yExt = size.cy < 0 ? -size.cy : size.cy;
+    ::GlobalUnlock(hPict);
+    lpStgMedium->hGlobal = hPict;
+    lpStgMedium->tymed = TYMED_MFPICT;
+    return TRUE;
 }
 
 // COleServerItem::GetMoniker(OLEGETMONIKER) -- retail (0x269940), transcribed:
@@ -631,14 +847,18 @@ extern "C" int MS_ABI impl__GetMetafileData_COleServerItem__MEAAHPEAUtagFORMATET
 // COleServerItem lacks, and its GetMoniker (0x269d00) in turn walks
 // m_pDocument's GetMoniker virtual and CreateItemMoniker over m_strItemName --
 // neither the item name nor the document moniker hookup is modeled here.
-// Left a stub returning NULL, which is also what retail returns when the
-// nested object cannot produce a moniker.
+// mfc140u twin: RVA 0x26ab80.  Deviation: retail dereferences the
+// GetInterface result unchecked; it is NULL today (see ItemInterface), and
+// NULL is returned for it.
 // Symbol: ?GetMoniker@COleServerItem@@QEAAPEAUIMoniker@@W4tagOLEGETMONIKER@@@Z
 extern "C" void* MS_ABI impl__GetMoniker_COleServerItem__QEAAPEAUIMoniker__W4tagOLEGETMONIKER___Z(
     COleServerItem* pThis, int /*OLEGETMONIKER*/ nAssign)
 {
-    (void)pThis; (void)nAssign;
-    return nullptr;
+    IOleObject* lpOleObject = reinterpret_cast<IOleObject*>(ItemInterface(pThis, kIID_IOleObject));
+    LPMONIKER lpMoniker = nullptr;
+    if (lpOleObject != nullptr)
+        lpOleObject->GetMoniker(static_cast<DWORD>(nAssign), OLEWHICHMK_OBJFULL, &lpMoniker);
+    return lpMoniker;
 }
 
 // COleServerItem::GetObjectDescriptorData(LPPOINT, LPSIZE, LPSTGMEDIUM) --
@@ -655,6 +875,7 @@ extern "C" void* MS_ABI impl__GetMoniker_COleServerItem__QEAAPEAUIMoniker__W4tag
 // disassembled and is not asserted here. Left a stub: the entry point it hangs
 // off -- the nested IOleObject reached through CCmdTarget::GetInterface -- is
 // what OpenMFC's COleServerItem does not have (see GetMoniker above).
+// STUB: needs the unexported _AfxOleGetObjectDescriptorData helper (0x25fd68, mfc140u) and the item IOleObject GetInterface does not yet provide.
 // Symbol: ?GetObjectDescriptorData@COleServerItem@@QEAAXPEAUtagPOINT@@PEAUtagSIZE@@PEAUtagSTGMEDIUM@@@Z
 extern "C" void MS_ABI impl__GetObjectDescriptorData_COleServerItem__QEAAXPEAUtagPOINT__PEAUtagSIZE__PEAUtagSTGMEDIUM___Z(
     COleServerItem* pThis, POINT* lpOffset, SIZE* lpSize, STGMEDIUM* lpStgMedium)
@@ -666,19 +887,14 @@ extern "C" void MS_ABI impl__GetObjectDescriptorData_COleServerItem__QEAAXPEAUta
 // 0x26a1e0 (mfc140u) is a two-instruction tail call, exactly parallel to
 // GetDataObject:
 //     lea rdx, IID_IOleObject ; jmp CCmdTarget::GetInterface   (0x26bc00)
-// Stubbed for the same structural reason as GetDataObject above -- an OpenMFC
-// COleServerItem is not a CCmdTarget (CDocItem derives from CObject here), so
-// there is nothing to hand to the GetInterface thunk -- and, unlike
-// GetDataObject, there is not even an OpenMFC object standing in for the nested
-// IOleObject (retail's m_xOleObject at +0xd0; its methods are the
-// XOleObject::* exports further down this file, all stubs for the same
-// reason). Returns NULL.
+// Transcribed: GetInterface(&IID_IOleObject) on the item (CDocItem is now a
+// CCmdTarget).  Nothing installs the nested IOleObject (+0xd0) or an
+// interface-map entry for it yet, so this returns NULL today.
 // Symbol: ?GetOleObject@COleServerItem@@QEAAPEAUIOleObject@@XZ
 extern "C" void* MS_ABI impl__GetOleObject_COleServerItem__QEAAPEAUIOleObject__XZ(
     COleServerItem* pThis)
 {
-    (void)pThis;
-    return nullptr;
+    return ItemInterface(pThis, kIID_IOleObject);
 }
 
 // COleServerItem::IsBlank() const -- the mangled name is absent from
@@ -723,14 +939,35 @@ extern "C" int MS_ABI impl__IsBlank_COleServerItem__MEBAHXZ(const COleServerItem
 //     }
 // (The slot numbers are IOleAdviseHolder's / IDataAdviseHolder's, and the
 // enumerator values are retail's, not openmfc/afxole.h's OLE_* macros.)
-// Left a stub: OpenMFC's COleServerItem has neither m_lpOleAdviseHolder nor
-// m_lpDataAdviseHolder, and there is no side table standing in for them, so
-// there is nothing to notify. See headerRequests.
+// mfc140u twin: RVA 0x26a130.  The holders are read at their retail offsets
+// through ServerItemAdviseView (inside OpenMFC's padding).  The IDataObject
+// handed to SendOnDataChange is GetInterface's result, unchecked as in retail.
 // Symbol: ?NotifyClient@COleServerItem@@QEAAXW4OLE_NOTIFICATION@@_K@Z
 extern "C" void MS_ABI impl__NotifyClient_COleServerItem__QEAAXW4OLE_NOTIFICATION___K_Z(
     COleServerItem* pThis, unsigned int wNotification, ULONG_PTR dwParam)
 {
-    (void)pThis; (void)wNotification; (void)dwParam;
+    ServerItemAdviseView* view = AdviseView(pThis);
+    switch (wNotification) {
+    case kRetailOleChanged:
+        if (view->m_lpDataAdviseHolder != nullptr)
+            view->m_lpDataAdviseHolder->SendOnDataChange(
+                reinterpret_cast<IDataObject*>(ItemInterface(pThis, kIID_IDataObject)), 0, 0);
+        break;
+    case kRetailOleSaved:
+        if (view->m_lpOleAdviseHolder != nullptr)
+            view->m_lpOleAdviseHolder->SendOnSave();
+        break;
+    case kRetailOleClosed:
+        if (view->m_lpOleAdviseHolder != nullptr)
+            view->m_lpOleAdviseHolder->SendOnClose();
+        break;
+    case kRetailOleRenamed:
+        if (view->m_lpOleAdviseHolder != nullptr)
+            view->m_lpOleAdviseHolder->SendOnRename(reinterpret_cast<IMoniker*>(dwParam));
+        break;
+    default:
+        break;
+    }
 }
 
 // COleServerItem::OnDoVerb(LONG) -- retail (0x2690d0), transcribed from the
@@ -988,6 +1225,7 @@ extern "C" int MS_ABI impl__OnRenderGlobalData_COleServerItem__UEAAHPEAUtagFORMA
 // that translation unit. Calling SaveToStorage without redirecting the root
 // storage to lpStorage would write the item into the DOCUMENT's own storage
 // instead of the embedding's -- worse than doing nothing. See headerRequests.
+// STUB: swapping COleDocument::m_lpRootStg needs the OleDocExtra root storage private to core/ole/COleDocument.cpp (retail 0x26adb0 swaps doc+0x1c8 around SaveToStorage).
 // Symbol: ?OnSaveEmbedding@COleServerItem@@MEAAXPEAUIStorage@@@Z
 extern "C" void MS_ABI impl__OnSaveEmbedding_COleServerItem__MEAAXPEAUIStorage___Z(
     COleServerItem* pThis, IStorage* lpStorage)
@@ -1700,15 +1938,13 @@ extern "C" long MS_ABI impl__IsUpToDate_XOleObject_COleServerItem__UEAAJXZ(void*
 // (`lea -0x58(%rcx),%rsi` at 0x252af0 in COleDataSource::XDataObject::GetData)
 // -- 0xc8 - 0x58 == 0x70.
 //
-// All four are left as FALSE-returning stubs. OpenMFC's COleServerItem embeds
-// no CItemDataSource at all: COleServerItem::GetDataSource() (top of this file)
-// allocates a plain COleDataSource in a side table, so the `this` these methods
-// are handed does not exist in this build and has no owning item 0x70 below it.
-// FALSE is "not rendered / not accepted", which is also what the item arm would
-// yield here even if it could be reached -- COleServerItem::OnRenderFileData,
-// ::OnRenderGlobalData and ::OnSetData all return FALSE in retail too (see
-// their entries above), and ::OnRenderData only ever reaches GetMetafileData,
-// itself a stub in this file.
+// The four are transcribed with the retail -0x70 adjustment (mfc140u RVAs
+// 0x26b830 / 0x26b810 / 0x26b7f0 / 0x26b890) and reach the item's overrides
+// through this file's export thunks rather than retail vtable slots 37-40.
+// Reachability note: OpenMFC's COleServerItem::GetDataSource() still hands out
+// a separately allocated COleDataSource, so nothing yet installs a
+// CItemDataSource vtable at item+0x70 -- these run only for a data source
+// embedded the retail way.
 //---------------------------------------------------------------------------
 
 // COleServerItem::CItemDataSource::OnRenderData(LPFORMATETC, LPSTGMEDIUM) --
@@ -1723,8 +1959,11 @@ extern "C" long MS_ABI impl__IsUpToDate_XOleObject_COleServerItem__UEAAJXZ(void*
 extern "C" int MS_ABI impl__OnRenderData_CItemDataSource_COleServerItem__MEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
     void* pThis, FORMATETC* lpFormatEtc, STGMEDIUM* lpStgMedium)
 {
-    (void)pThis; (void)lpFormatEtc; (void)lpStgMedium;
-    return FALSE;
+    if (impl__OnRenderData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
+            ItemFromDataSource(pThis), lpFormatEtc, lpStgMedium))
+        return TRUE;
+    return impl__OnRenderData_COleDataSource__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
+        static_cast<COleDataSource*>(pThis), lpFormatEtc, lpStgMedium);
 }
 
 // COleServerItem::CItemDataSource::OnRenderFileData(LPFORMATETC, CFile*) --
@@ -1732,13 +1971,13 @@ extern "C" int MS_ABI impl__OnRenderData_CItemDataSource_COleServerItem__MEAAHPE
 // through the item's vtable slot 38 (0x130), i.e.
 //     return ((COleServerItem*)((char*)this - 0x70))
 //                ->OnRenderFileData(lpFormatEtc, pFile);
-// with no COleDataSource fallback. Stubbed -- see the block comment above.
+// with no COleDataSource fallback.
 // Symbol: ?OnRenderFileData@CItemDataSource@COleServerItem@@MEAAHPEAUtagFORMATETC@@PEAVCFile@@@Z
 extern "C" int MS_ABI impl__OnRenderFileData_CItemDataSource_COleServerItem__MEAAHPEAUtagFORMATETC__PEAVCFile___Z(
     void* pThis, FORMATETC* lpFormatEtc, void* pFile)
 {
-    (void)pThis; (void)lpFormatEtc; (void)pFile;
-    return FALSE;
+    return impl__OnRenderFileData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAVCFile___Z(
+        ItemFromDataSource(pThis), lpFormatEtc, static_cast<CFile*>(pFile));
 }
 
 // COleServerItem::CItemDataSource::OnRenderGlobalData(LPFORMATETC, HGLOBAL*) --
@@ -1746,13 +1985,13 @@ extern "C" int MS_ABI impl__OnRenderFileData_CItemDataSource_COleServerItem__MEA
 // through the item's vtable slot 37 (0x128), i.e.
 //     return ((COleServerItem*)((char*)this - 0x70))
 //                ->OnRenderGlobalData(lpFormatEtc, phGlobal);
-// with no COleDataSource fallback. Stubbed -- see the block comment above.
+// with no COleDataSource fallback.
 // Symbol: ?OnRenderGlobalData@CItemDataSource@COleServerItem@@MEAAHPEAUtagFORMATETC@@PEAPEAX@Z
 extern "C" int MS_ABI impl__OnRenderGlobalData_CItemDataSource_COleServerItem__MEAAHPEAUtagFORMATETC__PEAPEAX_Z(
     void* pThis, FORMATETC* lpFormatEtc, void** phGlobal)
 {
-    (void)pThis; (void)lpFormatEtc; (void)phGlobal;
-    return FALSE;
+    return impl__OnRenderGlobalData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAPEAX_Z(
+        ItemFromDataSource(pThis), lpFormatEtc, reinterpret_cast<HGLOBAL*>(phGlobal));
 }
 
 // COleServerItem::CItemDataSource::OnSetData(LPFORMATETC, LPSTGMEDIUM, BOOL) --
@@ -1761,15 +2000,13 @@ extern "C" int MS_ABI impl__OnRenderGlobalData_CItemDataSource_COleServerItem__M
 // the item's vtable slot 40 (0x140), i.e.
 //     return ((COleServerItem*)((char*)this - 0x70))
 //                ->OnSetData(lpFormatEtc, lpStgMedium, bRelease);
-// with no COleDataSource fallback. Stubbed -- see the block comment above. Note
-// FALSE leaves the medium with the caller, which is what retail's own
-// COleServerItem::OnSetData does too (it neither takes nor releases it).
+// with no COleDataSource fallback.
 // Symbol: ?OnSetData@CItemDataSource@COleServerItem@@MEAAHPEAUtagFORMATETC@@PEAUtagSTGMEDIUM@@H@Z
 extern "C" int MS_ABI impl__OnSetData_CItemDataSource_COleServerItem__MEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(
     void* pThis, FORMATETC* lpFormatEtc, STGMEDIUM* lpStgMedium, int bRelease)
 {
-    (void)pThis; (void)lpFormatEtc; (void)lpStgMedium; (void)bRelease;
-    return FALSE;
+    return impl__OnSetData_COleServerItem__UEAAHPEAUtagFORMATETC__PEAUtagSTGMEDIUM__H_Z(
+        ItemFromDataSource(pThis), lpFormatEtc, lpStgMedium, bRelease);
 }
 
 // COleServerItem::XDataObject::QueryGetData -- retail (0x26a430): `rcx -= 0x10`
@@ -1817,19 +2054,17 @@ extern "C" long MS_ABI impl__SetClientSite_XOleObject_COleServerItem__UEAAJPEAUI
 //         // `xor ecx,ecx; test eax,eax; cmovne ebx,ecx` -- ebx was seeded with
 //         // E_NOTIMPL and is replaced by 0 when the BOOL is non-zero.
 //     return hr;
-// There is no nested sub-object to recover the item from, so OnSetColorScheme
-// is not consulted and the seeded E_NOTIMPL stands. For a plain COleServerItem
-// that is also retail's answer: slot 29 of CDocObjectServerItem's vtable
-// (RVA 0x32cf68), which inherits COleServerItem's override, is 0x7260 ==
-// `xor %eax,%eax; ret`, i.e. FALSE. Stated deviation: a derived class that
-// overrides OnSetColorScheme and returns TRUE would get S_OK from retail. The
-// generated stub returned 0 == S_OK unconditionally.
+// mfc140u twin: RVA 0x26b5b0 (AFX_MANAGE_STATE helper 0x133170).  Recovered
+// with ItemFromXOleObject like Update / IsUpToDate; deviations: the module
+// state switch is not reproduced, and OnSetColorScheme is reached through its
+// export thunk rather than slot 29, so a derived override is not consulted.
 // Symbol: ?SetColorScheme@XOleObject@COleServerItem@@UEAAJPEAUtagLOGPALETTE@@@Z
 extern "C" long MS_ABI impl__SetColorScheme_XOleObject_COleServerItem__UEAAJPEAUtagLOGPALETTE___Z(
     void* pThis, void* lpLogpal)
 {
-    (void)pThis; (void)lpLogpal;
-    return E_NOTIMPL;
+    COleServerItem* pItem = ItemFromXOleObject(pThis);
+    return impl__OnSetColorScheme_COleServerItem__UEAAHPEBUtagLOGPALETTE___Z(
+               pItem, static_cast<const LOGPALETTE*>(lpLogpal)) ? S_OK : E_NOTIMPL;
 }
 
 // COleServerItem::XDataObject::SetData -- retail (0x26a450): `rcx -= 0x10` then

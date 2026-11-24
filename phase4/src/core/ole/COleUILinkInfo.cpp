@@ -84,6 +84,7 @@
 // =============================================================================
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/OlecoreSupport.h"
 
 // Sibling export thunks (definitions: COleDocument.cpp, Thunks.cpp,
 // RuntimeClasses.cpp, COleClientItem.cpp),
@@ -102,6 +103,8 @@ extern "C" int MS_ABI impl__DoVerb_COleClientItem__UEAAHJPEAVCView__PEAUtagMSG__
 extern "C" int MS_ABI impl__FreezeLink_COleClientItem__UEAAHXZ(COleClientItem* pThis);
 extern "C" int MS_ABI impl__ReportError_COleClientItem__UEBAHJ_Z(
     const COleClientItem* pThis, long nCode);
+
+extern "C" int MS_ABI impl__AfxLoadString__YAHIPEA_WI_Z(unsigned int nID, wchar_t* lpszBuf, unsigned int nMaxBuf);
 
 // Forward declarations of this file's thunks, so the vtable can point at them.
 extern "C" long MS_ABI impl__QueryInterface_COleUILinkInfo__UEAAJAEBU_GUID__PEAPEAX_Z(
@@ -191,6 +194,17 @@ int ItemTypeOf(COleClientItem* pItem) {
         (dwStatus & OLEMISC_STATIC) == 0)
         return kOT_EMBEDDED;
     return kOT_STATIC;
+}
+
+// AfxAllocTaskOleString (internal, RVA 0x1e77b4, mfc140u): NULL for a NULL
+// source; otherwise CoTaskMemAlloc((wcslen+1)*sizeof(WCHAR)) and copy, NULL
+// on overflow or allocation failure.
+LPOLESTR AllocTaskOleString(const wchar_t* src) {
+    if (src == nullptr) return nullptr;
+    const size_t cch = wcslen(src) + 1;
+    LPOLESTR dst = static_cast<LPOLESTR>(CoTaskMemAlloc(cch * sizeof(wchar_t)));
+    if (dst != nullptr) memcpy(dst, src, cch * sizeof(wchar_t));
+    return dst;
 }
 
 // COleDocument::GetNextClientItem as retail inlines it here:
@@ -379,22 +393,149 @@ extern "C" COleClientItem* MS_ABI impl__GetLinkItem_COleUILinkInfo__AEAAPEAVCOle
     return pItem;
 }
 
-// COleUILinkInfo::GetLinkSource -- RVA 0x24c9d0 (mfc140u).  STUB.  Retail
-// (~230 instructions) builds the display name and link-type strings from the
-// item's IOleLink / moniker through CString temporaries and reports source
-// availability from COleClientItem::m_bLinkUnavail (retail +0x7c,
-// `cmp %cl,0x7c(%rsi)`), which OpenMFC's COleClientItem does not model.
-// Returns E_NOTIMPL without writing the out-parameters (an OpenMFC stub
-// value, not retail's) so OleUIEditLinks never reads uninitialised strings.
+// COleUILinkInfo::GetLinkSource -- RVA 0x24c9d0 (mfc140u):
+//     COleClientItem* pItem = GetLinkItem(dwLink); ENSURE(pItem != NULL);
+//     *lplpszDisplayName = NULL;  (and *lplpszFullLinkType / *lplpszShortLinkType
+//     = NULL, *lplenFileName = 0 when those pointers are non-NULL)
+//     if (lpfSourceAvailable) *lpfSourceAvailable = !pItem->m_bLinkUnavail;   // byte +0x7c
+//     LPOLELINK lpOleLink = QUERYINTERFACE(pItem->m_lpObject, IOleLink);     // 0x26cc90, IID at 0x2d9bb8
+//     LPMONIKER lpMoniker;
+//     if (lpOleLink->GetSourceMoniker(&lpMoniker) == S_OK) {                 // IOleLink slot 6
+//         if (lplenFileName) {
+//             // length of the display name of the moniker's first (file) part
+//             LPMONIKER lpFirst = lpMoniker; DWORD dwMksys;
+//             if (lpMoniker->IsSystemMoniker(&dwMksys) == S_OK                // IMoniker slot 22
+//                 && dwMksys == MKSYS_GENERICCOMPOSITE) {
+//                 LPENUMMONIKER lpEnum = NULL; lpFirst = NULL;
+//                 if (lpMoniker->Enum(TRUE, &lpEnum) == S_OK) {                 // slot 12
+//                     lpEnum->Next(1, &lpFirst, NULL); RELEASE(lpEnum); }
+//             } else lpMoniker->AddRef();
+//             DWORD n = 0;
+//             if (lpFirst != NULL) {
+//                 if (lpFirst->IsSystemMoniker(&dwMksys) == S_OK && dwMksys == MKSYS_FILEMONIKER) {
+//                     LPBC lpbc = NULL;
+//                     if (CreateBindCtx(0, &lpbc) == S_OK) {
+//                         LPOLESTR name = NULL;
+//                         if (lpFirst->GetDisplayName(lpbc, NULL, &name) == S_OK && name) {  // slot 20
+//                             n = wcslen(name); CoTaskMemFree(name); }
+//                         RELEASE(lpbc); } }
+//                 RELEASE(lpFirst); }                                           // 0x26ccc4
+//             *lplenFileName = n;
+//         }
+//         lpMoniker->Release();
+//     }
+//     if (lplpszFullLinkType) {   // IOleObject::GetUserType(USERCLASSTYPE_FULL), slot 16
+//         *lplpszFullLinkType = NULL; m_lpObject->GetUserType(1, lplpszFullLinkType);
+//         if (*lplpszFullLinkType == NULL) { TCHAR sz[256]; AfxLoadString(0xf095, sz, 256);
+//             *lplpszFullLinkType = AfxAllocTaskOleString(sz); } }          // 0x1e77b4
+//     if (lplpszShortLinkType) same with USERCLASSTYPE_SHORT (2).
+//     SCODE sc = lpOleLink->GetSourceDisplayName(lplpszDisplayName);         // slot 8
+//     lpOleLink->Release();
+//     if (sc != S_OK) return sc;
+//     if (lpfIsSelected) *lpfIsSelected = (pItem == m_pSelectedItem);         // +0x10
+//     return S_OK;
+// Retail wraps the body in TRY/CATCH_ALL (catch continuation at 0x24cd47
+// returns the Process()ed SCODE).  As in the sibling methods, a NULL item is
+// mapped to E_UNEXPECTED here; for this method the FuncInfo4 IP-to-state map
+// was NOT decoded, so that the ENSURE lies inside the TRY is assumed by analogy
+// with Get/SetLinkUpdateOptions.  Deviations: m_bLinkUnavail is read from the
+// COleClientItem side table (ClientItemState::linkUnavailable, OlecoreSupport.h)
+// and m_lpObject is OpenMFC's member; retail dereferences a NULL IOleLink or a
+// NULL source moniker (access violation), OpenMFC returns E_UNEXPECTED / skips
+// the moniker block instead.
 // Symbol: ?GetLinkSource@COleUILinkInfo@@UEAAJKPEAPEA_WPEAK00PEAH2@Z
 extern "C" long MS_ABI impl__GetLinkSource_COleUILinkInfo__UEAAJKPEAPEA_WPEAK00PEAH2_Z(
     void* pThis, unsigned long dwLink, wchar_t** lplpszDisplayName, unsigned long* lplenFileName,
     wchar_t** lplpszFullLinkType, wchar_t** lplpszShortLinkType, int* lpfSourceAvailable,
     int* lpfIsSelected) {
-    (void)pThis; (void)dwLink; (void)lplpszDisplayName; (void)lplenFileName;
-    (void)lplpszFullLinkType; (void)lplpszShortLinkType; (void)lpfSourceAvailable;
-    (void)lpfIsSelected;
-    return E_NOTIMPL;
+    COleClientItem* pItem = impl__GetLinkItem_COleUILinkInfo__AEAAPEAVCOleClientItem__K_Z(pThis, dwLink);
+    if (pItem == nullptr)
+        return E_UNEXPECTED;   // retail: ENSURE -> CInvalidArgException -> Process (see above)
+
+    *lplpszDisplayName = nullptr;
+    if (lplpszFullLinkType) *lplpszFullLinkType = nullptr;
+    if (lplpszShortLinkType) *lplpszShortLinkType = nullptr;
+    if (lplenFileName) *lplenFileName = 0;
+    if (lpfSourceAvailable) {
+        const openmfc::detail::olecore::ClientItemState* state =
+            openmfc::detail::olecore::FindClientItemState(pItem);
+        *lpfSourceAvailable = (state == nullptr || state->linkUnavailable == 0) ? TRUE : FALSE;
+    }
+
+    IOleObject* lpObject = pItem->m_lpObject;
+    IOleLink* lpOleLink = nullptr;
+    if (lpObject == nullptr ||
+        lpObject->QueryInterface(IID_IOleLink, reinterpret_cast<void**>(&lpOleLink)) != S_OK)
+        lpOleLink = nullptr;
+    if (lpOleLink == nullptr)
+        return E_UNEXPECTED;   // OpenMFC guard; retail dereferences NULL
+
+    IMoniker* lpMoniker = nullptr;
+    if (lpOleLink->GetSourceMoniker(&lpMoniker) == S_OK && lpMoniker != nullptr) {
+        if (lplenFileName) {
+            IMoniker* lpFirst = nullptr;
+            DWORD dwMksys = 0;
+            if (lpMoniker->IsSystemMoniker(&dwMksys) == S_OK && dwMksys == MKSYS_GENERICCOMPOSITE) {
+                IEnumMoniker* lpEnum = nullptr;
+                if (lpMoniker->Enum(TRUE, &lpEnum) == S_OK) {
+                    lpFirst = nullptr;
+                    lpEnum->Next(1, &lpFirst, nullptr);
+                    if (lpEnum) lpEnum->Release();
+                }
+            } else {
+                lpMoniker->AddRef();
+                lpFirst = lpMoniker;
+            }
+            unsigned long n = 0;
+            if (lpFirst != nullptr) {
+                if (lpFirst->IsSystemMoniker(&dwMksys) == S_OK && dwMksys == MKSYS_FILEMONIKER) {
+                    IBindCtx* lpbc = nullptr;
+                    if (CreateBindCtx(0, &lpbc) == S_OK) {
+                        LPOLESTR name = nullptr;
+                        if (lpFirst->GetDisplayName(lpbc, nullptr, &name) == S_OK && name) {
+                            n = static_cast<unsigned long>(wcslen(name));
+                            CoTaskMemFree(name);
+                        }
+                        if (lpbc) lpbc->Release();
+                    }
+                }
+                lpFirst->Release();
+            }
+            *lplenFileName = n;
+        }
+        lpMoniker->Release();
+    }
+
+    if (lplpszFullLinkType) {
+        LPOLESTR type = nullptr;
+        lpObject->GetUserType(USERCLASSTYPE_FULL, &type);
+        *lplpszFullLinkType = type;
+        if (type == nullptr) {
+            wchar_t sz[0x100];
+            impl__AfxLoadString__YAHIPEA_WI_Z(0xf095, sz, 0x100);
+            *lplpszFullLinkType = AllocTaskOleString(sz);
+        }
+    }
+    if (lplpszShortLinkType) {
+        LPOLESTR type = nullptr;
+        lpObject->GetUserType(USERCLASSTYPE_SHORT, &type);
+        *lplpszShortLinkType = type;
+        if (type == nullptr) {
+            wchar_t sz[0x100];
+            impl__AfxLoadString__YAHIPEA_WI_Z(0xf095, sz, 0x100);
+            *lplpszShortLinkType = AllocTaskOleString(sz);
+        }
+    }
+
+    LPOLESTR display = nullptr;
+    const HRESULT sc = lpOleLink->GetSourceDisplayName(&display);
+    *lplpszDisplayName = display;
+    lpOleLink->Release();
+    if (sc != S_OK)
+        return sc;
+    if (lpfIsSelected)
+        *lpfIsSelected = (Self(pThis)->m_pSelectedItem == pItem) ? TRUE : FALSE;
+    return S_OK;
 }
 
 // COleUILinkInfo::GetLinkUpdateOptions(DWORD, LPDWORD) -- RVA 0x24c4e0 (mfc140u):

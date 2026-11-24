@@ -85,6 +85,9 @@ extern "C" void MS_ABI impl__OnChange_COleClientItem__UEAAXW4OLE_NOTIFICATION__K
     COleClientItem* pThis, OLE_NOTIFICATION nCode, unsigned long dwParam);
 extern "C" void MS_ABI impl__SetDrawAspect_COleClientItem__UEAAXW4tagDVASPECT___Z(
     COleClientItem* pThis, int nDrawAspect);
+extern "C" int MS_ABI impl__AfxLoadString__YAHIPEA_WI_Z(unsigned int nID, wchar_t* lpszBuf, unsigned int nMaxBuf);
+extern "C" void MS_ABI impl__GetUserType_COleClientItem__QEAAXW4tagUSERCLASSTYPE__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+    COleClientItem* pThis, int nUserClassType, CString& rString);
 // This file's own OnApplyScale thunk (defined below).
 extern "C" int MS_ABI impl__OnApplyScale_COlePropertiesDialog__UEAAHPEAVCOleClientItem__HH_Z(
     COlePropertiesDialog* pThis, COleClientItem* pItem, int nCurrentScale, int bRelativeToOrig);
@@ -103,6 +106,43 @@ constexpr size_t kOffObjInfo    = 0x298;  // m_xOleUIObjInfo
 constexpr OLE_NOTIFICATION kOLE_CHANGED        = 0;
 constexpr OLE_NOTIFICATION kOLE_CHANGED_ASPECT = 5;
 constexpr UINT kAFX_IDP_FAILED_TO_CONVERT      = 0xF18B;  // atlmfc afxres.h
+
+constexpr UINT kAFX_IDS_PASTELINKEDTYPE = 0xF094;  // atlmfc afxres.h
+constexpr int kOT_LINK = 1;                         // retail enum OLE_OBJTYPE
+constexpr int kOT_EMBEDDED = 2;
+constexpr int kOT_STATIC = 3;
+
+// Retail GetType() reads m_nItemType (+0x94), filled by
+// COleClientItem::UpdateItemType (RVA 0x244b20, mfc140u):
+//     QueryInterface(m_lpObject, IID_IOleLink) succeeds -> OT_LINK
+//     else GetMiscStatus(DVASPECT_CONTENT) == S_OK && !(status & OLEMISC_STATIC) -> OT_EMBEDDED
+//     else OT_STATIC
+// OpenMFC's UpdateItemType is still a stub, so the same rule is evaluated on
+// the current object (0 = OT_UNKNOWN with no object), as COleUILinkInfo.cpp does.
+int ItemTypeOfObjInfo(COleClientItem* pItem) {
+    IOleObject* lpObject = pItem->m_lpObject;
+    if (lpObject == nullptr) return 0;
+    IOleLink* pLink = nullptr;
+    if (lpObject->QueryInterface(IID_IOleLink, reinterpret_cast<void**>(&pLink)) == S_OK && pLink) {
+        pLink->Release();
+        return kOT_LINK;
+    }
+    DWORD dwStatus = 0;
+    if (lpObject->GetMiscStatus(DVASPECT_CONTENT, &dwStatus) == S_OK &&
+        (dwStatus & OLEMISC_STATIC) == 0)
+        return kOT_EMBEDDED;
+    return kOT_STATIC;
+}
+
+// AfxAllocTaskOleString (internal, RVA 0x1e77b4, mfc140u): NULL for NULL,
+// else CoTaskMemAlloc((wcslen+1)*sizeof(WCHAR)) and copy.
+LPOLESTR AllocTaskOleStringObjInfo(const wchar_t* src) {
+    if (src == nullptr) return nullptr;
+    const size_t cch = wcslen(src) + 1;
+    LPOLESTR dst = static_cast<LPOLESTR>(CoTaskMemAlloc(cch * sizeof(wchar_t)));
+    if (dst != nullptr) memcpy(dst, src, cch * sizeof(wchar_t));
+    return dst;
+}
 
 COlePropertiesDialog* DialogOfObjInfo(void* pThis) {
     return reinterpret_cast<COlePropertiesDialog*>(static_cast<char*>(pThis) - kOffObjInfo);
@@ -258,19 +298,120 @@ extern "C" long MS_ABI impl__GetConvertInfo_XOleUIObjInfo_COlePropertiesDialog__
 }
 
 // Symbol: ?GetObjectInfo@XOleUIObjInfo@COlePropertiesDialog@@UEAAJKPEAKPEAPEA_W111@Z
-// STUB.  Retail RVA 0x24ee30 (mfc140u) fills the size from
-// m_lpLockBytes->Stat (+0x70) falling back to m_lpStorage->Stat (+0x68, not
-// NULL-checked), picks the label/location by m_nItemType (+0x94) == OT_LINK,
-// and builds strings with GetUserType(USERCLASSTYPE, CString&) (0x24ae80),
-// AfxLoadString(AFX_IDS_PASTELINKEDTYPE) (0x2af0b0) and CString::Format.
-// OpenMFC's COleClientItem has no m_lpStorage / m_lpLockBytes / m_nItemType,
-// so the body cannot be transcribed; left returning S_OK with no outputs set.
+// Transcribed from retail RVA 0x24ee30 (mfc140u):
+//     pItem = <item dwObject, see ObjInfoItem>;
+//     OLE_OBJTYPE type = pItem->m_nItemType;                         // +0x94
+//     if (lpdwObjSize != NULL) {
+//         STATSTG st;
+//         if ((pItem->m_lpLockBytes == NULL ||                        // +0x70
+//              pItem->m_lpLockBytes->Stat(&st, STATFLAG_NONAME) != S_OK) &&   // ILockBytes slot 9
+//             pItem->m_lpStorage->Stat(&st, STATFLAG_NONAME) != S_OK)         // +0x68, IStorage slot 17
+//             *lpdwObjSize = (DWORD)-1;
+//         else if (st.cbSize.HighPart != 0) *lpdwObjSize = (DWORD)-2;
+//         else if (st.cbSize.LowPart != 0)  *lpdwObjSize = st.cbSize.LowPart;
+//         else                              *lpdwObjSize = (DWORD)-1;
+//     }
+//     if (lplpszLabel != NULL) {
+//         TCHAR szFormat[128]; AfxLoadString(AFX_IDS_PASTELINKEDTYPE /*0xF094*/, szFormat, 128);
+//         LPCTSTR fmt = (type == OT_LINK) ? szFormat : _T("%s");
+//         CString strType; pItem->GetUserType(USERCLASSTYPE_FULL, strType);   // 0x24ae80
+//         CString strLabel; strLabel.Format(fmt, (LPCTSTR)strType);
+//         *lplpszLabel = AfxAllocTaskOleString(strLabel);              // 0x1e77b4
+//     }
+//     if (lplpszType)      pItem->m_lpObject->GetUserType(USERCLASSTYPE_FULL, lplpszType);   // slot 16
+//     if (lplpszShortType) pItem->m_lpObject->GetUserType(USERCLASSTYPE_SHORT, lplpszShortType);
+//     if (lplpszLocation) {
+//         if (type == OT_LINK) {
+//             LPOLELINK lpLink = NULL;
+//             pItem->m_lpObject->QueryInterface(IID_IOleLink, (void**)&lpLink);  // result unchecked
+//             lpLink->GetSourceDisplayName(lplpszLocation);            // slot 8
+//             lpLink->Release();
+//         } else {
+//             CString str = pItem->m_pDocument->m_strPathName;         // CDocument +0x48
+//             if (str.IsEmpty()) str = pItem->m_pDocument->m_strTitle; // CDocument +0x40
+//             *lplpszLocation = AfxAllocTaskOleString(str);
+//         }
+//     }
+//     return S_OK;
+// (Retail passes a stack temporary to GetUserType for lplpszType /
+// lplpszShortType, uninitialised, and stores it afterwards; OpenMFC starts the
+// temporary at NULL.)
+// Deviations: m_nItemType is not yet written by OpenMFC (UpdateItemType is a
+// stub), so the type is evaluated live with UpdateItemType's rule (see
+// ItemTypeOfObjInfo); m_lpLockBytes / m_lpStorage are read from the
+// COleClientItem side table (ClientItemState, OlecoreSupport.h), and a NULL
+// storage takes the Stat-failed path where retail would dereference it; a
+// failed IOleLink QueryInterface leaves *lplpszLocation NULL where retail
+// dereferences NULL.  GetUserType is reached through its export thunk.
 extern "C" long MS_ABI impl__GetObjectInfo_XOleUIObjInfo_COlePropertiesDialog__UEAAJKPEAKPEAPEA_W111_Z(
     void* pThis, unsigned long dwObject, unsigned long* lpdwObjSize, wchar_t** lplpszLabel,
     wchar_t** lplpszType, wchar_t** lplpszShortType, wchar_t** lplpszLocation) {
-    (void)pThis; (void)dwObject; (void)lpdwObjSize; (void)lplpszLabel;
-    (void)lplpszType; (void)lplpszShortType; (void)lplpszLocation;
-    return 0;
+    COleClientItem* pItem = ObjInfoItem(pThis, dwObject);
+    const int type = ItemTypeOfObjInfo(pItem);
+
+    if (lpdwObjSize) {
+        const openmfc::detail::olecore::ClientItemState* state =
+            openmfc::detail::olecore::FindClientItemState(pItem);
+        ILockBytes* lockBytes = state ? state->lockBytes : nullptr;
+        IStorage* storage = state ? state->storage : nullptr;
+        STATSTG st = {};
+        bool ok = lockBytes != nullptr && lockBytes->Stat(&st, STATFLAG_NONAME) == S_OK;
+        if (!ok)
+            ok = storage != nullptr && storage->Stat(&st, STATFLAG_NONAME) == S_OK;
+        if (!ok)
+            *lpdwObjSize = static_cast<unsigned long>(-1);
+        else if (st.cbSize.HighPart != 0)
+            *lpdwObjSize = static_cast<unsigned long>(-2);
+        else if (st.cbSize.LowPart != 0)
+            *lpdwObjSize = st.cbSize.LowPart;
+        else
+            *lpdwObjSize = static_cast<unsigned long>(-1);
+    }
+
+    if (lplpszLabel) {
+        wchar_t szFormat[0x80];
+        impl__AfxLoadString__YAHIPEA_WI_Z(kAFX_IDS_PASTELINKEDTYPE, szFormat, 0x80);
+        const wchar_t* fmt = (type == kOT_LINK) ? szFormat : L"%s";
+        CString strType;
+        impl__GetUserType_COleClientItem__QEAAXW4tagUSERCLASSTYPE__AEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+            pItem, USERCLASSTYPE_FULL, strType);
+        CString strLabel;
+        strLabel.Format(fmt, static_cast<const wchar_t*>(strType));
+        *lplpszLabel = AllocTaskOleStringObjInfo(strLabel);
+    }
+
+    IOleObject* lpObject = pItem->m_lpObject;
+    if (lplpszType) {
+        LPOLESTR p = nullptr;
+        if (lpObject) lpObject->GetUserType(USERCLASSTYPE_FULL, &p);
+        *lplpszType = p;
+    }
+    if (lplpszShortType) {
+        LPOLESTR p = nullptr;
+        if (lpObject) lpObject->GetUserType(USERCLASSTYPE_SHORT, &p);
+        *lplpszShortType = p;
+    }
+    if (lplpszLocation) {
+        if (type == kOT_LINK) {
+            IOleLink* lpLink = nullptr;
+            lpObject->QueryInterface(IID_IOleLink, reinterpret_cast<void**>(&lpLink));
+            LPOLESTR p = nullptr;
+            if (lpLink) {
+                lpLink->GetSourceDisplayName(&p);
+                lpLink->Release();
+            }
+            *lplpszLocation = p;
+        } else {
+            CDocument* pDoc = reinterpret_cast<CDocument*>(pItem->m_pContainerDoc);
+            CString str;
+            if (pDoc) {
+                str = pDoc->m_strPathName;
+                if (str.IsEmpty()) str = pDoc->m_strTitle;
+            }
+            *lplpszLocation = AllocTaskOleStringObjInfo(str);
+        }
+    }
+    return S_OK;
 }
 
 // Symbol: ?GetViewInfo@XOleUIObjInfo@COlePropertiesDialog@@UEAAJKPEAPEAXPEAKPEAH@Z

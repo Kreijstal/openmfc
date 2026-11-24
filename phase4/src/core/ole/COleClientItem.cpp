@@ -1728,6 +1728,7 @@ ASSERT_DOCUMENT_TAIL(m_ptd, 0x1e0);
 // kept in a separate private OleDocExtra table and has no accessor in this TU;
 // when the root storage is absent, retail also virtual-dispatches the document's
 // initializer. Without that shared storage accessor/dispatch, leave this stubbed.
+// STUB: needs the document root IStorage (+0x1c8), kept private in core/ole/COleDocument.cpp OleDocExtra (not in this shard).
 extern "C" void MS_ABI impl__GetItemStorageCompound_COleClientItem__QEAAXXZ(
         COleClientItem* pThis) {
     (void)pThis;
@@ -1906,6 +1907,7 @@ extern "C" DWORD MS_ABI impl__GetNewItemNumber_COleClientItem__QEAAKXZ(COleClien
 // COleServerItem::GetObjectDescriptorData is stubbed for the same reason.
 // Writing an OBJECTDESCRIPTOR here from the public format documentation
 // instead of from the retail helper would be a guess, not a transcription.
+// STUB: needs the undecoded private helper 0x25eb44 (_AfxOleGetObjectDescriptorData), shared with COleServerItem.
 extern "C" void MS_ABI impl__GetObjectDescriptorData_COleClientItem__IEAAXPEAUtagPOINT__PEAUtagSIZE__PEAUtagSTGMEDIUM___Z(
         COleClientItem* pThis, POINT* lpOffset, SIZE* lpSize, STGMEDIUM* lpMedium) {
     (void)pThis; (void)lpOffset; (void)lpSize; (void)lpMedium;
@@ -2028,6 +2030,7 @@ extern "C" void MS_ABI impl__GetUserType_COleClientItem__QEAAXW4tagUSERCLASSTYPE
 // window, and updates the in-place frame hooks. Item state, view, saved style,
 // server window and hook state are now modeled, but this remains a stub pending
 // faithful virtual and interface dispatch.
+// STUB: frame/view virtual dispatch (OnGetWindowContext, CFrameWnd slots) has no retail-compatible vtable in OpenMFC.
 extern "C" void MS_ABI impl__OnActivateUI_COleClientItem__UEAAXXZ(
         COleClientItem* pThis) {
     (void)pThis;
@@ -2082,6 +2085,7 @@ extern "C" void MS_ABI impl__OnDeactivateAndUndo_COleClientItem__MEAAXXZ(
 // Left as generated: item state, saved style, m_pView and frame-hook pointers
 // now have retail-tail storage, but the frame/view virtual dispatch is not
 // compatible here; OpenMFC's OLE_* macros also use different state numbering.
+// STUB: frame virtual dispatch (slots 0x318/0x320) has no retail-compatible vtable; OLE state numbering differs.
 extern "C" void MS_ABI impl__OnDeactivateUI_COleClientItem__UEAAXH_Z(
         COleClientItem* pThis, int bUndoable) {
     (void)pThis; (void)bUndoable;
@@ -2347,6 +2351,7 @@ extern "C" void MS_ABI impl__ReadItem_COleClientItem__UEAAXAEAVCArchive___Z(
 // IStorage are all retail-only members that OpenMFC does not declare, so there
 // is nowhere to put anything this function would read.  The sibling writer,
 // WriteItemCompound, is stubbed in this file for the same reason.
+// STUB: needs the document root IStorage (+0x1c8) from core/ole/COleDocument.cpp OleDocExtra, plus a retail-slot COleClientItem vtable (GetClientSite 0x190 / FinishCreate 0x1a0).
 extern "C" void MS_ABI impl__ReadItemCompound_COleClientItem__QEAAXAEAVCArchive___Z(
         COleClientItem* pThis, CArchive& ar) {
     (void)pThis; (void)ar;
@@ -2368,6 +2373,7 @@ extern "C" void MS_ABI impl__ReadItemCompound_COleClientItem__QEAAXAEAVCArchive_
 // Left as generated: m_lpLockBytes and m_lpStorage are retail-only members, so
 // the loaded bytes would have nowhere to go.  The sibling writer,
 // WriteItemFlat, is stubbed in this file for the same reason.
+// STUB: load path dispatches GetClientSite (slot 0x190) and FinishCreate (slot 0x1a0); COleClientItem has no retail-layout vtable to dispatch overrides through.
 extern "C" void MS_ABI impl__ReadItemFlat_COleClientItem__QEAAXAEAVCArchive___Z(
         COleClientItem* pThis, CArchive& ar) {
     (void)pThis; (void)ar;
@@ -2626,6 +2632,7 @@ extern "C" void MS_ABI impl__OnClose_XAdviseSink_COleClientItem__UEAAXXZ(
 // For the base class that virtual is 0x002820 (`ret`), so nothing happens; a
 // derived override is lost because this raw interface part is not installed as
 // a usable callback, and its module-state prologue cannot be reproduced.
+// STUB: retail dispatches the item virtual OnDataChange (slot 0x1a8), which OpenMFC does not declare virtual, so client overrides are unreachable.
 extern "C" void MS_ABI impl__OnDataChange_XAdviseSink_COleClientItem__UEAAXPEAUtagFORMATETC__PEAUtagSTGMEDIUM___Z(
         void* pThisItf, FORMATETC* lpFormatEtc, STGMEDIUM* lpMedium) {
     (void)pThisItf; (void)lpFormatEtc; (void)lpMedium;

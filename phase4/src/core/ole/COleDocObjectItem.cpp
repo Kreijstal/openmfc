@@ -351,6 +351,7 @@ extern "C" int MS_ABI impl__OnPreparePrinting_COleDocObjectItem__SAHPEAVCView__P
 // in particular DoModal does not preserve the returned PRINTDLG.Flags, which
 // this body reads at +0x28 to derive IPrint flags. Reconstructing m_pd from the
 // available fields would therefore not faithfully reproduce this path.
+// STUB: needs a retail PRINTDLG view (Flags at +0x28) in CPrintDialog (core dialog file, not in this shard).
 extern "C" void MS_ABI impl__OnPrint_COleDocObjectItem__SAXPEAVCView__PEAUCPrintInfo__H_Z(
         CView* pCaller, void* pInfo, int bPrintAll) {
     (void)pCaller;

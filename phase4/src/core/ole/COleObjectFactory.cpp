@@ -293,10 +293,25 @@ STDMETHODIMP COleObjectFactory::XClassFactory::CreateInstanceLic(
 }
 
 // === Moved from ManualThunks.cpp ===
-// The ANSI twin is RVA 0x25b0a0 (mfc140.dll): it falls back to this+0x70 and calls AfxOleRegisterServerClass with this+0x4c. The Unicode export has no resolved RVA, and this class stores CString rather than the retail LPCTSTR field, so keep this stub pending layout support.
-// Symbol: ?UpdateRegistry@COleObjectFactory@@QEAAXPEB_W@Z
-extern "C" void MS_ABI impl__UpdateRegistry_COleObjectFactory__QEAAXPEB_W_Z(void* pThis, void* p0) {
-    (void)pThis;
-    (void)p0;
-}
+extern "C" int MS_ABI impl__AfxOleRegisterServerClass__YAHAEBU_GUID__PEB_W11W4OLE_APPTYPE__PEAPEB_W3H1_Z(
+    const GUID* pclsid, const wchar_t* lpszClassName, const wchar_t* lpszShortTypeName,
+    const wchar_t* lpszLongTypeName, int nAppType, const wchar_t** rglpszRegister,
+    const wchar_t** rglpszOverwrite, int nIconIndex, const wchar_t* lpszLocalFilterName);
 
+// Symbol: ?UpdateRegistry@COleObjectFactory@@QEAAXPEB_W@Z
+// Retail RVA 0x25c020 (mfc140u): if lpszProgID is NULL fall back to the
+// factory's own ProgID (retail m_lpszProgID at +0x70) and return when that is
+// NULL too; otherwise AfxOleRegisterServerClass(m_clsid, progID, progID,
+// progID, OAT_DISPATCH_OBJECT (3), NULL, NULL, 0, NULL).  OpenMFC constructs
+// this object with its own layout (m_clsid/m_strProgID members) and stores a
+// NULL ProgID as an empty CString, so empty is treated as NULL here.
+extern "C" void MS_ABI impl__UpdateRegistry_COleObjectFactory__QEAAXPEB_W_Z(
+    COleObjectFactory* pThis, const wchar_t* lpszProgID) {
+    if (lpszProgID == nullptr) {
+        if (pThis->m_strProgID.IsEmpty()) return;
+        lpszProgID = static_cast<const wchar_t*>(pThis->m_strProgID);
+    }
+    impl__AfxOleRegisterServerClass__YAHAEBU_GUID__PEB_W11W4OLE_APPTYPE__PEAPEB_W3H1_Z(
+        &pThis->m_clsid, lpszProgID, lpszProgID, lpszProgID, 3, nullptr, nullptr, 0,
+        nullptr);
+}

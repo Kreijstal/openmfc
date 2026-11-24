@@ -153,24 +153,17 @@ extern "C" void* MS_ABI impl___0COleDocIPFrameWnd__QEAA_XZ(void* pThis) {
 // COleDocIPFrameWnd::~COleDocIPFrameWnd() -- retail mfc140u 0x2568c0:
 //     this->vfptr = &COleDocIPFrameWnd::`vftable';        // 0x32ed10
 //     jmp COleIPFrameWnd::~COleIPFrameWnd                 // 0x25d0d0, tail jump
-// STUB, deliberately.  The only route to the base destructor from here is the
-// impl___1COleIPFrameWnd__UEAA_XZ thunk (core/ole/Thunks.cpp:1268), which is
-// `((COleIPFrameWnd*)pThis)->~COleIPFrameWnd()` -- a VIRTUAL call; its object
-// code (build-phase4/obj/core/ole/Thunks.o) is `mov (%rcx),%rax ; jmp
-// *0x8(%rax)`.  On a client-derived object vftable slot 1 is the MSVC scalar
-// deleting destructor, which runs the client destructor, which calls this
-// export again: unbounded recursion.  A qualified, non-virtual
-// `COleIPFrameWnd::~COleIPFrameWnd()` call would be correct.  That C++
-// destructor is defined (core/ole/COleIPFrameWnd.cpp:304), but calling it
-// from here adds a new C++ undefined symbol to this object, which the per-file
-// link audit rejects.  In addition,
-// core/ole/COleDocIPFrameWndEx.cpp's destructor calls this export on an object
-// whose COleIPFrameWnd base its own ctor never constructs.  Retail's base
-// destructor (0x25d0d0) deletes m_pMainFrame / m_pDocFrame, destroys
-// m_hSharedMenu and releases m_lpFrame / m_lpDocFrame -- none of that is done.
+// COleDocIPFrameWnd adds no data members (see LAYOUT above), so the body is
+// exactly the base destructor.  It is reached through a qualified,
+// NON-virtual call to OpenMFC's C++ COleIPFrameWnd::~COleIPFrameWnd
+// (core/ole/COleIPFrameWnd.cpp), not through the impl___1COleIPFrameWnd
+// thunk: that thunk is a virtual destructor call, which on a client-derived
+// object would re-enter the client destructor and recurse.
+// DEVIATION: OpenMFC has no COleDocIPFrameWnd vftable to re-plant (see the
+// ctor note); the base destructor installs its own vptr, as MSVC does.
 // Symbol: ??1COleDocIPFrameWnd@@UEAA@XZ
 extern "C" void MS_ABI impl___1COleDocIPFrameWnd__UEAA_XZ(void* pThis) {
-    (void)pThis;
+    static_cast<COleIPFrameWnd*>(pThis)->COleIPFrameWnd::~COleIPFrameWnd();
 }
 
 // Symbol: ?BuildSharedMenu@COleDocIPFrameWnd@@MEAAHXZ

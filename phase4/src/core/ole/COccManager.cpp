@@ -426,6 +426,8 @@ struct StackMemFile {
 // BindProperty / BindDefaultProperty / EnableDSC exports are themselves stubs
 // for that reason (core/ole/COleControlSite.cpp:675-701 and :831), so there is
 // nothing here to walk or bind; the export is a no-op.
+// STUB: needs retail COleControlSiteOrWnd records in the container list and a
+// CWnd::m_pCtrlSite link (blocked on a retail-shaped COleControlSite vtable).
 extern "C" void MS_ABI impl__BindControls_COccManager__IEAAXPEAVCWnd___Z(void* pThis, CWnd* pWndParent) {
     (void)pThis;
     (void)pWndParent;
@@ -848,6 +850,7 @@ extern "C" unsigned long MS_ABI impl__GetDefBtnCode_COccManager__SAKPEAVCWnd___Z
 // and no CWnd has m_pCtrlSite, so the tab-order walk this body is built on
 // cannot be reproduced; substituting ::IsDialogMessage would invent
 // behaviour.  Returns FALSE (message not handled).
+// STUB: needs retail COleControlSiteOrWnd records + CWnd::m_pCtrlSite (see above).
 extern "C" int MS_ABI impl__IsDialogMessageW_COccManager__UEAAHPEAVCWnd__PEAUtagMSG___Z(
     void* pThis, CWnd* pWndDlg, MSG* lpMsg) {
     (void)pThis;
@@ -1232,24 +1235,51 @@ extern "C" void MS_ABI impl__UIActivateControl_COccManager__KAXPEAVCWnd___Z(CWnd
 }
 
 // Symbol: ?UIDeactivateIfNecessary@COccManager@@KAXPEAVCWnd@@0@Z
-// Not implemented.  Retail 0x241cd0 (mfc140u):
+// COccManager::UIDeactivateIfNecessary(CWnd*, CWnd*) -- retail 0x241cd0 (mfc140u):
 //   if (!pWndOldFocus || !::IsWindow(pWndOldFocus->m_hWnd) || pWndOldFocus == pWndNewFocus) return;
-//   walk pWndOldFocus up through CWnd::FromHandle(::GetParent(...)) to the first
-//   window with m_pCtrlCont(+0xc8); none -> return;
+//   walk pWndOldFocus up through CWnd::FromHandle(::GetParent(...)) (0x28ad70)
+//   to the first window with m_pCtrlCont(+0xc8); none -> return;
 //   pSiteUIActive = pCtrlCont->m_pSiteUIActive(+0xc8); pWndUIActive = NULL;
 //   if (pSiteUIActive && !pSiteUIActive->windowless(+0xb4))
 //       { pWndUIActive = CWnd::FromHandle(pSiteUIActive->m_hWnd(+0x48)); if (!pWndUIActive) return; }
 //   if (pWndNewFocus && pWndUIActive &&
 //       (pWndNewFocus == pWndUIActive || ::IsChild(pWndUIActive->m_hWnd, pWndNewFocus->m_hWnd))) return;
 //   pCtrlCont->OnUIActivate(NULL);                     // container vftable slot 26 (0xd0) = 0x236070
-// The decision hinges on the container's UI-active site.  OpenMFC keeps that
-// retail member (+0xc8) in ContainerExtra::pSiteUIActive, a file-local side
-// table inside core/ole/COleControlContainer.cpp with no accessor, so the
-// "focus is moving inside the UI-active control" exemption cannot be
-// evaluated here; calling OnUIActivate(NULL) without it would UI-deactivate a
-// control the user is tabbing into.  Left a no-op; see the headerRequest.
+// m_pCtrlCont is CWnd::GetControlContainer (OpenMFC's stand-in, see the file
+// header); the container's +0xc8 is read through GetOccContainerUIActiveSite
+// (core/ole/COleControlContainer.cpp's ContainerExtra::pSiteUIActive); the
+// site's +0xb4 flag is its m_retailTail.m_bIsWindowless, at the retail
+// offset.  OpenMFC's container has no retail-layout vtable, so OnUIActivate is
+// called through its thunk.
+namespace openmfc { namespace detail { namespace olecore {
+COleControlSite* GetOccContainerUIActiveSite(const COleControlContainer* pCont);
+} } }
+extern "C" void MS_ABI impl__OnUIActivate_COleControlContainer__UEAAXPEAVCOleControlSite___Z(
+    COleControlContainer* pThis, COleControlSite* pSite);
 extern "C" void MS_ABI impl__UIDeactivateIfNecessary_COccManager__KAXPEAVCWnd__0_Z(
     CWnd* pWndOldFocus, CWnd* pWndNewFocus) {
-    (void)pWndOldFocus;
-    (void)pWndNewFocus;
+    if (!pWndOldFocus || !::IsWindow(pWndOldFocus->m_hWnd) || pWndOldFocus == pWndNewFocus) {
+        return;
+    }
+    CWnd* pWnd = pWndOldFocus;
+    COleControlContainer* pCtrlCont;
+    while ((pCtrlCont = impl__GetControlContainer_CWnd__QEAAPEAVCOleControlContainer__XZ(pWnd)) == nullptr) {
+        pWnd = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pWnd->m_hWnd));
+        if (!pWnd) {
+            return;
+        }
+    }
+    COleControlSite* pSiteUIActive = openmfc::detail::olecore::GetOccContainerUIActiveSite(pCtrlCont);
+    CWnd* pWndUIActive = nullptr;
+    if (pSiteUIActive && !pSiteUIActive->m_retailTail.m_bIsWindowless) {
+        pWndUIActive = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(pSiteUIActive->m_hWnd);
+        if (!pWndUIActive) {
+            return;
+        }
+    }
+    if (pWndNewFocus && pWndUIActive &&
+        (pWndNewFocus == pWndUIActive || ::IsChild(pWndUIActive->m_hWnd, pWndNewFocus->m_hWnd))) {
+        return;
+    }
+    impl__OnUIActivate_COleControlContainer__UEAAXPEAVCOleControlSite___Z(pCtrlCont, nullptr);
 }

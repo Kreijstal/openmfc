@@ -147,6 +147,27 @@ extern "C" void* MS_ABI impl___0AFX_MAINTAIN_STATE2__QEAA_PEAVAFX_MODULE_STATE__
 extern "C" void MS_ABI impl___1AFX_MAINTAIN_STATE2__QEAA_XZ(void*);
 extern "C" void MS_ABI impl__OnUIActivate_COleControlContainer__UEAAXPEAVCOleControlSite___Z(
     COleControlContainer*, COleControlSite*);
+extern "C" void MS_ABI impl__OnUIDeactivate_COleControlContainer__UEAAXPEAVCOleControlSite___Z(
+    COleControlContainer*, COleControlSite*);                       // core/ole/COleControlContainer.cpp
+extern "C" void MS_ABI impl__DetachWindow_COleControlSite__QEAAXXZ(COleControlSite*);
+extern "C" void MS_ABI impl__EnableDSC_COleControlSite__UEAAXXZ(void*);
+extern "C" int MS_ABI impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(void*, void*);
+extern "C" long MS_ABI impl__CreateControlCommon_COleControlSite__MEAAJPEAVCWnd__AEBU_GUID__AEBVCControlCreationInfo__PEB_WKPEBUtagPOINT__PEBUtagSIZE__IPEAVCFile__HPEA_W_Z(
+    COleControlSite*, CWnd*, const GUID&, const CControlCreationInfo&, const wchar_t*,
+    DWORD, const POINT*, const SIZE*, UINT, CFile*, BOOL, wchar_t*);
+extern "C" long MS_ABI impl__GetBoundClientRow_CDataSourceControl__QEAAJXZ(void*);
+extern "C" long MS_ABI impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+    void*, unsigned long, unsigned long, void*, int);   // core/db/CDataSourceControl.cpp
+extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND);         // core/window/CWnd.cpp
+extern "C" CWnd* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd*);                    // core/window/Thunks.cpp
+extern "C" CDC* MS_ABI impl__FromHandle_CDC__SAPEAV1_PEAUHDC_____Z(HDC);             // core/gdi/CDC.cpp
+extern "C" int MS_ABI impl__Attach_CGdiObject__QEAAHPEAX_Z(CGdiObject*, HGDIOBJ);    // core/gdi/CGdiObject.cpp
+extern "C" CGdiObject* MS_ABI impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(HGDIOBJ);  // core/gdi/CGdiObject.cpp
+extern "C" int MS_ABI impl__SelectClipRgn_CDC__QEAAHPEAVCRgn__H_Z(CDC*, CRgn*, int); // core/gdi/CDC.cpp
+extern "C" int MS_ABI impl__Attach_CDC__QEAAHPEAUHDC_____Z(CDC*, HDC);               // core/gdi/CDCHandleMap.cpp
+extern "C" HDC MS_ABI impl__Detach_CDC__QEAAPEAUHDC____XZ(CDC*);                     // core/gdi/CDCHandleMap.cpp
+extern "C" void MS_ABI impl__HIMETRICtoDP_CDC__QEBAXPEAUtagSIZE___Z(const CDC*, SIZE*); // core/gdi/CDC.cpp
+extern "C" void MS_ABI impl__DPtoHIMETRIC_CDC__QEBAXPEAUtagSIZE___Z(const CDC*, SIZE*); // core/gdi/CDC.cpp
 
 namespace {
 
@@ -328,7 +349,171 @@ private:
     void* storage_[2]{};
 };
 
+// AFX_EVENT (afxpriv2.h), the record COleControlSite::OnEvent routes.  The
+// layout is the one the retail builders write: e.g. XNotifyDBEvents::FireEvent
+// (mfc140u 0x240800) stores kind at +0x00, dispid at +0x04, zeroes +0x08..+0x1f,
+// clears the HRESULT at +0x24 and writes DSCSTATE/DSCREASON at +0x28/+0x2c;
+// XEventSink::Invoke (0x23d1f0) fills the three pointers at +0x08/+0x10/+0x18.
+// Same layout as detail/CCmdTargetEventsSupport.h, which CCmdTarget::OnEvent
+// reads; kept local because that header is not included here.
+struct SiteEvent {
+    int           m_eventKind;      // +0x00 event / propRequest / propChanged / propDSCNotify
+    DISPID        m_dispid;         // +0x04
+    DISPPARAMS*   m_pDispParams;    // +0x08
+    EXCEPINFO*    m_pExcepInfo;     // +0x10
+    UINT*         m_puArgError;     // +0x18
+    BOOL          m_bPropChanged;   // +0x20 (no retail builder in this file writes it)
+    HRESULT       m_hResult;        // +0x24
+    int           m_nDSCState;      // +0x28
+    int           m_nDSCReason;     // +0x2c
+};
+static_assert(offsetof(SiteEvent, m_dispid) == 0x04, "AFX_EVENT::m_dispid");
+static_assert(offsetof(SiteEvent, m_pDispParams) == 0x08, "AFX_EVENT::m_pDispParams");
+static_assert(offsetof(SiteEvent, m_pExcepInfo) == 0x10, "AFX_EVENT::m_pExcepInfo");
+static_assert(offsetof(SiteEvent, m_puArgError) == 0x18, "AFX_EVENT::m_puArgError");
+static_assert(offsetof(SiteEvent, m_hResult) == 0x24, "AFX_EVENT::m_hResult");
+static_assert(offsetof(SiteEvent, m_nDSCState) == 0x28, "AFX_EVENT::m_nDSCState");
+static_assert(offsetof(SiteEvent, m_nDSCReason) == 0x2c, "AFX_EVENT::m_nDSCReason");
+static_assert(sizeof(SiteEvent) == 0x30, "AFX_EVENT size");
+
+SiteEvent MakeSiteEvent(int kind, DISPID dispid) {
+    SiteEvent e;
+    e.m_eventKind = kind;
+    e.m_dispid = dispid;
+    e.m_pDispParams = nullptr;
+    e.m_pExcepInfo = nullptr;
+    e.m_puArgError = nullptr;
+    e.m_bPropChanged = FALSE;
+    e.m_hResult = S_OK;
+    e.m_nDSCState = 0;   // dscNoState
+    e.m_nDSCReason = 0;  // dscNoReason
+    return e;
+}
+
+// CDataSourceControl as COleControlSite's notification sinks touch it.  The
+// layout and the vtable slot order are those pinned in core/db/
+// CDataSourceControl.cpp (retail vftable mfc140u 0x18032b4d0, whose order
+// OpenMFC's g_dataSourceControlVtbl reproduces):
+//   +0x88 m_bUpdateInProgress, +0xa0 m_pRowset (CRowset, m_hRow at +0x18);
+//   slot 2 BindProp(CDataBoundProperty*, BOOL), slot 3 BindProp(COleControlSite*,
+//   BOOL), slot 4 BindColumns, slot 5 UpdateControls, slot 6 UpdateCursor.
+struct SiteDscView {
+    void** vfptr;
+    BYTE   m_reserved_08[0x80];
+    DWORD  m_bUpdateInProgress;   // +0x88
+    DWORD  m_reserved_8c;
+    void*  m_reserved_90[2];
+    BYTE*  m_pRowset;             // +0xa0
+};
+static_assert(offsetof(SiteDscView, m_bUpdateInProgress) == 0x88, "CDataSourceControl +0x88");
+static_assert(offsetof(SiteDscView, m_pRowset) == 0xa0, "CDataSourceControl +0xa0");
+constexpr size_t kRowsetHRowOffset = 0x18;   // CRowset::m_hRow, asserted in CDataSourceControl.cpp
+
+using DscBindPropFn = void (MS_ABI*)(void*, void*, int);
+using DscNoArgFn = long (MS_ABI*)(void*);
+using DscVoidFn = void (MS_ABI*)(void*);
+
+void DscBindPropProperty(void* pDsc, void* pProperty, int bBind) {   // slot 2
+    reinterpret_cast<DscBindPropFn>(static_cast<SiteDscView*>(pDsc)->vfptr[2])(pDsc, pProperty, bBind);
+}
+void DscBindPropSite(void* pDsc, void* pSite, int bBind) {           // slot 3
+    reinterpret_cast<DscBindPropFn>(static_cast<SiteDscView*>(pDsc)->vfptr[3])(pDsc, pSite, bBind);
+}
+void DscBindColumns(void* pDsc) {                                    // slot 4
+    reinterpret_cast<DscVoidFn>(static_cast<SiteDscView*>(pDsc)->vfptr[4])(pDsc);
+}
+long DscUpdateControls(void* pDsc) {                                 // slot 5
+    return reinterpret_cast<DscNoArgFn>(static_cast<SiteDscView*>(pDsc)->vfptr[5])(pDsc);
+}
+long DscUpdateCursor(void* pDsc) {                                   // slot 6
+    return reinterpret_cast<DscNoArgFn>(static_cast<SiteDscView*>(pDsc)->vfptr[6])(pDsc);
+}
+
+// Retail site+0xd8 (m_pDataSourceControl).  EnableDSC stores the object in the
+// RetailTailStorage member at that very offset (and in SiteExtra, which owns it).
+void* SiteDataSourceControl(COleControlSite* pSite) {
+    return pSite->m_retailTail.m_pDataSourceControl;
+}
+
+// The owner of an MFC nested interface part: retail METHOD_PROLOGUE subtracts
+// the part's fixed offset (table in the nested-interface banner below).
+COleControlSite* SiteFromPart(void* pPart, size_t offset) {
+    return reinterpret_cast<COleControlSite*>(static_cast<char*>(pPart) - offset);
+}
+
+HWND SiteContainerHwnd(COleControlSite* pSite) {
+    // retail: m_pCtrlCont(+0x40)->m_pWnd(+0x40)->m_hWnd(+0x40), no null checks
+    return pSite->m_pCtrlCont->m_pWnd->m_hWnd;
+}
+
+// Container members retail COleControlContainer keeps at +0xd0 (the site that
+// holds the mouse capture; written by XOleIPSite::SetCapture 0x23cb30, read by
+// XOleIPSite::GetCapture) and +0xe0 (the count of windowless-active sites;
+// incremented by XOleIPSite::OnInPlaceActivateEx 0x23c640, decremented by
+// OnInPlaceDeactivate 0x23c4e0).  OpenMFC's container declares neither, so
+// they live in this container-keyed list; the external helpers after this
+// namespace expose them to core/ole/COleControlContainer.cpp.
+struct OccContainerSiteState {
+    const COleControlContainer* owner;
+    OccContainerSiteState* next;
+    COleControlSite* captureSite;
+    int windowlessCount;
+};
+OccContainerSiteState* g_occContainerSiteStateHead = nullptr;
+
+OccContainerSiteState* FindOccContainerSiteState(const COleControlContainer* pCont, bool create) {
+    for (OccContainerSiteState* p = g_occContainerSiteStateHead; p; p = p->next) {
+        if (p->owner == pCont) return p;
+    }
+    if (!create) return nullptr;
+    OccContainerSiteState* p = new OccContainerSiteState();
+    p->owner = pCont;
+    p->next = g_occContainerSiteStateHead;
+    p->captureSite = nullptr;
+    p->windowlessCount = 0;
+    g_occContainerSiteStateHead = p;
+    return p;
+}
+
+// A destroyed site must not stay recorded as a container's capture site.
+void ForgetCaptureSite(const COleControlSite* pSite) {
+    for (OccContainerSiteState* p = g_occContainerSiteStateHead; p; p = p->next) {
+        if (p->captureSite == pSite) p->captureSite = nullptr;
+    }
+}
+
 }  // namespace
+
+namespace openmfc { namespace detail { namespace olecore {
+COleControlSite* GetOccContainerCaptureSite(const COleControlContainer* pCont) {
+    OccContainerSiteState* p = FindOccContainerSiteState(pCont, false);
+    return p ? p->captureSite : nullptr;
+}
+void SetOccContainerCaptureSite(COleControlContainer* pCont, COleControlSite* pSite) {
+    if (pCont) FindOccContainerSiteState(pCont, true)->captureSite = pSite;
+}
+int GetOccContainerWindowlessCount(const COleControlContainer* pCont) {
+    OccContainerSiteState* p = FindOccContainerSiteState(pCont, false);
+    return p ? p->windowlessCount : 0;
+}
+void AdjustOccContainerWindowlessCount(COleControlContainer* pCont, int delta) {
+    if (pCont) FindOccContainerSiteState(pCont, true)->windowlessCount += delta;
+}
+void ReleaseOccContainerSiteState(const COleControlContainer* pCont) {
+    OccContainerSiteState** pp = &g_occContainerSiteStateHead;
+    while (*pp) {
+        if ((*pp)->owner == pCont) {
+            OccContainerSiteState* dead = *pp;
+            *pp = dead->next;
+            delete dead;
+            return;
+        }
+        pp = &(*pp)->next;
+    }
+}
+// Defined in core/ole/COleControlContainer.cpp (retail container +0xd8).
+void SetOccContainerFocusSite(COleControlContainer* pCont, COleControlSite* pSite);
+} } }
 
 
 
@@ -370,6 +555,7 @@ COleControlSite::~COleControlSite() {
     DestroyControl();
     RemoveControlSiteState(this);
     RemoveSiteExtra(this);
+    ForgetCaptureSite(this);
 }
 BOOL COleControlSite::CreateControl(CWnd* pWndCtrl, REFCLSID clsid, const wchar_t* lpszWindowName,
                                      DWORD dwStyle, const RECT& rect, UINT nID, CFile* pPersist,
@@ -677,40 +863,47 @@ LPDISPATCH COleControlSite::GetDispatch() {
 }
 
 // === Moved from ManualThunks.cpp ===
-// Symbol: ?CreateControl@COleControlSite@@QEAAJPEAVCWnd@@AEBVCControlCreationInfo@@KPEBUtagPOINT@@PEBUtagSIZE@@I@Z
-// Signature corrected from the mangled export; body intentionally remains a stub.
+// COleControlSite::CreateControl(CWnd*, const CControlCreationInfo&, ...) —
+// mfc140u 0x239c00 is a forwarder to CreateControlCommon (vtable slot 0x198):
+//   return CreateControlCommon(pWndCtrl, creationInfo.m_clsid (+0x10), creationInfo,
+//                              NULL, dwStyle, ppt, psize, nID, NULL, FALSE, NULL);
+// OpenMFC calls the CreateControlCommon thunk directly (no retail vtable).
 extern "C" long MS_ABI impl__CreateControl_COleControlSite__QEAAJPEAVCWnd__AEBVCControlCreationInfo__KPEBUtagPOINT__PEBUtagSIZE__I_Z(
     COleControlSite* pThis, CWnd* pWndCtrl, const CControlCreationInfo& creationInfo,
     DWORD dwStyle, const POINT* ppt, const SIZE* psize, UINT nID) {
-    (void)pThis;
-    (void)pWndCtrl;
-    (void)creationInfo;
-    (void)dwStyle;
-    (void)ppt;
-    (void)psize;
-    (void)nID;
-    return 0L;
+    const GUID& clsid = *reinterpret_cast<const GUID*>(
+        reinterpret_cast<const BYTE*>(&creationInfo) + 0x10);
+    return impl__CreateControlCommon_COleControlSite__MEAAJPEAVCWnd__AEBU_GUID__AEBVCControlCreationInfo__PEB_WKPEBUtagPOINT__PEBUtagSIZE__IPEAVCFile__HPEA_W_Z(
+        pThis, pWndCtrl, clsid, creationInfo, nullptr, dwStyle, ppt, psize, nID,
+        nullptr, FALSE, nullptr);
 }
 
 
-// Symbol: ?CreateControl@COleControlSite@@UEAAJPEAVCWnd@@AEBU_GUID@@PEB_WKPEBUtagPOINT@@PEBUtagSIZE@@IPEAVCFile@@HPEA_W@Z
-// Signature corrected from the mangled export; body intentionally remains a stub.
+// COleControlSite::CreateControl(CWnd*, REFCLSID, ...) — mfc140u 0x239b30
+// builds a default CControlCreationInfo on the stack (m_hk = NullHandle (2) at
+// +0x00, m_nHandle = 0 at +0x08; the CLSID at +0x10 is left unwritten) and
+// forwards every argument to CreateControlCommon (vtable slot 0x198).  The
+// local record follows the layout pinned in detail/CControlCreationInfoSupport.h;
+// its unread CLSID is zeroed here.
 extern "C" long MS_ABI impl__CreateControl_COleControlSite__UEAAJPEAVCWnd__AEBU_GUID__PEB_WKPEBUtagPOINT__PEBUtagSIZE__IPEAVCFile__HPEA_W_Z(
     COleControlSite* pThis, CWnd* pWndCtrl, const GUID& clsid, const wchar_t* lpszWindowName,
     DWORD dwStyle, const POINT* ppt, const SIZE* psize, UINT nID, CFile* pPersist,
     BOOL bStorage, wchar_t* bstrLicKey) {
-    (void)pThis;
-    (void)pWndCtrl;
-    (void)clsid;
-    (void)lpszWindowName;
-    (void)dwStyle;
-    (void)ppt;
-    (void)psize;
-    (void)nID;
-    (void)pPersist;
-    (void)bStorage;
-    (void)bstrLicKey;
-    return 0L;
+    struct CreationInfoRecord {
+        int m_hk;
+        int m_pad;
+        INT_PTR m_nHandle;
+        CLSID m_clsid;
+    };
+    static_assert(offsetof(CreationInfoRecord, m_nHandle) == 0x08, "CControlCreationInfo::m_nHandle");
+    static_assert(offsetof(CreationInfoRecord, m_clsid) == 0x10, "CControlCreationInfo::m_clsid");
+    static_assert(sizeof(CreationInfoRecord) == 0x20, "CControlCreationInfo size");
+    CreationInfoRecord info = {};
+    info.m_hk = 2;   // CControlCreationInfo::NullHandle
+    info.m_nHandle = 0;
+    return impl__CreateControlCommon_COleControlSite__MEAAJPEAVCWnd__AEBU_GUID__AEBVCControlCreationInfo__PEB_WKPEBUtagPOINT__PEBUtagSIZE__IPEAVCFile__HPEA_W_Z(
+        pThis, pWndCtrl, clsid, *reinterpret_cast<const CControlCreationInfo*>(&info),
+        lpszWindowName, dwStyle, ppt, psize, nID, pPersist, bStorage, bstrLicKey);
 }
 
 
@@ -747,32 +940,117 @@ extern "C" void MS_ABI impl__AttachWindow_COleControlSite__QEAAXXZ(COleControlSi
     pThis->m_hWnd = hWnd;
 }
 
-// Symbol: ?BindDefaultProperty@COleControlSite@@UEAAXJGPEB_WPEAVCWnd@@@Z
-// Not implemented.  Retail mfc140u.dll 0x23c050 keeps the default binding in
-// four members OpenMFC's COleControlSite does not have: a data-source-control
-// site pointer (+0xe8), the bound dispid (+0xf0), its VARTYPE (+0xf4) and the
-// field-name CString (+0xf8).  It unbinds whatever is already there (two
-// virtual calls on site(+0xe8)->(+0xd8)), then, when pDSCWnd is non-null,
-// takes pDSCWnd->m_pCtrlSite (CWnd+0xd0), calls EnableDSC() on it (vtable slot
-// 0x178), stores it plus the dispid/VARTYPE/field name, and rebinds.  With no
-// member to hold any of that, there is nothing to bind to here.
+// COleControlSite::BindDefaultProperty() — mfc140u 0x23c050:
+//   if (m_pDSCSite(+0xe8)) {
+//       m_pDSCSite->m_pDataSourceControl(+0xd8)->BindProp(this, FALSE);   // slot 3
+//       m_pDSCSite->m_pDataSourceControl->BindColumns();                  // slot 4
+//       m_pDSCSite = NULL;
+//   }
+//   if (pDSCWnd) {
+//       pDSCWnd->m_pCtrlSite(CWnd+0xd0)->EnableDSC();                     // slot 0x178
+//       m_pDSCSite = pDSCWnd->m_pCtrlSite;
+//       m_defdispid(+0xf0) = dispid;  m_dwType(+0xf4) = vtProp;
+//       m_strDataField(+0xf8).SetString(lpszFieldName, lpszFieldName ? wcslen : 0);
+//       m_pDSCSite->m_pDataSourceControl->BindProp(this, TRUE);           // slot 3
+//       m_pDSCSite->m_pDataSourceControl->BindColumns();                  // slot 4
+//   }
+// +0xd8/+0xe8/+0xf0/+0xf4 are RetailTailStorage fields at those offsets.  The
+// tail's +0xf8 CString storage is raw (never constructed), so the field name is
+// kept in OleControlSiteState::dataField.  EnableDSC is called through its
+// thunk.  Retail dereferences a null pDSCWnd->m_pCtrlSite; that case returns.
 extern "C" void MS_ABI impl__BindDefaultProperty_COleControlSite__UEAAXJGPEB_WPEAVCWnd___Z(
     void* pThis, long dispid, unsigned short vtProp, const wchar_t* lpszFieldName, void* pDSCWnd) {
-    (void)pThis; (void)dispid; (void)vtProp; (void)lpszFieldName; (void)pDSCWnd;
+    COleControlSite* pSite = static_cast<COleControlSite*>(pThis);
+    COleControlSite::RetailTailStorage& tail = pSite->m_retailTail;
+    if (tail.m_pDSCSiteOrRowSource) {
+        COleControlSite* pOld = static_cast<COleControlSite*>(tail.m_pDSCSiteOrRowSource);
+        DscBindPropSite(SiteDataSourceControl(pOld), pSite, FALSE);
+        DscBindColumns(SiteDataSourceControl(pOld));
+        tail.m_pDSCSiteOrRowSource = nullptr;
+    }
+    if (!pDSCWnd) return;
+    COleControlSite* pDscSite = static_cast<CWnd*>(pDSCWnd)->m_pCtrlSite;
+    if (!pDscSite) return;
+    impl__EnableDSC_COleControlSite__UEAAXXZ(pDscSite);
+    tail.m_pDSCSiteOrRowSource = pDscSite;
+    tail.m_defdispid = dispid;
+    tail.m_dwType = vtProp;
+    GetOleControlSiteState(pSite, true)->dataField = lpszFieldName ? lpszFieldName : L"";
+    DscBindPropSite(SiteDataSourceControl(pDscSite), pSite, TRUE);
+    DscBindColumns(SiteDataSourceControl(pDscSite));
 }
 
-// Symbol: ?BindProperty@COleControlSite@@UEAAXJPEAVCWnd@@@Z
-// Not implemented.  Retail 0x23a770 (mfc140u.dll 0x23c170) allocates a
-// 0x28-byte CDataBoundProperty node, pushes it onto the site's bound-property
-// list at +0xe0 (dispid at node+0xc, DSC site at node+0x10, next at node+0x20),
-// points it at the data-source control reached through pWndDSC->m_pCtrlSite
-// (CWnd+0xd0) and calls EnableDSC() on that site (vtable slot 0x178); a null
-// pWndDSC or dispid == -1 takes the other branch, which walks the list and
-// unlinks the matching node instead.  OpenMFC implements CDataBoundProperty,
-// but COleControlSite has no corresponding list/member to own these nodes.
+// COleControlSite::BindProperty() — mfc140u 0x23c170.  The bound-property
+// list head is m_pBindings (+0xe0), whose nodes are 0x28-byte
+// CDataBoundProperty records (layout pinned in core/ole/CDataBoundProperty.cpp:
+// m_pClientSite +0x00, m_ctlid +0x08, m_dispid +0x0c, m_pDSCSite +0x10,
+// m_bIsDirty +0x1c, m_pNext +0x20).
+//   if (pWndDSC && dispid != DISPID_UNKNOWN (-1)) {
+//       node = new CDataBoundProperty(m_pBindings, dispid, 0);   // inlined ctor
+//       m_pBindings = node;
+//       node->m_pDSCSite = pWndDSC->m_pCtrlSite(CWnd+0xd0);
+//       node->m_pClientSite = this;
+//       node->m_pDSCSite->EnableDSC();                              // slot 0x178
+//       node->m_pDSCSite->m_pDataSourceControl(+0xd8)->BindProp(node, TRUE);  // slot 2
+//   } else {
+//       walk m_pBindings for the first node with (dispid == -1 || node->m_dispid
+//       == dispid) && (!pWndDSC || node->m_pDSCSite == pWndDSC->m_pCtrlSite);
+//       unlink it; if (node->m_pDSCSite && its m_pDataSourceControl)
+//           ->BindProp(node, FALSE);                                // slot 2
+//       operator delete(node, 0x28);
+//   }
 extern "C" void MS_ABI impl__BindProperty_COleControlSite__UEAAXJPEAVCWnd___Z(
     void* pThis, long dispid, void* pDSCWnd) {
-    (void)pThis; (void)dispid; (void)pDSCWnd;
+    struct BoundPropertyNode {
+        COleControlSite* m_pClientSite;
+        WORD m_ctlid;
+        DISPID m_dispid;
+        COleControlSite* m_pDSCSite;
+        BOOL m_bOwnXferOut;
+        BOOL m_bIsDirty;
+        BoundPropertyNode* m_pNext;
+    };
+    static_assert(offsetof(BoundPropertyNode, m_ctlid) == 0x08, "CDataBoundProperty::m_ctlid");
+    static_assert(offsetof(BoundPropertyNode, m_dispid) == 0x0c, "CDataBoundProperty::m_dispid");
+    static_assert(offsetof(BoundPropertyNode, m_pDSCSite) == 0x10, "CDataBoundProperty::m_pDSCSite");
+    static_assert(offsetof(BoundPropertyNode, m_bIsDirty) == 0x1c, "CDataBoundProperty::m_bIsDirty");
+    static_assert(offsetof(BoundPropertyNode, m_pNext) == 0x20, "CDataBoundProperty::m_pNext");
+    static_assert(sizeof(BoundPropertyNode) == 0x28, "CDataBoundProperty size");
+
+    COleControlSite* pSite = static_cast<COleControlSite*>(pThis);
+    void*& head = pSite->m_retailTail.m_pBindings;
+    CWnd* pWnd = static_cast<CWnd*>(pDSCWnd);
+    if (pWnd && dispid != -1) {
+        BoundPropertyNode* node = static_cast<BoundPropertyNode*>(impl___2_YAPEAX_K_Z(0x28));
+        if (!node) return;
+        node->m_ctlid = 0;
+        node->m_pDSCSite = nullptr;
+        node->m_bIsDirty = FALSE;
+        node->m_pNext = static_cast<BoundPropertyNode*>(head);
+        node->m_pClientSite = nullptr;
+        node->m_dispid = dispid;
+        head = node;
+        node->m_pDSCSite = pWnd->m_pCtrlSite;
+        node->m_pClientSite = pSite;
+        impl__EnableDSC_COleControlSite__UEAAXXZ(node->m_pDSCSite);
+        DscBindPropProperty(SiteDataSourceControl(node->m_pDSCSite), node, TRUE);
+        return;
+    }
+    BoundPropertyNode* prev = nullptr;
+    for (BoundPropertyNode* node = static_cast<BoundPropertyNode*>(head); node; node = node->m_pNext) {
+        if ((dispid == -1 || node->m_dispid == dispid) &&
+            (!pWnd || node->m_pDSCSite == pWnd->m_pCtrlSite)) {
+            if (prev) prev->m_pNext = node->m_pNext;
+            else head = node->m_pNext;
+            if (node->m_pDSCSite) {
+                void* pDsc = SiteDataSourceControl(node->m_pDSCSite);
+                if (pDsc) DscBindPropProperty(pDsc, node, FALSE);
+            }
+            impl___3_YAXPEAX_Z(node);
+            return;
+        }
+        prev = node;
+    }
 }
 
 // Symbol: ?ConnectSink@COleControlSite@@IEAAKAEBU_GUID@@PEAUIUnknown@@@Z
@@ -923,6 +1201,8 @@ extern "C" void MS_ABI impl__EnableDSC_COleControlSite__UEAAXXZ(void* pThis) {
         extra.dataSourceControl = pDataSourceControl;
         GetOleControlSiteState(static_cast<COleControlSite*>(pThis), true)->dataSourceControl =
             pDataSourceControl;
+        // retail +0xd8, which RetailTailStorage overlays at the same offset
+        static_cast<COleControlSite*>(pThis)->m_retailTail.m_pDataSourceControl = pDataSourceControl;
     }
     impl__Initialize_CDataSourceControl__QEAAJXZ(pDataSourceControl);
 }
@@ -1268,35 +1548,47 @@ extern "C" void MS_ABI impl__MoveWindow_COleControlSite__UEAAXHHHH_Z(
     pThis->m_lpInPlaceObject->SetObjectRects(&rect, &rect);
 }
 
-// Symbol: ?OnEvent@COleControlSite@@IEAAHPEAUAFX_EVENT@@@Z
-// Not implemented.  Retail 0x239b50 (mfc140u.dll 0x23b550) routes the event
-// through OnCmdMsg(m_nID(+0x58), CN_EVENT (-2), pEvent, NULL) — vtable slot
-// 0x28 — first on the retail m_pWndCtrl(+0x50); if that returns non-zero it
-// returns TRUE, otherwise it repeats the same call on
-// m_pCtrlCont(+0x40)->m_pWnd(+0x40) and returns *that* call's result verbatim
-// (0x239bdd jumps past the `mov $1,%eax`).  With neither window it throws.
-// OpenMFC has no m_pWndCtrl and no CN_EVENT command route carrying an
-// AFX_EVENT, so no handler can ever claim the event; FALSE is what retail's
-// own second branch produces in exactly that situation, so that is what is
-// returned rather than an invented TRUE.
+// COleControlSite::OnEvent() — mfc140u 0x23b550:
+//   if (m_pWndCtrl(+0x50) &&
+//       m_pWndCtrl->OnCmdMsg(m_nID(+0x58), CN_EVENT (-2), pEvent, NULL))  // slot 5
+//       return TRUE;
+//   if (!m_pCtrlCont(+0x40) || !m_pCtrlCont->m_pWnd(+0x40))
+//       AfxThrowInvalidArgException();
+//   return m_pCtrlCont->m_pWnd->OnCmdMsg(m_nID, CN_EVENT, pEvent, NULL);
+// m_pWndCtrl and m_nID live in OleControlSiteState (see the map at the top of
+// the file); OnCmdMsg is reached through CWnd vtable slot 5, as retail does.
 extern "C" int MS_ABI impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(void* pThis, void* pEvent) {
-    (void)pThis; (void)pEvent;
-    return FALSE;
+    using OnCmdMsgFn = int (MS_ABI*)(void*, unsigned int, int, void*, void*);
+    COleControlSite* pSite = static_cast<COleControlSite*>(pThis);
+    OleControlSiteState* state = GetOleControlSiteState(pSite, false);
+    CWnd* pWndCtrl = state ? state->windowControl : nullptr;
+    const UINT nID = SiteControlId(pSite);
+    if (pWndCtrl) {
+        OnCmdMsgFn pfn = reinterpret_cast<OnCmdMsgFn>((*reinterpret_cast<void***>(pWndCtrl))[5]);
+        if (pfn(pWndCtrl, nID, -2, pEvent, nullptr)) return TRUE;
+    }
+    if (!pSite->m_pCtrlCont || !pSite->m_pCtrlCont->m_pWnd) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return FALSE;
+    }
+    CWnd* pWnd = pSite->m_pCtrlCont->m_pWnd;
+    OnCmdMsgFn pfn = reinterpret_cast<OnCmdMsgFn>((*reinterpret_cast<void***>(pWnd))[5]);
+    return pfn(pWnd, nID, -2, pEvent, nullptr);
 }
 
-// Symbol: ?QuickActivate@COleControlSite@@UEAAHXZ
-// Stub retained: the --u lookup has no mapped RVA; the ANSI twin was
-// disassembled at mfc140.dll RVA 0x238a70. Retail throws for a null m_pObject
-// and returns FALSE when QueryInterface(IQuickActivate) fails. On success it
-// builds a QACONTAINER using site subobjects at +0x138, +0x158 and +0x160,
-// queries ambient properties and calls IQuickActivate::QuickActivate. A null
-// object, a null QI result after success, or a missing container/window throws;
-// failed QueryInterface(IQuickActivate) or QuickActivate returns FALSE.
-// Successful activation caches misc status and sink cookies. OpenMFC's
-// ControlSiteAdapter (defined
-// in detail/OlecoreSupport.h) lacks the property-notify/event sink interfaces
-// and cannot preserve those site fields, so this body cannot safely reproduce
-// the retail path and remains a FALSE stub.
+// COleControlSite::QuickActivate() — mfc140u 0x23a470.  Throws for a null
+// m_pObject (+0x80); QueryInterface(IID_IQuickActivate) failing returns FALSE.
+// It then fills a 0x70-byte QACONTAINER whose pClientSite, pPropertyNotifySink
+// and pUnkEventSink are the site's nested interface parts at +0x138, +0x158 and
+// +0x160, gathers eight ambient properties (table at 0x18034d860) plus
+// DISPID_AMBIENT_BACKCOLOR/FORECOLOR/APPEARANCE/LOCALEID/FONT through the
+// container window's CWnd::OnAmbientProperty (vtable byte 0x230), calls
+// IQuickActivate::QuickActivate(&qaContainer, &qaControl) and on success caches
+// qaControl.dwMiscStatus/dwEventCookie/dwPropNotifyCookie into +0xb0/+0xa0/+0xa4
+// and returns TRUE.
+// STUB: OpenMFC's COleControlSite constructor installs no COM vtables at the
+// +0x138/+0x158/+0x160 parts, so there are no IOleClientSite/IPropertyNotifySink/
+// event-sink pointers to hand the control.
 extern "C" int MS_ABI impl__QuickActivate_COleControlSite__UEAAHXZ(void* pThis) {
     (void)pThis;
     return FALSE;
@@ -1415,28 +1707,31 @@ extern "C" int MS_ABI impl__SetExtent_COleControlSite__IEAAHXZ(COleControlSite* 
     return SUCCEEDED(hr);
 }
 
-// Symbol: ?SetFocus@COleControlSite@@UEAAPEAVCWnd@@PEAUtagMSG@@@Z
-// COleControlSite::SetFocus(MSG*) — retail 0x23a560:
-//   if ((m_dwMiscStatus(+0xb0) & OLEMISC_NOUIACTIVATE) && *(int*)(this+0xb4) == 0)
+// COleControlSite::SetFocus(MSG*) — mfc140u 0x23bf60:
+//   if ((m_dwMiscStatus(+0xb0) & OLEMISC_NOUIACTIVATE) && !m_bIsWindowless(+0xb4))
 //       return CWnd::FromHandle(::SetFocus(m_hWnd(+0x48)));
 //   CWnd* pOld = CWnd::FromHandle(::GetFocus());
 //   if (!(m_dwMiscStatus & OLEMISC_INVISIBLEATRUNTIME))
 //       if (SUCCEEDED(DoVerb(OLEIVERB_UIACTIVATE, pMsg)))     // vtable slot 0xc8
-//           m_pCtrlCont(+0x40)->m_pSiteUIActive(+0xd8) = this;
+//           m_pCtrlCont(+0x40)->m_pSiteFocus(+0xd8) = this;
 //   return pOld;
-// OpenMFC's COleControlContainer has no UI-active-site member, so that
-// bookkeeping is dropped; the +0xb4 windowless-active flag is replaced by "the site
-// has a window", as elsewhere in this class.
+// The windowless-active flag is the RetailTailStorage member at +0xb4 (set by
+// XOleIPSite::OnInPlaceActivateEx); the container's focus site is modelled by
+// core/ole/COleControlContainer.cpp (SetOccContainerFocusSite).  The misc
+// status is queried on demand (SiteMiscStatus).
 extern "C" CWnd* MS_ABI impl__SetFocus_COleControlSite__UEAAPEAVCWnd__PEAUtagMSG___Z(
     COleControlSite* pThis, MSG* pMsg) {
     if (!pThis) return nullptr;
     const DWORD dwMisc = SiteMiscStatus(pThis);
-    if ((dwMisc & OLEMISC_NOUIACTIVATE) && pThis->m_hWnd) {
+    if ((dwMisc & OLEMISC_NOUIACTIVATE) && !pThis->m_retailTail.m_bIsWindowless) {
         return CWnd::FromHandle(::SetFocus(pThis->m_hWnd));
     }
     CWnd* pOldFocus = CWnd::FromHandle(::GetFocus());
     if (!(dwMisc & OLEMISC_INVISIBLEATRUNTIME)) {
-        impl__DoVerb_COleControlSite__UEAAJJPEAUtagMSG___Z(pThis, OLEIVERB_UIACTIVATE, pMsg);
+        if (SUCCEEDED(impl__DoVerb_COleControlSite__UEAAJJPEAUtagMSG___Z(pThis, OLEIVERB_UIACTIVATE, pMsg)) &&
+            pThis->m_pCtrlCont) {
+            SetOccContainerFocusSite(pThis->m_pCtrlCont, pThis);
+        }
     }
     return pOldFocus;
 }
@@ -1555,40 +1850,27 @@ extern "C" int MS_ABI impl__ShowWindow_COleControlSite__UEAAHH_Z(COleControlSite
     return bWasVisible;
 }
 
-// Symbol: ?AboutToDo@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
-// Not implemented.  Retail 0x23ebc0 is a nested-interface method.  Its
-// METHOD_PROLOGUE compiles down to a single load: `mov -0x138(%rcx),%rdx`
-// fetches the owning site's m_pModuleState (the site sits at a fixed negative
-// displacement from the subobject; only the module-state pointer is actually
-// materialised), which is handed to the AFX_MAINTAIN_STATE2 constructor at
-// 0x133df0.  It then calls ?FireEvent@XNotifyDBEvents@COleControlSite@@ at
-// 0x23ee00 -- on the subobject itself, not on the site -- with phase 4 pushed
-// at [rsp+0x20], and returns that HRESULT only when it is negative (cmovs),
-// S_OK otherwise.  OpenMFC never constructs this nested subobject: its client
-// site is the separate heap-allocated detail::ControlSiteAdapter, so `this`
-// here would not point at anything usable.
+// COleControlSite::XNotifyDBEvents::AboutToDo() — mfc140u 0x2405c0: module
+// state scope, FireEvent(..., dscAboutToDo (4)); a negative HRESULT is
+// returned, anything else becomes S_OK (`cmovs`).
 extern "C" long MS_ABI impl__AboutToDo_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
-    void* pThis, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
-    (void)pThis; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
-    return S_OK;
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons) {
+    SiteModuleStateGuard stateGuard(SiteFromPart(pThisItf, 0x170)->m_pModuleState);
+    long hr = impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+        pThisItf, dwEventWhat, cReasons, rgReasons, 4);
+    return hr < 0 ? hr : S_OK;
 }
 
-// Symbol: ?AdjustRect@XOleIPSite@COleControlSite@@UEAAJPEAUtagRECT@@@Z
-// COleControlSite::XOleIPSite::AdjustRect() — retail mfc140u.dll 0x23c710
-// (this symbol has no RVA in mfc140.dll's map; the Unicode build has it).
-// The whole body is METHOD_PROLOGUE around `return E_NOTIMPL;` — the rectangle
-// argument is never touched.  The prologue compiles to one load,
-// `mov -0x108(%rcx),%rdx`, which fetches the owning site's m_pModuleState (the
-// site itself is never materialised) and hands it to the AFX_MAINTAIN_STATE2
-// constructor at 0x133170; the epilogue pops that state again.  The module
-// state juggling has no OpenMFC equivalent and nothing observable depends on
-// it here, so only the return value is reproduced.  mfc140u folds this body
-// with XOleIPSite::ScrollRect, so an RVA-to-name lookup on 0x23c710 answers
-// with that name instead; the symbol-to-RVA direction is the reliable one.
+// COleControlSite::XOleIPSite::AdjustRect() — mfc140u 0x23c710, the body the
+// linker folded for XOleIPSite AdjustRect/GetFocus/ScrollRect/
+// OnDefWindowMessage: AFX_MAINTAIN_STATE2 on the owning site's m_pModuleState
+// (`mov -0x108(%rcx)` = part+0x140 -> site+0x38) around `return E_NOTIMPL`.
+// lprcRect is neither read nor written.
 extern "C" long MS_ABI impl__AdjustRect_XOleIPSite_COleControlSite__UEAAJPEAUtagRECT___Z(
-    void* pThis, RECT* prc) {
-    (void)pThis; (void)prc;
-    return E_NOTIMPL;   // retail: mov $0x80004001,%eax at 0x23c738
+    void* pThisItf, RECT* lprcRect) {
+    (void)lprcRect;
+    SiteModuleStateGuard stateGuard(SiteFromPart(pThisItf, 0x140)->m_pModuleState);
+    return E_NOTIMPL;
 }
 
 // Symbol: ?CanInPlaceActivate@XOleIPSite@COleControlSite@@UEAAJXZ
@@ -1614,13 +1896,15 @@ extern "C" long MS_ABI impl__CanWindowlessActivate_XOleIPSite_COleControlSite__U
     return S_OK;
 }
 
-// Symbol: ?Cancelled@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
-// Not implemented, for the same reason as XNotifyDBEvents::AboutToDo above.
-// Retail 0x23eac0 is the identical body with phase 2 instead of phase 4.
+// COleControlSite::XNotifyDBEvents::Cancelled() — mfc140u 0x2404c0: module
+// state scope, FireEvent(..., dscCancelled (2)), and `cmovs`: the HRESULT is
+// returned only when negative, S_OK otherwise.
 extern "C" long MS_ABI impl__Cancelled_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
-    void* pThis, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
-    (void)pThis; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
-    return S_OK;
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons) {
+    SiteModuleStateGuard stateGuard(SiteFromPart(pThisItf, 0x170)->m_pModuleState);
+    long hr = impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+        pThisItf, dwEventWhat, cReasons, rgReasons, 2);
+    return hr < 0 ? hr : S_OK;
 }
 
 // Symbol: ?ContextSensitiveHelp@XOleIPSite@COleControlSite@@UEAAJH@Z
@@ -1713,22 +1997,30 @@ extern "C" long MS_ABI impl__DeactivateAndUndo_XOleIPSite_COleControlSite__UEAAJ
     return S_OK;
 }
 
-// Symbol: ?DidEvent@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
-// COleControlSite::XNotifyDBEvents::DidEvent() — retail 0x23ed60.  After the
-// module-state prologue it calls XNotifyDBEvents::FireEvent (0x23ee00) with
-// phase 7 pushed at [rsp+0x20] and returns that HRESULT when it is negative.
-// Otherwise, if the site's CDataSourceControl at site+0xd8 is non-null and bit
-// 7 (0x80) of dwEventWhat is set (`test %bpl,%bpl; jns`), it sets that
-// object's +0x88 flag to 1, calls CDataSourceControl::GetBoundClientRow
-// (0x23cb00), restores +0x88, calls its vftable byte 0x28 (slot 5), and
-// returns S_OK.  Left as generated: CDataSourceControl is implemented in
-// core/db, but this site has no retail +0xd8 member (EnableDSC keeps its
-// association in SiteExtra), and OpenMFC has no XNotifyDBEvents sub-object to
-// recover the site from pThisItf.
+// COleControlSite::XNotifyDBEvents::DidEvent() — mfc140u 0x240760:
+//   scope; hr = FireEvent(..., dscDidEvent (7)); if (FAILED(hr)) return hr;
+//   if (dsc = m_pDataSourceControl(+0xd8)) && (dwEventWhat & 0x80) {
+//       saved = dsc->m_bUpdateInProgress; dsc->m_bUpdateInProgress = TRUE;
+//       dsc->GetBoundClientRow(); dsc->m_bUpdateInProgress = saved;
+//       dsc->UpdateControls();                               // slot 5
+//   }
+//   return S_OK;
 extern "C" long MS_ABI impl__DidEvent_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
-    void* pThisItf, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
-    (void)pThisItf; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
-    return 0;
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons) {
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x170);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    long hr = impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+        pThisItf, dwEventWhat, cReasons, rgReasons, 7);
+    if (hr < 0) return hr;
+    SiteDscView* pDsc = static_cast<SiteDscView*>(SiteDataSourceControl(pSite));
+    if (pDsc && (dwEventWhat & 0x80)) {
+        const DWORD saved = pDsc->m_bUpdateInProgress;
+        pDsc->m_bUpdateInProgress = 1;
+        impl__GetBoundClientRow_CDataSourceControl__QEAAJXZ(pDsc);
+        pDsc->m_bUpdateInProgress = saved;
+        DscUpdateControls(pDsc);
+    }
+    return S_OK;
 }
 
 // Symbol: ?DiscardUndoState@XOleIPSite@COleControlSite@@UEAAJXZ
@@ -1741,62 +2033,63 @@ extern "C" long MS_ABI impl__DiscardUndoState_XOleIPSite_COleControlSite__UEAAJX
     return S_OK;
 }
 
-// Symbol: ?FailedToDo@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
-// COleControlSite::XNotifyDBEvents::FailedToDo() — retail 0x23ec30 is the
-// module-state prologue, then XNotifyDBEvents::FireEvent (0x23ee00) with phase
-// 5 at [rsp+0x20], then `xor %edx,%edx; test %eax,%eax; cmovs %eax,%edx`, i.e.
-// the HRESULT is propagated only when it is negative and S_OK otherwise.  Same
-// FireEvent dependency as the rest of this interface; left as generated.
+// COleControlSite::XNotifyDBEvents::FailedToDo() — mfc140u 0x240630: module
+// state scope, FireEvent(..., dscFailedToDo (5)); negative HRESULT returned,
+// otherwise S_OK.
 extern "C" long MS_ABI impl__FailedToDo_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
-    void* pThisItf, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
-    (void)pThisItf; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
-    return 0;
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons) {
+    SiteModuleStateGuard stateGuard(SiteFromPart(pThisItf, 0x170)->m_pModuleState);
+    long hr = impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+        pThisItf, dwEventWhat, cReasons, rgReasons, 5);
+    return hr < 0 ? hr : S_OK;
 }
 
-// Symbol: ?FireEvent@XNotifyDBEvents@COleControlSite@@QEAAJKKQEAUtagDBNOTIFYREASON@@W4DSCSTATE@@@Z
-// COleControlSite::XNotifyDBEvents::FireEvent() — retail 0x23ee00.  This is
-// the shared worker the seven notification entry points of this sub-object
-// call (slots 3..9 of the vftable at 0x328e78: OKToDo, Cancelled, SyncBefore,
-// AboutToDo, FailedToDo, SyncAfter, DidEvent), and its only non-virtual
-// (public) method.  It
-// returns S_OK immediately (0x23eef8) unless (dwEventWhat & 3) is non-zero and
-// dwEventWhen is non-zero; then it indexes the caller's DBNOTIFYREASON array
-// with a 0x38-byte stride, maps the reason code through a jump ladder onto one
-// of a handful of MFC event codes, builds an AFX_EVENT on the stack (kind 3 at
-// +0x00, dispid -1 at +0x04, the DSCSTATE argument from [rsp+0x80] at +0x28
-// and the event code at +0x2c) and calls COleControlSite::OnEvent (0x239b50)
-// on the recovered site (`lea -0x170(%r11),%rcx`), returning the AFX_EVENT
-// result field at +0x24.  Left as generated: it needs both the sub-object
-// layout and OpenMFC's absent data-source-control plumbing.
-// The generated parameter list was wrong (13 parameters from a bad demangle);
-// the real one is (this, DWORD dwEventWhat, DWORD dwEventWhen,
-// DBNOTIFYREASON* const, DSCSTATE).  Nothing outside this file declares this
-// thunk, so correcting it here is safe.
+// COleControlSite::XNotifyDBEvents::FireEvent() — mfc140u 0x240800.  Returns
+// S_OK unless (dwEventWhat & 3) and cReasons are both non-zero.  Otherwise it
+// scans rgReasons (0x38-byte DBNOTIFYREASON stride, dwReason at +0) and, for
+// the first reason in the table below, raises an AFX_EVENT of kind 3
+// (propDSCNotify), dispid -1, DSCSTATE nState and the mapped DSCREASON on the
+// site (part-0x170) through OnEvent, returning the event's HRESULT.  Reasons
+// outside the table are skipped; if none matches it returns S_OK.
+//   1->3   2,20->5   3,9,10,23->6   6,7,8,11,12,15,16,19,21->7   24->2
+//   25->1   31->4
+// (decoded from the jump ladder 0x240827..0x2408ea and its targets.)
 extern "C" long MS_ABI impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
-    void* pThisItf, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason, int dscState) {
-    (void)pThisItf; (void)dwEventWhat; (void)dwEventWhen; (void)pReason; (void)dscState;
-    return 0;
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons, int dscState) {
+    if (!(dwEventWhat & 3) || cReasons == 0) return S_OK;
+    for (unsigned long i = 0; i < cReasons; ++i) {
+        const DWORD dwReason = *reinterpret_cast<const DWORD*>(
+            static_cast<const BYTE*>(rgReasons) + static_cast<size_t>(i) * 0x38);
+        int dscReason;
+        switch (dwReason) {
+        case 1:  dscReason = 3; break;
+        case 2: case 20: dscReason = 5; break;
+        case 3: case 9: case 10: case 23: dscReason = 6; break;
+        case 6: case 7: case 8: case 11: case 12: case 15: case 16: case 19: case 21:
+            dscReason = 7; break;
+        case 24: dscReason = 2; break;
+        case 25: dscReason = 1; break;
+        case 31: dscReason = 4; break;
+        default: continue;
+        }
+        SiteEvent event = MakeSiteEvent(3, -1);
+        event.m_nDSCState = dscState;
+        event.m_nDSCReason = dscReason;
+        impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(SiteFromPart(pThisItf, 0x170), &event);
+        return event.m_hResult;
+    }
+    return S_OK;
 }
 
-// Symbol: ?GetCapture@XOleIPSite@COleControlSite@@UEAAJXZ
-// COleControlSite::XOleIPSite::GetCapture() — retail 0x23ad50, after the
-// module-state prologue, is exactly:
-//     mov 0x40(%rbx),%rcx          ; rbx = site; m_pCtrlCont
-//     xor %eax,%eax
-//     cmp %rbx,0xd0(%rcx)          ; m_pCtrlCont->+0xd0 (the capture site)
-//     setne %al                    ; -> S_OK when it is this site, else S_FALSE
-// That the container member at +0xd0 really is the capture site is confirmed
-// by XOleIPSite::SetCapture (0x23b130), which stores the site into it beside
-// ::SetCapture and NULLs it beside ::ReleaseCapture.
-// COleControlContainer has no +0xd0 capture-site member in OpenMFC and the
-// site is unrecoverable here, so nothing can be looked up.  This returns
-// S_FALSE rather than the generated 0: S_OK is retail's "this site holds the
-// mouse capture" answer, which a windowless control acts on, and no OpenMFC
-// site ever holds it -- S_FALSE is what retail answers for every site that has
-// not captured, which here is all of them.
+// COleControlSite::XOleIPSite::GetCapture() — mfc140u 0x23c750 (ANSI twin
+// 0x23ad50): after the module-state prologue,
+//   return (m_pCtrlCont->m_pSiteCapture(+0xd0) == site) ? S_OK : S_FALSE;
+// (`cmp %rbx,0xd0(%rcx); setne %al`).  The capture site is the
+// OccContainerSiteState entry SetCapture writes.
 extern "C" long MS_ABI impl__GetCapture_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
-    (void)pThisItf;
-    return S_FALSE;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    return GetOccContainerCaptureSite(pSite->m_pCtrlCont) == pSite ? S_OK : S_FALSE;
 }
 
 // Symbol: ?GetContainer@XOleClientSite@COleControlSite@@UEAAJPEAPEAUIOleContainer@@@Z
@@ -1833,32 +2126,45 @@ extern "C" long MS_ABI impl__GetCursor_XBoundObjectSite_COleControlSite__UEAAJJP
     return E_FAIL;
 }
 
-// Symbol: ?GetDC@XOleIPSite@COleControlSite@@UEAAJPEBUtagRECT@@KPEAPEAUHDC__@@@Z
-// COleControlSite::XOleIPSite::GetDC() — retail 0x23ada0.  A null phDC jumps
-// to 0x23aee0, which is `call AfxThrowInvalidArgException` (0x225b80), so that
-// case throws rather than returning.  Otherwise it clears *phDC, and if the
-// site's cached CDC at site+0x130 is null it builds one with
-// CDC::FromHandle(::GetDC(m_pCtrlCont->m_pWnd->m_hWnd)) (USER32 import at
-// 0x2c4eb8, CDC::FromHandle at 0x2a0390) and stores it there; if that still
-// yields nothing it returns E_FAIL (0x23ae46).  With a DC in hand it takes the
-// caller's rectangle intersected with the site's position rect at site+0x5c
-// (::IntersectRect, 0x2c4d48) — or that position rect verbatim when lprcRect
-// is null — turns it into a region (::CreateRectRgnIndirect, GDI32 import at
-// 0x2c41a0) attached to a stack CRgn (CGdiObject::Attach, 0x2a1e10), calls
-// CDC::SelectClipRgn(&rgn, RGN_AND) (0x2a1580) on the cached CDC -- the mode
-// argument is `mov $0x1,%r8d` at 0x23ae8e, and RGN_AND is 1, RGN_COPY is 5 --
-// and hands back that CDC's m_hDC (+0x8).  grfFlags is never read.
-// Left as generated except for the return value: it has an out-parameter, and
-// E_FAIL is retail's own "no DC" answer, so that is what is reported here.
-// Retail clears *phDC at 0x23adf8, before any of the work that can fail, so it
-// reaches 0x23ae46 with the out-parameter already NULL; this does the same.
-// A null phDC throws there and merely returns here -- OpenMFC has no site to
-// validate against, so there is nothing to report an invalid argument about.
+// COleControlSite::XOleIPSite::GetDC() — mfc140u 0x23c7a0:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);  CRgn rgn;
+//   if (!phDC) AfxThrowInvalidArgException();
+//   *phDC = NULL;
+//   if (m_pDC(+0x130) != NULL) return E_FAIL;          // one DC at a time
+//   m_pDC = CDC::FromHandle(::GetDC(m_pCtrlCont->m_pWnd->m_hWnd));
+//   if (!m_pDC) return E_FAIL;
+//   RECT rc; lprcRect ? ::IntersectRect(&rc, lprcRect, &m_rect(+0x5c)) : rc = m_rect;
+//   rgn.Attach(::CreateRectRgnIndirect(&rc));
+//   m_pDC->SelectClipRgn(&rgn, RGN_AND);
+//   *phDC = m_pDC->GetSafeHdc();  return S_OK;           // ~CRgn deletes the region
+// grfFlags is never read.  The DC cache is OleControlSiteState::dc (see
+// ReleaseDC) and the position rect is SiteRect().
 extern "C" long MS_ABI impl__GetDC_XOleIPSite_COleControlSite__UEAAJPEBUtagRECT__KPEAPEAUHDC_____Z(
     void* pThisItf, const RECT* lprcRect, unsigned long grfFlags, HDC* phDC) {
-    (void)pThisItf; (void)lprcRect; (void)grfFlags;
-    if (phDC != nullptr) *phDC = nullptr;
-    return E_FAIL;   // retail's own failure exit at 0x23ae46
+    (void)grfFlags;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    CRgn rgn;
+    if (!phDC) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return E_POINTER;
+    }
+    *phDC = nullptr;
+    OleControlSiteState* state = GetOleControlSiteState(pSite, true);
+    if (state->dc) return E_FAIL;
+    state->dc = impl__FromHandle_CDC__SAPEAV1_PEAUHDC_____Z(::GetDC(SiteContainerHwnd(pSite)));
+    if (!state->dc) return E_FAIL;
+    RECT rc;
+    const RECT& siteRect = SiteRect(pSite);
+    if (lprcRect) {
+        ::IntersectRect(&rc, lprcRect, &siteRect);
+    } else {
+        rc = siteRect;
+    }
+    impl__Attach_CGdiObject__QEAAHPEAX_Z(&rgn, ::CreateRectRgnIndirect(&rc));
+    impl__SelectClipRgn_CDC__QEAAHPEAVCRgn__H_Z(state->dc, &rgn, RGN_AND);
+    *phDC = state->dc ? state->dc->m_hDC : nullptr;
+    return S_OK;
 }
 
 // Symbol: ?GetExtendedControl@XOleControlSite@COleControlSite@@UEAAJPEAPEAUIDispatch@@@Z
@@ -2004,40 +2310,64 @@ extern "C" long MS_ABI impl__GetWindowContext_XOleIPSite_COleControlSite__UEAAJP
     return E_FAIL;
 }
 
-// Symbol: ?InvalidateRect@XOleIPSite@COleControlSite@@UEAAJPEBUtagRECT@@H@Z
-// COleControlSite::XOleIPSite::InvalidateRect() — retail 0x23aef0.  After the
-// module-state prologue it forms a working rectangle: with a null lprcRect it
-// copies the site's position rect at site+0x5c wholesale (a 16-byte SSE move);
-// otherwise it calls ::IntersectRect(&rc, lprcRect, &site->rect) (USER32
-// import at 0x2c4d48) and then ::EqualRect(&rc, lprcRect) (0x2c52e8) whose
-// result is immediately overwritten and never used.  If rc is not empty
-// (::IsRectEmpty, 0x2c52c8) it calls
-// ::InvalidateRect(m_pCtrlCont->m_pWnd->m_hWnd, &rc, fErase) through the
-// import at 0x2c5380.  It always returns S_OK.
-// Left as generated (S_OK), which matches retail's return; the invalidation
-// itself needs the site rect and the container window.
+// COleControlSite::XOleIPSite::InvalidateRect() — mfc140u 0x23c8f0:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);  RECT rc = {0};
+//   if (!lprcRect) rc = m_rect(+0x5c);
+//   else { ::IntersectRect(&rc, lprcRect, &m_rect); ::EqualRect(&rc, lprcRect); }
+//   if (!::IsRectEmpty(&rc))
+//       ::InvalidateRect(m_pCtrlCont->m_pWnd->m_hWnd, &rc, fErase);
+//   return S_OK;
+// The EqualRect result is discarded by retail; the call is kept.
 extern "C" long MS_ABI impl__InvalidateRect_XOleIPSite_COleControlSite__UEAAJPEBUtagRECT__H_Z(
     void* pThisItf, const RECT* lprcRect, int fErase) {
-    (void)pThisItf; (void)lprcRect; (void)fErase;
-    return 0;   // retail: unconditional S_OK
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    RECT rc = {};
+    const RECT& siteRect = SiteRect(pSite);
+    if (!lprcRect) {
+        rc = siteRect;
+    } else {
+        ::IntersectRect(&rc, lprcRect, &siteRect);
+        ::EqualRect(&rc, lprcRect);
+    }
+    if (!::IsRectEmpty(&rc)) {
+        ::InvalidateRect(SiteContainerHwnd(pSite), &rc, fErase);
+    }
+    return S_OK;
 }
 
-// Symbol: ?InvalidateRgn@XOleIPSite@COleControlSite@@UEAAJPEAUHRGN__@@H@Z
-// COleControlSite::XOleIPSite::InvalidateRgn() — retail 0x23afc0.  With a
-// non-null hRgn it wraps it (CGdiObject::FromHandle, 0x2a1de0), takes its
-// bounding box (::GetRgnBox, GDI32 import at 0x2c41a8), computes
-// ::IntersectRect(&isect, &box, &site->rect@+0x5c) (0x2c4d48) and asks
-// ::EqualRect(&isect, &box) (0x2c52e8) — i.e. "does the region lie entirely
-// inside the site rect?".  If it does, it calls
-// ::InvalidateRgn(m_pCtrlCont->m_pWnd->m_hWnd, hRgn, fErase) (import 0x2c4f80)
-// and returns S_OK.  Otherwise — and immediately, for a null hRgn — it falls
-// back to `return this->InvalidateRect(NULL, fErase);` through the
-// sub-object's own vftable byte 0xc8 (slot 25), invalidating the whole site
-// rect.  Left as generated: both paths need the site.
+// COleControlSite::XOleIPSite::InvalidateRgn() — mfc140u 0x23c9c0:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);  CRgn scratch;  RECT box = {0}, isect = {0};
+//   if (hRgn) {
+//       CGdiObject* pRgn = CGdiObject::FromHandle(hRgn);           // 0x2a3ea0
+//       ::GetRgnBox(pRgn->m_hObject, &box);
+//       ::IntersectRect(&isect, &box, &m_rect(+0x5c));
+//       if (::EqualRect(&isect, &box)) {
+//           ::InvalidateRgn(m_pCtrlCont->m_pWnd->m_hWnd, pRgn->m_hObject, fErase);
+//           return S_OK;
+//       }
+//   }
+//   return this->InvalidateRect(NULL, fErase);       // part vtable byte 0xc8
+// OpenMFC installs no vtable at the XOleIPSite part, so the last line calls
+// the InvalidateRect thunk directly.
 extern "C" long MS_ABI impl__InvalidateRgn_XOleIPSite_COleControlSite__UEAAJPEAUHRGN____H_Z(
     void* pThisItf, HRGN hRgn, int fErase) {
-    (void)pThisItf; (void)hRgn; (void)fErase;
-    return 0;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    if (hRgn) {
+        CGdiObject* pRgn = impl__FromHandle_CGdiObject__SAPEAV1_PEAX_Z(hRgn);
+        HRGN hWrapped = static_cast<HRGN>(pRgn->m_hObject);
+        RECT box = {};
+        RECT isect = {};
+        ::GetRgnBox(hWrapped, &box);
+        ::IntersectRect(&isect, &box, &SiteRect(pSite));
+        if (::EqualRect(&isect, &box)) {
+            ::InvalidateRgn(SiteContainerHwnd(pSite), hWrapped, fErase);
+            return S_OK;
+        }
+    }
+    return impl__InvalidateRect_XOleIPSite_COleControlSite__UEAAJPEBUtagRECT__H_Z(
+        pThisItf, nullptr, fErase);
 }
 
 // Symbol: ?Invoke@XAmbientProps@COleControlSite@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
@@ -2063,28 +2393,27 @@ extern "C" long MS_ABI impl__Invoke_XAmbientProps_COleControlSite__UEAAJJAEBU_GU
     return static_cast<long>(0x80020003L);   // DISP_E_MEMBERNOTFOUND
 }
 
-// Symbol: ?Invoke@XEventSink@COleControlSite@@UEAAJJAEBU_GUID@@KGPEAUtagDISPPARAMS@@PEAUtagVARIANT@@PEAUtagEXCEPINFO@@PEAI@Z
-// COleControlSite::XEventSink::Invoke() — retail 0x23b7f0.  After the
-// module-state prologue it fills an AFX_EVENT on the stack and dispatches it:
-//     ev.m_eventKind(+0x00) = 0            ; event
-//     ev.m_dispid  (+0x04) = dispIdMember
-//     ev.+0x08 = pDispParams   ev.+0x10 = pExcepInfo   ev.+0x18 = puArgErr
-//     ev.+0x24 = 0 (the result the method returns)     ev.+0x2c = 0
-//     COleControlSite::OnEvent(&ev);       ; 0x239b50, on the recovered site
-//     if (pVarResult) ::VariantClear(pVarResult);  ; OLEAUT32 import at
-//                                                  ; 0x2c4a18, ordinal 9
-//     return ev.+0x24;
-// riid, lcid and wFlags are ignored.  Left as generated: OnEvent needs the
-// site.  The generated S_OK is the value the AFX_EVENT carries when OnEvent
-// leaves the result field alone, so the return value is retail-faithful even
-// though nothing is dispatched.
+// COleControlSite::XEventSink::Invoke() — mfc140u 0x23d1f0:
+//   site = this-0x160; AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   AFX_EVENT event(AFX_EVENT::event (0), dispIdMember, pDispParams, pExcepInfo, puArgErr);
+//   site->OnEvent(&event);
+//   if (pVarResult) VariantClear(pVarResult);               // oleaut32 #9
+//   return event.m_hResult;
+// riid, lcid and wFlags are not read.
 extern "C" long MS_ABI impl__Invoke_XEventSink_COleControlSite__UEAAJJAEBU_GUID__KGPEAUtagDISPPARAMS__PEAUtagVARIANT__PEAUtagEXCEPINFO__PEAI_Z(
     void* pThisItf, long dispIdMember, const GUID* riid, unsigned long lcid,
     unsigned short wFlags, void* pDispParams, void* pVarResult,
     void* pExcepInfo, unsigned int* puArgErr) {
-    (void)pThisItf; (void)dispIdMember; (void)riid; (void)lcid; (void)wFlags;
-    (void)pDispParams; (void)pVarResult; (void)pExcepInfo; (void)puArgErr;
-    return 0;
+    (void)riid; (void)lcid; (void)wFlags;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x160);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    SiteEvent event = MakeSiteEvent(0, dispIdMember);
+    event.m_pDispParams = static_cast<DISPPARAMS*>(pDispParams);
+    event.m_pExcepInfo = static_cast<EXCEPINFO*>(pExcepInfo);
+    event.m_puArgError = puArgErr;
+    impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(pSite, &event);
+    if (pVarResult) ::VariantClear(static_cast<VARIANT*>(pVarResult));
+    return event.m_hResult;
 }
 
 // Symbol: ?LockInPlaceActive@XOleControlSite@COleControlSite@@UEAAJH@Z
@@ -2097,45 +2426,92 @@ extern "C" long MS_ABI impl__LockInPlaceActive_XOleControlSite_COleControlSite__
     return E_NOTIMPL;
 }
 
-// Symbol: ?OKToDo@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
-// COleControlSite::XNotifyDBEvents::OKToDo() — retail 0x23ea10.  It calls
-// XNotifyDBEvents::FireEvent (0x23ee00) with phase 1 at [rsp+0x20] and returns
-// that HRESULT when it is negative.  Otherwise it inspects *pReason: reason
-// 0x1e, or 2..3, short-circuits to S_OK; for the rest it requires either
-// (dwEventWhat & 1) or reason 1 or 0x14, and then — only if the object at
-// site+0xd8 (CDataSourceControl* per the map in this file's header) is
-// non-null and (dwEventWhat & 1) is set — returns that object's vftable byte
-// 0x30 (slot 6).  Everything else returns S_OK.
-// Left as generated: neither the sub-object layout nor the data-bound-property
-// plumbing exists in OpenMFC.
+// COleControlSite::XNotifyDBEvents::OKToDo() — mfc140u 0x240410:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);           // part-0x138 = site+0x38
+//   hr = FireEvent(dwEventWhat, cReasons, rgReasons, dscOKToDo (1));
+//   if (FAILED(hr)) return hr;
+//   reason = rgReasons[0].dwReason;
+//   if (reason == 0x1e || reason == 2 || reason == 3) return S_OK;
+//   if (!(dwEventWhat & 1) && reason != 1 && reason != 0x14) return S_OK;
+//   if (m_pDataSourceControl(+0xd8) && (dwEventWhat & 1))
+//       return m_pDataSourceControl->UpdateCursor();      // slot 6
+//   return S_OK;
 extern "C" long MS_ABI impl__OKToDo_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
-    void* pThisItf, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
-    (void)pThisItf; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
-    return 0;
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons) {
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x170);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    long hr = impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+        pThisItf, dwEventWhat, cReasons, rgReasons, 1);
+    if (hr < 0) return hr;
+    const DWORD reason = *static_cast<const DWORD*>(rgReasons);
+    if (reason == 0x1e || reason == 2 || reason == 3) return S_OK;
+    if (!(dwEventWhat & 1) && reason != 1 && reason != 0x14) return S_OK;
+    void* pDsc = SiteDataSourceControl(pSite);
+    if (pDsc && (dwEventWhat & 1)) return DscUpdateCursor(pDsc);
+    return S_OK;
 }
 
-// Symbol: ?OnChanged@XPropertyNotifySink@COleControlSite@@UEAAJJ@Z
-// COleControlSite::XPropertyNotifySink::OnChanged() — retail 0x23b4e0.  It
-// returns S_OK immediately when the site's +0xd0 flag is set.  With no
-// CDataSourceControl at site+0xd8 it raises an AFX_EVENT of kind 2 (property
-// changed) carrying the dispid through COleControlSite::OnEvent (0x239b50) --
-// but it returns that event's result field only when the field came back
-// NON-zero; on a zero result it falls through (`test %eax,%eax; je 0x23b580`
-// at 0x23b562) into the second half, exactly where a non-null
-// CDataSourceControl jumps to.  That second half returns S_OK unless dispid
-// equals the bound dispid cached at site+0xf0; for that dispid it re-reads the
-// bound value: it calls
-// ::VariantClear on the cached VARIANT at site+0x108 (the OLEAUT32 import at
-// 0x2c4a18, brought in by ordinal 9), queries m_lpObject(+0x80) for
-// IID_IDispatch (0x2d7a98) and calls that interface's Invoke — vftable byte
-// 0x30 — as Invoke(dispid, IID_NULL, 0, DISPATCH_PROPERTYGET, &emptyParams,
-// &site->variant@+0x108, &excepInfo, &argErr), with the two stack buffers
-// zeroed by memset (0x2c5468) beforehand.
-// Left as generated: all of this hangs off the retail site layout.
+// COleControlSite::XPropertyNotifySink::OnChanged() — mfc140u 0x23cee0:
+//   site = this-0x158; AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   if (m_bIgnoreNotify(+0xd0)) return S_OK;
+//   if (!m_pDataSourceControl(+0xd8)) {
+//       AFX_EVENT event(AFX_EVENT::propChanged (2), dispid);
+//       OnEvent(&event);
+//       if (event.m_hResult != S_OK) return event.m_hResult;
+//   }
+//   if (dispid != m_defdispid(+0xf0)) return S_OK;
+//   VariantClear(&m_varResult(+0x108));
+//   if (!m_pObject(+0x80)) AfxThrowInvalidArgException();
+//   if (FAILED(m_pObject->QueryInterface(IID_IDispatch, &pDisp))) return S_OK;
+//   EXCEPINFO excep = {0}; DISPPARAMS params = {0}; UINT argErr;
+//   if (!pDisp) AfxThrowInvalidArgException();
+//   hr = pDisp->Invoke(dispid, IID_NULL, 0, DISPATCH_PROPERTYGET, &params,
+//                      &m_varResult, &excep, &argErr);
+//   SysFreeString(excep.bstrSource / bstrDescription / bstrHelpFile);
+//   pDisp->Release();
+//   if (SUCCEEDED(hr)) m_bIsDirty(+0x100) = TRUE;
+//   return S_OK;
+// The +0xd0/+0xd8/+0xf0/+0x100/+0x108 members are the RetailTailStorage
+// fields at those offsets; m_pObject is OpenMFC's m_lpObject.
 extern "C" long MS_ABI impl__OnChanged_XPropertyNotifySink_COleControlSite__UEAAJJ_Z(
     void* pThisItf, long dispid) {
-    (void)pThisItf; (void)dispid;
-    return 0;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x158);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    COleControlSite::RetailTailStorage& tail = pSite->m_retailTail;
+    if (tail.m_bIgnoreNotify) return S_OK;
+    if (!SiteDataSourceControl(pSite)) {
+        SiteEvent event = MakeSiteEvent(2, dispid);
+        impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(pSite, &event);
+        if (event.m_hResult != S_OK) return event.m_hResult;
+    }
+    if (dispid != tail.m_defdispid) return S_OK;
+    VARIANT* pResult = reinterpret_cast<VARIANT*>(tail.m_varResult);
+    ::VariantClear(pResult);
+    if (!pSite->m_lpObject) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return S_OK;
+    }
+    IDispatch* pDisp = nullptr;
+    if (FAILED(pSite->m_lpObject->QueryInterface(IID_IDispatch, reinterpret_cast<void**>(&pDisp)))) {
+        return S_OK;
+    }
+    EXCEPINFO excep;
+    memset(&excep, 0, sizeof(excep));
+    DISPPARAMS params;
+    memset(&params, 0, sizeof(params));
+    UINT argErr = 0;
+    if (!pDisp) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return S_OK;
+    }
+    HRESULT hr = pDisp->Invoke(dispid, IID_NULL, 0, DISPATCH_PROPERTYGET, &params, pResult,
+                               &excep, &argErr);
+    if (excep.bstrSource) ::SysFreeString(excep.bstrSource);
+    if (excep.bstrDescription) ::SysFreeString(excep.bstrDescription);
+    if (excep.bstrHelpFile) ::SysFreeString(excep.bstrHelpFile);
+    pDisp->Release();
+    if (SUCCEEDED(hr)) tail.m_bIsDirty = TRUE;
+    return S_OK;
 }
 
 // Symbol: ?OnControlInfoChanged@XOleControlSite@COleControlSite@@UEAAJXZ
@@ -2149,38 +2525,59 @@ extern "C" long MS_ABI impl__OnControlInfoChanged_XOleControlSite_COleControlSit
     return S_OK;
 }
 
-// Symbol: ?OnDefWindowMessage@XOleIPSite@COleControlSite@@UEAAJI_K_JPEA_J@Z
-// COleControlSite::XOleIPSite::OnDefWindowMessage() — no RVA of its own; slot
-// 29 of the XOleIPSite vftable (0x328fa8) points at 0x23ad10, the shared
-// METHOD_PROLOGUE-plus-`return E_NOTIMPL` body described at GetFocus above.
-// plResult is never written.  Transcribed exactly.
+// COleControlSite::XOleIPSite::OnDefWindowMessage() — the folded body at
+// mfc140u 0x23c710 (see AdjustRect): module-state scope, E_NOTIMPL; *plResult
+// is not written.
 extern "C" long MS_ABI impl__OnDefWindowMessage_XOleIPSite_COleControlSite__UEAAJI_K_JPEA_J_Z(
-    void* pThisItf, unsigned int msg, unsigned __int64 wParam, __int64 lParam,
-    __int64* plResult) {
-    (void)pThisItf; (void)msg; (void)wParam; (void)lParam; (void)plResult;
+    void* pThisItf, unsigned int msg, unsigned long long wParam, long long lParam,
+    long long* plResult) {
+    (void)msg; (void)wParam; (void)lParam; (void)plResult;
+    SiteModuleStateGuard stateGuard(SiteFromPart(pThisItf, 0x140)->m_pModuleState);
     return E_NOTIMPL;
 }
 
-// Symbol: ?OnFieldChange@XRowsetNotify@COleControlSite@@UEAAJPEAUIRowset@@_K1QEA_KKKH@Z
-// COleControlSite::XRowsetNotify::OnFieldChange() — retail 0x23efc0.  It maps
-// the eNotifyPhase argument (the 7th, read from the stack at [rbp+0x58])
-// through a ladder onto an MFC event code — 0->1, 1->4, 2->6, 3->5, 4->7 — and
-// for phase 4 it also refreshes the CDataSourceControl at site+0xd8 (setting
-// its +0x88 flag to 1, calling CDataSourceControl::GetBoundClientRow at
-// 0x23cb00, clearing the flag, then its vtable slot 5), bailing out with S_OK
-// when that object is absent and skipping the refresh when its +0x88 flag was
-// already set.  It then raises an AFX_EVENT of kind 3 with dispid -1 and that
-// event code through COleControlSite::OnEvent (0x239b50) and returns the
-// event's result field.  Left as generated: although CDataSourceControl is
-// implemented in core/db, this XRowsetNotify sub-object and its site-binding
-// plumbing are not modeled here.
+// COleControlSite::XRowsetNotify::OnFieldChange() — mfc140u 0x2409c0:
+//   site = this-0x178; AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   state = ePhase: OKTODO(0)->1, ABOUTTODO(1)->4, SYNCHAFTER(2)->6,
+//           FAILEDTODO(3)->5, other->0, DIDEVENT(4)->7 where additionally
+//       if (!m_pDataSourceControl(+0xd8)) return S_OK;
+//       if (!dsc->m_bUpdateInProgress) { = TRUE; GetBoundClientRow();
+//                                        = FALSE; UpdateControls(); }  // slot 5
+//   AFX_EVENT event(propDSCNotify (3), -1); m_nDSCState = state;
+//   m_nDSCReason = 6 (dscFieldChange?: the literal is 6);
+//   OnEvent(&event);  return event.m_hResult;
 extern "C" long MS_ABI impl__OnFieldChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset___K1QEA_KKKH_Z(
     void* pThisItf, void* pRowset, unsigned __int64 hRow, unsigned __int64 cColumns,
     unsigned __int64* rgColumns, unsigned long eReason, unsigned long eNotifyPhase,
     int fIsRecoverable) {
-    (void)pThisItf; (void)pRowset; (void)hRow; (void)cColumns; (void)rgColumns;
-    (void)eReason; (void)eNotifyPhase; (void)fIsRecoverable;
-    return 0;
+    (void)pRowset; (void)hRow; (void)cColumns; (void)rgColumns; (void)eReason; (void)fIsRecoverable;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x178);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    int dscState = 0;
+    switch (eNotifyPhase) {
+    case 0: dscState = 1; break;
+    case 1: dscState = 4; break;
+    case 2: dscState = 6; break;
+    case 3: dscState = 5; break;
+    case 4: {
+        SiteDscView* pDsc = static_cast<SiteDscView*>(SiteDataSourceControl(pSite));
+        if (!pDsc) return S_OK;
+        dscState = 7;
+        if (pDsc->m_bUpdateInProgress == 0) {
+            pDsc->m_bUpdateInProgress = 1;
+            impl__GetBoundClientRow_CDataSourceControl__QEAAJXZ(pDsc);
+            pDsc->m_bUpdateInProgress = 0;
+            DscUpdateControls(pDsc);
+        }
+        break;
+    }
+    default: break;
+    }
+    SiteEvent event = MakeSiteEvent(3, -1);
+    event.m_nDSCState = dscState;
+    event.m_nDSCReason = 6;
+    impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(pSite, &event);
+    return event.m_hResult;
 }
 
 // Symbol: ?OnFocus@XOleControlSite@COleControlSite@@UEAAJH@Z
@@ -2204,41 +2601,56 @@ extern "C" long MS_ABI impl__OnInPlaceActivate_XOleIPSite_COleControlSite__UEAAJ
     return S_OK;
 }
 
-// Symbol: ?OnInPlaceActivateEx@XOleIPSite@COleControlSite@@UEAAJPEAHK@Z
-// COleControlSite::XOleIPSite::OnInPlaceActivateEx() — retail 0x23ac40, fully
-// decoded.  After the module-state prologue:
-//     if (dwFlags & 1) {            ; ACTIVATE_WINDOWLESS
-//         site->m_lpObject(+0x80)->QueryInterface(
-//             IID_IOleInPlaceObjectWindowless (0x2d7d18),
-//             &site->+0x98);        ; the windowless interface slot
-//         site->+0xb4 = 1;          ; the windowless-active flag
-//         ++site->m_pCtrlCont(+0x40)->+0xe0;   ; container's windowless count
-//     }
-//     if (pfNoRedraw) *pfNoRedraw = FALSE;
-//     return S_OK;
-// This is one of the three uses of +0xb4/+0x98 cited in the file header above.
-// OpenMFC represents the windowless flag/interface in OleControlSiteState,
-// but this activation path does not populate that state and no shared
-// container windowless-count state exists. The stub also does not write
-// *pfNoRedraw, which retail clears when the pointer is non-null.
+// COleControlSite::XOleIPSite::OnInPlaceActivateEx() — mfc140u 0x23c640:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   if (dwFlags & ACTIVATE_WINDOWLESS) {
+//       site->m_pObject(+0x80)->QueryInterface(IID_IOleInPlaceObjectWindowless
+//           {1c2056cc-5ef4-101b-8bc8-00aa003e3b29}, &site->m_pWindowlessObject(+0x98));
+//       site->m_bIsWindowless(+0xb4) = TRUE;     // whatever the QI returned
+//       ++m_pCtrlCont->windowless count(+0xe0);
+//   }
+//   if (pfNoRedraw) *pfNoRedraw = FALSE;
+//   return S_OK;
+// OpenMFC's IOleObject is m_lpObject (see the map at the top of the file).
 extern "C" long MS_ABI impl__OnInPlaceActivateEx_XOleIPSite_COleControlSite__UEAAJPEAHK_Z(
     void* pThisItf, int* pfNoRedraw, unsigned long dwFlags) {
-    (void)pThisItf; (void)pfNoRedraw; (void)dwFlags;
-    return 0;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    if (dwFlags & ACTIVATE_WINDOWLESS) {
+        pSite->m_lpObject->QueryInterface(IID_IOleInPlaceObjectWindowless,
+                                          &pSite->m_retailTail.m_pWindowlessObject);
+        pSite->m_retailTail.m_bIsWindowless = TRUE;
+        AdjustOccContainerWindowlessCount(pSite->m_pCtrlCont, 1);
+    }
+    if (pfNoRedraw) *pfNoRedraw = FALSE;
+    return S_OK;
 }
 
-// Symbol: ?OnInPlaceDeactivate@XOleIPSite@COleControlSite@@UEAAJXZ
-// ANSI-twin entry RVA 0x23aae0 (mfc140); --u has no mapped RVA. After the
-// module-state prologue it calls DetachWindow (entry RVA 0x239ad0 (mfc140)),
-// then if the windowless-active flag at site+0xb4 is set, releases and clears
-// the windowless interface at +0x98, decrements the container counter at
-// +0xe0, clears the flag, and returns S_OK. The site's windowless flag and
-// interface are represented in OleControlSiteState, but the container count
-// and complete activation/deactivation bookkeeping are not modeled; a partial
-// call to DetachWindow alone would omit retail behavior, so this stays stubbed.
+// COleControlSite::XOleIPSite::OnInPlaceDeactivate() — mfc140u 0x23c4e0:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   site->DetachWindow();                                   // 0x23b4d0
+//   if (site->m_bIsWindowless(+0xb4)) {
+//       if (site->m_pWindowlessObject(+0x98)) { ->Release(); = NULL; }
+//       --m_pCtrlCont->windowless count(+0xe0);
+//       site->m_bIsWindowless = FALSE;
+//   }
+//   return S_OK;
+// The flag and interface are the RetailTailStorage members at +0xb4/+0x98;
+// the container count is the OccContainerSiteState entry (see top of file).
 extern "C" long MS_ABI impl__OnInPlaceDeactivate_XOleIPSite_COleControlSite__UEAAJXZ(void* pThisItf) {
-    (void)pThisItf;
-    return 0;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    impl__DetachWindow_COleControlSite__QEAAXXZ(pSite);
+    if (pSite->m_retailTail.m_bIsWindowless) {
+        IUnknown* pWindowless = static_cast<IUnknown*>(pSite->m_retailTail.m_pWindowlessObject);
+        if (pWindowless) {
+            pWindowless->Release();
+            pSite->m_retailTail.m_pWindowlessObject = nullptr;
+        }
+        AdjustOccContainerWindowlessCount(pSite->m_pCtrlCont, -1);
+        pSite->m_retailTail.m_bIsWindowless = FALSE;
+    }
+    return S_OK;
 }
 
 // Symbol: ?OnInPlaceDeactivateEx@XOleIPSite@COleControlSite@@UEAAJH@Z
@@ -2257,67 +2669,119 @@ extern "C" long MS_ABI impl__OnInPlaceDeactivateEx_XOleIPSite_COleControlSite__U
     return impl__OnInPlaceDeactivate_XOleIPSite_COleControlSite__UEAAJXZ(pThisItf);
 }
 
-// Symbol: ?OnPosRectChange@XOleIPSite@COleControlSite@@UEAAJPEBUtagRECT@@@Z
-// COleControlSite::XOleIPSite::OnPosRectChange() — retail 0x23ab90, fully
-// decoded.  It first validates three things, throwing CInvalidArgException
-// (AfxThrowInvalidArgException, 0x225b80) if any fails: m_pCtrlCont(+0x40),
-// m_pCtrlCont->m_pWnd(+0x40) and m_lpInPlaceObject(+0x88).  Then:
-//     RECT clip = {0,0,0,0};
-//     ::GetClientRect(m_pCtrlCont->m_pWnd->m_hWnd, &clip);   ; import 0x2c5358
-//     ::CopyRect(&tmp, lprcPosRect);                         ; import 0x2c5240
-//     site->rect(+0x5c) = tmp;                               ; 16-byte store
-//     return m_lpInPlaceObject->SetObjectRects(&site->rect, &clip);
-//                                                            ; vtable byte 0x38
-// Note the returned HRESULT is SetObjectRects's, not a fixed S_OK.  Left as
-// generated: the site, its position rect and its in-place object are all out
-// of reach from the sub-object pointer.
+// COleControlSite::XOleIPSite::OnPosRectChange() — mfc140u 0x23c590, no
+// module-state scope:
+//   if (!m_pCtrlCont || !m_pCtrlCont->m_pWnd || !m_pInPlaceObject(+0x88))
+//       AfxThrowInvalidArgException();
+//   RECT clip = {0}; ::GetClientRect(m_pCtrlCont->m_pWnd->m_hWnd, &clip);
+//   RECT tmp; ::CopyRect(&tmp, lprcPosRect); m_rect(+0x5c) = tmp;
+//   return m_pInPlaceObject->SetObjectRects(&m_rect, &clip);   // slot 7
 extern "C" long MS_ABI impl__OnPosRectChange_XOleIPSite_COleControlSite__UEAAJPEBUtagRECT___Z(
     void* pThisItf, const RECT* lprcPosRect) {
-    (void)pThisItf; (void)lprcPosRect;
-    return 0;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    if (!pSite->m_pCtrlCont || !pSite->m_pCtrlCont->m_pWnd || !pSite->m_lpInPlaceObject) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return E_UNEXPECTED;
+    }
+    RECT clip = {};
+    ::GetClientRect(pSite->m_pCtrlCont->m_pWnd->m_hWnd, &clip);
+    RECT tmp;
+    ::CopyRect(&tmp, lprcPosRect);
+    RECT& siteRect = SiteRect(pSite);
+    siteRect = tmp;
+    return pSite->m_lpInPlaceObject->SetObjectRects(&siteRect, &clip);
 }
 
-// Symbol: ?OnRequestEdit@XPropertyNotifySink@COleControlSite@@UEAAJJ@Z
-// COleControlSite::XPropertyNotifySink::OnRequestEdit() — retail 0x23b6c0.
-// After the module-state prologue it returns S_OK at once if either the site's
-// +0xd0 flag is set or its CDataSourceControl at site+0xd8 is non-null.
-// Otherwise it builds an AFX_EVENT of kind 1 (request edit) carrying the
-// dispid, zeroes the rest, calls COleControlSite::OnEvent (0x239b50) and
-// returns the event's result field at +0x24.  Left as generated: OnEvent needs
-// the site.  The generated S_OK is both retail's early-out value and the value
-// the AFX_EVENT carries when nothing objects.
+// COleControlSite::XPropertyNotifySink::OnRequestEdit() — mfc140u 0x23d0c0:
+//   site = this-0x158; AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   if (m_bIgnoreNotify(+0xd0) || m_pDataSourceControl(+0xd8)) return S_OK;
+//   AFX_EVENT event(AFX_EVENT::propRequest (1), dispid);
+//   OnEvent(&event);  return event.m_hResult;
+// Both members are the RetailTailStorage fields at those offsets.
 extern "C" long MS_ABI impl__OnRequestEdit_XPropertyNotifySink_COleControlSite__UEAAJJ_Z(
     void* pThisItf, long dispid) {
-    (void)pThisItf; (void)dispid;
-    return 0;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x158);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    if (pSite->m_retailTail.m_bIgnoreNotify || SiteDataSourceControl(pSite)) return S_OK;
+    SiteEvent event = MakeSiteEvent(1, dispid);
+    impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(pSite, &event);
+    return event.m_hResult;
 }
 
-// Symbol: ?OnRowChange@XRowsetNotify@COleControlSite@@UEAAJPEAUIRowset@@_KQEB_KKKH@Z
-// COleControlSite::XRowsetNotify::OnRowChange() — retail 0x23f0c0.  It maps
-// the phase argument through the same 0->1, 1->4, 2->6, 3->5, 4->7 ladder as
-// OnFieldChange, and separately maps the reason argument (4, 6, 8, 0xd) onto a
-// second code, then drives the CDataSourceControl at site+0xd8 accordingly
-// before raising the event through COleControlSite::OnEvent (0x239b50).  The
-// retail no-DSC branch returns S_OK without doing anything (0x23f231).  Left as
-// generated because OpenMFC does not model this XRowsetNotify sub-object or
-// wire site binding state to its partial CDataSourceControl implementation.
+// COleControlSite::XRowsetNotify::OnRowChange() — mfc140u 0x240ac0:
+//   site = this-0x178; AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   state = ePhase: 0->1, 1->4, 2->6, 3->5, 4->7, other->0;
+//   reason = eReason: 4->7, 6->3, 8->5, 13->2, other->0;
+//   dsc = m_pDataSourceControl(+0xd8); if (!dsc) return S_OK;
+//   if (reason == 2 && state == 4) { dsc->UpdateCursor(); goto fire; }  // slot 6
+//   if ((reason == 7 && cRows == 1) || (state == 6 && reason == 5)) {
+//       dsc->UpdateCursor();
+//       dsc->m_pRowset(+0xa0)->m_hRow(+0x18) = rghRows[0];
+//       saved = dsc->m_bUpdateInProgress; = TRUE; GetBoundClientRow(); = saved;
+//       if (!saved) dsc->UpdateControls();                              // slot 5
+//   }
+//   if (reason == 0) return S_OK;
+// fire:
+//   AFX_EVENT event(propDSCNotify (3), -1); state/reason as above;
+//   OnEvent(&event);  return FAILED(event.m_hResult) ? event.m_hResult : S_OK;
 extern "C" long MS_ABI impl__OnRowChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset___KQEB_KKKH_Z(
     void* pThisItf, void* pRowset, unsigned __int64 cRows, const unsigned __int64* rghRows,
     unsigned long eReason, unsigned long eNotifyPhase, int fIsRecoverable) {
-    (void)pThisItf; (void)pRowset; (void)cRows; (void)rghRows; (void)eReason;
-    (void)eNotifyPhase; (void)fIsRecoverable;
-    return 0;
+    (void)pRowset; (void)fIsRecoverable;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x178);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    int dscState = 0;
+    switch (eNotifyPhase) {
+    case 0: dscState = 1; break;
+    case 1: dscState = 4; break;
+    case 2: dscState = 6; break;
+    case 3: dscState = 5; break;
+    case 4: dscState = 7; break;
+    default: break;
+    }
+    int dscReason = 0;
+    switch (eReason) {
+    case 4:  dscReason = 7; break;
+    case 6:  dscReason = 3; break;
+    case 8:  dscReason = 5; break;
+    case 13: dscReason = 2; break;
+    default: break;
+    }
+    SiteDscView* pDsc = static_cast<SiteDscView*>(SiteDataSourceControl(pSite));
+    if (!pDsc) return S_OK;
+    if (dscReason == 2 && dscState == 4) {
+        DscUpdateCursor(pDsc);
+    } else {
+        if ((dscReason == 7 && cRows == 1) || (dscState == 6 && dscReason == 5)) {
+            DscUpdateCursor(pDsc);
+            *reinterpret_cast<unsigned __int64*>(pDsc->m_pRowset + kRowsetHRowOffset) = rghRows[0];
+            const DWORD saved = pDsc->m_bUpdateInProgress;
+            pDsc->m_bUpdateInProgress = 1;
+            impl__GetBoundClientRow_CDataSourceControl__QEAAJXZ(pDsc);
+            pDsc->m_bUpdateInProgress = saved;
+            if (saved == 0) DscUpdateControls(pDsc);
+        }
+        if (dscReason == 0) return S_OK;
+    }
+    SiteEvent event = MakeSiteEvent(3, -1);
+    event.m_nDSCState = dscState;
+    event.m_nDSCReason = dscReason;
+    impl__OnEvent_COleControlSite__IEAAHPEAUAFX_EVENT___Z(pSite, &event);
+    return event.m_hResult < 0 ? event.m_hResult : S_OK;
 }
 
-// Symbol: ?OnRowsetChange@XRowsetNotify@COleControlSite@@UEAAJPEAUIRowset@@KKH@Z
-// COleControlSite::XRowsetNotify::OnRowsetChange() — retail 0x23f260.  It does
-// nothing unless eReason == 0xe; then it takes the CDataSourceControl at
-// site+0xd8 (reached as -0xa0 from this sub-object at site+0x178) and rebuilds
-// its row cache: it releases the accessor and column bindings held at +0x10,
-// +0x20, +0x28 and +0x30 of the cache block at CDataSourceControl+0xa8,
-// re-creates them through the two helpers at 0x236cec/0x236f2c, and if the
-// column count changed reallocates a 0x40-bytes-per-column buffer.  Left as
-// generated: none of that structure exists in OpenMFC.
+// COleControlSite::XRowsetNotify::OnRowsetChange() — mfc140u 0x240c60.  Under
+// the module-state scope it does nothing unless eReason == 0xe
+// (DBREASON_ROWSET_CHANGED) and the site has a CDataSourceControl (+0xd8);
+// then it throws AfxThrowInvalidArgException unless both dsc->m_pRowset (+0xa0)
+// and dsc->m_pDynamicAccessor (+0xa8) exist, and rebinds the ATL
+// CDynamicAccessor in place: the unexported ATL helpers at 0x2386ec and
+// 0x23892c (column-info fetch and bind), CoTaskMemFree/free of the accessor's
+// +0x28/+0x30/+0x10/+0x20 buffers, and a CoTaskMemAlloc'd, zeroed 0x40-byte-
+// per-column buffer at dsc+0x28 when the column count (dsc+0x20) changed.
+// Always returns S_OK.
+// STUB: needs an ATL OLE DB CDynamicAccessor implementation (0x2386ec/0x23892c);
+// OpenMFC's CDataSourceControl never builds m_pRowset/m_pDynamicAccessor.
 extern "C" long MS_ABI impl__OnRowsetChange_XRowsetNotify_COleControlSite__UEAAJPEAUIRowset__KKH_Z(
     void* pThisItf, void* pRowset, unsigned long eReason, unsigned long eNotifyPhase,
     int fIsRecoverable) {
@@ -2357,32 +2821,36 @@ extern "C" long MS_ABI impl__OnUIActivate_XOleIPSite_COleControlSite__UEAAJXZ(vo
     return S_OK;
 }
 
-// Symbol: ?OnUIDeactivate@XOleIPSite@COleControlSite@@UEAAJH@Z
-// COleControlSite::XOleIPSite::OnUIDeactivate() — retail 0x23aab0 is the same
-// shape as OnUIActivate above but through slot 27 (byte 0xd8) =
-// COleControlContainer::OnUIDeactivate (0x2346a0), and with no null check on
-// m_pCtrlCont.  fUndoable is ignored.  Returns S_OK unconditionally.  Left as
-// generated for the same reason.
+// COleControlSite::XOleIPSite::OnUIDeactivate() — mfc140u 0x23c4b0, no
+// module-state scope: site = this-0x140; m_pCtrlCont(+0x40)->OnUIDeactivate(site)
+// through container vtable byte 0xd8 (no null check); return S_OK.  fUndoable
+// is ignored.  OpenMFC dispatches to the container's thunk, as OnUIActivate does.
 extern "C" long MS_ABI impl__OnUIDeactivate_XOleIPSite_COleControlSite__UEAAJH_Z(
     void* pThisItf, int fUndoable) {
-    (void)pThisItf; (void)fUndoable;
-    return 0;
+    (void)fUndoable;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    impl__OnUIDeactivate_COleControlContainer__UEAAXPEAVCOleControlSite___Z(pSite->m_pCtrlCont, pSite);
+    return S_OK;
 }
 
-// Symbol: ?ReleaseDC@XOleIPSite@COleControlSite@@UEAAJPEAUHDC__@@@Z
-// COleControlSite::XOleIPSite::ReleaseDC() — retail 0x23b0d0.  After the
-// module-state prologue it ignores the caller's HDC entirely and releases the
-// site's own cached CDC instead:
-//     ::ReleaseDC(m_pCtrlCont->m_pWnd->m_hWnd, site->cachedDC(+0x130)->m_hDC(+0x8));
-//                                              ; import at 0x2c4ec0
-//     site->+0x130 = NULL;
-//     return S_OK;
-// Left as generated: OpenMFC has no +0x130 CDC cache and cannot recover the
-// site.  The generated S_OK matches retail's unconditional return.
+// COleControlSite::XOleIPSite::ReleaseDC() — mfc140u 0x23cad0.  The caller's
+// HDC is ignored; the site's cached CDC (retail site+0x130, part-0x10) is
+// released against the container window and the cache cleared:
+//   ::ReleaseDC(m_pCtrlCont->m_pWnd->m_hWnd, cachedDC->m_hDC);  m_pDC = NULL;
+//   return S_OK;
+// The cache is OleControlSiteState::dc, filled by XOleIPSite::GetDC.  (The
+// RetailTailStorage member named m_pDC sits at +0x128, which is not the offset
+// these two methods use, so it is not touched.)  Retail dereferences a null
+// cache; that case only clears it here.
 extern "C" long MS_ABI impl__ReleaseDC_XOleIPSite_COleControlSite__UEAAJPEAUHDC_____Z(
     void* pThisItf, HDC hDC) {
-    (void)pThisItf; (void)hDC;
-    return 0;
+    (void)hDC;
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    OleControlSiteState* state = GetOleControlSiteState(pSite, true);
+    if (state->dc) ::ReleaseDC(SiteContainerHwnd(pSite), state->dc->m_hDC);
+    state->dc = nullptr;
+    return S_OK;
 }
 
 // Symbol: ?RequestNewObjectLayout@XOleClientSite@COleControlSite@@UEAAJXZ
@@ -2429,50 +2897,55 @@ extern "C" long MS_ABI impl__Scroll_XOleIPSite_COleControlSite__UEAAJUtagSIZE___
     return S_FALSE;
 }
 
-// Symbol: ?ScrollRect@XOleIPSite@COleControlSite@@UEAAJHHPEBUtagRECT@@0@Z
-// COleControlSite::XOleIPSite::ScrollRect() — retail 0x23ad10, the body slot
-// 27 of the XOleIPSite vftable (0x328fa8) shares with slots 21, 28 and 29
-// (GetFocus, AdjustRect, OnDefWindowMessage): METHOD_PROLOGUE around
-// `mov $0x80004001,%eax`, i.e. E_NOTIMPL.  No argument and no site member is
-// read.  Transcribed exactly; the generated `return 0` claimed success.
-// The generated parameter list was also wrong (four ints and no `this`); the
-// mangled name is (this, int, int, const RECT*, const RECT*), and nothing
-// outside this file declares this thunk.
+// COleControlSite::XOleIPSite::ScrollRect() — the folded body at mfc140u
+// 0x23c710 (see AdjustRect): module-state scope, E_NOTIMPL, no argument read.
 extern "C" long MS_ABI impl__ScrollRect_XOleIPSite_COleControlSite__UEAAJHHPEBUtagRECT__0_Z(
     void* pThisItf, int dx, int dy, const RECT* prcScroll, const RECT* prcClip) {
-    (void)pThisItf; (void)dx; (void)dy; (void)prcScroll; (void)prcClip;
+    (void)dx; (void)dy; (void)prcScroll; (void)prcClip;
+    SiteModuleStateGuard stateGuard(SiteFromPart(pThisItf, 0x140)->m_pModuleState);
     return E_NOTIMPL;
 }
 
-// Symbol: ?SetCapture@XOleIPSite@COleControlSite@@UEAAJH@Z
-// Stub: the --u lookup does not resolve this export; the ANSI twin is at
-// mfc140.dll RVA 0x23b130. Retail recovers the site from the XOleIPSite
-// subobject, sets up AFX_MAINTAIN_STATE2, and, when fCapture is true, calls
-// USER32!SetCapture on the container window, passes the returned HWND to
-// CWnd::FromHandle, then stores the site at COleControlContainer+0xd0. When
-// false, it clears +0xd0 and calls USER32!ReleaseCapture; either path returns
-// S_OK. The mfc140.dll IAT slots 0x1802c5278 and 0x1802c5280 resolve to
-// SetCapture and ReleaseCapture respectively. OpenMFC has no XOleIPSite
-// subobject or container capture-site state, so this fallback returns S_OK
-// without the retail side effects.
+// COleControlSite::XOleIPSite::SetCapture() — mfc140u 0x23cb30:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   if (fCapture) { CWnd::FromHandle(::SetCapture(m_pCtrlCont->m_pWnd->m_hWnd));
+//                   m_pCtrlCont->m_pSiteCapture(+0xd0) = site; }
+//   else          { m_pCtrlCont->m_pSiteCapture = NULL; ::ReleaseCapture(); }
+//   return S_OK;
+// The container's capture site is the OccContainerSiteState entry.
 extern "C" long MS_ABI impl__SetCapture_XOleIPSite_COleControlSite__UEAAJH_Z(
     void* pThisItf, int fCapture) {
-    (void)pThisItf; (void)fCapture;
-    return 0;   // retail's unconditional S_OK; capture side effects are unavailable
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    if (fCapture) {
+        impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::SetCapture(SiteContainerHwnd(pSite)));
+        SetOccContainerCaptureSite(pSite->m_pCtrlCont, pSite);
+    } else {
+        SetOccContainerCaptureSite(pSite->m_pCtrlCont, nullptr);
+        ::ReleaseCapture();
+    }
+    return S_OK;
 }
 
-// Symbol: ?SetFocus@XOleIPSite@COleControlSite@@UEAAJH@Z
-// COleControlSite::XOleIPSite::SetFocus() — retail 0x23b1b0, the same shape as
-// SetCapture above but through the container's focus-site member at +0xd8:
-//     if (fFocus) { m_pCtrlCont->+0xd8 = site;
-//                   CWnd::SetFocus(m_pCtrlCont->m_pWnd); }   ; 0x2a7a70
-//     else        { m_pCtrlCont->+0xd8 = NULL; }
-//     return S_OK;                                           ; unconditional
-// Left as generated for the same reason; the generated S_OK is retail's return.
+// COleControlSite::XOleIPSite::SetFocus() — mfc140u 0x23cbb0:
+//   AFX_MAINTAIN_STATE2(site->m_pModuleState);
+//   if (fFocus) { m_pCtrlCont->m_pSiteFocus(+0xd8) = site;
+//                 CWnd::SetFocus(m_pCtrlCont->m_pWnd); }        // 0x2a9b60
+//   else        m_pCtrlCont->m_pSiteFocus = NULL;
+//   return S_OK;
+// The focus site is modelled by core/ole/COleControlContainer.cpp
+// (SetOccContainerFocusSite).
 extern "C" long MS_ABI impl__SetFocus_XOleIPSite_COleControlSite__UEAAJH_Z(
     void* pThisItf, int fFocus) {
-    (void)pThisItf; (void)fFocus;
-    return 0;   // retail: unconditional S_OK
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x140);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    if (fFocus) {
+        SetOccContainerFocusSite(pSite->m_pCtrlCont, pSite);
+        impl__SetFocus_CWnd__QEAAPEAV1_XZ(pSite->m_pCtrlCont->m_pWnd);
+    } else {
+        SetOccContainerFocusSite(pSite->m_pCtrlCont, nullptr);
+    }
+    return S_OK;
 }
 
 // Symbol: ?ShowObject@XOleClientSite@COleControlSite@@UEAAJXZ
@@ -2505,61 +2978,114 @@ extern "C" long MS_ABI impl__ShowPropertyFrame_XOleControlSite_COleControlSite__
     return E_NOTIMPL;
 }
 
-// Symbol: ?SyncAfter@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
-// COleControlSite::XNotifyDBEvents::SyncAfter() — retail 0x23eca0.  After the
-// module-state prologue it calls XNotifyDBEvents::FireEvent (0x23ee00) with
-// phase 6 at [rsp+0x20] and returns that HRESULT when it is negative.
-// Otherwise, when the CDataSourceControl at site+0xd8 is non-null and its
-// +0x88 flag is clear, and *pReason is neither 0x1e nor 0x1f, and
-// (dwEventWhat & 3) is set, and *pReason is not 2 or 3, it sets +0x88, calls
-// CDataSourceControl::GetBoundClientRow (0x23cb00), clears +0x88 and calls
-// that object's vftable byte 0x28 (slot 5).  Returns S_OK in every one of
-// those cases.  Left as generated: the sub-object layout and the
-// data-source-control plumbing are both absent from OpenMFC.
-// The generated parameter list was wrong (five parameters from a bad
-// demangle); the mangled name is (this, DWORD, DWORD, DBNOTIFYREASON* const),
-// and nothing outside this file declares this thunk.
+// COleControlSite::XNotifyDBEvents::SyncAfter() — mfc140u 0x2406a0:
+//   scope; hr = FireEvent(..., dscSyncAfter (6)); if (FAILED(hr)) return hr;
+//   dsc = m_pDataSourceControl(+0xd8);
+//   if (dsc && !dsc->m_bUpdateInProgress(+0x88)) {
+//       reason = rgReasons[0].dwReason;
+//       if (reason != 0x1e && reason != 0x1f && (dwEventWhat & 3) &&
+//           reason != 2 && reason != 3) {
+//           dsc->m_bUpdateInProgress = TRUE;  dsc->GetBoundClientRow();
+//           dsc->m_bUpdateInProgress = FALSE; dsc->UpdateControls();   // slot 5
+//       }
+//   }
+//   return S_OK;
 extern "C" long MS_ABI impl__SyncAfter_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
-    void* pThisItf, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
-    (void)pThisItf; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
-    return 0;   // retail: S_OK unless FireEvent failed
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons) {
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x170);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    long hr = impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+        pThisItf, dwEventWhat, cReasons, rgReasons, 6);
+    if (hr < 0) return hr;
+    SiteDscView* pDsc = static_cast<SiteDscView*>(SiteDataSourceControl(pSite));
+    if (pDsc && pDsc->m_bUpdateInProgress == 0) {
+        const DWORD reason = *static_cast<const DWORD*>(rgReasons);
+        if (reason != 0x1e && reason != 0x1f && (dwEventWhat & 3) && reason != 2 && reason != 3) {
+            pDsc->m_bUpdateInProgress = 1;
+            impl__GetBoundClientRow_CDataSourceControl__QEAAJXZ(pDsc);
+            pDsc->m_bUpdateInProgress = 0;
+            DscUpdateControls(pDsc);
+        }
+    }
+    return S_OK;
 }
 
-// Symbol: ?SyncBefore@XNotifyDBEvents@COleControlSite@@UEAAJKKQEAUtagDBNOTIFYREASON@@@Z
-// COleControlSite::XNotifyDBEvents::SyncBefore() — retail 0x23eb30, the same
-// shape with phase 3 at [rsp+0x20].  On a non-negative FireEvent result it
-// looks at *pReason: only reason 2, 3 or 0x14 continues, and then only when
-// the CDataSourceControl at site+0xd8 is non-null and bit 7 (0x80) of
-// dwEventWhat is set (`test %sil,%sil; jns`) does it call that object's
-// vftable byte 0x30 (slot 6).
-// Every one of those paths returns S_OK.  Left as generated, and the same
-// five-parameter demangle was corrected here.
+// COleControlSite::XNotifyDBEvents::SyncBefore() — mfc140u 0x240530:
+//   scope; hr = FireEvent(..., dscSyncBefore (3)); if (FAILED(hr)) return hr;
+//   reason = rgReasons[0].dwReason;
+//   if ((reason == 2 || reason == 3 || reason == 0x14) && m_pDataSourceControl
+//       && (dwEventWhat & 0x80))          // `test %sil,%sil; jns`
+//       m_pDataSourceControl->UpdateCursor();            // slot 6, result ignored
+//   return S_OK;
 extern "C" long MS_ABI impl__SyncBefore_XNotifyDBEvents_COleControlSite__UEAAJKKQEAUtagDBNOTIFYREASON___Z(
-    void* pThisItf, unsigned long dwEventWhat, unsigned long dwEventWhen, void* pReason) {
-    (void)pThisItf; (void)dwEventWhat; (void)dwEventWhen; (void)pReason;
-    return 0;   // retail: S_OK unless FireEvent failed
+    void* pThisItf, unsigned long dwEventWhat, unsigned long cReasons, void* rgReasons) {
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x170);
+    SiteModuleStateGuard stateGuard(pSite->m_pModuleState);
+    long hr = impl__FireEvent_XNotifyDBEvents_COleControlSite__QEAAJKKQEAUtagDBNOTIFYREASON__W4DSCSTATE___Z(
+        pThisItf, dwEventWhat, cReasons, rgReasons, 3);
+    if (hr < 0) return hr;
+    const DWORD reason = *static_cast<const DWORD*>(rgReasons);
+    if (reason == 2 || reason == 3 || reason == 0x14) {
+        void* pDsc = SiteDataSourceControl(pSite);
+        if (pDsc && (dwEventWhat & 0x80)) DscUpdateCursor(pDsc);
+    }
+    return S_OK;
 }
 
-// Symbol: ?TransformCoords@XOleControlSite@COleControlSite@@UEAAJPEAU_POINTL@@PEAUtagPOINTF@@K@Z
-// COleControlSite::XOleControlSite::TransformCoords() — retail 0x23b270.  It
-// builds a stack CDC (vftable 0x338fb0) and attaches ::GetDC(site->m_hWnd)
-// to it (USER32 import 0x2c4eb8; the site's m_hWnd is reached as -0x100 from
-// this sub-object at site+0x148, i.e. site+0x48; CDC::Attach at 0x2a03c0).
-// Then, on dwFlags:
-//   XFORMCOORDS_HIMETRICTOCONTAINER (4): copy *pPtlHimetric, run
-//     CDC::HIMETRICtoDP (0x2a3460), and write the pair into pPtfContainer as
-//     floats -- through labs() first when XFORMCOORDS_SIZE (2) is set, plain
-//     when XFORMCOORDS_POSITION (1) is;
-//   XFORMCOORDS_CONTAINERTOHIMETRIC (8): the inverse, cvttss2si then
-//     CDC::DPtoHIMETRIC (0x2a3390), back into pPtlHimetric;
-//   neither, or neither SIZE nor POSITION: return E_INVALIDARG (0x80070057).
-// Every converting path returns S_OK.  Left as generated: the site, and hence
-// the DC to scale against, cannot be recovered from the sub-object pointer,
-// and the generated S_OK matches retail's success return.
+// COleControlSite::XOleControlSite::TransformCoords() — mfc140u 0x23cc70, no
+// module-state scope:
+//   CDC dc; dc.Attach(::GetDC(site->m_hWnd(+0x48)));      // part 0x148 - 0x100
+//   if (dwFlags & XFORMCOORDS_HIMETRICTOCONTAINER) {
+//       CSize sz(*pPtlHimetric); dc.HIMETRICtoDP(&sz);
+//       if (dwFlags & XFORMCOORDS_SIZE)  ptf = ((float)labs(sz.cx), (float)labs(sz.cy));
+//       else if (dwFlags & XFORMCOORDS_POSITION) ptf = ((float)sz.cx, (float)sz.cy);
+//       else hr = E_INVALIDARG;
+//   } else if (dwFlags & XFORMCOORDS_CONTAINERTOHIMETRIC) {
+//       CSize sz((int)ptf.x, (int)ptf.y);                   // cvttss2si
+//       dc.DPtoHIMETRIC(&sz);
+//       if (dwFlags & XFORMCOORDS_SIZE)  ptl = (labs(sz.cx), labs(sz.cy));
+//       else if (dwFlags & XFORMCOORDS_POSITION) ptl = sz;
+//       else hr = E_INVALIDARG;
+//   } else hr = E_INVALIDARG;
+//   ~CDC: if (m_hDC) ::DeleteDC(Detach());   return hr;
+// Retail really frees the ::GetDC handle with DeleteDC (the inlined ~CDC);
+// that is reproduced.
 extern "C" long MS_ABI impl__TransformCoords_XOleControlSite_COleControlSite__UEAAJPEAU_POINTL__PEAUtagPOINTF__K_Z(
     void* pThisItf, void* pPtlHimetric, void* pPtfContainer, unsigned long dwFlags) {
-    (void)pThisItf; (void)pPtlHimetric; (void)pPtfContainer; (void)dwFlags;
-    return 0;   // retail: S_OK on every converting path
+    COleControlSite* pSite = SiteFromPart(pThisItf, 0x148);
+    POINTL* ptl = static_cast<POINTL*>(pPtlHimetric);
+    POINTF* ptf = static_cast<POINTF*>(pPtfContainer);
+    HRESULT hr = S_OK;
+    CDC dc;
+    impl__Attach_CDC__QEAAHPEAUHDC_____Z(&dc, ::GetDC(pSite->m_hWnd));
+    if (dwFlags & XFORMCOORDS_HIMETRICTOCONTAINER) {
+        SIZE sz = { ptl->x, ptl->y };
+        impl__HIMETRICtoDP_CDC__QEBAXPEAUtagSIZE___Z(&dc, &sz);
+        if (dwFlags & XFORMCOORDS_SIZE) {
+            ptf->x = static_cast<float>(labs(sz.cx));
+            ptf->y = static_cast<float>(labs(sz.cy));
+        } else if (dwFlags & XFORMCOORDS_POSITION) {
+            ptf->x = static_cast<float>(sz.cx);
+            ptf->y = static_cast<float>(sz.cy);
+        } else {
+            hr = E_INVALIDARG;
+        }
+    } else if (dwFlags & XFORMCOORDS_CONTAINERTOHIMETRIC) {
+        SIZE sz = { static_cast<LONG>(ptf->x), static_cast<LONG>(ptf->y) };
+        impl__DPtoHIMETRIC_CDC__QEBAXPEAUtagSIZE___Z(&dc, &sz);
+        if (dwFlags & XFORMCOORDS_SIZE) {
+            ptl->x = labs(sz.cx);
+            ptl->y = labs(sz.cy);
+        } else if (dwFlags & XFORMCOORDS_POSITION) {
+            ptl->x = sz.cx;
+            ptl->y = sz.cy;
+        } else {
+            hr = E_INVALIDARG;
+        }
+    } else {
+        hr = E_INVALIDARG;
+    }
+    return hr;
 }
 
 // Symbol: ?TranslateAcceleratorW@XOleControlSite@COleControlSite@@UEAAJPEAUtagMSG@@K@Z

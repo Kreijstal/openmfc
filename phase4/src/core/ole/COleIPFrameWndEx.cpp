@@ -28,9 +28,9 @@
 // OpenMFC has no COleIPFrameWndEx class in include/openmfc/ and no shadow
 // struct for it in phase4/src/detail/.  This file uses a local, statically
 // pinned overlay for the retail base-frame pointer at +0x210 in
-// GetContainerFrameWindow; the embedded CFrameImpl / CDockingManager are still
-// not modeled, so bodies requiring those sub-objects are left as documented
-// stubs or partial implementations rather than guessed at.
+// GetContainerFrameWindow.  The CDockingManager (+0x428) and the CFrameImpl
+// token (+0x298) are reached through FeaturePackInPlaceFrame and the Ipfx*
+// helpers below; bodies needing other unmodeled members stay partial.
 
 #define OPENMFC_APPCORE_IMPL
 
@@ -40,7 +40,88 @@
 #include "detail/OlecoreSupport.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <mutex>
 #include <new>
+#include "detail/CbarcoreSupport.h"
+
+// ---- Feature Pack sub-objects of the retail in-place frame -----------------
+// Both retail frames construct a CFrameImpl at this+0x298 and a
+// CDockingManager at this+0x428 (??0COleIPFrameWndEx@@ mfc140u 0x95f50:
+// `lea 0x298(%rbx),%rcx; mov %rbx,%rdx; call ??0CFrameImpl (0x61ef0)` and
+// `lea 0x428(%rbx),%rcx; call ??0CDockingManager (0x46ef0)`).  The dock
+// manager is the real m_dockManager of FeaturePackInPlaceFrame; OpenMFC's
+// CFrameImpl is an address-keyed token (core/frame/CFrameImpl.cpp), so the
+// token is this+0x298, inside the frame's otherwise unused m_frameStorage.
+extern "C" void* MS_ABI impl___0CFrameImpl__QEAA_PEAVCFrameWnd___Z(void* pThis, CFrameWnd* pFrame);
+extern "C" void MS_ABI impl___1CFrameImpl__UEAA_XZ(void* pThis);
+extern "C" int MS_ABI impl__DeleteToolBar_CFrameImpl__IEAAHPEAVCMFCToolBar___Z(void* pThis, void* pToolBar);
+extern "C" int MS_ABI impl__OnShowPopupMenu_CFrameImpl__IEAAHPEAVCMFCPopupMenu__PEAVCFrameWnd___Z(
+    void* pThis, void* pPopupMenu, CFrameWnd* pWnd);
+extern "C" void MS_ABI openmfc_CFrameImpl_SetDockManager(void* pFrameImpl, CDockingManager* pDockManager);
+extern "C" int MS_ABI impl__DockPaneLeftOf_CDockingManager__QEAAHPEAVCPane__0_Z(
+    CDockingManager* pThis, CPane* pBarToDock, CPane* pBar);
+extern "C" int MS_ABI impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(CDockingManager* pThis, CWnd* pFrame);
+extern "C" void MS_ABI impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+    CDockingManager* pThis, CBasePane* pPane, int bDestroy, int bAdjustLayout, int bAutoHide,
+    CBasePane* pBarReplacement);
+extern "C" LRESULT MS_ABI impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(CWnd*, UINT, WPARAM, LPARAM);
+extern "C" void MS_ABI impl__CreateFromMenu_CMFCMenuBar__UEAAXPEAUHMENU____HH_Z(
+    CMFCMenuBar* pThis, HMENU hMenu, int bDefaultMenu, int bForceUpdate);
+// ?m_pActivePopupMenu@CMFCPopupMenu@@ (mfc140u 0x3be288), the global retail's
+// OnClosePopupMenu compares against; CFrameImpl::OnShowPopupMenu writes it.
+extern "C" void* impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA;
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+
+namespace {
+using IpfxFrame = openmfc::detail::olecore::FeaturePackInPlaceFrame;
+constexpr std::size_t kIpfxOffFrameImpl = 0x298;
+// OnClosePopupMenu (mfc140u 0x95514): `movl $0x0,0x770(%rcx)`, i.e. the
+// retail dock manager's +0x348 (CFrameImpl::OnShowPopupMenu sets it to 1 after
+// building the panes menu).  OpenMFC's CDockingManager is 0x90 bytes, so the
+// dword lies in FeaturePackInPlaceFrame::m_managerPadding.
+constexpr std::size_t kIpfxOffPanesMenuFlag = 0x770;
+static_assert(offsetof(IpfxFrame, m_frameStorage) <= kIpfxOffFrameImpl &&
+              kIpfxOffFrameImpl < offsetof(IpfxFrame, m_dockManager),
+              "CFrameImpl token @+0x298 lies in the unused frame storage");
+static_assert(offsetof(IpfxFrame, m_managerPadding) <= kIpfxOffPanesMenuFlag &&
+              kIpfxOffPanesMenuFlag + sizeof(DWORD) <= offsetof(IpfxFrame, type_),
+              "+0x770 lies in the dock manager padding");
+
+void* IpfxFrameImpl(void* pThis) { return static_cast<unsigned char*>(pThis) + kIpfxOffFrameImpl; }
+CDockingManager* IpfxDockManager(const void* pThis) {
+    return &static_cast<IpfxFrame*>(const_cast<void*>(pThis))->m_dockManager;
+}
+void IpfxConstructFrameImpl(void* pThis) {
+    impl___0CFrameImpl__QEAA_PEAVCFrameWnd___Z(IpfxFrameImpl(pThis),
+                                               static_cast<IpfxFrame*>(pThis));
+}
+// The vptr's home image tells an OpenMFC-built object (C++ vtable, retail slot
+// indices do not apply) from a client-derived one (MSVC vtable laid out per the
+// retail header) -- the test core/frame/CFrameImpl.cpp's IsOwnObject applies.
+bool IpfxIsOwnObject(const void* pObject) {
+    const void* vptr = *static_cast<const void* const*>(pObject);
+    const unsigned char* base = reinterpret_cast<const unsigned char*>(&__ImageBase);
+    const IMAGE_NT_HEADERS* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(
+        base + reinterpret_cast<const IMAGE_DOS_HEADER*>(base)->e_lfanew);
+    const unsigned char* p = static_cast<const unsigned char*>(vptr);
+    return p >= base && p < base + nt->OptionalHeader.SizeOfImage;
+}
+template <typename Fn> Fn IpfxVSlot(const void* pObject, std::size_t byteOffset) {
+    return reinterpret_cast<Fn>((*static_cast<void* const* const*>(pObject))[byteOffset / sizeof(void*)]);
+}
+CMFCMenuBar* IpfxMenuBar(void* pThis) {
+    // CFrameImpl::m_pMenuBar (+0x110 of the impl == frame +0x3a8) lives in
+    // FrameImplState::menuBar, written by CFrameImpl::SetMenuBar.
+    using namespace openmfc::detail::cbarcore;
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    auto it = g_frameImplStates.find(reinterpret_cast<CFrameImpl*>(IpfxFrameImpl(pThis)));
+    return it != g_frameImplStates.end() ? static_cast<CMFCMenuBar*>(it->second.menuBar) : nullptr;
+}
+}  // namespace
+
+// Our own HMENU overload, called by the WPARAM/LPARAM handler (0x95260 -> 0x952a0).
+extern "C" int MS_ABI impl__OnSetMenu_COleIPFrameWndEx__IEAAHPEAUHMENU_____Z(void* pThis, HMENU hMenu);
 
 // The retail allocation for this class (0x790 bytes, see the header comment)
 // must be able to hold the OpenMFC COleIPFrameWnd that the constructor below
@@ -180,14 +261,25 @@ extern "C" void MS_ABI impl__OnUpdatePaneMenu_COleIPFrameWndEx__IEAAXPEAVCCmdUI_
 // Symbol: ??0COleIPFrameWndEx@@IEAA@XZ
 extern "C" void* MS_ABI impl___0COleIPFrameWndEx__IEAA_XZ(void* storage) {
     using namespace openmfc::detail::olecore;
-    return storage ? ::new (storage) FeaturePackInPlaceFrame(
-        impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ()) : nullptr;
+    if (!storage) return nullptr;
+    ::new (storage) FeaturePackInPlaceFrame(impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ());
+    // Retail constructs the CFrameImpl at this+0x298 with `this` (see the
+    // helper notes near the top of this file).
+    IpfxConstructFrameImpl(storage);
+    return storage;
 }
 
 // Symbol: ??1COleIPFrameWndEx@@MEAA@XZ
 extern "C" void* MS_ABI impl___1COleIPFrameWndEx__MEAA_XZ(void* pThis) {
     using openmfc::detail::olecore::FeaturePackInPlaceFrame;
-    if (pThis) static_cast<FeaturePackInPlaceFrame*>(pThis)->~FeaturePackInPlaceFrame();
+    if (pThis) {
+        // Retail destroys the dock manager, then the CFrameImpl at +0x298
+        // (??1CFrameImpl, 0x620b0), then the base.  DEVIATION: the CFrameImpl
+        // token is released first here, because the C++ destructor below
+        // tears down the dock manager and the base together.
+        impl___1CFrameImpl__UEAA_XZ(IpfxFrameImpl(pThis));
+        static_cast<FeaturePackInPlaceFrame*>(pThis)->~FeaturePackInPlaceFrame();
+    }
     return pThis;
 }
 
@@ -215,7 +307,9 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_COleIPFrameWndEx__UEAAXPEAX_Z(v
 // Symbol: ?CreateObject@COleIPFrameWndEx@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_COleIPFrameWndEx__SAPEAVCObject__XZ() {
     using namespace openmfc::detail::olecore;
-    return new FeaturePackInPlaceFrame(impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ());
+    auto* frame = new FeaturePackInPlaceFrame(impl__GetThisClass_COleIPFrameWndEx__SAPEAUCRuntimeClass__XZ());
+    IpfxConstructFrameImpl(frame);   // as the exported constructor does
+    return frame;
 }
 
 // Symbol: ?DockPane@COleIPFrameWndEx@@QEAAXPEAVCBasePane@@IPEBUtagRECT@@@Z
@@ -223,15 +317,14 @@ extern "C" void MS_ABI impl__DockPane_COleIPFrameWndEx__QEAAXPEAVCBasePane__IPEB
     if (frame) static_cast<FeaturePackInPlaceFrame*>(frame)->m_dockManager.DockPane(pane, id, bounds);
 }
 
-// COleIPFrameWndEx::DockPaneLeftOf(CPane*, CPane*) — retail mfc140.dll (ANSI) RVA 0x961a0:
-//     add $0x428,%rcx; jmp CDockingManager::DockPaneLeftOf
-// The docking manager at this+0x428 is not modeled.
+// COleIPFrameWndEx::DockPaneLeftOf(CPane*, CPane*) -- mfc140u RVA 0x95be0 (one body shared
+// by both in-place frame classes):
+//     add $0x428,%rcx; jmp ?DockPaneLeftOf@CDockingManager@@ (0x48430)
 // Symbol: ?DockPaneLeftOf@COleIPFrameWndEx@@QEAAHPEAVCPane@@0@Z
 extern "C" int MS_ABI impl__DockPaneLeftOf_COleIPFrameWndEx__QEAAHPEAVCPane__0_Z(
     void* pThis, void* pBarToDock, void* pBar) {
-    (void)pThis; (void)pBarToDock; (void)pBar;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+    return impl__DockPaneLeftOf_CDockingManager__QEAAHPEAVCPane__0_Z(
+        IpfxDockManager(pThis), static_cast<CPane*>(pBarToDock), static_cast<CPane*>(pBar));
 }
 
 // Symbol: ?EnableAutoHidePanes@COleIPFrameWndEx@@QEAAHK@Z
@@ -363,16 +456,17 @@ extern "C" void MS_ABI impl__OnClose_COleIPFrameWndEx__IEAAXXZ(CFrameWnd* pThis)
     impl__OnClose_CFrameWnd__IEAAXXZ(pThis);
 }
 
-// COleIPFrameWndEx::OnClosePopupMenu(CMFCPopupMenu*) — retail mfc140.dll (ANSI) RVA 0x95ac0:
-//     if (g_pActivePopupMenu == pMenuPopup) g_pActivePopupMenu = nullptr;
-//     this->[0x770] = 0;
-// Both the module-global active-popup pointer (0x3b6fe8) and the DWORD at
-// this+0x770 are unmodeled state.
+// COleIPFrameWndEx::OnClosePopupMenu(CMFCPopupMenu*) -- mfc140u RVA 0x95500 (shared body),
+// transcribed in full:
+//     if (CMFCPopupMenu::m_pActivePopupMenu == pMenuPopup)       // 0x3be288
+//         CMFCPopupMenu::m_pActivePopupMenu = NULL;
+//     this->[0x770] = 0;                     // dock manager +0x348, see the helper notes
 // Symbol: ?OnClosePopupMenu@COleIPFrameWndEx@@UEAAXPEAVCMFCPopupMenu@@@Z
 extern "C" void MS_ABI impl__OnClosePopupMenu_COleIPFrameWndEx__UEAAXPEAVCMFCPopupMenu___Z(
     void* pThis, void* pMenuPopup) {
-    (void)pThis; (void)pMenuPopup;
-    // TODO(clean-room): needs the active-popup global and this+0x770.
+    if (impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA == pMenuPopup)
+        impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA = nullptr;
+    *reinterpret_cast<DWORD*>(static_cast<unsigned char*>(pThis) + kIpfxOffPanesMenuFlag) = 0;
 }
 
 // COleIPFrameWndEx::OnCmdMsg(UINT, int, void*, AFX_CMDHANDLERINFO*) — retail
@@ -503,14 +597,16 @@ extern "C" __int64 MS_ABI impl__OnMenuChar_COleIPFrameWndEx__IEAA_JIIPEAVCMenu__
     return impl__OnMenuChar_CFrameWnd__IEAA_JIIPEAVCMenu___Z(pThis, nChar, nFlags, pMenu);
 }
 
-// COleIPFrameWndEx::OnMoveMiniFrame(CWnd*) — retail mfc140.dll (ANSI) RVA 0x96050:
-//     add $0x428,%rcx; tail-call CDockingManager vtable slot 0x88
-// The docking manager at this+0x428 is not modeled.
+// COleIPFrameWndEx::OnMoveMiniFrame(CWnd*) -- mfc140u RVA 0x95a90 (shared body):
+//     add $0x428,%rcx; jmp *vtable[+0x88]
+// Slot +0x88 of the CDockingManager vftable (0x2e6120, planted by its ctor
+// 0x46ef0) is ?OnMoveMiniFrame@CDockingManager@@ (0x492a0).  The manager is the
+// embedded m_dockManager, whose dynamic type is always exactly CDockingManager,
+// so the direct thunk call reaches the same function.
 // Symbol: ?OnMoveMiniFrame@COleIPFrameWndEx@@UEAAHPEAVCWnd@@@Z
 extern "C" int MS_ABI impl__OnMoveMiniFrame_COleIPFrameWndEx__UEAAHPEAVCWnd___Z(void* pThis, void* pFrame) {
-    (void)pThis; (void)pFrame;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return 0;
+    return impl__OnMoveMiniFrame_CDockingManager__UEAAHPEAVCWnd___Z(
+        IpfxDockManager(pThis), static_cast<CWnd*>(pFrame));
 }
 
 // Symbol: ?OnPaneCheck@COleIPFrameWndEx@@IEAAHI@Z
@@ -518,32 +614,51 @@ extern "C" int MS_ABI impl__OnPaneCheck_COleIPFrameWndEx__IEAAHI_Z(FeaturePackIn
     return frame && frame->TogglePane(id);
 }
 
-// COleIPFrameWndEx::OnSetMenu(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x95820:
-//     COleIPFrameWndEx::OnSetMenu(this, (HMENU)wParam);   // the overload below
-//     return this->vtable[0x248](this, 0x230, 0, lParam);
-// Both halves are out of reach: the HMENU overload depends on the menu bar at
-// this+0x3a8 (see below) and the trailing dispatch is through a vtable this
-// tree does not build for the class.
+// COleIPFrameWndEx::OnSetMenu(WPARAM, LPARAM) -- mfc140u RVA 0x95260 (shared body):
+//     OnSetMenu((HMENU)wParam);                              // direct call, 0x952a0
+//     return this->vtable[+0x248](WM_MDISETMENU /*0x230*/, 0, lParam);   // DefWindowProc
+// For an OpenMFC-built frame slot +0x248 is CWnd::DefWindowProc (no override);
+// a client-derived frame's MSVC vtable is dispatched, as retail does.
 // Symbol: ?OnSetMenu@COleIPFrameWndEx@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnSetMenu_COleIPFrameWndEx__IEAA_J_K_J_Z(
     void* pThis, unsigned __int64 wParam, __int64 lParam) {
-    (void)pThis; (void)wParam; (void)lParam;
-    // TODO(clean-room): needs this+0x3a8 and a COleIPFrameWndEx vtable.
-    return 0;
+    impl__OnSetMenu_COleIPFrameWndEx__IEAAHPEAUHMENU_____Z(
+        pThis, reinterpret_cast<HMENU>(static_cast<std::uintptr_t>(wParam)));
+    if (IpfxIsOwnObject(pThis))
+        return static_cast<__int64>(impl__DefWindowProcW_CWnd__MEAA_JI_K_J_Z(
+            static_cast<IpfxFrame*>(pThis), 0x0230, 0, static_cast<LPARAM>(lParam)));
+    typedef LRESULT (MS_ABI* Fn_DefWindowProc)(void*, UINT, WPARAM, LPARAM);
+    return static_cast<__int64>(IpfxVSlot<Fn_DefWindowProc>(pThis, 0x248)(
+        pThis, 0x0230, 0, static_cast<LPARAM>(lParam)));
 }
 
-// COleIPFrameWndEx::OnSetMenu(HMENU) — retail mfc140.dll (ANSI) RVA 0x95860:
-//     bar = this->[0x3a8];                       // the frame's menu bar pane
-//     if (!bar) return 0;
-//     bar->vtable[0x878](bar, hMenu ? hMenu : this->[0x2e0], 0, 0);
-//     return 1;
-// Neither this+0x3a8 nor this+0x2e0 is modeled; the stub's zero result only
-// matches retail when the menu-bar pointer is null.
+// COleIPFrameWndEx::OnSetMenu(HMENU) -- mfc140u RVA 0x952a0 (shared body):
+//     CMFCMenuBar* bar = this->[0x3a8];          // m_Impl.m_pMenuBar (impl +0x110)
+//     if (!bar) return FALSE;
+//     bar->vtable[+0x878](hMenu ? hMenu : this->[0x2e0], FALSE, FALSE);   // CreateFromMenu
+//     return TRUE;                               // this+0x2e0 = m_Impl +0x48
+// The menu bar is read from the CFrameImpl token's FrameImplState (what
+// CFrameImpl::SetMenuBar writes).  Slot +0x878 is CreateFromMenu (CMFCMenuBar
+// vtable slot 271); it is dispatched through the vtable for a client-built bar
+// and through the CMFCMenuBar thunk for an OpenMFC-built one.
+// DEVIATION: OpenMFC's CFrameImpl::SetMenuBar does not cache the frame's
+// default HMENU (retail impl +0x48), so with hMenu == NULL there is no menu to
+// rebuild from and the CreateFromMenu call is skipped (TRUE is still returned,
+// as retail does once a menu bar exists).
 // Symbol: ?OnSetMenu@COleIPFrameWndEx@@IEAAHPEAUHMENU__@@@Z
 extern "C" int MS_ABI impl__OnSetMenu_COleIPFrameWndEx__IEAAHPEAUHMENU_____Z(void* pThis, HMENU hMenu) {
-    (void)pThis; (void)hMenu;
-    // TODO(clean-room): needs the menu-bar pane at this+0x3a8 and this+0x2e0.
-    return 0;   // retail's "no menu bar" result
+    CMFCMenuBar* pMenuBar = IpfxMenuBar(pThis);
+    if (pMenuBar == nullptr)
+        return FALSE;
+    if (hMenu != nullptr) {
+        if (IpfxIsOwnObject(pMenuBar)) {
+            impl__CreateFromMenu_CMFCMenuBar__UEAAXPEAUHMENU____HH_Z(pMenuBar, hMenu, FALSE, FALSE);
+        } else {
+            typedef void (MS_ABI* Fn_CreateFromMenu)(void*, HMENU, int, int);
+            IpfxVSlot<Fn_CreateFromMenu>(pMenuBar, 0x878)(pMenuBar, hMenu, FALSE, FALSE);
+        }
+    }
+    return TRUE;
 }
 
 // Symbol: ?OnSetPreviewMode@COleIPFrameWndEx@@UEAAXHPEAUCPrintPreviewState@@@Z
@@ -590,39 +705,46 @@ extern "C" __int64 MS_ABI impl__OnToolbarCreateNew_COleIPFrameWndEx__IEAA_J_K_J_
     return 0;
 }
 
-// COleIPFrameWndEx::OnToolbarDelete(WPARAM, LPARAM) — retail mfc140.dll (ANSI) RVA 0x95c90:
-//     return (int)CFrameImpl::DeleteToolBar(this+0x298, (CMFCToolBar*)lParam);
-// The CFrameImpl sub-object is not modeled.
+// COleIPFrameWndEx::OnToolbarDelete(WPARAM, LPARAM) -- mfc140u RVA 0x956d0 (shared body):
+//     return (LRESULT)(int)CFrameImpl::DeleteToolBar(this+0x298, (CMFCToolBar*)lParam);
+//                                                   // 0x63520, `cltq` sign-extends
+// Unlike CFrameWndEx's handler there is no lParam==0 guard.
 // Symbol: ?OnToolbarDelete@COleIPFrameWndEx@@IEAA_J_K_J@Z
 extern "C" __int64 MS_ABI impl__OnToolbarDelete_COleIPFrameWndEx__IEAA_J_K_J_Z(
     void* pThis, unsigned __int64 wParam, __int64 lParam) {
-    (void)pThis; (void)wParam; (void)lParam;
-    // TODO(clean-room): needs the CFrameImpl at this+0x298.
-    return 0;
+    (void)wParam;
+    return static_cast<__int64>(impl__DeleteToolBar_CFrameImpl__IEAAHPEAVCMFCToolBar___Z(
+        IpfxFrameImpl(pThis), reinterpret_cast<void*>(static_cast<std::uintptr_t>(lParam))));
 }
 
-// COleIPFrameWndEx::PaneFromPoint(CPoint, int, bool, CRuntimeClass*) — retail
-// (mfc140.dll ANSI RVA 0x95f60): add $0x428,%rcx; tail-call CDockingManager vtable slot 0x30
-// with the extra arguments (..., 0, nullptr) appended.
-// The docking manager at this+0x428 is not modeled.
+// COleIPFrameWndEx::PaneFromPoint(CPoint, int, bool, CRuntimeClass*) const -- mfc140u RVA
+// 0x959a0 (shared body): this+0x428, then vtable[+0x30] with the two extra
+// stack arguments (BOOL 0, const CBasePane* nullptr) appended.  Slot +0x30 of
+// the CDockingManager vftable (0x2e6120) is the six-argument
+// ?PaneFromPoint@CDockingManager@@...H_N... (0x47b00); called directly for the
+// same exact-type reason as OnMoveMiniFrame.
 // Symbol: ?PaneFromPoint@COleIPFrameWndEx@@QEBAPEAVCBasePane@@VCPoint@@H_NPEAUCRuntimeClass@@@Z
 extern "C" void* MS_ABI impl__PaneFromPoint_COleIPFrameWndEx__QEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass___Z(
     const void* pThis, unsigned long long pt, int nSensitivity, bool bExactBar, void* pRTCBarType) {
-    (void)pThis; (void)pt; (void)nSensitivity; (void)bExactBar; (void)pRTCBarType;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return nullptr;
+    const CPoint point(static_cast<int>(static_cast<unsigned int>(pt & 0xffffffffULL)),
+                       static_cast<int>(static_cast<unsigned int>(pt >> 32)));
+    return impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__H_NPEAUCRuntimeClass__HPEBV2__Z(
+        IpfxDockManager(pThis), point, nSensitivity, bExactBar,
+        static_cast<CRuntimeClass*>(pRTCBarType), FALSE, nullptr);
 }
 
-// COleIPFrameWndEx::PaneFromPoint(CPoint, int, DWORD&, CRuntimeClass*) — retail
-// (mfc140.dll ANSI RVA 0x95fa0): add $0x428,%rcx; tail-call CDockingManager vtable slot 0x28
-// with a trailing nullptr argument.
-// The docking manager at this+0x428 is not modeled.
+// COleIPFrameWndEx::PaneFromPoint(CPoint, int, DWORD&, CRuntimeClass*) const -- mfc140u
+// RVA 0x959e0 (shared body): this+0x428, then vtable[+0x28] with a trailing
+// const CBasePane* nullptr.  Slot +0x28 is ?PaneFromPoint@CDockingManager@@
+// ...HAEAK... (0x47cb0); called directly (exact embedded type).
 // Symbol: ?PaneFromPoint@COleIPFrameWndEx@@QEBAPEAVCBasePane@@VCPoint@@HAEAKPEAUCRuntimeClass@@@Z
 extern "C" void* MS_ABI impl__PaneFromPoint_COleIPFrameWndEx__QEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass___Z(
     const void* pThis, unsigned long long pt, int nSensitivity, unsigned long* dwAlignment, void* pRTCBarType) {
-    (void)pThis; (void)pt; (void)nSensitivity; (void)dwAlignment; (void)pRTCBarType;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
-    return nullptr;
+    const CPoint point(static_cast<int>(static_cast<unsigned int>(pt & 0xffffffffULL)),
+                       static_cast<int>(static_cast<unsigned int>(pt >> 32)));
+    return impl__PaneFromPoint_CDockingManager__UEBAPEAVCBasePane__VCPoint__HAEAKPEAUCRuntimeClass__PEBV2__Z(
+        IpfxDockManager(pThis), point, nSensitivity, dwAlignment,
+        static_cast<CRuntimeClass*>(pRTCBarType), nullptr);
 }
 
 // COleIPFrameWndEx::PreCreateWindow(CREATESTRUCT&) — retail mfc140.dll (ANSI) RVA 0x96090:
@@ -636,8 +758,8 @@ extern "C" void* MS_ABI impl__PaneFromPoint_COleIPFrameWndEx__QEBAPEAVCBasePane_
 extern "C" int MS_ABI impl__PreCreateWindow_COleIPFrameWndEx__MEAAHAEAUtagCREATESTRUCTW___Z(
     CFrameWnd* pThis, CREATESTRUCTW* pcs) {
     if (!pThis || !pcs) return FALSE;
-    // TODO(clean-room): transcribed partially — the this+0x3b8 docking-manager
-    // back-pointer is not modeled.
+    // this+0x3b8 is m_Impl.m_pDockManager (CFrameImpl +0x120).
+    openmfc_CFrameImpl_SetDockManager(IpfxFrameImpl(pThis), IpfxDockManager(pThis));
     return impl__PreCreateWindow_CFrameWnd__MEAAHAEAUtagCREATESTRUCTW___Z(pThis, *pcs);
 }
 
@@ -698,16 +820,15 @@ extern "C" void MS_ABI impl__RecalcLayout_COleIPFrameWndEx__UEAAXH_Z(void* pThis
     // this+0x170 / this+0x5f0..0x630 are not modeled.
 }
 
-// COleIPFrameWndEx::RemovePaneFromDockManager(CBasePane*, BOOL, BOOL, BOOL,
-// CBasePane*) — retail mfc140.dll (ANSI) RVA 0x95f40:
-//     add $0x428,%rcx; jmp CDockingManager::RemovePaneFromDockManager
-// The docking manager at this+0x428 is not modeled.
+// COleIPFrameWndEx::RemovePaneFromDockManager(CBasePane*, BOOL, BOOL, BOOL, CBasePane*) --
+// mfc140u RVA 0x95980 (shared body):
+//     add $0x428,%rcx; jmp ?RemovePaneFromDockManager@CDockingManager@@ (0x479c0)
 // Symbol: ?RemovePaneFromDockManager@COleIPFrameWndEx@@QEAAXPEAVCBasePane@@HHH0@Z
 extern "C" void MS_ABI impl__RemovePaneFromDockManager_COleIPFrameWndEx__QEAAXPEAVCBasePane__HHH0_Z(
     void* pThis, void* pPane, int bDestroy, int bAdjustLayout, int bAutoHide, void* pBarReplacement) {
-    (void)pThis; (void)pPane; (void)bDestroy; (void)bAdjustLayout;
-    (void)bAutoHide; (void)pBarReplacement;
-    // TODO(clean-room): needs the embedded CDockingManager at this+0x428.
+    impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+        IpfxDockManager(pThis), static_cast<CBasePane*>(pPane), bDestroy, bAdjustLayout, bAutoHide,
+        static_cast<CBasePane*>(pBarReplacement));
 }
 
 // COleIPFrameWndEx::ShowPane(CBasePane*, BOOL, BOOL, BOOL) — retail
@@ -727,17 +848,27 @@ extern "C" void MS_ABI impl__ShowPane_COleIPFrameWndEx__QEAAXPEAVCBasePane__HHH_
     impl__ShowPane_CBasePane__UEAAXHHH_Z(pPane, bShow, bDelay, bActivate);
 }
 
-// COleIPFrameWndEx::ShowPopupMenu(CMFCPopupMenu*) — retail mfc140.dll (ANSI) RVA 0x95a60:
-//     if (!CFrameImpl::OnShowPopupMenu(this+0x298, pMenuPopup, this)) return 0;
-//     if (pMenuPopup && pMenuPopup->[0x1670]) return 1;
-//     return this->vtable[0x3e8](this, pMenuPopup);     // OnShowPopupMenu
-// The CFrameImpl sub-object and the class vtable are not modeled.
+// COleIPFrameWndEx::ShowPopupMenu(CMFCPopupMenu*) -- mfc140u RVA 0x954a0 (shared body):
+//     if (!CFrameImpl::OnShowPopupMenu(this+0x298, pMenuPopup, this)) return FALSE;  // 0x64300
+//     if (pMenuPopup && pMenuPopup->[+0x1670]) return TRUE;
+//     return this->vtable[+0x3e8](pMenuPopup);   // virtual OnShowPopupMenu
+// Slot +0x3e8 is the inline virtual OnShowPopupMenu (afxoleipframewndex.h:153,
+// default `return TRUE`).  A client-derived frame carries an MSVC vtable, so the
+// slot is dispatched; an OpenMFC-built frame has no override, so the inline
+// default's TRUE is returned.
+// DEVIATION: the popup +0x1670 gate is omitted, as in CFrameWndEx::ShowPopupMenu:
+// OpenMFC's own CMFCPopupMenu allocation is 0x238 bytes, so that read would be
+// out of bounds and nothing in OpenMFC maintains the field.
 // Symbol: ?ShowPopupMenu@COleIPFrameWndEx@@IEAAHPEAVCMFCPopupMenu@@@Z
 extern "C" int MS_ABI impl__ShowPopupMenu_COleIPFrameWndEx__IEAAHPEAVCMFCPopupMenu___Z(
     void* pThis, void* pMenuPopup) {
-    (void)pThis; (void)pMenuPopup;
-    // TODO(clean-room): needs the CFrameImpl at this+0x298.
-    return 0;
+    if (!impl__OnShowPopupMenu_CFrameImpl__IEAAHPEAVCMFCPopupMenu__PEAVCFrameWnd___Z(
+            IpfxFrameImpl(pThis), pMenuPopup, static_cast<IpfxFrame*>(pThis)))
+        return FALSE;
+    if (IpfxIsOwnObject(pThis))
+        return TRUE;
+    typedef int (MS_ABI* Fn_OnShowPopupMenu)(void*, void*);
+    return IpfxVSlot<Fn_OnShowPopupMenu>(pThis, 0x3e8)(pThis, pMenuPopup);
 }
 
 // COleIPFrameWndEx::WinHelp(DWORD_PTR, UINT) — retail mfc140.dll (ANSI) RVA 0x96630 (the RVA
