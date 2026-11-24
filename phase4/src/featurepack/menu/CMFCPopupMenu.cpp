@@ -19,6 +19,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CMFCPopupMenuSupport.h"
+#include "detail/CMFCDropDownListBoxSupport.h"
 #include "detail/MfccoreSupport.h"
 
 #include "openmfc/afxole.h"
@@ -772,8 +773,10 @@ SIZE LayoutPopupRows(PopupMenuState& state) {
     const HDC hdc = ::GetDC(nullptr);
     const HGDIOBJ font = hdc ? ::SelectObject(hdc, ::GetStockObject(DEFAULT_GUI_FONT)) : nullptr;
     const int rowHeight = (std::max)(20, ::GetSystemMetrics(SM_CYMENU));
-    int width = 64;
+    int width = state.dropDownList ? (std::max)(64, state.dropDownList->minWidth) : 64;
     int y = 0;
+    CDC dc;
+    dc.m_hDC = hdc;
     state.rows.clear();
     for (auto* item : state.items) {
         if (!item->m_bVisible || item->m_bIsHidden) {
@@ -781,17 +784,24 @@ SIZE LayoutPopupRows(PopupMenuState& state) {
             continue;
         }
         const bool separator = (item->m_nStyle & TBSTYLE_SEP) != 0;
-        const int height = separator ? (std::max)(5, rowHeight / 3) : rowHeight;
+        int height = separator ? (std::max)(5, rowHeight / 3) : rowHeight;
         const wchar_t* label = item->m_strText;
         RECT text{};
         if (hdc && !separator) {
             ::DrawTextW(hdc, label, item->m_strText.GetLength(), &text, DT_CALCRECT | DT_SINGLELINE | DT_EXPANDTABS);
-            width = (std::max)(width, static_cast<int>(text.right) + 2 * ::GetSystemMetrics(SM_CXMENUCHECK) + 24);
+            if (state.dropDownList) {
+                const CSize itemSize = state.dropDownList->OnGetItemSize(&dc, item, CSize(text.right + 12, height));
+                width = (std::max)(width, static_cast<int>(itemSize.cx));
+                height = (std::max)(1, static_cast<int>(itemSize.cy));
+            } else {
+                width = (std::max)(width, static_cast<int>(text.right) + 2 * ::GetSystemMetrics(SM_CXMENUCHECK) + 24);
+            }
         }
         state.rows.emplace_back(0, y, 0, y + height);
         y += height;
     }
     for (auto& row : state.rows) row.right = width;
+    dc.m_hDC = nullptr;
     if (font) ::SelectObject(hdc, font);
     if (hdc) ::ReleaseDC(nullptr, hdc);
     return {width, y};
@@ -799,18 +809,23 @@ SIZE LayoutPopupRows(PopupMenuState& state) {
 
 RECT PopupWindowBounds(PopupMenuState& state) {
     const SIZE client = LayoutPopupRows(state);
-    RECT frame{0, 0, client.cx, client.cy};
+    const int maxHeight = state.dropDownList ? state.dropDownList->maxHeight : -1;
+    const int clientHeight = maxHeight > 0 ? (std::min)(maxHeight, int(client.cy)) : int(client.cy);
+    RECT frame{0, 0, client.cx, clientHeight};
     ::AdjustWindowRectEx(&frame, kPopupStyle, FALSE, kPopupExStyle);
     int width = frame.right - frame.left;
     int height = frame.bottom - frame.top;
+    const int frameHeight = height - clientHeight;
     const RECT& anchor = state.anchor;
     int x = state.opensToSide ? anchor.right : anchor.left;
     int y = state.opensToSide ? anchor.top : anchor.bottom;
     MONITORINFO monitor{sizeof(monitor)};
-    if (::GetMonitorInfoW(::MonitorFromRect(&anchor, MONITOR_DEFAULTTONEAREST), &monitor)) {
+    const bool gotMonitor = ::GetMonitorInfoW(::MonitorFromRect(&anchor, MONITOR_DEFAULTTONEAREST), &monitor);
+    if (gotMonitor) height = (std::min)(height, int(monitor.rcWork.bottom - monitor.rcWork.top));
+    if (state.dropDownList && client.cy > height - frameHeight) width += ::GetSystemMetrics(SM_CXVSCROLL);
+    if (gotMonitor) {
         const RECT work = monitor.rcWork;
         width = (std::min)(width, static_cast<int>(work.right - work.left));
-        height = (std::min)(height, static_cast<int>(work.bottom - work.top));
         if (state.opensToSide && x + width > work.right) x = anchor.left - width;
         if (!state.opensToSide && y + height > work.bottom) y = anchor.top - height;
         x = std::clamp(x, static_cast<int>(work.left), static_cast<int>(work.right) - width);
@@ -840,24 +855,58 @@ void SetScrollDirection(HWND window, PopupMenuState& state, int direction) {
     ::InvalidateRect(window, nullptr, FALSE);
 }
 
+void UpdatePopupScrollBar(HWND window, PopupMenuState& state, const RECT& client, int contentHeight) {
+    if (!state.dropDownList) return;
+    const int height = client.bottom - client.top;
+    if (!state.maxScrollOffset) {
+        if (state.scrollBar) ::ShowWindow(state.scrollBar, SW_HIDE);
+        return;
+    }
+    const int width = (std::min)(::GetSystemMetrics(SM_CXVSCROLL), int(client.right - client.left) / 2);
+    const int x = client.right - width;
+    if (!state.scrollBar) {
+        state.scrollBar = ::CreateWindowExW(0, L"SCROLLBAR", nullptr, WS_CHILD | SBS_VERT,
+                                           x, client.top, width, height, window,
+                                           reinterpret_cast<HMENU>(1), ::GetModuleHandleW(nullptr), nullptr);
+    }
+    if (!state.scrollBar) return;
+    state.viewport.right = x;
+    RECT current{};
+    ::GetWindowRect(state.scrollBar, &current);
+    ::MapWindowPoints(nullptr, window, reinterpret_cast<POINT*>(&current), 2);
+    const RECT bounds{x, client.top, client.right, client.bottom};
+    if (!::EqualRect(&current, &bounds) || !(::GetWindowLongPtrW(state.scrollBar, GWL_STYLE) & WS_VISIBLE)) {
+        ::SetWindowPos(state.scrollBar, nullptr, x, client.top, width, height,
+                       SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    }
+    SCROLLINFO info{sizeof(info)};
+    info.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+    info.nMax = contentHeight - 1;
+    info.nPage = height;
+    info.nPos = state.scrollOffset;
+    ::SetScrollInfo(state.scrollBar, SB_CTL, &info, TRUE);
+}
+
 bool UpdatePopupViewport(HWND window, PopupMenuState& state, bool force) {
     RECT client{};
     if (!::GetClientRect(window, &client)) return false;
     const int height = client.bottom - client.top;
     const int contentHeight = state.rows.empty() ? 0 : state.rows.back().bottom;
-    const int band = ScrollArrowHeight(height);
+    const int band = state.dropDownList ? 0 : ScrollArrowHeight(height);
     state.maxScrollOffset = contentHeight > height ? contentHeight - height + band : 0;
+    if (state.dropDownList) state.dropDownList->scrollable = state.maxScrollOffset != 0;
     state.scrollOffset = std::clamp(state.scrollOffset, 0, state.maxScrollOffset);
     const CRect oldUp = state.scrollUp;
     const CRect oldDown = state.scrollDown;
+    const CRect oldViewport = state.viewport;
     state.viewport = client;
     state.scrollUp.SetRectEmpty();
     state.scrollDown.SetRectEmpty();
-    if (state.scrollOffset > 0) {
+    if (band && state.scrollOffset > 0) {
         state.viewport.top += band;
         state.scrollUp.SetRect(client.left, client.top, client.right, state.viewport.top);
     }
-    if (state.scrollOffset < state.maxScrollOffset) {
+    if (band && state.scrollOffset < state.maxScrollOffset) {
         state.viewport.bottom -= band;
         state.scrollDown.SetRect(client.left, state.viewport.bottom, client.right, client.bottom);
     }
@@ -865,7 +914,8 @@ bool UpdatePopupViewport(HWND window, PopupMenuState& state, bool force) {
         (state.scrollDirection > 0 && state.scrollDown.IsRectEmpty())) {
         SetScrollDirection(window, state, 0);
     }
-    const bool changed = oldUp != state.scrollUp || oldDown != state.scrollDown;
+    UpdatePopupScrollBar(window, state, client, contentHeight);
+    const bool changed = oldUp != state.scrollUp || oldDown != state.scrollDown || oldViewport != state.viewport;
     if (force || changed) ::InvalidateRect(window, nullptr, FALSE);
     return changed;
 }
@@ -885,7 +935,7 @@ bool SetPopupScrollOffset(CMFCPopupMenu* popup, PopupMenuState& state, int offse
     if (state.childPopup) state.childPopup->CloseMenu();
     state.scrollOffset = offset;
     UpdatePopupViewport(window, state, true);
-    if (state.selected >= 0) {
+    if (!state.dropDownList && state.selected >= 0) {
         const CRect row = PopupRowBounds(state, state.selected);
         if (row.bottom <= state.viewport.top || row.top >= state.viewport.bottom) state.selected = -1;
     }
@@ -945,7 +995,8 @@ void EnsurePopupRowVisible(CMFCPopupMenu* popup, PopupMenuState& state, int inde
         SetPopupScrollOffset(popup, state, row.top);
     } else if (row.bottom > state.scrollOffset + state.viewport.Height()) {
         const int height = state.viewport.Height() + state.scrollUp.Height() + state.scrollDown.Height();
-        SetPopupScrollOffset(popup, state, row.bottom - height + 2 * ScrollArrowHeight(height));
+        const int bands = state.dropDownList ? 0 : 2 * ScrollArrowHeight(height);
+        SetPopupScrollOffset(popup, state, row.bottom - height + bands);
     }
 }
 
@@ -987,7 +1038,15 @@ void PaintPopup(const PopupMenuState& state, HDC hdc, const RECT& bounds) {
     for (int i = static_cast<int>(first - state.rows.begin()); i < static_cast<int>(state.rows.size()); ++i) {
         const CRect row = PopupRowBounds(state, i);
         if (row.top >= state.viewport.bottom) break;
-        state.items[i]->DrawMenuItem(&dc, row, nullptr, FALSE, i == state.selected, TRUE, FALSE);
+        auto* item = state.items[i];
+        if (state.dropDownList && !(item->m_nStyle & TBSTYLE_SEP)) {
+            const BOOL hot = i == state.selected;
+            if (hot) ::FillRect(hdc, row, ::GetSysColorBrush(COLOR_HIGHLIGHT));
+            item->m_rect = row;
+            state.dropDownList->OnDrawItem(&dc, item, hot);
+        } else {
+            item->DrawMenuItem(&dc, row, nullptr, FALSE, i == state.selected, TRUE, FALSE);
+        }
     }
     dc.m_hDC = nullptr;
     ::RestoreDC(hdc, saved);
@@ -1002,6 +1061,14 @@ void SelectPopupRow(CMFCPopupMenu* popup, int index) {
     if (state.childPopup) state.childPopup->CloseMenu();
     state.selected = index;
     if (popup->GetSafeHwnd()) ::InvalidateRect(popup->GetSafeHwnd(), nullptr, FALSE);
+    if (state.dropDownList) {
+        int logical = index;
+        for (int i = 0; i < index; ++i) {
+            if (state.items[i]->m_nStyle & TBSTYLE_SEP) --logical;
+        }
+        state.dropDownList->selection = logical;
+        state.dropDownList->OnChangeHot(index);
+    }
 }
 
 void StepPopupSelection(CMFCPopupMenu* popup, int start, int step) {
@@ -1038,6 +1105,14 @@ void ActivatePopupRow(CMFCPopupMenu* popup, bool submenuOnly, bool keyboard) {
     auto& state = g_popupMenuStates.at(popup);
     auto* item = popup->GetSelItem();
     if (!CanSelectMenuRow(item)) return;
+    if (state.dropDownList) {
+        if (!submenuOnly) {
+            const HWND window = popup->GetSafeHwnd();
+            state.dropDownList->OnChooseItem(item->m_nID);
+            if (::IsWindow(window)) ::SendMessageW(window, WM_CLOSE, 0, 0);
+        }
+        return;
+    }
     if (item->m_hMenu && ::GetMenuItemCount(item->m_hMenu) > 0) {
         if (state.childPopup && state.childPopup->GetSafeHwnd()) return;
         CRect anchor;
@@ -1087,6 +1162,18 @@ void PopupMouseInput(CMFCPopupMenu* root, HWND window, UINT message, LPARAM posi
             continue;
         }
         auto& state = g_popupMenuStates.at(popup);
+        if (state.scrollBar && state.maxScrollOffset && point.x >= state.viewport.right) {
+            if (message == WM_LBUTTONDOWN) {
+                ::ScreenToClient(state.scrollBar, &screen);
+                const HWND scrollBar = state.scrollBar;
+                ::SendMessageW(scrollBar, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(screen.x, screen.y));
+                if (::IsWindow(target)) {
+                    if (::GetFocus() == scrollBar) ::SetFocus(target);
+                    if (!::GetCapture()) ::SetCapture(target);
+                }
+            }
+            return;
+        }
         const int direction = ScrollDirectionAt(state, point);
         SetScrollDirection(target, state, direction);
         if (direction) {
@@ -1107,6 +1194,7 @@ void PopupMouseInput(CMFCPopupMenu* root, HWND window, UINT message, LPARAM posi
         const bool selectable = CanSelectMenuRow(item);
         const bool changed = state.selected != index;
         SelectPopupRow(popup, selectable ? index : -1);
+        if (!::IsWindow(target)) return;
         if (message == WM_LBUTTONUP) {
             ActivatePopupRow(popup, false, false);
         } else if (message == WM_MOUSEMOVE && changed && selectable && item->m_hMenu) {
@@ -1159,7 +1247,15 @@ LRESULT CALLBACK PopupWindowProc(HWND window, UINT message, WPARAM wp, LPARAM lp
         return 0;
     }
     case WM_VSCROLL:
-        if (!lp) ScrollPopup(popup, state, LOWORD(wp), HIWORD(wp));
+        if (!lp || reinterpret_cast<HWND>(lp) == state.scrollBar) {
+            const UINT code = LOWORD(wp);
+            UINT position = HIWORD(wp);
+            if (lp && (code == SB_THUMBTRACK || code == SB_THUMBPOSITION)) {
+                SCROLLINFO info{sizeof(info), SIF_TRACKPOS};
+                if (::GetScrollInfo(state.scrollBar, SB_CTL, &info)) position = info.nTrackPos;
+            }
+            ScrollPopup(popup, state, code, position);
+        }
         return 0;
     case WM_TIMER:
         if (wp == kPopupScrollTimer) {
@@ -1189,18 +1285,41 @@ LRESULT CALLBACK PopupWindowProc(HWND window, UINT message, WPARAM wp, LPARAM lp
         case VK_PRIOR: PagePopupSelection(active, itemState, -1); return 0;
         case VK_NEXT: PagePopupSelection(active, itemState, 1); return 0;
         case VK_RETURN: ActivatePopupRow(active, false, true); return 0;
-        case VK_RIGHT: ActivatePopupRow(active, true, true); return 0;
+        case VK_RIGHT:
+            if (!itemState.dropDownList) {
+                ActivatePopupRow(active, true, true);
+                return 0;
+            }
+            break;
         case VK_LEFT:
-            if (itemState.parentPopup) active->CloseMenu();
-            return 0;
+            if (!itemState.dropDownList) {
+                if (itemState.parentPopup) active->CloseMenu();
+                return 0;
+            }
+            break;
         case VK_ESCAPE:
             active->CloseMenu(TRUE);
             return 0;
         }
+        if (itemState.dropDownList) {
+            if (const HWND edit = itemState.dropDownList->EditWindow()) ::SendMessageW(edit, message, wp, lp);
+            return 0;
+        }
         break;
     }
+    case WM_CHAR:
+        if (state.dropDownList) {
+            if (const HWND edit = state.dropDownList->EditWindow()) ::SendMessageW(edit, message, wp, lp);
+            return 0;
+        }
+        break;
     case WM_CAPTURECHANGED:
+        if (state.scrollBar && reinterpret_cast<HWND>(lp) == state.scrollBar) break;
+        if (state.closing || state.parentPopup) break;
+        popup->CloseMenu();
+        return 0;
     case WM_KILLFOCUS:
+        if (state.scrollBar && reinterpret_cast<HWND>(wp) == state.scrollBar) break;
         if (state.closing || state.parentPopup) break;
         popup->CloseMenu();
         return 0;
@@ -1210,6 +1329,8 @@ LRESULT CALLBACK PopupWindowProc(HWND window, UINT message, WPARAM wp, LPARAM lp
         return 0;
     case WM_NCDESTROY: {
         state.closing = true;
+        state.scrollBar = nullptr;
+        if (state.dropDownList) state.dropDownList->scrollable = FALSE;
         if (state.childPopup) state.childPopup->CloseMenu();
         if (state.parentPopup) {
             auto& parent = g_popupMenuStates.at(state.parentPopup);
@@ -1275,6 +1396,13 @@ void SetPopupItems(PopupMenuState& state, CWnd* parent, HMENU menu, BOOL locked,
 }
 } // namespace
 
+void openmfc::detail::mfccore::SelectDropDownPopupRow(DropDownListBox& list, int index) {
+    auto& state = g_popupMenuStates.at(&list);
+    if (!CanSelectMenuRow(list.GetMenuItem(index))) return;
+    SetPopupScrollOffset(&list, state, state.rows[index].top);
+    SelectPopupRow(&list, index);
+}
+
 CMFCPopupMenu::CMFCPopupMenu() {
     memset(_mfcpopupmenu_padding, 0, sizeof(_mfcpopupmenu_padding));
 }
@@ -1299,7 +1427,7 @@ BOOL CMFCPopupMenu::Create(CWnd* parent, int x, int y, HMENU menu, BOOL locked, 
     state.x = x;
     state.y = y;
     state.commandWindow = state.parentWindow;
-    if (state.commandWindow) {
+    if (state.commandWindow || state.dropDownList) {
         return CreatePopupWindow(this, RECT{x, y, x, y}, false);
     }
     g_pActivePopupMenu = this;
@@ -2275,26 +2403,11 @@ extern "C" void MS_ABI impl__SetQuickMode_CMFCPopupMenu__QEAAXXZ(void* pThis)
     At<int>(pThis, kOffQuickCustomize) = TRUE;
 }
 
-// Retail (RVA 0xbae90..0xbb160, mfc140u): returns unless m_bShowScrollBar
-// (+0x16a8) and m_bScrollable (+0x16a4) are both set.  Otherwise takes the
-// client rect, shrinks right/bottom by m_iShadowSize (+0x1810) outside
-// CMFCToolBar::m_bCustomizeMode, InflateRect(-GetBorderSize()) (vslot 0x428),
-// cuts off the logo strip (+0x1680/+0x1688), the tear-off caption height
-// (+0x1848) and the resize bar height (+0x1998, top or bottom by +0x1980), and
-// keeps the right SM_CXVSCROLL columns as the scroll bar rect.  Then either
-// creates m_wndScrollBarVert (+0x16e0; vslot 0x2d8 = CScrollBar::Create with
-// style 0x50000001 = WS_CHILD|WS_VISIBLE|SBS_VERT, parent this, id 1) or
-// SetWindowPos (0x2a9a60) + GetScrollInfo on it; fills a SCROLLINFO whose
-// nMax/nPage derive from the embedded bar's GetRowHeight (vslot 0x6b8) and
-// m_Buttons count, stores the page size into the bar's m_nDropDownPageSize
-// (+0x139c), SetScrollInfo, EnableScrollBar(ESB_ENABLE_BOTH / ESB_DISABLE_BOTH)
-// and EnableWindow(TRUE) (0x2a9b30).  Needs both embedded objects; documented
-// stub.
-// TODO(clean-room): not transcribed -- embedded menu bar / scroll bar are not modeled.
 // Symbol: ?SetScrollBar@CMFCPopupMenu@@IEAAXXZ
 extern "C" void MS_ABI impl__SetScrollBar_CMFCPopupMenu__IEAAXXZ(void* pThis)
 {
-    (void)pThis;
+    auto* popup = static_cast<CMFCPopupMenu*>(pThis);
+    if (HasManagedPopupWindow(popup)) UpdatePopupViewport(popup->GetSafeHwnd(), g_popupMenuStates.at(popup), true);
 }
 
 // Retail (RVA 0xb8150..0xb829c, mfc140u), fully decoded.  The entry is

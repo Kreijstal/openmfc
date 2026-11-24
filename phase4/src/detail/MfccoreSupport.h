@@ -228,6 +228,8 @@ UINT PaneCommandID(const CBasePane* pPane);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
+class DropDownListBox;
+
 struct PopupMenuState {
     CWnd* parent = nullptr;
     int x = 0;
@@ -245,6 +247,8 @@ struct PopupMenuState {
     CMFCPopupMenu* parentPopup = nullptr;
     CMFCPopupMenu* childPopup = nullptr;
     std::vector<CRect> rows;
+    DropDownListBox* dropDownList = nullptr;
+    HWND scrollBar = nullptr;
     RECT anchor{};
     bool opensToSide = false;
     CRect viewport{0, 0, 0, 0};
