@@ -3,6 +3,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/CMFCCustomizeButtonSupport.h"
 #include "detail/CMFCToolBarSupport.h"
 #include "detail/MfcFeature5ImplSupport.h"
 #include "detail/MfctoolbarBatch2Support.h"
@@ -44,6 +45,7 @@
 
 // Statics with storage in feature_static_data.cpp.
 extern "C" std::int32_t impl__m_bCustomizeMode_CMFCToolBar__1HA;
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
 extern "C" std::int32_t impl__m_bLargeIcons_CMFCToolBar__1HA;
 extern "C" void*        impl__m_pLastHookedToolbar_CMFCToolBar__1PEAV1_EA;
 extern "C" void*        impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA;
@@ -4569,53 +4571,52 @@ extern "C" int MS_ABI impl__EnableContextMenuItems_CMFCToolBar__MEAAHPEAVCMFCToo
     return 0;
 }
 
-// Retail (mfc140.dll RVA 0x157490 -- the ANSI twin of this Unicode export):
-//     if (bEnable) {
-//         if (m_pCustomizeBtn != NULL) {          // +0x1300
-//             m_pCustomizeBtn->[+0x128] = iCustomizeCmd;
-//             m_pCustomizeBtn->m_strText = strCustomizeText;   // +0x38
-//         } else {
-//             CMFCCustomizeButton btn(iCustomizeCmd, strCustomizeText); // 0x35000
-//             if (InsertButton(btn, -1) < 0) return;   // vtable +0x698
-//             CObject* p = m_Buttons.m_pNodeTail->data;         // +0x1198
-//             m_pCustomizeBtn = (p && p->IsKindOf(RUNTIME_CLASS(CMFCCustomizeButton)))
-//                             ? p : NULL;                       // RTC 0x3aa148
-//         }
-//         m_bQuickCustomize = bQuickCustomize;                  // +0x1108
-//     } else if (m_pCustomizeBtn != NULL) {
-//         m_Buttons.RemoveTail();                               // 0x2305d0
-//         delete m_pCustomizeBtn;
-//         m_pCustomizeBtn = NULL;
-//     }
-//     UpdateVirtualRect();                                      // 0xa1ae0
-// Not implemented.  CMFCToolBar::InsertButton (the CMFCToolBarButton& overload,
-// vtable slot 211) is real further down in this file now, but
-// CMFCCustomizeButton is not declared in any OpenMFC header and its
-// (int, const CString&) constructor is an empty stub with a placeholder
-// parameter list in phase4/src/featurepack/customize/CMFCCustomizeButton.cpp,
-// so there is no object to insert; the `+0x128` command-id member written on
-// the "already have one" path is not modelled either.
-// Symbol: ?EnableCustomizeButton@CMFCToolBar@@QEAAXHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
-extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
-    CMFCToolBar* pThis, int bEnable, int iCustomizeCmd, const CString* pStrCustomizeText, int bQuickCustomize) {
-    (void)pThis; (void)bEnable; (void)iCustomizeCmd; (void)pStrCustomizeText; (void)bQuickCustomize;
-    // TODO(clean-room): not transcribed -- needs CMFCCustomizeButton.
+void CMFCToolBar::EnableCustomizeButton(BOOL enable, int command, const CString& text, BOOL quickCustomize) {
+    auto& state = g_toolBarStates[this];
+    if (enable) {
+        if (!state.customizeButton) {
+            auto button = std::make_unique<openmfc::detail::cmfccustomizebutton::CZButton>();
+            button->m_pToolbar = this;
+            button->m_pWndParent = this;
+            button->m_nID = static_cast<UINT>(-1);
+            button->m_n14c = button->m_n150 = button->m_n158 = 1;
+            button->m_n190 = 10;
+            state.customizeButton = std::move(button);
+        }
+        auto* button = static_cast<openmfc::detail::cmfccustomizebutton::CZButton*>(state.customizeButton.get());
+        button->m_nCommandID = command;
+        button->m_str138 = text;
+        button->m_strText = text;
+        m_pCustomizeBtn = button;
+    } else {
+        m_pCustomizeBtn = nullptr;
+        state.customizeButton.reset();
+    }
+    m_bQuickCustomize = enable && quickCustomize;
+    auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(m_hWnd)));
+    if (parent && parent->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)))
+        static_cast<CPaneFrameWnd*>(parent)->UpdateToolbarOptionsButton();
 }
 
-// Retail (mfc140.dll RVA 0x1575d0), fully decoded: it is only a string-resource
-// wrapper around the overload above.
-//     CString str;
-//     HINSTANCE h = AfxFindStringResourceHandle(uiTextResID);   // 0x2accf0
-//     if (h == NULL) AfxThrowInvalidArgException();
-//     if (!str.LoadString(h, uiTextResID)) AfxThrowInvalidArgException();
-//     EnableCustomizeButton(bEnable, iCustomizeCmd, str, bQuickCustomize); // 0x157490
-// Not implemented: the target overload is itself a stub (see just above), so
-// loading the string would accomplish nothing.
+// Symbol: ?EnableCustomizeButton@CMFCToolBar@@QEAAXHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@H@Z
+extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__H_Z(
+    CMFCToolBar* toolbar, BOOL enable, int command, const CString* text, BOOL quickCustomize) {
+    if (toolbar) toolbar->EnableCustomizeButton(enable, command, text ? *text : CString(), quickCustomize);
+}
+
+void CMFCToolBar::EnableCustomizeButton(BOOL enable, int command, UINT textResource, BOOL quickCustomize) {
+    CString text;
+    if (enable && textResource && !text.LoadString(textResource)) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return;
+    }
+    EnableCustomizeButton(enable, command, text, quickCustomize);
+}
+
 // Symbol: ?EnableCustomizeButton@CMFCToolBar@@QEAAXHHIH@Z
 extern "C" void MS_ABI impl__EnableCustomizeButton_CMFCToolBar__QEAAXHHIH_Z(
-    CMFCToolBar* pThis, int bEnable, int iCustomizeCmd, unsigned int uiCustomizeTextResId, int bQuickCustomize) {
-    (void)pThis; (void)bEnable; (void)iCustomizeCmd; (void)uiCustomizeTextResId; (void)bQuickCustomize;
-    // TODO(clean-room): not transcribed -- the target overload is a stub.
+    CMFCToolBar* toolbar, BOOL enable, int command, UINT textResource, BOOL quickCustomize) {
+    if (toolbar) toolbar->EnableCustomizeButton(enable, command, textResource, quickCustomize);
 }
 
 // Retail (mfc140.dll RVA 0x151070) maps a screen point onto an insertion index

@@ -260,6 +260,7 @@ struct ToolBarState {
     CSize imageSize = CSize(16, 15);
     std::vector<CMFCToolBarButton*> buttons;
     std::unordered_set<CMFCToolBarButton*> ownedButtons;
+    std::unique_ptr<CMFCToolBarButton> customizeButton;
 };
 } } }
 

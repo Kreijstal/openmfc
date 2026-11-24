@@ -849,6 +849,8 @@ public:
     virtual void EnableDocking(DWORD dwDockStyle);
     virtual void AdjustLayout();
     CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz) override;
+    void EnableCustomizeButton(BOOL enable, int command, const CString& text, BOOL quickCustomize = TRUE);
+    void EnableCustomizeButton(BOOL enable, int command, UINT textResource, BOOL quickCustomize = TRUE);
     void AdjustSize();
     CString GetButtonText(int nIndex) const;
     void GetButtonText(int nIndex, CString& rString) const;
@@ -1603,6 +1605,8 @@ public:
     virtual int GetCaptionHeight() const { return m_nCaptionHeight; }
     virtual void RecalcCaptionHeight();
     virtual void SizeToContent();
+    void UpdateToolbarOptionsButton();
+    virtual void OnPressButtons(UINT hit);
     BOOL PreTranslateMessage(MSG* message) override;
 
     BOOL CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD style, const RECT& rect,

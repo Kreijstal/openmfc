@@ -3,6 +3,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/CMFCCustomizeButtonSupport.h"
 #include "detail/MultiPaneFrameSupport.h"
 #include "detail/PaneContainerLayout.h"
 #include "detail/CbarcoreSupport.h"
@@ -92,7 +93,11 @@ extern "C" void  MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(void* pT
 extern "C" void  MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis);
-extern "C" void  MS_ABI impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(void*, UINT);
+extern "C" int MS_ABI impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ(CMFCToolBar*);
+extern "C" int MS_ABI impl__IsUserDefined_CMFCToolBar__QEBAHXZ(const CMFCToolBar*);
+extern "C" std::int32_t impl__m_bCustomizeMode_CMFCToolBar__1HA;
+extern "C" void MS_ABI impl__RemoveButton_CPaneFrameWnd__IEAAXI_Z(void*, UINT);
+extern "C" void MS_ABI impl__AddButton_CPaneFrameWnd__MEAAXI_Z(void*, UINT);
 extern "C" void  MS_ABI impl__OnNcPaint_CPaneFrameWnd__IEAAXXZ(void*);
 extern "C" void  MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCaptionButton___Z(
     void* pThis, void* pButton);
@@ -124,6 +129,7 @@ namespace {
 constexpr UINT_PTR dockingTimer = 0xec04;
 constexpr UINT_PTR rollupTimer = 0xec05;
 constexpr DWORD autoRollupStyle = 0x10; // AFX_CBRS_AUTO_ROLLUP
+constexpr UINT kToolbarOptionsHit = 0x19;
 
 bool IsExposedPaneFrameAt(HWND window, POINT point) {
     RECT bounds{};
@@ -289,6 +295,7 @@ extern "C" void MS_ABI impl__AddPane_CPaneFrameWnd__UEAAXPEAVCBasePane___Z(void*
     if (first && paneHwnd && pane->CanBeClosed() &&
         (::GetWindowLongPtrW(HwndOf(pThis), GWL_STYLE) & WS_SYSMENU))
         impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(pThis, 2);
+    static_cast<CPaneFrameWnd*>(pThis)->UpdateToolbarOptionsButton();
     if (first) impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(pThis);
 }
 // Symbol: ?RemovePane@CPaneFrameWnd@@UEAAXPEAVCBasePane@@HH@Z
@@ -1542,7 +1549,7 @@ void CPaneFrameWnd::OnLButtonUp(UINT, CPoint clientPoint) {
                 }
                 ::SendMessageW(window, WM_NCPAINT, 0, 0);
             } else {
-                impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(this, pressed);
+                OnPressButtons(pressed);
             }
             return;
         }
@@ -2161,7 +2168,9 @@ extern "C" int MS_ABI impl__OnNeedTipText_CPaneFrameWnd__IEAAHIPEAUtagNMHDR__PEA
         if (!state || !state->toolTip || !state->toolTip->m_hWnd ||
             state->toolTip->m_hWnd != header->hwndFrom || header->idFrom > state->captionButtons.size())
             return FALSE;
-        hit = state->captionButtons[header->idFrom - 1]->m_nHit;
+        const auto& button = state->captionButtons[header->idFrom - 1];
+        if (button->m_bDroppedDown) return FALSE;
+        hit = button->m_nHit;
     }
 
     UINT resource = 0;
@@ -2176,7 +2185,7 @@ extern "C" int MS_ABI impl__OnNeedTipText_CPaneFrameWnd__IEAAHIPEAUtagNMHDR__PEA
         resource = 0x3ee9;
         fallback = L"Close";
         break;
-    case 0x19:
+    case kToolbarOptionsHit:
         resource = 0x4279;
         fallback = L"Toolbar Options";
         break;
@@ -2253,16 +2262,196 @@ extern "C" void MS_ABI impl__OnPaneRecalcLayout_CPaneFrameWnd__UEAAXXZ(void* pTh
     if (expanded) frame->SizeToContent();
 }
 
+namespace {
+CMFCToolBar* FloatingToolbar(CPaneFrameWnd& frame) {
+    auto* pane = frame.GetPane();
+    if (!pane || !pane->m_hWnd || !pane->IsKindOf(RUNTIME_CLASS(CMFCToolBar))) return nullptr;
+    return static_cast<CMFCToolBar*>(pane);
+}
+
+std::wstring MenuText(UINT resource, const wchar_t* fallback) {
+    CString text;
+    return text.LoadString(resource) ? std::wstring(text.GetString()) : std::wstring(fallback);
+}
+
+std::wstring EscapeMenuText(std::wstring text) {
+    for (std::size_t index = 0; (index = text.find(L'&', index)) != std::wstring::npos; index += 2)
+        text.insert(index, 1, L'&');
+    return text;
+}
+
+std::wstring ToolbarMenuButtonText(const CMFCToolBarButton& button) {
+    if (!button.m_strText.IsEmpty()) return button.m_strText.GetString();
+    auto text = MenuText(button.m_nID, L"");
+    if (const auto newline = text.find(L'\n'); newline != std::wstring::npos)
+        text.erase(0, newline + 1);
+    return text.empty() ? std::to_wstring(button.m_nID) : EscapeMenuText(std::move(text));
+}
+
+using PopupMenuHandle = std::unique_ptr<std::remove_pointer_t<HMENU>, decltype(&::DestroyMenu)>;
+
+bool AppendSubmenu(HMENU menu, PopupMenuHandle& submenu, const wchar_t* title) {
+    if (!::AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(submenu.get()), title)) return false;
+    submenu.release();
+    return true;
+}
+
+bool IsToolbarCommand(const CMFCToolBarButton* button, const CMFCToolBar& toolbar) {
+    return button && button != toolbar.m_pCustomizeBtn && !(button->m_nStyle & TBSTYLE_SEP) &&
+        button->m_nID && button->m_nID != static_cast<UINT>(-1);
+}
+
+bool ReadToolbarButton(const CMFCToolBar& toolbar, int index, UINT command, TBBUTTON& item) {
+    return ::SendMessageW(toolbar.m_hWnd, TB_GETBUTTON, index, reinterpret_cast<LPARAM>(&item)) &&
+        static_cast<UINT>(item.idCommand) == command;
+}
+
+void ToggleToolbarButton(CMFCToolBar& toolbar, int index, bool reset) {
+    auto* button = toolbar.GetButton(index);
+    if (!IsToolbarCommand(button, toolbar)) return;
+    TBBUTTON item{};
+    const bool hasControlButton = ReadToolbarButton(toolbar, index, button->m_nID, item);
+    const bool visible = hasControlButton ? !(item.fsState & TBSTATE_HIDDEN) : button->m_bVisible;
+    button->m_bVisible = reset || !visible;
+    if (!hasControlButton) return;
+    TBBUTTONINFOW info{sizeof(info)};
+    info.dwMask = TBIF_BYINDEX | TBIF_STATE;
+    info.fsState = button->m_bVisible ? item.fsState & ~TBSTATE_HIDDEN : item.fsState | TBSTATE_HIDDEN;
+    ::SendMessageW(toolbar.m_hWnd, TB_SETBUTTONINFOW, index, reinterpret_cast<LPARAM>(&info));
+}
+}
+
+void CPaneFrameWnd::UpdateToolbarOptionsButton() {
+    auto* toolbar = FloatingToolbar(*this);
+    if (!toolbar) return;
+    const bool enabled = toolbar->m_pCustomizeBtn && toolbar->m_bQuickCustomize;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto& state = GetState(this);
+        constexpr DWORD optionFlag = 0x10;
+        if (enabled) state.rollupFlags |= optionFlag;
+        else state.rollupFlags &= ~optionFlag;
+        if (enabled == bool(FindCaptionButton(state, kToolbarOptionsHit))) return;
+    }
+    if (enabled) {
+        impl__AddButton_CPaneFrameWnd__MEAAXI_Z(this, kToolbarOptionsHit);
+        impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(this);
+    } else {
+        impl__RemoveButton_CPaneFrameWnd__IEAAXI_Z(this, kToolbarOptionsHit);
+    }
+    ::SendMessageW(m_hWnd, WM_NCPAINT, 0, 0);
+}
+
 // Symbol: ?OnPressButtons@CPaneFrameWnd@@MEAAXI@Z
-// Retail mfc140.dll entry RVA 0xb4430 returns immediately in customize mode;
-// otherwise only ID 0x19 is handled, by finding its menu button and opening the
-// pane menu. The customize flag and semantic button records are available here.
-// STUB: the menu-button object and popup-menu construction/command-routing path
-// are not modeled, so handling ID 0x19 cannot be reproduced safely.
-extern "C" void MS_ABI impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(
-    void* pThis, unsigned int uiID) {
-    (void)pThis;
-    (void)uiID;
+extern "C" void MS_ABI impl__OnPressButtons_CPaneFrameWnd__MEAAXI_Z(void* pThis, UINT hit) {
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->CPaneFrameWnd::OnPressButtons(hit);
+}
+
+void CPaneFrameWnd::OnPressButtons(UINT hit) {
+    auto* frame = this;
+    if (!m_hWnd || hit != kToolbarOptionsHit || impl__m_bCustomizeMode_CMFCToolBar__1HA) return;
+    auto* toolbar = FloatingToolbar(*frame);
+    if (!toolbar || !toolbar->m_pCustomizeBtn || !toolbar->m_bQuickCustomize) return;
+    const auto options = g_toolBarStates.find(toolbar);
+    if (options == g_toolBarStates.end() || options->second.customizeButton.get() != toolbar->m_pCustomizeBtn) return;
+    const auto* customize = static_cast<const openmfc::detail::cmfccustomizebutton::CZButton*>(
+        options->second.customizeButton.get());
+    const UINT customizeCommand = customize->m_nCommandID;
+    const std::wstring customizeText = customize->m_str138.GetString();
+
+    const HWND window = frame->m_hWnd;
+    const HWND toolbarWindow = toolbar->m_hWnd;
+    const HWND owner = ::GetAncestor(window, GA_ROOTOWNER);
+    CRect buttonRect;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(frame);
+        const auto* button = state ? FindCaptionButton(*state, hit) : nullptr;
+        if (!button || button->m_bHidden || !button->m_bEnabled || button->m_bDroppedDown) return;
+        buttonRect = button->GetRect();
+    }
+    RECT bounds{};
+    if (buttonRect.IsRectEmpty() || !::GetWindowRect(window, &bounds)) return;
+
+    PopupMenuHandle menu(::CreatePopupMenu(), &::DestroyMenu);
+    PopupMenuHandle addRemove(::CreatePopupMenu(), &::DestroyMenu);
+    PopupMenuHandle commands(::CreatePopupMenu(), &::DestroyMenu);
+    if (!menu || !addRemove || !commands) return;
+    const int buttonCount = toolbar->GetCount();
+    std::vector<UINT> commandIDs(buttonCount);
+    for (int i = 0; i < buttonCount; ++i) {
+        const auto* button = toolbar->GetButton(i);
+        if (!IsToolbarCommand(button, *toolbar)) continue;
+        commandIDs[i] = button->m_nID;
+        TBBUTTON item{};
+        const bool visible = ReadToolbarButton(*toolbar, i, button->m_nID, item)
+            ? !(item.fsState & TBSTATE_HIDDEN) : button->m_bVisible;
+        if (!::AppendMenuW(commands.get(), visible ? MF_CHECKED : MF_UNCHECKED, i + 1,
+                            ToolbarMenuButtonText(*button).c_str())) return;
+    }
+    const UINT resetItem = static_cast<UINT>(buttonCount) + 1;
+    const UINT customizeItem = resetItem + 1;
+    if (::GetMenuItemCount(commands.get()) > 0) ::AppendMenuW(commands.get(), MF_SEPARATOR, 0, nullptr);
+    const UINT resetFlags = impl__IsUserDefined_CMFCToolBar__QEBAHXZ(toolbar) ? MF_GRAYED : MF_STRING;
+    if (!::AppendMenuW(commands.get(), resetFlags, resetItem, MenuText(0x3fac, L"&Reset Toolbar").c_str())) return;
+    std::wstring title(::GetWindowTextLengthW(toolbarWindow) + 1, L'\0');
+    title.resize(::GetWindowTextW(toolbarWindow, title.data(), static_cast<int>(title.size())));
+    if (const auto first = title.find_first_not_of(L" \t\r\n"); first != std::wstring::npos)
+        title = title.substr(first, title.find_last_not_of(L" \t\r\n") - first + 1);
+    else
+        title = MenuText(0x3ee8, L"<Untitled>");
+    if (!AppendSubmenu(addRemove.get(), commands, EscapeMenuText(title).c_str())) return;
+    if (customizeCommand && customizeCommand <= 0xffff && !customizeText.empty() &&
+        !::AppendMenuW(addRemove.get(), MF_STRING, customizeItem, customizeText.c_str())) return;
+    if (!AppendSubmenu(menu.get(), addRemove, MenuText(0x427a, L"&Add or Remove Buttons").c_str())) return;
+
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(frame);
+        auto* button = state ? FindCaptionButton(*state, hit) : nullptr;
+        if (!button) return;
+        button->m_bDroppedDown = button->m_bPushed = TRUE;
+    }
+    PopCaptionTooltip(frame);
+    ::SendMessageW(window, WM_NCPAINT, 0, 0);
+    const bool rtl = (::GetWindowLongPtrW(window, GWL_EXSTYLE) & WS_EX_LAYOUTRTL) != 0;
+    const UINT selection = ::TrackPopupMenu(menu.get(),
+        TPM_RETURNCMD | TPM_RIGHTBUTTON | (rtl ? TPM_LAYOUTRTL | TPM_RIGHTALIGN : 0),
+        rtl ? bounds.right - buttonRect.left : bounds.left + buttonRect.left,
+        bounds.top + buttonRect.bottom, 0, window, nullptr);
+    if (CWnd::FromHandlePermanent(window) != frame) return;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(frame)) {
+            if (auto* button = FindCaptionButton(*state, hit)) button->m_bDroppedDown = button->m_bPushed = FALSE;
+        }
+    }
+    ::SendMessageW(window, WM_NCPAINT, 0, 0);
+    if (!selection || CWnd::FromHandlePermanent(toolbarWindow) != toolbar || ::GetParent(toolbarWindow) != window) return;
+    if (selection == customizeItem) {
+        if (::IsWindow(owner)) ::PostMessageW(owner, WM_COMMAND, MAKEWPARAM(customizeCommand, 0), 0);
+        return;
+    }
+    if (selection == resetItem) {
+        const auto format = MenuText(0x3eef, L"All your changes will be lost! Do you really want to reset the toolbar '%s'?");
+        CString prompt;
+        prompt.Format(format.c_str(), title.c_str());
+        if (::MessageBoxW(window, prompt.GetString(), title.c_str(), MB_OKCANCEL | MB_ICONWARNING) != IDOK ||
+            CWnd::FromHandlePermanent(toolbarWindow) != toolbar || ::GetParent(toolbarWindow) != window)
+            return;
+        if (!impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ(toolbar)) {
+            for (int i = 0; i < toolbar->GetCount(); ++i) ToggleToolbarButton(*toolbar, i, true);
+        }
+    } else if (selection <= static_cast<UINT>(buttonCount)) {
+        const int index = static_cast<int>(selection - 1);
+        const auto* button = toolbar->GetButton(index);
+        if (!commandIDs[index] || !button || commandIDs[index] != button->m_nID) return;
+        ToggleToolbarButton(*toolbar, index, false);
+    } else {
+        return;
+    }
+    if (CWnd::FromHandlePermanent(toolbarWindow) == toolbar) toolbar->AdjustLayout();
+    if (CWnd::FromHandlePermanent(window) == frame) frame->SizeToContent();
 }
 
 // Symbol: ?OnSetCursor@CPaneFrameWnd@@IEAAHPEAVCWnd@@II@Z
@@ -2952,7 +3141,7 @@ extern "C" void MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(
     }
     if ((dwButtons & 0x1) != 0)  impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, 9);
     if ((dwButtons & 0x4) != 0)  impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, 8);
-    if ((dwButtons & 0x10) != 0) impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, 0x19);
+    if ((dwButtons & 0x10) != 0) impl__AddButton_CPaneFrameWnd__MEAAXI_Z(pThis, kToolbarOptionsHit);
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         GetState(pThis).rollupFlags = static_cast<int>(dwButtons);
