@@ -459,7 +459,7 @@ const D2DTextState* GetD2DLayoutState(const void* self) {
 unsigned int NextTearOffId(MenuTearOffState& state) {
     if (state.firstId == 0 && state.lastId == 0) return 0;
     for (unsigned int id = state.firstId; id <= state.lastId; ++id) {
-        if (state.inUse.count(id) == 0) return id;
+        if (!state.inUse.count(id) && !state.menuIds.count(id)) return id;
         if (id == 0xFFFFFFFFu) break;
     }
     return 0;

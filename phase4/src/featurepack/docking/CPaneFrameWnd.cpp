@@ -435,10 +435,11 @@ extern "C" int MS_ABI impl__IsRollUp_CPaneFrameWnd__UEBAHXZ(void* pThis) {
         !::PtInRect(&bounds, cursor);
 }
 // Symbol: ?StartTearOff@CPaneFrameWnd@@QEAAHPEAVCMFCPopupMenu@@@Z
-extern "C" int MS_ABI impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu___Z(void* pThis, void* pMenu) {
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    AddUniquePane(g_framePanes[pThis], pMenu);
-    return pThis != nullptr;
+extern "C" int MS_ABI impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu___Z(void* pThis, void*) {
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
+    if (!frame || !frame->GetPane() || !::IsWindow(frame->GetSafeHwnd())) return FALSE;
+    frame->BeginPaneDrag();
+    return ::GetCapture() == frame->GetSafeHwnd();
 }
 // Symbol: ?StopCaptionButtonsTracking@CPaneFrameWnd@@MEAAXXZ
 extern "C" void MS_ABI impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(void* pThis) {

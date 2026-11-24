@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+#include "detail/MenuTearOffSupport.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -408,6 +409,7 @@ void CMFCMenuBar::CreateFromMenu(HMENU hMenu, BOOL bDefaultMenu, BOOL bForceUpda
     state.menu = hMenu;
 
     if (!hMenu) return;
+    openmfc::detail::SetupActiveTearOffMenus(hMenu);
     int count = ::GetMenuItemCount(hMenu);
     for (int i = 0; i < count; ++i) {
         CMFCToolBarMenuButton* button = CreateMenuButtonFromMenu(hMenu, i);

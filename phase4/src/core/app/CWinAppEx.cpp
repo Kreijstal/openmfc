@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+#include "detail/MenuTearOffSupport.h"
 
 extern "C" unsigned int MS_ABI impl__GetViewDblClickCommand_CMouseManager__QEBAIH_Z(
     const void* pThis, int viewId);
@@ -173,8 +174,8 @@ extern "C" int MS_ABI impl__WriteSectionObject_CWinAppEx__QEAAHPEB_W0AEAVCObject
     return TRUE;
 }
 // Symbol: ?EnableTearOffMenus@CWinAppEx@@QEAAHPEB_WII@Z
-extern "C" int MS_ABI impl__EnableTearOffMenus_CWinAppEx__QEAAHPEB_WII_Z(CWinAppEx* pThis, const wchar_t*, unsigned int, unsigned int) {
-    if (!pThis) return FALSE;
+extern "C" int MS_ABI impl__EnableTearOffMenus_CWinAppEx__QEAAHPEB_WII_Z(CWinAppEx* pThis, const wchar_t* key, UINT first, UINT last) {
+    if (!openmfc::detail::EnableAppTearOffMenus(pThis, key, first, last)) return FALSE;
     g_winAppExStates[pThis].tearOffMenus = true;
     return TRUE;
 }
@@ -337,7 +338,13 @@ extern "C" int MS_ABI impl__ShowPopupMenu_CWinAppEx__UEAAHIAEBVCPoint__PEAVCWnd_
     return shown ? TRUE : FALSE;
 }
 CWinAppEx::CWinAppEx(BOOL) : CWinApp(nullptr), m_pContextMenuManager(nullptr), m_pKeyboardManager(nullptr), m_pTooltipManager(nullptr), m_nDataVersion(1) { memset(_winappex_padding, 0, sizeof(_winappex_padding)); }
-CWinAppEx::~CWinAppEx() { delete m_pContextMenuManager; delete m_pKeyboardManager; delete m_pTooltipManager; g_winAppExStates.erase(this); }
+CWinAppEx::~CWinAppEx() {
+    openmfc::detail::DisableAppTearOffMenus(this);
+    delete m_pContextMenuManager;
+    delete m_pKeyboardManager;
+    delete m_pTooltipManager;
+    g_winAppExStates.erase(this);
+}
 BOOL CWinAppEx::InitContextMenuManager() { if (!m_pContextMenuManager) m_pContextMenuManager = new CContextMenuManager(); return TRUE; }
 BOOL CWinAppEx::InitKeyboardManager() { if (!m_pKeyboardManager) m_pKeyboardManager = new CKeyboardManager(); return TRUE; }
 BOOL CWinAppEx::InitTooltipManager() { if (!m_pTooltipManager) m_pTooltipManager = new CTooltipManager(); return TRUE; }

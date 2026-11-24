@@ -49,8 +49,8 @@ struct MenuTearOffState {
     std::wstring registryKey;
     unsigned int firstId = 0;
     unsigned int lastId = 0;
-    std::set<unsigned int> inUse;
-    std::vector<unsigned int> tearOffItems;
+    std::map<UINT, unsigned int> inUse;
+    std::set<UINT> menuIds;
 };
 } } }
 

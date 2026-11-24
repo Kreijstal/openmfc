@@ -5,6 +5,7 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/MenuTearOffSupport.h"
 
 #include <cstddef>
 #include <cstring>
@@ -262,9 +263,11 @@ CMFCToolBarMenuButton::CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src)
     memset(_pad, 0, sizeof(_pad));
     impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &src);
     CopyMenuButtonState(this, &src);
+    SetTearOff(src.GetTearOff());
 }
 CMFCToolBarMenuButton::~CMFCToolBarMenuButton() {
     if (auto* popup = GetOpenPopup()) popup->CloseMenu();
+    SetTearOff(0);
     g_menuButtonStates.erase(this);
 }
 void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton) {
@@ -291,6 +294,7 @@ void CMFCToolBarMenuButton::CopyFrom(const CMFCToolBarButton& src) {
         const CMFCToolBarMenuButton& menuSrc = static_cast<const CMFCToolBarMenuButton&>(src);
         m_hMenu = menuSrc.m_hMenu;
         CopyMenuButtonState(this, &menuSrc);
+        SetTearOff(menuSrc.GetTearOff());
     }
 }
 int CMFCToolBarMenuButton::CompareWith(const CMFCToolBarButton& other) const {
@@ -914,19 +918,17 @@ extern "C" void MS_ABI impl__SetRadio_CMFCToolBarMenuButton__UEAAXXZ(CMFCToolBar
 
 // Retail RVA 0x175f10 (mfc140u; slot 64 of the retail CMFCToolBarMenuButton
 // vftable), transcribed:
-//     if (m_uiTearOffBarID == uiBarID) return;                              // +0xf4
-//     if (g_pTearOffMenuManager != NULL) {                                  // DLL-internal global
-//         if (m_uiTearOffBarID != 0) g_pTearOffMenuManager->SetInUse(m_uiTearOffBarID, FALSE);
-//         if (uiBarID != 0)          g_pTearOffMenuManager->SetInUse(uiBarID, TRUE);
-//     }
-//     m_uiTearOffBarID = uiBarID;
-// DEVIATION: the tear-off manager global is not exported and OpenMFC never
-// creates one (its CWinAppEx::EnableTearOffMenus only records a flag), so the
-// manager branch is the retail NULL-manager path: only the ID is stored.
+UINT CMFCToolBarMenuButton::GetTearOff() const {
+    return MbGet<UINT>(this, kMbTearOffBarID);
+}
+void CMFCToolBarMenuButton::SetTearOff(UINT id) {
+    const UINT oldID = GetTearOff();
+    if (oldID == id) return;
+    openmfc::detail::RetainTearOffID(oldID, false);
+    MbAt<UINT>(this, kMbTearOffBarID) = id;
+    openmfc::detail::RetainTearOffID(id, true);
+}
 // Symbol: ?SetTearOff@CMFCToolBarMenuButton@@UEAAXI@Z
-extern "C" void MS_ABI impl__SetTearOff_CMFCToolBarMenuButton__UEAAXI_Z(CMFCToolBarMenuButton* pThis, unsigned int uiBarID)
-{
-    if (pThis == nullptr) return;
-    if (MbGet<UINT>(pThis, kMbTearOffBarID) == uiBarID) return;
-    MbAt<UINT>(pThis, kMbTearOffBarID) = uiBarID;
+extern "C" void MS_ABI impl__SetTearOff_CMFCToolBarMenuButton__UEAAXI_Z(CMFCToolBarMenuButton* button, UINT id) {
+    if (button) button->SetTearOff(id);
 }

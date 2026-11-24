@@ -1,4 +1,5 @@
 #include "MfccoreSupport.h"
+#include "MenuTearOffSupport.h"
 
 IMPLEMENT_DYNAMIC(CMFCVisualManager, CObject)
 alignas(CFont) unsigned char g_menuFontStorage[sizeof(CFont)] = {};
@@ -417,9 +418,11 @@ CMFCToolBarMenuButton* CreateMenuButtonFromMenu(HMENU hMenu, int index) {
     const UINT id = GetMenuItemCommand(hMenu, index);
     HMENU subMenu = GetMenuItemSubMenu(hMenu, index);
     CString text = GetMenuItemText(hMenu, index);
+    const UINT tearOff = subMenu ? openmfc::detail::DecodeTearOffTitle(text) : 0;
     auto* button = new CMFCToolBarMenuButton(id, subMenu, subMenu != nullptr,
                                             static_cast<const wchar_t*>(text), FALSE);
     MENUITEMINFOW info{sizeof(info)};
+    button->SetTearOff(tearOff);
     info.fMask = MIIM_FTYPE | MIIM_STATE;
     if (::GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
         if (info.fType & MFT_SEPARATOR) button->m_nStyle |= TBSTYLE_SEP;

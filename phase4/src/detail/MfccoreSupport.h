@@ -260,6 +260,10 @@ struct PopupMenuState {
     int wheelRemainder = 0;
     bool pressedScrollArrow = false;
     bool awaitingButtonRelease = false;
+    UINT tearOffId = 0;
+    CString tearOffTitle;
+    CRect tearOffGrip{0, 0, 0, 0};
+    bool tearOffTracking = false;
     bool closing = false;
     bool deleteOnClose = false;
     std::vector<CMFCToolBarMenuButton*> items;

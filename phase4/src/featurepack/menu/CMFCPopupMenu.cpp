@@ -21,6 +21,7 @@
 #include "detail/CMFCPopupMenuSupport.h"
 #include "detail/CMFCDropDownListBoxSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/MenuTearOffSupport.h"
 
 #include "openmfc/afxole.h"
 #include "openmfc/afxmfc.h"
@@ -288,6 +289,8 @@ inline AccessibleObjectFromWindowFn GetAccessibleObjectFromWindow() {
 
 namespace {
 bool UpdatePopupViewport(HWND window, PopupMenuState& state, bool force);
+CPane* CreateTearOffBar(CMFCPopupMenu& popup, CFrameWnd& frame, UINT id, const wchar_t* title);
+bool TearOffPopup(CMFCPopupMenu& popup, POINT screen, bool drag);
 }
 
 // Symbol: ?AdjustScroll@CMFCPopupMenu@@IEAAHH@Z
@@ -313,6 +316,9 @@ extern "C" int MS_ABI impl__CheckArea_CMFCPopupMenu__QEBA_AW4MENUAREA_TYPE_1_AEB
 {
     const auto* popup = static_cast<const CMFCPopupMenu*>(pThis);
     if (!HasManagedPopupWindow(popup)) return 0;
+    POINT client = ptScreen;
+    if (::ScreenToClient(popup->GetSafeHwnd(), &client) &&
+        g_popupMenuStates.at(popup).tearOffGrip.PtInRect(client)) return 5;
     RECT frame{};
     ::GetWindowRect(popup->GetSafeHwnd(), &frame);
     return ::PtInRect(&frame, ptScreen) ? 0 : 4; // MENU or OUTSIDE.
@@ -327,19 +333,13 @@ extern "C" void MS_ABI impl__CollapseSubmenus_CMFCPopupMenu__IEAAXXZ(void* pThis
     const auto it = g_popupMenuStates.find(static_cast<const CMFCPopupMenu*>(pThis));
     if (it != g_popupMenuStates.end() && it->second.childPopup) it->second.childPopup->CloseMenu();
 }
-// Retail (RVA 0xba230): news a CMFCToolBar, creates it as a 0x50402808-style
-// child and turns it into a tear-off bar.  The toolbar creation chain is not
-// modeled, so nullptr is returned.
 // Symbol: ?CreateTearOffBar@CMFCPopupMenu@@MEAAPEAVCPane@@PEAVCFrameWnd@@IPEB_W@Z
 extern "C" CPane* MS_ABI impl__CreateTearOffBar_CMFCPopupMenu__MEAAPEAVCPane__PEAVCFrameWnd__IPEB_W_Z(
-    void* pThis, CFrameWnd* pFrame, unsigned int uiID, const wchar_t* lpszWindowName)
+    void* pThis, CFrameWnd* frame, UINT id, const wchar_t* title)
 {
-    (void)pFrame; (void)uiID; (void)lpszWindowName;
-    if (!pThis) return nullptr;
-    // TODO(clean-room): transcribed partially -- tear-off bar construction is
-    // not modeled.
-    return nullptr;
+    return pThis && frame ? CreateTearOffBar(*static_cast<CMFCPopupMenu*>(pThis), *frame, id, title) : nullptr;
 }
+
 // Retail (RVA 0xb8b20): draws the fade animation frames / menu shadow through
 // the CDC and CMenuImages machinery.  Not modeled.
 // Symbol: ?DoPaint@CMFCPopupMenu@@MEAAXPEAVCDC@@@Z
@@ -745,6 +745,35 @@ constexpr UINT_PTR kOpenSubmenuTimer = 1;
 constexpr UINT_PTR kPopupScrollTimer = 0xec16;
 constexpr DWORD kPopupStyle = WS_POPUP | WS_BORDER;
 constexpr DWORD kPopupExStyle = WS_EX_TOOLWINDOW;
+constexpr int kTearOffGripHeight = 12;
+
+extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(
+    CMFCToolBar*, CMFCToolBarButton*, int);
+extern "C" int MS_ABI impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(
+    CDockingManager*, CBasePane*, int, int, int);
+extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+    CDockingManager*, UINT, int);
+extern "C" void MS_ABI impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+    CDockingManager*, CBasePane*, int, int, int, CBasePane*);
+extern "C" int MS_ABI impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu___Z(void*, void*);
+
+std::wstring TearOffLabel(const CString& text, bool removeMnemonics) {
+    std::wstring label;
+    for (const wchar_t* p = text; *p && *p != L'\t'; ++p) {
+        if (removeMnemonics && *p == L'&') {
+            if (p[1] == L'&') ++p;
+            else continue;
+        }
+        label.push_back(*p);
+    }
+    return label;
+}
+
+void SetPopupTearOff(PopupMenuState& state, const CMFCToolBarMenuButton& button) {
+    state.tearOffId = button.GetTearOff();
+    if (state.tearOffId) state.tearOffTitle = TearOffLabel(button.m_strText, true).c_str();
+}
+
 constexpr UINT kDisabledMenuItem = UINT(TBSTATE_ENABLED) << 16;
 
 CMFCPopupMenu* RootPopup(CMFCPopupMenu* popup) {
@@ -811,11 +840,12 @@ RECT PopupWindowBounds(PopupMenuState& state) {
     const SIZE client = LayoutPopupRows(state);
     const int maxHeight = state.dropDownList ? state.dropDownList->maxHeight : -1;
     const int clientHeight = maxHeight > 0 ? (std::min)(maxHeight, int(client.cy)) : int(client.cy);
-    RECT frame{0, 0, client.cx, clientHeight};
+    const int gripHeight = state.tearOffId ? kTearOffGripHeight : 0;
+    RECT frame{0, 0, client.cx, clientHeight + gripHeight};
     ::AdjustWindowRectEx(&frame, kPopupStyle, FALSE, kPopupExStyle);
     int width = frame.right - frame.left;
     int height = frame.bottom - frame.top;
-    const int frameHeight = height - clientHeight;
+    const int frameHeight = height - clientHeight - gripHeight;
     const RECT& anchor = state.anchor;
     int x = state.opensToSide ? anchor.right : anchor.left;
     int y = state.opensToSide ? anchor.top : anchor.bottom;
@@ -890,6 +920,12 @@ void UpdatePopupScrollBar(HWND window, PopupMenuState& state, const RECT& client
 bool UpdatePopupViewport(HWND window, PopupMenuState& state, bool force) {
     RECT client{};
     if (!::GetClientRect(window, &client)) return false;
+    state.tearOffGrip.SetRectEmpty();
+    if (state.tearOffId) {
+        const int bottom = (std::min)(int(client.bottom), int(client.top) + kTearOffGripHeight);
+        state.tearOffGrip.SetRect(client.left, client.top, client.right, bottom);
+        client.top = bottom;
+    }
     const int height = client.bottom - client.top;
     const int contentHeight = state.rows.empty() ? 0 : state.rows.back().bottom;
     const int band = state.dropDownList ? 0 : ScrollArrowHeight(height);
@@ -1027,12 +1063,23 @@ void PaintPopup(const PopupMenuState& state, HDC hdc, const RECT& bounds) {
     const int saved = ::SaveDC(hdc);
     if (!saved) return;
     ::FillRect(hdc, &bounds, ::GetSysColorBrush(COLOR_MENU));
+    CDC dc;
+    dc.m_hDC = hdc;
+    if (!state.tearOffGrip.IsRectEmpty()) {
+        const CRect& grip = state.tearOffGrip;
+        if (auto* visual = CMFCVisualManager::GetInstance())
+            visual->OnDrawTearOffCaption(&dc, grip, state.tearOffTracking);
+        const CPoint center = grip.CenterPoint();
+        const int color = state.tearOffTracking ? COLOR_HIGHLIGHTTEXT : COLOR_BTNSHADOW;
+        for (int offset = -12; offset <= 12; offset += 4) {
+            const RECT dot{center.x + offset, center.y - 1, center.x + offset + 2, center.y + 1};
+            ::FillRect(hdc, &dot, ::GetSysColorBrush(color));
+        }
+    }
     PaintScrollArrow(hdc, state.scrollUp, -1, state.scrollDirection < 0);
     PaintScrollArrow(hdc, state.scrollDown, 1, state.scrollDirection > 0);
     ::IntersectClipRect(hdc, state.viewport.left, state.viewport.top, state.viewport.right, state.viewport.bottom);
     ::SelectObject(hdc, ::GetStockObject(DEFAULT_GUI_FONT));
-    CDC dc;
-    dc.m_hDC = hdc;
     const auto first = std::partition_point(state.rows.begin(), state.rows.end(),
         [&state](const CRect& row) { return row.bottom <= state.scrollOffset; });
     for (int i = static_cast<int>(first - state.rows.begin()); i < static_cast<int>(state.rows.size()); ++i) {
@@ -1053,6 +1100,199 @@ void PaintPopup(const PopupMenuState& state, HDC hdc, const RECT& bounds) {
 }
 
 bool CreatePopupWindow(CMFCPopupMenu* popup, const RECT& anchor, bool toSide);
+
+constexpr wchar_t kTearOffToolbarProperty[] = L"OpenMFC.TearOffToolbar";
+
+struct MenuDeleter {
+    void operator()(HMENU menu) const { ::DestroyMenu(menu); }
+};
+using PopupMenuHandle = std::unique_ptr<std::remove_pointer_t<HMENU>, MenuDeleter>;
+
+PopupMenuHandle CopyPopupMenu(HMENU menu) {
+    PopupMenuHandle copy(::CreatePopupMenu());
+    const int count = ::GetMenuItemCount(menu);
+    if (!copy || count < 0) return {};
+    for (int i = 0; i < count; ++i) {
+        MENUITEMINFOW item{sizeof(item)};
+        item.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_STRING | MIIM_SUBMENU |
+                     MIIM_BITMAP | MIIM_CHECKMARKS | MIIM_DATA;
+        if (!::GetMenuItemInfoW(menu, i, TRUE, &item)) return {};
+        std::wstring label(item.cch + 1, L'\0');
+        item.dwTypeData = label.data();
+        item.cch = static_cast<UINT>(label.size());
+        if (!::GetMenuItemInfoW(menu, i, TRUE, &item)) return {};
+        PopupMenuHandle child;
+        if (item.hSubMenu) {
+            child = CopyPopupMenu(item.hSubMenu);
+            if (!child) return {};
+            item.hSubMenu = child.get();
+        }
+        if (!::InsertMenuItemW(copy.get(), i, TRUE, &item)) return {};
+        child.release();
+    }
+    return copy;
+}
+
+class TearOffToolbar final : public CMFCToolBar {
+public:
+    ~TearOffToolbar() override {
+        destroying = true;
+        if (m_hWnd) DestroyWindow();
+    }
+
+    bool SetMenuItems(const CMFCPopupMenu& popup) {
+        ::SendMessageW(m_hWnd, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_MIXEDBUTTONS);
+        for (int i = 0; i < popup.GetMenuItemCount(); ++i) {
+            const auto* item = popup.GetMenuItem(i);
+            const bool separator = (item->m_nStyle & TBSTYLE_SEP) != 0;
+            const auto label = TearOffLabel(item->m_strText, false);
+            std::unique_ptr<CMFCToolBarButton> button;
+            if (item->m_hMenu) {
+                auto menu = CopyPopupMenu(item->m_hMenu);
+                if (!menu) return false;
+                auto submenu = std::make_unique<CMFCToolBarMenuButton>(
+                    item->m_nID, menu.get(), TRUE, label.c_str(), FALSE);
+                submenu->SetTearOff(item->GetTearOff());
+                menus.push_back(std::move(menu));
+                button = std::move(submenu);
+            } else {
+                button = std::make_unique<CMFCToolBarButton>(item->m_nID, -1, label.c_str());
+            }
+            button->m_nStyle = item->m_nStyle;
+            button->m_bText = !separator;
+            button->m_bImage = FALSE;
+            TBBUTTON native{};
+            native.iBitmap = separator ? 8 : I_IMAGENONE;
+            native.idCommand = item->m_hMenu ? -(i + 1) : static_cast<int>(item->m_nID);
+            native.fsState = (item->m_nStyle & (UINT(TBSTATE_ENABLED) << 16)) ? 0 : TBSTATE_ENABLED;
+            if (item->m_nStyle & (UINT(TBSTATE_CHECKED) << 16)) native.fsState |= TBSTATE_CHECKED;
+            native.fsStyle = separator ? BTNS_SEP : BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+            native.iString = -1;
+            if (!separator && !label.empty()) {
+                auto strings = label;
+                strings.push_back(L'\0');
+                native.iString = ::SendMessageW(m_hWnd, TB_ADDSTRINGW, 0,
+                                                reinterpret_cast<LPARAM>(strings.c_str()));
+                if (native.iString < 0) return false;
+            }
+            if (!::SendMessageW(m_hWnd, TB_ADDBUTTONSW, 1, reinterpret_cast<LPARAM>(&native))) return false;
+            if (impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(this, button.get(), -1) < 0)
+                return false;
+            button.release();
+        }
+        ::SendMessageW(m_hWnd, TB_AUTOSIZE, 0, 0);
+        for (int i = 0; i < GetCount(); ++i) {
+            RECT bounds{};
+            if (!::SendMessageW(m_hWnd, TB_GETITEMRECT, i, reinterpret_cast<LPARAM>(&bounds))) return false;
+            GetButton(i)->m_rect = bounds;
+            size.cx = (std::max)(size.cx, bounds.right);
+            size.cy = (std::max)(size.cy, bounds.bottom);
+        }
+        return size.cx > 0 && size.cy > 0 &&
+            ::SetWindowPos(m_hWnd, nullptr, 0, 0, size.cx, size.cy,
+                           SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOZORDER);
+    }
+
+    SIZE size{};
+    HWND registeredOwner = nullptr;
+    UINT registeredId = 0;
+
+protected:
+    void PostNcDestroy() override {
+        CPane::PostNcDestroy();
+        if (!registeredId) return;
+        openmfc::detail::RetainTearOffID(registeredId, false);
+        auto* owner = static_cast<CFrameWnd*>(CWnd::FromHandlePermanent(registeredOwner));
+        if (owner) {
+            if (auto* manager = DockingManagerForFrame(owner))
+                impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+                    manager, this, FALSE, FALSE, FALSE, nullptr);
+            openmfc::detail::TrackTearOffToolbar(*owner, *this, false);
+        }
+        if (!destroying) delete this;
+    }
+
+private:
+    bool destroying = false;
+    std::vector<PopupMenuHandle> menus;
+};
+
+CPane* CreateTearOffBar(CMFCPopupMenu& popup, CFrameWnd& frame, UINT id, const wchar_t* title) {
+    if (!frame.GetSafeHwnd() || !id || popup.GetMenuItemCount() <= 0) return nullptr;
+    auto bar = std::make_unique<TearOffToolbar>();
+    constexpr DWORD style = WS_CHILD | TBSTYLE_FLAT | TBSTYLE_LIST | CCS_NORESIZE |
+                            CCS_NOPARENTALIGN | CCS_NODIVIDER;
+    if (!bar->Create(&frame, style, id) || !bar->SetMenuItems(popup)) return nullptr;
+    ::SetWindowTextW(bar->GetSafeHwnd(), title ? title : L"");
+    if (!::SetPropW(bar->GetSafeHwnd(), kTearOffToolbarProperty, bar.get())) return nullptr;
+    return bar.release();
+}
+
+CFrameWnd* TearOffOwner(HWND window) {
+    for (; window; window = ::GetParent(window)) {
+        auto* owner = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+        if (owner && owner->IsKindOf(RUNTIME_CLASS(CFrameWnd)) && DockingManagerForFrame(owner))
+            return static_cast<CFrameWnd*>(owner);
+    }
+    return nullptr;
+}
+
+CPaneFrameWnd* FloatingToolbarFrame(const CPane& pane) {
+    auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(pane.GetSafeHwnd())));
+    return parent && parent->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)) ? static_cast<CPaneFrameWnd*>(parent) : nullptr;
+}
+
+bool TearOffPopup(CMFCPopupMenu& popup, POINT screen, bool drag) {
+    const auto& state = g_popupMenuStates.at(&popup);
+    if (!state.tearOffId) return false;
+    auto* owner = TearOffOwner(state.commandWindow ? state.commandWindow : state.parentWindow);
+    if (!owner) return false;
+    auto* manager = DockingManagerForFrame(owner);
+    const UINT id = state.tearOffId;
+    auto* existing = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(manager, id, TRUE);
+    TearOffToolbar* bar = nullptr;
+    std::unique_ptr<TearOffToolbar> created;
+    if (existing) {
+        bar = static_cast<TearOffToolbar*>(::GetPropW(existing->GetSafeHwnd(), kTearOffToolbarProperty));
+        if (!bar || bar != existing) return false;
+    } else {
+        created.reset(static_cast<TearOffToolbar*>(CreateTearOffBar(popup, *owner, id, state.tearOffTitle)));
+        if (!created) return false;
+        bar = created.get();
+        bar->m_hWndOwner = state.commandWindow ? state.commandWindow : owner->GetSafeHwnd();
+        if (!impl__AddPane_CDockingManager__QEAAHPEAVCBasePane__HHH_Z(manager, bar, FALSE, FALSE, FALSE))
+            return false;
+    }
+
+    auto* mini = FloatingToolbarFrame(*bar);
+    if (!mini && (created || drag)) {
+        RECT bounds{screen.x, screen.y, screen.x + bar->size.cx, screen.y + bar->size.cy};
+        ::AdjustWindowRectEx(&bounds, WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME, FALSE, 0);
+        constexpr int standardDockMethod = 5;
+        if (!bar->FloatPaneWindow(bounds, standardDockMethod, false, manager)) {
+            if (created) impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
+                manager, bar, FALSE, FALSE, FALSE, nullptr);
+            return false;
+        }
+        mini = FloatingToolbarFrame(*bar);
+    }
+    if (created) {
+        bar->registeredOwner = owner->GetSafeHwnd();
+        bar->registeredId = id;
+        openmfc::detail::RetainTearOffID(id, true);
+        openmfc::detail::TrackTearOffToolbar(*owner, *bar, true);
+        created.release();
+    }
+    const HWND barWindow = bar->GetSafeHwnd();
+    const HWND miniWindow = mini ? mini->GetSafeHwnd() : nullptr;
+    RootPopup(&popup)->CloseMenu(TRUE);
+    if (!::IsWindow(barWindow)) return false;
+    manager->ShowPane(bar);
+    ::SendMessageW(barWindow, TB_SETPARENT, reinterpret_cast<WPARAM>(bar->m_hWndOwner), 0);
+    if (drag && ::IsWindow(miniWindow)) impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu___Z(mini, nullptr);
+    return true;
+}
+
 
 void SelectPopupRow(CMFCPopupMenu* popup, int index) {
     auto& state = g_popupMenuStates.at(popup);
@@ -1126,6 +1366,7 @@ void ActivatePopupRow(CMFCPopupMenu* popup, bool submenuOnly, bool keyboard) {
         childState.parentWindow = popup->GetSafeHwnd();
         childState.commandWindow = state.commandWindow;
         childState.menu = item->m_hMenu;
+        SetPopupTearOff(childState, *item);
         ImportMenuIntoPopupItems(childState.menu, childState.items, childState.ownedItems);
         if (CreatePopupWindow(child.get(), *static_cast<const RECT*>(anchor), true)) {
             childState.deleteOnClose = true;
@@ -1145,6 +1386,22 @@ void PopupMouseInput(CMFCPopupMenu* root, HWND window, UINT message, LPARAM posi
     ::ClientToScreen(window, &screen);
     if (!root || RootPopup(g_pActivePopupMenu) != root) return;
     auto& rootState = g_popupMenuStates.at(root);
+    for (auto* popup = g_pActivePopupMenu; popup; popup = g_popupMenuStates.at(popup).parentPopup) {
+        auto& state = g_popupMenuStates.at(popup);
+        if (!state.tearOffTracking) continue;
+        POINT client = screen;
+        const HWND target = popup->GetSafeHwnd();
+        ::ScreenToClient(target, &client);
+        if (message == WM_MOUSEMOVE && !state.tearOffGrip.PtInRect(client)) {
+            state.tearOffTracking = false;
+            ::InvalidateRect(target, state.tearOffGrip, FALSE);
+            TearOffPopup(*popup, screen, true);
+        } else if (message == WM_LBUTTONUP) {
+            state.tearOffTracking = false;
+            ::InvalidateRect(target, state.tearOffGrip, FALSE);
+        }
+        return;
+    }
     if (message == WM_LBUTTONDOWN) rootState.awaitingButtonRelease = false;
     if (message == WM_LBUTTONUP) {
         // A tall popup can overlap its opening button after fitting the monitor.
@@ -1162,6 +1419,14 @@ void PopupMouseInput(CMFCPopupMenu* root, HWND window, UINT message, LPARAM posi
             continue;
         }
         auto& state = g_popupMenuStates.at(popup);
+        if (state.tearOffGrip.PtInRect(point)) {
+            SelectPopupRow(popup, -1);
+            if (message == WM_LBUTTONDOWN) {
+                state.tearOffTracking = true;
+                ::InvalidateRect(target, state.tearOffGrip, FALSE);
+            }
+            return;
+        }
         if (state.scrollBar && state.maxScrollOffset && point.x >= state.viewport.right) {
             if (message == WM_LBUTTONDOWN) {
                 ::ScreenToClient(state.scrollBar, &screen);
@@ -1390,8 +1655,13 @@ void SetPopupItems(PopupMenuState& state, CWnd* parent, HMENU menu, BOOL locked,
     state.wheelRemainder = 0;
     state.pressedScrollArrow = false;
     state.awaitingButtonRelease = false;
+    state.tearOffId = 0;
+    state.tearOffTitle.Empty();
+    state.tearOffGrip.SetRectEmpty();
+    state.tearOffTracking = false;
     state.closing = false;
     state.previousFocus = ::GetFocus();
+    openmfc::detail::SetupActiveTearOffMenus(menu);
     ImportMenuIntoPopupItems(menu, state.items, state.ownedItems);
 }
 } // namespace
@@ -1438,6 +1708,7 @@ BOOL CMFCPopupMenu::CreateForButton(CWnd* parent, const CRect& anchor, HMENU men
     if (auto* active = RootPopup(GetActiveMenu())) active->CloseMenu();
     auto& state = g_popupMenuStates[this];
     SetPopupItems(state, parent, menu, button->m_bLocked, FALSE);
+    SetPopupTearOff(state, *button);
     const HWND window = parent->GetSafeHwnd();
     state.commandWindow = parent->m_hWndOwner;
     if (!state.commandWindow) state.commandWindow = ::GetParent(window);
@@ -2494,21 +2765,13 @@ extern "C" int MS_ABI impl__StartResize_CMFCPopupMenu__IEAAHXZ(void* pThis)
     return FALSE;
 }
 
-// Retail (RVA 0xb9dd0..0xba230, mfc140u, 281 instructions): tears the menu off
-// into a floating toolbar.  Walks the parent chain with IsKindOf (0x234cf0,
-// seven RTTI tests), resolves the top-level frame (0x28e490 / g_pTopLevelFrame
-// 0x3be1b8), builds the bar title from the parent button text (CloneData
-// 0xdd40 + Remove('&') 0x12370), registers the new bar (CObList::AddTail
-// 0x231e70) and hands the drag to CPaneFrameWnd::StartTearOff (0xb32c0) with a
-// rect from GetWindowRect/ClientToScreen.  The tear-off bar is created through
-// CreateTearOffBar (vslot 0x408), which is still a stub in this file, so
-// nothing downstream can work; documented stub returning FALSE.
-// TODO(clean-room): not transcribed -- tear-off bar construction is not modeled.
 // Symbol: ?TearOff@CMFCPopupMenu@@MEAAHVCPoint@@@Z
 extern "C" int MS_ABI impl__TearOff_CMFCPopupMenu__MEAAHVCPoint___Z(void* pThis, long long point)
 {
-    (void)pThis; (void)point;
-    return FALSE;
+    auto* popup = static_cast<CMFCPopupMenu*>(pThis);
+    if (!HasManagedPopupWindow(popup)) return FALSE;
+    POINT screen = UnpackPoint(point);
+    return ::ClientToScreen(popup->GetSafeHwnd(), &screen) && TearOffPopup(*popup, screen, false);
 }
 
 // Retail (RVA 0xbb9f0..0xbba91, mfc140u), fully decoded.  The entry is

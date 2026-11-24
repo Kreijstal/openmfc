@@ -91,6 +91,7 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/MenuTearOffSupport.h"
 // For the CObList side table: OpenMFC's list wrappers keep their contents in a
 // per-object state map (OPENMFC_DECLARE_LIST_WRAPPER, include/openmfc/afx.h), not in
 // the object's own bytes.  FindListStorage below is the header-only accessor for it.
@@ -4103,4 +4104,20 @@ extern "C" void MS_ABI impl__UpdateCaption_CFrameImpl__IEAAXXZ(void* pThis) {
         x -= cxBtn;
     }
     ::RedrawWindow(pFrame->m_hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_NOCHILDREN | RDW_UPDATENOW | RDW_FRAME);
+}
+
+void openmfc::detail::TrackTearOffToolbar(CFrameWnd& frame, CBasePane& pane, bool add) {
+    CFrameImpl* impl = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+        for (const auto& entry : g_frameImplStates) {
+            if (entry.second.ownerFrame == &frame) {
+                impl = entry.first;
+                break;
+            }
+        }
+    }
+    if (!impl) return;
+    if (add) impl__AddTearOffToolbar_CFrameImpl__IEAAXPEAVCBasePane___Z(impl, &pane);
+    else impl__RemoveTearOffToolbar_CFrameImpl__IEAAXPEAVCBasePane___Z(impl, &pane);
 }

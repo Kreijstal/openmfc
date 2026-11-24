@@ -2101,6 +2101,8 @@ public:
     BOOL ClickMenu(CWnd* parent, const POINT* clientPoint);
     BOOL OpenPopupMenu(CWnd* parent);
     CMFCPopupMenu* GetOpenPopup() const;
+    UINT GetTearOff() const;
+    void SetTearOff(UINT id);
     void OnPopupClosed(const CMFCPopupMenu* popup, HWND parent);
     void Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton);
     virtual void CreateFromMenu(HMENU hMenu);
