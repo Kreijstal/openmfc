@@ -892,10 +892,24 @@ void CMFCVisualManager::OnDrawMenuItemButton(CDC* pDC, CMFCToolBarMenuButton*, C
     FillAndFrame(pDC, rectButton, bHighlight ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_MENU),
                  bDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : g_visualBorderColor);
 }
-void CMFCVisualManager::OnDrawMenuResizeBar(CDC* pDC, CRect rect, int) {
+void CMFCVisualManager::OnDrawMenuResizeBar(CDC* pDC, CRect rect, int flags) {
     FillSolid(pDC, rect, ::GetSysColor(COLOR_MENU));
-    for (int i = 0; i < 3; ++i) DrawLine(pDC, rect.right - 4 - i * 4, rect.bottom - 2, rect.right - 2, rect.bottom - 4 - i * 4, ::GetSysColor(COLOR_3DSHADOW));
+    const COLORREF shadow = ::GetSysColor(COLOR_3DSHADOW);
+    if ((flags & 1) == 0) {
+        const auto center = rect.CenterPoint();
+        DrawLine(pDC, center.x - 6, center.y - 1, center.x + 7, center.y - 1, shadow);
+        DrawLine(pDC, center.x - 6, center.y + 1, center.x + 7, center.y + 1, shadow);
+        return;
+    }
+    const bool top = (flags & 2) != 0;
+    const int edge = top ? rect.top + 2 : rect.bottom - 2;
+    const int direction = top ? 1 : -1;
+    for (int i = 0; i < 3; ++i) {
+        const int length = 2 + i * 4;
+        DrawLine(pDC, rect.right - 2 - length, edge, rect.right - 2, edge + direction * length, shadow);
+    }
 }
+
 void CMFCVisualManager::OnDrawMenuScrollButton(CDC* pDC, CRect rect, BOOL bIsScrollDown, BOOL bIsHighlited, BOOL bIsPressed, BOOL bIsDisabled) {
     FillAndFrame(pDC, rect, bIsPressed ? ButtonFillForState(ButtonsIsPressed) : (bIsHighlited ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_MENU)), g_visualBorderColor);
     DrawArrowGlyph(pDC, rect, bIsScrollDown, bIsDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_MENUTEXT));
@@ -984,7 +998,7 @@ void CMFCVisualManager::OnDrawStatusBarProgress(CDC* pDC, CMFCStatusBar*, CRect 
         FillSolid(pDC, CRect(rectProgress.left + 1, rectProgress.top + 1, rectProgress.left + 1 + width, rectProgress.bottom - 1), bar);
     }
 }
-void CMFCVisualManager::OnDrawStatusBarSizeBox(CDC* pDC, CMFCStatusBar*, CRect rect) { OnDrawMenuResizeBar(pDC, rect, 0); }
+void CMFCVisualManager::OnDrawStatusBarSizeBox(CDC* pDC, CMFCStatusBar*, CRect rect) { OnDrawMenuResizeBar(pDC, rect, 1); }
 void CMFCVisualManager::OnDrawTab(CDC* pDC, CRect rect, int, BOOL bIsActive, const CMFCBaseTabCtrl*) { FillAndFrame(pDC, rect, bIsActive ? ::GetSysColor(COLOR_WINDOW) : ::GetSysColor(COLOR_3DFACE), g_visualBorderColor); }
 void CMFCVisualManager::OnDrawTabButton(CDC* pDC, CRect rect, const CMFCBaseTabCtrl*, int, BOOL bIsHilited, BOOL bIsPressed) { FillAndFrame(pDC, rect, bIsPressed ? ButtonFillForState(ButtonsIsPressed) : (bIsHilited ? ButtonFillForState(ButtonsIsHighlighted) : ::GetSysColor(COLOR_BTNFACE)), g_visualBorderColor); }
 void CMFCVisualManager::OnDrawTabCloseButton(CDC* pDC, CRect rect, const CMFCBaseTabCtrl*, BOOL bIsHilited, BOOL bIsPressed, BOOL bIsDisabled) { OnDrawTabButton(pDC, rect, nullptr, 0, bIsHilited, bIsPressed); DrawRectText(pDC, rect, L"x", bIsDisabled ? ::GetSysColor(COLOR_GRAYTEXT) : ::GetSysColor(COLOR_BTNTEXT)); }

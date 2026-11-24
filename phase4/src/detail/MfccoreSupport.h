@@ -237,8 +237,16 @@ struct PopupMenuState {
     HMENU menu = nullptr;
     bool locked = false;
     bool mainMenu = false;
-    bool vertResize = false;
-    CSize minResize = CSize(0, 0);
+    CSize minResize{0, 0};
+    int maxWidth = 0;
+    bool resizeBarOnTop = false;
+    bool resizeFromLeft = false;
+    CRect resizeGrip{0, 0, 0, 0};
+    CRect resizedFrame{0, 0, 0, 0};
+    CRect resizeStartFrame{0, 0, 0, 0};
+    POINT resizeStartPoint{};
+    UINT resizeHit = HTNOWHERE;
+    int resizeStartScroll = 0;
     int selected = -1;
     HWND parentWindow = nullptr;
     HWND commandWindow = nullptr;

@@ -435,7 +435,7 @@ void CMFCRibbonComboBox::DropDownList() {
     list->minWidth = m_comboRect.Width();
     for (auto pos = m_itemStrings.GetHeadPosition(); pos != CStringList::POSITION(nullptr);) list->AddString(m_itemStrings.GetNext(pos));
     list->SetCurSel(m_selectedIndex);
-    if (m_resizeDropDownList) list->EnableVertResize();
+    if (m_resizeDropDownList) list->EnableVertResize(2 * ::GetSystemMetrics(SM_CYMENU));
     POINT anchor{m_comboRect.left, m_comboRect.bottom};
     ::ClientToScreen(bar->GetSafeHwnd(), &anchor);
     list->Track(CPoint(anchor), bar);

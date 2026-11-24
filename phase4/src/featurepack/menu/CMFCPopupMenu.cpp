@@ -40,6 +40,7 @@
 #include <cwchar>
 #include <cstdlib>
 #include <commctrl.h>
+#include <windowsx.h>
 #include <oleacc.h>
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,6 @@ constexpr int kOffFinalSize               = 0x210;   // CSize  m_FinalSize
 constexpr int kOffParentBtn               = 0x228;   // CMFCToolBarMenuButton* m_pParentBtn
 constexpr int kOffMenuBar                 = 0x230;   // CMFCPopupMenuBar m_wndMenuBar (embedded, 0x1420 bytes)
 constexpr int kOffShown                   = 0x1670;  // BOOL m_bShown
-constexpr int kOffMaxWidth                = 0x167c;  // int  m_iMaxWidth
 constexpr int kOffLogoWidth               = 0x1680;  // int  m_iLogoWidth
 constexpr int kOffLogoLocation            = 0x1688;  // LOGO_LOCATION m_nLogoLocation
 constexpr int kOffAnimationIsDone         = 0x169c;  // BOOL m_bAnimationIsDone
@@ -94,7 +94,6 @@ static_assert(offsetof(PopupMenu, m_hWnd)          == kOffHWnd,                "
 static_assert(offsetof(PopupMenu, m_pOwnerWnd)     == kOffMessageWnd,          "m_pMessageWnd");
 static_assert(offsetof(PopupMenu, m_pParentButton) == kOffParentBtn,           "m_pParentBtn");
 static_assert(offsetof(PopupMenu, m_nFadeX)        == kOffShown,               "m_bShown");
-static_assert(offsetof(PopupMenu, m_nFadeStep)     == kOffMaxWidth,            "m_iMaxWidth");
 static_assert(offsetof(PopupMenu, m_bShowLogo)     == kOffLogoWidth,           "m_iLogoWidth");
 static_assert(offsetof(PopupMenu, m_nLogoLocation) == kOffLogoLocation,        "m_nLogoLocation");
 static_assert(offsetof(PopupMenu, m_bMenuSound)    == kOffAnimationIsDone,     "m_bAnimationIsDone");
@@ -289,6 +288,9 @@ inline AccessibleObjectFromWindowFn GetAccessibleObjectFromWindow() {
 
 namespace {
 bool UpdatePopupViewport(HWND window, PopupMenuState& state, bool force);
+UINT PopupResizeHit(const PopupMenuState& state, POINT client);
+bool BeginPopupResize(CMFCPopupMenu& popup, POINT screen, UINT hit);
+UINT PopupResizeHitAtScreen(const CMFCPopupMenu& popup, POINT screen);
 CPane* CreateTearOffBar(CMFCPopupMenu& popup, CFrameWnd& frame, UINT id, const wchar_t* title);
 bool TearOffPopup(CMFCPopupMenu& popup, POINT screen, bool drag);
 }
@@ -732,8 +734,8 @@ extern "C" void MS_ABI impl__EnableResize_CMFCPopupMenu__QEAAXVCSize___Z(CMFCPop
     if (pThis) pThis->EnableResize(sizeMinResize);
 }
 // Symbol: ?EnableVertResize@CMFCPopupMenu@@QEAAXH@Z
-extern "C" void MS_ABI impl__EnableVertResize_CMFCPopupMenu__QEAAXH_Z(CMFCPopupMenu* pThis, int bEnable) {
-    if (pThis) pThis->EnableVertResize(bEnable);
+extern "C" void MS_ABI impl__EnableVertResize_CMFCPopupMenu__QEAAXH_Z(CMFCPopupMenu* pThis, int nMinResize) {
+    if (pThis) pThis->EnableVertResize(nMinResize);
 }
 // Symbol: ?HideRarelyUsedCommands@CMFCPopupMenu@@QEBAHXZ
 extern "C" int MS_ABI impl__HideRarelyUsedCommands_CMFCPopupMenu__QEBAHXZ(const CMFCPopupMenu* pThis) {
@@ -836,28 +838,60 @@ SIZE LayoutPopupRows(PopupMenuState& state) {
     return {width, y};
 }
 
+int PopupResizeGripHeight(const PopupMenuState& state) {
+    if (state.minResize.cx > 0) return 12;
+    return state.minResize.cy > 0 ? 9 : 0;
+}
+
+int MinimumPopupFrameHeight(const PopupMenuState& state, int borderHeight) {
+    const int gripHeight = PopupResizeGripHeight(state) + (state.tearOffId ? kTearOffGripHeight : 0);
+    return (std::max)(state.minResize.cy, gripHeight + borderHeight + 1);
+}
+
 RECT PopupWindowBounds(PopupMenuState& state) {
     const SIZE client = LayoutPopupRows(state);
     const int maxHeight = state.dropDownList ? state.dropDownList->maxHeight : -1;
     const int clientHeight = maxHeight > 0 ? (std::min)(maxHeight, int(client.cy)) : int(client.cy);
-    const int gripHeight = state.tearOffId ? kTearOffGripHeight : 0;
-    RECT frame{0, 0, client.cx, clientHeight + gripHeight};
+    const int tearOffHeight = state.tearOffId ? kTearOffGripHeight : 0;
+    const int resizeHeight = PopupResizeGripHeight(state);
+
+    const int initialHeight = clientHeight + tearOffHeight + resizeHeight;
+    const int initialWidth = (std::max)(int(client.cx), state.minResize.cx);
+    RECT frame{0, 0, initialWidth, initialHeight};
     ::AdjustWindowRectEx(&frame, kPopupStyle, FALSE, kPopupExStyle);
+    const int borderWidth = frame.right - frame.left - initialWidth;
+    const int borderHeight = frame.bottom - frame.top - initialHeight;
     int width = frame.right - frame.left;
     int height = frame.bottom - frame.top;
-    const int frameHeight = height - clientHeight - gripHeight;
+    if (resizeHeight) height = (std::max)(height, MinimumPopupFrameHeight(state, borderHeight));
+
     const RECT& anchor = state.anchor;
-    int x = state.opensToSide ? anchor.right : anchor.left;
-    int y = state.opensToSide ? anchor.top : anchor.bottom;
+    const auto& resized = state.resizedFrame;
+    const bool hasUserSize = !resized.IsRectEmpty();
     MONITORINFO monitor{sizeof(monitor)};
     const bool gotMonitor = ::GetMonitorInfoW(::MonitorFromRect(&anchor, MONITOR_DEFAULTTONEAREST), &monitor);
+    if (hasUserSize) {
+        width = (std::max)(resized.Width(), int(state.minResize.cx) + borderWidth);
+        height = (std::max)(resized.Height(), MinimumPopupFrameHeight(state, borderHeight));
+    }
     if (gotMonitor) height = (std::min)(height, int(monitor.rcWork.bottom - monitor.rcWork.top));
-    if (state.dropDownList && client.cy > height - frameHeight) width += ::GetSystemMetrics(SM_CXVSCROLL);
+    if (!hasUserSize && state.dropDownList && client.cy > height - borderHeight - tearOffHeight - resizeHeight)
+        width += ::GetSystemMetrics(SM_CXVSCROLL);
+    if (state.maxWidth > 0) width = (std::min)(width, (std::max)(state.maxWidth, int(state.minResize.cx)) + borderWidth);
+
+    int x = state.opensToSide ? anchor.right : anchor.left;
+    int y = state.opensToSide ? anchor.top : anchor.bottom;
+    if (hasUserSize) {
+        x = state.resizeFromLeft ? resized.right - width : resized.left;
+        y = state.resizeBarOnTop ? resized.bottom - height : resized.top;
+    } else {
+        state.resizeBarOnTop = gotMonitor && !state.opensToSide && y + height > monitor.rcWork.bottom;
+        if (state.resizeBarOnTop) y = anchor.top - height;
+    }
     if (gotMonitor) {
         const RECT work = monitor.rcWork;
         width = (std::min)(width, static_cast<int>(work.right - work.left));
-        if (state.opensToSide && x + width > work.right) x = anchor.left - width;
-        if (!state.opensToSide && y + height > work.bottom) y = anchor.top - height;
+        if (!hasUserSize && state.opensToSide && x + width > work.right) x = anchor.left - width;
         x = std::clamp(x, static_cast<int>(work.left), static_cast<int>(work.right) - width);
         y = std::clamp(y, static_cast<int>(work.top), static_cast<int>(work.bottom) - height);
     }
@@ -920,6 +954,16 @@ void UpdatePopupScrollBar(HWND window, PopupMenuState& state, const RECT& client
 bool UpdatePopupViewport(HWND window, PopupMenuState& state, bool force) {
     RECT client{};
     if (!::GetClientRect(window, &client)) return false;
+    state.resizeGrip.SetRectEmpty();
+    if (const int gripHeight = (std::min)(PopupResizeGripHeight(state), int(client.bottom - client.top))) {
+        if (state.resizeBarOnTop) {
+            state.resizeGrip.SetRect(client.left, client.top, client.right, client.top + gripHeight);
+            client.top += gripHeight;
+        } else {
+            state.resizeGrip.SetRect(client.left, client.bottom - gripHeight, client.right, client.bottom);
+            client.bottom -= gripHeight;
+        }
+    }
     state.tearOffGrip.SetRectEmpty();
     if (state.tearOffId) {
         const int bottom = (std::min)(int(client.bottom), int(client.top) + kTearOffGripHeight);
@@ -1047,6 +1091,14 @@ void RelayoutPopup(CMFCPopupMenu* popup, PopupMenuState& state) {
     if (state.selected >= 0) EnsurePopupRowVisible(popup, state, state.selected);
 }
 
+void SetPopupMinimumResize(CMFCPopupMenu& popup, CSize size) {
+    auto& state = g_popupMenuStates[&popup];
+    state.minResize = size;
+    state.resizeHit = HTNOWHERE;
+    if (!PopupResizeGripHeight(state)) state.resizedFrame.SetRectEmpty();
+    RelayoutPopup(&popup, state);
+}
+
 void PaintScrollArrow(HDC hdc, const CRect& bounds, int direction, bool hot) {
     if (bounds.IsRectEmpty()) return;
     if (hot) ::FillRect(hdc, bounds, ::GetSysColorBrush(COLOR_HIGHLIGHT));
@@ -1074,6 +1126,14 @@ void PaintPopup(const PopupMenuState& state, HDC hdc, const RECT& bounds) {
         for (int offset = -12; offset <= 12; offset += 4) {
             const RECT dot{center.x + offset, center.y - 1, center.x + offset + 2, center.y + 1};
             ::FillRect(hdc, &dot, ::GetSysColorBrush(color));
+        }
+    }
+    if (!state.resizeGrip.IsRectEmpty()) {
+        if (auto* visual = CMFCVisualManager::GetInstance()) {
+            const int flags = (state.resizeBarOnTop ? 2 : 0) + (state.minResize.cx > 0 ? 1 : 0);
+            CRect grip = state.resizeGrip;
+            if (state.resizeFromLeft && state.minResize.cx > 0) grip.right = grip.left + grip.Height();
+            visual->OnDrawMenuResizeBar(&dc, grip, flags);
         }
     }
     PaintScrollArrow(hdc, state.scrollUp, -1, state.scrollDirection < 0);
@@ -1390,10 +1450,131 @@ void ActivatePopupRow(CMFCPopupMenu* popup, bool submenuOnly, bool keyboard) {
     }
 }
 
+UINT PopupResizeHit(const PopupMenuState& state, POINT client) {
+    if (!state.resizeGrip.PtInRect(client)) return HTNOWHERE;
+    if (state.minResize.cx <= 0) return state.resizeBarOnTop ? HTTOP : HTBOTTOM;
+    const auto& grip = state.resizeGrip;
+    const bool inCorner = state.resizeFromLeft ? client.x < grip.left + grip.Height()
+                                               : client.x >= grip.right - grip.Height();
+    if (!inCorner) return HTNOWHERE;
+    if (state.resizeBarOnTop) return state.resizeFromLeft ? HTTOPLEFT : HTTOPRIGHT;
+    return state.resizeFromLeft ? HTBOTTOMLEFT : HTBOTTOMRIGHT;
+}
+
+UINT PopupResizeHitAtScreen(const CMFCPopupMenu& popup, POINT screen) {
+    if (!HasManagedPopupWindow(&popup) || !::ScreenToClient(popup.GetSafeHwnd(), &screen)) return HTNOWHERE;
+    return PopupResizeHit(g_popupMenuStates.at(&popup), screen);
+}
+
+void SetPopupResizeCursor(UINT hit) {
+    LPCWSTR cursor = IDC_ARROW;
+    switch (hit) {
+    case HTTOP:
+    case HTBOTTOM: cursor = IDC_SIZENS; break;
+    case HTTOPLEFT:
+    case HTBOTTOMRIGHT: cursor = IDC_SIZENWSE; break;
+    case HTTOPRIGHT:
+    case HTBOTTOMLEFT: cursor = IDC_SIZENESW; break;
+    }
+    ::SetCursor(::LoadCursorW(nullptr, cursor));
+}
+
+bool BeginPopupResize(CMFCPopupMenu& popup, POINT screen, UINT hit) {
+    if (!hit || !HasManagedPopupWindow(&popup)) return false;
+    auto& state = g_popupMenuStates.at(&popup);
+    if (state.resizeHit != HTNOWHERE) return true;
+    const HWND window = popup.GetSafeHwnd();
+    if (!::GetWindowRect(window, state.resizeStartFrame)) return false;
+    state.resizeStartPoint = screen;
+    state.resizeStartScroll = state.scrollOffset;
+    state.resizeHit = hit;
+    ::KillTimer(window, kOpenSubmenuTimer);
+    SetScrollDirection(window, state, 0);
+    if (state.childPopup) state.childPopup->CloseMenu();
+    if (auto* root = RootPopup(&popup)) {
+        auto& rootState = g_popupMenuStates.at(root);
+        rootState.awaitingButtonRelease = false;
+        rootState.pressedScrollArrow = false;
+        if (::GetCapture() != root->GetSafeHwnd()) ::SetCapture(root->GetSafeHwnd());
+    }
+    SetPopupResizeCursor(hit);
+    return true;
+}
+
+void UpdatePopupResize(CMFCPopupMenu& popup, PopupMenuState& state, POINT screen) {
+    const HWND window = popup.GetSafeHwnd();
+    RECT client{};
+    if (!::GetClientRect(window, &client)) return;
+    RECT current{};
+    if (!::GetWindowRect(window, &current)) return;
+    const auto& start = state.resizeStartFrame;
+    const LONG frameWidth = current.right - current.left;
+    const LONG frameHeight = current.bottom - current.top;
+    const LONG borderWidth = frameWidth - (client.right - client.left);
+    const LONG borderHeight = frameHeight - (client.bottom - client.top);
+    MONITORINFO monitor{sizeof(monitor)};
+    const bool hasMonitor = ::GetMonitorInfoW(::MonitorFromRect(start, MONITOR_DEFAULTTONEAREST), &monitor);
+    const auto& work = monitor.rcWork;
+    const LONG dy = screen.y - state.resizeStartPoint.y;
+    const LONG maxHeight = hasMonitor
+        ? (std::max)(1L, state.resizeBarOnTop ? start.bottom - work.top : work.bottom - start.top)
+        : LONG(INT_MAX);
+    const LONG minHeight = (std::min)(maxHeight, LONG(MinimumPopupFrameHeight(state, static_cast<int>(borderHeight))));
+    const LONG height = std::clamp(start.Height() + (state.resizeBarOnTop ? -dy : dy), minHeight, maxHeight);
+    LONG width = start.Width();
+    const bool resizeWidth = state.resizeHit != HTTOP && state.resizeHit != HTBOTTOM;
+    if (resizeWidth) {
+        const LONG dx = screen.x - state.resizeStartPoint.x;
+        LONG maxWidth = hasMonitor
+            ? (std::max)(1L, state.resizeFromLeft ? start.right - work.left : work.right - start.left)
+            : LONG(INT_MAX);
+        if (state.maxWidth > 0) {
+            maxWidth = (std::min)(maxWidth, (std::max)(state.maxWidth, state.minResize.cx) + borderWidth);
+        }
+        const LONG minWidth = (std::min)(maxWidth, (std::max)(state.minResize.cx, 1) + borderWidth);
+        width = std::clamp(start.Width() + (state.resizeFromLeft ? -dx : dx), minWidth, maxWidth);
+    }
+    const LONG x = resizeWidth && state.resizeFromLeft ? start.right - width : start.left;
+    const LONG y = state.resizeBarOnTop ? start.bottom - height : start.top;
+    if (x != current.left || y != current.top || width != frameWidth || height != frameHeight)
+        ::SetWindowPos(window, nullptr, x, y, width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+}
+
+bool TrackPopupResize(CMFCPopupMenu* root, UINT message, POINT screen = {}) {
+    if (!root || RootPopup(g_pActivePopupMenu) != root) return false;
+    for (auto* popup = g_pActivePopupMenu; popup; popup = g_popupMenuStates.at(popup).parentPopup) {
+        auto& state = g_popupMenuStates.at(popup);
+        if (state.resizeHit == HTNOWHERE) continue;
+        const HWND window = popup->GetSafeHwnd();
+        if (message == WM_KEYDOWN) {
+            const auto start = state.resizeStartFrame;
+            state.resizeHit = HTNOWHERE;
+            state.scrollOffset = state.resizeStartScroll;
+            ::SetWindowPos(window, nullptr, start.left, start.top, start.Width(), start.Height(),
+                           SWP_NOACTIVATE | SWP_NOZORDER);
+            UpdatePopupViewport(window, state, true);
+            SetPopupResizeCursor(HTNOWHERE);
+        } else if (message == WM_MOUSEMOVE || message == WM_LBUTTONUP) {
+            SetPopupResizeCursor(state.resizeHit);
+            UpdatePopupResize(*popup, state, screen);
+            if (message == WM_LBUTTONUP) {
+                state.resizeHit = HTNOWHERE;
+                CRect actual;
+                if (::GetWindowRect(window, actual) && actual != state.resizeStartFrame) state.resizedFrame = actual;
+                SetPopupResizeCursor(HTNOWHERE);
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 void PopupMouseInput(CMFCPopupMenu* root, HWND window, UINT message, LPARAM position) {
     POINT screen{static_cast<short>(LOWORD(position)), static_cast<short>(HIWORD(position))};
     ::ClientToScreen(window, &screen);
     if (!root || RootPopup(g_pActivePopupMenu) != root) return;
+    if (TrackPopupResize(root, message, screen)) return;
+    if (message == WM_MOUSEMOVE) SetPopupResizeCursor(HTNOWHERE);
     auto& rootState = g_popupMenuStates.at(root);
     for (auto* popup = g_pActivePopupMenu; popup; popup = g_popupMenuStates.at(popup).parentPopup) {
         auto& state = g_popupMenuStates.at(popup);
@@ -1428,6 +1609,12 @@ void PopupMouseInput(CMFCPopupMenu* root, HWND window, UINT message, LPARAM posi
             continue;
         }
         auto& state = g_popupMenuStates.at(popup);
+        if (state.resizeGrip.PtInRect(point)) {
+            const UINT hit = PopupResizeHit(state, point);
+            if (message == WM_LBUTTONDOWN && hit) BeginPopupResize(*popup, screen, hit);
+            if (message == WM_MOUSEMOVE && hit) SetPopupResizeCursor(hit);
+            return;
+        }
         if (state.tearOffGrip.PtInRect(point)) {
             SelectPopupRow(popup, -1);
             if (message == WM_LBUTTONDOWN) {
@@ -1507,6 +1694,30 @@ LRESULT CALLBACK PopupWindowProc(HWND window, UINT message, WPARAM wp, LPARAM lp
         return 0;
     case WM_MOUSEACTIVATE:
         return MA_NOACTIVATE;
+    case WM_NCHITTEST: {
+        const POINT screen{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+        if (const UINT hit = PopupResizeHitAtScreen(*popup, screen)) return hit;
+        break;
+    }
+    case WM_SETCURSOR:
+        if (const UINT hit = LOWORD(lp); hit >= HTTOP && hit <= HTBOTTOMRIGHT) {
+            SetPopupResizeCursor(hit);
+            return TRUE;
+        }
+        break;
+    case WM_NCLBUTTONDOWN: {
+        const POINT screen{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+        const UINT hit = PopupResizeHitAtScreen(*popup, screen);
+        if (hit && !state.closing && BeginPopupResize(*popup, screen, hit)) return 0;
+        break;
+    }
+    case WM_NCMOUSEMOVE:
+    case WM_NCLBUTTONUP: {
+        const POINT screen{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+        if (TrackPopupResize(RootPopup(popup), message == WM_NCMOUSEMOVE ? WM_MOUSEMOVE : WM_LBUTTONUP, screen))
+            return 0;
+        break;
+    }
     case WM_MOUSEMOVE:
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
@@ -1551,6 +1762,7 @@ LRESULT CALLBACK PopupWindowProc(HWND window, UINT message, WPARAM wp, LPARAM lp
         auto* active = g_pActivePopupMenu;
         if (!active || RootPopup(active) != RootPopup(popup)) break;
         auto& itemState = g_popupMenuStates.at(active);
+        if (TrackPopupResize(RootPopup(popup), wp == VK_ESCAPE ? WM_KEYDOWN : WM_NULL)) return 0;
         switch (wp) {
         case VK_HOME: StepPopupSelection(active, -1, 1); return 0;
         case VK_END: StepPopupSelection(active, 0, -1); return 0;
@@ -1636,6 +1848,8 @@ bool CreatePopupWindow(CMFCPopupMenu* popup, const RECT& anchor, bool toSide) {
 
     state.anchor = anchor;
     state.opensToSide = toSide;
+    state.resizeFromLeft = state.parentWindow &&
+        (::GetWindowLongPtrW(state.parentWindow, GWL_EXSTYLE) & WS_EX_LAYOUTRTL) != 0;
     const RECT frame = PopupWindowBounds(state);
     const HWND owner = state.parentWindow ? ::GetAncestor(state.parentWindow, GA_ROOTOWNER) : nullptr;
     const HWND window = ::CreateWindowExW(kPopupExStyle, kPopupWindowClass, L"", kPopupStyle,
@@ -1659,6 +1873,8 @@ void SetPopupItems(PopupMenuState& state, CWnd* parent, HMENU menu, BOOL locked,
     state.locked = locked != FALSE;
     state.mainMenu = mainMenu != FALSE;
     state.selected = -1;
+    state.resizedFrame.SetRectEmpty();
+    state.resizeHit = HTNOWHERE;
     state.scrollOffset = 0;
     state.scrollDirection = 0;
     state.wheelRemainder = 0;
@@ -1875,10 +2091,21 @@ BOOL CMFCPopupMenu::InsertSeparator(int iInsertAt) {
     return InsertItem(separator, iInsertAt);
 }
 void CMFCPopupMenu::EnableResize(CSize sizeMinResize) {
-    g_popupMenuStates[this].minResize = sizeMinResize;
+    CSize size(std::clamp(sizeMinResize.cx, 0, INT_MAX - 64),
+               std::clamp(sizeMinResize.cy, 0, INT_MAX - 64));
+    if (size.cx > 0) size.cy += 12;
+    else if (size.cy > 0) size.cy += 9;
+    SetPopupMinimumResize(*this, size);
 }
-void CMFCPopupMenu::EnableVertResize(BOOL bEnable) {
-    g_popupMenuStates[this].vertResize = bEnable != FALSE;
+void CMFCPopupMenu::EnableVertResize(int nMinResize) {
+    SetPopupMinimumResize(*this, CSize(0, std::clamp(nMinResize, 0, INT_MAX - 64)));
+}
+void CMFCPopupMenu::SetMaxWidth(int width) {
+    auto& state = g_popupMenuStates[this];
+    width = std::clamp(width, 0, INT_MAX - 64);
+    if (state.maxWidth == width) return;
+    state.maxWidth = width;
+    RelayoutPopup(this, state);
 }
 BOOL CMFCPopupMenu::HideRarelyUsedCommands() const {
     return FALSE;
@@ -2284,6 +2511,10 @@ extern "C" __int64 MS_ABI impl__OnNcHitTest_CMFCPopupMenu__IEAA_JVCPoint___Z(voi
 {
     if (!pThis) return HTNOWHERE;
     const POINT pt = UnpackPoint(point);
+    auto* popup = static_cast<CMFCPopupMenu*>(pThis);
+    if (HasManagedPopupWindow(popup)) {
+        return ::SendMessageW(popup->GetSafeHwnd(), WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y));
+    }
     const unsigned long dwExStyle = impl__GetExStyle_CWnd__QEBAKXZ(AsWnd(pThis));
     if (!::IsRectEmpty(&At<RECT>(pThis, kOffRectResize))) {
         RECT rect = At<RECT>(pThis, kOffRectResize);
@@ -2316,8 +2547,14 @@ extern "C" __int64 MS_ABI impl__OnNcHitTest_CMFCPopupMenu__IEAA_JVCPoint___Z(voi
 extern "C" void MS_ABI impl__OnNcLButtonDown_CMFCPopupMenu__IEAAXIVCPoint___Z(
     void* pThis, unsigned int nHitTest, long long point)
 {
-    (void)point;
     if (!pThis) return;
+    auto* popup = static_cast<CMFCPopupMenu*>(pThis);
+    if (HasManagedPopupWindow(popup)) {
+        const POINT screen = UnpackPoint(point);
+        const UINT hit = PopupResizeHitAtScreen(*popup, screen);
+        if (hit) BeginPopupResize(*popup, screen, hit);
+        return;
+    }
     const unsigned int base = At<int>(pThis, kOffResizeBarOnTop) != 0 ? HTTOP : HTBOTTOM;
     if (nHitTest - base <= 2u) {
         impl__StartResize_CMFCPopupMenu__IEAAHXZ(pThis);
@@ -2718,25 +2955,10 @@ extern "C" void MS_ABI impl__SetAnimationSpeed_CMFCPopupMenu__SAXI_Z(unsigned in
     if (nElapse - 1u <= 0xc7u) impl__m_AnimationSpeed_CMFCPopupMenu__1IA = nElapse;
 }
 
-// Retail (RVA 0xb82a0, mfc140u):
-//     if (iMaxWidth == m_iMaxWidth) return;                        // +0x167c
-//     m_iMaxWidth = iMaxWidth;
-//     if (m_hWnd == NULL) return;
-//     CMFCPopupMenuBar* pBar = GetMenuBar();                       // vslot 0x3a0
-//     if (!::IsWindow(m_hWnd) || !::IsWindow(pBar->m_hWnd)) return;
-//     pBar->m_iMaxWidth = m_iMaxWidth;                             // bar +0x1370
-//     RecalcLayout(TRUE);                                          // vslot 0x300
-// PARTIAL: the store and the two early returns are transcribed; the push into
-// the embedded bar and the relayout are skipped (bar not modeled).
 // Symbol: ?SetMaxWidth@CMFCPopupMenu@@QEAAXH@Z
-extern "C" void MS_ABI impl__SetMaxWidth_CMFCPopupMenu__QEAAXH_Z(void* pThis, int iMaxWidth)
+extern "C" void MS_ABI impl__SetMaxWidth_CMFCPopupMenu__QEAAXH_Z(void* pThis, int width)
 {
-    if (!pThis) return;
-    if (iMaxWidth == At<int>(pThis, kOffMaxWidth)) return;
-    At<int>(pThis, kOffMaxWidth) = iMaxWidth;
-    if (HWndOf(pThis) == nullptr) return;
-    // TODO(clean-room): retail copies m_iMaxWidth into m_wndMenuBar.m_iMaxWidth
-    // and calls RecalcLayout(TRUE) when both windows exist -- not modeled.
+    if (pThis) static_cast<CMFCPopupMenu*>(pThis)->SetMaxWidth(width);
 }
 
 // Retail (RVA 0xbae80, mfc140u), three instructions:
@@ -2843,21 +3065,13 @@ extern "C" void MS_ABI impl__ShowAllCommands_CMFCPopupMenu__QEAAXXZ(void* pThis)
     }
 }
 
-// Retail (RVA 0xbb5d0..0xbb990, mfc140u, 249 instructions): the modal resize
-// loop.  SetCapture, then GetMessageW/PeekMessageW/DispatchMessageW until the
-// button goes up, sizing the frame from GetWindowRect / GetExStyle (RTL),
-// pushing the new height into the embedded bar (vslot 0x3a0) and the scroll
-// bar (GetScrollPos, OnVScroll 0xbb160), deleting the shadow bitmaps
-// (0x2a3f60), reposting through UpdateBottomWindows (0xb89d0) and the shadow
-// window (CMFCShadowWnd::Repos 0xb4af0 / ShowWindow), and re-posting WM_QUIT
-// through AfxPostQuitMessage (0x1cc850) if one was swallowed.  Depends on the
-// embedded bar and scroll bar; documented stub returning FALSE.
-// TODO(clean-room): not transcribed -- embedded menu bar / scroll bar are not modeled.
 // Symbol: ?StartResize@CMFCPopupMenu@@IEAAHXZ
 extern "C" int MS_ABI impl__StartResize_CMFCPopupMenu__IEAAHXZ(void* pThis)
 {
-    (void)pThis;
-    return FALSE;
+    auto* popup = static_cast<CMFCPopupMenu*>(pThis);
+    POINT screen{};
+    if (!HasManagedPopupWindow(popup) || !::GetCursorPos(&screen)) return FALSE;
+    return BeginPopupResize(*popup, screen, PopupResizeHitAtScreen(*popup, screen));
 }
 
 // Symbol: ?TearOff@CMFCPopupMenu@@MEAAHVCPoint@@@Z
@@ -2869,38 +3083,18 @@ extern "C" int MS_ABI impl__TearOff_CMFCPopupMenu__MEAAHVCPoint___Z(void* pThis,
     return ::ClientToScreen(popup->GetSafeHwnd(), &screen) && TearOffPopup(*popup, screen, false);
 }
 
-// Retail (RVA 0xbb9f0..0xbba91, mfc140u), fully decoded.  The entry is
-// resolved from the mfc140u export table by ordinal (urva.py; the
-// mfc140u_rva_symbols.json map does not list it) and the body matches the
-// ANSI export instruction for instruction (mfc140.dll RVA 0xbbfb0 -- an
-// mfc140.dll address, NOT an mfc140u one):
-//     m_bResizeTracking = TRUE;                                    // +0x1978
-//     GetMenuBar()->m_bResizeTracking = TRUE;                      // vslot 0x3a0, bar +0x13a4
-//     GetMenuBar()->AdjustLocations();                             // vslot 0x7d8 of the bar
-//     ::RedrawWindow(m_hWnd, NULL, NULL, 0x581);                   // import 0x1802c7130; RDW_INVALIDATE|RDW_ALLCHILDREN|RDW_UPDATENOW|RDW_FRAME
-//     UpdateBottomWindows(FALSE);                                  // 0xb89d0
-//     m_bResizeTracking = FALSE;
-//     GetMenuBar()->m_bResizeTracking = FALSE;
-// PARTIAL: the flag bracket, the repaint and UpdateBottomWindows are
-// transcribed; the three bar accesses (its flag, twice, and its
-// AdjustLocations relayout) are skipped because the embedded bar is not
-// constructed by OpenMFC.  DEVIATION: retail hands m_hWnd to ::RedrawWindow
-// unguarded; a NULL HWND makes USER32 repaint the desktop window, and an
-// OpenMFC-created popup never owns a window, so the call is skipped when
-// m_hWnd is NULL.
 // Symbol: ?TriggerResize@CMFCPopupMenu@@QEAAXXZ
 extern "C" void MS_ABI impl__TriggerResize_CMFCPopupMenu__QEAAXXZ(void* pThis)
 {
-    if (!pThis) return;
-    At<int>(pThis, kOffResizeTracking) = TRUE;
-    // TODO(clean-room): retail sets m_wndMenuBar.m_bResizeTracking and calls
-    // m_wndMenuBar.AdjustLocations() here -- the embedded bar is not modeled.
-    if (HWND hWnd = HWndOf(pThis)) {
-        ::RedrawWindow(hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW | RDW_FRAME);
-    }
-    impl__UpdateBottomWindows_CMFCPopupMenu__IEAAXH_Z(pThis, FALSE);
-    At<int>(pThis, kOffResizeTracking) = FALSE;
-    // TODO(clean-room): retail clears m_wndMenuBar.m_bResizeTracking here.
+    auto* popup = static_cast<CMFCPopupMenu*>(pThis);
+    if (!HasManagedPopupWindow(popup)) return;
+    auto& state = g_popupMenuStates.at(popup);
+    LayoutPopupRows(state);
+    const HWND window = popup->GetSafeHwnd();
+    UpdatePopupViewport(window, state, true);
+    if (state.selected >= 0) EnsurePopupRowVisible(popup, state, state.selected);
+    ::RedrawWindow(window, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW | RDW_FRAME);
+    if (const HWND owner = ::GetWindow(window, GW_OWNER)) ::UpdateWindow(owner);
 }
 
 // Retail (RVA 0xbacd0, mfc140u), fully transcribed:

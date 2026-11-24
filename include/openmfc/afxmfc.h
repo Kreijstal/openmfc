@@ -1308,7 +1308,8 @@ public:
     BOOL InsertItem(const CMFCToolBarMenuButton& button, int iInsertAt = -1);
     BOOL InsertSeparator(int iInsertAt = -1);
     void EnableResize(CSize sizeMinResize);
-    void EnableVertResize(BOOL bEnable = TRUE);
+    void EnableVertResize(int nMinResize = 1);
+    void SetMaxWidth(int iMaxWidth);
     BOOL HideRarelyUsedCommands() const;
 
 protected:
