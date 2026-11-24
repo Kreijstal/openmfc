@@ -38,6 +38,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/ToolBarControlArchive.h"
+#include "detail/ToolBarComboSupport.h"
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
 
@@ -129,6 +130,9 @@ extern "C" void* MS_ABI impl___2_YAPEAX_K_Z(std::size_t size);
 extern "C" void MS_ABI impl___3_YAXPEAX_Z(void* ptr);
 //   featurepack/CMFC_misc_stubs.cpp : AfxFindStringResourceHandle
 extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(unsigned int nID);
+
+extern "C" void* MS_ABI impl___0CMFCToolBarComboBoxEdit__QEAA_AEAVCMFCToolBarComboBoxButton___Z(void*, void*);
+extern "C" int MS_ABI impl__Create_CEdit__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(CEdit*, DWORD, const RECT*, CWnd*, UINT);
 
 // Exports defined later in this file that earlier bodies call (all in this TU).
 extern "C" void MS_ABI impl__Initialize_CMFCToolBarComboBoxButton__IEAAXXZ(CMFCToolBarComboBoxButton* pThis);
@@ -228,13 +232,11 @@ constexpr UINT     kCbDeleteString    = 0x144;  // CB_DELETESTRING
 constexpr UINT     kCbGetCount        = 0x146;  // CB_GETCOUNT
 constexpr UINT     kCbGetCurSel       = 0x147;  // CB_GETCURSEL
 constexpr UINT     kCbResetContent    = 0x14b;  // CB_RESETCONTENT
-constexpr UINT     kCbFindString      = 0x14c;  // CB_FINDSTRING
 constexpr UINT     kCbSetCurSel       = 0x14e;  // CB_SETCURSEL
 constexpr UINT     kCbShowDropDown    = 0x14f;  // CB_SHOWDROPDOWN
 constexpr UINT     kCbGetItemData     = 0x150;  // CB_GETITEMDATA
 constexpr UINT     kCbSetItemData     = 0x151;  // CB_SETITEMDATA
 constexpr UINT     kCbGetDroppedState = 0x157;  // CB_GETDROPPEDSTATE
-constexpr UINT     kCbFindStringExact = 0x158;  // CB_FINDSTRINGEXACT
 constexpr int      kCbnSelChange      = 1;      // CBN_SELCHANGE
 constexpr int      kCbnSetFocus       = 3;      // CBN_SETFOCUS
 constexpr int      kCbnKillFocus      = 4;      // CBN_KILLFOCUS
@@ -1154,22 +1156,25 @@ extern "C" CComboBox* MS_ABI impl__CreateCombo_CMFCToolBarComboBoxButton__UEAAPE
     return pWndCombo;
 }
 
-// Retail (RVA 0x1641d0, mfc140u), fully decoded but NOT implemented:
-//     CMFCToolBarComboBoxEdit* pWndEdit = new CMFCToolBarComboBoxEdit(*this);   // 0xf8 bytes, 0x1649e0
-//     if (!pWndEdit->Create(dwEditStyle, rect, pWndParent, m_nID)) {             // 0x294320 (CEdit::Create)
-//         delete pWndEdit; return NULL;                                          // vslot 0x08 (1)
-//     }
-//     return pWndEdit;
-// Blocked: CMFCToolBarComboBoxEdit is not declared in include/openmfc, and its
-// exported constructor (featurepack/toolbar/CMFCToolBarComboBoxEdit.cpp) is a
-// null stub that constructs nothing -- there is no object to hand back.
-// Returns NULL, which is also what retail returns when the edit cannot be created.
+// The retail CMFCToolBarComboBoxEdit occupies 0xf8 bytes, including its CEdit base.
 // Symbol: ?CreateEdit@CMFCToolBarComboBoxButton@@UEAAPEAVCMFCToolBarComboBoxEdit@@PEAVCWnd@@AEBVCRect@@K@Z
 extern "C" CEdit* MS_ABI impl__CreateEdit_CMFCToolBarComboBoxButton__UEAAPEAVCMFCToolBarComboBoxEdit__PEAVCWnd__AEBVCRect__K_Z(
-    CMFCToolBarComboBoxButton* pThis, CWnd* pWndParent, const RECT* pRect, unsigned long dwEditStyle)
+    CMFCToolBarComboBoxButton* button, CWnd* parent, const RECT* bounds, unsigned long style)
 {
-    (void)pThis; (void)pWndParent; (void)pRect; (void)dwEditStyle;
-    return nullptr;
+    if (!button || !HasWindow(parent) || !bounds) return nullptr;
+    constexpr std::size_t editSize = 0xf8;
+    void* storage = impl___2_YAPEAX_K_Z(editSize);
+    if (!storage) return nullptr;
+    std::memset(storage, 0, editSize);
+    auto* edit = static_cast<CEdit*>(impl___0CMFCToolBarComboBoxEdit__QEAA_AEAVCMFCToolBarComboBoxButton___Z(storage, button));
+    if (!g_ownCWndVptr) g_ownCWndVptr = *reinterpret_cast<void**>(edit);
+    if (!impl__Create_CEdit__QEAAHKAEBUtagRECT__PEAVCWnd__I_Z(edit, style, bounds, parent, button->m_nID) ||
+        !openmfc::detail::AttachToolBarComboEditor(*edit)) {
+        DestroyOwnedWindow(edit);
+        DeleteOwnedWindow(edit);
+        return nullptr;
+    }
+    return edit;
 }
 
 namespace {
@@ -1240,8 +1245,8 @@ void ApplyComboItemsToWindow(CMFCToolBarComboBoxButton* button, const ComboButto
 // m_pWndParent is not recorded here); a combo whose parent cannot be resolved
 // is torn down and recreated where retail throws AfxThrowInvalidArgException
 // (the call at 0x16289b inside OnChangeParentWnd, 0x162240); the owner-window line for the edit is
-// dropped -- OpenMFC's CWnd does not model m_hWndOwner (+0xa0) and CreateEdit
-// returns NULL anyway; CreateCombo / CreateEdit / ClearData are reached
+// skipped because the editor and combo have the same parent; the exported
+// CreateCombo / CreateEdit / ClearData bodies are reached
 // through this file's thunks (ClearData is the inline no-op) instead of the
 // vftable; the list mismatch exception is not raised; SetWindowText goes
 // through the exported CWnd thunk (no control-site path).
@@ -1281,9 +1286,8 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXP
         const DWORD dwEditStyle = kEditStyleBase | (impl__GetStyle_CWnd__QEBAKXZ(pCombo) & WS_TABSTOP);
         CEdit* pEdit = impl__CreateEdit_CMFCToolBarComboBoxButton__UEAAPEAVCMFCToolBarComboBoxEdit__PEAVCWnd__AEBVCRect__K_Z(pThis, pWndParent, &rect, dwEditStyle);
         WndEdit(pThis) = pEdit;
-        if (pEdit == nullptr) return;
-        ::SendMessage(pEdit->m_hWnd, WM_SETFONT, reinterpret_cast<WPARAM>(GlobalRegularFont()), TRUE);
-        if (pEdit->m_hWnd != nullptr) {
+        if (HasWindow(pEdit)) {
+            ::SendMessage(pEdit->m_hWnd, WM_SETFONT, reinterpret_cast<WPARAM>(GlobalRegularFont()), TRUE);
             impl__EnableWindow_CWnd__QEAAHH_Z(pEdit, bEnable);
             ::RedrawWindow(pEdit->m_hWnd, nullptr, nullptr, kRdwInvalidateEraseUpdate);
         }
@@ -1330,7 +1334,7 @@ extern "C" void MS_ABI impl__OnShow_CMFCToolBarComboBoxButton__UEAAXH_Z(CMFCTool
         int nCmdShow = SW_HIDE;
         if (bShow != 0 && Horz(pThis) != 0) {
             impl__OnMove_CMFCToolBarComboBoxButton__UEAAXXZ(pThis);
-            nCmdShow = (impl__m_bFlat_CMFCToolBarComboBoxButton__1HA != 0) ? SW_HIDE : SW_SHOWNOACTIVATE;
+            nCmdShow = openmfc::detail::IsFlatToolBarCombo(*pThis) ? SW_HIDE : SW_SHOWNOACTIVATE;
         }
         impl__ShowWindow_CWnd__QEAAHH_Z(pCombo, nCmdShow);
     }
@@ -1504,9 +1508,14 @@ extern "C" void MS_ABI impl__OnDraw_CMFCToolBarComboBoxButton__UEAAXPEAVCDC__AEB
         RECT rectButton = RectButton(pThis);
         EnsureGlobalDataInitialized();
         if (GlobalDataInt(kGlobalDataIsBlackHighContrast) != 0) ::InflateRect(&rectButton, -1, -1);
-        if (rectButton.left > rectCombo.left + 1 && pVM != nullptr) {
-            impl__OnDrawComboDropButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(
-                pVM, pDC, CRect(rectButton), bDisabled, bIsDropped, bIsHighlighted, pThis);
+        if (rectButton.left > rectCombo.left + 1) {
+            if (pVM) {
+                impl__OnDrawComboDropButton_CMFCVisualManager__UEAAXPEAVCDC__VCRect__HHHPEAVCMFCToolBarComboBoxButton___Z(
+                    pVM, pDC, CRect(rectButton), bDisabled, bIsDropped, bIsHighlighted, pThis);
+            } else {
+                ::DrawFrameControl(pDC->m_hDC, &rectButton, DFC_SCROLL,
+                    DFCS_SCROLLCOMBOBOX | (bDisabled ? DFCS_INACTIVE : 0) | (bIsDropped ? DFCS_PUSHED : 0));
+            }
         }
         impl__SetTextColor_CDC__UEAAKK_Z(pDC, clrText);
         if (StrEdit(pThis).GetLength() != 0 && WndEdit(pThis) == nullptr) {
@@ -1695,33 +1704,35 @@ extern "C" int MS_ABI impl__NotifyCommand_CMFCToolBarComboBoxButton__UEAAHH_Z(CM
         if (CEdit* pEdit = WndEdit(pThis)) impl__SetFocus_CWnd__QEAAPEAV1_XZ(pEdit);
         return 1;
     case kCbnEditChange: {
-        impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(pCombo, &StrEdit(pThis));
-        if (CEdit* pEdit = WndEdit(pThis); HasWindow(pEdit)) {
-            CString str;
-            impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(pEdit, &str);
-            if (HasWindow(pCombo)) {
-                const int iStart = static_cast<int>(::SendMessage(pCombo->m_hWnd, kCbGetCurSel, 0, 0)) + 1;
-                const LPARAM lpText = reinterpret_cast<LPARAM>(static_cast<const wchar_t*>(str));
-                int iFound = static_cast<int>(::SendMessage(pCombo->m_hWnd, kCbFindStringExact, static_cast<WPARAM>(iStart), lpText));
-                if (iFound == CB_ERR) iFound = static_cast<int>(::SendMessage(pCombo->m_hWnd, kCbFindString, static_cast<WPARAM>(iStart), lpText));
-                if (iFound != CB_ERR) ::SendMessage(pCombo->m_hWnd, kCbSetCurSel, static_cast<WPARAM>(iFound), 0);
-                impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(pCombo, static_cast<const wchar_t*>(str));
+        CEdit* edit = WndEdit(pThis);
+        CString text;
+        CWnd* source = HasWindow(edit) ? static_cast<CWnd*>(edit) : pCombo;
+        impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(source, &text);
+        if (StrEdit(pThis) == text) return TRUE;
+        StrEdit(pThis) = text;
+        if (HasWindow(edit)) {
+            const HWND combo = pCombo->m_hWnd;
+            const auto value = reinterpret_cast<LPARAM>(text.GetString());
+            const int selection = static_cast<int>(::SendMessageW(combo, CB_FINDSTRINGEXACT, -1, value));
+            if (selection != CB_ERR) {
+                ::SendMessageW(combo, CB_SETCURSEL, selection, 0);
+            } else {
+                ::SendMessageW(combo, CB_SETCURSEL, -1, 0);
+                ::SetWindowTextW(combo, text.GetString());
             }
+            SelIndex(pThis) = selection;
+        } else {
+            SelIndex(pThis) = static_cast<int>(::SendMessageW(pCombo->m_hWnd, CB_GETCURSEL, 0, 0));
         }
-        CommandButtonList lst(pThis->m_nID);
-        if (lst.Count() > 0) {
-            for (ObNode* pNode = lst.First(); pNode != nullptr; pNode = pNode->pNext) {
-                CObject* pObj = pNode->data;
-                if (!IsComboButton(pObj)) continue;
-                CMFCToolBarComboBoxButton* pOther = static_cast<CMFCToolBarComboBoxButton*>(pObj);
-                if (pOther == pThis) continue;
-                if (WndCombo(pOther) != nullptr) {
-                    impl__SetWindowTextW_CWnd__QEAAXPEB_W_Z(WndCombo(pOther), static_cast<const wchar_t*>(StrEdit(pThis)));
-                }
-                StrEdit(pOther) = StrEdit(pThis);
-            }
+        for (auto* peer : GetComboButtonsByCmd(pThis->m_nID)) {
+            if (peer == pThis) continue;
+            StrEdit(peer) = text;
+            if (auto* peerEdit = WndEdit(peer); HasWindow(peerEdit))
+                ::SetWindowTextW(peerEdit->m_hWnd, text.GetString());
+            if (auto* peerCombo = WndCombo(peer); HasWindow(peerCombo))
+                ::SetWindowTextW(peerCombo->m_hWnd, text.GetString());
         }
-        return 1;
+        return TRUE;
     }
     case kCbnSelChange:
         if (CEdit* pEdit = WndEdit(pThis)) {
@@ -1737,6 +1748,35 @@ extern "C" int MS_ABI impl__NotifyCommand_CMFCToolBarComboBoxButton__UEAAHH_Z(CM
     default:
         return 0;
     }
+}
+
+bool openmfc::detail::IsFlatToolBarCombo(const CMFCToolBarComboBoxButton& button) {
+    return impl__m_bFlat_CMFCToolBarComboBoxButton__1HA != 0 &&
+           HasWindow(WndCombo(&button)) && Horz(&button) &&
+           ((Style(&button) & 3) != CBS_DROPDOWN || HasWindow(WndEdit(&button)));
+}
+
+bool openmfc::detail::HitToolBarComboArrow(const CMFCToolBarComboBoxButton& button, POINT point) {
+    return IsFlatToolBarCombo(button) && button.m_bVisible && !button.m_bIsHidden &&
+           !(button.m_nStyle & kTbbsDisabled) && ::PtInRect(&At<RECT>(&button, kOffRectButton), point);
+}
+
+bool openmfc::detail::HandleToolBarComboCommand(CMFCToolBarComboBoxButton& button, HWND source, int code) {
+    if (auto* edit = WndEdit(&button); HasWindow(edit) && source == edit->m_hWnd) {
+        if (code == EN_CHANGE) impl__NotifyCommand_CMFCToolBarComboBoxButton__UEAAHH_Z(&button, CBN_EDITCHANGE);
+        return true;
+    }
+    if (auto* combo = WndCombo(&button); HasWindow(combo) && source == combo->m_hWnd) {
+        const bool handled = impl__NotifyCommand_CMFCToolBarComboBoxButton__UEAAHH_Z(&button, code) != FALSE;
+        if (code == 0 || (code == CBN_SELENDOK && handled)) {
+            const HWND parent = ::GetParent(source);
+            if (const HWND owner = ::GetParent(parent))
+                ::PostMessageW(owner, WM_COMMAND, MAKEWPARAM(button.m_nID, 0), 0);
+            return true;
+        }
+        return handled;
+    }
+    return false;
 }
 
 // Retail (RVA 0x165460, mfc140u), fully transcribed (str is the 5th argument, on the stack):
@@ -1839,6 +1879,7 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCTo
     StrEdit(pThis) = StrEdit(pSrcCombo);
     Style(pThis) = Style(pSrcCombo);
     Width(pThis) = Width(pSrcCombo);
+    pThis->m_rect.right = pThis->m_rect.left + Width(pThis);
     SelIndex(pThis) = SelIndex(pSrcCombo);
     DropDownHeight(pThis) = DropDownHeight(pSrcCombo);
     MenuResID(pThis) = MenuResID(pSrcCombo);

@@ -8,6 +8,7 @@
 #include "detail/MfcFeature5ImplSupport.h"
 #include "detail/MfctoolbarBatch2Support.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/ToolBarComboSupport.h"
 
 // CMFCToolBar Feature Pack exports, wave 4 ("mfc-feature-4").
 //
@@ -1631,6 +1632,13 @@ extern "C" void MS_ABI impl__OnChangeVisualManager_CMFCToolBar__UEAAXXZ(CMFCTool
     // retail tail (0x180151890): per-image adjustments + RedrawWindow.
     pThis->RedrawWindow(nullptr, nullptr, 0x505);
 }
+namespace {
+CMFCToolBarComboBoxButton* AsComboButton(CMFCToolBarButton* button) {
+    return button && button->IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))
+        ? static_cast<CMFCToolBarComboBoxButton*>(button) : nullptr;
+}
+}
+
 // Retail (0x180154a60):
 //     if (m_bCustomizeMode && !m_bLocked) return call 0x18028e040();
 //     if (lParam == 0) {
@@ -1638,7 +1646,7 @@ extern "C" void MS_ABI impl__OnChangeVisualManager_CMFCToolBar__UEAAXXZ(CMFCTool
 //         if (wParam == 1) { focus-based button handling }
 //     } else { iterate m_Buttons doing IsChild checks }
 //     return 0;
-// Only the customize-mode gate and the IDCANCEL-style early return are kept.
+// Combo-box controls are located by their command ID and source window.
 // Symbol: ?OnCommand@CMFCToolBar@@MEAAH_K_J@Z
 extern "C" int MS_ABI impl__OnCommand_CMFCToolBar__MEAAH_K_J_Z(
     CMFCToolBar* pThis, unsigned long long wParam, long long lParam)
@@ -1655,8 +1663,14 @@ extern "C" int MS_ABI impl__OnCommand_CMFCToolBar__MEAAH_K_J_Z(
         return 1;
     }
 
-    // TODO(clean-room): partially transcribed -- focus/IsChild button handling
-    // not modeled.
+    const HWND source = reinterpret_cast<HWND>(lParam);
+    if (source) {
+        for (int i = 0; i < pThis->GetCount(); ++i) {
+            auto* combo = AsComboButton(pThis->GetButton(i));
+            if (combo && LOWORD(wParam) == LOWORD(combo->m_nID) &&
+                openmfc::detail::HandleToolBarComboCommand(*combo, source, HIWORD(wParam))) return TRUE;
+        }
+    }
     return 0;
 }
 // Retail (0x180153db0):
@@ -3440,8 +3454,13 @@ extern "C" void MS_ABI impl__GetButtonText_CMFCToolBar__QEBAXHAEAV__CStringT__WV
 }
 extern "C" std::int32_t impl__m_bAltCustomizeMode_CMFCToolBar__1HA;
 
+extern "C" int MS_ABI impl__OnClick_CMFCToolBarComboBoxButton__UEAAHPEAVCWnd__H_Z(CMFCToolBarComboBoxButton*, CWnd*, int);
+extern "C" void MS_ABI impl__OnDraw_CMFCToolBarComboBoxButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(
+    CMFCToolBarComboBoxButton*, CDC*, const RECT*, CMFCToolBarImages*, int, int, int, int, int);
+
 namespace {
 constexpr UINT kToolbarPaintDisabled = UINT(TBSTATE_ENABLED) << 16;
+void RestoreNativeToolbarButtons(CMFCToolBar& toolbar);
 
 bool ToolbarIsHorizontal(const CMFCToolBar& toolbar) {
     constexpr DWORD alignmentMask = 0xf000;
@@ -3496,8 +3515,9 @@ ToolbarImageChoice ToolbarImagesForButton(CMFCToolBar& toolbar, const CMFCToolBa
 bool HasToolbarPaintContent(CMFCToolBar& toolbar) {
     const int count = toolbar.GetCount();
     for (int index = 0; index < count; ++index) {
-        const auto* button = toolbar.GetButton(index);
+        auto* button = toolbar.GetButton(index);
         if (!button) continue;
+        if (const auto* combo = AsComboButton(button); combo && openmfc::detail::IsFlatToolBarCombo(*combo)) return true;
         if (((button->m_bText || button->m_bTextBelow) && !button->m_strText.IsEmpty()) ||
             ToolbarImagesForButton(toolbar, *button, index == toolbar.m_iHighlighted).images)
             return true;
@@ -3539,12 +3559,16 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
     } else if (message == WM_NCDESTROY) {
         CloseToolbarMenus(*toolbar);
         ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
+    } else if (message == WM_COMMAND && lp && impl__OnCommand_CMFCToolBar__MEAAH_K_J_Z(toolbar, wp, lp)) {
+        return 0;
     } else if (message == WM_LBUTTONDOWN) {
         const POINT point{static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp))};
         for (int i = 0; i < toolbar->GetCount(); ++i) {
             auto* button = toolbar->GetButton(i);
             if (!button || !button->m_rect.PtInRect(point)) continue;
             if (auto* menu = AsMenuButton(button); menu && menu->ClickMenu(toolbar, &point)) return 0;
+            if (auto* combo = AsComboButton(button); combo && openmfc::detail::HitToolBarComboArrow(*combo, point) &&
+                impl__OnClick_CMFCToolBarComboBoxButton__UEAAHPEAVCWnd__H_Z(combo, toolbar, FALSE)) return 0;
             break;
         }
     } else if (message == WM_CANCELMODE) {
@@ -3682,7 +3706,10 @@ BOOL CMFCToolBar::ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL)
         state.buttons[i] = replacement;
         state.ownedButtons.insert(replacement);
 
-        if (m_hWnd) {
+        if (m_hWnd && AsComboButton(replacement)) {
+            ButtonChangeParentWnd(replacement, this);
+            RestoreNativeToolbarButtons(*this);
+        } else if (m_hWnd) {
             TBBUTTONINFO tbi = {};
             tbi.cbSize = sizeof(TBBUTTONINFO);
             tbi.dwMask = TBIF_COMMAND | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE;
@@ -4602,6 +4629,9 @@ extern "C" int MS_ABI impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBa
     if (button->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
         static_cast<CMFCToolBarMenuButton*>(button)->OnDraw(dc, button->m_rect, images, horizontal, customize,
                                                           hot, toolbar->m_bShowHotBorder, gray);
+    } else if (auto* combo = AsComboButton(button); combo && openmfc::detail::IsFlatToolBarCombo(*combo)) {
+        impl__OnDraw_CMFCToolBarComboBoxButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(
+            combo, dc, static_cast<const RECT*>(button->m_rect), images, horizontal, customize, hot, toolbar->m_bShowHotBorder, gray);
     } else {
         button->OnDraw(dc, button->m_rect, images, horizontal, customize, hot, toolbar->m_bShowHotBorder, gray);
     }
@@ -5310,6 +5340,11 @@ extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton
 
     ToolBarState& state = g_toolBarStates[pThis];
     const int nCount = static_cast<int>(state.buttons.size());
+    const auto attach = [pThis, pButton](int index) {
+        ButtonChangeParentWnd(pButton, pThis);
+        if (AsComboButton(pButton)) RestoreNativeToolbarButtons(*pThis);
+        return index;
+    };
 
     // TODO(clean-room): m_lstUnpermittedCommands.Find is not modelled (always
     // empty here).
@@ -5319,16 +5354,14 @@ extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton
         if (iInsertAt < nCount) {
             state.buttons.insert(state.buttons.begin() + iInsertAt, pButton);
             state.ownedButtons.insert(pButton);
-            ButtonChangeParentWnd(pButton, pThis);
-            return iInsertAt;
+            return attach(iInsertAt);
         }
     }
 
     if (pThis->m_pCustomizeBtn == nullptr) {
         state.buttons.push_back(pButton);
         state.ownedButtons.insert(pButton);
-        ButtonChangeParentWnd(pButton, pThis);
-        return nCount;
+        return attach(nCount);
     }
 
     // A customize button is present: insert in front of it (it stays last).
@@ -5336,8 +5369,7 @@ extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton
     if (iInsertAt < 0) return -1;   // retail's FindIndex(-1) throws here
     state.buttons.insert(state.buttons.begin() + iInsertAt, pButton);
     state.ownedButtons.insert(pButton);
-    ButtonChangeParentWnd(pButton, pThis);
-    return iInsertAt;
+    return attach(iInsertAt);
 }
 
 // Retail (RVA 0x14e940, mfc140u), fully transcribed:
@@ -5359,13 +5391,17 @@ extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__UEAAHAEBVCMFCToolBarButton
     CMFCToolBar* pThis, const CMFCToolBarButton* pSrc, __int64 iInsertAt) {
     if (!pThis || !pSrc) return -1;
 
-    CRuntimeClass* pRTC = pSrc->GetRuntimeClass();
-    if (!pRTC) return -1;
-    CMFCToolBarButton* pButton = static_cast<CMFCToolBarButton*>(
-        impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(pRTC));
+    CMFCToolBarButton* pButton = nullptr;
+    if (pSrc->IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {
+        pButton = CloneToolBarButton(*pSrc);
+    } else {
+        CRuntimeClass* type = pSrc->GetRuntimeClass();
+        if (!type) return -1;
+        pButton = static_cast<CMFCToolBarButton*>(
+            impl__CreateObject_CRuntimeClass__QEAAPEAVCObject__XZ(type));
+        if (pButton) impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(pButton, pSrc);
+    }
     if (!pButton) return -1;
-
-    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(pButton, pSrc);
 
     const int iIndex = impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton__H_Z(
         pThis, pButton, static_cast<int>(iInsertAt));
@@ -6816,7 +6852,7 @@ void RestoreToolbarControl(CMFCToolBar& toolbar, CMFCToolBarButton& button) {
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {
         auto* combo = static_cast<CMFCToolBarComboBoxButton*>(&button);
         impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXPEAVCWnd___Z(combo, &toolbar);
-        if (!show) impl__OnShow_CMFCToolBarComboBoxButton__UEAAXH_Z(combo, show);
+        impl__OnShow_CMFCToolBarComboBoxButton__UEAAXH_Z(combo, show);
     } else if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton))) {
         auto* edit = static_cast<CMFCToolBarEditBoxButton*>(&button);
         impl__OnChangeParentWnd_CMFCToolBarEditBoxButton__UEAAXPEAVCWnd___Z(edit, &toolbar);

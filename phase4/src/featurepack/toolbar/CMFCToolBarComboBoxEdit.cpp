@@ -44,6 +44,9 @@
 //    ...) go through their exported thunks, exactly as retail's direct calls do.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/ToolBarComboSupport.h"
+
+#include <commctrl.h>
 
 #include <cstddef>
 #include <cstring>
@@ -60,8 +63,6 @@ extern "C" void MS_ABI impl___1CEdit__UEAA_XZ(CEdit* pThis);
 // core/window/Thunks.cpp
 extern "C" __int64 MS_ABI impl__Default_CWnd__IEAA_JXZ(CWnd* pThis);
 extern "C" void MS_ABI impl__OnSetFocus_CWnd__IEAAXPEAV1__Z(CWnd* pThis, void* pOldWnd);
-extern "C" void* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis);
-extern "C" CFrameWnd* MS_ABI impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(const CWnd* pThis);
 // core/window/CWnd.cpp
 extern "C" CWnd* MS_ABI impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(HWND hWnd);
 extern "C" int MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg);
@@ -569,12 +570,11 @@ extern "C" void MS_ABI impl__OnSetFocus_CMFCToolBarComboBoxEdit__IEAAXPEAVCWnd__
 //     return CWnd::PreTranslateMessage(pMsg);                  // direct call (CEdit has no override)
 // DEVIATION: on VK_TAB a NULL next tab item skips SetFocus (retail calls
 // CWnd::SetFocus on the NULL pointer) and still returns TRUE.
-// Symbol: ?PreTranslateMessage@CMFCToolBarComboBoxEdit@@UEAAHPEAUtagMSG@@@Z
-extern "C" int MS_ABI impl__PreTranslateMessage_CMFCToolBarComboBoxEdit__UEAAHPEAUtagMSG___Z(void* pThis, MSG* pMsg) {
-    if (pThis == nullptr || pMsg == nullptr) return FALSE;
+namespace {
+bool HandleComboEditorInput(void* pThis, MSG* pMsg) {
     CWnd* pWnd = W(pThis);
     CMFCToolBarComboBoxButton* pButton = Combo(pThis);
-    if (pButton == nullptr) return impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(pWnd, pMsg);
+    if (pButton == nullptr) return false;
 
     auto droppedState = [pButton]() -> LRESULT {
         return ::SendMessage(BtnWndCombo(pButton)->m_hWnd, kCbGetDroppedState, 0, 0);
@@ -587,9 +587,7 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCToolBarComboBoxEdit__UEAAHPE
     if (pMsg->message == WM_MOUSEWHEEL && BtnWndCombo(pButton) != nullptr && droppedState() != 0) {
         return forwardToCombo();
     }
-    if (pMsg->message != WM_KEYDOWN) {
-        return impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(pWnd, pMsg);
-    }
+    if (pMsg->message != WM_KEYDOWN) return false;
 
     if (::GetKeyState(VK_MENU) >= 0 && ::GetKeyState(VK_CONTROL) >= 0 && BtnWndCombo(pButton) != nullptr) {
         bool bCommit = false;
@@ -604,36 +602,35 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCToolBarComboBoxEdit__UEAAHPE
             break;
         }
         if (bCommit) {
-            impl__SetFocus_CWnd__QEAAPEAV1_XZ(pWnd);
+            ::SetFocus(pWnd->m_hWnd);
             if (droppedState() != 0) return forwardToCombo();
-            if (OwnerOf(BtnWndCombo(pButton)) == nullptr) return TRUE;
-            impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-                pWnd, BtnStrEdit(pButton));
-            CWnd* pOwner = OwnerOf(BtnWndCombo(pButton));
-            CWnd* pCombo = BtnWndCombo(pButton);
-            ::PostMessage(pOwner->m_hWnd, WM_COMMAND,
-                          MAKEWPARAM(static_cast<WORD>(pButton->m_nID), 0),
-                          reinterpret_cast<LPARAM>(pCombo != nullptr ? pCombo->m_hWnd : nullptr));
+            if (auto* owner = OwnerOf(BtnWndCombo(pButton))) {
+                impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+                    pWnd, BtnStrEdit(pButton));
+                ::PostMessageW(owner->m_hWnd, WM_COMMAND, MAKEWPARAM(pButton->m_nID, 0),
+                               reinterpret_cast<LPARAM>(BtnWndCombo(pButton)->m_hWnd));
+            }
             return TRUE;
         }
     }
 
     switch (pMsg->wParam) {
     case VK_TAB: {
-        if (ParentOf(pWnd) == nullptr) break;
-        CWnd* pParent = ParentOf(pWnd);
-        CWnd* pNext = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(
-            ::GetNextDlgTabItem(pParent->m_hWnd, pWnd->m_hWnd, FALSE));
-        if (pNext != nullptr) impl__SetFocus_CWnd__QEAAPEAV1_XZ(pNext);
+        const HWND parent = ::GetParent(pWnd->m_hWnd);
+        if (!parent) break;
+        if (const HWND next = ::GetNextDlgTabItem(parent, pWnd->m_hWnd, ::GetKeyState(VK_SHIFT) < 0))
+            ::SetFocus(next);
         return TRUE;
     }
     case VK_ESCAPE: {
         if (CWnd* pCombo = BtnWndCombo(pButton)) {
             ::SendMessage(pCombo->m_hWnd, kCbShowDropDown, FALSE, 0);
         }
-        if (impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pWnd) == nullptr) break;
-        impl__SetFocus_CWnd__QEAAPEAV1_XZ(reinterpret_cast<CWnd*>(impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pWnd)));
-        return TRUE;
+        if (const HWND root = ::GetAncestor(pWnd->m_hWnd, GA_ROOT)) {
+            ::SetFocus(root);
+            return true;
+        }
+        break;
     }
     case VK_UP:
     case VK_DOWN: {
@@ -648,5 +645,60 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCToolBarComboBoxEdit__UEAAHPE
     default:
         break;
     }
-    return impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(pWnd, pMsg);
+    return false;
+}
+
+LRESULT CALLBACK ToolBarComboEditSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp,
+                                         UINT_PTR id, DWORD_PTR data) {
+    auto* edit = reinterpret_cast<CEdit*>(data);
+    auto* button = Combo(edit);
+    if (message == WM_NCDESTROY) {
+        ::RemoveWindowSubclass(window, ToolBarComboEditSubclass, id);
+    } else if (button) {
+        switch (message) {
+        case WM_KEYDOWN:
+        case WM_MOUSEWHEEL: {
+            MSG input{window, message, wp, lp};
+            if (HandleComboEditorInput(edit, &input)) return 0;
+            break;
+        }
+        case WM_CHAR:
+            if (wp == VK_RETURN || wp == VK_TAB || wp == VK_ESCAPE) return 0;
+            break;
+        case WM_SETFOCUS:
+            impl__SetHotEdit_CMFCToolBarComboBoxButton__IEAAXH_Z(button, TRUE);
+            ButtonNotifyCommand(button, CBN_SETFOCUS);
+            break;
+        case WM_KILLFOCUS:
+            impl__SetHotEdit_CMFCToolBarComboBoxButton__IEAAXH_Z(button, FALSE);
+            ButtonNotifyCommand(button, CBN_KILLFOCUS);
+            break;
+        case WM_MOUSEMOVE:
+            impl__SetHotEdit_CMFCToolBarComboBoxButton__IEAAXH_Z(button, TRUE);
+            if (!Tracked(edit)) {
+                TRACKMOUSEEVENT event{sizeof(event), TME_LEAVE, window};
+                Tracked(edit) = ::TrackMouseEvent(&event);
+            }
+            break;
+        case WM_MOUSELEAVE:
+            Tracked(edit) = FALSE;
+            if (::GetFocus() != window)
+                impl__SetHotEdit_CMFCToolBarComboBoxButton__IEAAXH_Z(button, FALSE);
+            break;
+        }
+    }
+    return ::DefSubclassProc(window, message, wp, lp);
+}
+}  // namespace
+
+bool openmfc::detail::AttachToolBarComboEditor(CEdit& edit) {
+    return ::SetWindowSubclass(edit.GetSafeHwnd(), ToolBarComboEditSubclass,
+                              reinterpret_cast<UINT_PTR>(&edit), reinterpret_cast<DWORD_PTR>(&edit)) != FALSE;
+}
+
+// Symbol: ?PreTranslateMessage@CMFCToolBarComboBoxEdit@@UEAAHPEAUtagMSG@@@Z
+extern "C" int MS_ABI impl__PreTranslateMessage_CMFCToolBarComboBoxEdit__UEAAHPEAUtagMSG___Z(void* edit, MSG* message) {
+    if (!edit || !message) return FALSE;
+    if (HandleComboEditorInput(edit, message)) return TRUE;
+    return impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(W(edit), message);
 }
