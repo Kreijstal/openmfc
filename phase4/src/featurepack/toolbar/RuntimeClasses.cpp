@@ -69,7 +69,6 @@ TOOLBAR_BUTTONS_DESC(CMFCOutlookBarPaneButton, 160, 0x00000001, CMFCToolBarButto
 TOOLBAR_BUTTONS_DESC(CMFCRibbonGalleryMenuButton, 1568, 0xFFFF, CMFCToolBarMenuButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCShowAllButton, 296, 0xFFFF, CMFCToolBarMenuButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarColorButton, 176, 0x00000001, CMFCToolBarButton::GetThisClass());
-TOOLBAR_BUTTONS_DESC(CMFCToolBarDateTimeCtrl, 168, 0x00000001, CMFCToolBarButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarEditBoxButton, 176, 0x00000001, CMFCToolBarButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarFontComboBox, 352, 0x00000001, &classCMFCToolBarComboBoxButton);
 TOOLBAR_BUTTONS_DESC(CMFCToolBarFontSizeComboBox, 344, 0x00000001, &classCMFCToolBarComboBoxButton);
@@ -154,9 +153,12 @@ TOOLBAR_BUTTONS_GETTERS(CMFCToolBarColorButton,
            impl__GetRuntimeClass_CMFCToolBarColorButton__UEBAPEAUCRuntimeClass__XZ)
 // Symbol: ?GetThisClass@CMFCToolBarDateTimeCtrl@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarDateTimeCtrl@@UEBAPEAUCRuntimeClass@@XZ
-TOOLBAR_BUTTONS_GETTERS(CMFCToolBarDateTimeCtrl,
-           impl__GetThisClass_CMFCToolBarDateTimeCtrl__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCToolBarDateTimeCtrl__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarDateTimeCtrl__SAPEAUCRuntimeClass__XZ() {
+    return CMFCToolBarDateTimeCtrl::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarDateTimeCtrl__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCToolBarDateTimeCtrl::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCToolBarEditBoxButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarEditBoxButton@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarEditBoxButton__SAPEAUCRuntimeClass__XZ() {

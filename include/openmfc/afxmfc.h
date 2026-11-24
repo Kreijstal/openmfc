@@ -2091,6 +2091,26 @@ public:
     char _pad[36];  // CMFCToolBarEditBoxButton real sizeof 176 (base 136 + 4 + 36)
 };
 
+class CMFCToolBarDateTimeCtrl : public CMFCToolBarButton {
+    DECLARE_SERIAL(CMFCToolBarDateTimeCtrl)
+public:
+    CMFCToolBarDateTimeCtrl();
+    CMFCToolBarDateTimeCtrl(UINT id, int image, DWORD style = 0, int width = 0);
+    ~CMFCToolBarDateTimeCtrl() override;
+    void Serialize(CArchive& archive) override;
+
+    CWnd* GetDateTimeCtrl() const { return m_pWndDateTime; }
+    BOOL SetTime(SYSTEMTIME* time = nullptr);
+    DWORD GetTime(SYSTEMTIME* time) const;
+
+    CWnd* m_pWndDateTime;
+    DWORD m_dwStyle;
+    DWORD m_dwTimeStatus;
+    int m_iWidth;
+    BOOL m_bHorz;
+    LONGLONG m_time;
+};
+
 class CMFCToolBarMenuButton : public CMFCToolBarButton {
     DECLARE_SERIAL(CMFCToolBarMenuButton)
 public:

@@ -340,6 +340,9 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCTo
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToolBarButton___Z(
     CMFCToolBarEditBoxButton*, const CMFCToolBarButton*);
 
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarDateTimeCtrl__UEAAXAEBVCMFCToolBarButton___Z(
+    void*, const CMFCToolBarButton*);
+
 CMFCToolBarButton* CloneToolBarButton(const CMFCToolBarButton& button) {
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButtonsButton))) {
         auto* cloned = new (std::nothrow) CMFCToolBarMenuButtonsButton();
@@ -371,6 +374,11 @@ CMFCToolBarButton* CloneToolBarButton(const CMFCToolBarButton& button) {
             impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToolBarButton___Z(cloned, &button);
             OpenMFC_CopyEditButtonState(cloned, static_cast<const CMFCToolBarEditBoxButton*>(&button));
         }
+        return cloned;
+    }
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl))) {
+        auto* cloned = new (std::nothrow) CMFCToolBarDateTimeCtrl;
+        if (cloned) impl__CopyFrom_CMFCToolBarDateTimeCtrl__UEAAXAEBVCMFCToolBarButton___Z(cloned, &button);
         return cloned;
     }
     return new (std::nothrow) CMFCToolBarButton(button);

@@ -1637,6 +1637,11 @@ CMFCToolBarComboBoxButton* AsComboButton(CMFCToolBarButton* button) {
     return button && button->IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))
         ? static_cast<CMFCToolBarComboBoxButton*>(button) : nullptr;
 }
+CMFCToolBarDateTimeCtrl* AsDateTimeButton(CMFCToolBarButton* button) {
+    return button && button->IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl))
+        ? static_cast<CMFCToolBarDateTimeCtrl*>(button) : nullptr;
+}
+
 }
 
 // Retail (0x180154a60):
@@ -3551,6 +3556,18 @@ void CloseToolbarMenus(CMFCToolBar& toolbar) {
     }
 }
 
+extern "C" int MS_ABI impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(void*, int);
+
+bool HandleToolbarDateTimeChange(CMFCToolBar& toolbar, const NMHDR& notify) {
+    if (notify.code != static_cast<UINT>(DTN_DATETIMECHANGE)) return false;
+    for (int i = 0; i < toolbar.GetCount(); ++i) {
+        auto* dateTime = AsDateTimeButton(toolbar.GetButton(i));
+        if (dateTime && dateTime->GetDateTimeCtrl() && dateTime->GetDateTimeCtrl()->GetSafeHwnd() == notify.hwndFrom)
+            return impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(dateTime, DTN_DATETIMECHANGE) != FALSE;
+    }
+    return false;
+}
+
 LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp,
                                            UINT_PTR id, DWORD_PTR data) {
     auto* toolbar = reinterpret_cast<CMFCToolBar*>(data);
@@ -3560,6 +3577,9 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
         CloseToolbarMenus(*toolbar);
         ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
     } else if (message == WM_COMMAND && lp && impl__OnCommand_CMFCToolBar__MEAAH_K_J_Z(toolbar, wp, lp)) {
+        return 0;
+    } else if (message == WM_NOTIFY && lp &&
+               HandleToolbarDateTimeChange(*toolbar, *reinterpret_cast<const NMHDR*>(lp))) {
         return 0;
     } else if (message == WM_LBUTTONDOWN) {
         const POINT point{static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp))};
@@ -3706,7 +3726,7 @@ BOOL CMFCToolBar::ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL)
         state.buttons[i] = replacement;
         state.ownedButtons.insert(replacement);
 
-        if (m_hWnd && AsComboButton(replacement)) {
+        if (m_hWnd && (AsComboButton(replacement) || AsDateTimeButton(replacement))) {
             ButtonChangeParentWnd(replacement, this);
             RestoreNativeToolbarButtons(*this);
         } else if (m_hWnd) {
@@ -5342,7 +5362,7 @@ extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton
     const int nCount = static_cast<int>(state.buttons.size());
     const auto attach = [pThis, pButton](int index) {
         ButtonChangeParentWnd(pButton, pThis);
-        if (AsComboButton(pButton)) RestoreNativeToolbarButtons(*pThis);
+        if (AsComboButton(pButton) || AsDateTimeButton(pButton)) RestoreNativeToolbarButtons(*pThis);
         return index;
     };
 
@@ -5392,7 +5412,8 @@ extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__UEAAHAEBVCMFCToolBarButton
     if (!pThis || !pSrc) return -1;
 
     CMFCToolBarButton* pButton = nullptr;
-    if (pSrc->IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {
+    if (pSrc->IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton)) ||
+        pSrc->IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl))) {
         pButton = CloneToolBarButton(*pSrc);
     } else {
         CRuntimeClass* type = pSrc->GetRuntimeClass();
@@ -6832,6 +6853,9 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarEditBoxButton__UEAAXPE
 extern "C" void MS_ABI impl__OnShow_CMFCToolBarComboBoxButton__UEAAXH_Z(CMFCToolBarComboBoxButton*, int);
 extern "C" void MS_ABI impl__OnShow_CMFCToolBarEditBoxButton__UEAAXH_Z(CMFCToolBarEditBoxButton*, int);
 
+extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarDateTimeCtrl__UEAAXPEAVCWnd___Z(void*, CWnd*);
+extern "C" void MS_ABI impl__OnShow_CMFCToolBarDateTimeCtrl__UEAAXH_Z(void*, int);
+
 namespace {
 bool ButtonCanBeStored(CMFCToolBarButton* button) {
     return !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
@@ -6844,7 +6868,8 @@ bool ButtonCanBeStored(CMFCToolBarButton* button) {
 
 bool IsEmbeddedToolbarControl(const CMFCToolBarButton& button) {
     return button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton)) ||
-           button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton));
+           button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton)) ||
+           button.IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl));
 }
 
 void RestoreToolbarControl(CMFCToolBar& toolbar, CMFCToolBarButton& button) {
@@ -6857,6 +6882,9 @@ void RestoreToolbarControl(CMFCToolBar& toolbar, CMFCToolBarButton& button) {
         auto* edit = static_cast<CMFCToolBarEditBoxButton*>(&button);
         impl__OnChangeParentWnd_CMFCToolBarEditBoxButton__UEAAXPEAVCWnd___Z(edit, &toolbar);
         if (!show) impl__OnShow_CMFCToolBarEditBoxButton__UEAAXH_Z(edit, show);
+    } else if (auto* dateTime = AsDateTimeButton(&button)) {
+        impl__OnChangeParentWnd_CMFCToolBarDateTimeCtrl__UEAAXPEAVCWnd___Z(dateTime, &toolbar);
+        impl__OnShow_CMFCToolBarDateTimeCtrl__UEAAXH_Z(dateTime, show);
     }
 }
 

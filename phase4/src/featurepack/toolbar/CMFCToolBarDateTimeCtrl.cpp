@@ -10,19 +10,15 @@
 // vftable at 0x1803170a0 (mfc140u) or off the call site that reaches it, and
 // the comment says which.
 //
-// INSTANCE LAYOUT.  This class is NOT declared in include/openmfc, so this file
-// is the only place its layout lives: every export takes a `void*` this and a
-// real MSVC client (compiled against afxtoolbardatetimectrl.h) allocates the
-// object with the retail layout.  The two exported constructors (0x165af0 /
-// 0x165b90) and Initialize (0x165c10) write it as:
+// The instance layout in afxmfc.h follows the retail class
+// (afxtoolbardatetimectrl.h and the mfc140u placement constructors).
 //
 //   CMFCToolBarButton base ............ +0x00 .. +0x88   (afxmfc.h, sizeof 136)
 //   +0x88  CMFCToolBarDateTimeCtrlImpl* m_pWndDateTime
 //   +0x90  DWORD m_dwStyle              +0x94  DWORD m_dwTimeStatus
 //   +0x98  int   m_iWidth               +0x9c  BOOL  m_bHorz
 //   +0xa0  CTime m_time  (one __time64_t)
-//   sizeof == 0xa8 (168, the size ?CreateObject@ allocates and the value the
-//   RTTI descriptor in featurepack/toolbar/RuntimeClasses.cpp carries)
+//   sizeof == 0xa8 (168, also recorded in the runtime class descriptor)
 //
 // The names are the SDK's (afxtoolbardatetimectrl.h declares the six members
 // in exactly this order); which offset is which was fixed from the bodies that
@@ -32,37 +28,8 @@
 // constructors OR 0x50000000 (WS_CHILD|WS_VISIBLE) into +0x90 and
 // Initialize stores _time64(NULL) at +0xa0.
 //
-// VFTABLE.  Retail installs &CMFCToolBarDateTimeCtrl::`vftable' (0x1803170a0,
-// mfc140u): 55 MSVC-layout slots, the 53 CMFCToolBarButton ones followed by
-// 53 DuplicateData (the `ret` at 0x27d0) and 54 CreateDateTimeCtrl.  OpenMFC
-// has no C++ class for this type, so the constructors leave the vptr the base
-// constructor thunk installed (the mingw-built CMFCToolBarButton one; the
-// MSVC-shaped CMFCToolBarButton table in detail/CMFCToolBarButtonSupport.cpp is
-// installed on nothing, see the note above IsEditable in
-// featurepack/visualmanager/CMFCVisualManagerOfficeXP.cpp).  Every virtual
-// call the retail bodies make on `this` -- NotifyCommand (slot 18), IsEditable
-// (26), OnMove (14), OnGetCustomToolTipText (44), DuplicateData (53),
-// CreateDateTimeCtrl (54) -- is therefore made through this file's own thunk
-// or an inline copy of the retail body instead, as
-// featurepack/toolbar/CMFCToolBarComboBoxButton.cpp does; each site says so.
-// A client subclass's override of one of those is NOT reached.  The
-// destructor does reproduce retail's "store my own vftable first" step, with
-// the recorded base vptr, so that the base destructor thunk's C++ virtual
-// destructor call is safe even when a client-derived class's MSVC table was
-// in the slot.
-// CONSEQUENCE FOR RTTI (unlike the combo-box button, which has a mingw class
-// of its own in afxmfc.h): slot 0 of the vptr these objects carry is
-// CMFCToolBarButton::GetRuntimeClass, so the exported ?IsKindOf@CObject@@
-// (core/runtime/CObject.cpp, reads vtable[0]) answers CMFCToolBarButton for an
-// object built here and never CMFCToolBarDateTimeCtrl.  Retail's GetByCmd and
-// NotifyCommand pick their peers out of CMFCToolBar::GetCommandButtons with
-// exactly that IsKindOf, so the constructors additionally record every live
-// object (g_pLiveObjects / RecordLive below) and IsDateTimeButton consults
-// that record as well as IsKindOf; only a client-derived object carrying its
-// own MSVC vftable is recognised by IsKindOf itself.  A client's own
-// IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl)) on an object built here
-// still reads FALSE.
-//
+// The date-time toolbar button uses its own runtime class and the base button
+// layout. The layout thunks call the implementations in this translation unit.
 // THE WINDOW OBJECT.  m_pWndDateTime is a CMFCToolBarDateTimeCtrlImpl
 // (afxtoolbardatetimectrl.h: CDateTimeCtrl plus `bool m_bMonthCtrlDisplayed`;
 // CreateDateTimeCtrl, 0x166ae0, allocates 0xf0 bytes, runs ??0CWnd@@QEAA@XZ,
@@ -72,8 +39,7 @@
 // ??2@YAPEAX_K@Z + the exported ??0CWnd@@QEAA@XZ + the exported
 // ?Create@CDateTimeCtrl@@.  Such an object carries OpenMFC's CWnd vftable and
 // its runtime class reads CWnd; its message map (detail/Toolbar21MsgmapSupport.cpp)
-// is empty, so the DTN_* reflection handlers of CMFCToolBarDateTimeCtrlImpl.cpp
-// are never reached through it.  A window some other code planted in
+// is empty. CMFCToolBar handles DTN_DATETIMECHANGE from the picker HWND.  A window some other code planted in
 // m_pWndDateTime (one built against the real MFC headers) is torn down through
 // its own MSVC vftable slots exactly as retail does -- see DestroyOwnedWindow.
 //
@@ -108,6 +74,7 @@
 #include <cstdint>
 #include <cstring>
 #include <ctime>
+#include <utility>
 
 // ---------------------------------------------------------------------------
 // Cross-file thunks.  Each was grepped to its definition in the file named;
@@ -123,30 +90,13 @@ extern "C" std::int32_t impl__m_bCustomizeMode_CMFCToolBar__1HA;
 extern "C" unsigned long MS_ABI impl__GetHotTextColor_CMFCToolBar__SAKXZ();
 extern "C" int MS_ABI impl__GetCommandButtons_CMFCToolBar__SAHIAEAVCObList___Z(unsigned int uiCmd, CObList* pLstButtons);
 //   featurepack/toolbar/RuntimeClasses.cpp : GetThisClass (the RTTI descriptor)
-extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarDateTimeCtrl__SAPEAUCRuntimeClass__XZ();
-//   core/runtime/CObject.cpp : IsKindOf
-extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const CObject* pThis, const CRuntimeClass* pClass);
 //   core/collections/CObList.cpp : ctor / dtor / FindIndex
 extern "C" void* MS_ABI impl___0CObList__QEAA__J_Z(void* pThis, long long nBlockSize);
 extern "C" void MS_ABI impl___1CObList__UEAA_XZ(void* pThis);
 extern "C" CObList::POSITION MS_ABI impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(const CObList* pThis, long long nIndex);
-//   core/runtime/Thunks.cpp : CArchive::Read / Write
-extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* pBuf, unsigned int nMax);
-extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* pBuf, unsigned int nMax);
-//   featurepack/toolbar/Thunks.cpp : the base constructors and destructor
-//   (placement-new / C++ destructor of the mingw CMFCToolBarButton)
-extern "C" void* MS_ABI impl___0CMFCToolBarButton__QEAA_XZ(void* pThis);
-extern "C" void* MS_ABI impl___0CMFCToolBarButton__QEAA_IHPEB_WHH_Z(void* pThis, unsigned int uiID, int iImage, const wchar_t* lpszText, int bUserButton, int bLocked);
-extern "C" void MS_ABI impl___1CMFCToolBarButton__UEAA_XZ(void* pThis);
 //   featurepack/toolbar/CMFCToolBarButton.cpp : the base-class overrides.
-//   CopyFrom and Serialize are real bodies (tbb_CopyFrom / tbb_Serialize);
-//   OnCalculateSize, OnChangeParentWnd, OnDraw and OnDrawOnCustomizeList are
-//   still null stubs there (with placeholder parameter lists -- harmless
-//   across translation units for extern "C" symbols).  The lists below are
-//   the retail ones: SIZE is returned through a hidden pointer in RDX (the
-//   retail body writes the result to [rdx] and returns rdx in rax).
+//   The SIZE result uses a hidden pointer in RDX under the MSVC ABI.
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void* pThis, const CMFCToolBarButton* pSrc);
-extern "C" void MS_ABI impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar);
 extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(
     CMFCToolBarButton* pThis, SIZE* pRet, CDC* pDC, const SIZE* pSizeDefault, int bHorz);
 extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(CMFCToolBarButton* pThis, CWnd* pWndParent);
@@ -171,9 +121,6 @@ extern "C" void MS_ABI impl___1CWnd__UEAA_XZ(void* pThis);
 extern "C" int MS_ABI impl__Create_CDateTimeCtrl__UEAAHKAEBUtagRECT__PEAVCWnd__I_Z(
     CWnd* pThis, DWORD dwStyle, const RECT* pRect, CWnd* pParentWnd, UINT nID);
 extern "C" int MS_ABI impl__GetTime_CDateTimeCtrl__QEBAHAEAVCOleDateTime_ATL___Z(const CWnd* pThis, COleDateTime* pTime);
-extern "C" unsigned long MS_ABI impl__GetTime_CDateTimeCtrl__QEBAKAEAVCTime_ATL___Z(const CWnd* pThis, void* pTime);
-extern "C" int MS_ABI impl__SetTime_CDateTimeCtrl__QEAAHAEBVCOleDateTime_ATL___Z(CWnd* pThis, const COleDateTime* pTime);
-extern "C" int MS_ABI impl__SetTime_CDateTimeCtrl__QEAAHPEBVCTime_ATL___Z(CWnd* pThis, const void* pTime);
 //   core/controls/Thunks.cpp : CToolTipCtrl::AddTool
 extern "C" int MS_ABI impl__AddTool_CToolTipCtrl__QEAAHPEAVCWnd__PEB_WPEBUtagRECT___K_Z(
     CToolTipCtrl* pThis, CWnd* pWnd, const wchar_t* lpszText, const RECT* lpRectTool, unsigned __int64 nIDTool);
@@ -215,19 +162,14 @@ extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHPEBVCTime_ATL_
 
 namespace {
 
-// Retail member offsets (see the file header).
-constexpr int kOffWndDateTime = 0x88;
-constexpr int kOffStyle       = 0x90;
-constexpr int kOffTimeStatus  = 0x94;
-constexpr int kOffWidth       = 0x98;
-constexpr int kOffHorz        = 0x9c;
-constexpr int kOffTime        = 0xa0;
-constexpr std::size_t kObjectSize = 0xa8;
-
-// ATL's CTime is a single __time64_t (the same 8-byte view core/controls/CDateTimeCtrl.cpp uses).
-struct CTime_atl { __time64_t m_time; };
-static_assert(sizeof(CTime_atl) == 8, "CTime is one __time64_t (+0xa0..+0xa8)");
-static_assert(kOffTime + sizeof(CTime_atl) == kObjectSize, "m_time is the last member");
+// Check the ABI used by the MSVC placement constructors and archive factory.
+static_assert(sizeof(CMFCToolBarDateTimeCtrl) == 0xa8);
+static_assert(offsetof(CMFCToolBarDateTimeCtrl, m_pWndDateTime) == 0x88);
+static_assert(offsetof(CMFCToolBarDateTimeCtrl, m_dwStyle) == 0x90);
+static_assert(offsetof(CMFCToolBarDateTimeCtrl, m_dwTimeStatus) == 0x94);
+static_assert(offsetof(CMFCToolBarDateTimeCtrl, m_iWidth) == 0x98);
+static_assert(offsetof(CMFCToolBarDateTimeCtrl, m_bHorz) == 0x9c);
+static_assert(offsetof(CMFCToolBarDateTimeCtrl, m_time) == 0xa0);
 
 static_assert(sizeof(CMFCToolBarButton) == 0x88, "CMFCToolBarDateTimeCtrl's own members start at +0x88");
 static_assert(offsetof(CMFCToolBarButton, m_bTextBelow) == 0x1c, "m_bTextBelow @0x1c");
@@ -255,24 +197,24 @@ template <class T> inline const T& At(const void* p, int off) {
     return *reinterpret_cast<const T*>(static_cast<const char*>(p) + off);
 }
 
-inline CMFCToolBarButton*       Base(void* p)       { return static_cast<CMFCToolBarButton*>(p); }
-inline const CMFCToolBarButton* Base(const void* p) { return static_cast<const CMFCToolBarButton*>(p); }
-inline CWnd*&       WndDateTime(void* p)       { return At<CWnd*>(p, kOffWndDateTime); }
-inline CWnd*        WndDateTime(const void* p) { return At<CWnd*>(p, kOffWndDateTime); }
-inline DWORD&       Style(void* p)             { return At<DWORD>(p, kOffStyle); }
-inline DWORD        Style(const void* p)       { return At<DWORD>(p, kOffStyle); }
-inline DWORD&       TimeStatus(void* p)        { return At<DWORD>(p, kOffTimeStatus); }
-inline DWORD        TimeStatus(const void* p)  { return At<DWORD>(p, kOffTimeStatus); }
-inline int&         Width(void* p)             { return At<int>(p, kOffWidth); }
-inline int          Width(const void* p)       { return At<int>(p, kOffWidth); }
-inline int&         Horz(void* p)              { return At<int>(p, kOffHorz); }
-inline int          Horz(const void* p)        { return At<int>(p, kOffHorz); }
-inline CTime_atl&   Time(void* p)              { return At<CTime_atl>(p, kOffTime); }
-inline const CTime_atl& Time(const void* p)    { return At<CTime_atl>(p, kOffTime); }
+inline auto* DateTimeButton(void* p) { return static_cast<CMFCToolBarDateTimeCtrl*>(p); }
+inline const auto* DateTimeButton(const void* p) { return static_cast<const CMFCToolBarDateTimeCtrl*>(p); }
+inline CMFCToolBarButton* Base(void* p) { return DateTimeButton(p); }
+inline const CMFCToolBarButton* Base(const void* p) { return DateTimeButton(p); }
+inline CWnd*& WndDateTime(void* p) { return DateTimeButton(p)->m_pWndDateTime; }
+inline CWnd* WndDateTime(const void* p) { return DateTimeButton(p)->m_pWndDateTime; }
+inline DWORD& Style(void* p) { return DateTimeButton(p)->m_dwStyle; }
+inline DWORD Style(const void* p) { return DateTimeButton(p)->m_dwStyle; }
+inline DWORD& TimeStatus(void* p) { return DateTimeButton(p)->m_dwTimeStatus; }
+inline int& Width(void* p) { return DateTimeButton(p)->m_iWidth; }
+inline int Width(const void* p) { return DateTimeButton(p)->m_iWidth; }
+inline BOOL& Horz(void* p) { return DateTimeButton(p)->m_bHorz; }
+inline BOOL Horz(const void* p) { return DateTimeButton(p)->m_bHorz; }
+inline LONGLONG& Time(void* p) { return DateTimeButton(p)->m_time; }
 
 inline HWND HWndOf(const CWnd* pWnd) { return pWnd ? pWnd->m_hWnd : nullptr; }
 // `pWnd->GetSafeHwnd() != NULL` as retail spells it: the pointer, then +0x40.
-inline bool HasWindow(const CWnd* pWnd) { return pWnd != nullptr && pWnd->m_hWnd != nullptr; }
+inline bool HasWindow(const CWnd* pWnd) { return pWnd != nullptr && ::IsWindow(pWnd->m_hWnd); }
 // `(pWnd->GetStyle() & WS_VISIBLE) != 0` -- retail: call ?GetStyle@CWnd@@ (0x2a9690), `bt $0x1c,%eax`.
 inline bool StyleVisible(const CWnd* pWnd) { return (impl__GetStyle_CWnd__QEBAKXZ(pWnd) & WS_VISIBLE) != 0; }
 // The three-part gate almost every body here opens with:
@@ -283,9 +225,6 @@ inline bool HasVisibleWindow(const void* p) {
 }
 
 // Message / style numbers the retail bodies use as immediates.
-constexpr UINT     kDtmGetSystemTime   = 0x1001;       // DTM_GETSYSTEMTIME
-constexpr UINT     kDtmSetSystemTime   = 0x1002;       // DTM_SETSYSTEMTIME
-constexpr int      kDtnDateTimeChange  = -759;         // DTN_DATETIMECHANGE (0xFFFFFD09 as retail loads it)
 constexpr unsigned kGdtValid           = 0;            // GDT_VALID
 constexpr unsigned kGdtNone            = 1;            // GDT_NONE
 constexpr UINT     kWmSetFont          = 0x30;         // WM_SETFONT
@@ -296,8 +235,6 @@ constexpr int      kDefaultWidth       = 100;          // 0x64
 constexpr unsigned kDtTextLabel        = 0x11;         // DT_CENTER | DT_WORDBREAK               (OnDraw label)
 constexpr unsigned kDtCalcLabel        = 0x411;        // DT_CALCRECT | DT_CENTER | DT_WORDBREAK (OnCalculateSize)
 constexpr int      kCtrlHeightExtra    = 6;            // the "+ 6" OnMove / OnSize / OnChangeParentWnd add to GetTextHeight()
-static_assert(kDtmGetSystemTime == DTM_GETSYSTEMTIME && kDtmSetSystemTime == DTM_SETSYSTEMTIME, "DTM numbers");
-static_assert(static_cast<unsigned>(kDtnDateTimeChange) == static_cast<unsigned>(DTN_DATETIMECHANGE), "DTN_DATETIMECHANGE");
 static_assert(kGdtValid == GDT_VALID && kGdtNone == GDT_NONE, "GDT flags");
 static_assert(kWmSetFont == WM_SETFONT, "WM_SETFONT");
 
@@ -421,96 +358,71 @@ private:
     alignas(8) unsigned char m_buf[sizeof(CObList)];
     int m_count;
 };
-// The objects the two constructors below have built and the destructor has
-// not yet torn down (see "CONSEQUENCE FOR RTTI" in the file header for why
-// this record exists).
-// A singly-linked list whose nodes come from the exported ??2@ / ??3@ (no C++
-// runtime allocation from this translation unit).
-struct LiveNode {
-    LiveNode*   pNext;
-    const void* pObject;
-};
-LiveNode* g_pLiveObjects = nullptr;
-inline bool IsLive(const void* p) {
-    for (const LiveNode* n = g_pLiveObjects; n != nullptr; n = n->pNext)
-        if (n->pObject == p) return true;
-    return false;
+bool IsDateTimeButton(const CObject* button) {
+    return button && button->IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl));
 }
-inline void RecordLive(const void* p) {
-    if (IsLive(p)) return;
-    LiveNode* n = static_cast<LiveNode*>(impl___2_YAPEAX_K_Z(sizeof(LiveNode)));
-    if (n == nullptr) return;
-    n->pNext = g_pLiveObjects;
-    n->pObject = p;
-    g_pLiveObjects = n;
+
+bool MakeLocalTime(const SYSTEMTIME& system, LONGLONG& time) {
+    FILETIME valid{};
+    if (!::SystemTimeToFileTime(&system, &valid)) return false;
+    tm local{};
+    local.tm_year = system.wYear - 1900;
+    local.tm_mon = system.wMonth - 1;
+    local.tm_mday = system.wDay;
+    local.tm_hour = system.wHour;
+    local.tm_min = system.wMinute;
+    local.tm_sec = system.wSecond;
+    local.tm_isdst = -1;
+    const auto result = _mktime64(&local);
+    if (result == -1) return false;
+    time = result;
+    return true;
 }
-inline void ForgetLive(const void* p) {
-    for (LiveNode** pp = &g_pLiveObjects; *pp != nullptr; ) {
-        LiveNode* n = *pp;
-        if (n->pObject == p) {
-            *pp = n->pNext;
-            impl___3_YAXPEAX_Z(n);
-        } else {
-            pp = &n->pNext;
-        }
+
+SYSTEMTIME TimeFields(const tm& local) {
+    return SYSTEMTIME{static_cast<WORD>(local.tm_year + 1900), static_cast<WORD>(local.tm_mon + 1),
+        static_cast<WORD>(local.tm_wday), static_cast<WORD>(local.tm_mday), static_cast<WORD>(local.tm_hour),
+        static_cast<WORD>(local.tm_min), static_cast<WORD>(local.tm_sec), 0};
+}
+
+DWORD ReadControlTime(const CWnd* window, LONGLONG& time) {
+    SYSTEMTIME system{};
+    const auto status = static_cast<DWORD>(::SendMessageW(window->m_hWnd, DTM_GETSYSTEMTIME, 0,
+        reinterpret_cast<LPARAM>(&system)));
+    if (status == GDT_VALID && !MakeLocalTime(system, time)) return GDT_ERROR;
+    return status;
+}
+
+BOOL PushControlTime(CWnd* window, const LONGLONG* time) {
+    SYSTEMTIME system{};
+    if (time) {
+        tm local{};
+        if (_localtime64_s(&local, time) != 0) return FALSE;
+        system = TimeFields(local);
     }
-}
-// `p->IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl))` -- retail 0x234cf0 against
-// the descriptor at 0x3b1688 (mfc140u).  IsKindOf alone only recognises a
-// client-derived object with its own MSVC vftable; an object built by this
-// file's constructors is recognised through g_pLiveObjects (file header).
-inline bool IsDateTimeButton(const CObject* p) {
-    if (p == nullptr) return false;
-    if (IsLive(p)) return true;
-    return impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(p, impl__GetThisClass_CMFCToolBarDateTimeCtrl__SAPEAUCRuntimeClass__XZ()) != 0;
+    return static_cast<BOOL>(::SendMessageW(window->m_hWnd, DTM_SETSYSTEMTIME,
+        time ? GDT_VALID : GDT_NONE, reinterpret_cast<LPARAM>(&system)));
 }
 
-// m_pWndDateTime->GetTime(m_time) as retail's callee (0x29a490, mfc140u,
-// ?GetTime@CDateTimeCtrl@@QEBAKAEAVCTime@ATL@@@Z) returns it: the raw
-// DTM_GETSYSTEMTIME result (GDT_VALID == 0 / GDT_NONE == 1), the CTime written
-// only when it is GDT_VALID.  OpenMFC's thunk for that export
-// (core/controls/CDateTimeCtrl.cpp) returns 1-on-valid / 0-on-none instead --
-// the inverse -- and NotifyCommand / Serialize / GetTimeAll below store or
-// return the DTM flag, so the status is read straight off the control here and
-// the thunk is used only for its SYSTEMTIME -> __time64_t conversion, which
-// is the exact inverse of the one the SetTime(const CTime*) thunk applies when
-// the sibling and Serialize paths push the value back.
-inline DWORD ReadControlTime(const CWnd* pWnd, CTime_atl& t) {
-    SYSTEMTIME st;
-    std::memset(&st, 0, sizeof st);
-    const DWORD dwStatus = static_cast<DWORD>(::SendMessage(pWnd->m_hWnd, kDtmGetSystemTime, 0, reinterpret_cast<LPARAM>(&st)));
-    if (dwStatus == kGdtValid) impl__GetTime_CDateTimeCtrl__QEBAKAEAVCTime_ATL___Z(pWnd, &t);
-    return dwStatus;
+constexpr DWORD time64Marker = 0x8000000a;
+LONGLONG ReadArchivedTime(CArchive& archive, bool objectRecord) {
+    DWORD prefix = 0;
+    archive >> prefix;
+    LONGLONG time = 0;
+    if (prefix == time64Marker) {
+        archive >> time;
+    } else if (objectRecord) {
+        time = static_cast<LONG>(prefix);
+    } else {
+        // The old OpenMFC direct serializer wrote an unmarked UTC-based value.
+        DWORD high = 0;
+        archive >> high;
+        time = static_cast<LONGLONG>((ULONGLONG(high) << 32) | prefix);
+        tm utc{};
+        if (_gmtime64_s(&utc, &time) == 0) MakeLocalTime(TimeFields(utc), time);
+    }
+    return time;
 }
-// m_pWndDateTime->SetTime(pTime) as retail's callee (0x29a390, mfc140u,
-// ?SetTime@CDateTimeCtrl@@QEAAHPEBVCTime@ATL@@@Z) does it: DTM_SETSYSTEMTIME
-// with GDT_NONE for a NULL pointer (or a failed GetAsSystemTime), GDT_VALID
-// otherwise.  OpenMFC's thunk returns FALSE for NULL without touching the
-// control, so the NULL case is sent here.
-inline int PushControlTime(CWnd* pWnd, const void* pTime) {
-    if (pTime != nullptr) return impl__SetTime_CDateTimeCtrl__QEAAHPEBVCTime_ATL___Z(pWnd, pTime);
-    SYSTEMTIME st;
-    std::memset(&st, 0, sizeof st);
-    return static_cast<int>(::SendMessage(pWnd->m_hWnd, kDtmSetSystemTime, kGdtNone, reinterpret_cast<LPARAM>(&st)));
-}
-
-// CArchive scalar I/O through the exported Read / Write, in the byte layout
-// OpenMFC's own CArchive::operator<< / >> use (core/runtime/CArchive.cpp:
-// 4-byte int).  Retail inlines the int case as direct buffer stores
-// (FillBuffer 0x1d1cc0 / Flush 0x1d1be0 on a short buffer) and the CTime case
-// as the outlined ??5 / ??6 CArchive-CTime operators (0x274ac0 / 0x274a20),
-// which move the one 8-byte __time64_t; OpenMFC's thunks for those two
-// operators are null stubs (core/runtime/CArchive.cpp), so the 8 bytes go
-// through Read / Write directly here.
-inline void ArWriteInt(CArchive* ar, int v) { impl__Write_CArchive__QEAAXPEBXI_Z(ar, &v, sizeof v); }
-inline int ArReadInt(CArchive* ar) { int v = 0; impl__Read_CArchive__QEAAIPEAXI_Z(ar, &v, sizeof v); return v; }
-inline void ArWriteTime(CArchive* ar, const CTime_atl& t) { impl__Write_CArchive__QEAAXPEBXI_Z(ar, &t.m_time, sizeof t.m_time); }
-inline void ArReadTime(CArchive* ar, CTime_atl& t) { t.m_time = 0; impl__Read_CArchive__QEAAIPEAXI_Z(ar, &t.m_time, sizeof t.m_time); }
-
-// The vptr the base constructor thunk installs (the mingw CMFCToolBarButton
-// one), recorded by the first constructor to run; the destructor stores it
-// back at +0x00 first, which is what retail's `vfptr = &vftable' store does.
-void* g_ownVptr = nullptr;
 
 // The window object this button owns.  Retail tears it down with
 //     pWnd->DestroyWindow();          // vftable +0xd0 (slot 26)
@@ -558,72 +470,42 @@ inline CWnd* ParentOf(const CWnd* pWnd) {
 // Construction / destruction
 // ===========================================================================
 
-// Retail ??0CMFCToolBarDateTimeCtrl@@QEAA@IHKH@Z (RVA 0x165b90, mfc140u), fully transcribed:
-//     CMFCToolBarButton::CMFCToolBarButton(uiID, iImage, NULL, FALSE, FALSE);   // 0x15bf40
-//     vfptr = &CMFCToolBarDateTimeCtrl::`vftable';                             // 0x1803170a0
-//     m_dwStyle = dwStyle | 0x50000000;                                        // WS_CHILD | WS_VISIBLE
-//     m_time    = 0;
-//     m_iWidth  = iWidth != 0 ? iWidth : 100;
-//     Initialize();                                                            // 0x165c10
-// The vfptr is left as the base constructor thunk installs it and the object
-// is recorded in g_pLiveObjects instead (file header).
+IMPLEMENT_SERIAL(CMFCToolBarDateTimeCtrl, CMFCToolBarButton, 1)
+
+CMFCToolBarDateTimeCtrl::CMFCToolBarDateTimeCtrl()
+    : m_dwStyle(kDefaultStyle), m_iWidth(kDefaultWidth)
+{
+    impl__Initialize_CMFCToolBarDateTimeCtrl__IEAAXXZ(this);
+}
+
+CMFCToolBarDateTimeCtrl::CMFCToolBarDateTimeCtrl(UINT id, int image, DWORD style, int width)
+    : CMFCToolBarButton(id, image, nullptr), m_dwStyle(style | kDefaultStyle),
+      m_iWidth(width ? width : kDefaultWidth)
+{
+    impl__Initialize_CMFCToolBarDateTimeCtrl__IEAAXXZ(this);
+}
+
 // Symbol: ??0CMFCToolBarDateTimeCtrl@@QEAA@IHKH@Z
 extern "C" void* MS_ABI impl___0CMFCToolBarDateTimeCtrl__QEAA_IHKH_Z(
-    void* pThis, unsigned int uiID, int iImage, unsigned long dwStyle, int iWidth) {
-    if (!pThis) return pThis;
-    impl___0CMFCToolBarButton__QEAA_IHPEB_WHH_Z(pThis, uiID, iImage, nullptr, 0, 0);
-    if (g_ownVptr == nullptr) g_ownVptr = *static_cast<void**>(pThis);
-    RecordLive(pThis);
-    Style(pThis) = static_cast<DWORD>(dwStyle) | kDefaultStyle;
-    Time(pThis).m_time = 0;
-    Width(pThis) = iWidth != 0 ? iWidth : kDefaultWidth;
-    impl__Initialize_CMFCToolBarDateTimeCtrl__IEAAXXZ(pThis);
-    return pThis;
+    void* storage, unsigned int id, int image, unsigned long style, int width) {
+    return storage ? new (storage) CMFCToolBarDateTimeCtrl(id, image, style, width) : nullptr;
 }
 
-// Retail ??0CMFCToolBarDateTimeCtrl@@QEAA@XZ (RVA 0x165af0, mfc140u), fully transcribed:
-//     CMFCToolBarButton::CMFCToolBarButton();          // 0x15bec0
-//     vfptr = &CMFCToolBarDateTimeCtrl::`vftable';     // 0x1803170a0
-//     m_dwStyle = 0x50000000;                          // WS_CHILD | WS_VISIBLE
-//     m_time    = 0;
-//     m_iWidth  = 100;
-//     Initialize();                                    // 0x165c10
-// The vfptr / g_pLiveObjects handling is the four-argument constructor's.
 // Symbol: ??0CMFCToolBarDateTimeCtrl@@QEAA@XZ
-extern "C" void* MS_ABI impl___0CMFCToolBarDateTimeCtrl__QEAA_XZ(void* pThis) {
-    if (!pThis) return pThis;
-    impl___0CMFCToolBarButton__QEAA_XZ(pThis);
-    if (g_ownVptr == nullptr) g_ownVptr = *static_cast<void**>(pThis);
-    RecordLive(pThis);
-    Style(pThis) = kDefaultStyle;
-    Time(pThis).m_time = 0;
-    Width(pThis) = kDefaultWidth;
-    impl__Initialize_CMFCToolBarDateTimeCtrl__IEAAXXZ(pThis);
-    return pThis;
+extern "C" void* MS_ABI impl___0CMFCToolBarDateTimeCtrl__QEAA_XZ(void* storage) {
+    return storage ? new (storage) CMFCToolBarDateTimeCtrl() : nullptr;
 }
 
-// Retail ??1CMFCToolBarDateTimeCtrl@@UEAA@XZ (RVA 0x165c50, mfc140u), fully transcribed:
-//     vfptr = &CMFCToolBarDateTimeCtrl::`vftable';                                   // 0x1803170a0
-//     if (m_pWndDateTime != NULL) {
-//         m_pWndDateTime->DestroyWindow();                                           // vslot 0xd0 (26)
-//         if (m_pWndDateTime != NULL) m_pWndDateTime->`scalar deleting dtor'(1);     // vslot 0x08 (1)
-//     }
-//     CMFCToolBarButton::~CMFCToolBarButton();                                       // 0x15c130 (tail jump)
-// The vfptr store is reproduced with the recorded base vptr (file header);
-// the window goes through DestroyOwnedWindow / DeleteOwnedWindow.  Retail does
-// not NULL m_pWndDateTime (the object is dying); it is cleared here so that a
-// second call cannot double-free.  The object leaves g_pLiveObjects first.
-// Symbol: ??1CMFCToolBarDateTimeCtrl@@UEAA@XZ
-extern "C" void MS_ABI impl___1CMFCToolBarDateTimeCtrl__UEAA_XZ(void* pThis) {
-    if (!pThis) return;
-    ForgetLive(pThis);
-    if (g_ownVptr != nullptr) *static_cast<void**>(pThis) = g_ownVptr;
-    if (CWnd* pWnd = WndDateTime(pThis)) {
-        DestroyOwnedWindow(pWnd);
-        DeleteOwnedWindow(pWnd);
-        WndDateTime(pThis) = nullptr;
+CMFCToolBarDateTimeCtrl::~CMFCToolBarDateTimeCtrl() {
+    if (CWnd* window = std::exchange(m_pWndDateTime, nullptr)) {
+        DestroyOwnedWindow(window);
+        DeleteOwnedWindow(window);
     }
-    impl___1CMFCToolBarButton__UEAA_XZ(pThis);
+}
+
+// Symbol: ??1CMFCToolBarDateTimeCtrl@@UEAA@XZ
+extern "C" void MS_ABI impl___1CMFCToolBarDateTimeCtrl__UEAA_XZ(void* button) {
+    if (button) DateTimeButton(button)->CMFCToolBarDateTimeCtrl::~CMFCToolBarDateTimeCtrl();
 }
 
 // Retail (RVA 0x165c10, mfc140u), fully transcribed:
@@ -637,7 +519,7 @@ extern "C" void MS_ABI impl__Initialize_CMFCToolBarDateTimeCtrl__IEAAXXZ(void* p
     WndDateTime(pThis) = nullptr;
     Horz(pThis) = TRUE;
     TimeStatus(pThis) = kGdtValid;
-    Time(pThis).m_time = _time64(nullptr);
+    Time(pThis) = _time64(nullptr);
 }
 
 // Retail (RVA 0x165980, mfc140u), fully transcribed:
@@ -645,68 +527,56 @@ extern "C" void MS_ABI impl__Initialize_CMFCToolBarDateTimeCtrl__IEAAXXZ(void* p
 //     return p != NULL ? new (p) CMFCToolBarDateTimeCtrl() : NULL;   // 0x165af0
 // Symbol: ?CreateObject@CMFCToolBarDateTimeCtrl@@SAPEAVCObject@@XZ
 extern "C" CObject* MS_ABI impl__CreateObject_CMFCToolBarDateTimeCtrl__SAPEAVCObject__XZ() {
-    void* p = impl___2_YAPEAX_K_Z(kObjectSize);
-    if (p == nullptr) return nullptr;
-    std::memset(p, 0, kObjectSize);
-    return static_cast<CObject*>(impl___0CMFCToolBarDateTimeCtrl__QEAA_XZ(p));
+    return CMFCToolBarDateTimeCtrl::CreateObject();
 }
 
-// Retail (RVA 0x165cb0, mfc140u), fully transcribed:
-//     CMFCToolBarButton::CopyFrom(src);     // 0x15c1a0
-//     DuplicateData();                      // vslot 0x1a8 (53) -- the `ret` at 0x27d0 in this class
-//     m_dwStyle = src.m_dwStyle;            // +0x90
-//     m_iWidth  = src.m_iWidth;             // +0x98
-// (m_dwTimeStatus, m_time and m_bHorz are not copied.)  DuplicateData is the
-// retail no-op and is not dispatched (file header).
 // Symbol: ?CopyFrom@CMFCToolBarDateTimeCtrl@@UEAAXAEBVCMFCToolBarButton@@@Z
-extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarDateTimeCtrl__UEAAXAEBVCMFCToolBarButton___Z(void* pThis, const CMFCToolBarButton* pSrc) {
-    if (!pThis || !pSrc) return;
-    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(pThis, pSrc);
-    Style(pThis) = Style(pSrc);
-    Width(pThis) = Width(pSrc);
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarDateTimeCtrl__UEAAXAEBVCMFCToolBarButton___Z(void* target, const CMFCToolBarButton* source) {
+    if (!target || !IsDateTimeButton(source) || target == source) return;
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(target, source);
+    auto* button = DateTimeButton(target);
+    const auto* other = static_cast<const CMFCToolBarDateTimeCtrl*>(source);
+    button->m_dwStyle = other->m_dwStyle;
+    button->m_iWidth = other->m_iWidth;
+    button->m_rect.right = button->m_rect.left + button->m_iWidth;
+    button->m_dwTimeStatus = other->m_dwTimeStatus;
+    button->m_time = other->m_time;
+    if (auto* window = other->GetDateTimeCtrl(); HasWindow(window))
+        button->m_dwTimeStatus = ReadControlTime(window, button->m_time);
 }
 
-// Retail (vftable slot 2 of 0x1803170a0 -> RVA 0x165d00, mfc140u), fully
-// transcribed.  The int reads / writes are CArchive's inline buffer accesses,
-// the CTime ones the outlined archive operators at 0x274ac0 (>>) / 0x274a20 (<<):
-//     CMFCToolBarButton::Serialize(ar);                              // 0x15c240
-//     if (ar.IsLoading()) {                                          // ar.m_nMode & 1 (+0x20)
-//         ar >> m_iWidth;  m_rect.right = m_rect.left + m_iWidth;
-//         ar >> m_dwStyle;
-//         ar >> m_dwTimeStatus;
-//         ar >> m_time;
-//         if (m_pWndDateTime->GetSafeHwnd() != NULL && m_dwTimeStatus == GDT_VALID)
-//             m_pWndDateTime->SetTime(&m_time);                      // 0x29a390, CDateTimeCtrl::SetTime(const CTime*)
-//         DuplicateData();                                           // vslot 0x1a8 (53), the retail no-op
-//     } else {
-//         if (m_pWndDateTime->GetSafeHwnd() != NULL) m_dwTimeStatus = m_pWndDateTime->GetTime(m_time);   // 0x29a490
-//         ar << m_iWidth;  ar << m_dwStyle;  ar << m_dwTimeStatus;  ar << m_time;
-//     }
-// The scalars use OpenMFC's own archive byte layout (ArWriteInt / ArWriteTime);
-// the two CDateTimeCtrl calls go through PushControlTime / ReadControlTime.
-// Symbol: ?Serialize@CMFCToolBarDateTimeCtrl@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CMFCToolBarDateTimeCtrl__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar) {
-    if (!pThis || !ar) return;
-    impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(pThis, ar);
-    CWnd* pWnd = WndDateTime(pThis);
-    if (ar->IsLoading()) {
-        Width(pThis) = ArReadInt(ar);
-        Base(pThis)->m_rect.right = Base(pThis)->m_rect.left + Width(pThis);
-        Style(pThis) = static_cast<DWORD>(ArReadInt(ar));
-        TimeStatus(pThis) = static_cast<DWORD>(ArReadInt(ar));
-        ArReadTime(ar, Time(pThis));
-        if (HasWindow(pWnd) && TimeStatus(pThis) == kGdtValid) {
-            PushControlTime(pWnd, &Time(pThis));
-        }
-    } else {
-        if (HasWindow(pWnd)) {
-            TimeStatus(pThis) = ReadControlTime(pWnd, Time(pThis));
-        }
-        ArWriteInt(ar, Width(pThis));
-        ArWriteInt(ar, static_cast<int>(Style(pThis)));
-        ArWriteInt(ar, static_cast<int>(TimeStatus(pThis)));
-        ArWriteTime(ar, Time(pThis));
+void CMFCToolBarDateTimeCtrl::Serialize(CArchive& archive) {
+    if (archive.IsStoring()) {
+        CMFCToolBarButton::Serialize(archive);
+        auto status = m_dwTimeStatus;
+        auto time = m_time;
+        if (HasWindow(m_pWndDateTime)) status = ReadControlTime(m_pWndDateTime, time);
+        archive << m_iWidth << m_dwStyle << status << time64Marker << time;
+        return;
     }
+
+    const bool objectRecord = archive.GetObjectSchema() != UINT(-1);
+    CMFCToolBarButton base;
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(&base, this);
+    base.Serialize(archive);
+    int width = 0;
+    DWORD style = 0, status = 0;
+    archive >> width >> style >> status;
+    const auto time = ReadArchivedTime(archive, objectRecord);
+
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &base);
+    m_iWidth = width;
+    m_rect.right = m_rect.left + width;
+    m_dwStyle = style;
+    m_dwTimeStatus = status;
+    m_time = time;
+    if (HasWindow(m_pWndDateTime) && (status == GDT_VALID || status == GDT_NONE))
+        PushControlTime(m_pWndDateTime, status == GDT_VALID ? &m_time : nullptr);
+}
+
+// Symbol: ?Serialize@CMFCToolBarDateTimeCtrl@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMFCToolBarDateTimeCtrl__UEAAXAEAVCArchive___Z(void* button, CArchive* archive) {
+    if (button && archive) DateTimeButton(button)->CMFCToolBarDateTimeCtrl::Serialize(*archive);
 }
 
 // ===========================================================================
@@ -855,7 +725,9 @@ extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarDateTimeCtrl__UEAA_AUta
 extern "C" void* MS_ABI impl__CreateDateTimeCtrl_CMFCToolBarDateTimeCtrl__MEAAPEAVCMFCToolBarDateTimeCtrlImpl__PEAVCWnd__AEBVCRect___Z(
     void* pThis, CWnd* pWndParent, const RECT* pRect)
 {
-    if (!pThis || !pRect) return nullptr;
+    if (!pThis || !HasWindow(pWndParent) || !pRect) return nullptr;
+    INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_DATE_CLASSES};
+    if (!::InitCommonControlsEx(&controls)) return nullptr;
     void* pStorage = impl___2_YAPEAX_K_Z(kImplObjectSize);
     if (!pStorage) return nullptr;
     std::memset(pStorage, 0, kImplObjectSize);
@@ -890,23 +762,21 @@ extern "C" void* MS_ABI impl__CreateDateTimeCtrl_CMFCToolBarDateTimeCtrl__MEAAPE
 //     (afxGlobalData init gate)
 //     m_pWndDateTime->SendMessage(WM_SETFONT, afxGlobalData.fontRegular /*+0x1b0*/, TRUE);
 //     if (m_dwTimeStatus == GDT_VALID) m_pWndDateTime->SetTime(&m_time);              // 0x29a390
-// DEVIATIONS: the base OnChangeParentWnd is a null stub in OpenMFC (so
-// m_pWndParent is not recorded here); a window whose parent cannot be resolved
-// is torn down and recreated where retail throws; CreateDateTimeCtrl is reached
-// through this file's thunk instead of the vftable (file header); the inlined
-// AdjustRect is the exported one (same guards).
+// Retain the old picker value when moving between toolbars, then apply the
+// saved value or empty status to the newly created control.
 // Symbol: ?OnChangeParentWnd@CMFCToolBarDateTimeCtrl@@UEAAXPEAVCWnd@@@Z
 extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarDateTimeCtrl__UEAAXPEAVCWnd___Z(void* pThis, CWnd* pWndParent) {
     if (!pThis) return;
     impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(Base(pThis), pWndParent);
 
-    if (HasWindow(WndDateTime(pThis))) {
-        CWnd* pOldParent = ParentOf(WndDateTime(pThis));
-        if (pOldParent != nullptr && pWndParent != nullptr && pOldParent->m_hWnd == pWndParent->m_hWnd) return;
-        CWnd* pOld = WndDateTime(pThis);
-        DestroyOwnedWindow(pOld);
-        DeleteOwnedWindow(pOld);
+    if (auto* old = WndDateTime(pThis)) {
+        if (HasWindow(old)) {
+            if (pWndParent && ::GetParent(old->m_hWnd) == pWndParent->m_hWnd) return;
+            TimeStatus(pThis) = ReadControlTime(old, Time(pThis));
+        }
         WndDateTime(pThis) = nullptr;
+        DestroyOwnedWindow(old);
+        DeleteOwnedWindow(old);
     }
     if (!HasWindow(pWndParent)) return;
 
@@ -920,9 +790,9 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarDateTimeCtrl__UEAAXPEA
 
     impl__AdjustRect_CMFCToolBarDateTimeCtrl__IEAAXXZ(pThis);
     ::SendMessage(pWnd->m_hWnd, kWmSetFont, reinterpret_cast<WPARAM>(GlobalRegularFont()), TRUE);
-    if (TimeStatus(pThis) == kGdtValid) {
-        PushControlTime(pWnd, &Time(pThis));
-    }
+    if (TimeStatus(pThis) == kGdtValid || TimeStatus(pThis) == kGdtNone)
+        PushControlTime(pWnd, TimeStatus(pThis) == kGdtValid ? &Time(pThis) : nullptr);
+    ::EnableWindow(pWnd->m_hWnd, !(Base(pThis)->m_nStyle & kTbbsDisabled));
 }
 
 // ===========================================================================
@@ -1081,31 +951,29 @@ extern "C" int MS_ABI impl__OnClick_CMFCToolBarDateTimeCtrl__UEAAHPEAVCWnd__H_Z(
 //         }
 //     }
 //     return TRUE;
-// DEVIATIONS: the ENSURE failure skips the node instead of throwing; a sibling
-// without a window is skipped where retail would fault; the GetTime status is
-// read by ReadControlTime (the DTM flag, as retail stores it) and the peers
-// are recognised by IsDateTimeButton (IsKindOf plus g_pLiveObjects, file header).
+// Update peers only when the value changes. Store their state before updating
+// their windows so synchronous DTN_DATETIMECHANGE notifications stop there.
 // Symbol: ?NotifyCommand@CMFCToolBarDateTimeCtrl@@UEAAHH@Z
-extern "C" int MS_ABI impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(void* pThis, int iNotifyCode) {
-    if (!pThis) return 0;
-    CWnd* pWnd = WndDateTime(pThis);
-    if (!HasWindow(pWnd)) return 0;
-    if (((static_cast<unsigned>(iNotifyCode) + 759u) & ~0x10000u) != 0) return 1;
+extern "C" int MS_ABI impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(void* pThis, int code) {
+    if (!pThis || !HasWindow(WndDateTime(pThis))) return FALSE;
+    if (static_cast<WORD>(code) != static_cast<WORD>(DTN_DATETIMECHANGE)) return TRUE;
 
-    TimeStatus(pThis) = ReadControlTime(pWnd, Time(pThis));
-    CommandButtonList lst(Base(pThis)->m_nID);
-    if (lst.Count() > 0) {
-        for (ObNode* node = lst.First(); node != nullptr; node = node->pNext) {
-            CObject* pObj = node->data;
-            if (!IsDateTimeButton(pObj)) continue;
-            void* p = static_cast<void*>(pObj);
-            if (p != pThis && TimeStatus(pThis) == kGdtValid) {
-                CWnd* pSibling = WndDateTime(p);
-                if (HasWindow(pSibling)) PushControlTime(pSibling, &Time(pThis));
-            }
-        }
+    auto time = Time(pThis);
+    const DWORD status = ReadControlTime(WndDateTime(pThis), time);
+    if (status == GDT_ERROR || (TimeStatus(pThis) == status && Time(pThis) == time)) return TRUE;
+    TimeStatus(pThis) = status;
+    Time(pThis) = time;
+    CommandButtonList peers(Base(pThis)->m_nID);
+    for (ObNode* node = peers.First(); node; node = node->pNext) {
+        if (!IsDateTimeButton(node->data) || node->data == Base(pThis)) continue;
+        auto* peer = static_cast<CMFCToolBarDateTimeCtrl*>(node->data);
+        if (status == GDT_NONE && !(peer->m_dwStyle & DTS_SHOWNONE)) continue;
+        peer->m_dwTimeStatus = status;
+        peer->m_time = time;
+        if (auto* window = peer->GetDateTimeCtrl(); HasWindow(window))
+            PushControlTime(window, status == GDT_VALID ? &time : nullptr);
     }
-    return 1;
+    return TRUE;
 }
 
 // Retail (vftable slot 19 of 0x1803170a0 -> RVA 0x163440, mfc140u -- COMDAT-folded
@@ -1121,7 +989,7 @@ extern "C" void MS_ABI impl__OnAddToCustomizePage_CMFCToolBarDateTimeCtrl__UEAAX
     CommandButtonList lst(Base(pThis)->m_nID);
     if (lst.Count() == 0) return;
     ObNode* pHead = lst.First();
-    if (pHead == nullptr || pHead->data == nullptr) return;
+    if (pHead == nullptr || !IsDateTimeButton(pHead->data)) return;
     impl__CopyFrom_CMFCToolBarDateTimeCtrl__UEAAXAEBVCMFCToolBarButton___Z(pThis, static_cast<const CMFCToolBarButton*>(pHead->data));
 }
 
@@ -1236,56 +1104,60 @@ extern "C" int MS_ABI impl__ExportToMenuButton_CMFCToolBarDateTimeCtrl__UEBAHAEA
 // Time access
 // ===========================================================================
 
-// Retail (reached from ?SetTimeAll@...@@SAHIPEAU_SYSTEMTIME@@@Z at 0x166db0 -> RVA 0x166c40, mfc140u), fully transcribed:
-//     BOOL bResult = (BOOL)m_pWndDateTime->SendMessage(DTM_SETSYSTEMTIME, pTimeNew == NULL ? GDT_NONE : GDT_VALID, (LPARAM)pTimeNew);
-//     NotifyCommand(DTN_DATETIMECHANGE);                     // vslot 0x90 (18), -759
-//     return bResult;
-// (m_pWndDateTime is dereferenced unconditionally.)  NotifyCommand is reached
-// through this file's thunk rather than the vftable.
-// DEVIATION: a button without a window returns FALSE where retail would fault.
+BOOL CMFCToolBarDateTimeCtrl::SetTime(SYSTEMTIME* system) {
+    if (HasWindow(m_pWndDateTime)) {
+        const auto result = system
+            ? static_cast<BOOL>(::SendMessageW(m_pWndDateTime->m_hWnd, DTM_SETSYSTEMTIME, GDT_VALID,
+                reinterpret_cast<LPARAM>(system)))
+            : PushControlTime(m_pWndDateTime, nullptr);
+        if (result) impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(this, DTN_DATETIMECHANGE);
+        return result;
+    }
+    if (system) {
+        if (!MakeLocalTime(*system, m_time)) return FALSE;
+        m_dwTimeStatus = GDT_VALID;
+    } else {
+        if (!(m_dwStyle & DTS_SHOWNONE)) return FALSE;
+        m_dwTimeStatus = GDT_NONE;
+    }
+    return TRUE;
+}
+
+DWORD CMFCToolBarDateTimeCtrl::GetTime(SYSTEMTIME* system) const {
+    if (HasWindow(m_pWndDateTime)) {
+        SYSTEMTIME local{};
+        return static_cast<DWORD>(::SendMessageW(m_pWndDateTime->m_hWnd, DTM_GETSYSTEMTIME,
+            0, reinterpret_cast<LPARAM>(system ? system : &local)));
+    }
+    if (system && m_dwTimeStatus == GDT_VALID) {
+        tm local{};
+        if (_localtime64_s(&local, &m_time) != 0) return GDT_ERROR;
+        *system = TimeFields(local);
+    }
+    return m_dwTimeStatus;
+}
+
 // Symbol: ?SetTime@CMFCToolBarDateTimeCtrl@@QEAAHPEAU_SYSTEMTIME@@@Z
-extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHPEAU_SYSTEMTIME___Z(void* pThis, SYSTEMTIME* pTimeNew) {
-    if (!pThis) return 0;
-    CWnd* pWnd = WndDateTime(pThis);
-    if (!HasWindow(pWnd)) return 0;
-    const int bResult = static_cast<int>(::SendMessage(pWnd->m_hWnd, kDtmSetSystemTime,
-                                                       pTimeNew == nullptr ? kGdtNone : kGdtValid,
-                                                       reinterpret_cast<LPARAM>(pTimeNew)));
-    impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(pThis, kDtnDateTimeChange);
-    return bResult;
+extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHPEAU_SYSTEMTIME___Z(void* button, SYSTEMTIME* system) {
+    return button && DateTimeButton(button)->SetTime(system);
 }
 
-// Retail (reached from ?SetTimeAll@...@@SAHIAEBVCOleDateTime@ATL@@@Z at 0x166df0 -> RVA 0x166ca0, mfc140u), fully transcribed:
-//     BOOL bResult = m_pWndDateTime->SetTime(timeNew);        // 0x29a310, CDateTimeCtrl::SetTime(const COleDateTime&):
-//                                                             //   DTM_SETSYSTEMTIME with GDT_VALID iff m_status == valid && VariantTimeToSystemTime succeeded
-//     NotifyCommand(DTN_DATETIMECHANGE);                      // vslot 0x90 (18)
-//     return bResult;
-// DEVIATION: a button without a window returns FALSE where retail would fault.
 // Symbol: ?SetTime@CMFCToolBarDateTimeCtrl@@QEAAHAEBVCOleDateTime@ATL@@@Z
-extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHAEBVCOleDateTime_ATL___Z(void* pThis, const COleDateTime* pTimeNew) {
-    if (!pThis) return 0;
-    CWnd* pWnd = WndDateTime(pThis);
-    if (!HasWindow(pWnd)) return 0;
-    const int bResult = impl__SetTime_CDateTimeCtrl__QEAAHAEBVCOleDateTime_ATL___Z(pWnd, pTimeNew);
-    impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(pThis, kDtnDateTimeChange);
-    return bResult;
+extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHAEBVCOleDateTime_ATL___Z(void* button, const COleDateTime* time) {
+    SYSTEMTIME system{};
+    if (!button || !time) return FALSE;
+    const bool valid = time->m_status == COleDateTime::DT_VALID && ::VariantTimeToSystemTime(time->m_dt, &system);
+    return DateTimeButton(button)->SetTime(valid ? &system : nullptr);
 }
 
-// Retail (reached from ?SetTimeAll@...@@SAHIPEBVCTime@ATL@@@Z at 0x166e30 -> RVA 0x166ce0, mfc140u), fully transcribed:
-//     BOOL bResult = m_pWndDateTime->SetTime(pTimeNew);       // 0x29a390, CDateTimeCtrl::SetTime(const CTime*):
-//                                                             //   DTM_SETSYSTEMTIME with GDT_NONE for NULL / a failed GetAsSystemTime
-//     NotifyCommand(DTN_DATETIMECHANGE);                      // vslot 0x90 (18)
-//     return bResult;
-// The callee is PushControlTime (the NULL -> GDT_NONE case is sent here).
-// DEVIATION: a button without a window returns FALSE where retail would fault.
 // Symbol: ?SetTime@CMFCToolBarDateTimeCtrl@@QEAAHPEBVCTime@ATL@@@Z
-extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHPEBVCTime_ATL___Z(void* pThis, const void* pTimeNew) {
-    if (!pThis) return 0;
-    CWnd* pWnd = WndDateTime(pThis);
-    if (!HasWindow(pWnd)) return 0;
-    const int bResult = PushControlTime(pWnd, pTimeNew);
-    impl__NotifyCommand_CMFCToolBarDateTimeCtrl__UEAAHH_Z(pThis, kDtnDateTimeChange);
-    return bResult;
+extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHPEBVCTime_ATL___Z(void* button, const void* time) {
+    if (!button) return FALSE;
+    if (!time) return DateTimeButton(button)->SetTime(nullptr);
+    tm local{};
+    if (_localtime64_s(&local, static_cast<const LONGLONG*>(time)) != 0) return FALSE;
+    SYSTEMTIME system = TimeFields(local);
+    return DateTimeButton(button)->SetTime(&system);
 }
 
 // ===========================================================================
@@ -1300,17 +1172,13 @@ extern "C" int MS_ABI impl__SetTime_CMFCToolBarDateTimeCtrl__QEAAHPEBVCTime_ATL_
 //         if (p == NULL || !p->IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl))) AfxThrowInvalidArgException();   // 0x234cf0 / 0x227720
 //     }
 //     return p;                                                       (lst destroyed, 0x8350)
-// DEVIATION: the ENSURE failure returns NULL instead of throwing; the IsKindOf
-// is IsDateTimeButton (IsKindOf plus g_pLiveObjects, file header).
+// Return the first date-time control for the command.
 // Symbol: ?GetByCmd@CMFCToolBarDateTimeCtrl@@SAPEAV1@I@Z
 extern "C" void* MS_ABI impl__GetByCmd_CMFCToolBarDateTimeCtrl__SAPEAV1_I_Z(unsigned int uiCmd) {
     CommandButtonList lst(uiCmd);
-    if (lst.Count() <= 0) return nullptr;
-    ObNode* pHead = lst.First();
-    if (pHead == nullptr) return nullptr;
-    CObject* p = pHead->data;
-    if (!IsDateTimeButton(p)) return nullptr;
-    return static_cast<void*>(p);
+    for (ObNode* node = lst.First(); node; node = node->pNext)
+        if (IsDateTimeButton(node->data)) return node->data;
+    return nullptr;
 }
 
 // Retail (RVA 0x166e70, mfc140u), fully transcribed:
@@ -1322,9 +1190,7 @@ extern "C" void* MS_ABI impl__GetByCmd_CMFCToolBarDateTimeCtrl__SAPEAV1_I_Z(unsi
 extern "C" unsigned long MS_ABI impl__GetTimeAll_CMFCToolBarDateTimeCtrl__SAKIPEAU_SYSTEMTIME___Z(unsigned int uiCmd, SYSTEMTIME* pTimeDest) {
     void* p = impl__GetByCmd_CMFCToolBarDateTimeCtrl__SAPEAV1_I_Z(uiCmd);
     if (p == nullptr) return kGdtNone;
-    CWnd* pWnd = WndDateTime(p);
-    if (!HasWindow(pWnd)) return kGdtNone;
-    return static_cast<unsigned long>(::SendMessage(pWnd->m_hWnd, kDtmGetSystemTime, 0, reinterpret_cast<LPARAM>(pTimeDest)));
+    return DateTimeButton(p)->GetTime(pTimeDest);
 }
 
 // Retail (RVA 0x166eb0, mfc140u), fully transcribed:
@@ -1353,8 +1219,9 @@ extern "C" unsigned long MS_ABI impl__GetTimeAll_CMFCToolBarDateTimeCtrl__SAKIAE
     void* p = impl__GetByCmd_CMFCToolBarDateTimeCtrl__SAPEAV1_I_Z(uiCmd);
     if (p == nullptr || pTimeDest == nullptr) return kGdtNone;
     CWnd* pWnd = WndDateTime(p);
-    if (!HasWindow(pWnd)) return kGdtNone;
-    return ReadControlTime(pWnd, *static_cast<CTime_atl*>(pTimeDest));
+    if (HasWindow(pWnd)) return ReadControlTime(pWnd, *static_cast<LONGLONG*>(pTimeDest));
+    if (TimeStatus(p) == kGdtValid) *static_cast<LONGLONG*>(pTimeDest) = Time(p);
+    return TimeStatus(p);
 }
 
 // Retail (RVA 0x166db0, mfc140u -- the function right after GetByCmd; not in
