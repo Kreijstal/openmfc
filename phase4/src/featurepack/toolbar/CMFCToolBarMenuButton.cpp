@@ -276,16 +276,24 @@ void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDown
     m_bUserButton = bUserButton;
     if (lpszText) m_strText = lpszText;
     m_bText = !m_strText.IsEmpty();
-    MenuButtonState& state = g_menuButtonStates[this];
+    auto& state = g_menuButtonStates[this];
+    if (state.ownedMenu.get() != hMenu) state.ownedMenu.reset();
+    state.menuItem = {};
     state.hasDropDownArrow = bHasDropDownArrow != FALSE;
     state.userButton = bUserButton != FALSE;
 }
 void CMFCToolBarMenuButton::CreateFromMenu(HMENU hMenu) {
-    if (auto* popup = GetOpenPopup()) popup->CloseMenu();
-    m_hMenu = hMenu;
+    openmfc::detail::TearOffMenuHandle copy;
+    if (hMenu) {
+        copy = ClonePopupMenu(hMenu);
+        if (!copy) return;
+    }
+    auto& state = g_menuButtonStates[this];
+    state.ownedMenu = std::move(copy);
+    m_hMenu = state.ownedMenu.get();
 }
 HMENU CMFCToolBarMenuButton::CreateMenu() const {
-    return m_hMenu ? m_hMenu : ::CreatePopupMenu();
+    return m_hMenu ? ClonePopupMenu(m_hMenu).release() : ::CreatePopupMenu();
 }
 void CMFCToolBarMenuButton::CopyFrom(const CMFCToolBarButton& src) {
     if (auto* popup = GetOpenPopup()) popup->CloseMenu();
@@ -829,6 +837,10 @@ extern "C" void MS_ABI impl__ResetImageToDefault_CMFCToolBarMenuButton__UEAAXXZ(
 extern "C" void MS_ABI impl__SaveBarState_CMFCToolBarMenuButton__UEAAXXZ(CMFCToolBarMenuButton* pThis)
 {
     if (pThis == nullptr || pThis->m_pWndParent == nullptr) return;
+    if (pThis->m_pWndParent->IsKindOf(RUNTIME_CLASS(CMFCPopupMenu))) {
+        static_cast<CMFCPopupMenu*>(pThis->m_pWndParent)->SaveState();
+        return;
+    }
     CRuntimeClass* pPopupClass = impl__GetThisClass_CMFCPopupMenu__SAPEAUCRuntimeClass__XZ();
     CWnd* pMenu = impl__FromHandle_CWnd__SAPEAV1_PEAUHWND_____Z(::GetParent(pThis->m_pWndParent->m_hWnd));
     if (!MbIsKindOf(pMenu, pPopupClass)) return;
@@ -918,6 +930,9 @@ extern "C" void MS_ABI impl__SetRadio_CMFCToolBarMenuButton__UEAAXXZ(CMFCToolBar
 
 // Retail RVA 0x175f10 (mfc140u; slot 64 of the retail CMFCToolBarMenuButton
 // vftable), transcribed:
+bool CMFCToolBarMenuButton::IsMenuPaletteMode() const {
+    return MbGet<BOOL>(this, kMbMenuPaletteMode) != FALSE;
+}
 UINT CMFCToolBarMenuButton::GetTearOff() const {
     return MbGet<UINT>(this, kMbTearOffBarID);
 }

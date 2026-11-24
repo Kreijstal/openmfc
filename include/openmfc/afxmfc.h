@@ -1301,6 +1301,7 @@ public:
     BOOL Create(CWnd* pParentWnd, int x, int y, HMENU hMenu, BOOL bLocked = FALSE, BOOL bIsMainMenu = FALSE);
     BOOL CreateForButton(CWnd* parent, const CRect& anchor, HMENU menu, CMFCToolBarMenuButton* button, BOOL horizontal);
     void CloseMenu(BOOL bSetFocusToBar = FALSE);
+    void SaveState();
     int GetMenuItemCount() const;
     CMFCToolBarMenuButton* GetMenuItem(int nIndex) const;
     CMFCToolBarMenuButton* GetSelItem();
@@ -2103,6 +2104,7 @@ public:
     BOOL OpenPopupMenu(CWnd* parent);
     CMFCPopupMenu* GetOpenPopup() const;
     UINT GetTearOff() const;
+    bool IsMenuPaletteMode() const;
     void SetTearOff(UINT id);
     void OnPopupClosed(const CMFCPopupMenu* popup, HWND parent);
     void Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton);

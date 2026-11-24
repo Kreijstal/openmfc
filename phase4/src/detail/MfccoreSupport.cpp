@@ -207,12 +207,7 @@ void ClearMenuBarState(const CMFCMenuBar* pMenuBar) {
     g_menuBarStates.erase(it);
 }
 void ClearToolBarButtons(ToolBarState& state) {
-    for (CMFCToolBarButton* button : state.ownedButtons) {
-        if (button && button->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
-            g_menuButtonStates.erase(static_cast<CMFCToolBarMenuButton*>(button));
-        }
-        delete button;
-    }
+    for (auto* button : state.ownedButtons) delete button;
     state.buttons.clear();
     state.ownedButtons.clear();
 }
@@ -399,12 +394,81 @@ std::wstring CurrentAppExSection(CWinAppEx* app) {
     const wchar_t* value = static_cast<const wchar_t*>(section);
     return value ? std::wstring(value) : std::wstring();
 }
-CString GetMenuItemText(HMENU hMenu, int index) {
-    wchar_t buffer[256] = {};
-    if (hMenu) {
-        ::GetMenuStringW(hMenu, static_cast<UINT>(index), buffer, 256, MF_BYPOSITION);
+namespace {
+constexpr UINT menuItemFields = MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_STRING | MIIM_SUBMENU |
+                                MIIM_BITMAP | MIIM_CHECKMARKS | MIIM_DATA;
+
+bool ReadMenuItem(HMENU menu, UINT index, MENUITEMINFOW& item, std::wstring& label) {
+    item = {sizeof(item), menuItemFields};
+    if (!::GetMenuItemInfoW(menu, index, TRUE, &item)) return false;
+    label.resize(item.cch + 1);
+    item.dwTypeData = label.data();
+    item.cch = static_cast<UINT>(label.size());
+    return ::GetMenuItemInfoW(menu, index, TRUE, &item) != FALSE;
+}
+}
+
+openmfc::detail::TearOffMenuHandle ClonePopupMenu(HMENU menu) {
+    openmfc::detail::TearOffMenuHandle copy(::CreatePopupMenu());
+    const int count = ::GetMenuItemCount(menu);
+    if (!copy || count < 0) return {};
+    for (int i = 0; i < count; ++i) {
+        MENUITEMINFOW item{};
+        std::wstring label;
+        if (!ReadMenuItem(menu, i, item, label)) return {};
+        openmfc::detail::TearOffMenuHandle child;
+        if (item.hSubMenu) {
+            child = ClonePopupMenu(item.hSubMenu);
+            if (!child) return {};
+            item.hSubMenu = child.get();
+        }
+        if (!::InsertMenuItemW(copy.get(), i, TRUE, &item)) return {};
+        child.release();
     }
-    return CString(buffer);
+    return copy;
+}
+
+openmfc::detail::TearOffMenuHandle ExportPopupMenuItems(const std::vector<CMFCToolBarMenuButton*>& items) {
+    openmfc::detail::TearOffMenuHandle menu(::CreatePopupMenu());
+    if (!menu) return {};
+    for (const auto* button : items) {
+        if (!button) continue;
+        MENUITEMINFOW item{sizeof(item), menuItemFields};
+        if (const auto state = g_menuButtonStates.find(button);
+            state != g_menuButtonStates.end() && state->second.menuItem.cbSize) {
+            item = state->second.menuItem;
+        }
+        item.wID = button->m_nID;
+        item.fType &= ~MFT_SEPARATOR;
+        if (button->m_nStyle & TBSTYLE_SEP) item.fType |= MFT_SEPARATOR;
+        item.fState &= ~(MFS_CHECKED | MFS_DISABLED);
+        if (button->m_nStyle & (UINT(TBSTATE_CHECKED) << 16)) item.fState |= MFS_CHECKED;
+        if (button->m_nStyle & (UINT(TBSTATE_ENABLED) << 16)) item.fState |= MFS_DISABLED;
+
+        CString text = button->m_strText;
+        openmfc::detail::TearOffMenuHandle child;
+        if (button->m_hMenu && !(item.fType & MFT_SEPARATOR)) {
+            child = ClonePopupMenu(button->m_hMenu);
+            if (!child) return {};
+            item.hSubMenu = child.get();
+            if (const auto tearOff = button->GetTearOff())
+                text = openmfc::detail::EncodeTearOffTitle(tearOff, text);
+        }
+
+        item.dwTypeData = text.GetBuffer();
+        const auto index = static_cast<UINT>(::GetMenuItemCount(menu.get()));
+        const BOOL added = ::InsertMenuItemW(menu.get(), index, TRUE, &item);
+        text.ReleaseBuffer();
+        if (!added) return {};
+        child.release();
+    }
+    return menu;
+}
+
+CString GetMenuItemText(HMENU hMenu, int index) {
+    MENUITEMINFOW item{};
+    std::wstring label;
+    return hMenu && ReadMenuItem(hMenu, index, item, label) ? CString(label.c_str()) : CString();
 }
 UINT GetMenuItemCommand(HMENU hMenu, int index) {
     if (!hMenu) return 0;
@@ -415,19 +479,22 @@ HMENU GetMenuItemSubMenu(HMENU hMenu, int index) {
     return hMenu ? ::GetSubMenu(hMenu, index) : nullptr;
 }
 CMFCToolBarMenuButton* CreateMenuButtonFromMenu(HMENU hMenu, int index) {
-    const UINT id = GetMenuItemCommand(hMenu, index);
-    HMENU subMenu = GetMenuItemSubMenu(hMenu, index);
-    CString text = GetMenuItemText(hMenu, index);
-    const UINT tearOff = subMenu ? openmfc::detail::DecodeTearOffTitle(text) : 0;
-    auto* button = new CMFCToolBarMenuButton(id, subMenu, subMenu != nullptr,
-                                            static_cast<const wchar_t*>(text), FALSE);
-    MENUITEMINFOW info{sizeof(info)};
+    MENUITEMINFOW info{};
+    std::wstring label;
+    const bool read = ReadMenuItem(hMenu, index, info, label);
+    CString text(read ? label.c_str() : L"");
+    const UINT tearOff = info.hSubMenu ? openmfc::detail::DecodeTearOffTitle(text) : 0;
+    const UINT id = info.wID == UINT(-1) ? 0 : info.wID;
+    auto* button = new CMFCToolBarMenuButton(id, info.hSubMenu, info.hSubMenu != nullptr, text, FALSE);
     button->SetTearOff(tearOff);
-    info.fMask = MIIM_FTYPE | MIIM_STATE;
-    if (::GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
+    if (read) {
         if (info.fType & MFT_SEPARATOR) button->m_nStyle |= TBSTYLE_SEP;
         if (info.fState & MFS_CHECKED) button->m_nStyle |= UINT(TBSTATE_CHECKED) << 16;
         if (info.fState & MFS_DISABLED) button->m_nStyle |= UINT(TBSTATE_ENABLED) << 16;
+        info.dwTypeData = nullptr;
+        info.hSubMenu = nullptr;
+        info.cch = 0;
+        g_menuButtonStates[button].menuItem = info;
     }
     return button;
 }

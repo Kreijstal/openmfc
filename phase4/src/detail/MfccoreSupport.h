@@ -15,6 +15,7 @@ using namespace openmfc::detail::mfccore;
 
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
+#include "MenuTearOffSupport.h"
 #include <memory>
 
 class CAutoHideDockSite;
@@ -273,9 +274,11 @@ struct PopupMenuState {
     CRect tearOffGrip{0, 0, 0, 0};
     bool tearOffTracking = false;
     bool closing = false;
+    bool saving = false;
     bool deleteOnClose = false;
     std::vector<CMFCToolBarMenuButton*> items;
     std::unordered_set<CMFCToolBarMenuButton*> ownedItems;
+    std::shared_ptr<std::remove_pointer_t<HMENU>> menuLifetime;
 };
 } } }
 
@@ -314,6 +317,8 @@ namespace openmfc { namespace detail { namespace mfccore {
 struct MenuButtonState {
     bool hasDropDownArrow = false;
     bool userButton = false;
+    MENUITEMINFOW menuItem{};
+    std::shared_ptr<std::remove_pointer_t<HMENU>> ownedMenu;
 };
 } } }
 
@@ -584,6 +589,8 @@ std::wstring CurrentAppExSection(CWinAppEx* app);
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
+openmfc::detail::TearOffMenuHandle ClonePopupMenu(HMENU menu);
+openmfc::detail::TearOffMenuHandle ExportPopupMenuItems(const std::vector<CMFCToolBarMenuButton*>& items);
 CString GetMenuItemText(HMENU hMenu, int index);
 } } }
 

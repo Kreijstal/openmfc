@@ -1165,31 +1165,6 @@ constexpr wchar_t kTearOffToolbarProperty[] = L"OpenMFC.TearOffToolbar";
 
 using PopupMenuHandle = openmfc::detail::TearOffMenuHandle;
 
-PopupMenuHandle CopyPopupMenu(HMENU menu) {
-    PopupMenuHandle copy(::CreatePopupMenu());
-    const int count = ::GetMenuItemCount(menu);
-    if (!copy || count < 0) return {};
-    for (int i = 0; i < count; ++i) {
-        MENUITEMINFOW item{sizeof(item)};
-        item.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_STRING | MIIM_SUBMENU |
-                     MIIM_BITMAP | MIIM_CHECKMARKS | MIIM_DATA;
-        if (!::GetMenuItemInfoW(menu, i, TRUE, &item)) return {};
-        std::wstring label(item.cch + 1, L'\0');
-        item.dwTypeData = label.data();
-        item.cch = static_cast<UINT>(label.size());
-        if (!::GetMenuItemInfoW(menu, i, TRUE, &item)) return {};
-        PopupMenuHandle child;
-        if (item.hSubMenu) {
-            child = CopyPopupMenu(item.hSubMenu);
-            if (!child) return {};
-            item.hSubMenu = child.get();
-        }
-        if (!::InsertMenuItemW(copy.get(), i, TRUE, &item)) return {};
-        child.release();
-    }
-    return copy;
-}
-
 class TearOffToolbar final : public CMFCToolBar {
 public:
     ~TearOffToolbar() override {
@@ -1205,7 +1180,7 @@ public:
             const auto label = TearOffLabel(item->m_strText, false);
             std::unique_ptr<CMFCToolBarButton> button;
             if (item->m_hMenu) {
-                auto menu = CopyPopupMenu(item->m_hMenu);
+                auto menu = ClonePopupMenu(item->m_hMenu);
                 if (!menu) return false;
                 auto submenu = std::make_unique<CMFCToolBarMenuButton>(
                     item->m_nID, menu.get(), TRUE, label.c_str(), FALSE);
@@ -1410,6 +1385,44 @@ void PagePopupSelection(CMFCPopupMenu* popup, PopupMenuState& state, int directi
     }
 }
 
+void BindPopupItems(CMFCPopupMenu& popup, const PopupMenuState& state) {
+    for (auto* item : state.items) item->m_pWndParent = &popup;
+}
+
+std::shared_ptr<std::remove_pointer_t<HMENU>> PopupMenuLifetime(const CMFCToolBarMenuButton* button, HMENU menu) {
+    const auto it = g_menuButtonStates.find(button);
+    return it != g_menuButtonStates.end() && it->second.ownedMenu.get() == menu ? it->second.ownedMenu : nullptr;
+}
+
+bool CanSavePopupItems(const PopupMenuState& state) {
+    return state.parentButton && !state.saving && !state.parentButton->IsMenuPaletteMode();
+}
+
+bool StorePopupItems(CMFCPopupMenu* popup) {
+    const auto it = g_popupMenuStates.find(popup);
+    if (it == g_popupMenuStates.end() || !CanSavePopupItems(it->second)) return false;
+    auto& state = it->second;
+    const auto menu = ExportPopupMenuItems(state.items);
+    if (!menu) return false;
+    struct SaveGuard {
+        CMFCPopupMenu* popup;
+        ~SaveGuard() {
+            const auto it = g_popupMenuStates.find(popup);
+            if (it != g_popupMenuStates.end()) it->second.saving = false;
+        }
+    } guard{popup};
+    state.saving = true;
+    state.parentButton->CreateFromMenu(menu.get());
+    return true;
+}
+
+bool SavePopupBranch(CMFCPopupMenu* popup) {
+    const auto it = g_popupMenuStates.find(popup);
+    if (it == g_popupMenuStates.end() || !CanSavePopupItems(it->second)) return false;
+    if (it->second.childPopup) SavePopupBranch(it->second.childPopup);
+    return StorePopupItems(popup);
+}
+
 void ActivatePopupRow(CMFCPopupMenu* popup, bool submenuOnly, bool keyboard) {
     auto& state = g_popupMenuStates.at(popup);
     auto* item = popup->GetSelItem();
@@ -1435,8 +1448,12 @@ void ActivatePopupRow(CMFCPopupMenu* popup, bool submenuOnly, bool keyboard) {
         childState.parentWindow = popup->GetSafeHwnd();
         childState.commandWindow = state.commandWindow;
         childState.menu = item->m_hMenu;
+        childState.parentButton = item;
+        childState.menuLifetime = PopupMenuLifetime(item, childState.menu);
+        if (!childState.menuLifetime) childState.menuLifetime = state.menuLifetime;
         SetPopupTearOff(childState, *item);
         ImportMenuIntoPopupItems(childState.menu, childState.items, childState.ownedItems);
+        BindPopupItems(*child, childState);
         if (CreatePopupWindow(child.get(), *static_cast<const RECT*>(anchor), true)) {
             childState.deleteOnClose = true;
             state.childPopup = child.release();
@@ -1814,7 +1831,9 @@ LRESULT CALLBACK PopupWindowProc(HWND window, UINT message, WPARAM wp, LPARAM lp
         popup->CloseMenu(TRUE);
         return 0;
     case WM_NCDESTROY: {
+        const bool save = !state.closing && (!state.parentPopup || !g_popupMenuStates.at(state.parentPopup).closing);
         state.closing = true;
+        if (save) popup->SaveState();
         state.scrollBar = nullptr;
         if (state.dropDownList) state.dropDownList->scrollable = FALSE;
         if (state.childPopup) state.childPopup->CloseMenu();
@@ -1870,6 +1889,8 @@ void SetPopupItems(PopupMenuState& state, CWnd* parent, HMENU menu, BOOL locked,
     state.parent = parent;
     state.parentWindow = parent ? parent->GetSafeHwnd() : nullptr;
     state.menu = menu;
+    state.menuLifetime.reset();
+    state.parentButton = nullptr;
     state.locked = locked != FALSE;
     state.mainMenu = mainMenu != FALSE;
     state.selected = -1;
@@ -1942,7 +1963,7 @@ bool openmfc::detail::CaptureTearOffToolbar(
         if (button->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
             auto& menuButton = static_cast<CMFCToolBarMenuButton&>(*button);
             if (menuButton.m_hMenu) {
-                submenu = CopyPopupMenu(menuButton.m_hMenu);
+                submenu = ClonePopupMenu(menuButton.m_hMenu);
                 if (!submenu) return false;
                 row.fMask |= MIIM_SUBMENU;
                 row.hSubMenu = submenu.get();
@@ -2005,6 +2026,7 @@ BOOL CMFCPopupMenu::Create(CWnd* parent, int x, int y, HMENU menu, BOOL locked, 
     if (auto* active = RootPopup(GetActiveMenu())) active->CloseMenu();
     auto& state = g_popupMenuStates[this];
     SetPopupItems(state, parent, menu, locked, mainMenu);
+    BindPopupItems(*this, state);
     state.x = x;
     state.y = y;
     state.commandWindow = state.parentWindow;
@@ -2019,6 +2041,8 @@ BOOL CMFCPopupMenu::CreateForButton(CWnd* parent, const CRect& anchor, HMENU men
     if (auto* active = RootPopup(GetActiveMenu())) active->CloseMenu();
     auto& state = g_popupMenuStates[this];
     SetPopupItems(state, parent, menu, button->m_bLocked, FALSE);
+    state.menuLifetime = PopupMenuLifetime(button, menu);
+    BindPopupItems(*this, state);
     SetPopupTearOff(state, *button);
     const HWND window = parent->GetSafeHwnd();
     state.commandWindow = parent->m_hWndOwner;
@@ -2033,10 +2057,14 @@ BOOL CMFCPopupMenu::CreateForButton(CWnd* parent, const CRect& anchor, HMENU men
     return TRUE;
 }
 void CMFCPopupMenu::CloseMenu(BOOL setFocusToBar) {
-    const auto it = g_popupMenuStates.find(this);
+    auto it = g_popupMenuStates.find(this);
     if (it == g_popupMenuStates.end() || it->second.closing) return;
+    it->second.closing = true;
+    const auto* parent = it->second.parentPopup;
+    if (!parent || !g_popupMenuStates.at(parent).closing) SaveState();
+    it = g_popupMenuStates.find(this);
+    if (it == g_popupMenuStates.end()) return;
     auto& state = it->second;
-    state.closing = true;
     if (state.childPopup) state.childPopup->CloseMenu();
     const HWND window = GetSafeHwnd();
     if (!window) {
@@ -2048,6 +2076,20 @@ void CMFCPopupMenu::CloseMenu(BOOL setFocusToBar) {
     if (::GetFocus() != window || !setFocusToBar) focus = nullptr;
     ::DestroyWindow(window);
     if (focus && ::IsWindow(focus)) ::SetFocus(focus);
+}
+void CMFCPopupMenu::SaveState() {
+    if (!impl__m_bCustomizeMode_CMFCToolBar__1HA) return;
+    const auto current = g_popupMenuStates.find(this);
+    if (current == g_popupMenuStates.end()) return;
+    auto* parent = current->second.parentPopup;
+    if (!SavePopupBranch(this)) return;
+    while (parent) {
+        const auto it = g_popupMenuStates.find(parent);
+        if (it == g_popupMenuStates.end()) break;
+        auto* next = it->second.parentPopup;
+        if (!StorePopupItems(parent)) break;
+        parent = next;
+    }
 }
 int CMFCPopupMenu::GetMenuItemCount() const {
     auto it = g_popupMenuStates.find(this);
@@ -2075,6 +2117,7 @@ CMFCToolBarMenuButton* CMFCPopupMenu::FindSubItemByCommand(UINT uiCmd) const {
 BOOL CMFCPopupMenu::InsertItem(const CMFCToolBarMenuButton& button, int iInsertAt) {
     PopupMenuState& state = g_popupMenuStates[this];
     CMFCToolBarMenuButton* copy = new CMFCToolBarMenuButton(button);
+    copy->m_pWndParent = this;
     if (iInsertAt < 0 || iInsertAt >= static_cast<int>(state.items.size())) {
         state.items.push_back(copy);
     } else {
@@ -2899,6 +2942,11 @@ extern "C" void MS_ABI impl__RemoveAllItems_CMFCPopupMenu__QEAAXXZ(void* pThis)
     if (!pThis) return;
     auto it = g_popupMenuStates.find(static_cast<const CMFCPopupMenu*>(pThis));
     if (it == g_popupMenuStates.end()) return;
+    if (it->second.childPopup) {
+        it->second.childPopup->CloseMenu();
+        it = g_popupMenuStates.find(static_cast<const CMFCPopupMenu*>(pThis));
+        if (it == g_popupMenuStates.end()) return;
+    }
     for (CMFCToolBarMenuButton* item : it->second.items) {
         if (it->second.ownedItems.erase(item) != 0) delete item;
     }
@@ -2919,6 +2967,11 @@ extern "C" int MS_ABI impl__RemoveItem_CMFCPopupMenu__QEAAHH_Z(void* pThis, int 
     auto it = g_popupMenuStates.find(static_cast<const CMFCPopupMenu*>(pThis));
     if (it == g_popupMenuStates.end()) return FALSE;
     if (iIndex < 0 || iIndex >= static_cast<int>(it->second.items.size())) return FALSE;
+    if (it->second.childPopup) {
+        it->second.childPopup->CloseMenu();
+        it = g_popupMenuStates.find(static_cast<const CMFCPopupMenu*>(pThis));
+        if (it == g_popupMenuStates.end() || iIndex >= static_cast<int>(it->second.items.size())) return FALSE;
+    }
     CMFCToolBarMenuButton* item = it->second.items[static_cast<size_t>(iIndex)];
     it->second.items.erase(it->second.items.begin() + iIndex);
     if (it->second.ownedItems.erase(item) != 0) delete item;
@@ -2928,22 +2981,10 @@ extern "C" int MS_ABI impl__RemoveItem_CMFCPopupMenu__QEAAHH_Z(void* pThis, int 
     return TRUE;
 }
 
-// Retail (RVA 0xb6ff0, mfc140u), fully decoded but NOT implemented:
-//     if (!CMFCToolBar::m_bCustomizeMode) return;                  // 0x3be35c
-//     if (m_pParentBtn == NULL) return;                            // +0x228
-//     if (m_pParentBtn->+0xe8 != 0) return;                        // m_bMenuPaletteMode by afxtoolbarmenubutton.h order (m_pPopupMenu is at +0xc0)
-//     HMENU hMenu = GetMenuBar()->ExportToMenu();                  // vslot 0x3a0, vslot 0x888 (0xbd7b0)
-//     if (hMenu == NULL) AfxThrowInvalidArgException();            // 0x227720
-//     m_pParentBtn->CreateFromMenu(hMenu);                         // vslot 0x1b0 (0x173d20)
-//     ::DestroyMenu(hMenu);
-//     if (CMFCPopupMenu* pParent = GetParentPopupMenu()) pParent->SaveState();   // 0xb7550, vslot 0x3d0
-// Left a stub: the exported menu comes from the embedded bar, which OpenMFC
-// does not construct.
-// TODO(clean-room): not transcribed -- embedded menu bar is not modeled.
 // Symbol: ?SaveState@CMFCPopupMenu@@UEAAXXZ
 extern "C" void MS_ABI impl__SaveState_CMFCPopupMenu__UEAAXXZ(void* pThis)
 {
-    (void)pThis;
+    if (pThis) static_cast<CMFCPopupMenu*>(pThis)->SaveState();
 }
 
 // Retail (RVA 0xba7d0, mfc140u), fully transcribed:

@@ -50,20 +50,8 @@ BOOL CMFCPopupMenuBar::ImportFromMenu(HMENU hMenu, BOOL) {
     return TRUE;
 }
 HMENU CMFCPopupMenuBar::ExportToMenu() const {
-    auto it = g_popupMenuBarStates.find(this);
-    if (it == g_popupMenuBarStates.end()) return nullptr;
-    if (it->second.menu) return it->second.menu;
-
-    HMENU hMenu = ::CreatePopupMenu();
-    for (CMFCToolBarMenuButton* item : it->second.items) {
-        if (!item) continue;
-        if (item->m_hMenu) {
-            ::AppendMenuW(hMenu, MF_POPUP, reinterpret_cast<UINT_PTR>(item->m_hMenu), static_cast<const wchar_t*>(item->m_strText));
-        } else {
-            ::AppendMenuW(hMenu, MF_STRING, static_cast<UINT_PTR>(item->m_nID), static_cast<const wchar_t*>(item->m_strText));
-        }
-    }
-    return hMenu;
+    const auto it = g_popupMenuBarStates.find(this);
+    return it == g_popupMenuBarStates.end() ? ::CreatePopupMenu() : ExportPopupMenuItems(it->second.items).release();
 }
 BOOL CMFCPopupMenuBar::BuildOrigItems(UINT) { return TRUE; }
 CMFCToolBarMenuButton* CMFCPopupMenuBar::GetMenuItem(int nIndex) const {
