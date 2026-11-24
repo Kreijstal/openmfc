@@ -4,8 +4,8 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/DocviewSupport.h"
+#include "detail/MDIClientSupport.h"
 #include "detail/WindowCreationSupport.h"
-
 
 // Implementations this unit calls that are defined with their own class.
 extern "C" void MS_ABI impl__OnIdle_CDocument__UEAAXXZ(CDocument* pThis);
@@ -40,18 +40,53 @@ extern "C" CDocument* MS_ABI impl__CreateNewDocument_CDocTemplate__UEAAPEAVCDocu
     pThis->AddDocument(pDoc);
     return pDoc;
 }
+CMDIFrameWnd*& openmfc::detail::mdi::DocumentFrameOverride() {
+    static thread_local CMDIFrameWnd* frame = nullptr;
+    return frame;
+}
+
+namespace {
+CMDIFrameWnd* MDIParent(CFrameWnd* other) {
+    if (auto* parent = openmfc::detail::mdi::DocumentFrameOverride()) return parent;
+    if (other && other->IsKindOf(RUNTIME_CLASS(CMDIChildWnd)))
+        return static_cast<CMDIChildWnd*>(other)->GetMDIFrame();
+    auto* app = AfxGetApp();
+    CWnd* window = app ? app->m_pMainWnd : nullptr;
+    return window && window->IsKindOf(RUNTIME_CLASS(CMDIFrameWnd)) ? static_cast<CMDIFrameWnd*>(window) : nullptr;
+}
+}
+
 // CreateNewFrame
 // Symbol: ?CreateNewFrame@CDocTemplate@@UEAAPEAVCFrameWnd@@PEAVCDocument@@PEAV2@@Z
 extern "C" CFrameWnd* MS_ABI impl__CreateNewFrame_CDocTemplate__UEAAPEAVCFrameWnd__PEAVCDocument__PEAV2__Z(
     CDocTemplate* pThis, CDocument* pDoc, CFrameWnd* pOther)
 {
-    (void)pOther;
     if (!pThis || !pThis->m_pFrameClass) return nullptr;
 
     CObject* pObj = pThis->m_pFrameClass->CreateObject();
     if (!pObj) return nullptr;
 
     CFrameWnd* pFrame = static_cast<CFrameWnd*>(pObj);
+
+    if (!pFrame->m_hWnd && pFrame->IsKindOf(RUNTIME_CLASS(CMDIChildWnd))) {
+        auto* child = static_cast<CMDIChildWnd*>(pFrame);
+        CCreateContext context{};
+        context.m_pCurrentDoc = pDoc;
+        context.m_pNewDocTemplate = pThis;
+        context.m_pNewViewClass = pThis->m_pViewClass;
+        context.m_pCurrentFrame = pOther;
+        context.m_pLastView = pOther ? pOther->GetActiveView() : nullptr;
+        const wchar_t* title = pDoc ? pDoc->GetTitle() : nullptr;
+        if (!child->Create(nullptr, title, WS_CHILD | WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS,
+                RECT{}, MDIParent(pOther), &context)) {
+            delete child;
+            return nullptr;
+        }
+        auto* view = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetDlgItem(child->m_hWnd, AFX_IDW_PANE_FIRST)));
+        if (view && view->IsKindOf(RUNTIME_CLASS(CView))) child->SetActiveView(static_cast<CView*>(view), FALSE);
+        if (child->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx))) static_cast<CMDIChildWndEx*>(child)->AutoDestroyWithWindow();
+        return child;
+    }
 
     if (!pFrame->m_hWnd) {
         int frameCreated = FALSE;
@@ -147,13 +182,13 @@ extern "C" void MS_ABI impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd
     CDocTemplate* pThis, CFrameWnd* pFrame, CDocument* pDoc, int bMakeVisible)
 {
     (void)pThis;
+    const bool mdi = pFrame && pFrame->IsKindOf(RUNTIME_CLASS(CMDIChildWnd));
 
     if (pDoc) {
-        // Call OnInitialUpdate on all views
         void* pos = impl__GetFirstViewPosition_CDocument__UEBAPEAXXZ(pDoc);
         while (pos) {
             CView* pView = impl__GetNextView_CDocument__UEBAPEAVCView__AEAPEAX_Z(pDoc, pos);
-            if (pView) {
+            if (pView && (!mdi || pView->GetParentFrame() == pFrame)) {
                 pView->OnInitialUpdate();
             }
         }
@@ -162,7 +197,8 @@ extern "C" void MS_ABI impl__InitialUpdateFrame_CDocTemplate__UEAAXPEAVCFrameWnd
     if (pFrame && pFrame->m_hWnd) {
         pFrame->CFrameWnd::RecalcLayout(TRUE);
         if (bMakeVisible) {
-            pFrame->CFrameWnd::ActivateFrame(SW_SHOW);
+            if (mdi) static_cast<CMDIChildWnd*>(pFrame)->ActivateFrame(SW_SHOW);
+            else pFrame->CFrameWnd::ActivateFrame(SW_SHOW);
         }
     }
 }

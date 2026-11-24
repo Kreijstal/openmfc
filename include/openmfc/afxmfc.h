@@ -1756,6 +1756,10 @@ public:
     CMFCTabCtrl& GetMDITabs();
     virtual CMDIChildWndEx* ControlBarToTabbedDocument(CDockablePane* pane);
     virtual BOOL TabbedDocumentToControlBar(CMDIChildWndEx* document);
+    virtual BOOL LoadMDIState(const wchar_t* profile);
+    virtual BOOL SaveMDIState(const wchar_t* profile);
+    virtual CMDIChildWndEx* CreateDocumentWindow(const wchar_t* name, CObject* state);
+    virtual CMDIChildWndEx* CreateNewWindow(const wchar_t* name, CObject* state);
 
     // Command UI update handlers
     void OnUpdatePaneMenu(CCmdUI* pCmdUI);
@@ -1774,6 +1778,7 @@ public:
 
     void AddTabbedPane(CDockablePane* pane);
     CDockablePane* GetTabbedPane() const;
+    virtual const wchar_t* GetDocumentName(CObject** state);
     BOOL AttachTabbedPane(CDockablePane& pane);
     BOOL RestoreTabbedPane(BOOL restoreDocking);
     void AutoDestroyWithWindow();

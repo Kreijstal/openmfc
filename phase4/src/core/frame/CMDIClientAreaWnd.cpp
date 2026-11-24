@@ -125,6 +125,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <memory>
 
 namespace openmfc { namespace detail { namespace cmdiclientarea {} } }
 
@@ -134,6 +135,13 @@ namespace openmfc { namespace detail { namespace cmdiclientarea {} } }
 // the ones whose definition still carries an auto-generated parameter list
 // are flagged where they are called.
 // ---------------------------------------------------------------------------
+extern "C" CString* MS_ABI impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(
+    CString*, const wchar_t*, const wchar_t*);
+extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(CDockingManager*, UINT, int);
+extern "C" void MS_ABI impl__Serialize_CMDIClientAreaWnd__UEAAXAEAVCArchive___Z(void*, void*);
+extern "C" void MS_ABI impl__SetAutoColors_CMFCBaseTabCtrl__QEAAXAEBV__CArray_KK___Z(
+    CMFCBaseTabCtrl*, const CArray<COLORREF, COLORREF>&);
+
 // This file (forward declarations of exports defined further down).
 extern "C" int MS_ABI impl__CanShowOnMDITabs_CMDIChildWndEx__UEAAHXZ(CMDIChildWndEx*);
 extern "C" void MS_ABI impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(void* pThis, int bSetActiveTabVisible);
@@ -2265,23 +2273,6 @@ extern "C" int MS_ABI impl__IsMemberOfMDITabGroup_CMDIClientAreaWnd__QEAAHPEAVCW
     return ListFind(self->m_lstTabbedGroups, pWnd) != nullptr ? TRUE : FALSE;
 }
 
-// CMDIClientAreaWnd::LoadState — retail entry RVA 0x82810 (mfc140u; the ANSI
-// twin ?LoadState@CMDIClientAreaWnd@@QEAAHPEBDI@Z is 0x82da0 in mfc140).
-// Builds the registry path with AFXGetRegPath (0xd2540 mfc140) and
-// CString::Format from lpszProfileName and nFrameID, opens it through
-// CSettingsStoreSP::Create (0x12b320 mfc140), reads the blob, wraps it in a
-// CMemFile/CArchive and drives Serialize (this->vtable[+0x10]).
-// STUB: Serialize below is itself a stub (its payload is the tab-group
-// document list, which needs the document-template machinery), so there is
-// nothing a load could deliver into; not transcribed.
-// Symbol: ?LoadState@CMDIClientAreaWnd@@QEAAHPEB_WI@Z
-extern "C" int MS_ABI impl__LoadState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(void* pThis, const wchar_t* lpszProfileName, unsigned int uiID) {
-    (void)pThis;
-    (void)lpszProfileName;
-    (void)uiID;
-    return 0;
-}
-
 // CMDIClientAreaWnd::MDITabMoveToNextGroup — transcribed from retail entry
 // RVA 0x80aa0 (mfc140u):
 //     CMFCTabCtrl* pGroup = FindActiveTabWndByActiveChild();  if (!pGroup) return;
@@ -2738,80 +2729,511 @@ extern "C" void MS_ABI impl__RemoveTabGroup_CMDIClientAreaWnd__QEAAXPEAVCMFCTabC
     impl__ShowWindow_CWnd__QEAAHH_Z(AsWnd(pTabGroup), SW_HIDE);
 }
 
-// CMDIClientAreaWnd::SaveState — the Unicode export is missing from both RVA
-// maps, but the mfc140u export table places ?SaveState@CMDIClientAreaWnd@@QEAAHPEB_WI@Z
-// at entry RVA 0x825e0 (mfc140u), byte-identical to the ANSI twin
-// ?SaveState@CMDIClientAreaWnd@@QEAAHPEBDI@Z (entry RVA 0x82b70, mfc140),
-// which is the copy that was decoded.  It formats the registry path with
-// AFXGetRegPath (0xd2540) / CString::Format (0xda80), serialises into a
-// CMemFile through a storing CArchive (0x229510 / 0x1cf500) by calling
-// this->vtable[+0x10] (Serialize), then writes the resulting blob to the
-// settings store.
-// STUB: Serialize below is a stub, so the blob would be empty; not
-// transcribed.
+namespace {
+constexpr wchar_t mdiProfileValue[] = L"MDITabsState";
+constexpr DWORD maxMdiProfileBytes = 64 * 1024 * 1024;
+
+struct SessionDocument {
+    CString path;
+    CString label;
+    CObject* state = nullptr;
+    int paneId = -1;
+    int resizeMode = kGroupNoAlign;
+    COLORREF color = COLORREF(-1);
+    WINDOWPLACEMENT placement{sizeof(WINDOWPLACEMENT)};
+    BOOL active = FALSE;
+};
+
+struct SessionGroup {
+    std::vector<SessionDocument> documents;
+    std::vector<COLORREF> autoColors;
+    RECT bounds{};
+    int selected = -1;
+    BOOL active = FALSE;
+    BOOL autoColor = FALSE;
+    BOOL documentMenu = FALSE;
+    BOOL swapTabs = TRUE;
+    int border = -1;
+};
+
+struct MdiSession {
+    CMDITabInfo options;
+    BOOL tabs = FALSE;
+    BOOL groups = FALSE;
+    BOOL visible = FALSE;
+    int alignment = kGroupNoAlign;
+    int resizeMargin = 40;
+    int newGroupMargin = 40;
+    std::vector<SessionDocument> windows;
+    std::vector<SessionGroup> tabGroups;
+    std::unordered_map<CObject*, std::unique_ptr<CObject>> objects;
+
+    CObject* Own(CObject* object) {
+        if (object && !objects.count(object)) {
+            std::unique_ptr<CObject> ownership(object);
+            objects.emplace(object, std::move(ownership));
+        }
+        return object;
+    }
+};
+
+CString MdiProfilePath(const wchar_t* profile, UINT id) {
+    alignas(CString) unsigned char storage[sizeof(CString)];
+    auto* root = reinterpret_cast<CString*>(storage);
+    impl__AFXGetRegPath__YA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W0_Z(
+        root, L"MDIClientArea", profile);
+    CString prefix(std::move(*root));
+    root->~CString();
+    if (!prefix.IsEmpty() && prefix.GetString()[prefix.GetLength() - 1] != L'\\') prefix += L'\\';
+    CString section;
+    section.Format(L"%sMDIClientArea-%d", prefix.GetString(), static_cast<int>(id));
+    return section;
+}
+
+int ReadSessionCount(CArchive& ar) {
+    int count;
+    ar >> count;
+    if (count < 0 || count > 65535) AfxThrowArchiveException(CArchiveException::badIndex);
+    return count;
+}
+
+CString ReadSessionString(CArchive& ar) {
+    int characterSize = 0;
+    const auto length = AfxReadStringLength(ar, characterSize);
+    if (length > 65535 || (characterSize != 1 && characterSize != sizeof(wchar_t)))
+        AfxThrowArchiveException(CArchiveException::badIndex);
+    const auto count = static_cast<int>(length);
+    if (!count) return CString{};
+    if (characterSize == 1) {
+        std::vector<char> text(count);
+        ar.EnsureRead(text.data(), count);
+        return CString(text.data(), count);
+    }
+    std::vector<wchar_t> text(count);
+    ar.EnsureRead(text.data(), count * sizeof(wchar_t));
+    return CString(text.data(), count);
+}
+
+SessionDocument CaptureSessionDocument(MdiSession& session, CMDIChildWndEx& child) {
+    SessionDocument document;
+    CObject* state = nullptr;
+    const auto* path = child.GetDocumentName(&state);
+    if (path) document.path = path;
+    document.state = session.Own(state);
+    if (auto* pane = child.GetTabbedPane(); pane && pane->m_hWnd)
+        document.paneId = ::GetDlgCtrlID(pane->m_hWnd);
+    return document;
+}
+
+void WriteDocumentIdentity(CArchive& ar, const SessionDocument& document) {
+    ar << document.path << BOOL(document.state != nullptr);
+    if (document.state) ar.WriteObject(document.state);
+}
+
+SessionDocument ReadDocumentIdentity(CArchive& ar, MdiSession& session) {
+    SessionDocument document;
+    document.path = ReadSessionString(ar);
+    BOOL hasState;
+    ar >> hasState;
+    if (hasState) document.state = session.Own(ar.ReadObject(nullptr));
+    return document;
+}
+
+void WriteSessionWindows(CArchive& ar, S_CMDIClientAreaWnd& self, MdiSession& session) {
+    const HWND client = WndHandle(&self);
+    const HWND active = reinterpret_cast<HWND>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0));
+    std::vector<SessionDocument> windows;
+    for (HWND hwnd = ::GetWindow(client, GW_CHILD); hwnd; hwnd = ::GetWindow(hwnd, GW_HWNDNEXT)) {
+        auto* child = AsChildEx(static_cast<CWnd*>(CWnd::FromHandlePermanent(hwnd)));
+        if (!child || !impl__CanShowOnMDITabs_CMDIChildWndEx__UEAAHXZ(child)) continue;
+        auto document = CaptureSessionDocument(session, *child);
+        if (!::GetWindowPlacement(hwnd, &document.placement)) continue;
+        document.active = hwnd == active;
+        windows.push_back(std::move(document));
+    }
+    ar << static_cast<int>(windows.size());
+    for (auto it = windows.rbegin(); it != windows.rend(); ++it) {
+        const auto& doc = *it;
+        const auto& wp = doc.placement;
+        WriteDocumentIdentity(ar, doc);
+        ar << wp.flags << wp.length;
+        ar.Write(&wp.ptMaxPosition, sizeof(POINT));
+        ar.Write(&wp.ptMinPosition, sizeof(POINT));
+        ar.Write(&wp.rcNormalPosition, sizeof(RECT));
+        ar << wp.showCmd << doc.active << doc.paneId;
+    }
+}
+
+std::vector<SessionDocument> ReadSessionWindows(CArchive& ar, MdiSession& session) {
+    std::vector<SessionDocument> windows;
+    const int count = ReadSessionCount(ar);
+    for (int i = 0; i < count; ++i) {
+        auto doc = ReadDocumentIdentity(ar, session);
+        auto& wp = doc.placement;
+        ar >> wp.flags >> wp.length;
+        if (wp.length != sizeof(WINDOWPLACEMENT)) AfxThrowArchiveException(CArchiveException::badIndex);
+        ar.EnsureRead(&wp.ptMaxPosition, sizeof(POINT));
+        ar.EnsureRead(&wp.ptMinPosition, sizeof(POINT));
+        ar.EnsureRead(&wp.rcNormalPosition, sizeof(RECT));
+        ar >> wp.showCmd >> doc.active >> doc.paneId;
+        windows.push_back(std::move(doc));
+    }
+    return windows;
+}
+
+void WriteSessionGroup(CArchive& ar, S_CMDIClientAreaWnd& self, CMFCTabCtrl& tabs, MdiSession& session) {
+    const auto* state = openmfc::detail::mfccore::FindTabCtrlState(&tabs);
+    std::vector<SessionDocument> documents;
+    int selected = -1;
+    for (int i = 0; state && i < tabs.GetTabsCount(); ++i) {
+        auto* child = AsChildEx(tabs.GetTabWnd(i));
+        if (!child || state->tabs[i].temporary) continue;
+        if (tabs.GetActiveTab() == i) selected = static_cast<int>(documents.size());
+        auto doc = CaptureSessionDocument(session, *child);
+        doc.label = state->tabs[i].label.c_str();
+        doc.color = state->tabs[i].backgroundColor;
+        doc.resizeMode = TabResizeMode(&tabs);
+        documents.push_back(std::move(doc));
+    }
+    ar << static_cast<int>(documents.size()) << selected << TabActiveInMDIGroup(&tabs);
+    for (const auto& doc : documents) {
+        WriteDocumentIdentity(ar, doc);
+        ar << doc.label << doc.resizeMode << doc.color << doc.paneId;
+    }
+    ar << (state ? state->autoColor : self.m_mdiTabParams.m_bAutoColor)
+        << (state ? static_cast<int>(state->autoColors.size()) : 0);
+    if (state) {
+        for (auto color : state->autoColors) ar << color;
+    }
+    ar << (state ? state->documentsMenu : self.m_mdiTabParams.m_bDocumentMenu)
+        << (state ? state->tabSwapEnabled : self.m_mdiTabParams.m_bEnableTabSwap)
+        << (state ? state->tabBorderSize : self.m_mdiTabParams.m_nTabBorderSize);
+    RECT bounds{};
+    ::GetWindowRect(tabs.m_hWnd, &bounds);
+    ar.Write(&bounds, sizeof(bounds));
+}
+
+SessionGroup ReadSessionGroup(CArchive& ar, MdiSession& session) {
+    SessionGroup group;
+    const int count = ReadSessionCount(ar);
+    ar >> group.selected >> group.active;
+    if (group.selected < -1 || group.selected >= count)
+        AfxThrowArchiveException(CArchiveException::badIndex);
+    for (int i = 0; i < count; ++i) {
+        auto doc = ReadDocumentIdentity(ar, session);
+        doc.label = ReadSessionString(ar);
+        ar >> doc.resizeMode >> doc.color >> doc.paneId;
+        group.documents.push_back(std::move(doc));
+    }
+    ar >> group.autoColor;
+    for (int colors = ReadSessionCount(ar); colors > 0; --colors) {
+        COLORREF color;
+        ar >> color;
+        group.autoColors.push_back(color);
+    }
+    ar >> group.documentMenu >> group.swapTabs >> group.border;
+    ar.EnsureRead(&group.bounds, sizeof(group.bounds));
+    return group;
+}
+
+CMDIFrameWndEx* SessionFrame(S_CMDIClientAreaWnd& self) {
+    auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(WndHandle(&self))));
+    return window && window->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx))
+        ? static_cast<CMDIFrameWndEx*>(window) : nullptr;
+}
+
+CMDIChildWndEx* ReopenSessionDocument(S_CMDIClientAreaWnd& self, const SessionDocument& doc) {
+    auto* frame = SessionFrame(self);
+    if (!frame) return nullptr;
+    CMDIChildWndEx* child = nullptr;
+    if (!doc.path.IsEmpty()) {
+        child = frame->CreateDocumentWindow(doc.path, doc.state);
+        if (!child) child = frame->CreateNewWindow(doc.path, doc.state);
+    } else if (doc.paneId != -1) {
+        auto* manager = openmfc::detail::mfccore::DockingManagerForMdiFrame(frame);
+        auto* pane = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(manager, doc.paneId, TRUE);
+        if (!pane) {
+            auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetDlgItem(frame->m_hWnd, doc.paneId)));
+            if (window && window->IsKindOf(RUNTIME_CLASS(CDockablePane))) pane = static_cast<CDockablePane*>(window);
+        }
+        if (pane && pane->IsKindOf(RUNTIME_CLASS(CDockablePane)))
+            child = frame->ControlBarToTabbedDocument(static_cast<CDockablePane*>(pane));
+    }
+    return child && ::GetParent(child->m_hWnd) == WndHandle(&self) ? child : nullptr;
+}
+
+HWND RestoreSessionWindows(S_CMDIClientAreaWnd& self, const std::vector<SessionDocument>& windows) {
+    HWND active = nullptr;
+    for (const auto& entry : windows) {
+        auto* child = ReopenSessionDocument(self, entry);
+        if (!child) continue;
+        ::SetWindowPlacement(child->m_hWnd, &entry.placement);
+        if (entry.active) active = child->m_hWnd;
+    }
+    return active;
+}
+
+HWND RestoreSessionGroup(S_CMDIClientAreaWnd& self, CMFCTabCtrl& tabs, const SessionGroup& group, bool related) {
+    auto& state = openmfc::detail::mfccore::EnsureTabCtrlState(&tabs);
+    HWND selected = nullptr;
+    auto options = self.m_mdiTabParams;
+    options.m_bDocumentMenu = group.documentMenu;
+    options.m_bAutoColor = group.autoColor;
+    options.m_bEnableTabSwap = group.swapTabs;
+    options.m_nTabBorderSize = group.border;
+    tabs.EnableTabSwap(options.m_bEnableTabSwap);
+    tabs.SetTabBorderSize(options.m_nTabBorderSize);
+    impl__EnableTabDocumentsMenu_CMFCTabCtrl__QEAAXH_Z(&tabs, options.m_bDocumentMenu);
+    impl__EnableAutoColor_CMFCBaseTabCtrl__QEAAXH_Z(&tabs, options.m_bAutoColor);
+    if (!group.autoColors.empty()) {
+        CArray<COLORREF, COLORREF> palette;
+        for (auto color : group.autoColors) palette.Add(color);
+        impl__SetAutoColors_CMFCBaseTabCtrl__QEAAXAEBV__CArray_KK___Z(&tabs, palette);
+    }
+
+    for (int i = 0; i < static_cast<int>(group.documents.size()); ++i) {
+        const auto& saved = group.documents[i];
+        auto* child = ReopenSessionDocument(self, saved);
+        if (!child || !tabs.InsertTab(child, saved.label, tabs.GetTabsCount(), UINT(-1), TRUE)) continue;
+        ::ShowWindow(child->m_hWnd, SW_SHOWNOACTIVATE);
+        SyncDocumentTab(self, tabs, *child);
+        state.tabs.back().label = static_cast<const wchar_t*>(saved.label);
+        state.tabs.back().backgroundColor = saved.color;
+        TabResizeMode(&tabs) = saved.resizeMode;
+        if (related) SetChildRelatedTabGroup(child, &tabs);
+        if (i == group.selected) selected = child->m_hWnd;
+    }
+    if (selected) tabs.SetActiveTab(TabFromHwnd(&tabs, selected));
+    else if (auto* child = tabs.GetTabWnd(tabs.GetActiveTab())) selected = child->m_hWnd;
+    TabActiveInMDIGroup(&tabs) = group.active;
+    if (related) {
+        // Group layout uses the extents as weights and fits them to the current client.
+        const auto width = (std::clamp)(LONGLONG(group.bounds.right) - group.bounds.left, 1LL, 32767LL);
+        const auto height = (std::clamp)(LONGLONG(group.bounds.bottom) - group.bounds.top, 1LL, 32767LL);
+        ::SetWindowPos(tabs.m_hWnd, nullptr, 0, 0, static_cast<int>(width), static_cast<int>(height),
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
+    }
+    return selected;
+}
+
+bool CloseSessionWindows(S_CMDIClientAreaWnd& self) {
+    const HWND client = WndHandle(&self);
+    std::vector<HWND> windows;
+    std::unordered_set<CDocument*> checked;
+    std::vector<std::pair<CDocTemplate*, CDocument*>> documents;
+    for (HWND child = ::GetWindow(client, GW_CHILD); child; child = ::GetWindow(child, GW_HWNDNEXT)) {
+        auto* frame = AsChildEx(static_cast<CWnd*>(CWnd::FromHandlePermanent(child)));
+        if (!frame) continue;
+        windows.push_back(child);
+    }
+    for (HWND child : windows) {
+        auto* frame = AsChildEx(static_cast<CWnd*>(CWnd::FromHandlePermanent(child)));
+        auto* doc = frame ? frame->GetActiveDocument() : nullptr;
+        if (!doc || !checked.insert(doc).second) continue;
+        if (doc->IsModified() && !doc->SaveModified()) return false;
+        if (auto* type = doc->GetDocTemplate()) documents.emplace_back(type, doc);
+    }
+    bool closed = true;
+    for (HWND child : windows) {
+        if (::GetParent(child) != client) continue;
+        ::SendMessageW(child, WM_CLOSE, 0, 0);
+        if (::IsWindow(child)) {
+            closed = false;
+            break;
+        }
+    }
+    // A window can close its document itself. Check the template before
+    // disposing of an auto-delete document whose final view was closed here.
+    for (const auto& [type, closedDoc] : documents) {
+        for (auto pos = type->GetFirstDocPosition(); pos;) {
+            auto* doc = type->GetNextDoc(pos);
+            if (doc != closedDoc) continue;
+            if (doc->m_bAutoDelete && !doc->GetFirstViewPosition()) doc->OnCloseDocument();
+            break;
+        }
+    }
+    return closed;
+}
+
+void RestoreSession(S_CMDIClientAreaWnd& self, const MdiSession& session) {
+    if (!SessionFrame(self)) AfxThrowArchiveException(CArchiveException::generic);
+    CancelTabDrag(self);
+    CancelSplitterDrag(self);
+    const HWND client = WndHandle(&self);
+    struct PauseUpdates {
+        BOOL& flag;
+        BOOL previous;
+        ~PauseUpdates() { flag = previous; }
+    } pause{self.m_bDisableUpdateTabs, self.m_bDisableUpdateTabs};
+    self.m_bDisableUpdateTabs = TRUE;
+    if (!CloseSessionWindows(self)) AfxThrowArchiveException(CArchiveException::generic);
+
+    while (self.m_lstTabbedGroups.pNodeHead)
+        impl__RemoveTabGroup_CMDIClientAreaWnd__QEAAXPEAVCMFCTabCtrl__H_Z(
+            &self, self.m_lstTabbedGroups.pNodeHead->data, FALSE);
+    auto* strip = EmbeddedTab(&self);
+    for (int i = strip->GetTabsCount() - 1; i >= 0; --i) strip->RemoveTab(i);
+    self.m_mdiTabParams = session.options;
+    self.m_bTabIsEnabled = session.tabs;
+    self.m_bIsMDITabbedGroup = session.groups;
+    self.m_bTabIsVisible = session.visible;
+    self.m_groupAlignment = session.alignment;
+    self.m_nResizeMargin = session.resizeMargin;
+    self.m_nNewGroupMargin = session.newGroupMargin;
+    if (!session.tabs && strip->m_hWnd) ::ShowWindow(strip->m_hWnd, SW_HIDE);
+
+    HWND active = nullptr;
+    if (session.tabs) {
+        const auto& options = session.options;
+        if (!strip->m_hWnd && !strip->CreateTabs(options.m_style, RECT{}, SelfWnd(&self), UINT(-1),
+                options.m_tabLocation, options.m_bTabCloseButton))
+            AfxThrowArchiveException(CArchiveException::generic);
+        impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(&self, strip);
+        active = RestoreSessionGroup(self, *strip, session.tabGroups.front(), false);
+    } else if (session.groups) {
+        HWND fallback = nullptr;
+        for (const auto& group : session.tabGroups) {
+            auto* tabs = static_cast<CMFCTabCtrl*>(impl__CreateTabGroup_CMDIClientAreaWnd__UEAAPEAVCMFCTabCtrl__PEAV2__Z(&self, nullptr));
+            if (!tabs) break;
+            const HWND current = RestoreSessionGroup(self, *tabs, group, true);
+            if (tabs->GetTabsCount() == 0) {
+                auto* record = Record(&self);
+                if (auto* icons = TabIconsLookup(record, AsWnd(tabs))) {
+                    if (icons->value) DeleteImageListObject(icons->value);
+                    TabIconsRemoveKey(record, &self, AsWnd(tabs));
+                }
+                DeleteTabCtrlObject(tabs);
+                continue;
+            }
+            ListAddTail(self.m_lstTabbedGroups, tabs);
+            if (!fallback) fallback = current;
+            if (group.active) active = current;
+        }
+        PublishGroupList(self);
+        if (!active) active = fallback;
+    } else {
+        active = RestoreSessionWindows(self, session.windows);
+    }
+
+    if (active) ::SendMessageW(client, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(active), 0);
+    // Register destruction and text notifications before a restored child can close.
+    if (session.tabs || session.groups) CollectTabbedDocuments(self);
+    if (session.groups) LayoutDocumentGroups(self);
+    else if (session.tabs) LayoutDocumentTabs(self);
+}
+}
+
 // Symbol: ?SaveState@CMDIClientAreaWnd@@QEAAHPEB_WI@Z
-extern "C" int MS_ABI impl__SaveState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(void* pThis, const wchar_t* lpszProfileName, unsigned int uiID) {
-    (void)pThis;
-    (void)lpszProfileName;
-    (void)uiID;
-    return 0;
+extern "C" int MS_ABI impl__SaveState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(void* pThis, const wchar_t* profile, unsigned int id) {
+    auto* self = Self(pThis);
+    if (!self || !WndHandle(self)) return FALSE;
+    try {
+        CMemFile file;
+        CArchive archive(&file, CArchive::store | CArchive::bNoFlushOnDelete);
+        impl__Serialize_CMDIClientAreaWnd__UEAAXAEAVCArchive___Z(self, &archive);
+        archive.Close();
+        const auto size = file.GetLength();
+        if (!size || size > maxMdiProfileBytes) return FALSE;
+        std::unique_ptr<BYTE, decltype(&std::free)> bytes(file.Detach(), &std::free);
+        const auto section = MdiProfilePath(profile, id);
+        HKEY key = nullptr;
+        if (::RegCreateKeyExW(HKEY_CURRENT_USER, section, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &key, nullptr) != ERROR_SUCCESS)
+            return FALSE;
+        const auto result = ::RegSetValueExW(key, mdiProfileValue, 0, REG_BINARY, bytes.get(), static_cast<DWORD>(size));
+        ::RegCloseKey(key);
+        return result == ERROR_SUCCESS;
+    } catch (CException* error) {
+        error->Delete();
+        return FALSE;
+    }
 }
 
-// CMDIClientAreaWnd::Serialize — retail entry RVA 0x83050 (mfc140, virtual).
-//     m_mdiTabParams.Serialize(ar);                  // 0x7ca40
-//     if (ar.IsStoring()) {                          // (*(BYTE*)(ar+0x20) & 1) == 0
-//         ar << m_bTabIsEnabled << m_bIsMDITabbedGroup << m_bTabIsVisible
-//            << m_groupAlignment << m_nResizeMargin << m_nNewGroupMargin;
-//         if (m_bTabIsEnabled) SerializeTabGroup(ar, &m_wndTab, FALSE);          // 0x81320
-//         else if (m_bIsMDITabbedGroup) { ar << (int)m_lstTabbedGroups.GetCount();
-//                                         for (each group) SerializeTabGroup(ar, pGroup, FALSE); }
-//         else SerializeOpenChildren(ar);            // 0x821e0, the branch at 0x83246
-//     } else {                                       // loading, from 0x83256
-//         CloseAllWindows(NULL);                     // 0x811b0
-//         m_lstLoadedTabDocuments.RemoveAll();       // 0x230920
-//         m_bDisableUpdateTabs = TRUE;
-//         ... the mirrored reads, then (re)creation of the tab groups and of
-//         the documents they held through the app's document templates ...
-//     }
-//   (the `ar << int` sequences are the inlined CArchive fast path: bounds-check
-//    m_lpBufCur (+0x38) against m_lpBufMax (+0x40), CArchive::Flush (0x1cfb90)
-//    when it would overflow, store, advance by 4.)
-// STUB: the load path re-opens documents through CDocTemplate / CDocManager
-// virtuals and rebuilds groups through UpdateMDITabbedGroups, none of which
-// this tree implements; a store-only half would write a state that could
-// never be read back.  Not transcribed.
+// Symbol: ?LoadState@CMDIClientAreaWnd@@QEAAHPEB_WI@Z
+extern "C" int MS_ABI impl__LoadState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(void* pThis, const wchar_t* profile, unsigned int id) {
+    auto* self = Self(pThis);
+    if (!self || !WndHandle(self)) return FALSE;
+    const auto section = MdiProfilePath(profile, id);
+    DWORD size = 0;
+    if (::RegGetValueW(HKEY_CURRENT_USER, section, mdiProfileValue, RRF_RT_REG_BINARY, nullptr, nullptr, &size) != ERROR_SUCCESS
+        || !size || size > maxMdiProfileBytes) return FALSE;
+    std::vector<BYTE> bytes(size);
+    if (::RegGetValueW(HKEY_CURRENT_USER, section, mdiProfileValue, RRF_RT_REG_BINARY, nullptr, bytes.data(), &size) != ERROR_SUCCESS
+        || !size || size > bytes.size()) return FALSE;
+    try {
+        CMemFile file(bytes.data(), size);
+        CArchive archive(&file, CArchive::load | CArchive::bNoFlushOnDelete);
+        impl__Serialize_CMDIClientAreaWnd__UEAAXAEAVCArchive___Z(self, &archive);
+        archive.Close();
+        return TRUE;
+    } catch (CException* error) {
+        error->Delete();
+        return FALSE;
+    }
+}
+
 // Symbol: ?Serialize@CMDIClientAreaWnd@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CMDIClientAreaWnd__UEAAXAEAVCArchive___Z(void* pThis, void* pArchive) {
-    (void)pThis;
-    (void)pArchive;
+extern "C" void MS_ABI impl__Serialize_CMDIClientAreaWnd__UEAAXAEAVCArchive___Z(void* pThis, void* archive) {
+    auto* self = Self(pThis);
+    if (!self || !archive) return;
+    auto& ar = *static_cast<CArchive*>(archive);
+    MdiSession session;
+    if (ar.IsStoring()) {
+        self->m_mdiTabParams.Serialize(ar);
+        ar << self->m_bTabIsEnabled << self->m_bIsMDITabbedGroup << self->m_bTabIsVisible
+            << self->m_groupAlignment << self->m_nResizeMargin << self->m_nNewGroupMargin;
+        if (self->m_bTabIsEnabled) {
+            WriteSessionGroup(ar, *self, *EmbeddedTab(self), session);
+        } else if (self->m_bIsMDITabbedGroup) {
+            ar << static_cast<int>(self->m_lstTabbedGroups.nCount);
+            for (auto* node = self->m_lstTabbedGroups.pNodeHead; node; node = node->pNext)
+                WriteSessionGroup(ar, *self, *static_cast<CMFCTabCtrl*>(node->data), session);
+        } else {
+            WriteSessionWindows(ar, *self, session);
+        }
+    } else {
+        session.options = self->m_mdiTabParams;
+        session.options.Serialize(ar);
+        ar >> session.tabs >> session.groups >> session.visible
+            >> session.alignment >> session.resizeMargin >> session.newGroupMargin;
+        if ((session.tabs && session.groups) || session.alignment < kGroupNoAlign || session.alignment > kGroupHorzAlign
+            || session.resizeMargin < 0 || session.resizeMargin > 32767
+            || session.newGroupMargin < 0 || session.newGroupMargin > 32767)
+            AfxThrowArchiveException(CArchiveException::badIndex);
+        if (session.tabs || session.groups) {
+            const int count = session.tabs ? 1 : ReadSessionCount(ar);
+            for (int i = 0; i < count; ++i) session.tabGroups.push_back(ReadSessionGroup(ar, session));
+        } else {
+            session.windows = ReadSessionWindows(ar, session);
+        }
+        RestoreSession(*self, session);
+    }
 }
 
-// CMDIClientAreaWnd::SerializeOpenChildren — retail entry RVA 0x821e0
-// (mfc140).  Walks the MDI children (::GetWindow GW_CHILD / GW_HWNDNEXT,
-// CWnd::FromHandle), keeps the CMDIChildWndEx ones whose virtual +0x3d8
-// (CanShowOnMDITabs) answers TRUE, and writes each child's document path
-// (CDocument::GetPathName via the frame's active document) as a CString
-// element, preceded by the count.
-// STUB: stubbed alongside Serialize (its only caller).
 // Symbol: ?SerializeOpenChildren@CMDIClientAreaWnd@@AEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__SerializeOpenChildren_CMDIClientAreaWnd__AEAAXAEAVCArchive___Z(void* pThis, void* pArchive) {
-    (void)pThis;
-    (void)pArchive;
+extern "C" void MS_ABI impl__SerializeOpenChildren_CMDIClientAreaWnd__AEAAXAEAVCArchive___Z(void* pThis, void* archive) {
+    auto* self = Self(pThis);
+    if (!self || !archive) return;
+    auto& ar = *static_cast<CArchive*>(archive);
+    MdiSession session;
+    if (ar.IsStoring()) {
+        WriteSessionWindows(ar, *self, session);
+    } else {
+        const auto windows = ReadSessionWindows(ar, session);
+        if (auto active = RestoreSessionWindows(*self, windows))
+            ::SendMessageW(WndHandle(self), WM_MDIACTIVATE, reinterpret_cast<WPARAM>(active), 0);
+    }
 }
 
-// CMDIClientAreaWnd::SerializeTabGroup — retail entry RVA 0x81320 (mfc140);
-// argument order verified from the call sites inside Serialize (this,
-// CArchive&, CMFCTabCtrl*, BOOL).  Stores the group's m_ResizeMode, its
-// window rect and, per tab, the document path of the tab's CMDIChildWndEx;
-// on load it recreates the group (CreateTabGroup), reopens each document
-// through the app's document templates and re-attaches the MDI child.
-// STUB: stubbed alongside Serialize (its only caller).
 // Symbol: ?SerializeTabGroup@CMDIClientAreaWnd@@AEAAXAEAVCArchive@@PEAVCMFCTabCtrl@@H@Z
-extern "C" void MS_ABI impl__SerializeTabGroup_CMDIClientAreaWnd__AEAAXAEAVCArchive__PEAVCMFCTabCtrl__H_Z(void* pThis, void* pArchive, void* pTabGroup, int bSetRelation) {
-    (void)pThis;
-    (void)pArchive;
-    (void)pTabGroup;
-    (void)bSetRelation;
+extern "C" void MS_ABI impl__SerializeTabGroup_CMDIClientAreaWnd__AEAAXAEAVCArchive__PEAVCMFCTabCtrl__H_Z(
+    void* pThis, void* archive, void* tabGroup, int related) {
+    auto* self = Self(pThis);
+    if (!self || !archive || !tabGroup) return;
+    auto& ar = *static_cast<CArchive*>(archive);
+    auto& tabs = *static_cast<CMFCTabCtrl*>(tabGroup);
+    MdiSession session;
+    if (ar.IsStoring()) WriteSessionGroup(ar, *self, tabs, session);
+    else RestoreSessionGroup(*self, tabs, ReadSessionGroup(ar, session), related != FALSE);
 }
 
 // CMDIClientAreaWnd::SetActiveTab(HWND) — transcribed from retail entry RVA

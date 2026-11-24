@@ -236,19 +236,11 @@ extern "C" void MS_ABI impl__EnableInPlaceEdit_CMFCTabCtrl__UEAAXH_Z(
     // TODO(clean-room): partially transcribed -- retail stores bEnable at
     // +0x230 when the +0x3c0 style flag is set; neither member is declared.
 }
-// Retail (0x18013c7b0) stores the flag at +0x400, walks a CWinAppEx menu
-// singleton (0x1803b25e8), loads menu resource 0x3ea3/0x3f43, updates the
-// CMFCToolBarMenuButton at +0x10a8, calls the internal relayout helper
-// 0x18013c400 and resets the scroll offsets (+0x414/+0x420). None of these
-// objects are modeled.
 // Symbol: ?EnableTabDocumentsMenu@CMFCTabCtrl@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnableTabDocumentsMenu_CMFCTabCtrl__QEAAXH_Z(
-    CMFCTabCtrl* pThis, int bEnable)
+    CMFCTabCtrl* pThis, BOOL enable)
 {
-    (void)bEnable;
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the menu-manager singleton,
-    // the documents-menu button at +0x10a8 and the +0x400 flag member.
+    if (pThis) EnsureTabCtrlState(pThis).documentsMenu = enable;
 }
 // Retail (0x18013b730): bounds-check `0 <= iTab < tabs count (+0x150)`; when
 // out of bounds return FALSE (0x18013b944: xor eax,eax). Otherwise scroll the
@@ -721,6 +713,8 @@ BOOL CMFCTabCtrl::ActivateTab(int index) {
     return TRUE;
 }
 
+extern "C" COLORREF MS_ABI impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(const CMFCBaseTabCtrl*, int);
+
 void CMFCTabCtrl::DrawTabs(CDC* dc) {
     const auto* state = FindTabCtrlState(this);
     const HDC handle = dc ? dc->GetSafeHdc() : nullptr;
@@ -738,10 +732,11 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
         if (!tab.visible || tab.rect.IsRectEmpty()) continue;
         visualManager->OnDrawTab(dc, tab.rect, i, state->activeTab == i, this);
         CRect text = tab.rect;
-        if (tab.backgroundColor != static_cast<COLORREF>(-1)) {
+        const auto backgroundColor = impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(this, i);
+        if (backgroundColor != COLORREF(-1)) {
             CRect interior = tab.rect;
             interior.DeflateRect(1, 1);
-            HBRUSH background = ::CreateSolidBrush(tab.backgroundColor);
+            HBRUSH background = ::CreateSolidBrush(backgroundColor);
             if (background) {
                 ::FillRect(handle, interior, background);
                 ::DeleteObject(background);

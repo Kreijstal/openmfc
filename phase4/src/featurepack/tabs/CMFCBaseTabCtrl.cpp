@@ -659,23 +659,19 @@ extern "C" int MS_ABI impl__DetachTab_CMFCBaseTabCtrl__UEAAHW4AFX_DOCK_METHOD__H
     // and the dock state; not modeled.
     return FALSE;
 }
-// Retail (0x18001a190): when auto-color was previously enabled and bEnable is
-// cleared, resets every tab's background color (+0x44) to -1; then stores
-// +0x328 = bEnable, runs the vslot-0x5a0 repaint virtual and finally calls
-// RedrawWindow(hwnd, NULL, NULL, 0x105). The flag, the per-tab records and the
-// repaint virtual are unmodeled; the explicit RedrawWindow is kept.
 // Symbol: ?EnableAutoColor@CMFCBaseTabCtrl@@QEAAXH@Z
+extern "C" void MS_ABI impl__InitAutoColors_CMFCBaseTabCtrl__MEAAXXZ(CMFCBaseTabCtrl*);
 extern "C" void MS_ABI impl__EnableAutoColor_CMFCBaseTabCtrl__QEAAXH_Z(
-    CMFCBaseTabCtrl* pThis, int /*bEnable*/)
+    CMFCBaseTabCtrl* pThis, BOOL enable)
 {
     if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the +0x328 enable flag, the
-    // per-tab background-color resets (+0x44 of each tab record) and the
-    // vslot-0x5a0 repaint are not modeled; the final RedrawWindow is kept.
-    HWND hWnd = pThis->GetSafeHwnd();
-    if (hWnd) {
-        ::RedrawWindow(hWnd, nullptr, nullptr, 0x105);
+    auto& state = EnsureTabCtrlState(pThis);
+    if (state.autoColor && !enable) {
+        for (auto& tab : state.tabs) tab.backgroundColor = COLORREF(-1);
     }
+    state.autoColor = enable;
+    if (enable && state.autoColors.empty()) impl__InitAutoColors_CMFCBaseTabCtrl__MEAAXXZ(pThis);
+    if (pThis->m_hWnd) ::RedrawWindow(pThis->m_hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
 }
 // Retail (0x18001a9d0): when bEnable differs from the +0x1c8 flag it stores
 // it and, if the tooltip helper (+0x1b8) and its tooltip window (+0x40) exist,
@@ -870,7 +866,11 @@ extern "C" unsigned long MS_ABI impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(
     const CMFCBaseTabCtrl* pThis, int iTab)
 {
     const auto* tab = TabAt(pThis, iTab);
-    return tab ? tab->backgroundColor : static_cast<COLORREF>(-1);
+    if (!tab) return COLORREF(-1);
+    if (tab->backgroundColor != COLORREF(-1)) return tab->backgroundColor;
+    const auto& state = *FindTabCtrlState(pThis);
+    return state.autoColor && !state.autoColors.empty()
+        ? state.autoColors[iTab % state.autoColors.size()] : COLORREF(-1);
 }
 // Retail (0x180016fb0): scans the tab array and returns the index of the
 // first tab whose ID (record +0x3c) equals nID, or -1. The scan is kept
@@ -1082,18 +1082,17 @@ extern "C" void MS_ABI impl__HideSingleTab_CMFCBaseTabCtrl__UEAAXH_Z(
 {
     if (pThis) pThis->HideSingleTab(bHide);
 }
-// Retail (0x18001a220): when the +0x32c auto-color flag is set, clears the
-// internal auto-color array (+0x300) and refills it with the eight default
-// colors (starting 0xf2d4c5), then clears +0x32c. The flag and array are
-// unmodeled.
 // Symbol: ?InitAutoColors@CMFCBaseTabCtrl@@MEAAXXZ
-extern "C" void MS_ABI impl__InitAutoColors_CMFCBaseTabCtrl__MEAAXXZ(
-    CMFCBaseTabCtrl* pThis)
+extern "C" void MS_ABI impl__InitAutoColors_CMFCBaseTabCtrl__MEAAXXZ(CMFCBaseTabCtrl* pThis)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the +0x32c flag and the
-    // auto-color array at +0x300 (CArray<COLORREF> of 8 defaults); not
-    // modeled.
+    const HDC display = ::GetDC(nullptr);
+    const int depth = display ? ::GetDeviceCaps(display, BITSPIXEL) * ::GetDeviceCaps(display, PLANES) : 32;
+    if (display) ::ReleaseDC(nullptr, display);
+    auto& colors = EnsureTabCtrlState(pThis).autoColors;
+    if (depth <= 8) colors = {0x00ff00, 0xffff00, 0xff00ff, 0xc0c0c0, 0x00ffff};
+    else colors = {0xf2d4c5, 0x78dcff, 0xa1cebe, 0xa1a0f0, 0xe1a8bc, 0xb6c19c, 0x86b8f7, 0xc2add9,
+        0xd7c2a5, 0xbea6b3, 0xa3d6ea, 0x7dfaf6, 0x9de9b5, 0xcfc35f, 0x8383c1, 0xd5caca};
 }
 // Retail (0x180016120): resolves the tab window's control ID and the image
 // list (CMapPtrToPtr at +0x180), allocates a CMFCBaseTabInfo record, invokes
@@ -1911,18 +1910,16 @@ extern "C" void MS_ABI impl__SetActiveTabTextColor_CMFCBaseTabCtrl__UEAAXK_Z(
     // TODO(clean-room): partially transcribed -- retail stores the color at
     // +0x208 (m_activeTabTextColor); that member is not declared.
 }
-// Retail (0x18001a590): resets every tab's background color (+0x44) to -1,
-// clears the internal auto-color array (+0x300 via 0x180015034), then copies
-// the caller's CArray<unsigned long> (m_pData +0x8 / m_nSize +0x10) into it
-// and marks the color state (+0x32c = 1) before the vslot-0x5a0 repaint and
-// WM_PAINT. The per-tab records and the +0x300 array are unmodeled.
 // Symbol: ?SetAutoColors@CMFCBaseTabCtrl@@QEAAXAEBV?$CArray@KK@@@Z
 extern "C" void MS_ABI impl__SetAutoColors_CMFCBaseTabCtrl__QEAAXAEBV__CArray_KK___Z(
-    CMFCBaseTabCtrl* pThis, const CArray<unsigned long, unsigned long>& /*colors*/)
+    CMFCBaseTabCtrl* pThis, const CArray<COLORREF, COLORREF>& colors)
 {
     if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the per-tab color records
-    // (+0x44) and the internal auto-color array (+0x300); not modeled.
+    auto& state = EnsureTabCtrlState(pThis);
+    for (auto& tab : state.tabs) tab.backgroundColor = COLORREF(-1);
+    state.autoColors.clear();
+    if (colors.GetSize()) state.autoColors.assign(colors.GetData(), colors.GetData() + colors.GetSize());
+    if (pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd, nullptr, FALSE);
 }
 // Retail (0x180019fc0): stores the no-prefix flag at +0x1f8 and, when the
 // second argument is set, posts WM_PAINT to the window. The +0x1f8 member is

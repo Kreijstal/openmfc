@@ -356,6 +356,9 @@ struct TabCtrlState {
     int tabsHeight = 0;
     BOOL mdiCloseButton = FALSE;
     BOOL mdiActiveCloseButton = FALSE;
+    BOOL autoColor = FALSE;
+    BOOL documentsMenu = FALSE;
+    std::vector<COLORREF> autoColors;
 };
 } } }
 

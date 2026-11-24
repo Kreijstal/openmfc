@@ -3,6 +3,7 @@
 #include "openmfc/afxmfc.h"
 
 namespace openmfc::detail::mdi {
+CMDIFrameWnd*& DocumentFrameOverride();
 void* CreateClientArea();
 void DeleteClientArea(void* area);
 bool AttachClientArea(void* area, HWND window);

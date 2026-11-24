@@ -912,44 +912,59 @@ extern "C" CMDIChildWndEx* MS_ABI impl__ControlBarToTabbedDocument_CMDIFrameWndE
     return pThis ? pThis->ControlBarToTabbedDocument(pBar) : nullptr;
 }
 
-// CMDIFrameWndEx::CreateDocumentWindow(LPCTSTR, CObject*) — no entry in either
-// RVA map (ICF-folded), but the export directory of mfc140u.dll places its
-// ordinal 3232 at RVA 0x71e0, whose body is `xor eax,eax; ret` -- the folded
-// `return NULL` that several trivial exports share.  So the retail default
-// returns NULL; the method is declared virtual (afxmdiframewndex.h:284 in the
-// 14.51 SDK), so any non-NULL result comes from a derived override.  (An earlier revision
-// of this comment cited exactly that reading and a later one dropped it for
-// not being in the symbol map; the export directory confirms it.)
-// Re-verified 2026-09-15: ures.py -> ordinal 3232 -> RVA 0x71e0 (mfc140u),
-// `xor %eax,%eax; ret` (the mfc140u map labels that address with another of
-// its folded tenants, ?AddRef@COleUILinkInfo@@UEAAKXZ).  The `return nullptr`
-// below IS the retail body, not a placeholder.
-// Symbol: ?CreateDocumentWindow@CMDIFrameWndEx@@UEAAPEAVCMDIChildWndEx@@PEB_WPEAVCObject@@@Z
-extern "C" CMDIChildWndEx* MS_ABI impl__CreateDocumentWindow_CMDIFrameWndEx__UEAAPEAVCMDIChildWndEx__PEB_WPEAVCObject___Z(
-    CMDIFrameWndEx* pThis, const wchar_t* lpcszDocName, CObject* pObj) {
-    (void)pThis;
-    (void)lpcszDocName;
-    (void)pObj;
+CMDIChildWndEx* CMDIFrameWndEx::CreateDocumentWindow(const wchar_t*, CObject*) {
     return nullptr;
 }
-// CMDIFrameWndEx::CreateNewWindow(const wchar_t*, CObject*) — the wide export
-// has no RVA; its ANSI twin
-// ?CreateNewWindow@CMDIFrameWndEx@@UEAAPEAVCMDIChildWndEx@@PEBDPEAVCObject@@@Z
-// is at entry RVA 0x8a120 (an earlier revision cited 0x89b70, which is an
-// instruction inside ActiveItemRecalcLayout at 0x89b60). Retail returns NULL
-// unless both tabbed-group flags this+0x4574 and this+0x4668 are clear, then
-// goes through AfxGetModuleState() (0x1801345b0) to the current document
-// template and creates the frame from it. Not modeled. Conservative NULL.
+
+// Symbol: ?CreateDocumentWindow@CMDIFrameWndEx@@UEAAPEAVCMDIChildWndEx@@PEB_WPEAVCObject@@@Z
+extern "C" CMDIChildWndEx* MS_ABI impl__CreateDocumentWindow_CMDIFrameWndEx__UEAAPEAVCMDIChildWndEx__PEB_WPEAVCObject___Z(
+    CMDIFrameWndEx* pThis, const wchar_t* name, CObject* state) {
+    return pThis ? pThis->CMDIFrameWndEx::CreateDocumentWindow(name, state) : nullptr;
+}
+
+extern "C" CDocument* MS_ABI impl__OpenDocumentFile_CWinApp__UEAAPEAVCDocument__PEB_WH_Z(CWinApp*, const wchar_t*, int);
+
+CMDIChildWndEx* CMDIFrameWndEx::CreateNewWindow(const wchar_t* name, CObject*) {
+    if (!name || !*name || !m_hWndMDIClient) return nullptr;
+
+    auto& parent = openmfc::detail::mdi::DocumentFrameOverride();
+    struct RestoreParent {
+        CMDIFrameWnd*& slot;
+        CMDIFrameWnd* previous;
+        ~RestoreParent() { slot = previous; }
+    } reset{parent, parent};
+    parent = this;
+
+    for (HWND child = ::GetWindow(m_hWndMDIClient, GW_CHILD); child; child = ::GetWindow(child, GW_HWNDNEXT)) {
+        auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(child));
+        if (!window || !window->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx))) continue;
+        auto* existing = static_cast<CMDIChildWndEx*>(window);
+        auto* document = existing->GetActiveDocument();
+        if (!document || !document->GetPathName() || _wcsicmp(name, document->GetPathName()) != 0) continue;
+        if (auto* type = document->GetDocTemplate()) {
+            auto* added = type->CreateNewFrame(document, existing);
+            if (!added || !added->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx))) return nullptr;
+            type->InitialUpdateFrame(added, document, TRUE);
+            return static_cast<CMDIChildWndEx*>(added);
+        }
+    }
+
+    auto* document = impl__OpenDocumentFile_CWinApp__UEAAPEAVCDocument__PEB_WH_Z(AfxGetApp(), name, TRUE);
+    if (!document) return nullptr;
+    for (auto pos = document->GetFirstViewPosition(); pos;) {
+        auto* view = document->GetNextView(pos);
+        auto* child = view ? view->GetParentFrame() : nullptr;
+        if (child && ::GetParent(child->m_hWnd) == m_hWndMDIClient &&
+            child->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx)))
+            return static_cast<CMDIChildWndEx*>(child);
+    }
+    return nullptr;
+}
+
 // Symbol: ?CreateNewWindow@CMDIFrameWndEx@@UEAAPEAVCMDIChildWndEx@@PEB_WPEAVCObject@@@Z
 extern "C" CMDIChildWndEx* MS_ABI impl__CreateNewWindow_CMDIFrameWndEx__UEAAPEAVCMDIChildWndEx__PEB_WPEAVCObject___Z(
-    CMDIFrameWndEx* pThis, const wchar_t* lpcszDocName, CObject* pObj) {
-    (void)lpcszDocName;
-    (void)pObj;
-    if (!pThis) return nullptr;
-    // TODO(clean-room): transcribed partially — retail allocates a
-    // CMDIChildWndEx and registers it via the MDI client area; requires
-    // unmodeled frame/tab state (this+0x4574/0x4668).
-    return nullptr;
+    CMDIFrameWndEx* pThis, const wchar_t* name, CObject* state) {
+    return pThis ? pThis->CMDIFrameWndEx::CreateNewWindow(name, state) : nullptr;
 }
 // CMDIFrameWndEx::DockPane(CBasePane*, UINT, LPCRECT) — retail entry RVA
 // 0x89750 (an earlier revision cited 0x891a0, an instruction inside
@@ -1262,19 +1277,17 @@ extern "C" BOOL MS_ABI impl__IsPointNearDockSite_CMDIFrameWndEx__QEBAHVCPoint__A
     return impl__IsPointNearDockSite_CDockingManager__QEBAHVCPoint__AEAKAEAH_Z(manager, point, alignment, outerEdge);
 }
 
-// CMDIFrameWndEx::LoadMDIState(LPCTSTR) — the wide export has no RVA; its ANSI
-// twin ?LoadMDIState@CMDIFrameWndEx@@UEAAHPEBD@Z is at entry RVA 0x8a1f0 and is
-// a three-instruction tail jump:
-//     r8d = this->+0x218;  rcx = this + 0x720;  jmp 0x180082da0
-// = ?LoadState@CMDIClientAreaWnd@@QEAAHPEBDI@Z(lpszProfileName, this->+0x218)
-// on the embedded MDI client-area window.
-// Left a stub returning FALSE ("nothing restored"): OpenMFC's CMDIFrameWndEx
-// has no CMDIClientAreaWnd sub-object and no this+0x218 group id.
+extern "C" int MS_ABI impl__LoadState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(void*, const wchar_t*, UINT);
+
+BOOL CMDIFrameWndEx::LoadMDIState(const wchar_t* profile) {
+    return ::IsWindow(m_hWndMDIClient) &&
+        impl__LoadState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(ClientAreaOf(this), profile, Tail(this)->m_nFrameID);
+}
+
 // Symbol: ?LoadMDIState@CMDIFrameWndEx@@UEAAHPEB_W@Z
 extern "C" int MS_ABI impl__LoadMDIState_CMDIFrameWndEx__UEAAHPEB_W_Z(
-    CMDIFrameWndEx* pThis, const wchar_t* lpszProfileName) {
-    (void)pThis; (void)lpszProfileName;
-    return 0;
+    CMDIFrameWndEx* pThis, const wchar_t* profile) {
+    return pThis && pThis->CMDIFrameWndEx::LoadMDIState(profile);
 }
 
 // CMDIFrameWndEx::NegotiateBorderSpace(UINT, LPRECT) — retail entry RVA
@@ -2594,20 +2607,17 @@ extern "C" void MS_ABI impl__RemovePaneFromDockManager_CMDIFrameWndEx__QEAAXPEAV
         DockManagerOf(pThis), pControlBar, bDestroy, bAdjustLayout, bAutoHide, pBarReplacement);
 }
 
-// CMDIFrameWndEx::SaveMDIState(LPCTSTR) — the wide export sits at RVA 0x89c60
-// (mfc140u, ordinal 12639 in the export directory); its ANSI twin
-// ?SaveMDIState@CMDIFrameWndEx@@UEAAHPEBD@Z at 0x8a210 (mfc140) is a
-// three-instruction tail jump:
-//     r8d = m_nFrameID /* +0x218 */;  rcx = this + 0x720;  jmp 0x180082b70
-// = ?SaveState@CMDIClientAreaWnd@@QEAAHPEBDI@Z(lpszProfileName, m_nFrameID) on
-// the embedded MDI client-area window.
-// Left a stub returning FALSE ("nothing saved"): OpenMFC frames have no
-// CMDIClientAreaWnd sub-object (file header), and that class's SaveState is
-// itself a stub in this tree.  m_nFrameID is now modeled (S_CMDIFrameWndExTail).
+extern "C" int MS_ABI impl__SaveState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(void*, const wchar_t*, UINT);
+
+BOOL CMDIFrameWndEx::SaveMDIState(const wchar_t* profile) {
+    return ::IsWindow(m_hWndMDIClient) &&
+        impl__SaveState_CMDIClientAreaWnd__QEAAHPEB_WI_Z(ClientAreaOf(this), profile, Tail(this)->m_nFrameID);
+}
+
 // Symbol: ?SaveMDIState@CMDIFrameWndEx@@UEAAHPEB_W@Z
-extern "C" int MS_ABI impl__SaveMDIState_CMDIFrameWndEx__UEAAHPEB_W_Z(CMDIFrameWndEx* pThis, const wchar_t* lpszProfileName) {
-    (void)pThis; (void)lpszProfileName;
-    return 0;
+extern "C" int MS_ABI impl__SaveMDIState_CMDIFrameWndEx__UEAAHPEB_W_Z(
+    CMDIFrameWndEx* pThis, const wchar_t* profile) {
+    return pThis && pThis->CMDIFrameWndEx::SaveMDIState(profile);
 }
 
 // CMDIFrameWndEx::ShowPane(CBasePane*, BOOL bShow, BOOL bDelay, BOOL bActivate)

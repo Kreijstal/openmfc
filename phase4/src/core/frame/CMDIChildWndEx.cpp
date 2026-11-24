@@ -1704,32 +1704,15 @@ extern "C" void MS_ABI impl__EnableTaskbarThumbnailClipRect_CMDIChildWndEx__QEAA
     impl__SetTaskbarThumbnailClipRect_CMDIChildWndEx__MEAAHVCRect___Z(pThis, rect);
 }
 
-// CMDIChildWndEx::GetDocumentName(CObject**) — transcribed from retail
-// mfc140u.dll RVA 0x85e90, whose whole body is:
-//     CDocument* pDoc = GetActiveDocument();     // vtable slot +0x2e8
-//     if (pDoc == NULL) return NULL;
-//     return *(LPCTSTR*)((char*)pDoc + 0x48);    // pDoc->m_strPathName
-// Note that retail never writes through pObj -- RDX is untouched from entry to
-// ret -- so this build does not touch it either.  CDocument+0x48 is
-// m_strPathName: ?SetPathName@CDocument@@UEAAXPEBDH@Z (mfc140.dll 0x2194c0)
-// stores the path there, clears m_bEmbedded at +0x124 right after, and passes
-// the same +0x48 pointer to a CWinApp virtual (slot 0x160) when bAddToMRU is
-// set.  Slot +0x2e8 of the retail CMDIChildWndEx vtable
-// (mfc140.dll 0x2ebf68) is ?GetActiveDocument@CFrameWnd@@UEAAPEAVCDocument@@XZ,
-// so calling the CFrameWnd export here matches -- but unlike retail this is a
-// direct call, so an override in a further-derived class is not honoured.
+const wchar_t* CMDIChildWndEx::GetDocumentName(CObject**) {
+    auto* document = GetActiveDocument();
+    return document ? document->GetPathName() : nullptr;
+}
+
 // Symbol: ?GetDocumentName@CMDIChildWndEx@@UEAAPEB_WPEAPEAVCObject@@@Z
 extern "C" const wchar_t* MS_ABI impl__GetDocumentName_CMDIChildWndEx__UEAAPEB_WPEAPEAVCObject___Z(
-    CMDIChildWndEx* pThis, CObject** pObj) {
-    (void)pObj;  // retail leaves the out-parameter alone
-    if (!pThis) {
-        return nullptr;
-    }
-    CDocument* pDoc = impl__GetActiveDocument_CFrameWnd__UEAAPEAVCDocument__XZ(pThis);
-    if (!pDoc) {
-        return nullptr;
-    }
-    return impl__GetPathName_CDocument__UEBAPEB_WXZ(pDoc);
+    CMDIChildWndEx* pThis, CObject** state) {
+    return pThis ? pThis->CMDIChildWndEx::GetDocumentName(state) : nullptr;
 }
 
 // CMDIChildWndEx::GetFrameIcon() const — transcribed from retail mfc140u.dll
