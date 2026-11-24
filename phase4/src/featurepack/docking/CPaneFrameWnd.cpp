@@ -83,7 +83,6 @@ extern "C" int MS_ABI impl__SaveState_CPane__UEAAHPEB_WHI_Z(
 extern "C" int MS_ABI impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(
     CMFCToolBar* pThis, const wchar_t* lpszProfileName, int nIndex, unsigned int uiID);
 extern "C" std::int32_t impl__m_bHandleMinSize_CPane__2HA;
-extern "C" void MS_ABI impl__SizeToContent_CPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint___Z(void* pThis, CPoint point);
 extern "C" void  MS_ABI impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(void* pThis);
@@ -2226,7 +2225,7 @@ BOOL CPaneFrameWnd::OnNotify(WPARAM id, LPARAM notification, LRESULT* result) {
 // twin body is disassembled and the function bodies are byte-identical.
 // The embedded pane handle is synchronized by AddPane and RemovePane.
 extern "C" void MS_ABI impl__OnPaneRecalcLayout_CPaneFrameWnd__UEAAXXZ(void* pThis) {
-    const auto* frame = static_cast<const CPaneFrameWnd*>(pThis);
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
     RECT clientRect{};
     if (!frame || !::GetClientRect(frame->m_hWnd, &clientRect)) return;
     auto* pane = EmbeddedPane(frame);
@@ -2251,7 +2250,7 @@ extern "C" void MS_ABI impl__OnPaneRecalcLayout_CPaneFrameWnd__UEAAXXZ(void* pTh
         clientRect.right - clientRect.left, clientRect.bottom - clientRect.top,
         0x34, nullptr);
     ::RedrawWindow(pane->m_hWnd, nullptr, nullptr, 0x105);
-    if (expanded) impl__SizeToContent_CPaneFrameWnd__UEAAXXZ(pThis);
+    if (expanded) frame->SizeToContent();
 }
 
 // Symbol: ?OnPressButtons@CPaneFrameWnd@@MEAAXI@Z
@@ -3149,19 +3148,22 @@ extern "C" void MS_ABI impl__ShowButton_CPaneFrameWnd__IEAAXIH_Z(void* pThis, UI
 }
 
 // Symbol: ?SizeToContent@CPaneFrameWnd@@UEAAXXZ
-// Retail mfc140.dll ANSI twin entry RVA 0xb0b30, transcribed in full:
-//     CWnd* p = CWnd::FromHandlePermanent(m_hwndPane /*0x148*/);
-//     if (!p || !p->IsKindOf(RUNTIME_CLASS(CPane))) return;
-//     CSize size = p-><vtable +0x4d0>(0, TRUE);       // the pane's content size
-//     CRect rectWindow; ::GetWindowRect(m_hWnd, &rectWindow); // USER32 slot 0x1802c5370
-//     CRect rectClient; ::GetClientRect(m_hWnd, &rectClient); // USER32 slot 0x1802c5358
-//     SetWindowPos(NULL, 0, 0,
-//                  size.cx + rectWindow.Width()  - rectClient.Width(),
-//                  size.cy + rectWindow.Height() - rectClient.Height(),
-//                  SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE /*0x16*/);
-// STUB: the pane HWND is represented in side state, but its ideal content size
-// still comes entirely from the unexported CPane virtual at +0x4d0. Substituting
-// the current window size would defeat the operation.
 extern "C" void MS_ABI impl__SizeToContent_CPaneFrameWnd__UEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->CPaneFrameWnd::SizeToContent();
+}
+
+void CPaneFrameWnd::SizeToContent() {
+    const HWND window = m_hWnd;
+    if (!window) return;
+    auto* pane = EmbeddedPane(this);
+    if (!pane) return;
+
+    const CSize content = pane->CalcFixedLayout(FALSE, TRUE);
+    RECT frame{}, client{};
+    if (!::GetWindowRect(window, &frame) || !::GetClientRect(window, &client)) return;
+
+    ::SetWindowPos(window, nullptr, 0, 0,
+        content.cx + (frame.right - frame.left) - (client.right - client.left),
+        content.cy + (frame.bottom - frame.top) - (client.bottom - client.top),
+        SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }

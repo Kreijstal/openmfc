@@ -618,6 +618,7 @@ public:
 
     virtual BOOL CanBeAttached() const override;
     virtual BOOL CanAutoHide() const override;
+    CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz) override;
     void EnableAutohideAll();
     virtual CMFCAutoHideBar* SetAutoHideMode(BOOL mode, DWORD alignment, CMFCAutoHideBar* bar = nullptr,
                                             BOOL useTimer = TRUE);
@@ -847,6 +848,7 @@ public:
     CSize GetButtonSize() const;
     virtual void EnableDocking(DWORD dwDockStyle);
     virtual void AdjustLayout();
+    CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz) override;
     void AdjustSize();
     CString GetButtonText(int nIndex) const;
     void GetButtonText(int nIndex, CString& rString) const;
@@ -1600,6 +1602,7 @@ public:
     virtual BOOL IsRollUp() const;
     virtual int GetCaptionHeight() const { return m_nCaptionHeight; }
     virtual void RecalcCaptionHeight();
+    virtual void SizeToContent();
     BOOL PreTranslateMessage(MSG* message) override;
 
     BOOL CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD style, const RECT& rect,

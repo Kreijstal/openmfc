@@ -1404,42 +1404,17 @@ extern "C" POINT* MS_ABI impl__CalcCorrectOffset_CDockablePane__IEAA_AVCPoint__V
     return pRet;
 }
 
-// CDockablePane::CalcFixedLayout -- transcribed from retail. This export is
-// absent from mfc140_rva_symbols.json only because that map is keyed by RVA and
-// the linker ICF-folded this body onto another name; it is NOT missing from the
-// DLL. In mfc140u.dll the export resolves to RVA 0x92b0 (shared with
-// ?CalcFixedLayout@CMFCAutoHideBar@@UEAA?AVCSize@@HH@Z, whose independent
-// transcription in phase4/src/featurepack/docking/CMFCAutoHideBar.cpp:222 reads
-// the same way -- though note that sibling takes its two leading pointers in the
-// opposite order, which the disassembly below does not support), and the whole
-// body is:
-//     mov 0x40(%rcx),%rcx        ; this->m_hWnd
-//     xorps %xmm0,%xmm0 ; movdqu %xmm0,0x20(%rsp)   ; RECT rc = {0,0,0,0}
-//     lea 0x20(%rsp),%rdx ; call *0x1802c6c08       ; ::GetWindowRect(m_hWnd,&rc)
-//     mov 0x28(%rsp),%ecx ; sub 0x20(%rsp),%ecx ; mov %ecx,(%rbx)   ; cx = right-left
-//     mov 0x2c(%rsp),%ecx ; sub 0x24(%rsp),%ecx ; mov %ecx,0x4(%rbx); cy = bottom-top
-//     mov %rbx,%rax                                 ; return the hidden slot
-// (IAT slot 0x1802c6c08 resolved with iatu.py == USER32!GetWindowRect. The
-// result is NOT checked; the zeroed rect is used as-is on failure.) Both BOOL
-// arguments are ignored.
-// Signature corrected: the generated stub dropped `this` and the hidden CSize
-// return slot. MSVC x64 passes `this` in %rcx and the hidden slot in %rdx and
-// returns that same pointer in %rax -- confirmed here by `mov 0x40(%rcx),%rcx`
-// (an HWND member read, so %rcx is `this`) and `mov %rbx,%rax` where %rbx was
-// loaded from %rdx.
+CSize CDockablePane::CalcFixedLayout(BOOL, BOOL) {
+    RECT bounds{};
+    ::GetWindowRect(m_hWnd, &bounds);
+    return CSize(bounds.right - bounds.left, bounds.bottom - bounds.top);
+}
+
 // Symbol: ?CalcFixedLayout@CDockablePane@@UEAA?AVCSize@@HH@Z
 extern "C" SIZE* MS_ABI impl__CalcFixedLayout_CDockablePane__UEAA_AVCSize__HH_Z(
-    CDockablePane* pThis, SIZE* pRet, int bStretch, int bHorz) {
-    (void)bStretch;   // retail reads neither argument
-    (void)bHorz;
-    if (pRet == nullptr) return pRet;
-    RECT rc = {0, 0, 0, 0};
-    if (pThis != nullptr) {   // deviation: retail has no NULL check
-        ::GetWindowRect(pThis->m_hWnd, &rc);
-    }
-    pRet->cx = rc.right - rc.left;
-    pRet->cy = rc.bottom - rc.top;
-    return pRet;
+    CDockablePane* pane, SIZE* result, BOOL stretch, BOOL horizontal) {
+    if (result) *result = pane ? static_cast<SIZE>(pane->CDockablePane::CalcFixedLayout(stretch, horizontal)) : SIZE{};
+    return result;
 }
 
 // CDockablePane::CalcRectForSliding -- transcribed from retail entry RVA

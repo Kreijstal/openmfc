@@ -3475,18 +3475,15 @@ CMFCToolBar::~CMFCToolBar() {
     ClearToolBarState(this);
 }
 BOOL CMFCToolBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID) {
-    if (!pParentWnd) return FALSE;
+    if (!pParentWnd || m_hWnd) return FALSE;
+    INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_BAR_CLASSES};
+    ::InitCommonControlsEx(&controls);
+    const RECT bounds{};
+    if (!CWnd::Create(TOOLBARCLASSNAMEW, nullptr, dwStyle, bounds, pParentWnd, nID)) return FALSE;
+
     g_toolBarStates[this].parent = pParentWnd;
-    m_hWnd = ::CreateWindowExW(0, L"ToolbarWindow32", nullptr,
-                                dwStyle, 0, 0, 0, 0,
-                                pParentWnd->GetSafeHwnd(), (HMENU)(UINT_PTR)nID,
-                                AfxGetInstanceHandle(), nullptr);
-    if (m_hWnd) {
-        ::SendMessageW(m_hWnd, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    } else {
-        ClearToolBarState(this);
-    }
-    return m_hWnd != nullptr;
+    ::SendMessageW(m_hWnd, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    return TRUE;
 }
 BOOL CMFCToolBar::CreateEx(CWnd* pParentWnd, DWORD, DWORD dwStyle, CRect, UINT nID) {
     return Create(pParentWnd, dwStyle, nID);
@@ -4074,29 +4071,61 @@ extern "C" int MS_ABI impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButto
     return -1;
 }
 
-// Retail (0x18014f0b0), fully transcribed: it packs the two BOOLs into
-// CalcLayout's mode word and tail-calls CalcLayout with an unconstrained
-// length.
-//     dwMode = (bStretch ? LM_STRETCH : 0) | (bHorz ? LM_HORZ : 0);   // 1 | 2
-//     return CalcLayout(dwMode, -1);                                  // vslot 0x780
-// (The vtable slot is named from the retail CMFCToolBar vtable at 0x1803157c8:
-// 0x780 -> ?CalcLayout@CMFCToolBar@@MEAA?AVCSize@@KH@Z.)
-//
-// Deviation: OpenMFC's DLL-internal vtable does not carry that slot, so the
-// CalcLayout export below is called directly rather than virtually -- a derived
-// class overriding CalcLayout would not be re-entered here.  CalcLayout is
-// itself a stub, so the returned size is (0, 0) rather than a real layout.
-//
-// The generated stub this replaces also had the struct return wrong: the hidden
-// CSize slot arrives in rdx and must be returned in rax, and it returned
-// nullptr.  Both are fixed here and in CalcLayout/CalcSize below.
+CSize CMFCToolBar::CalcFixedLayout(BOOL stretch, BOOL horizontal) {
+    const HWND toolbar = m_hWnd;
+    const bool horizontalControl = toolbar && (::GetWindowLongPtrW(toolbar, GWL_STYLE) & CCS_VERT) == 0;
+    SIZE content{};
+    if (!toolbar || horizontalControl != (horizontal != FALSE) ||
+        !::SendMessageW(toolbar, TB_GETMAXSIZE, 0, reinterpret_cast<LPARAM>(&content))) {
+        // A detached toolbar has only its button model. The button sizes also
+        // let a live toolbar report fixed layout in the opposite orientation.
+        content = {};
+        const CSize defaultSize = GetButtonSize();
+        const int count = GetCount();
+        for (int index = 0; index < count; ++index) {
+            const auto* button = GetButton(index);
+            if (!button || !button->m_bVisible || button->m_bIsHidden) continue;
+            CSize size = defaultSize;
+            RECT bounds{};
+            TBBUTTON item{};
+            if (toolbar && ::SendMessageW(toolbar, TB_GETBUTTON, index, reinterpret_cast<LPARAM>(&item)) &&
+                (item.fsState & TBSTATE_HIDDEN)) continue;
+            const bool measured = toolbar &&
+                ::SendMessageW(toolbar, TB_GETITEMRECT, index, reinterpret_cast<LPARAM>(&bounds));
+            if (measured) size.SetSize(bounds.right - bounds.left, bounds.bottom - bounds.top);
+            if (button->m_nStyle & TBSTYLE_SEP) {
+                int gap = button->m_iImage > 0 ? button->m_iImage : 8;
+                if (measured) gap = horizontalControl ? size.cx : size.cy;
+                size = horizontal ? CSize(gap, defaultSize.cy) : CSize(defaultSize.cx, gap);
+            }
+            if (horizontal) {
+                content.cx += size.cx;
+                content.cy = (std::max)(content.cy, static_cast<LONG>(size.cy));
+            } else {
+                content.cx = (std::max)(content.cx, static_cast<LONG>(size.cx));
+                content.cy += size.cy;
+            }
+        }
+    }
+
+    RECT bounds{}, client{};
+    if (toolbar && ::GetWindowRect(toolbar, &bounds) && ::GetClientRect(toolbar, &client)) {
+        content.cx += (bounds.right - bounds.left) - (client.right - client.left);
+        content.cy += (bounds.bottom - bounds.top) - (client.bottom - client.top);
+    }
+    constexpr LONG stretchSize = 32767;
+    if (stretch) {
+        if (horizontal) content.cx = (std::max)(content.cx, stretchSize);
+        else content.cy = (std::max)(content.cy, stretchSize);
+    }
+    return CSize(content);
+}
+
 // Symbol: ?CalcFixedLayout@CMFCToolBar@@UEAA?AVCSize@@HH@Z
 extern "C" CSize* MS_ABI impl__CalcFixedLayout_CMFCToolBar__UEAA_AVCSize__HH_Z(
-    CMFCToolBar* pThis, CSize* pRet, int bStretch, int bHorz)
-{
-    const unsigned long dwMode =
-        static_cast<unsigned long>((bStretch ? 1 : 0) | (bHorz ? 2 : 0));
-    return impl__CalcLayout_CMFCToolBar__MEAA_AVCSize__KH_Z(pThis, pRet, dwMode, -1);
+    CMFCToolBar* toolbar, CSize* result, BOOL stretch, BOOL horizontal) {
+    if (result) *result = toolbar ? toolbar->CMFCToolBar::CalcFixedLayout(stretch, horizontal) : CSize();
+    return result;
 }
 
 // Retail (0x180154d70) computes the docked size: it clears a flag on
