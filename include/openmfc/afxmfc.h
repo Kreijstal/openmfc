@@ -752,6 +752,9 @@ public:
     CSize GetImageSize() const { return m_sizeImage; }
     int GetResourceOffset(UINT resourceID) const;
     BOOL CopyTo(CMFCToolBarImages& destination) const;
+    BOOL DeleteImage(int index);
+    HICON ExtractIcon(int index) const;
+    BOOL CopyImageToClipboard(int index);
     BOOL DrawEx(CDC* dc, CRect bounds, int index, int horizontal = 0, int vertical = 0,
                 CRect source = CRect(0, 0, 0, 0), BYTE alpha = 255);
 

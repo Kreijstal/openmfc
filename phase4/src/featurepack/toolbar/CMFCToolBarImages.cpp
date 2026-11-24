@@ -6,8 +6,10 @@
 #include "detail/GdicoreSupport.h"
 #include "detail/CMFCToolBarImagesSupport.h"
 
+#include <atomic>
 #include <climits>
 #include <memory>
+#include <string>
 #include <type_traits>
 
 #define InitImagesMembers() InitMembers()
@@ -174,6 +176,86 @@ OwnedBitmap RasterizeIcon(HICON icon, CSize size, bool alpha, COLORREF key) {
     }
     return image;
 }
+bool WriteFileBytes(HANDLE file, const void* bytes, DWORD count) {
+    DWORD written = 0;
+    return ::WriteFile(file, bytes, count, &written, nullptr) && written == count;
+}
+
+void UnpremultiplyPixels(BYTE* pixels, size_t bytes) {
+    for (size_t i = 0; i < bytes; i += 4) {
+        const unsigned int alpha = pixels[i + 3];
+        if (alpha == 0) continue;
+        for (size_t channel = i; channel < i + 3; ++channel) {
+            const unsigned int straight = (pixels[channel] * 255u + alpha - 1) / alpha;
+            pixels[channel] = static_cast<BYTE>((std::min)(straight, 255u));
+        }
+    }
+}
+
+BOOL SaveImageBitmap(HBITMAP bitmap, const wchar_t* path) {
+    BITMAP image{};
+    if (!::GetObjectW(bitmap, sizeof(image), &image) || image.bmWidth <= 0 || image.bmHeight <= 0) return FALSE;
+    const WORD depth = image.bmBitsPixel * image.bmPlanes;
+    const DWORD colors = depth <= 8 ? 1u << depth : 0;
+    constexpr DWORD header = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+    const DWORD pixelsOffset = header + colors * sizeof(RGBQUAD);
+    const uint64_t stride = (uint64_t(image.bmWidth) * depth + 31) / 32 * 4;
+    const uint64_t size = stride * image.bmHeight;
+    if (!stride || size > MAXDWORD - pixelsOffset) return FALSE;
+
+    struct BitmapInfoWithPalette {
+        BITMAPINFOHEADER header;
+        RGBQUAD palette[256];
+    } info{};
+    info.header.biSize = sizeof(info.header);
+    info.header.biWidth = image.bmWidth;
+    info.header.biHeight = image.bmHeight;
+    info.header.biPlanes = 1;
+    info.header.biBitCount = depth;
+    info.header.biSizeImage = static_cast<DWORD>(size);
+    std::vector<BYTE> pixels(static_cast<size_t>(size));
+    const MemoryDC dc(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    if (!dc || ::GetDIBits(dc.get(), bitmap, 0, image.bmHeight, pixels.data(),
+                         reinterpret_cast<BITMAPINFO*>(&info), DIB_RGB_COLORS) != image.bmHeight)
+        return FALSE;
+
+    // The well holds premultiplied alpha. Load premultiplies file pixels.
+    if (depth == 32) UnpremultiplyPixels(pixels.data(), pixels.size());
+
+    BITMAPFILEHEADER fileHeader{};
+    fileHeader.bfType = 0x4d42;
+    fileHeader.bfSize = pixelsOffset + static_cast<DWORD>(size);
+    fileHeader.bfOffBits = pixelsOffset;
+    const DWORD pathCapacity = ::GetFullPathNameW(path, 0, nullptr, nullptr);
+    if (!pathCapacity) return FALSE;
+    std::wstring target(pathCapacity, L'\0');
+    const DWORD pathLength = ::GetFullPathNameW(path, pathCapacity, target.data(), nullptr);
+    if (!pathLength || pathLength >= pathCapacity) return FALSE;
+    target.resize(pathLength);
+    const auto separator = target.find_last_of(L"\\/");
+    const std::wstring directory = separator == std::wstring::npos ? L"" : target.substr(0, separator + 1);
+    static std::atomic<unsigned long> sequence{};
+    std::wstring temporary;
+    HANDLE file = INVALID_HANDLE_VALUE;
+    for (int tries = 0; tries < 16; ++tries) {
+        temporary = directory + L"openmfc-" + std::to_wstring(::GetCurrentProcessId()) +
+            L"-" + std::to_wstring(++sequence) + L".tmp";
+        file = ::CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (file != INVALID_HANDLE_VALUE) break;
+        const DWORD error = ::GetLastError();
+        if (error != ERROR_FILE_EXISTS && error != ERROR_ALREADY_EXISTS) return FALSE;
+    }
+    if (file == INVALID_HANDLE_VALUE) return FALSE;
+    const bool complete = WriteFileBytes(file, &fileHeader, sizeof(fileHeader)) &&
+        WriteFileBytes(file, &info, sizeof(info.header) + colors * sizeof(RGBQUAD)) &&
+        WriteFileBytes(file, pixels.data(), static_cast<DWORD>(size)) &&
+        ::FlushFileBuffers(file);
+    ::CloseHandle(file);
+    if (complete && ::MoveFileExW(temporary.c_str(), target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+        return TRUE;
+    ::DeleteFileW(temporary.c_str());
+    return FALSE;
+}
 } // namespace
 
 void CMFCToolBarImages::ReleaseImageWell() {
@@ -261,8 +343,15 @@ BOOL CMFCToolBarImages::LoadStr(const wchar_t* name, HINSTANCE module, BOOL appe
     return TRUE;
 }
 // Symbol: ?Save@CMFCToolBarImages@@QEAAHPEB_W@Z
-BOOL CMFCToolBarImages::Save(const wchar_t*) {
-    return IsValid();
+BOOL CMFCToolBarImages::Save(const wchar_t* file) {
+    if (!m_bUserImagesList || m_bReadOnly || m_bIsTemporary || !m_hbmImageWell) return FALSE;
+    const auto* original = static_cast<const wchar_t*>(m_strUDLPath);
+    const auto* path = file ? file : original;
+    if (!path || !*path) return FALSE;
+    if (!m_bModified && original && std::wcscmp(path, original) == 0) return TRUE;
+    if (!SaveImageBitmap(m_hbmImageWell, path)) return FALSE;
+    m_bModified = FALSE;
+    return TRUE;
 }
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHPEAUHBITMAP__@@H@Z
 int CMFCToolBarImages::AddImage(HBITMAP hBitmap, BOOL) {
@@ -349,7 +438,7 @@ extern "C" int MS_ABI impl__LoadStr_CMFCToolBarImages__QEAAHPEB_WPEAUHINSTANCE__
 }
 // Symbol: ?Save@CMFCToolBarImages@@QEAAHPEB_W@Z
 extern "C" int MS_ABI impl__Save_CMFCToolBarImages__QEAAHPEB_W_Z(CMFCToolBarImages* pThis, const wchar_t* lpszFile) {
-    return pThis->Save(lpszFile);
+    return pThis && pThis->Save(lpszFile);
 }
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHPEAUHBITMAP__@@H@Z
 extern "C" int MS_ABI impl__AddImage_CMFCToolBarImages__QEAAHPEAUHBITMAP____H_Z(CMFCToolBarImages* pThis, HBITMAP hBmp, int bSet) {
@@ -798,53 +887,145 @@ extern "C" void MS_ABI impl__FillDitheredRect_CMFCToolBarImages__SAXPEAVCDC__AEB
     if (!hbr) return;
     ::FillRect(pDC->GetSafeHdc(), *pRect, hbr);
 }
-// Retail (0x18016ef50) draws the image into a compatible bitmap and publishes
-// it to the clipboard (OpenClipboard/EmptyClipboard/SetClipboardData(CF_BITMAP)
-// /CloseClipboard).  Depends on the Draw pipeline; conservative.
+BOOL CMFCToolBarImages::CopyImageToClipboard(int index) {
+    if (!m_hbmImageWell || index < 0 || index >= m_iCount) return FALSE;
+    void* pixels = nullptr;
+    auto bitmap = CreateImageBitmap(m_sizeImage.cx, m_sizeImage.cy, 24, &pixels);
+    const MemoryDC canvas(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    if (!bitmap || !canvas) return FALSE;
+    const auto old = ::SelectObject(canvas.get(), bitmap.get());
+    if (!old) return FALSE;
+    const CRect bounds(0, 0, m_sizeImage.cx, m_sizeImage.cy);
+    CDC dc;
+    dc.m_hDC = canvas.get();
+    const bool drawn = ::FillRect(canvas.get(), bounds, ::GetSysColorBrush(COLOR_BTNFACE)) &&
+        DrawEx(&dc, bounds, index);
+    dc.m_hDC = nullptr;
+    ::SelectObject(canvas.get(), old);
+    if (!drawn) return FALSE;
+
+    const auto active = ::GetActiveWindow();
+    const auto owner = active ? active : ::CreateWindowExW(0, L"STATIC", nullptr, 0,
+        0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr, nullptr);
+    BOOL copied = FALSE;
+    if (owner && ::OpenClipboard(owner)) {
+        if (::EmptyClipboard() && ::SetClipboardData(CF_BITMAP, bitmap.get())) {
+            bitmap.release();
+            copied = TRUE;
+        }
+        ::CloseClipboard();
+    }
+    if (!active && owner) ::DestroyWindow(owner);
+    return copied;
+}
+
 // Symbol: ?CopyImageToClipboard@CMFCToolBarImages@@QEAAHH@Z
 extern "C" int MS_ABI impl__CopyImageToClipboard_CMFCToolBarImages__QEAAHH_Z(
-    CMFCToolBarImages* pThis, int iImageIndex)
+    CMFCToolBarImages* images, int index)
 {
-    (void)iImageIndex;
-    if (!pThis) return 0;
-    // TODO(clean-room): transcribed partially -- retail renders the image
-    // through Draw (0x18016c6d0) into a compatible bitmap and hands it to the
-    // clipboard; the draw pipeline is not modeled.
-    return 0;
+    return images && images->CopyImageToClipboard(index);
 }
-#define TI_OFF_BOOL(p, off) (*reinterpret_cast<BOOL*>(reinterpret_cast<char*>(p) + (off)))
-#define TI_OFF_INT(p, off)  (*reinterpret_cast<int*>(reinterpret_cast<char*>(p) + (off)))
-#define TI_OFF_PTR(p, off)  (*reinterpret_cast<void**>(reinterpret_cast<char*>(p) + (off)))
-// Retail (0x18016e460) removes image iIndex from the well by BitBlt'ing the
-// trailing images left and re-counting.  The DIB/DC machinery is unmodeled.
+
+BOOL CMFCToolBarImages::DeleteImage(int index) {
+    if (m_bIsTemporary || !m_bUserImagesList || !m_hbmImageWell ||
+        index < 0 || index >= m_iCount || m_sizeImage.cx <= 0 || m_sizeImage.cy <= 0) return FALSE;
+    const int count = m_iCount - 1;
+    if (count == 0) {
+        ReleaseImageWell();
+        m_bModified = TRUE;
+        return TRUE;
+    }
+
+    const int cellWidth = m_sizeImage.cx;
+    const int height = m_sizeImage.cy;
+    const int left = index * cellWidth;
+    const int after = (count - index) * cellWidth;
+    OwnedBitmap bitmap(nullptr, &::DeleteObject);
+    const MemoryDC src(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    const MemoryDC dst(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    if (!src || !dst) return FALSE;
+    const auto oldSrc = ::SelectObject(src.get(), m_hbmImageWell);
+    if (!oldSrc) return FALSE;
+
+    if (m_nBitsPerPixel <= 8) {
+        bitmap.reset(::CreateCompatibleBitmap(src.get(), count * cellWidth, height));
+    } else {
+        void* pixels = nullptr;
+        bitmap = CreateImageBitmap(count * cellWidth, height, m_nBitsPerPixel == 32 ? 32 : 24, &pixels);
+    }
+    if (!bitmap) return FALSE;
+    const auto oldDst = ::SelectObject(dst.get(), bitmap.get());
+    if (!oldDst) return FALSE;
+
+    RGBQUAD palette[256]{};
+    const UINT colors = m_nBitsPerPixel <= 8 ? ::GetDIBColorTable(src.get(), 0, 256, palette) : 0;
+    const bool copied = (!colors || ::SetDIBColorTable(dst.get(), 0, colors, palette) == colors) &&
+        (!left || ::BitBlt(dst.get(), 0, 0, left, height, src.get(), 0, 0, SRCCOPY)) &&
+        (!after || ::BitBlt(dst.get(), left, 0, after, height, src.get(), left + cellWidth, 0, SRCCOPY));
+    ::SelectObject(src.get(), oldSrc);
+    ::SelectObject(dst.get(), oldDst);
+    BITMAP stored{};
+    if (!copied || !::GetObjectW(bitmap.get(), sizeof(stored), &stored)) return FALSE;
+
+    ReleaseImageWell();
+    m_hbmImageWell = bitmap.release();
+    m_iCount = count;
+    m_nBitsPerPixel = stored.bmBitsPixel;
+    m_bModified = TRUE;
+    return TRUE;
+}
+
 // Symbol: ?DeleteImage@CMFCToolBarImages@@QEAAHH@Z
 extern "C" int MS_ABI impl__DeleteImage_CMFCToolBarImages__QEAAHH_Z(
-    CMFCToolBarImages* pThis, int iIndex)
+    CMFCToolBarImages* images, int index)
 {
-    if (!pThis) return 0;
-    if (TI_OFF_BOOL(pThis, 0x2C)) return 0;         // m_bIsTemporary
-    if (!TI_OFF_BOOL(pThis, 0x1C)) return 0;        // !m_bUserImagesList
-    if (iIndex < 0 || iIndex >= TI_OFF_INT(pThis, 0x08)) return 0;
-    if (!TI_OFF_PTR(pThis, 0xA0)) return 0;
-    // TODO(clean-room): transcribed partially -- retail (0x18016e460) shifts
-    // the trailing image rows in the well and recomputes m_iCount; not modeled.
-    return 0;
+    return images && images->DeleteImage(index);
 }
-#undef TI_OFF_BOOL
-#undef TI_OFF_PTR
-// Retail (0x18016e6d0) extracts image iIndex as an HICON through a
-// CImageList/CopyImage pipeline; conservative.
+
+HICON CMFCToolBarImages::ExtractIcon(int index) const {
+    if (!m_hbmImageWell || index < 0 || index >= m_iCount ||
+        m_sizeImage.cx <= 0 || m_sizeImage.cy <= 0) return nullptr;
+    const bool alpha = m_nBitsPerPixel == 32;
+    const auto bitmap = CopyCell(m_hbmImageWell, m_sizeImage, index, alpha, false, m_clrTransparent);
+    if (!bitmap) return nullptr;
+    if (alpha) {
+        BITMAP info{};
+        if (!::GetObjectW(bitmap.get(), sizeof(info), &info) || !info.bmBits) return nullptr;
+        const size_t stride = (static_cast<size_t>(m_sizeImage.cx) + 15) / 16 * 2;
+        std::vector<BYTE> maskBits(stride * m_sizeImage.cy);
+        ::GdiFlush();
+        auto* bits = static_cast<BYTE*>(info.bmBits);
+        for (int y = 0; y < m_sizeImage.cy; ++y) {
+            const auto* row = bits + static_cast<size_t>(y) * info.bmWidthBytes;
+            for (int x = 0; x < m_sizeImage.cx; ++x) {
+                if (row[static_cast<size_t>(x) * 4 + 3] == 0)
+                    maskBits[y * stride + x / 8] |= static_cast<BYTE>(0x80 >> (x % 8));
+            }
+        }
+        const OwnedBitmap mask(::CreateBitmap(m_sizeImage.cx, m_sizeImage.cy, 1, 1, maskBits.data()),
+                               &::DeleteObject);
+        if (!mask) return nullptr;
+        UnpremultiplyPixels(bits, static_cast<size_t>(info.bmWidthBytes) * m_sizeImage.cy);
+        ICONINFO iconInfo{TRUE, 0, 0, mask.get(), bitmap.get()};
+        return ::CreateIconIndirect(&iconInfo);
+    }
+
+    const auto list = ::ImageList_Create(m_sizeImage.cx, m_sizeImage.cy, ILC_COLOR32 | ILC_MASK, 1, 1);
+    if (!list) return nullptr;
+    const COLORREF key = m_clrTransparent == CLR_INVALID ? ::GetSysColor(COLOR_BTNFACE) : m_clrTransparent;
+    const int added = ::ImageList_AddMasked(list, bitmap.get(), key);
+    const HICON icon = added >= 0 ? ::ImageList_GetIcon(list, added, ILD_TRANSPARENT) : nullptr;
+    ::ImageList_Destroy(list);
+    return icon;
+}
+
 // Symbol: ?ExtractIconW@CMFCToolBarImages@@QEAAPEAUHICON__@@H@Z
 extern "C" HICON MS_ABI impl__ExtractIconW_CMFCToolBarImages__QEAAPEAUHICON____H_Z(
-    CMFCToolBarImages* pThis, int iIndex)
+    CMFCToolBarImages* images, int index)
 {
-    if (!pThis) return nullptr;
-    if (iIndex < 0 || iIndex >= TI_OFF_INT(pThis, 0x08)) return nullptr;
-    // TODO(clean-room): transcribed partially -- retail (0x18016e6d0) crops
-    // the iIndex-th sub-image and converts it with the ImageList/CopyImage
-    // pipeline; not modeled.
-    return nullptr;
+    return images ? images->ExtractIcon(index) : nullptr;
 }
+#define TI_OFF_INT(p, off) (*reinterpret_cast<int*>(reinterpret_cast<char*>(p) + (off)))
 // Retail (0x180170010): validate the list, clear, copy its icon size into
 // m_sizeImage and add every icon through the internal AddBitmapToBmp helper.
 // The helper is approximated by the public AddIcon() (tracks count in the
