@@ -1699,26 +1699,25 @@ extern "C" int MS_ABI impl__CheckStopSlideCondition_CDockablePane__MEAAHH_Z(CDoc
     }
 }
 
-// STUB. Retail mfc140.dll ANSI-twin entry RVA 0x46590 (mfc140u RVA 0x46740):
-//     if (IsAutoHideMode()) return;                       // vtable slot 0x3c8
-//     CWnd* pSite = GetDockSiteFrameWnd();                // vtable slot 0x348
-//     if (pSite == NULL ||
-//         !pSite->IsKindOf(<RTC at RVA 0x2ec3c8, "CMDIFrameWndEx">)) return;
-//     if (IsTabbed()) {                                   // vtable slot 0x2e8
-//         CBaseTabbedPane* p = GetParentTabbedPane();     // RVA 0xc9b0
-//         if (p != NULL && p->IsKindOf(<RTC at RVA 0x3aa4a8, "CTabbedPane">))
-//             p->{slot 0x5d0}(bActiveTabOnly);            // ConvertToTabbedDocument
-//     } else {
-//         pSite->{slot 0x3b8}(this);
-//     }
-// Blocked: slot 0x3b8 on the CMDIFrameWndEx dock site and slot 0x5d0 on the
-// CTabbedPane are not modelled in OpenMFC (neither class has a retail-shaped
-// vtable here), so neither arm can be dispatched.
-// Signature corrected to carry `this`.
+extern "C" void MS_ABI impl__ConvertToTabbedDocument_CBaseTabbedPane__UEAAXH_Z(CBaseTabbedPane*, int);
+
 // Symbol: ?ConvertToTabbedDocument@CDockablePane@@UEAAXH@Z
-extern "C" void MS_ABI impl__ConvertToTabbedDocument_CDockablePane__UEAAXH_Z(CDockablePane* pThis, int bActiveTabOnly) {
-    (void)pThis;
-    (void)bActiveTabOnly;
+extern "C" void MS_ABI impl__ConvertToTabbedDocument_CDockablePane__UEAAXH_Z(CDockablePane* pane, int activeOnly) {
+    if (!pane || pane->IsAutoHideMode()) return;
+    if (pane->IsKindOf(RUNTIME_CLASS(CBaseTabbedPane))) {
+        impl__ConvertToTabbedDocument_CBaseTabbedPane__UEAAXH_Z(static_cast<CBaseTabbedPane*>(pane), activeOnly);
+        return;
+    }
+    auto* site = impl__GetDockSiteFrameWnd_CBasePane__UEBAPEAVCWnd__XZ(pane);
+    if (!site || !site->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx))) return;
+    if (pane->IsTabbed()) {
+        auto* group = static_cast<CBaseTabbedPane*>(
+            impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(pane));
+        if (group && group->IsKindOf(RUNTIME_CLASS(CTabbedPane)))
+            impl__ConvertToTabbedDocument_CBaseTabbedPane__UEAAXH_Z(group, activeOnly);
+    } else {
+        static_cast<CMDIFrameWndEx*>(site)->ControlBarToTabbedDocument(pane);
+    }
 }
 
 // CDockablePane::CopyState -- transcribed from retail entry RVA 0x46410, whose

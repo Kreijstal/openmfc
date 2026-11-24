@@ -5,6 +5,8 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
+#include "detail/Frame01MsgmapSupport.h"
+#include "detail/PaneContainerLayout.h"
 
 // OpenMFC — CMDIFrameWndEx / CMDIChildWndEx method stubs (wave1_other-3).
 //
@@ -19,10 +21,10 @@
 // heap and reached through the per-child ChildExtra record (see the layout note
 // in the anonymous namespace); the dock-manager forwarders, OnChangeVisualManager
 // and OnMDIActivate use them.  Every OTHER retail access to an unmodelled offset
-// -- the tab proxy at +0x720, m_pTabbedControlBar at +0x710, the scalar flags,
+// -- the tab proxy at +0x720, the scalar flags,
 // and the CFrameImpl::On* mouse/non-client forwards in the message handlers,
-// which are NOT wired to the ChildExtra CFrameImpl yet -- is still skipped with
-// a `TODO(clean-room)` note; no offsets are invented and no header is edited.
+// which are not wired to the ChildExtra CFrameImpl yet, are documented in the
+// individual handlers.
 //
 // Where a retail body is a bare `ret` / `xor eax,eax; ret`, the function is
 // transcribed faithfully. Message handlers that end in a tail call to a base
@@ -325,11 +327,34 @@ static_assert(kRelatedTabGroupOffset + sizeof(void*) <= sizeof(CMDIChildWndEx),
 struct FrameImplBlock { alignas(16) unsigned char bytes[0x190]; };
 struct DockManagerBlock { alignas(16) unsigned char bytes[sizeof(CDockingManager)]; };
 
+extern "C" void* MS_ABI impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(const CBasePane*);
+extern "C" void* MS_ABI impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(const CDockablePane*);
+extern "C" void MS_ABI impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(CDockablePane*, HWND);
+extern "C" void MS_ABI impl__EnableGripper_CDockablePane__UEAAXH_Z(CDockablePane*, int);
+extern "C" void MS_ABI impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(CPane*, CWnd*, int);
+extern "C" void MS_ABI impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(
+    CDockingManager*, CDockablePane*);
+extern "C" void MS_ABI impl__RemoveHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(
+    CDockingManager*, CDockablePane*);
+
+template<class Window>
+Window* PermanentWindow(HWND window) {
+    auto* object = static_cast<CWnd*>(CWnd::FromHandlePermanent(window));
+    return object && object->IsKindOf(Window::GetThisClass()) ? static_cast<Window*>(object) : nullptr;
+}
+
+bool ReparentTabbedPane(HWND pane, HWND parent) {
+    ::SetLastError(ERROR_SUCCESS);
+    return ::SetParent(pane, parent) || ::GetLastError() == ERROR_SUCCESS;
+}
+
 struct ChildExtra {
     const CMDIChildWndEx* pChild;
     FrameImplBlock* pImpl;            // retail m_Impl (this+0x218)
     DockManagerBlock* pDockManager;   // retail m_dockManager (this+0x3a8)
     CMDIFrameWndEx* pMDIFrame;        // retail m_pMDIFrame (this+0x718)
+    HWND tabbedPane = nullptr;
+    bool autoDelete = false;
     ChildExtra* pNext;
 };
 
@@ -809,7 +834,9 @@ extern "C" void MS_ABI impl__OnSize_CMDIChildWndEx__IEAAXIHH_Z(
     }
     impl__InvalidateIconicBitmaps_CMDIChildWndEx__QEAAHXZ(pThis);
     impl__OnSize_CMDIChildWnd__IEAAXIHH_Z(pThis, nType, cx, cy);
-    if (nType != SIZE_MINIMIZED && nType != SIZE_MAXIMIZED) {
+    if (nType != SIZE_MINIMIZED && pThis->GetTabbedPane()) {
+        impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ(pThis);
+    } else if (nType != SIZE_MINIMIZED && nType != SIZE_MAXIMIZED) {
         impl__AdjustDockingLayout_CMDIChildWndEx__UEAAXPEAX_Z(pThis, nullptr);
     } else if (nType == SIZE_MAXIMIZED) {
         impl__RecalcLayout_CMDIChildWndEx__UEAAXH_Z(pThis, TRUE);
@@ -1332,35 +1359,175 @@ extern "C" int MS_ABI impl__AddPane_CMDIChildWndEx__QEAAHPEAVCBasePane__H_Z(
         DockManagerOf(pThis), pControlBar, bTail, FALSE, FALSE);
 }
 
-// CMDIChildWndEx::AddTabbedPane(CDockablePane*) — retail mfc140u.dll entry
-// RVA 0x86540:
-//     m_pTabbedControlBar = pTabbedPane;                          // this+0x710
-//     pTabbedPane->vtbl[0x448](this, FALSE);                      // CDockablePane::OnBeforeChangeParent
-//     pTabbedPane->vtbl[0x3f0](FALSE);                            // CDockablePane::EnableGripper
-//     CWnd::FromHandle(::SetParent(pTabbedPane->m_hWnd, m_hWnd)); // 0x28ad70; IAT 0x2c7288
-//     pTabbedPane->ShowWindow(SW_SHOW);                           // 0x2a9ad0
-//     pTabbedPane->m_bIsMDITabbed = TRUE;                         // pane+0xf8
-//     m_pMDIFrame->m_dockManager.RemoveHiddenMDITabbedBar(pTabbedPane);   // 0x4ebf0 on
-//                                                                 // (this+0x718)+0x228, NO null test
-//     AdjustClientArea();                                         // tail jump 0x85140
-// (slots 0x448 / 0x3f0 of the retail CDockablePane vftable are
-// ?OnBeforeChangeParent@CDockablePane@@UEAAXPEAVCWnd@@H@Z and
-// ?EnableGripper@CDockablePane@@UEAAXH@Z, per the vftable dump this campaign
-// keeps; m_bIsMDITabbed is a public member of OpenMFC's CBasePane at the same
-// +0xf8.)  Two things stop this from being reproduced honestly: the owning
-// frame's m_dockManager (frame+0x228) is reachable only through a helper local
-// to core/frame/CMDIFrameWndEx.cpp, and OnDestroy's counterpart -- retail
-// reparents the tabbed pane back to the frame's dock site before the child
-// window dies (0x85744..0x8581b inside OnDestroy, entry 0x856f0) -- is not
-// implemented in this file.  Reparenting an application's CDockablePane into a
-// child whose teardown never hands it back would destroy the pane's HWND with
-// the child, a worse outcome than today's no-op.
-// STUB -- left a no-op deliberately; see the headerRequest filed with this file.
+CDockablePane* CMDIChildWndEx::GetTabbedPane() const {
+    const auto* extra = FindExtra(this);
+    if (!extra || !extra->tabbedPane || ::GetParent(extra->tabbedPane) != m_hWnd) return nullptr;
+    return PermanentWindow<CDockablePane>(extra->tabbedPane);
+}
+
+BOOL CMDIChildWndEx::AttachTabbedPane(CDockablePane& pane) {
+    auto* owner = PermanentWindow<CMDIFrameWndEx>(::GetParent(::GetParent(m_hWnd)));
+    auto* extra = FindExtra(this);
+    if (!owner || !extra || extra->tabbedPane || !::IsWindow(pane.m_hWnd) || pane.IsAutoHideMode()) return FALSE;
+    if (pane.m_pDockSite && reinterpret_cast<CWnd*>(pane.m_pDockSite) != owner) return FALSE;
+
+    const HWND paneWindow = pane.m_hWnd;
+    const HWND previousParent = ::GetParent(paneWindow);
+    if (PermanentWindow<CMDIChildWndEx>(previousParent)) return FALSE;
+    auto* manager = openmfc::detail::mfccore::DockingManagerForMdiFrame(owner);
+    if (!manager) return FALSE;
+
+    const bool reopening = pane.m_bIsMDITabbed && previousParent == owner->m_hWnd;
+    auto* group = static_cast<CBaseTabbedPane*>(
+        impl__GetParentTabbedPane_CBasePane__QEBAPEAVCBaseTabbedPane__XZ(&pane));
+    auto* mini = PermanentWindow<CPaneFrameWnd>(previousParent);
+    auto* divider = static_cast<CPaneDivider*>(impl__GetDefaultPaneDivider_CDockablePane__QEBAPEAVCPaneDivider__XZ(&pane));
+    openmfc::docking_state::PaneFloatRestore docked;
+    if (!reopening && !mini) {
+        docked.owner = owner->m_hWnd;
+        docked.parent = previousParent;
+        docked.style = pane.m_dwStyle;
+        ::GetWindowRect(paneWindow, &docked.bounds);
+        if (group && group->GetTabs()) {
+            auto* tabs = group->GetTabs();
+            docked.tabGroup = group->m_hWnd;
+            for (int index = 0; index < tabs->GetTabsCount(); ++index) {
+                if (tabs->GetTabWnd(index) == &pane) {
+                    docked.tabIndex = index;
+                    docked.detachable = tabs->IsTabDetachable(index) != FALSE;
+                    break;
+                }
+            }
+        }
+        ::MapWindowPoints(nullptr, group ? owner->m_hWnd : previousParent,
+            reinterpret_cast<POINT*>(&docked.bounds), 2);
+    }
+    RECT floatingBounds{};
+    if (mini) ::GetWindowRect(previousParent, &floatingBounds);
+    if (!ReparentTabbedPane(paneWindow, m_hWnd)) return FALSE;
+
+    extra->tabbedPane = paneWindow;
+    if (group) group->RemovePane(&pane);
+    else if (mini) mini->RemovePane(&pane);
+    else if (!reopening) {
+        impl__OnBeforeChangeParent_CPane__UEAAXPEAVCWnd__H_Z(&pane, this, FALSE);
+        if (divider) {
+            docked.divider = divider->m_hWnd;
+            docked.reservedDivider = openmfc::detail::ReserveDividerPane(*divider, pane, docked.bounds);
+            impl__SetDefaultPaneDivider_CDockablePane__QEAAXPEAUHWND_____Z(&pane, nullptr);
+            if (!divider->GetFirstPane()) ::ShowWindow(divider->m_hWnd, SW_HIDE);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[&pane];
+        state.parent = this;
+        state.visible = TRUE;
+        state.floatingFrame = nullptr;
+        state.tabbed = FALSE;
+        state.tabWindow = nullptr;
+        if (!reopening && !mini) state.floatRestore = docked;
+    }
+    if (!reopening) pane.m_bWasFloatingBeforeTabbed = mini != nullptr;
+    auto& recent = pane.m_recentDockInfo.m_layout;
+    if (mini) recent.m_rectRecentFloatingRect = floatingBounds;
+    recent.m_hRecentMiniFrame = nullptr;
+    pane.m_bRecentFloatingState = FALSE;
+    pane.m_pDockSite = reinterpret_cast<CDockSite*>(owner);
+    pane.m_dwStyle &= ~CBRS_FLOATING;
+    pane.m_bIsMDITabbed = TRUE;
+    impl__EnableGripper_CDockablePane__UEAAXH_Z(&pane, FALSE);
+    impl__RemoveHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(manager, &pane);
+    ::ShowWindow(paneWindow, SW_SHOW);
+    impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ(this);
+    manager->RecalcLayout();
+    return TRUE;
+}
+
+BOOL CMDIChildWndEx::RestoreTabbedPane(BOOL restoreDocking) {
+    auto* pane = GetTabbedPane();
+    auto* owner = PermanentWindow<CMDIFrameWndEx>(::GetParent(::GetParent(m_hWnd)));
+    if (!pane || !owner || !ReparentTabbedPane(pane->m_hWnd, owner->m_hWnd)) return FALSE;
+    FindExtra(this)->tabbedPane = nullptr;
+    auto* manager = openmfc::detail::mfccore::DockingManagerForMdiFrame(owner);
+    ::ShowWindow(pane->m_hWnd, SW_HIDE);
+
+    std::optional<openmfc::docking_state::PaneFloatRestore> docked;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[pane];
+        state.parent = owner;
+        state.visible = FALSE;
+        docked = state.floatRestore;
+    }
+    if (!restoreDocking) {
+        impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(manager, pane);
+        return TRUE;
+    }
+
+    pane->m_bIsMDITabbed = FALSE;
+    impl__EnableGripper_CDockablePane__UEAAXH_Z(pane, TRUE);
+    if (pane->m_bWasFloatingBeforeTabbed) {
+        const auto& bounds = pane->m_recentDockInfo.m_layout.m_rectRecentFloatingRect;
+        if (pane->FloatPaneWindow(bounds, 2, true, manager)) {
+            if (docked) {
+                auto& recent = pane->m_recentDockInfo.m_layout;
+                pane->m_rectSavedDockedRect = docked->bounds;
+                recent.m_dwRecentAlignmentToFrame = docked->style & CBRS_ALIGN_ANY;
+                recent.m_hRecentDefaultSlider = docked->divider;
+                recent.m_nRecentTabNumber = docked->tabIndex;
+                std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+                g_paneCoreState_Mfccore[pane].floatRestore = docked;
+            }
+            return TRUE;
+        }
+    }
+
+    bool inGroup = false;
+    if (docked) {
+        pane->m_dwStyle = docked->style;
+        auto* group = PermanentWindow<CBaseTabbedPane>(docked->tabGroup);
+        if (group && group->GetTabs()) {
+            const int index = (std::min)(docked->tabIndex, group->GetTabs()->GetTabsCount());
+            inGroup = index >= 0 && group->InsertTab(pane, index, FALSE, FALSE, docked->detachable);
+        }
+        if (!inGroup) {
+            HWND parent = owner->m_hWnd;
+            if (!docked->tabGroup && ::IsWindow(docked->parent) && ReparentTabbedPane(pane->m_hWnd, docked->parent))
+                parent = docked->parent;
+            auto bounds = docked->bounds;
+            if (!docked->tabGroup && parent != docked->parent && ::IsWindow(docked->parent))
+                ::MapWindowPoints(docked->parent, parent, reinterpret_cast<POINT*>(&bounds), 2);
+            ::SetWindowPos(pane->m_hWnd, nullptr, bounds.left, bounds.top, bounds.right - bounds.left,
+                bounds.bottom - bounds.top, SWP_NOACTIVATE | SWP_NOZORDER);
+            auto* divider = docked->reservedDivider ? openmfc::detail::ReservedPaneDivider(*pane) :
+                PermanentWindow<CPaneDivider>(docked->divider);
+            if (divider) divider->AddPane(pane);
+        }
+    }
+    openmfc::detail::ForgetDividerPane(*pane);
+    pane->m_bWasFloatingBeforeTabbed = FALSE;
+    {
+        std::lock_guard<std::mutex> lock(g_paneCoreStateMutex_Mfccore);
+        auto& state = g_paneCoreState_Mfccore[pane];
+        state.parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(pane->m_hWnd)));
+        state.floatRestore.reset();
+    }
+    if (manager) {
+        if (!inGroup) manager->HidePane(pane);
+        manager->RecalcLayout();
+    }
+    return TRUE;
+}
+
+void CMDIChildWndEx::AddTabbedPane(CDockablePane* pane) {
+    if (pane) AttachTabbedPane(*pane);
+}
+
 // Symbol: ?AddTabbedPane@CMDIChildWndEx@@QEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__AddTabbedPane_CMDIChildWndEx__QEAAXPEAVCDockablePane___Z(
     CMDIChildWndEx* pThis, CDockablePane* pPane) {
-    (void)pThis;
-    (void)pPane;
+    if (pThis) pThis->AddTabbedPane(pPane);
 }
 
 // CMDIChildWndEx::AdjustClientArea() — partially transcribed from retail
@@ -1388,16 +1555,19 @@ extern "C" void MS_ABI impl__AddTabbedPane_CMDIChildWndEx__QEAAXPEAVCDockablePan
 //         this->[0x578] - this->[0x118] - (this->[0x110] + this->[0x570]),
 //         this->[0x57c] - this->[0x11c] - (this->[0x114] + this->[0x574]),
 //         SWP_NOZORDER /*0x10*/);   // the z-order arg is inert under NOZORDER
-// The standard child window supplies the document view for the managed bounds.
 // Symbol: ?AdjustClientArea@CMDIChildWndEx@@IEAAXXZ
 extern "C" void MS_ABI impl__AdjustClientArea_CMDIChildWndEx__IEAAXXZ(
     CMDIChildWndEx* pThis) {
     if (!pThis) {
         return;
     }
-    // TODO(clean-room): retail prefers the tabbed pane cached at this+0x710
-    // when it accepts the client area (its vtable slot 0x2f8) and this frame is
-    // its parent; that slot is unmodeled, so retail's other arm is taken.
+    if (auto* pane = pThis->GetTabbedPane()) {
+        RECT bounds{};
+        if (::GetClientRect(pThis->m_hWnd, &bounds))
+            ::SetWindowPos(pane->m_hWnd, nullptr, 0, 0, bounds.right, bounds.bottom,
+                SWP_NOACTIVATE | SWP_NOZORDER);
+        return;
+    }
     CWnd* pWnd = impl__GetDlgItem_CWnd__QEBAPEAV1_H_Z(pThis, AFX_IDW_PANE_FIRST);
     if (pWnd == nullptr) {
         return;
@@ -1895,7 +2065,7 @@ extern "C" __int64 MS_ABI impl__OnChangeVisualManager_CMDIChildWndEx__IEAA_J_K_J
 // the OnCreateHelper call with the MDICREATESTRUCTW's lParam as the create
 // context (an earlier revision of this body passed lpCreateParams itself,
 // i.e. the MDICREATESTRUCTW, as the CCreateContext*; retail reads +0x30 of
-// it), the -1 propagation, the static
+// it), failure propagation, the static
 // CFrameImpl::AddFrame registration, RegisterTaskbarTab(NULL) as a direct call
 // to this class's export (no MSVC vtable here), the AFX_WM_CHANGEVISUALMANAGER
 // post and the 0 result.  NOT reproduced, all for want of a slot in OpenMFC's
@@ -1932,8 +2102,8 @@ extern "C" int MS_ABI impl__OnCreate_CMDIChildWndEx__IEAAHPEAUtagCREATESTRUCTW__
         static_cast<const MDICREATESTRUCTW*>(lpCreateStruct->lpCreateParams);
     CCreateContext* pContext =
         pMDICreate != nullptr ? reinterpret_cast<CCreateContext*>(pMDICreate->lParam) : nullptr;
-    if (impl__OnCreateHelper_CFrameWnd__IEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
-            pThis, lpCreateStruct, pContext) == -1) {
+    if (!impl__OnCreateHelper_CFrameWnd__IEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
+            pThis, lpCreateStruct, pContext)) {
         return -1;
     }
     // TODO(clean-room): retail ends the owning CMDIFrameWndEx's print preview
@@ -1987,9 +2157,7 @@ extern "C" int MS_ABI impl__OnCreate_CMDIChildWndEx__IEAAHPEAUtagCREATESTRUCTW__
 // CMDIChildWnd::OnDestroy; the calls at 0x8592b / 0x85933 are exactly that
 // chain, inlined).  NOT reproduced: the frame-side print-preview probe
 // (frame+0x6b0 is the CMDIFrameWndEx's m_Impl.m_pDockManager, unreadable from
-// here), the tabbed-pane hand-back (m_pTabbedControlBar at +0x710 is
-// unmodelled; AddTabbedPane is a no-op so there is never one to hand back), and
-// the mini-frame DestroyWindow walk (OpenMFC's CDockingManager keeps its
+// here) and the mini-frame DestroyWindow walk (OpenMFC's CDockingManager keeps its
 // mini-frames in featurepack/docking/CDockingManager.cpp's side table, which
 // this file cannot reach).  Deviation: the child walk is skipped when m_hWnd
 // is NULL -- retail would call ::GetTopWindow(NULL) there and test top-level
@@ -2000,8 +2168,7 @@ extern "C" void MS_ABI impl__OnDestroy_CMDIChildWndEx__IEAAXXZ(CMDIChildWndEx* p
         return;
     }
     impl__UnregisterTaskbarTab_CMDIChildWndEx__QEAAXH_Z(pThis, TRUE);
-    // TODO(clean-room): the owning frame's print-preview probe (frame+0x6b0 ->
-    // +0x208) and the tabbed-pane hand-back (+0x710) are unmodeled.
+    pThis->RestoreTabbedPane(FALSE);
     impl__RemoveFrame_CFrameImpl__SAXPEAVCFrameWnd___Z(pThis);
     // TODO(clean-room): the DestroyWindow walk over m_dockManager's mini-frame
     // list (this+0x528) is unreachable from this file.
@@ -2032,6 +2199,37 @@ extern "C" void MS_ABI impl__OnDestroy_CMDIChildWndEx__IEAAXXZ(CMDIChildWndEx* p
         nullptr;   // m_pRelatedTabGroup = NULL
     impl__UpdateClientEdge_CMDIChildWnd__IEAAHPEAUtagRECT___Z(pThis, nullptr);
     impl__OnDestroy_CFrameWnd__IEAAXXZ(pThis);
+}
+
+void CMDIChildWndEx::AutoDestroyWithWindow() {
+    AttachExtra(this)->autoDelete = true;
+}
+
+void CMDIChildWndEx::PostNcDestroy() {
+    const auto* extra = FindExtra(this);
+    const bool autoDelete = extra && extra->autoDelete;
+    CFrameWnd::PostNcDestroy();
+    if (autoDelete) delete this;
+}
+
+const AFX_MSGMAP* CMDIChildWndEx::GetThisMessageMap() {
+    return &openmfc::detail::frame01msgmap::classCMDIChildWndEx_msgmap;
+}
+
+const AFX_MSGMAP* CMDIChildWndEx::GetMessageMap() const {
+    return GetThisMessageMap();
+}
+
+int CMDIChildWndEx::OnCreate(CREATESTRUCTW* create) {
+    return impl__OnCreate_CMDIChildWndEx__IEAAHPEAUtagCREATESTRUCTW___Z(this, create);
+}
+
+void CMDIChildWndEx::OnDestroy() {
+    impl__OnDestroy_CMDIChildWndEx__IEAAXXZ(this);
+}
+
+void CMDIChildWndEx::OnSize(UINT type, int width, int height) {
+    impl__OnSize_CMDIChildWndEx__IEAAXIHH_Z(this, type, width, height);
 }
 
 // CMDIChildWndEx::OnEraseBkgnd(CDC*) — transcribed from retail mfc140u.dll

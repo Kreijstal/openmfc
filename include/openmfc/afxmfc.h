@@ -1717,6 +1717,8 @@ public:
     void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) override;
 
     CMFCVisualManager* GetVisualManager() const;
+    virtual CMDIChildWndEx* ControlBarToTabbedDocument(CDockablePane* pane);
+    virtual BOOL TabbedDocumentToControlBar(CMDIChildWndEx* document);
 
     // Command UI update handlers
     void OnUpdatePaneMenu(CCmdUI* pCmdUI);
@@ -1733,7 +1735,18 @@ public:
     virtual ~CMDIChildWndEx();
     void OnSetPreviewMode(BOOL bPreview, CPrintPreviewState* pState) override;
 
+    void AddTabbedPane(CDockablePane* pane);
+    CDockablePane* GetTabbedPane() const;
+    BOOL AttachTabbedPane(CDockablePane& pane);
+    BOOL RestoreTabbedPane(BOOL restoreDocking);
+    void AutoDestroyWithWindow();
+    int OnCreate(CREATESTRUCTW* create);
+    void OnDestroy();
+    void OnSize(UINT type, int width, int height);
+
 protected:
+    void PostNcDestroy() override;
+    DECLARE_MESSAGE_MAP()
     char _mdichildwndex_padding[64];
 };
 

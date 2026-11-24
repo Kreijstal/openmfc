@@ -4,10 +4,8 @@
 // single instance across the classes this unit was split into.
 namespace openmfc { namespace detail { namespace frame01msgmap {} } }
 using namespace openmfc::detail::frame01msgmap;
-// OpenMFC: message-map metadata (GetMessageMap / GetThisMessageMap) for
-// 7 classes. Each gets a base-chained AFX_MSGMAP with an empty
-// terminator entry array (real handler entries are mfc140u code addresses we
-// cannot replicate). pfnGetBaseMap delegates to the base's exported
+// Shared base-chained message maps. Classes with local handlers provide
+// typed entries. pfnGetBaseMap delegates to the base's exported
 // GetThisMessageMap (real-MFC _AFXDLL base resolution); base harvested by
 // pointer identity from mfc140u.dll. GetMessageMap is virtual-const (takes a
 // this ptr), GetThisMessageMap is static; both return the static map. The

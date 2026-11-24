@@ -999,6 +999,13 @@ extern "C" void MS_ABI impl__ReleaseEmptyPaneContainers_CDockingManager__QEAAXXZ
 }
 // Symbol: ?RemoveHiddenMDITabbedBar@CDockingManager@@QEAAXPEAVCDockablePane@@@Z
 extern "C" void MS_ABI impl__RemoveHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDockablePane___Z(CDockingManager* pThis, CDockablePane* pPane) {
+    if (!pThis || !pPane) return;
+    auto& state = EnsureDockingState(pThis);
+    if (state.hiddenMDITabbedBarCount) {
+        auto* end = state.hiddenMDITabbedBars + state.hiddenMDITabbedBarCount;
+        state.hiddenMDITabbedBarCount = std::remove(state.hiddenMDITabbedBars, end,
+            reinterpret_cast<CBasePane*>(pPane->m_hWnd)) - state.hiddenMDITabbedBars;
+    }
     RemoveDockingPane(pThis, pPane);
 }
 // Symbol: ?RemoveMiniFrame@CDockingManager@@UEAAHPEAVCPaneFrameWnd@@@Z
@@ -1604,11 +1611,16 @@ extern "C" void MS_ABI impl__AddHiddenMDITabbedBar_CDockingManager__QEAAXPEAVCDo
     HWND hWnd = pPane ? impl__GetSafeHwnd_CWnd__QEBAPEAUHWND____XZ(
                             static_cast<const CWnd*>(pPane)) : nullptr;
     DockingManagerState& state = EnsureDockingState(pThis);
+    if (!hWnd) return;
+    const auto entry = reinterpret_cast<CBasePane*>(hWnd);
+    for (std::size_t index = 0; index < state.hiddenMDITabbedBarCount; ++index) {
+        if (state.hiddenMDITabbedBars[index] == entry) return;
+    }
     InsertManagerStateEntry(state.hiddenMDITabbedBars,
                             state.hiddenMDITabbedBarCount,
                             state.hiddenMDITabbedBarCapacity,
                             state.hiddenMDITabbedBarCount,
-                            reinterpret_cast<CBasePane*>(hWnd));
+                            entry);
 }
 
 // Symbol: ?AlignByRect@CDockingManager@@IEAAXAEBVCRect@@AEAV2@KHH@Z

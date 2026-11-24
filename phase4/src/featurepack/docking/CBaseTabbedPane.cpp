@@ -7,6 +7,7 @@
 #include "detail/MfccoreSupport.h"
 #include "detail/Pane15MsgmapSupport.h"
 #include <utility>
+#include <vector>
 
 static_assert(sizeof(CBaseTabbedPane) == 0x518);
 
@@ -154,11 +155,26 @@ extern "C" int MS_ABI impl__CanFloat_CBaseTabbedPane__UEBAHXZ(const CBaseTabbedP
     return impl__CanFloat_CBasePane__UEBAHXZ(static_cast<const CBasePane*>(pThis));
 }
 
-// STUB: retail RVA 0x14cf0.
 // Symbol: ?ConvertToTabbedDocument@CBaseTabbedPane@@UEAAXH@Z
 extern "C" void MS_ABI impl__ConvertToTabbedDocument_CBaseTabbedPane__UEAAXH_Z(
-    CBaseTabbedPane* pThis, int bActiveTabOnly) {
-    (void)pThis; (void)bActiveTabOnly;
+    CBaseTabbedPane* group, int activeOnly) {
+    if (!group || !group->GetTabs()) return;
+    auto* site = reinterpret_cast<CWnd*>(group->m_pDockSite);
+    if (!site || !site->IsKindOf(RUNTIME_CLASS(CMDIFrameWndEx))) return;
+    auto* frame = static_cast<CMDIFrameWndEx*>(site);
+    auto* tabs = group->GetTabs();
+    std::vector<HWND> panes;
+    for (int index = 0; index < tabs->GetTabsCount(); ++index) {
+        if (activeOnly && index != tabs->GetActiveTab()) continue;
+        if (!impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(tabs, index)) continue;
+        auto* tab = tabs->GetTabWnd(index);
+        if (tab && tab->IsKindOf(RUNTIME_CLASS(CDockablePane))) panes.push_back(tab->m_hWnd);
+    }
+    for (HWND hwnd : panes) {
+        auto* tab = static_cast<CWnd*>(CWnd::FromHandlePermanent(hwnd));
+        if (tab && tab->IsKindOf(RUNTIME_CLASS(CDockablePane)))
+            frame->ControlBarToTabbedDocument(static_cast<CDockablePane*>(tab));
+    }
 }
 
 // Symbol: ?DetachPane@CBaseTabbedPane@@UEAAHPEAVCWnd@@H@Z

@@ -1293,8 +1293,11 @@ public:
     virtual int DestroyWindow();
 
     CMDIFrameWnd* GetMDIFrame();
-    
+    static const AFX_MSGMAP* AFXAPI GetThisMessageMap();
+
 protected:
+    int OnCreate(CREATESTRUCTW* create);
+    const AFX_MSGMAP* GetMessageMap() const override;
     char _mdichild_padding[16];
 };
 

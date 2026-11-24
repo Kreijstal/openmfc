@@ -29,8 +29,7 @@
 // FrameExtra below.  Bodies that still cannot be reproduced are documented
 // stubs: a body that is only `{}` or a bare constant return is a STUB unless
 // its comment shows that the retail body is exactly that, and the comment says
-// what was read and what is missing.  No offsets are invented and no header is
-// edited.
+// what was read and what is missing.
 
 #include "openmfc/afxwin.h"
 #include "openmfc/afxmfc.h"
@@ -41,6 +40,7 @@
 #include <cstddef>
 #include <cstring>
 #include <cwchar>
+#include <memory>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -867,23 +867,41 @@ extern "C" void MS_ABI impl__AdjustDockingLayout_CMDIFrameWndEx__UEAAXPEAX_Z(
     CMDIFrameWndEx* pThis, void* pParam) {
     if (pThis) impl__AdjustDockingLayout_CDockingManager__UEAAXPEAX_Z(DockManagerOf(pThis), pParam);
 }
-// CMDIFrameWndEx::ControlBarToTabbedDocument(CDockablePane*) — retail entry RVA
-// 0x8a6f0 (an earlier revision cited 0x8a140, which is an instruction inside
-// CreateNewWindow at 0x8a120). Retail allocates a CMDIChildWndEx
-// (operator new(0x818) then ??0CMDIChildWndEx@@IEAA@XZ at 0x180083db0),
-// converts the dockable pane
-// into a tabbed document and reparents it into the MDI client area. The
-// conversion pipeline is not modeled. Conservative NULL.
+CMDIChildWndEx* CMDIFrameWndEx::ControlBarToTabbedDocument(CDockablePane* pane) {
+    if (!pane || pane->IsAutoHideMode() || !::IsWindow(pane->m_hWnd) || !::IsWindow(m_hWndMDIClient))
+        return nullptr;
+    if (pane->m_pDockSite && reinterpret_cast<CWnd*>(pane->m_pDockSite) != this) return nullptr;
+    if (auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(pane->m_hWnd)));
+        parent && parent->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx))) {
+        auto* child = static_cast<CMDIChildWndEx*>(parent);
+        return ::GetParent(child->m_hWnd) == m_hWndMDIClient && child->GetTabbedPane() == pane ? child : nullptr;
+    }
+
+    const int capacity = ::GetWindowTextLengthW(pane->m_hWnd) + 1;
+    CString title;
+    ::GetWindowTextW(pane->m_hWnd, title.GetBuffer(capacity), capacity);
+    title.ReleaseBuffer();
+    auto document = std::make_unique<CMDIChildWndEx>();
+    constexpr DWORD style = WS_CHILD | WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS;
+    if (!document->Create(nullptr, title, style, RECT{}, this, nullptr)) return nullptr;
+    if (!document->AttachTabbedPane(*pane)) {
+        document->DestroyWindow();
+        return nullptr;
+    }
+    for (const WPARAM size : {ICON_BIG, ICON_SMALL}) {
+        const LRESULT icon = ::SendMessageW(pane->m_hWnd, WM_GETICON, size, 0);
+        if (icon) ::SendMessageW(document->m_hWnd, WM_SETICON, size, icon);
+    }
+    document->AutoDestroyWithWindow();
+    return document.release();
+}
+
 // Symbol: ?ControlBarToTabbedDocument@CMDIFrameWndEx@@UEAAPEAVCMDIChildWndEx@@PEAVCDockablePane@@@Z
 extern "C" CMDIChildWndEx* MS_ABI impl__ControlBarToTabbedDocument_CMDIFrameWndEx__UEAAPEAVCMDIChildWndEx__PEAVCDockablePane___Z(
     CMDIFrameWndEx* pThis, CDockablePane* pBar) {
-    (void)pBar;
-    if (!pThis) return nullptr;
-    // TODO(clean-room): transcribed partially — retail allocates a
-    // CMDIChildWndEx, converts the dockable pane and reparents it into the MDI
-    // client area; complex pipeline not modeled.
-    return nullptr;
+    return pThis ? pThis->ControlBarToTabbedDocument(pBar) : nullptr;
 }
+
 // CMDIFrameWndEx::CreateDocumentWindow(LPCTSTR, CObject*) — no entry in either
 // RVA map (ICF-folded), but the export directory of mfc140u.dll places its
 // ordinal 3232 at RVA 0x71e0, whose body is `xor eax,eax; ret` -- the folded
@@ -2733,60 +2751,32 @@ extern "C" void MS_ABI impl__ShowWindowsDialog_CMDIFrameWndEx__QEAAXXZ(CMDIFrame
     (void)pThis;
 }
 
-// CMDIFrameWndEx::TabbedDocumentToControlBar(CMDIChildWndEx* pMDIChildWnd) —
-// retail entry RVA 0x8a860 (mfc140; 0x8a2b0 mfc140u), transcribed:
-//     CDockablePane* pBar = pMDIChildWnd->+0x710;              // the child's tabbed pane
-//     if (pBar == NULL) return FALSE;
-//     if (pBar->IsKindOf(RUNTIME_CLASS(CDockablePane))) {      // descriptor 0x3aa178 mfc140
-//         if (pBar->+0x3f0 != 0) {                             // pane was docked before it became a document
-//             CWnd::FromHandle(::SetParent(pBar->m_hWnd, this->m_hWnd));
-//             CRect rc = pBar->+0x2c0;  pBar->+0xf8 = 0;
-//             pBar-><vtable +0x408>(rc, 2 /* DM_SHOW? */, TRUE);   // CDockablePane slot 129
-//         } else {
-//             pBar->ShowWindow(SW_HIDE);                       // 0x2a79e0
-//             CWnd::FromHandle(::SetParent(pBar->m_hWnd, this->m_hWnd));
-//             pBar->+0xf8 = 0;
-//             pBar-><vtable +0x6d8>();                         // CDockablePane slot 219
-//         }
-//     }
-//     ::SendMessage(pMDIChildWnd->m_hWnd, WM_CLOSE, 0, 0);
-//     return TRUE;
-// Left a stub: the tabbed-pane pointer at CMDIChildWndEx+0x710 and the
-// CDockablePane fields (+0x3f0, +0x2c0, +0xf8) and vtable slots it uses are
-// not modeled in this tree (OpenMFC's CMDIChildWndEx is 0x228 bytes).  The
-// slot targets were not resolved and are quoted by offset only.
+BOOL CMDIFrameWndEx::TabbedDocumentToControlBar(CMDIChildWndEx* document) {
+    if (!document || !m_hWndMDIClient || ::GetParent(document->m_hWnd) != m_hWndMDIClient ||
+        !document->RestoreTabbedPane(TRUE)) return FALSE;
+    return document->DestroyWindow();
+}
+
 // Symbol: ?TabbedDocumentToControlBar@CMDIFrameWndEx@@UEAAHPEAVCMDIChildWndEx@@@Z
 extern "C" int MS_ABI impl__TabbedDocumentToControlBar_CMDIFrameWndEx__UEAAHPEAVCMDIChildWndEx___Z(
     CMDIFrameWndEx* pThis, CMDIChildWndEx* pMDIChildWnd) {
-    (void)pThis; (void)pMDIChildWnd;
-    return 0;
+    return pThis && pThis->TabbedDocumentToControlBar(pMDIChildWnd);
 }
 
-// CMDIFrameWndEx::UpdateMDITabbedBarsIcons() — retail entry RVA 0x8a970
-// (mfc140; 0x8a3c0 mfc140u), transcribed:
-//     for (HWND h = ::GetWindow(m_hWndMDIClient, GW_CHILD); h; h = ::GetWindow(h, GW_HWNDNEXT)) {
-//         CWnd* p = CWnd::FromHandle(h);
-//         if (!p || !p->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx))) continue;   // descriptor 0x2eb7d8 mfc140
-//         CWnd* pBar = p->+0x710;                                            // the child's tabbed pane
-//         if (!pBar) continue;
-//         HICON hIcon = (HICON)::SendMessage(pBar->m_hWnd, WM_GETICON, ICON_SMALL, 0);
-//         ::SetClassLongPtr(h, GCLP_HICONSM /* -34 */, (LONG_PTR)hIcon);   // import slot 0x1802c52f8 (SetClassLongPtrA in mfc140)
-//     }
-// Re-checked 2026-09-15 against mfc140u 0x8a3c0: same body; the mfc140u import
-// slots are 0x1802c6c10 (GetWindow), 0x1802c7120 (SendMessageW) and
-// 0x1802c72d0 (SetClassLongPtrW), CWnd::FromHandle is 0x28ad70 and the
-// descriptor 0x2ed888 decodes to "CMDIChildWndEx" (object size 0x818).  Note
-// the icon is sign-extended (movslq %eax,%r8) from the 32-bit SendMessage
-// result before SetClassLongPtr, i.e. retail passes (LONG_PTR)(int)hIcon.
-// Left a stub: the per-child work hangs off CMDIChildWndEx+0x710, which is not
-// modeled (see TabbedDocumentToControlBar); with it unreadable no child could
-// be updated, and the loop would only walk the client's children for nothing.
-// The sibling core/frame/CMDIChildWndEx.cpp still reports +0x710 as unmodeled
-// and exports no accessor for it (the tabbed pane has no public getter in the
-// export table), so there is nothing to forward to.  STUB.
 // Symbol: ?UpdateMDITabbedBarsIcons@CMDIFrameWndEx@@QEAAXXZ
 extern "C" void MS_ABI impl__UpdateMDITabbedBarsIcons_CMDIFrameWndEx__QEAAXXZ(CMDIFrameWndEx* pThis) {
-    (void)pThis;
+    if (!pThis || !pThis->m_hWndMDIClient) return;
+    for (HWND hwnd = ::GetWindow(pThis->m_hWndMDIClient, GW_CHILD); hwnd;) {
+        const HWND next = ::GetWindow(hwnd, GW_HWNDNEXT);
+        auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(hwnd));
+        if (window && window->IsKindOf(RUNTIME_CLASS(CMDIChildWndEx))) {
+            if (auto* pane = static_cast<CMDIChildWndEx*>(window)->GetTabbedPane()) {
+                const LRESULT icon = ::SendMessageW(pane->m_hWnd, WM_GETICON, ICON_SMALL, 0);
+                ::SendMessageW(hwnd, WM_SETICON, ICON_SMALL, icon);
+            }
+        }
+        hwnd = next;
+    }
 }
 
 // CMDIFrameWndEx::WinHelp(DWORD_PTR dwData, UINT nCmd) — the wide export sits

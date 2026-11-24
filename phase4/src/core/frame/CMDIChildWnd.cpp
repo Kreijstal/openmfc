@@ -196,11 +196,12 @@ extern "C" LRESULT MS_ABI impl__DefWindowProcW_CMDIChildWnd__MEAA_JI_K_J_Z(
 extern "C" CWnd* MS_ABI impl__GetMessageBar_CMDIChildWnd__MEAAPEAVCWnd__XZ(CMDIChildWnd* pThis) {
     return pThis ? pThis->CFrameWnd::GetMessageBar() : nullptr;
 }
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CMDIChildWnd__KAPEBUAFX_MSGMAP__XZ();
 // Symbol: ?GetMessageMap@CMDIChildWnd@@MEBAPEBUAFX_MSGMAP@@XZ
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CMDIChildWnd__MEBAPEBUAFX_MSGMAP__XZ(
     const CMDIChildWnd* pThis) {
     (void)pThis;
-    return EmptyMessageMap_FrameFontExports();
+    return impl__GetThisMessageMap_CMDIChildWnd__KAPEBUAFX_MSGMAP__XZ();
 }
 // Symbol: ?GetRuntimeClass@CMDIChildWnd@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMDIChildWnd__UEBAPEAUCRuntimeClass__XZ(
@@ -212,8 +213,24 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIChildWnd__SAPEAUCRuntime
     return CMDIChildWnd::GetThisClass();
 }
 // Symbol: ?GetThisMessageMap@CMDIChildWnd@@KAPEBUAFX_MSGMAP@@XZ
+extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CFrameWnd__KAPEBUAFX_MSGMAP__XZ();
+
+const AFX_MSGMAP* CMDIChildWnd::GetThisMessageMap() {
+    using ThisClass = CMDIChildWnd;
+    static const AFX_MSGMAP_ENTRY entries[] = {
+        ON_WM_CREATE()
+        {0, 0, 0, 0, AfxSig_end, nullptr}
+    };
+    static const AFX_MSGMAP map = {impl__GetThisMessageMap_CFrameWnd__KAPEBUAFX_MSGMAP__XZ, entries};
+    return &map;
+}
+
+const AFX_MSGMAP* CMDIChildWnd::GetMessageMap() const {
+    return GetThisMessageMap();
+}
+
 extern "C" const AFX_MSGMAP* MS_ABI impl__GetThisMessageMap_CMDIChildWnd__KAPEBUAFX_MSGMAP__XZ() {
-    return EmptyMessageMap_FrameFontExports();
+    return CMDIChildWnd::GetThisMessageMap();
 }
 // Symbol: ?GetTrackingID@CMDIChildWnd@@UEAAIXZ
 extern "C" UINT MS_ABI impl__GetTrackingID_CMDIChildWnd__UEAAIXZ(CMDIChildWnd* pThis) {
@@ -249,6 +266,10 @@ extern "C" int MS_ABI impl__OnCreate_CMDIChildWnd__IEAAHPEAUtagCREATESTRUCTW___Z
     return impl__OnCreateHelper_CFrameWnd__IEAAHPEAUtagCREATESTRUCTW__PEAUCCreateContext___Z(
         pThis, pCreateStruct, pContext);
 }
+int CMDIChildWnd::OnCreate(CREATESTRUCTW* create) {
+    return impl__OnCreate_CMDIChildWnd__IEAAHPEAUtagCREATESTRUCTW___Z(this, create) ? 0 : -1;
+}
+
 // Symbol: ?OnDestroy@CMDIChildWnd@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CMDIChildWnd__IEAAXXZ(CMDIChildWnd* pThis) {
     if (pThis) pThis->m_hWnd = nullptr;
@@ -502,17 +523,29 @@ CMDIChildWnd::CMDIChildWnd() {
     static_assert(sizeof(CMDIChildWnd) == kOffMDIChildEnd, "retail sizeof(CMDIChildWnd) is 0x1e8");
     memset(_mdichild_padding, 0, sizeof(_mdichild_padding));
 }
+extern "C" void MS_ABI impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(CWnd*);
+extern "C" BOOL MS_ABI impl__AfxUnhookWindowCreate__YAHXZ();
+
 int CMDIChildWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindowName,
                          DWORD dwStyle, const struct tagRECT& rect,
                          CMDIFrameWnd* pParentWnd, CCreateContext* pContext) {
-    (void)lpszClassName;
+    if (m_hWnd || !pParentWnd || !::IsWindow(pParentWnd->m_hWndMDIClient)) return FALSE;
 
-    if (!pParentWnd || !pParentWnd->m_hWndMDIClient) {
-        return FALSE;
+    if (!lpszClassName) {
+        static const wchar_t className[] = L"OpenMFC:MDIChild";
+        WNDCLASSW windowClass{};
+        windowClass.style = CS_DBLCLKS;
+        windowClass.lpfnWndProc = ::DefMDIChildProcW;
+        windowClass.hInstance = AfxGetInstanceHandle();
+        windowClass.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
+        windowClass.hbrBackground = ::GetSysColorBrush(COLOR_WINDOW);
+        windowClass.lpszClassName = className;
+        if (!::RegisterClassW(&windowClass) && ::GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return FALSE;
+        lpszClassName = className;
     }
 
     MDICREATESTRUCTW mcs = {};
-    mcs.szClass = lpszClassName ? lpszClassName : L"MDICHILD";
+    mcs.szClass = lpszClassName;
     mcs.szTitle = lpszWindowName;
     mcs.hOwner = AfxGetInstanceHandle();
     mcs.x = rect.left ? rect.left : CW_USEDEFAULT;
@@ -525,13 +558,12 @@ int CMDIChildWnd::Create(const wchar_t* lpszClassName, const wchar_t* lpszWindow
     // OnCreate reads the CCreateContext* back from there.
     mcs.lParam = (LPARAM)pContext;
 
-    m_hWnd = (HWND)::SendMessageW(pParentWnd->m_hWndMDIClient, WM_MDICREATE, 0, (LPARAM)&mcs);
-
-    if (m_hWnd) {
-        Attach(m_hWnd);
-        return TRUE;
-    }
-
+    const HWND client = pParentWnd->m_hWndMDIClient;
+    impl__AfxHookWindowCreate__YAXPEAVCWnd___Z(this);
+    const auto window = reinterpret_cast<HWND>(::SendMessageW(client, WM_MDICREATE, 0, reinterpret_cast<LPARAM>(&mcs)));
+    const BOOL attached = impl__AfxUnhookWindowCreate__YAHXZ();
+    if (window && attached && m_hWnd == window) return TRUE;
+    if (::IsWindow(window)) ::SendMessageW(client, WM_MDIDESTROY, reinterpret_cast<WPARAM>(window), 0);
     return FALSE;
 }
 void CMDIChildWnd::ActivateFrame(int nCmdShow) {
@@ -544,13 +576,11 @@ void CMDIChildWnd::ActivateFrame(int nCmdShow) {
     }
 }
 int CMDIChildWnd::DestroyWindow() {
-    CMDIFrameWnd* pFrame = GetMDIFrame();
-    if (pFrame && pFrame->m_hWndMDIClient && m_hWnd) {
-        ::SendMessageW(pFrame->m_hWndMDIClient, WM_MDIDESTROY, (WPARAM)m_hWnd, 0);
-        m_hWnd = nullptr;
-        return TRUE;
-    }
-    return FALSE;
+    const HWND window = m_hWnd;
+    const HWND client = ::GetParent(window);
+    if (!window || !client) return FALSE;
+    ::SendMessageW(client, WM_MDIDESTROY, reinterpret_cast<WPARAM>(window), 0);
+    return !::IsWindow(window);
 }
 CMDIFrameWnd* CMDIChildWnd::GetMDIFrame() {
     HWND hWndParent = ::GetParent(m_hWnd);  // MDI client

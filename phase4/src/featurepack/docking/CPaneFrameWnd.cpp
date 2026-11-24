@@ -1351,23 +1351,17 @@ extern "C" void MS_ABI impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(void* pThis) 
     if (frame->m_hWnd) ::ShowWindow(frame->m_hWnd, SW_HIDE);
 }
 
+extern "C" void MS_ABI impl__ConvertToTabbedDocument_CDockablePane__UEAAXH_Z(CDockablePane*, int);
+
 // Symbol: ?ConvertToTabbedDocument@CPaneFrameWnd@@UEAAXXZ
-// Retail (0xae120):
-//     CWnd* p = GetFirstVisiblePane();          // vtable 0x368
-//     if (p && p->IsKindOf(RUNTIME_CLASS(CDockablePane))) {
-//         p->vtable[0x5d0](FALSE);              // unexported CDockablePane virtual
-//         ::PostMessage(m_hWnd, AFX_WM_CHECKEMPTYMINIFRAME, 0, 0);
-//     }
-// The .data slot at VA 0x1803bae78 (mfc140.dll) is ?AFX_WM_CHECKEMPTYMINIFRAME@@3IA (zero in
-// the image only because RegisterWindowMessage fills it in at run time).
-// Correction to an earlier note here: OpenMFC DOES have that id -- see
-// impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA in phase4/src/core/runtime/Globals.cpp
-// -- so the message is not what blocks this function.
-// STUB: the conversion itself is the unexported CDockablePane virtual at
-// +0x5d0.  Posting the notification without having converted the pane would
-// ask the owner frame to re-check an empty state that never changed.
 extern "C" void MS_ABI impl__ConvertToTabbedDocument_CPaneFrameWnd__UEAAXXZ(void* pThis) {
-    (void)pThis;
+    auto* frame = static_cast<CPaneFrameWnd*>(pThis);
+    auto* pane = frame ? frame->GetFirstVisiblePane() : nullptr;
+    if (!pane || !pane->IsKindOf(RUNTIME_CLASS(CDockablePane))) return;
+    const HWND window = frame->m_hWnd;
+    impl__ConvertToTabbedDocument_CDockablePane__UEAAXH_Z(static_cast<CDockablePane*>(pane), FALSE);
+    if (CWnd::FromHandlePermanent(window) == frame)
+        ::PostMessageW(window, impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, 0, 0);
 }
 
 // Symbol: ?CreateEx@CPaneFrameWnd@@UEAAHKPEB_WKAEBUtagRECT@@PEAVCWnd@@PEAUCCreateContext@@@Z
