@@ -5,6 +5,7 @@
 
 #include "detail/FrameFontExportsSupport.h"
 #include "detail/FrameLifetimeSupport.h"
+#include "detail/MenuTearOffSupport.h"
 #include "detail/ClassicDockingSupport.h"
 #include "detail/WincoreSupport.h"
 #include "detail/WindowCreationSupport.h"
@@ -12,6 +13,9 @@
 #include <algorithm>
 #include <cstring>
 #include <dde.h>
+
+extern "C" void MS_ABI impl__OnLoadFrame_CFrameImpl__IEAAXXZ(void*);
+extern "C" void MS_ABI impl__OnCloseFrame_CFrameImpl__IEAAXXZ(void*);
 
 using openmfc::detail::frame::ControlBars;
 
@@ -243,6 +247,8 @@ extern "C" int MS_ABI impl__LoadFrame_CFrameWnd__UEAAHIKPEAVCWnd__PEAUCCreateCon
             ::SendMessageW(pThis->m_hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
             ::SendMessageW(pThis->m_hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
         }
+        if (auto* impl = openmfc::detail::FindTearOffFrameImpl(pThis))
+            impl__OnLoadFrame_CFrameImpl__IEAAXXZ(impl);
     }
 
     return result;
@@ -494,10 +500,11 @@ BOOL CFrameWnd::OnChevronPushed(unsigned int nIndex, NMHDR* pNMHDR, __int64* lRe
     return FALSE;
 }
 void CFrameWnd::OnClose() {
-    if (!m_hWnd) {
-        return;
-    }
-    DestroyWindow();
+    const HWND hwnd = m_hWnd;
+    if (!hwnd) return;
+    if (auto* impl = openmfc::detail::FindTearOffFrameImpl(this))
+        impl__OnCloseFrame_CFrameImpl__IEAAXXZ(impl);
+    if (::IsWindow(hwnd)) DestroyWindow();
 }
 int CFrameWnd::OnCommand(unsigned __int64 wParam, __int64 lParam) {
     (void)lParam;

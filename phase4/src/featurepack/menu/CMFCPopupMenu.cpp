@@ -1103,10 +1103,7 @@ bool CreatePopupWindow(CMFCPopupMenu* popup, const RECT& anchor, bool toSide);
 
 constexpr wchar_t kTearOffToolbarProperty[] = L"OpenMFC.TearOffToolbar";
 
-struct MenuDeleter {
-    void operator()(HMENU menu) const { ::DestroyMenu(menu); }
-};
-using PopupMenuHandle = std::unique_ptr<std::remove_pointer_t<HMENU>, MenuDeleter>;
+using PopupMenuHandle = openmfc::detail::TearOffMenuHandle;
 
 PopupMenuHandle CopyPopupMenu(HMENU menu) {
     PopupMenuHandle copy(::CreatePopupMenu());
@@ -1217,6 +1214,23 @@ private:
     std::vector<PopupMenuHandle> menus;
 };
 
+void RegisterTearOffToolbar(TearOffToolbar& bar, CFrameWnd& owner, UINT id) {
+    bar.registeredOwner = owner.GetSafeHwnd();
+    bar.registeredId = id;
+    openmfc::detail::RetainTearOffID(id, true);
+    openmfc::detail::TrackTearOffToolbar(owner, bar, true);
+}
+
+bool FloatTearOffToolbar(TearOffToolbar& bar, CDockingManager& manager, const RECT& bounds) {
+    constexpr int standardDockMethod = 5;
+    return bar.FloatPaneWindow(bounds, standardDockMethod, false, &manager);
+}
+
+void ShowTearOffToolbar(TearOffToolbar& bar, CDockingManager& manager) {
+    ::SendMessageW(bar.GetSafeHwnd(), TB_SETPARENT, reinterpret_cast<WPARAM>(bar.m_hWndOwner), 0);
+    manager.ShowPane(&bar);
+}
+
 CPane* CreateTearOffBar(CMFCPopupMenu& popup, CFrameWnd& frame, UINT id, const wchar_t* title) {
     if (!frame.GetSafeHwnd() || !id || popup.GetMenuItemCount() <= 0) return nullptr;
     auto bar = std::make_unique<TearOffToolbar>();
@@ -1268,8 +1282,7 @@ bool TearOffPopup(CMFCPopupMenu& popup, POINT screen, bool drag) {
     if (!mini && (created || drag)) {
         RECT bounds{screen.x, screen.y, screen.x + bar->size.cx, screen.y + bar->size.cy};
         ::AdjustWindowRectEx(&bounds, WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME, FALSE, 0);
-        constexpr int standardDockMethod = 5;
-        if (!bar->FloatPaneWindow(bounds, standardDockMethod, false, manager)) {
+        if (!FloatTearOffToolbar(*bar, *manager, bounds)) {
             if (created) impl__RemovePaneFromDockManager_CDockingManager__QEAAXPEAVCBasePane__HHH0_Z(
                 manager, bar, FALSE, FALSE, FALSE, nullptr);
             return false;
@@ -1277,18 +1290,14 @@ bool TearOffPopup(CMFCPopupMenu& popup, POINT screen, bool drag) {
         mini = FloatingToolbarFrame(*bar);
     }
     if (created) {
-        bar->registeredOwner = owner->GetSafeHwnd();
-        bar->registeredId = id;
-        openmfc::detail::RetainTearOffID(id, true);
-        openmfc::detail::TrackTearOffToolbar(*owner, *bar, true);
+        RegisterTearOffToolbar(*bar, *owner, id);
         created.release();
     }
     const HWND barWindow = bar->GetSafeHwnd();
     const HWND miniWindow = mini ? mini->GetSafeHwnd() : nullptr;
     RootPopup(&popup)->CloseMenu(TRUE);
     if (!::IsWindow(barWindow)) return false;
-    manager->ShowPane(bar);
-    ::SendMessageW(barWindow, TB_SETPARENT, reinterpret_cast<WPARAM>(bar->m_hWndOwner), 0);
+    ShowTearOffToolbar(*bar, *manager);
     if (drag && ::IsWindow(miniWindow)) impl__StartTearOff_CPaneFrameWnd__QEAAHPEAVCMFCPopupMenu___Z(mini, nullptr);
     return true;
 }
@@ -1671,6 +1680,92 @@ void openmfc::detail::mfccore::SelectDropDownPopupRow(DropDownListBox& list, int
     if (!CanSelectMenuRow(list.GetMenuItem(index))) return;
     SetPopupScrollOffset(&list, state, state.rows[index].top);
     SelectPopupRow(&list, index);
+}
+
+bool openmfc::detail::IsManagedTearOffToolbar(const CBasePane& pane) {
+    return ::GetPropW(pane.GetSafeHwnd(), kTearOffToolbarProperty) == &pane;
+}
+
+bool openmfc::detail::CaptureTearOffToolbar(
+    CFrameWnd& frame, CBasePane& pane, TearOffToolbarProfile& profile) {
+    if (!pane.IsKindOf(RUNTIME_CLASS(CMFCToolBar))) return false;
+    auto& bar = static_cast<CMFCToolBar&>(pane);
+    const HWND window = bar.GetSafeHwnd();
+    profile.id = static_cast<UINT>(::GetDlgCtrlID(window));
+    if (!profile.id || profile.id == UINT(-1) || bar.GetCount() <= 0) return false;
+    auto* mini = FloatingToolbarFrame(bar);
+    if (!::GetWindowRect(mini ? mini->GetSafeHwnd() : window, profile.bounds)) return false;
+    profile.floating = mini != nullptr;
+    if (!profile.floating) {
+        ::MapWindowPoints(nullptr, frame.GetSafeHwnd(),
+                          reinterpret_cast<POINT*>(static_cast<RECT*>(profile.bounds)), 2);
+    }
+
+    const int titleCapacity = ::GetWindowTextLengthW(window) + 1;
+    const int titleLength = ::GetWindowTextW(window, profile.title.GetBuffer(titleCapacity), titleCapacity);
+    profile.title.ReleaseBuffer(titleLength);
+    profile.menu.reset(::CreatePopupMenu());
+    if (!profile.menu) return false;
+    for (int i = 0; i < bar.GetCount(); ++i) {
+        auto* button = bar.GetButton(i);
+        if (!button) return false;
+        MENUITEMINFOW row{sizeof(row)};
+        row.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_STRING;
+        row.wID = button->m_nID;
+        if (button->m_nStyle & TBSTYLE_SEP) row.fType = MFT_SEPARATOR;
+        if (button->m_nStyle & (UINT(TBSTATE_CHECKED) << 16)) row.fState |= MFS_CHECKED;
+        if (button->m_nStyle & (UINT(TBSTATE_ENABLED) << 16)) row.fState |= MFS_DISABLED;
+        TBBUTTON state{};
+        if (::SendMessageW(window, TB_GETBUTTON, i, reinterpret_cast<LPARAM>(&state)) && row.fType != MFT_SEPARATOR) {
+            row.fState = 0;
+            if (state.fsState & TBSTATE_CHECKED) row.fState |= MFS_CHECKED;
+            if (!(state.fsState & TBSTATE_ENABLED)) row.fState |= MFS_DISABLED;
+        }
+        CString text = button->m_strText;
+        PopupMenuHandle submenu;
+        if (button->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
+            auto& menuButton = static_cast<CMFCToolBarMenuButton&>(*button);
+            if (menuButton.m_hMenu) {
+                submenu = CopyPopupMenu(menuButton.m_hMenu);
+                if (!submenu) return false;
+                row.fMask |= MIIM_SUBMENU;
+                row.hSubMenu = submenu.get();
+                if (menuButton.GetTearOff())
+                    text = EncodeTearOffTitle(menuButton.GetTearOff(), text);
+            }
+        }
+        row.dwTypeData = text.GetBuffer();
+        const BOOL inserted = ::InsertMenuItemW(profile.menu.get(), i, TRUE, &row);
+        text.ReleaseBuffer();
+        if (!inserted) return false;
+        submenu.release();
+    }
+    return true;
+}
+
+bool openmfc::detail::RestoreTearOffToolbar(
+    CFrameWnd& frame, CDockingManager& manager, const TearOffToolbarProfile& profile) {
+    if (impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(&manager, profile.id, TRUE)) return false;
+    CMFCPopupMenu popup;
+    auto& state = g_popupMenuStates[&popup];
+    ImportMenuIntoPopupItems(profile.menu.get(), state.items, state.ownedItems);
+    std::unique_ptr<TearOffToolbar> bar(
+        static_cast<TearOffToolbar*>(CreateTearOffBar(popup, frame, profile.id, profile.title)));
+    if (!bar) return false;
+    bar->m_hWndOwner = frame.GetSafeHwnd();
+    AddDockingPane(&manager, bar.get());
+    const auto& bounds = profile.bounds;
+    const bool placed = profile.floating
+        ? FloatTearOffToolbar(*bar, manager, *static_cast<const RECT*>(bounds))
+        : ::SetWindowPos(bar->GetSafeHwnd(), nullptr, bounds.left, bounds.top, bounds.Width(), bounds.Height(),
+                         SWP_NOZORDER | SWP_NOACTIVATE) != FALSE;
+    if (!placed) {
+        RemoveDockingPane(&manager, bar.get());
+        return false;
+    }
+    RegisterTearOffToolbar(*bar, frame, profile.id);
+    ShowTearOffToolbar(*bar.release(), manager);
+    return true;
 }
 
 CMFCPopupMenu::CMFCPopupMenu() {

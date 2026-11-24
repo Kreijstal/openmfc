@@ -12,12 +12,6 @@ namespace {
 thread_local void* activeManager = nullptr;
 constexpr wchar_t kTearOffMarker = L'\x01';
 
-CString EncodedTearOffTitle(UINT id, const CString& title) {
-    CString encoded;
-    encoded.Format(L"%c%u%c%ls", kTearOffMarker, id, kTearOffMarker, title.GetString());
-    return encoded;
-}
-
 void SetInUse(MenuTearOffState& state, UINT id, bool inUse) {
     if (id < state.firstId || id > state.lastId || !id) return;
     if (inUse) {
@@ -46,7 +40,7 @@ void UpdateSubmenus(MenuTearOffState& state, HMENU menu, MenuUpdate update) {
             state.menuIds.insert(id);
         } else if (gotTitle && !id && update == MenuUpdate::assign && (info.fType & MFT_MENUBARBREAK)) {
             if (const UINT next = NextTearOffId(state)) {
-                CString encoded = EncodedTearOffTitle(next, title);
+                CString encoded = openmfc::detail::EncodeTearOffTitle(next, title);
                 MENUITEMINFOW caption{sizeof(caption), MIIM_STRING};
                 caption.dwTypeData = encoded.GetBuffer();
                 if (::SetMenuItemInfoW(menu, i, TRUE, &caption)) state.menuIds.insert(next);
@@ -73,6 +67,12 @@ BOOL Initialize(void* self, const wchar_t* key, UINT first, UINT last) {
     g_menuTearOffStates.insert_or_assign(self, std::move(state));
     return TRUE;
 }
+}
+
+CString openmfc::detail::EncodeTearOffTitle(UINT id, const CString& title) {
+    CString encoded;
+    encoded.Format(L"%c%u%c%ls", kTearOffMarker, id, kTearOffMarker, title.GetString());
+    return encoded;
 }
 
 UINT openmfc::detail::DecodeTearOffTitle(CString& title) {
@@ -142,7 +142,7 @@ extern "C" UINT MS_ABI impl__GetFreeTearOffID_CMenuTearOffManager__IEAAIXZ(void*
 // Symbol: ?Build@CMenuTearOffManager@@QEAAXIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" void MS_ABI impl__Build_CMenuTearOffManager__QEAAXIAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
     void*, UINT id, CString* title) {
-    if (title) *title = EncodedTearOffTitle(id, *title);
+    if (title) *title = openmfc::detail::EncodeTearOffTitle(id, *title);
 }
 // Symbol: ?Parse@CMenuTearOffManager@@QEAAIAEAV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" UINT MS_ABI impl__Parse_CMenuTearOffManager__QEAAIAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
@@ -164,4 +164,104 @@ extern "C" void MS_ABI impl__SetupTearOffMenus_CMenuTearOffManager__QEAAXPEAUHME
     if (const auto it = g_menuTearOffStates.find(self); it != g_menuTearOffStates.end()) {
         SetupMenus(it->second, menu);
     }
+}
+
+namespace {
+constexpr UINT maxProfileMenuItems = 65535;
+constexpr UINT maxProfileMenuDepth = 64;
+constexpr UINT maxProfileLabelLength = 32767;
+constexpr UINT storedMenuTypes = MFT_MENUBARBREAK | MFT_MENUBREAK | MFT_RADIOCHECK |
+                                 MFT_SEPARATOR | MFT_RIGHTORDER | MFT_RIGHTJUSTIFY;
+constexpr UINT storedMenuStates = MFS_CHECKED | MFS_DISABLED | MFS_DEFAULT;
+
+void WriteProfileLabel(CArchive& archive, const wchar_t* label, UINT length) {
+    if (length > maxProfileLabelLength) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    archive << length;
+    if (length) archive.Write(label, length * sizeof(wchar_t));
+}
+
+std::wstring ReadProfileLabel(CArchive& archive) {
+    UINT length = 0;
+    archive >> length;
+    if (length > maxProfileLabelLength) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    std::wstring label(length, L'\0');
+    const UINT bytes = length * sizeof(wchar_t);
+    if (bytes && archive.Read(label.data(), bytes) != bytes)
+        AfxThrowArchiveException(CArchiveException::endOfFile, nullptr);
+    if (label.find(L'\0') != std::wstring::npos) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    return label;
+}
+
+void WriteProfileMenu(CArchive& archive, HMENU menu, UINT depth, UINT& remaining) {
+    const int count = ::GetMenuItemCount(menu);
+    if (count < 0 || static_cast<UINT>(count) > remaining || depth >= maxProfileMenuDepth)
+        AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    remaining -= count;
+    archive << static_cast<UINT>(count);
+    for (int i = 0; i < count; ++i) {
+        MENUITEMINFOW item{sizeof(item), MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU};
+        if (!::GetMenuItemInfoW(menu, i, TRUE, &item) || item.cch > maxProfileLabelLength)
+            AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+        std::wstring label(item.cch + 1, L'\0');
+        item.dwTypeData = label.data();
+        item.cch = static_cast<UINT>(label.size());
+        if (!::GetMenuItemInfoW(menu, i, TRUE, &item))
+            AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+        archive << item.wID << (item.fType & storedMenuTypes) << (item.fState & storedMenuStates)
+                << static_cast<BYTE>(item.hSubMenu != nullptr);
+        WriteProfileLabel(archive, label.c_str(), item.cch);
+        if (item.hSubMenu) WriteProfileMenu(archive, item.hSubMenu, depth + 1, remaining);
+    }
+}
+
+openmfc::detail::TearOffMenuHandle ReadProfileMenu(CArchive& archive, UINT depth, UINT& remaining) {
+    UINT count = 0;
+    archive >> count;
+    if (count > remaining || depth >= maxProfileMenuDepth)
+        AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    remaining -= count;
+    openmfc::detail::TearOffMenuHandle menu(::CreatePopupMenu());
+    if (!menu) return {};
+    for (UINT i = 0; i < count; ++i) {
+        MENUITEMINFOW item{sizeof(item), MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING};
+        BYTE hasChild = 0;
+        archive >> item.wID >> item.fType >> item.fState >> hasChild;
+        if ((item.fType & ~storedMenuTypes) || (item.fState & ~storedMenuStates) || hasChild > 1) return {};
+        auto label = ReadProfileLabel(archive);
+        item.dwTypeData = label.data();
+        openmfc::detail::TearOffMenuHandle child;
+        if (hasChild) {
+            child = ReadProfileMenu(archive, depth + 1, remaining);
+            if (!child) return {};
+            item.fMask |= MIIM_SUBMENU;
+            item.hSubMenu = child.get();
+        }
+        if (!::InsertMenuItemW(menu.get(), i, TRUE, &item)) return {};
+        child.release();
+    }
+    return menu;
+}
+}
+
+void openmfc::detail::WriteTearOffToolbar(CArchive& archive, const TearOffToolbarProfile& profile) {
+    archive << profile.id << profile.bounds.left << profile.bounds.top
+            << profile.bounds.right << profile.bounds.bottom << static_cast<BYTE>(profile.floating);
+    WriteProfileLabel(archive, profile.title, profile.title.GetLength());
+    UINT remaining = maxProfileMenuItems;
+    WriteProfileMenu(archive, profile.menu.get(), 0, remaining);
+}
+
+bool openmfc::detail::ReadTearOffToolbar(CArchive& archive, TearOffToolbarProfile& profile) {
+    BYTE floating = 0;
+    archive >> profile.id >> profile.bounds.left >> profile.bounds.top
+            >> profile.bounds.right >> profile.bounds.bottom >> floating;
+    profile.floating = floating != 0;
+    const auto width = static_cast<long long>(profile.bounds.right) - profile.bounds.left;
+    const auto height = static_cast<long long>(profile.bounds.bottom) - profile.bounds.top;
+    if (!profile.id || profile.id == UINT(-1) || floating > 1 || width <= 0 || height <= 0 ||
+        width > maxProfileLabelLength || height > maxProfileLabelLength) return false;
+    profile.title = ReadProfileLabel(archive).c_str();
+    UINT remaining = maxProfileMenuItems;
+    profile.menu = ReadProfileMenu(archive, 0, remaining);
+    return profile.menu && ::GetMenuItemCount(profile.menu.get()) > 0;
 }

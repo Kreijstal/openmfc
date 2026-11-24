@@ -235,28 +235,30 @@ extern "C" int MS_ABI impl__StoreWindowPlacement_CWinAppEx__MEAAHAEBVCRect__HH_Z
     return TRUE;
 }
 // Symbol: ?LoadState@CWinAppEx@@QEAAHPEAVCFrameWndEx@@PEB_W@Z
-extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CFrameWndEx*, const wchar_t* section) {
-    return pThis ? pThis->LoadState(section, nullptr) : FALSE;
+extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CFrameWndEx* frame, const wchar_t* section) {
+    return pThis ? pThis->LoadState(section, openmfc::detail::FindTearOffFrameImpl(frame)) : FALSE;
 }
 // Symbol: ?SaveState@CWinAppEx@@QEAAHPEAVCFrameWndEx@@PEB_W@Z
-extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CFrameWndEx*, const wchar_t* section) {
-    return pThis ? pThis->SaveState(section, nullptr) : FALSE;
+extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CFrameWndEx* frame, const wchar_t* section) {
+    return pThis ? pThis->SaveState(section, openmfc::detail::FindTearOffFrameImpl(frame)) : FALSE;
 }
 // Symbol: ?LoadState@CWinAppEx@@QEAAHPEAVCMDIFrameWndEx@@PEB_W@Z
-extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCMDIFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CMDIFrameWndEx*, const wchar_t* section) {
-    return pThis ? pThis->LoadState(section, nullptr) : FALSE;
+extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCMDIFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CMDIFrameWndEx* frame, const wchar_t* section) {
+    return pThis ? pThis->LoadState(section, openmfc::detail::FindTearOffFrameImpl(frame)) : FALSE;
 }
 // Symbol: ?SaveState@CWinAppEx@@QEAAHPEAVCMDIFrameWndEx@@PEB_W@Z
-extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCMDIFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CMDIFrameWndEx*, const wchar_t* section) {
-    return pThis ? pThis->SaveState(section, nullptr) : FALSE;
+extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCMDIFrameWndEx__PEB_W_Z(CWinAppEx* pThis, CMDIFrameWndEx* frame, const wchar_t* section) {
+    return pThis ? pThis->SaveState(section, openmfc::detail::FindTearOffFrameImpl(frame)) : FALSE;
 }
 // Symbol: ?LoadState@CWinAppEx@@QEAAHPEAVCOleIPFrameWndEx@@PEB_W@Z
 extern "C" int MS_ABI impl__LoadState_CWinAppEx__QEAAHPEAVCOleIPFrameWndEx__PEB_W_Z(CWinAppEx* pThis, void* frame, const wchar_t* section) {
-    return pThis ? pThis->LoadState(section, frame) : FALSE;
+    return pThis ? pThis->LoadState(section,
+        openmfc::detail::FindTearOffFrameImpl(static_cast<CFrameWnd*>(frame))) : FALSE;
 }
 // Symbol: ?SaveState@CWinAppEx@@QEAAHPEAVCOleIPFrameWndEx@@PEB_W@Z
 extern "C" int MS_ABI impl__SaveState_CWinAppEx__QEAAHPEAVCOleIPFrameWndEx__PEB_W_Z(CWinAppEx* pThis, void* frame, const wchar_t* section) {
-    return pThis ? pThis->SaveState(section, frame) : FALSE;
+    return pThis ? pThis->SaveState(section,
+        openmfc::detail::FindTearOffFrameImpl(static_cast<CFrameWnd*>(frame))) : FALSE;
 }
 // Symbol: ?ReloadWindowPlacement@CWinAppEx@@MEAAHPEAVCFrameWnd@@@Z
 extern "C" int MS_ABI impl__ReloadWindowPlacement_CWinAppEx__MEAAHPEAVCFrameWnd___Z(CWinAppEx* pThis, CFrameWnd* frame) {
@@ -280,10 +282,8 @@ extern "C" void MS_ABI impl__OnAppContextHelp_CWinAppEx__UEAAXPEAVCWnd__QEBK_Z(
     }
 }
 // Symbol: ?OnClosingMainFrame@CWinAppEx@@MEAAXPEAVCFrameImpl@@@Z
-// Retail mfc140u RVA 0x1c8580 tail-dispatches through vtable byte offset 0x240
-// with (nullptr, pFrameImpl); the local CWinAppEx declaration omits retail
-// virtuals, so the required slot mapping is unavailable here.
-extern "C" void MS_ABI impl__OnClosingMainFrame_CWinAppEx__MEAAXPEAVCFrameImpl___Z(CWinAppEx*, void*) {
+extern "C" void MS_ABI impl__OnClosingMainFrame_CWinAppEx__MEAAXPEAVCFrameImpl___Z(CWinAppEx* app, void* frame) {
+    if (app) app->SaveState(nullptr, frame);
 }
 // Symbol: ?OnViewDoubleClick@CWinAppEx@@UEAAHPEAVCWnd@@H@Z
 // The mfc140u symbol map has no entry, but the ANSI twin resolves this export at
@@ -358,8 +358,33 @@ int CWinAppEx::GetInt(const wchar_t* lpszEntry, int nDefault) { auto& state = g_
 BOOL CWinAppEx::WriteInt(const wchar_t* lpszEntry, int nValue) { g_winAppExStates[this].ints[AppEntryKey(static_cast<const wchar_t*>(m_strRegSection), lpszEntry)] = nValue; return TRUE; }
 CString CWinAppEx::GetString(const wchar_t* lpszEntry, const wchar_t* lpszDefault) { auto& state = g_winAppExStates[this]; auto it = state.strings.find(AppEntryKey(static_cast<const wchar_t*>(m_strRegSection), lpszEntry)); return it == state.strings.end() ? CString(lpszDefault ? lpszDefault : L"") : it->second; }
 BOOL CWinAppEx::WriteString(const wchar_t* lpszEntry, const wchar_t* lpszValue) { g_winAppExStates[this].strings[AppEntryKey(static_cast<const wchar_t*>(m_strRegSection), lpszEntry)] = CString(lpszValue ? lpszValue : L""); return TRUE; }
-BOOL CWinAppEx::LoadState(const wchar_t* lpszSectionName, void*) { g_winAppExStates[this].states.insert(WideKey(lpszSectionName)); return TRUE; }
-BOOL CWinAppEx::SaveState(const wchar_t* lpszSectionName, void*) { g_winAppExStates[this].states.insert(WideKey(lpszSectionName)); return TRUE; }
-BOOL CWinAppEx::CleanState(const wchar_t* lpszSectionName) { g_winAppExStates[this].states.erase(WideKey(lpszSectionName)); return TRUE; }
-BOOL CWinAppEx::IsStateExists(const wchar_t* lpszSectionName) { return g_winAppExStates[this].states.count(WideKey(lpszSectionName)) != 0; }
+namespace {
+void* AppTearOffFrame(CWnd* mainWindow, void* impl) {
+    if (impl) return impl;
+    if (mainWindow && mainWindow->IsKindOf(RUNTIME_CLASS(CFrameWnd)))
+        return openmfc::detail::FindTearOffFrameImpl(static_cast<CFrameWnd*>(mainWindow));
+    return nullptr;
+}
+}
+
+BOOL CWinAppEx::LoadState(const wchar_t* section, void* impl) {
+    auto* frame = AppTearOffFrame(m_pMainWnd, impl);
+    if (frame && !openmfc::detail::LoadTearOffProfile(*this, frame, section)) return FALSE;
+    g_winAppExStates[this].states.insert(WideKey(section));
+    return TRUE;
+}
+BOOL CWinAppEx::SaveState(const wchar_t* section, void* impl) {
+    auto* frame = AppTearOffFrame(m_pMainWnd, impl);
+    if (frame && !openmfc::detail::SaveTearOffProfile(*this, frame, section, true)) return FALSE;
+    g_winAppExStates[this].states.insert(WideKey(section));
+    return TRUE;
+}
+BOOL CWinAppEx::CleanState(const wchar_t* section) {
+    const bool cached = g_winAppExStates[this].states.erase(WideKey(section)) != 0;
+    return openmfc::detail::RemoveTearOffProfile(*this, section) || cached;
+}
+BOOL CWinAppEx::IsStateExists(const wchar_t* section) {
+    return openmfc::detail::HasTearOffProfile(*this, section) ||
+        g_winAppExStates[this].states.count(WideKey(section)) != 0;
+}
 int CWinAppEx::ExitInstance() { delete m_pContextMenuManager; m_pContextMenuManager = nullptr; delete m_pKeyboardManager; m_pKeyboardManager = nullptr; delete m_pTooltipManager; m_pTooltipManager = nullptr; return CWinApp::ExitInstance(); }

@@ -90,6 +90,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/CWinAppSupport.h"
 #include "detail/MfccoreSupport.h"
 #include "detail/MenuTearOffSupport.h"
 // For the CObList side table: OpenMFC's list wrappers keep their contents in a
@@ -208,6 +209,8 @@ extern "C" void MS_ABI impl__RemovePane_CDockSite__UEAAXPEAVCPane__W4AFX_DOCK_ME
 extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int bDestroy, int bNoDelayedDestroy);
 extern "C" void MS_ABI impl__RemovePane_CMultiPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(void* pThis, void* pPane, int bDestroy, int bNoDelayedDestroy);
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMultiPaneFrameWnd__SAPEAUCRuntimeClass__XZ();
+extern "C" CBasePane* MS_ABI impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(
+    CDockingManager*, UINT, int);
 extern "C" void MS_ABI impl__DockPane_CDockingManager__QEAAXPEAVCBasePane__IPEBUtagRECT___Z(CDockingManager* pThis, CBasePane* pBar, unsigned int nDockBarID, const RECT* lpRect);
 // OnShowCustomizePane: the four frame classes it tests with IsKindOf.
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMDIFrameWndEx__SAPEAUCRuntimeClass__XZ();
@@ -221,15 +224,6 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCColorPopupMenu__SAPEAUCR
 extern "C" void* MS_ABI impl__FindMenuWithConnectedFloaty_CMFCPopupMenu__KAPEAV1_XZ();
 extern "C" CMFCToolBar* MS_ABI impl__FindDestintationToolBar_CMFCPopupMenuBar__QEAAPEAVCMFCToolBar__VCPoint___Z(
     CMFCPopupMenuBar* pThis, long long point);
-// SaveTearOffMenus: the CSettingsStoreSP owner and the CSettingsStore base bodies
-// (core/app/CSettingsStoreSP.cpp and core/app/CSettingsStore.cpp define each with
-// this parameter list), used for a store whose vtable lives in this image.
-extern "C" void* MS_ABI impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__HH_Z(void* pThis, int bAdmin, int bReadOnly);
-extern "C" int MS_ABI impl__CreateKey_CSettingsStore__UEAAHPEB_W_Z(void* pThis, const wchar_t* lpszPath);
-extern "C" int MS_ABI impl__DeleteKey_CSettingsStore__UEAAHPEB_WH_Z(void* pThis, const wchar_t* lpszPath, int bAdmin);
-extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_WH_Z(void* pThis, const wchar_t* lpszValueName, int nValue);
-extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_W0_Z(void* pThis, const wchar_t* lpszValueName, const wchar_t* lpszVal);
-extern "C" int MS_ABI impl__Write_CSettingsStore__UEAAHPEB_WPEAVCObject___Z(void* pThis, const wchar_t* lpszValueName, CObject* pObj);
 // OnShowPopupMenu: popup-menu parent walk and focus hand-off.
 extern "C" void* MS_ABI impl__GetParentPopupMenu_CMFCPopupMenu__QEBAPEAV1_XZ(const void* pThis);   // featurepack/menu/CMFCPopupMenu.cpp
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CBasePane__SAPEAUCRuntimeClass__XZ();         // featurepack/docking/CBasePane.cpp
@@ -759,9 +753,6 @@ enum ToolBarSlot {
     kTbIsDocked = 92,                // +0x2e0  ?IsDocked@CBasePane@@UEBAHXZ (mfc140u 0xb280; the ANSI
                                      //         map names the folded body at mfc140 0xb300 after
                                      //         CDockablePane).  Same slot in the CBasePane table.
-    kTbSaveState = 142,              // +0x470  ?SaveState@CMFCToolBar@@ (mfc140 0x151b70); the same slot is
-                                     //         ?SaveState@CBasePane@@ (mfc140 0xc600) in the CBasePane
-                                     //         table ??0CBasePane@@QEAA@XZ installs (ANSI 0x2d9fa8)
     kTbCreate = 202,                 // +0x650  ?Create@CMFCToolBar@@UEAAHPEAVCWnd@@KI@Z
     kTbRemoveStateFromRegistry = 226 // +0x710  ?RemoveStateFromRegistry@CMFCToolBar@@
 };
@@ -2181,35 +2172,14 @@ extern "C" int MS_ABI impl__LoadLargeIconsState_CFrameImpl__IEAAHXZ(void* pThis)
     return bResult;
 }
 
-// Retail RVA 0x62c60 (mfc140u; ANSI twin entry RVA 0x62a90 in mfc140), decoded (addresses mfc140):
-//     for each pBar in the +0x98 tear-off list:                                  // head +0xa0
-//         if (pBar->IsDocked()) pBar->UndockPane(TRUE);                          // pane vftable +0x2e0, +0x490
-//         pBar->DestroyWindow(); delete pBar;                                    // +0xd0; slot 1 with flag 1
-//     m_lstTearOffToolbars.RemoveAll();                                          // ?RemoveAll@CPtrList@@ 0x83d0
-//     strPath = <SaveTearOffMenus' path>, i.e. GetRegSectionPath(L"") + "ControlBars-TearOff";
-//     for (i = 0; ; ++i) {
-//         strKey.Format("%Ts-%d", strPath, i); int nID = 0; CObject* pBar = NULL; CString strName;
-//         CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, TRUE);
-//         if (!reg.Open(strKey) || !reg.Read("ID", nID) || !reg.Read("Name", strName)
-//             || !reg.Read("State", pBar)) break;                                // +0x30, +0xb8, +0xa8, +0x88
-//         if (!pBar->Create(m_pFrame (+0x118), 0x50402808, nID)) { delete pBar; break; }   // +0x650
-//         pBar->SetWindowText(strName);                                          // inlined: ::IsWindow / m_pCtrlSite (+0xd0)
-//         pBar->SetPaneStyle(pBar->GetPaneStyle() | 0x34);                       // +0x3d8 / +0x390
-//         pBar->EnableDocking(0xf000);                                           // +0x3e8
-//         m_lstTearOffToolbars.AddTail(pBar);                                    // 0x230490
-//         pBar->LoadState(strPath, i, (UINT)-1);                                 // +0x468
-//         m_pDockManager (+0x120)->DockPane(pBar, 0, NULL);                      // 0x483c0
-//     }
-// NOT implemented.  The bar comes back through CSettingsStore::Read(LPCTSTR,
-// CObject*&), which in retail deserialises a NEW object from the "State" value.
-// OpenMFC's own store (core/app/CSettingsStore.cpp, ?Read@...AEAPEAVCObject@@) hands
-// back the raw pointer ?Write@...PEAVCObject@@ recorded -- i.e. the very bar
-// SaveTearOffMenus saved, which the first loop above has just destroyed and
-// deleted.  A faithful transcription over that store would call Create on freed
-// memory, so this stays a stub until the store round-trips objects.  STUB.
+namespace {
+CWinAppEx* CurrentTearOffApp();
+}
+
 // Symbol: ?LoadTearOffMenus@CFrameImpl@@IEAAXXZ
 extern "C" void MS_ABI impl__LoadTearOffMenus_CFrameImpl__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (auto* app = CurrentTearOffApp())
+        openmfc::detail::LoadTearOffProfile(*app, pThis, nullptr);
 }
 
 // Transcribed from retail 0x62490 (mfc140; RVA 0x62660 in mfc140u):
@@ -3540,213 +3510,173 @@ extern "C" void MS_ABI impl__SaveDockState_CFrameImpl__IEAAXPEB_W_Z(void* pThis,
 
 namespace {
 
-// Retail CSettingsStore vftable slots, read out of the table ??0CSettingsStore@@QEAA@HH@Z
-// installs (ANSI 0x30c560; the RVAs below are mfc140 too).  MSVC lays the Write/Read
-// overload groups out in reverse declaration order, which the table confirms:
-enum SettingsStoreSlot {
-    kSsDeletingDtor = 1,      // +0x08  scalar deleting destructor (flags in edx)
-    kSsCreateKey = 5,         // +0x28  ?CreateKey@CSettingsStore@@ (0x12a810)
-    kSsDeleteKey = 9,         // +0x48  ?DeleteKey@CSettingsStore@@ (0x12b250)
-    kSsWriteObjectPtr = 10,   // +0x50  ?Write@CSettingsStore@@ (LPCTSTR, CObject*) (0x12ab40)
-    kSsWriteString = 14,      // +0x70  ?Write@CSettingsStore@@ (LPCTSTR, LPCTSTR) (0x12a990)
-    kSsWriteInt = 16          // +0x80  ?Write@CSettingsStore@@ (LPCTSTR, int) (0x12a930)
-};
+constexpr wchar_t tearOffProfileValue[] = L"ControlBars-TearOff";
+constexpr UINT tearOffProfileVersion = 1;
+constexpr UINT maxTearOffToolbars = 65535;
+constexpr DWORD maxTearOffProfileBytes = 16 * 1024 * 1024;
 
-// The 16-byte CSettingsStoreSP owner retail zeroes on the stack (m_pRegistry +0x00,
-// m_dwUserData +0x08, per core/app/CSettingsStoreSP.cpp).  Its destruction deletes
-// the store Create made: retail calls the store's vftable slot 1 with flag 1 when
-// m_pRegistry is non-NULL (e.g. the call at 0x630b8 inside SaveTearOffMenus 0x62f50).
-// An own store (Itanium vftable) is deleted through C++ instead, as ToolBarDelete does.
-struct TearOffSettingsStoreSP {
-    void* slots[2] = {nullptr, nullptr};
-    void* Create(int bAdmin, int bReadOnly) {
-        return impl__Create_CSettingsStoreSP__QEAAAEAVCSettingsStore__HH_Z(slots, bAdmin, bReadOnly);
-    }
-    ~TearOffSettingsStoreSP() {
-        void* pStore = slots[0];
-        if (pStore == nullptr) {
-            return;
+CWinAppEx* CurrentTearOffApp() {
+    CWinApp* app = impl__AfxGetApp__YAPEAVCWinApp__XZ();
+    return app && impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+        app, impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ()) ? static_cast<CWinAppEx*>(app) : nullptr;
+}
+
+std::wstring TearOffProfilePath(CWinAppEx& app, const wchar_t* section) {
+    std::wstring path = openmfc::detail::cwinapp::GetAppRegistryRoot(&app);
+    if (path.back() != L'\\') path += L'\\';
+    const wchar_t* name = app.m_pszProfileName && *app.m_pszProfileName ? app.m_pszProfileName : app.m_pszAppName;
+    if (name && *name) {
+        path += name;
+    } else {
+        wchar_t module[MAX_PATH]{};
+        const DWORD size = ::GetModuleFileNameW(nullptr, module, MAX_PATH);
+        if (size && size < MAX_PATH) {
+            const auto* filename = std::wcsrchr(module, L'\\');
+            path += filename ? filename + 1 : module;
+        } else {
+            path += L"OpenMFC";
         }
-        if (IsOwnObject(pStore)) {
-            delete static_cast<CObject*>(pStore);
-            return;
+    }
+    if (path.back() != L'\\') path += L'\\';
+    const CString base = app.GetRegSectionPath();
+    const wchar_t* profile = section && *section ? section : base.GetString();
+    path += profile && *profile ? profile : L"Workspace";
+    return path;
+}
+
+std::vector<CBasePane*> TearOffToolbars(const void* impl) {
+    std::vector<CBasePane*> bars;
+    std::lock_guard<std::mutex> lock(g_frameImplExtraMutex);
+    if (auto* extra = FindExtra(impl)) {
+        for (auto* node = extra->pTearOffToolbars; node; node = node->pNext)
+            if (node->pData) bars.push_back(static_cast<CBasePane*>(node->pData));
+    }
+    return bars;
+}
+
+}
+
+bool openmfc::detail::SaveTearOffProfile(
+    CWinAppEx& app, void* impl, const wchar_t* section, bool frameBarsOnly) {
+    auto* owner = OwnerFrame(impl);
+    if (!owner || !::IsWindow(owner->GetSafeHwnd())) return false;
+    try {
+        std::vector<TearOffToolbarProfile> profiles;
+        std::unordered_set<UINT> ids;
+        for (auto* bar : TearOffToolbars(impl)) {
+            const HWND window = bar->GetSafeHwnd();
+            if (!window || !(::GetWindowLongPtrW(window, GWL_STYLE) & WS_VISIBLE)) continue;
+            if (frameBarsOnly && !IsManagedTearOffToolbar(*bar) &&
+                impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(bar) != owner) continue;
+            TearOffToolbarProfile profile;
+            if (!CaptureTearOffToolbar(*owner, *bar, profile)) return false;
+            if (!ids.insert(profile.id).second) continue;
+            profiles.push_back(std::move(profile));
         }
-        typedef void* (MS_ABI* Fn)(void*, unsigned int);
-        VSlot<Fn>(pStore, kSsDeletingDtor)(pStore, 1u);
-    }
-};
+        if (profiles.size() > maxTearOffToolbars) return false;
+        if (profiles.empty() && !HasTearOffProfile(app, section)) return true;
 
-BOOL StoreDeleteKey(void* pStore, const wchar_t* lpszPath, BOOL bAdmin) {
-    if (IsOwnObject(pStore)) {
-        return impl__DeleteKey_CSettingsStore__UEAAHPEB_WH_Z(pStore, lpszPath, bAdmin);
+        CMemFile file;
+        CArchive archive(&file, CArchive::store | CArchive::bNoFlushOnDelete);
+        archive << tearOffProfileVersion << static_cast<UINT>(profiles.size());
+        for (const auto& profile : profiles) WriteTearOffToolbar(archive, profile);
+        archive.Close();
+        const auto size = file.GetLength();
+        if (!size || size > maxTearOffProfileBytes) return false;
+        std::unique_ptr<BYTE, decltype(&std::free)> bytes(file.Detach(), &std::free);
+        HKEY key = nullptr;
+        const auto path = TearOffProfilePath(app, section);
+        if (::RegCreateKeyExW(HKEY_CURRENT_USER, path.c_str(), 0, nullptr, 0, KEY_SET_VALUE,
+                              nullptr, &key, nullptr) != ERROR_SUCCESS) return false;
+        const LSTATUS status = ::RegSetValueExW(key, tearOffProfileValue, 0, REG_BINARY,
+                                                bytes.get(), static_cast<DWORD>(size));
+        ::RegCloseKey(key);
+        return status == ERROR_SUCCESS;
+    } catch (CException* error) {
+        error->Delete();
+        return false;
     }
-    typedef int (MS_ABI* Fn)(void*, const wchar_t*, int);
-    return VSlot<Fn>(pStore, kSsDeleteKey)(pStore, lpszPath, bAdmin);
 }
 
-BOOL StoreCreateKey(void* pStore, const wchar_t* lpszPath) {
-    if (IsOwnObject(pStore)) {
-        return impl__CreateKey_CSettingsStore__UEAAHPEB_W_Z(pStore, lpszPath);
-    }
-    typedef int (MS_ABI* Fn)(void*, const wchar_t*);
-    return VSlot<Fn>(pStore, kSsCreateKey)(pStore, lpszPath);
-}
+bool openmfc::detail::LoadTearOffProfile(CWinAppEx& app, void* impl, const wchar_t* section) {
+    auto* owner = OwnerFrame(impl);
+    if (!owner || !::IsWindow(owner->GetSafeHwnd())) return false;
+    const auto path = TearOffProfilePath(app, section);
+    DWORD size = 0;
+    const LSTATUS status = ::RegGetValueW(HKEY_CURRENT_USER, path.c_str(), tearOffProfileValue,
+                                           RRF_RT_REG_BINARY, nullptr, nullptr, &size);
+    if (status == ERROR_FILE_NOT_FOUND) return true;
+    if (status != ERROR_SUCCESS || !size || size > maxTearOffProfileBytes) return false;
 
-BOOL StoreWriteInt(void* pStore, const wchar_t* lpszValueName, int nValue) {
-    if (IsOwnObject(pStore)) {
-        return impl__Write_CSettingsStore__UEAAHPEB_WH_Z(pStore, lpszValueName, nValue);
-    }
-    typedef int (MS_ABI* Fn)(void*, const wchar_t*, int);
-    return VSlot<Fn>(pStore, kSsWriteInt)(pStore, lpszValueName, nValue);
-}
-
-BOOL StoreWriteString(void* pStore, const wchar_t* lpszValueName, const wchar_t* lpszVal) {
-    if (IsOwnObject(pStore)) {
-        return impl__Write_CSettingsStore__UEAAHPEB_W0_Z(pStore, lpszValueName, lpszVal);
-    }
-    typedef int (MS_ABI* Fn)(void*, const wchar_t*, const wchar_t*);
-    return VSlot<Fn>(pStore, kSsWriteString)(pStore, lpszValueName, lpszVal);
-}
-
-BOOL StoreWriteObject(void* pStore, const wchar_t* lpszValueName, CObject* pObj) {
-    if (IsOwnObject(pStore)) {
-        return impl__Write_CSettingsStore__UEAAHPEB_WPEAVCObject___Z(pStore, lpszValueName, pObj);
-    }
-    typedef int (MS_ABI* Fn)(void*, const wchar_t*, CObject*);
-    return VSlot<Fn>(pStore, kSsWriteObjectPtr)(pStore, lpszValueName, pObj);
-}
-
-// pBar->SaveState(lpszProfileName, nIndex, uiID) through retail slot +0x470 for a
-// client-built pane.  DEVIATION for a pane built in this image: it is handed to the
-// ?SaveState@CMFCToolBar@@ thunk when IsKindOf(CMFCToolBar) says it is a toolbar
-// (tear-off bars are toolbars in practice), and otherwise not saved at all, because
-// the ?SaveState@CBasePane@@ thunk in featurepack/docking/CBasePane.cpp is still an
-// auto-generated stub with a placeholder parameter list.
-void TearOffBarSaveState(void* pBar, const wchar_t* lpszProfileName, int nIndex, UINT uiID) {
-    if (IsOwnObject(pBar)) {
-        if (impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-                static_cast<const CObject*>(pBar), impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ())) {
-            (void)impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(static_cast<CMFCToolBar*>(pBar), lpszProfileName, nIndex, uiID);
+    std::vector<TearOffToolbarProfile> profiles;
+    try {
+        std::vector<BYTE> bytes(size);
+        if (::RegGetValueW(HKEY_CURRENT_USER, path.c_str(), tearOffProfileValue,
+                           RRF_RT_REG_BINARY, nullptr, bytes.data(), &size) != ERROR_SUCCESS) return false;
+        CMemFile file(bytes.data(), size);
+        CArchive archive(&file, CArchive::load | CArchive::bNoFlushOnDelete);
+        UINT version = 0;
+        UINT count = 0;
+        archive >> version >> count;
+        if (version != tearOffProfileVersion || count > maxTearOffToolbars) return false;
+        std::unordered_set<UINT> ids;
+        for (UINT i = 0; i < count; ++i) {
+            TearOffToolbarProfile profile;
+            if (!ReadTearOffToolbar(archive, profile) || !ids.insert(profile.id).second) return false;
+            profiles.push_back(std::move(profile));
         }
-        return;
+        BYTE extra = 0;
+        if (archive.Read(&extra, sizeof(extra))) return false;
+    } catch (CException* error) {
+        error->Delete();
+        return false;
     }
-    typedef int (MS_ABI* Fn)(void*, const wchar_t*, int, UINT);
-    (void)VSlot<Fn>(pBar, kTbSaveState)(pBar, lpszProfileName, nIndex, uiID);
+
+    auto* manager = DockingManagerForFrame(owner);
+    if (!manager) return profiles.empty();
+    for (const auto& profile : profiles) {
+        auto* pane = impl__FindPaneByID_CDockingManager__UEAAPEAVCBasePane__IH_Z(manager, profile.id, TRUE);
+        if (pane && !IsManagedTearOffToolbar(*pane)) return false;
+    }
+    for (auto* bar : TearOffToolbars(impl)) {
+        if (IsManagedTearOffToolbar(*bar)) {
+            const HWND mini = ::GetParent(bar->GetSafeHwnd());
+            auto* parent = static_cast<CWnd*>(CWnd::FromHandlePermanent(mini));
+            if (parent && parent->IsKindOf(RUNTIME_CLASS(CPaneFrameWnd)) &&
+                static_cast<CPaneFrameWnd*>(parent)->GetPane() == bar) {
+                parent->DestroyWindow();
+            } else {
+                bar->DestroyWindow();
+            }
+        }
+    }
+    bool success = true;
+    for (const auto& profile : profiles) {
+        if (!RestoreTearOffToolbar(*owner, *manager, profile)) success = false;
+    }
+    return success;
 }
 
-}  // namespace
+bool openmfc::detail::HasTearOffProfile(CWinAppEx& app, const wchar_t* section) {
+    const auto path = TearOffProfilePath(app, section);
+    DWORD size = 0;
+    return ::RegGetValueW(HKEY_CURRENT_USER, path.c_str(), tearOffProfileValue,
+                           RRF_RT_REG_BINARY, nullptr, nullptr, &size) == ERROR_SUCCESS && size != 0;
+}
 
-// Transcribed from retail 0x62f50 (mfc140; RVA 0x63120 in mfc140u):
-//     pApp = AfxGetModuleState()->m_pCurrentWinApp, NULL unless IsKindOf(CWinAppEx);  // 0x1345b0, +0x08
-//     CString strPath;                                                           // empty
-//     if (pApp) strPath = pApp->GetRegSectionPath(L"");                          // 0x1c60b0 (the argument is the empty string at 0x33ac36)
-//     strPath += "ControlBars-TearOff";                                          // 0x33c6e0
-//     for (i = 0; ; ++i) {
-//         CString strKey; strKey.Format("%Ts-%d", strPath, i);                   // 0x33c6f4
-//         CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, FALSE);    // 0x12b320
-//         if (!reg.DeleteKey(strKey, FALSE)) break;                              // vftable (ANSI 0x30c560) +0x48
-//     }                                                                          // (sp and strKey die on both paths)
-//     i = 0;
-//     for each pBar in the +0x98 tear-off list (head +0xa0), ++i on EVERY node:
-//         if (bFrameBarsOnly && pBar->GetTopLevelFrame() != m_pFrame (+0x118)) continue;   // 0x28c910
-//         if (!(pBar->GetStyle() & WS_VISIBLE)) continue;                        // 0x2a75a0, bt $0x1c
-//         CString strName; pBar->GetWindowText(strName);                         // 0x28a280
-//         CString strKey; strKey.Format("%Ts-%d", strPath, i);
-//         CSettingsStoreSP sp; CSettingsStore& reg = sp.Create(FALSE, FALSE);
-//         reg.CreateKey(strKey);                                                 // +0x28, result ignored
-//         reg.Write("ID", pBar->GetDlgCtrlID());                                 // +0x80, 0x2a78b0, string 0x33c6fc
-//         reg.Write("Name", strName);                                            // +0x70, 0x33c700
-//         reg.Write("State", (CObject*)pBar);                                    // +0x50, 0x33c708
-//         pBar->SaveState(strPath, i, (UINT)-1);                                 // pane vftable +0x470
-// Every Write / SaveState result is discarded.  (All addresses above are mfc140;
-// the strings were read out of that image.)
-// Deviations:
-//   * store virtuals go through the retail slots for a client-built store and
-//     through the CSettingsStore thunks for one built in this image (see the
-//     Store* helpers above); likewise the bar's SaveState (TearOffBarSaveState);
-//   * OpenMFC's CSettingsStoreSP::Create can return NULL (retail's returns a
-//     reference).  A NULL store ends the delete loop as a failed DeleteKey would,
-//     and skips that bar's registry writes -- its SaveState is still called;
-//   * the tear-off list is snapshotted under this file's lock before the walk
-//     (retail walks the nodes in place), so the USER32 calls below run unlocked;
-//     a missing companion entry (a pThis the constructor never saw) reads as an
-//     empty list, where retail would dereference it;
-//   * the app lookup is impl__AfxGetApp (OpenMFC's AfxGetApp, which reads the
-//     module state's current app), and "%Ts" is written "%s", this being the
-//     Unicode build;
-//   * what "State" stores is up to the store: OpenMFC's own
-//     ?Write@CSettingsStore@@...PEAVCObject@@ (core/app/CSettingsStore.cpp) keeps
-//     the raw pointer rather than serialising the bar as retail's does.
+bool openmfc::detail::RemoveTearOffProfile(CWinAppEx& app, const wchar_t* section) {
+    const auto path = TearOffProfilePath(app, section);
+    HKEY key = nullptr;
+    if (::RegOpenKeyExW(HKEY_CURRENT_USER, path.c_str(), 0, KEY_SET_VALUE, &key) != ERROR_SUCCESS) return false;
+    const LSTATUS status = ::RegDeleteValueW(key, tearOffProfileValue);
+    ::RegCloseKey(key);
+    return status == ERROR_SUCCESS;
+}
+
 // Symbol: ?SaveTearOffMenus@CFrameImpl@@IEAAXH@Z
 extern "C" void MS_ABI impl__SaveTearOffMenus_CFrameImpl__IEAAXH_Z(void* pThis, int bFrameBarsOnly) {
-    CWinAppEx* pAppEx = nullptr;
-    CWinApp* pApp = impl__AfxGetApp__YAPEAVCWinApp__XZ();
-    if (pApp != nullptr &&
-        impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
-            pApp, impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ())) {
-        pAppEx = static_cast<CWinAppEx*>(pApp);
-    }
-
-    CString strPath;
-    if (pAppEx != nullptr) {
-        alignas(CString) unsigned char storage[sizeof(CString)];
-        CString* pSection = reinterpret_cast<CString*>(storage);
-        impl__GetRegSectionPath_CWinAppEx__QEAA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
-            pSection, pAppEx, L"");
-        strPath = *pSection;
-        pSection->~CString();
-    }
-    strPath += L"ControlBars-TearOff";
-
-    for (int i = 0;; ++i) {
-        CString strKey;
-        strKey.Format(L"%s-%d", strPath.GetString(), i);
-        TearOffSettingsStoreSP sp;
-        void* pStore = sp.Create(FALSE, FALSE);
-        if (pStore == nullptr || !StoreDeleteKey(pStore, strKey.GetString(), FALSE)) {
-            break;
-        }
-    }
-
-    PtrNode* pBars = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(g_frameImplExtraMutex);
-        FrameImplExtra* pExtra = FindExtra(pThis);
-        if (pExtra != nullptr) {
-            for (PtrNode* pNode = pExtra->pTearOffToolbars; pNode != nullptr; pNode = pNode->pNext) {
-                PtrListAddTail(pBars, pNode->pData);
-            }
-        }
-    }
-    CFrameWnd* pFrame = OwnerFrame(pThis);
-
-    int i = 0;
-    for (PtrNode* pNode = pBars; pNode != nullptr; pNode = pNode->pNext, ++i) {
-        CWnd* pBar = static_cast<CWnd*>(pNode->pData);
-        if (bFrameBarsOnly && impl__GetTopLevelFrame_CWnd__QEBAPEAVCFrameWnd__XZ(pBar) != pFrame) {
-            continue;
-        }
-        if ((impl__GetStyle_CWnd__QEBAKXZ(pBar) & WS_VISIBLE) == 0) {
-            continue;
-        }
-        CString strName;
-        impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-            pBar, &strName);
-        CString strKey;
-        strKey.Format(L"%s-%d", strPath.GetString(), i);
-        {
-            TearOffSettingsStoreSP sp;
-            void* pStore = sp.Create(FALSE, FALSE);
-            if (pStore != nullptr) {
-                (void)StoreCreateKey(pStore, strKey.GetString());
-                (void)StoreWriteInt(pStore, L"ID", impl__GetDlgCtrlID_CWnd__QEBAHXZ(pBar));
-                (void)StoreWriteString(pStore, L"Name", strName.GetString());
-                (void)StoreWriteObject(pStore, L"State", static_cast<CObject*>(pBar));
-            }
-            TearOffBarSaveState(pBar, strPath.GetString(), i, static_cast<UINT>(-1));
-        }
-    }
-    PtrListRemoveAll(pBars);
+    if (auto* app = CurrentTearOffApp())
+        openmfc::detail::SaveTearOffProfile(*app, pThis, nullptr, bFrameBarsOnly != FALSE);
 }
 
 // Transcribed from retail 0x625d0:
@@ -4106,17 +4036,17 @@ extern "C" void MS_ABI impl__UpdateCaption_CFrameImpl__IEAAXXZ(void* pThis) {
     ::RedrawWindow(pFrame->m_hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_NOCHILDREN | RDW_UPDATENOW | RDW_FRAME);
 }
 
-void openmfc::detail::TrackTearOffToolbar(CFrameWnd& frame, CBasePane& pane, bool add) {
-    CFrameImpl* impl = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
-        for (const auto& entry : g_frameImplStates) {
-            if (entry.second.ownerFrame == &frame) {
-                impl = entry.first;
-                break;
-            }
-        }
+void* openmfc::detail::FindTearOffFrameImpl(const CFrameWnd* frame) {
+    if (!frame) return nullptr;
+    std::lock_guard<std::mutex> lock(g_featurePackStateMutex);
+    for (const auto& entry : g_frameImplStates) {
+        if (entry.second.ownerFrame == frame) return entry.first;
     }
+    return nullptr;
+}
+
+void openmfc::detail::TrackTearOffToolbar(CFrameWnd& frame, CBasePane& pane, bool add) {
+    auto* impl = FindTearOffFrameImpl(&frame);
     if (!impl) return;
     if (add) impl__AddTearOffToolbar_CFrameImpl__IEAAXPEAVCBasePane___Z(impl, &pane);
     else impl__RemoveTearOffToolbar_CFrameImpl__IEAAXPEAVCBasePane___Z(impl, &pane);
