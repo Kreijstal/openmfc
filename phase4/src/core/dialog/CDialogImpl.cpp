@@ -21,6 +21,7 @@
 //   sizeof == 0x10 (the scalar deleting destructor frees 0x10 bytes).
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/MfccoreSupport.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -479,7 +480,8 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CDialogImpl__IEAAHPEAUtagMSG___Z
 
     case WM_MOUSEWHEEL: {
         CMFCPopupMenu* pPopup = impl__GetSafeActivePopupMenu_CMFCPopupMenu__SAPEAV1_XZ();
-        if (pPopup != nullptr && At<int>(pPopup, kOffPopupScrollable) != 0) {
+        if (pPopup != nullptr && !openmfc::detail::mfccore::HasManagedPopupWindow(pPopup) &&
+            At<int>(pPopup, kOffPopupScrollable) != 0) {
             ::SendMessage(HWndOf(pPopup), WM_MOUSEWHEEL, pMsg->wParam, pMsg->lParam);
         }
         return FALSE;
@@ -536,7 +538,8 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CDialogImpl__IEAAHPEAUtagMSG___Z
 extern "C" int MS_ABI impl__ProcessMouseClick_CDialogImpl__IEAAHUtagPOINT___Z(void* pThis, long long ptPacked) {
     const POINT pt = UnpackPoint(ptPacked);
     CMFCPopupMenu* pActive = impl__GetSafeActivePopupMenu_CMFCPopupMenu__SAPEAV1_XZ();
-    if (impl__m_bCustomizeMode_CMFCToolBar__1HA != 0 || pActive == nullptr) {
+    if (impl__m_bCustomizeMode_CMFCToolBar__1HA != 0 || pActive == nullptr ||
+        openmfc::detail::mfccore::HasManagedPopupWindow(pActive)) {
         return FALSE;
     }
 
@@ -620,7 +623,7 @@ extern "C" int MS_ABI impl__ProcessMouseMove_CDialogImpl__IEAAHUtagPOINT___Z(voi
         return FALSE;
     }
     CMFCPopupMenu* pPopup = impl__GetSafeActivePopupMenu_CMFCPopupMenu__SAPEAV1_XZ();
-    if (pPopup == nullptr) {
+    if (pPopup == nullptr || openmfc::detail::mfccore::HasManagedPopupWindow(pPopup)) {
         return FALSE;
     }
     RECT rect = {};

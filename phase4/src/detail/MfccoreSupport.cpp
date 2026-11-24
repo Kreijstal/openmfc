@@ -417,7 +417,16 @@ CMFCToolBarMenuButton* CreateMenuButtonFromMenu(HMENU hMenu, int index) {
     const UINT id = GetMenuItemCommand(hMenu, index);
     HMENU subMenu = GetMenuItemSubMenu(hMenu, index);
     CString text = GetMenuItemText(hMenu, index);
-    return new CMFCToolBarMenuButton(id, subMenu, subMenu != nullptr, static_cast<const wchar_t*>(text), FALSE);
+    auto* button = new CMFCToolBarMenuButton(id, subMenu, subMenu != nullptr,
+                                            static_cast<const wchar_t*>(text), FALSE);
+    MENUITEMINFOW info{sizeof(info)};
+    info.fMask = MIIM_FTYPE | MIIM_STATE;
+    if (::GetMenuItemInfoW(hMenu, index, TRUE, &info)) {
+        if (info.fType & MFT_SEPARATOR) button->m_nStyle |= TBSTYLE_SEP;
+        if (info.fState & MFS_CHECKED) button->m_nStyle |= UINT(TBSTATE_CHECKED) << 16;
+        if (info.fState & MFS_DISABLED) button->m_nStyle |= UINT(TBSTATE_ENABLED) << 16;
+    }
+    return button;
 }
 void ImportMenuIntoPopupItems(HMENU hMenu, std::vector<CMFCToolBarMenuButton*>& items,
                               std::unordered_set<CMFCToolBarMenuButton*>& ownedItems) {

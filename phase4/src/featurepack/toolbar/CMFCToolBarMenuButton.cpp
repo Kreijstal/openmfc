@@ -51,13 +51,9 @@ constexpr std::size_t kMbPaletteRows      = 0xf8;   // int  m_nPaletteRows
 constexpr std::size_t kNodeNext = 0x00;
 constexpr std::size_t kNodeData = 0x10;
 
-// CWnd::m_hWnd (also the popup menu's HWND).
-constexpr std::size_t kWndHWnd = 0x40;
 // CMFCMenuBar::m_bForceDownArrows (see featurepack/menu/CMFCMenuBar.cpp, which
 // pins the same offset; inside OpenMFC's 0x13b0-byte CMFCMenuBar).
 constexpr std::size_t kMenuBarForceDownArrows = 0x139c;
-// CMFCVisualManager::m_nMenuShadowDepth (read by OnCancelMode at +0xcc).
-constexpr std::size_t kVmMenuShadowDepth = 0xcc;
 // AFX_GLOBAL_DATA: the one-time init gate at +0 and m_sizeSmallIcon at +0x1a0/+0x1a4
 // (pinned in core/runtime/AFX_GLOBAL_DATA.cpp).
 constexpr std::size_t kGdInitGate        = 0x000;
@@ -74,7 +70,6 @@ static_assert(offsetof(CMFCToolBarButton, m_nID) == 0x24, "CMFCToolBarButton::m_
 static_assert(offsetof(CMFCToolBarButton, m_nStyle) == 0x28, "CMFCToolBarButton::m_nStyle @0x28");
 static_assert(offsetof(CMFCToolBarButton, m_rect) == 0x68, "CMFCToolBarButton::m_rect @0x68");
 static_assert(offsetof(CMFCToolBarButton, m_pWndParent) == 0x80, "CMFCToolBarButton::m_pWndParent @0x80");
-static_assert(offsetof(CWnd, m_hWnd) == kWndHWnd, "CWnd::m_hWnd @0x40");
 static_assert(offsetof(CDC, m_hDC) == 0x08, "CDC::m_hDC @0x08");
 static_assert(offsetof(CAccessibilityData, m_strAccHelp) == 0x20 &&
               offsetof(CAccessibilityData, m_strAccDefAction) == 0x28 &&
@@ -130,7 +125,6 @@ extern "C" int MS_ABI impl__SetACCData_CMFCToolBarButton__UEAAHPEAVCWnd__AEAVCAc
 extern "C" CSize* MS_ABI impl__GetMenuImageSize_CMFCToolBar__SA_AVCSize__XZ(CSize* pRet);
 extern "C" CSize* MS_ABI impl__Size_CMenuImages__SA_AVCSize__XZ(CSize* pRet);
 //   featurepack/menu/CMFCPopupMenu.cpp
-extern "C" void MS_ABI impl__CollapseSubmenus_CMFCPopupMenu__IEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__SaveState_CMFCPopupMenu__UEAAXXZ(void* pThis);
 //   featurepack/visualmanager/Thunks.cpp (dispatches on the C++ manager object)
 extern "C" void MS_ABI impl__OnDrawMenuArrowOnCustomizeList_CMFCVisualManager__UEAAXPEAVCDC__VCRect__H_Z(
@@ -270,6 +264,7 @@ CMFCToolBarMenuButton::CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src)
     CopyMenuButtonState(this, &src);
 }
 CMFCToolBarMenuButton::~CMFCToolBarMenuButton() {
+    if (auto* popup = GetOpenPopup()) popup->CloseMenu();
     g_menuButtonStates.erase(this);
 }
 void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton) {
@@ -283,12 +278,14 @@ void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDown
     state.userButton = bUserButton != FALSE;
 }
 void CMFCToolBarMenuButton::CreateFromMenu(HMENU hMenu) {
+    if (auto* popup = GetOpenPopup()) popup->CloseMenu();
     m_hMenu = hMenu;
 }
 HMENU CMFCToolBarMenuButton::CreateMenu() const {
     return m_hMenu ? m_hMenu : ::CreatePopupMenu();
 }
 void CMFCToolBarMenuButton::CopyFrom(const CMFCToolBarButton& src) {
+    if (auto* popup = GetOpenPopup()) popup->CloseMenu();
     impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &src);
     if (src.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
         const CMFCToolBarMenuButton& menuSrc = static_cast<const CMFCToolBarMenuButton&>(src);
@@ -567,21 +564,11 @@ extern "C" void MS_ABI impl__GetTextHorzOffsets_CMFCToolBarMenuButton__KAXAEAH0_
     if (pxOffsetRight != nullptr) *pxOffsetRight = sizeMenuImages.cx;
 }
 
-// Retail RVA 0x175d80 (mfc140u), fully transcribed:
-//     if (m_pPopupMenu != NULL) {                                 // +0xc0
-//         m_pPopupMenu->CollapseSubmenus();                       // non-virtual call
-//         ::SendMessage(m_pPopupMenu->m_hWnd, WM_CLOSE, 0, 0);    // +0x40; import slot = USER32!SendMessage
-//     }
-//     return TRUE;
 // Symbol: ?OnBeforeDrag@CMFCToolBarMenuButton@@UEBAHXZ
-extern "C" int MS_ABI impl__OnBeforeDrag_CMFCToolBarMenuButton__UEBAHXZ(const CMFCToolBarMenuButton* pThis)
+extern "C" int MS_ABI impl__OnBeforeDrag_CMFCToolBarMenuButton__UEBAHXZ(const CMFCToolBarMenuButton* button)
 {
-    if (pThis == nullptr) return TRUE;
-    void* pPopup = MbGet<void*>(pThis, kMbPopupMenu);
-    if (pPopup != nullptr) {
-        impl__CollapseSubmenus_CMFCPopupMenu__IEAAXXZ(pPopup);
-        pPopup = MbGet<void*>(pThis, kMbPopupMenu);   // retail reloads m_pPopupMenu after the call
-        ::SendMessage(MbGet<HWND>(pPopup, kWndHWnd), WM_CLOSE, 0, 0);
+    if (button) {
+        if (auto* popup = button->GetOpenPopup()) ::SendMessageW(popup->GetSafeHwnd(), WM_CLOSE, 0, 0);
     }
     return TRUE;
 }
@@ -614,58 +601,24 @@ extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarMenuButton__UEAA_AUtagS
     return result;
 }
 
-// Retail RVA 0x175820 (mfc140u):
-//     if (m_pPopupMenu != NULL && ::IsWindow(m_pPopupMenu->m_hWnd)) {
-//         if (m_pPopupMenu->InCommand()) return;                          // popup vslot +0x3a8 (a)
-//         CMFCPopupMenuBar* pBar = m_pPopupMenu->GetMenuBar();            // popup vslot +0x3a0 (a)
-//         for (int i = 0; i < pBar->m_Buttons.GetCount() /*+0x11a0*/; i++)
-//             if (CMFCToolBarButton* p = pBar->GetButton(i)) p->OnCancelMode();   // button vslot +0xc0
-//         m_pPopupMenu->SaveState();                                      // popup vslot +0x3d0
-//         m_pPopupMenu->m_bAutoDestroyParent = FALSE;                     // popup +0x1f0 (first CMFCPopupMenu member)
-//         m_pPopupMenu->CloseMenu(FALSE);
-//     }
-//     m_pPopupMenu = NULL;                                                // +0xc0
-//     if (m_pWndParent != NULL && ::IsWindow(m_pWndParent->m_hWnd)) {     // +0x80
-//         CRect rect = m_rect;                                            // +0x68
-//         int d = CMFCVisualManager::GetInstance()->m_nMenuShadowDepth;   // manager +0xcc
-//         ::InflateRect(rect, d, d);
-//         ::InvalidateRect(m_pWndParent->m_hWnd, rect, TRUE);
-//         ::UpdateWindow(m_pWndParent->m_hWnd);
-//     }
-//     m_bToBeClosed = FALSE;                                              // +0xdc
-// (Import slots resolve to USER32!IsWindow / InflateRect / InvalidateRect / UpdateWindow.
-// (a) In the retail CMFCPopupMenu vftable (mfc140u 0x1802f85b0) slot +0x3a0 is
-// `lea 0x230(%rcx),%rax; ret` (&m_wndMenuBar) and slot +0x3a8 calls it and returns
-// bar->+0x1384 or FALSE -- the inline GetMenuBar()/InCommand() of afxpopupmenu.h.)
-// DEVIATIONS: (1) the live-popup branch is not transcribed -- InCommand() and
-// GetMenuBar() are non-exported CMFCPopupMenu virtuals and OpenMFC's popup menus
-// carry no MSVC vtable -- so when a live popup is attached this body returns with
-// nothing changed, which is exactly retail's InCommand() == TRUE outcome.  OpenMFC's
-// own OpenPopupMenu is a stub, so m_pPopupMenu is only ever set by retail-layout
-// callers.  (2) The shadow depth is read from ?m_pVisManager@ at the retail offset
-// (0 when no manager exists; retail would create one).  OpenMFC's CMFCVisualManager
-// keeps its members in a padding block that its constructor zero-fills and that
-// nothing in OpenMFC stores m_nMenuShadowDepth into, so for OpenMFC managers the
-// invalidated rectangle is m_rect un-inflated (retail inflates by the depth).
+CMFCPopupMenu* CMFCToolBarMenuButton::GetOpenPopup() const {
+    auto* popup = MbGet<CMFCPopupMenu*>(this, kMbPopupMenu);
+    return popup && ::IsWindow(popup->GetSafeHwnd()) ? popup : nullptr;
+}
+
+void CMFCToolBarMenuButton::OnPopupClosed(const CMFCPopupMenu* popup, HWND parent) {
+    if (MbGet<CMFCPopupMenu*>(this, kMbPopupMenu) != popup) return;
+    MbAt<CMFCPopupMenu*>(this, kMbPopupMenu) = nullptr;
+    MbAt<BOOL>(this, kMbToBeClosed) = FALSE;
+    if (parent) ::InvalidateRect(parent, m_rect, FALSE);
+}
+
 // Symbol: ?OnCancelMode@CMFCToolBarMenuButton@@UEAAXXZ
-extern "C" void MS_ABI impl__OnCancelMode_CMFCToolBarMenuButton__UEAAXXZ(CMFCToolBarMenuButton* pThis)
+extern "C" void MS_ABI impl__OnCancelMode_CMFCToolBarMenuButton__UEAAXXZ(CMFCToolBarMenuButton* button)
 {
-    if (pThis == nullptr) return;
-    void* pPopup = MbGet<void*>(pThis, kMbPopupMenu);
-    if (pPopup != nullptr && ::IsWindow(MbGet<HWND>(pPopup, kWndHWnd))) {
-        return;   // DEVIATION (1) above
+    if (button) {
+        if (auto* popup = button->GetOpenPopup()) popup->CloseMenu();
     }
-    MbAt<void*>(pThis, kMbPopupMenu) = nullptr;
-    CWnd* pParent = pThis->m_pWndParent;
-    if (pParent != nullptr && ::IsWindow(pParent->m_hWnd)) {
-        CRect rect = pThis->m_rect;
-        const void* pVM = impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA;
-        const int nShadow = pVM != nullptr ? MbGet<int>(pVM, kVmMenuShadowDepth) : 0;
-        ::InflateRect(rect, nShadow, nShadow);
-        ::InvalidateRect(pParent->m_hWnd, rect, TRUE);
-        ::UpdateWindow(pParent->m_hWnd);
-    }
-    MbAt<BOOL>(pThis, kMbToBeClosed) = FALSE;
 }
 
 // Retail RVA 0x173c30 (mfc140u), fully transcribed:
@@ -715,19 +668,25 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarMenuButton__UEAAXPEAVC
     }
 }
 
-// Retail RVA 0x173990 (mfc140u): hit-tests m_rectArrow (+0x108) and m_rectButton
-// (+0x118) with GetCursorPos + ScreenToClient + PtInRect, dispatches HasButton()
-// and OpenPopupMenu() through `this`'s vtable (+0x1f0 / +0x1a8), destroys an
-// existing popup through its vtable (+0xd0, DestroyWindow), and drives the owning
-// bar (CMFCPopupMenuBar::StartPopupMenuTimer, CMFCToolBar::SetHot /
-// GetDroppedDownMenu).  Not transcribed: it depends on popup-menu creation
-// (OpenPopupMenu, itself a stub here) and on MSVC-vtable dispatch that
-// OpenMFC-constructed buttons and popups do not support.
+BOOL CMFCToolBarMenuButton::ClickMenu(CWnd* parent, const POINT* clientPoint) {
+    if (!parent || !m_bVisible || m_bIsHidden || (m_nStyle & (TBSTYLE_SEP | kMenuDisabled))) return FALSE;
+    const CRect& command = MbGet<CRect>(this, kMbButtonRect);
+    if (clientPoint && MbHasButton(this) && command.PtInRect(*clientPoint)) return FALSE;
+    if (auto* popup = GetOpenPopup()) {
+        popup->CloseMenu(TRUE);
+        return TRUE;
+    }
+    return OpenPopupMenu(parent);
+}
+
 // Symbol: ?OnClick@CMFCToolBarMenuButton@@UEAAHPEAVCWnd@@H@Z
-extern "C" int MS_ABI impl__OnClick_CMFCToolBarMenuButton__UEAAHPEAVCWnd__H_Z(CMFCToolBarMenuButton* pThis, CWnd* pWnd, int bDelay)
+extern "C" int MS_ABI impl__OnClick_CMFCToolBarMenuButton__UEAAHPEAVCWnd__H_Z(
+    CMFCToolBarMenuButton* button, CWnd* parent, int delay)
 {
-    (void)pThis; (void)pWnd; (void)bDelay;
-    return FALSE;
+    if (!button || !parent) return FALSE;
+    POINT point{};
+    const bool mouseClick = !delay && ::GetCursorPos(&point) && ::ScreenToClient(parent->GetSafeHwnd(), &point);
+    return button->ClickMenu(parent, mouseClick ? &point : nullptr);
 }
 
 void CMFCToolBarMenuButton::OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images,
@@ -742,6 +701,7 @@ void CMFCToolBarMenuButton::OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImag
         return;
     }
 
+    hot = hot || GetOpenPopup();
     button = bounds;
     if (MbHasSubmenu(*this)) {
         arrow = bounds;
@@ -795,17 +755,27 @@ extern "C" int MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarMenuButton__UEAAHPE
     return bounds->Width();
 }
 
-// Retail RVA 0x1759d0 (mfc140u; slot 53 of the retail vftable): builds the menu
-// through CreateMenu() (vslot +0x1b8) and the popup through CreatePopupMenu()
-// (vslot +0x1c0, result stored in m_pPopupMenu at +0xc0), destroying the HMENU
-// with ::DestroyMenu, and positions it from the parent's window rect.  Not transcribed: OpenMFC's CMFCPopupMenu is not constructible
-// at its retail size (afxmfc.h declares a 64-byte padding block against retail's
-// 0x19c8), and the creation path runs through non-exported popup virtuals.
+BOOL CMFCToolBarMenuButton::OpenPopupMenu(CWnd* parent) {
+    const HWND window = parent ? parent->GetSafeHwnd() : nullptr;
+    if (!::IsWindow(window) || !m_hMenu || ::GetMenuItemCount(m_hMenu) <= 0) return FALSE;
+    if (GetOpenPopup()) return TRUE;
+    CRect anchor = m_rect;
+    if (anchor.IsRectEmpty()) ::GetClientRect(window, anchor);
+    ::MapWindowPoints(window, nullptr, reinterpret_cast<POINT*>(&anchor), 2);
+
+    auto popup = std::make_unique<CMFCPopupMenu>();
+    const bool horizontal = !(::GetWindowLongPtrW(window, GWL_STYLE) & CCS_VERT);
+    if (!popup->CreateForButton(parent, anchor, m_hMenu, this, horizontal)) return FALSE;
+    MbAt<CMFCPopupMenu*>(this, kMbPopupMenu) = popup.release();
+    ::InvalidateRect(window, m_rect, FALSE);
+    return TRUE;
+}
+
 // Symbol: ?OpenPopupMenu@CMFCToolBarMenuButton@@UEAAHPEAVCWnd@@@Z
-extern "C" int MS_ABI impl__OpenPopupMenu_CMFCToolBarMenuButton__UEAAHPEAVCWnd___Z(CMFCToolBarMenuButton* pThis, CWnd* pWnd)
+extern "C" int MS_ABI impl__OpenPopupMenu_CMFCToolBarMenuButton__UEAAHPEAVCWnd___Z(
+    CMFCToolBarMenuButton* button, CWnd* parent)
 {
-    (void)pThis; (void)pWnd;
-    return FALSE;
+    return button ? button->OpenPopupMenu(parent) : FALSE;
 }
 
 // Retail RVA 0x176000 (mfc140u; slot 38 of the retail vftable), fully transcribed:

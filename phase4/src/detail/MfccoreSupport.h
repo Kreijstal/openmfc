@@ -238,6 +238,15 @@ struct PopupMenuState {
     bool vertResize = false;
     CSize minResize = CSize(0, 0);
     int selected = -1;
+    HWND parentWindow = nullptr;
+    HWND commandWindow = nullptr;
+    HWND previousFocus = nullptr;
+    CMFCToolBarMenuButton* parentButton = nullptr;
+    CMFCPopupMenu* parentPopup = nullptr;
+    CMFCPopupMenu* childPopup = nullptr;
+    std::vector<CRect> rows;
+    bool closing = false;
+    bool deleteOnClose = false;
     std::vector<CMFCToolBarMenuButton*> items;
     std::unordered_set<CMFCToolBarMenuButton*> ownedItems;
 };
@@ -477,6 +486,7 @@ extern COLORREF g_visualBorderColor;
 } } }
 
 namespace openmfc { namespace detail { namespace mfccore {
+bool HasManagedPopupWindow(const CMFCPopupMenu* popup);
 void ClearPopupMenuState(const CMFCPopupMenu* pMenu);
 } } }
 

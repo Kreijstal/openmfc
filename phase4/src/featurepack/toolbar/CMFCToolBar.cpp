@@ -3518,12 +3518,37 @@ void PaintToolbarClient(CMFCToolBar& toolbar, HDC hdc, const RECT& update) {
     if (previous) ::SelectObject(hdc, previous);
 }
 
+CMFCToolBarMenuButton* AsMenuButton(CMFCToolBarButton* button) {
+    return button && button->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))
+        ? static_cast<CMFCToolBarMenuButton*>(button) : nullptr;
+}
+
+void CloseToolbarMenus(CMFCToolBar& toolbar) {
+    for (int i = 0; i < toolbar.GetCount(); ++i) {
+        if (auto* menu = AsMenuButton(toolbar.GetButton(i))) {
+            if (auto* popup = menu->GetOpenPopup()) popup->CloseMenu();
+        }
+    }
+}
+
 LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp,
                                            UINT_PTR id, DWORD_PTR data) {
     auto* toolbar = reinterpret_cast<CMFCToolBar*>(data);
-    if (message == WM_NCDESTROY || g_toolBarStates.find(toolbar) == g_toolBarStates.end() ||
-        toolbar->GetSafeHwnd() != window) {
+    if (g_toolBarStates.find(toolbar) == g_toolBarStates.end() || toolbar->GetSafeHwnd() != window) {
         ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
+    } else if (message == WM_NCDESTROY) {
+        CloseToolbarMenus(*toolbar);
+        ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
+    } else if (message == WM_LBUTTONDOWN) {
+        const POINT point{static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp))};
+        for (int i = 0; i < toolbar->GetCount(); ++i) {
+            auto* button = toolbar->GetButton(i);
+            if (!button || !button->m_rect.PtInRect(point)) continue;
+            if (auto* menu = AsMenuButton(button); menu && menu->ClickMenu(toolbar, &point)) return 0;
+            break;
+        }
+    } else if (message == WM_CANCELMODE) {
+        CloseToolbarMenus(*toolbar);
     } else if ((message == WM_PAINT || message == WM_PRINTCLIENT) && HasToolbarPaintContent(*toolbar)) {
         if (message == WM_PRINTCLIENT) {
             RECT client{};
@@ -3571,6 +3596,7 @@ CMFCToolBar::CMFCToolBar() {
     m_bShowHotBorder = TRUE;
 }
 CMFCToolBar::~CMFCToolBar() {
+    if (m_hWnd) CloseToolbarMenus(*this);
     if (m_hWnd) ::RemoveWindowSubclass(m_hWnd, FeatureToolbarPaintSubclass, reinterpret_cast<UINT_PTR>(this));
     // Retail (~CMFCToolBar, RVA 0x14d6b0 mfc140u) ends with
     // m_AccelKeys.RemoveAll() at 0x14d759; release the map's blocks the same
@@ -4644,28 +4670,21 @@ extern "C" void MS_ABI impl__DrawSeparator_CMFCToolBar__MEAAXPEAVCDC__AEBVCRect_
         pVM, pDC, pThis, rect, bHorz);
 }
 
-// Retail (mfc140.dll RVA 0x156470), fully decoded but NOT implemented:
-//     if (pButton == NULL) return FALSE;
-//     if (!pButton->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) return FALSE;
-//     if (!pButton->OnClick(this, TRUE)) return FALSE;      // button vtable +0x50
-//     if (pButton->IsDroppedDown())                         // button vtable +0xf0
-//         ::SendMessage(pButton->m_pPopupMenu->m_hWnd, WM_KEYDOWN, VK_HOME, 0);
-//     SetHot(pButton);                                      // 0x1563e0
-//     return TRUE;
-// (The runtime-class descriptor the IsKindOf test uses is at 0x3aa748; its
-// name string reads back as "CMFCToolBarMenuButton" and its object size as
-// 296.  Slot +0xf0 of that class' vtable, 0x180316338, is the two-instruction
-// body at 0x2a580 -- `return this->[0xc0] != NULL`, i.e. m_pPopupMenu.  The
-// SendMessage import slot 0x2c5378 resolves to USER32!SendMessageA in this
-// ANSI twin, i.e. SendMessageW in mfc140u.)
-// Left a stub: CMFCToolBarMenuButton::m_pPopupMenu (+0xC0) is inside the
-// anonymous padding of the OpenMFC class, so the dropped-down test cannot be
-// evaluated, and CMFCToolBarButton::OnClick has no dispatchable virtual here.
 // Symbol: ?DropDownMenu@CMFCToolBar@@IEAAHPEAVCMFCToolBarButton@@@Z
 extern "C" int MS_ABI impl__DropDownMenu_CMFCToolBar__IEAAHPEAVCMFCToolBarButton___Z(
-    CMFCToolBar* pThis, CMFCToolBarButton* pButton) {
-    (void)pThis; (void)pButton;
-    return 0;
+    CMFCToolBar* toolbar, CMFCToolBarButton* button) {
+    auto* menu = AsMenuButton(button);
+    if (!toolbar || !menu || !menu->ClickMenu(toolbar, nullptr)) return FALSE;
+    if (auto* popup = menu->GetOpenPopup()) {
+        ::SendMessageW(popup->GetSafeHwnd(), WM_KEYDOWN, VK_HOME, 0);
+    }
+    for (int i = 0; i < toolbar->GetCount(); ++i) {
+        if (toolbar->GetButton(i) == menu) {
+            if (toolbar->m_iHot != i) impl__OnChangeHot_CMFCToolBar__UEAAXH_Z(toolbar, i);
+            break;
+        }
+    }
+    return TRUE;
 }
 
 // Retail (mfc140.dll RVA 0x155bb0) greys the entries of the customize context
@@ -4939,30 +4958,18 @@ extern "C" int MS_ABI impl__GetCommandButtons_CMFCToolBar__SAHIAEAVCObList___Z(
     return nCount;
 }
 
-// Retail (mfc140.dll RVA 0x156590), fully decoded but NOT implemented:
-//     if (m_Buttons.m_nCount == 0) return NULL;   // note: *pIndex NOT written
-//     int i = 0;
-//     for (node = m_Buttons.m_pNodeHead; node; node = node->pNext, ++i) {
-//         CMFCToolBarButton* p = node->data;
-//         if (p != NULL &&
-//             p->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton)) &&  // RTC 0x3aa748
-//             p->IsDroppedDown()) {                                 // vtable +0xf0
-//             if (pIndex) *pIndex = i;
-//             return p;
-//         }
-//     }
-//     if (pIndex) *pIndex = -1;
-//     return NULL;
-// Left a stub for the same reason as DropDownMenu above: the dropped-down test
-// is `m_pPopupMenu != NULL` at button offset 0xC0, and OpenMFC keeps no popup
-// pointer there -- reading it would read uninitialised padding and could hand
-// the caller an arbitrary button.
 // Symbol: ?GetDroppedDownMenu@CMFCToolBar@@QEBAPEAVCMFCToolBarMenuButton@@PEAH@Z
 extern "C" CMFCToolBarMenuButton* MS_ABI impl__GetDroppedDownMenu_CMFCToolBar__QEBAPEAVCMFCToolBarMenuButton__PEAH_Z(
-    const CMFCToolBar* pThis, int* pIndex) {
-    (void)pThis; (void)pIndex;
-    // TODO(clean-room): not transcribed -- see above.  *pIndex is deliberately
-    // left alone, as on retail's empty-toolbar path.
+    const CMFCToolBar* toolbar, int* index) {
+    const int count = toolbar ? toolbar->GetCount() : 0;
+    for (int i = 0; i < count; ++i) {
+        auto* menu = AsMenuButton(toolbar->GetButton(i));
+        if (menu && menu->GetOpenPopup()) {
+            if (index) *index = i;
+            return menu;
+        }
+    }
+    if (count > 0 && index) *index = -1;
     return nullptr;
 }
 

@@ -1299,6 +1299,7 @@ public:
     static void SetForceMenuFocus(BOOL bForceFocus = TRUE);
     static BOOL ActivatePopupMenu(CFrameWnd* pTopFrame, CMFCPopupMenu* pPopupMenu);
     BOOL Create(CWnd* pParentWnd, int x, int y, HMENU hMenu, BOOL bLocked = FALSE, BOOL bIsMainMenu = FALSE);
+    BOOL CreateForButton(CWnd* parent, const CRect& anchor, HMENU menu, CMFCToolBarMenuButton* button, BOOL horizontal);
     void CloseMenu(BOOL bSetFocusToBar = FALSE);
     int GetMenuItemCount() const;
     CMFCToolBarMenuButton* GetMenuItem(int nIndex) const;
@@ -2097,6 +2098,10 @@ public:
                 BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled);
     void DrawMenuItem(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL customize,
                       BOOL hot, BOOL grayDisabled, BOOL contentOnly);
+    BOOL ClickMenu(CWnd* parent, const POINT* clientPoint);
+    BOOL OpenPopupMenu(CWnd* parent);
+    CMFCPopupMenu* GetOpenPopup() const;
+    void OnPopupClosed(const CMFCPopupMenu* popup, HWND parent);
     void Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton);
     virtual void CreateFromMenu(HMENU hMenu);
     virtual HMENU CreateMenu() const;

@@ -30,6 +30,7 @@
   #define MS_ABI
 #endif
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -308,6 +309,10 @@ extern "C" int MS_ABI impl__AdjustScroll_CMFCPopupMenu__IEAAHH_Z(
     (void)pThis; (void)bForceMenuBarResize;
     return FALSE;
 }
+bool openmfc::detail::mfccore::HasManagedPopupWindow(const CMFCPopupMenu* popup) {
+    return popup && g_popupMenuStates.find(popup) != g_popupMenuStates.end() && ::IsWindow(popup->GetSafeHwnd());
+}
+
 // Retail (RVA 0xb9b80, mfc140u): computes the client rect in screen coordinates and
 // classifies the point as MENUAREA_OUTSIDE / logo / menu areas using
 // m_bShowLogo@0x1680, m_nLogoLocation@0x1688 and PtInRect tests.  The logo
@@ -316,11 +321,11 @@ extern "C" int MS_ABI impl__AdjustScroll_CMFCPopupMenu__IEAAHH_Z(
 extern "C" int MS_ABI impl__CheckArea_CMFCPopupMenu__QEBA_AW4MENUAREA_TYPE_1_AEBVCPoint___Z(
     const void* pThis, const CPoint& ptScreen)
 {
-    (void)ptScreen;
-    if (!pThis) return 0;
-    // TODO(clean-room): transcribed partially -- client-rect classification and
-    // the logo-area geometry are not modeled.
-    return 0;
+    const auto* popup = static_cast<const CMFCPopupMenu*>(pThis);
+    if (!HasManagedPopupWindow(popup)) return 0;
+    RECT frame{};
+    ::GetWindowRect(popup->GetSafeHwnd(), &frame);
+    return ::PtInRect(&frame, ptScreen) ? 0 : 4; // MENU or OUTSIDE.
 }
 // Retail (RVA 0xb80f0, mfc140u): walks the menu bar's button list and closes every
 // delayed sub-menu through the per-button vslot-0xc0.  The list/vslot are not
@@ -329,8 +334,8 @@ extern "C" int MS_ABI impl__CheckArea_CMFCPopupMenu__QEBA_AW4MENUAREA_TYPE_1_AEB
 extern "C" void MS_ABI impl__CollapseSubmenus_CMFCPopupMenu__IEAAXXZ(void* pThis)
 {
     if (!pThis) return;
-    // TODO(clean-room): transcribed partially -- button-list walk and the
-    // vslot-0xc0 close are not modeled.
+    const auto it = g_popupMenuStates.find(static_cast<const CMFCPopupMenu*>(pThis));
+    if (it != g_popupMenuStates.end() && it->second.childPopup) it->second.childPopup->CloseMenu();
 }
 // Retail (RVA 0xba230): news a CMFCToolBar, creates it as a 0x50402808-style
 // child and turns it into a tear-off bar.  The toolbar creation chain is not
@@ -474,6 +479,8 @@ extern "C" void* MS_ABI impl__GetParentPopupMenu_CMFCPopupMenu__QEBAPEAV1_XZ(
     const void* pThis)
 {
     if (!pThis) return nullptr;
+    const auto state = g_popupMenuStates.find(static_cast<const CMFCPopupMenu*>(pThis));
+    if (state != g_popupMenuStates.end()) return state->second.parentPopup;
     CWnd* pWnd = nullptr;
     const CMFCToolBarButton* pBtn = At<const CMFCToolBarButton*>(pThis, kOffParentBtn);
     if (pBtn) {
@@ -748,39 +755,373 @@ extern "C" void MS_ABI impl__EnableVertResize_CMFCPopupMenu__QEAAXH_Z(CMFCPopupM
 extern "C" int MS_ABI impl__HideRarelyUsedCommands_CMFCPopupMenu__QEBAHXZ(const CMFCPopupMenu* pThis) {
     return pThis ? pThis->HideRarelyUsedCommands() : FALSE;
 }
+namespace {
+constexpr wchar_t kPopupWindowClass[] = L"OpenMFC.FeaturePopupMenu";
+constexpr UINT_PTR kOpenSubmenuTimer = 1;
+constexpr UINT kDisabledMenuItem = UINT(TBSTATE_ENABLED) << 16;
+
+CMFCPopupMenu* RootPopup(CMFCPopupMenu* popup) {
+    while (popup) {
+        const auto it = g_popupMenuStates.find(popup);
+        if (it == g_popupMenuStates.end()) return nullptr;
+        if (!it->second.parentPopup) return popup;
+        popup = it->second.parentPopup;
+    }
+    return nullptr;
+}
+
+void SetActivePopup(CMFCPopupMenu* popup) {
+    if (impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA == g_pActivePopupMenu || popup) {
+        impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA = popup;
+    }
+    g_pActivePopupMenu = popup;
+}
+
+bool CanSelectMenuRow(const CMFCToolBarMenuButton* item) {
+    return item && item->m_bVisible && !item->m_bIsHidden &&
+        !(item->m_nStyle & (TBSTYLE_SEP | kDisabledMenuItem));
+}
+
+SIZE LayoutPopupRows(PopupMenuState& state) {
+    const HDC hdc = ::GetDC(nullptr);
+    const HGDIOBJ font = hdc ? ::SelectObject(hdc, ::GetStockObject(DEFAULT_GUI_FONT)) : nullptr;
+    const int rowHeight = (std::max)(20, ::GetSystemMetrics(SM_CYMENU));
+    int width = 64;
+    int y = 0;
+    state.rows.clear();
+    for (auto* item : state.items) {
+        const bool separator = (item->m_nStyle & TBSTYLE_SEP) != 0;
+        const int height = separator ? (std::max)(5, rowHeight / 3) : rowHeight;
+        const wchar_t* label = item->m_strText;
+        RECT text{};
+        if (hdc && !separator) {
+            ::DrawTextW(hdc, label, item->m_strText.GetLength(), &text, DT_CALCRECT | DT_SINGLELINE | DT_EXPANDTABS);
+            width = (std::max)(width, static_cast<int>(text.right) + 2 * ::GetSystemMetrics(SM_CXMENUCHECK) + 24);
+        }
+        state.rows.emplace_back(0, y, 0, y + height);
+        y += height;
+    }
+    for (auto& row : state.rows) row.right = width;
+    if (font) ::SelectObject(hdc, font);
+    if (hdc) ::ReleaseDC(nullptr, hdc);
+    return {width, y};
+}
+
+void RelayoutPopup(CMFCPopupMenu* popup, PopupMenuState& state) {
+    const HWND window = popup->GetSafeHwnd();
+    if (!window) return;
+    const SIZE size = LayoutPopupRows(state);
+    RECT frame{0, 0, size.cx, size.cy};
+    ::AdjustWindowRectEx(&frame, static_cast<DWORD>(::GetWindowLongPtrW(window, GWL_STYLE)), FALSE,
+                        static_cast<DWORD>(::GetWindowLongPtrW(window, GWL_EXSTYLE)));
+    ::SetWindowPos(window, nullptr, 0, 0, frame.right - frame.left, frame.bottom - frame.top,
+                   SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    ::InvalidateRect(window, nullptr, FALSE);
+}
+
+void PaintPopup(const PopupMenuState& state, HDC hdc, const RECT& bounds) {
+    const int saved = ::SaveDC(hdc);
+    if (!saved) return;
+    ::FillRect(hdc, &bounds, ::GetSysColorBrush(COLOR_MENU));
+    ::SelectObject(hdc, ::GetStockObject(DEFAULT_GUI_FONT));
+    CDC dc;
+    dc.m_hDC = hdc;
+    for (int i = 0; i < static_cast<int>(state.rows.size()); ++i) {
+        state.items[i]->DrawMenuItem(&dc, state.rows[i], nullptr, FALSE, i == state.selected, TRUE, FALSE);
+    }
+    dc.m_hDC = nullptr;
+    ::RestoreDC(hdc, saved);
+}
+
+bool CreatePopupWindow(CMFCPopupMenu* popup, const RECT& anchor, bool toSide);
+
+void SelectPopupRow(CMFCPopupMenu* popup, int index) {
+    auto& state = g_popupMenuStates.at(popup);
+    if (index == state.selected) return;
+    ::KillTimer(popup->GetSafeHwnd(), kOpenSubmenuTimer);
+    if (state.childPopup) state.childPopup->CloseMenu();
+    state.selected = index;
+    if (popup->GetSafeHwnd()) ::InvalidateRect(popup->GetSafeHwnd(), nullptr, FALSE);
+}
+
+void StepPopupSelection(CMFCPopupMenu* popup, int start, int step) {
+    const int count = popup->GetMenuItemCount();
+    for (int i = 0; i < count; ++i) {
+        start = (start + step + count) % count;
+        if (CanSelectMenuRow(popup->GetMenuItem(start))) {
+            SelectPopupRow(popup, start);
+            return;
+        }
+    }
+}
+
+void ActivatePopupRow(CMFCPopupMenu* popup, bool submenuOnly, bool keyboard) {
+    auto& state = g_popupMenuStates.at(popup);
+    auto* item = popup->GetSelItem();
+    if (!CanSelectMenuRow(item)) return;
+    if (item->m_hMenu && ::GetMenuItemCount(item->m_hMenu) > 0) {
+        if (state.childPopup && state.childPopup->GetSafeHwnd()) return;
+        auto child = std::make_unique<CMFCPopupMenu>();
+        auto& childState = g_popupMenuStates[child.get()];
+        childState.parent = popup;
+        childState.parentPopup = popup;
+        childState.parentWindow = popup->GetSafeHwnd();
+        childState.commandWindow = state.commandWindow;
+        childState.menu = item->m_hMenu;
+        ImportMenuIntoPopupItems(childState.menu, childState.items, childState.ownedItems);
+        CRect anchor = state.rows[state.selected];
+        ::MapWindowPoints(popup->GetSafeHwnd(), nullptr, reinterpret_cast<POINT*>(&anchor), 2);
+        if (CreatePopupWindow(child.get(), *static_cast<const RECT*>(anchor), true)) {
+            childState.deleteOnClose = true;
+            state.childPopup = child.release();
+            if (keyboard) StepPopupSelection(state.childPopup, -1, 1);
+        }
+    } else if (!submenuOnly && item->m_nID && item->m_nID != UINT(-1)) {
+        const UINT command = item->m_nID;
+        const HWND owner = state.commandWindow;
+        RootPopup(popup)->CloseMenu(TRUE);
+        ::PostMessageW(owner, WM_COMMAND, MAKEWPARAM(command, 0), 0);
+    }
+}
+
+void PopupMouseInput(CMFCPopupMenu* root, HWND window, UINT message, LPARAM position) {
+    POINT screen{static_cast<short>(LOWORD(position)), static_cast<short>(HIWORD(position))};
+    ::ClientToScreen(window, &screen);
+    if (RootPopup(g_pActivePopupMenu) != root) return;
+    for (auto* popup = g_pActivePopupMenu; popup; popup = g_popupMenuStates.at(popup).parentPopup) {
+        const HWND target = popup->GetSafeHwnd();
+        RECT client{};
+        POINT point = screen;
+        if (!::GetClientRect(target, &client) || !::ScreenToClient(target, &point) || !::PtInRect(&client, point)) {
+            continue;
+        }
+        const auto& state = g_popupMenuStates.at(popup);
+        for (int i = 0; i < static_cast<int>(state.rows.size()); ++i) {
+            if (!state.rows[i].PtInRect(point)) continue;
+            auto* item = popup->GetMenuItem(i);
+            const bool selectable = CanSelectMenuRow(item);
+            const bool changed = state.selected != i;
+            SelectPopupRow(popup, selectable ? i : -1);
+            if (message == WM_LBUTTONUP) {
+                ActivatePopupRow(popup, false, false);
+            } else if (message == WM_MOUSEMOVE && changed && selectable && item->m_hMenu) {
+                UINT delay = 400;
+                ::SystemParametersInfoW(SPI_GETMENUSHOWDELAY, 0, &delay, 0);
+                ::SetTimer(target, kOpenSubmenuTimer, delay, nullptr);
+            }
+            return;
+        }
+        return;
+    }
+    if (message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN) root->CloseMenu(TRUE);
+}
+
+LRESULT CALLBACK PopupWindowProc(HWND window, UINT message, WPARAM wp, LPARAM lp) {
+    if (message == WM_NCCREATE) {
+        auto* create = reinterpret_cast<const CREATESTRUCTW*>(lp);
+        auto* popup = static_cast<CMFCPopupMenu*>(create->lpCreateParams);
+        popup->m_hWnd = window;
+        ::SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(popup));
+        return TRUE;
+    }
+    auto* popup = reinterpret_cast<CMFCPopupMenu*>(::GetWindowLongPtrW(window, GWLP_USERDATA));
+    if (!popup) return ::DefWindowProcW(window, message, wp, lp);
+    auto& state = g_popupMenuStates.at(popup);
+    switch (message) {
+    case WM_PAINT:
+    case WM_PRINTCLIENT: {
+        PAINTSTRUCT paint{};
+        const HDC hdc = message == WM_PAINT ? ::BeginPaint(window, &paint) : reinterpret_cast<HDC>(wp);
+        RECT bounds{};
+        if (hdc && ::GetClientRect(window, &bounds)) PaintPopup(state, hdc, bounds);
+        if (message == WM_PAINT) ::EndPaint(window, &paint);
+        return 0;
+    }
+    case WM_MOUSEACTIVATE:
+        return MA_NOACTIVATE;
+    case WM_MOUSEMOVE:
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+        if (!state.closing) PopupMouseInput(RootPopup(popup), window, message, lp);
+        return 0;
+    case WM_TIMER:
+        if (wp == kOpenSubmenuTimer) {
+            ::KillTimer(window, kOpenSubmenuTimer);
+            POINT cursor{};
+            if (::GetCursorPos(&cursor) && ::ScreenToClient(window, &cursor) &&
+                state.selected >= 0 && state.rows[state.selected].PtInRect(cursor)) {
+                ActivatePopupRow(popup, true, false);
+            }
+            return 0;
+        }
+        break;
+    case WM_KEYDOWN: {
+        auto* active = g_pActivePopupMenu;
+        if (!active || RootPopup(active) != RootPopup(popup)) break;
+        const auto& itemState = g_popupMenuStates.at(active);
+        const int count = active->GetMenuItemCount();
+        switch (wp) {
+        case VK_HOME: StepPopupSelection(active, -1, 1); return 0;
+        case VK_END: StepPopupSelection(active, 0, -1); return 0;
+        case VK_DOWN: StepPopupSelection(active, itemState.selected, 1); return 0;
+        case VK_UP: StepPopupSelection(active, itemState.selected < 0 ? 0 : itemState.selected, -1); return 0;
+        case VK_RETURN: ActivatePopupRow(active, false, true); return 0;
+        case VK_RIGHT: ActivatePopupRow(active, true, true); return 0;
+        case VK_LEFT:
+            if (itemState.parentPopup) active->CloseMenu();
+            return 0;
+        case VK_ESCAPE:
+            active->CloseMenu(TRUE);
+            return 0;
+        }
+        break;
+    }
+    case WM_CAPTURECHANGED:
+    case WM_KILLFOCUS:
+        if (state.closing || state.parentPopup) break;
+        popup->CloseMenu();
+        return 0;
+    case WM_CANCELMODE:
+    case WM_CLOSE:
+        popup->CloseMenu(TRUE);
+        return 0;
+    case WM_NCDESTROY: {
+        state.closing = true;
+        if (state.childPopup) state.childPopup->CloseMenu();
+        if (state.parentPopup) {
+            auto& parent = g_popupMenuStates.at(state.parentPopup);
+            if (parent.childPopup == popup) parent.childPopup = nullptr;
+        }
+        if (g_pActivePopupMenu == popup) SetActivePopup(state.parentPopup);
+        if (state.parentButton) state.parentButton->OnPopupClosed(popup, state.parentWindow);
+        const bool deleteOnClose = state.deleteOnClose;
+        ::SetWindowLongPtrW(window, GWLP_USERDATA, 0);
+        popup->m_hWnd = nullptr;
+        const LRESULT result = ::DefWindowProcW(window, message, wp, lp);
+        if (deleteOnClose) delete popup;
+        return result;
+    }
+    }
+    return ::DefWindowProcW(window, message, wp, lp);
+}
+
+bool CreatePopupWindow(CMFCPopupMenu* popup, const RECT& anchor, bool toSide) {
+    auto& state = g_popupMenuStates.at(popup);
+    if (state.items.empty()) return false;
+    const HINSTANCE instance = ::GetModuleHandleW(nullptr);
+    WNDCLASSW cls{};
+    cls.lpfnWndProc = PopupWindowProc;
+    cls.hInstance = instance;
+    cls.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
+    cls.lpszClassName = kPopupWindowClass;
+    if (!::RegisterClassW(&cls) && ::GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
+
+    const SIZE client = LayoutPopupRows(state);
+    const DWORD style = WS_POPUP | WS_BORDER;
+    RECT frame{0, 0, client.cx, client.cy};
+    constexpr DWORD exStyle = WS_EX_TOOLWINDOW;
+    ::AdjustWindowRectEx(&frame, style, FALSE, exStyle);
+    const int width = frame.right - frame.left;
+    const int height = frame.bottom - frame.top;
+    int x = toSide ? anchor.right : anchor.left;
+    int y = toSide ? anchor.top : anchor.bottom;
+    MONITORINFO monitor{sizeof(monitor)};
+    if (::GetMonitorInfoW(::MonitorFromRect(&anchor, MONITOR_DEFAULTTONEAREST), &monitor)) {
+        const RECT work = monitor.rcWork;
+        if (toSide && x + width > work.right) x = anchor.left - width;
+        if (!toSide && y + height > work.bottom) y = anchor.top - height;
+        x = (std::clamp)(x, static_cast<int>(work.left), (std::max)(int(work.left), int(work.right) - width));
+        y = (std::clamp)(y, static_cast<int>(work.top), (std::max)(int(work.top), int(work.bottom) - height));
+    }
+    const HWND owner = state.parentWindow ? ::GetAncestor(state.parentWindow, GA_ROOTOWNER) : nullptr;
+    const HWND window = ::CreateWindowExW(exStyle, kPopupWindowClass, L"", style, x, y, width, height,
+                                          owner, nullptr, instance, popup);
+    if (!window) return false;
+    SetActivePopup(popup);
+    ::ShowWindow(window, SW_SHOWNOACTIVATE);
+    if (!state.parentPopup) {
+        ::SetFocus(window);
+        if (::IsWindow(window)) ::SetCapture(window);
+    }
+    return ::IsWindow(window) != FALSE;
+}
+
+void SetPopupItems(PopupMenuState& state, CWnd* parent, HMENU menu, BOOL locked, BOOL mainMenu) {
+    state.parent = parent;
+    state.parentWindow = parent ? parent->GetSafeHwnd() : nullptr;
+    state.menu = menu;
+    state.locked = locked != FALSE;
+    state.mainMenu = mainMenu != FALSE;
+    state.selected = -1;
+    state.closing = false;
+    state.previousFocus = ::GetFocus();
+    ImportMenuIntoPopupItems(menu, state.items, state.ownedItems);
+}
+} // namespace
+
 CMFCPopupMenu::CMFCPopupMenu() {
     memset(_mfcpopupmenu_padding, 0, sizeof(_mfcpopupmenu_padding));
 }
 CMFCPopupMenu::~CMFCPopupMenu() {
-    if (g_pActivePopupMenu == this) {
-        g_pActivePopupMenu = nullptr;
-    }
+    const auto it = g_popupMenuStates.find(this);
+    if (it != g_popupMenuStates.end()) it->second.deleteOnClose = false;
+    CloseMenu();
     ClearPopupMenuState(this);
 }
 CMFCPopupMenu* CMFCPopupMenu::GetActiveMenu() { return g_pActivePopupMenu; }
 CMFCPopupMenu* CMFCPopupMenu::GetSafeActivePopupMenu() { return g_pActivePopupMenu; }
 void CMFCPopupMenu::SetForceMenuFocus(BOOL bForceFocus) { g_forceMenuFocus = bForceFocus; }
-BOOL CMFCPopupMenu::ActivatePopupMenu(CFrameWnd*, CMFCPopupMenu* pPopupMenu) {
-    g_pActivePopupMenu = pPopupMenu;
-    return pPopupMenu != nullptr;
+BOOL CMFCPopupMenu::ActivatePopupMenu(CFrameWnd*, CMFCPopupMenu* popup) {
+    SetActivePopup(popup);
+    return popup != nullptr;
 }
-BOOL CMFCPopupMenu::Create(CWnd* pParentWnd, int x, int y, HMENU hMenu, BOOL bLocked, BOOL bIsMainMenu) {
-    PopupMenuState& state = g_popupMenuStates[this];
-    state.parent = pParentWnd;
+BOOL CMFCPopupMenu::Create(CWnd* parent, int x, int y, HMENU menu, BOOL locked, BOOL mainMenu) {
+    CloseMenu();
+    if (auto* active = RootPopup(GetActiveMenu())) active->CloseMenu();
+    auto& state = g_popupMenuStates[this];
+    SetPopupItems(state, parent, menu, locked, mainMenu);
     state.x = x;
     state.y = y;
-    state.menu = hMenu;
-    state.locked = bLocked != FALSE;
-    state.mainMenu = bIsMainMenu != FALSE;
-    state.selected = -1;
-    ImportMenuIntoPopupItems(hMenu, state.items, state.ownedItems);
+    state.commandWindow = state.parentWindow;
+    if (state.commandWindow) {
+        return CreatePopupWindow(this, RECT{x, y, x, y}, false);
+    }
     g_pActivePopupMenu = this;
     return TRUE;
 }
-void CMFCPopupMenu::CloseMenu(BOOL) {
-    if (g_pActivePopupMenu == this) {
-        g_pActivePopupMenu = nullptr;
+BOOL CMFCPopupMenu::CreateForButton(CWnd* parent, const CRect& anchor, HMENU menu,
+                                    CMFCToolBarMenuButton* button, BOOL horizontal) {
+    if (auto* active = RootPopup(GetActiveMenu())) active->CloseMenu();
+    auto& state = g_popupMenuStates[this];
+    SetPopupItems(state, parent, menu, button->m_bLocked, FALSE);
+    const HWND window = parent->GetSafeHwnd();
+    state.commandWindow = parent->m_hWndOwner;
+    if (!state.commandWindow) state.commandWindow = ::GetParent(window);
+    if (!state.commandWindow) state.commandWindow = window;
+    state.x = anchor.left;
+    state.y = anchor.bottom;
+    if (!CreatePopupWindow(this, *static_cast<const RECT*>(anchor), !horizontal)) return FALSE;
+    state.parentButton = button;
+    state.deleteOnClose = true;
+    return TRUE;
+}
+void CMFCPopupMenu::CloseMenu(BOOL setFocusToBar) {
+    const auto it = g_popupMenuStates.find(this);
+    if (it == g_popupMenuStates.end() || it->second.closing) return;
+    auto& state = it->second;
+    state.closing = true;
+    if (state.childPopup) state.childPopup->CloseMenu();
+    const HWND window = GetSafeHwnd();
+    if (!window) {
+        if (g_pActivePopupMenu == this) SetActivePopup(state.parentPopup);
+        return;
     }
+    HWND focus = state.previousFocus;
+    if (!focus) focus = state.parentWindow;
+    if (::GetFocus() != window || !setFocusToBar) focus = nullptr;
+    ::DestroyWindow(window);
+    if (focus && ::IsWindow(focus)) ::SetFocus(focus);
 }
 int CMFCPopupMenu::GetMenuItemCount() const {
     auto it = g_popupMenuStates.find(this);
@@ -812,12 +1153,15 @@ BOOL CMFCPopupMenu::InsertItem(const CMFCToolBarMenuButton& button, int iInsertA
         state.items.push_back(copy);
     } else {
         state.items.insert(state.items.begin() + iInsertAt, copy);
+        if (state.selected >= iInsertAt) ++state.selected;
     }
     state.ownedItems.insert(copy);
+    RelayoutPopup(this, state);
     return TRUE;
 }
 BOOL CMFCPopupMenu::InsertSeparator(int iInsertAt) {
     CMFCToolBarMenuButton separator(0, nullptr, FALSE, nullptr, FALSE);
+    separator.m_nStyle |= TBSTYLE_SEP;
     return InsertItem(separator, iInsertAt);
 }
 void CMFCPopupMenu::EnableResize(CSize sizeMinResize) {
@@ -1552,7 +1896,7 @@ extern "C" void MS_ABI impl__PostNcDestroy_CMFCPopupMenu__MEAAXXZ(void* pThis)
 // Symbol: ?PreTranslateMessage@CMFCPopupMenu@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPopupMenu__UEAAHPEAUtagMSG___Z(void* pThis, MSG* pMsg)
 {
-    if (!pThis || !pMsg) return FALSE;
+    if (!pThis || !pMsg || HasManagedPopupWindow(static_cast<CMFCPopupMenu*>(pThis))) return FALSE;
     // TODO(clean-room): retail relays pMsg to m_wndToolTip (TTM_RELAYEVENT)
     // here; the embedded tooltip control is not modeled.
     if (pMsg->message == WM_MOUSEMOVE &&
@@ -1568,26 +1912,14 @@ extern "C" int MS_ABI impl__PreTranslateMessage_CMFCPopupMenu__UEAAHPEAUtagMSG__
     return impl__PreTranslateMessage_CFrameWnd__UEAAHPEAUtagMSG___Z(AsFrame(pThis), pMsg);
 }
 
-// Retail (RVA 0xb5b50..0xb6b60, mfc140u, 989 instructions): the layout engine.
-// Verified call/data set: the embedded bar (vslot 0x3a0) with its GetRowHeight
-// (vslot 0x6b8) and AdjustLocations (vslot 0x7d8) plus five vslot-0x2d8 calls
-// (CWnd::Create-family slot), GetParentArea (vslot 0x3b8), GetBorderSize
-// (vslot 0x428), GetParentPopupMenu (0xb7550, five times), IsKindOf (0x234cf0)
-// against RTC 0x1803b15f8 (CMFCToolBar), CMFCMenuBar::GetFloatPopupDirection
-// (0x8e1e0), CMFCRibbonBaseElement::IsMenuMode (0x10520), the inlined
-// CMFCVisualManager::GetInstance (0x9774) with a vslot-0x558 call on it,
-// CToolTipCtrl::AddTool (0x2750f0), CWnd::ClientToScreen/ScreenToClient(RECT*),
-// GetExStyle, SetWindowPos (0x2a9a60), CMFCToolBar::m_bCustomizeMode
-// (0x3be35c), afxGlobalData (0x3c1620, +0x2a0), and USER32 GetSystemMetrics
-// (six times), MonitorFromPoint/GetMonitorInfoW/SystemParametersInfoW,
-// IntersectRect/CopyRect/SetRectEmpty/IsRectEmpty, GetWindowRect,
-// InvalidateRect/RedrawWindow/UpdateWindow and SendMessageW.  Nothing of it
-// can run without the embedded bar, so this stays a documented stub.
-// TODO(clean-room): not transcribed -- embedded menu bar is not modeled.
+// The managed popup sizes its window from the same row rectangles it paints and hit-tests.
 // Symbol: ?RecalcLayout@CMFCPopupMenu@@UEAAXH@Z
 extern "C" void MS_ABI impl__RecalcLayout_CMFCPopupMenu__UEAAXH_Z(void* pThis, int bNotify)
 {
-    (void)pThis; (void)bNotify;
+    (void)bNotify;
+    auto* popup = static_cast<CMFCPopupMenu*>(pThis);
+    const auto it = g_popupMenuStates.find(popup);
+    if (it != g_popupMenuStates.end()) RelayoutPopup(popup, it->second);
 }
 
 // Retail (RVA 0xb78f0, mfc140u): `GetMenuBar()->RemoveAllButtons();` -- vslot
@@ -1606,7 +1938,8 @@ extern "C" void MS_ABI impl__RemoveAllItems_CMFCPopupMenu__QEAAXXZ(void* pThis)
         if (it->second.ownedItems.erase(item) != 0) delete item;
     }
     it->second.items.clear();
-    it->second.selected = -1;
+    SelectPopupRow(static_cast<CMFCPopupMenu*>(pThis), -1);
+    RelayoutPopup(static_cast<CMFCPopupMenu*>(pThis), it->second);
 }
 
 // Retail (RVA 0xb78b0, mfc140u): `return GetMenuBar()->RemoveButton(iIndex);`
@@ -1624,8 +1957,9 @@ extern "C" int MS_ABI impl__RemoveItem_CMFCPopupMenu__QEAAHH_Z(void* pThis, int 
     CMFCToolBarMenuButton* item = it->second.items[static_cast<size_t>(iIndex)];
     it->second.items.erase(it->second.items.begin() + iIndex);
     if (it->second.ownedItems.erase(item) != 0) delete item;
-    if (it->second.selected == iIndex) it->second.selected = -1;
+    if (it->second.selected == iIndex) SelectPopupRow(static_cast<CMFCPopupMenu*>(pThis), -1);
     else if (it->second.selected > iIndex) --it->second.selected;
+    RelayoutPopup(static_cast<CMFCPopupMenu*>(pThis), it->second);
     return TRUE;
 }
 
