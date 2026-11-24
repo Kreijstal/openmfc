@@ -680,6 +680,7 @@ public:
     virtual ~CMFCToolBarButton();
 
     static void SetClipboardFormatName(const wchar_t* lpszClipboardFormatName);
+    int OnDrawOnCustomizeList(CDC* dc, const CRect& bounds, BOOL selected);
     SIZE OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal);
     void OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL horizontal,
                 BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled);
@@ -2091,6 +2092,11 @@ public:
     CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src);
     virtual ~CMFCToolBarMenuButton();
 
+    SIZE OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal);
+    void OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL horizontal,
+                BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled);
+    void DrawMenuItem(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL customize,
+                      BOOL hot, BOOL grayDisabled, BOOL contentOnly);
     void Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton);
     virtual void CreateFromMenu(HMENU hMenu);
     virtual HMENU CreateMenu() const;

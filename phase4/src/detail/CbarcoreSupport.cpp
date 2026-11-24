@@ -341,8 +341,15 @@ void UnregisterEditButton(CMFCToolBarEditBoxButton* pButton) {
 extern "C" void MS_ABI impl__SetClipboardFormatName_CMFCToolBarButton__SAXPEB_W_Z(const wchar_t* p0) {
     CMFCToolBarButton::SetClipboardFormatName(p0);
 }
-extern "C" void* MS_ABI impl___0CMFCToolBarMenuButton__QEAA_IPEAUHMENU____HPEB_WH_Z(void* pThis, unsigned int p0, HMENU p1, int p2, const wchar_t* p3, int p4) {
-    return new(pThis) CMFCToolBarMenuButton(p0, p1, (BOOL)p2, p3, (BOOL)p4);
+extern "C" void MS_ABI impl__Initialize_CMFCToolBarMenuButton__IEAAXIPEAUHMENU____HPEB_WH_Z(
+    CMFCToolBarMenuButton*, UINT, HMENU, int, const wchar_t*, BOOL);
+extern "C" void* MS_ABI impl___0CMFCToolBarMenuButton__QEAA_IPEAUHMENU____HPEB_WH_Z(
+    void* storage, UINT id, HMENU menu, int image, const wchar_t* text, BOOL user)
+{
+    if (!storage) return nullptr;
+    auto* button = new(storage) CMFCToolBarMenuButton();
+    impl__Initialize_CMFCToolBarMenuButton__IEAAXIPEAUHMENU____HPEB_WH_Z(button, id, menu, image, text, user);
+    return button;
 }
     std::unordered_map<int, StatusBarProgressState> g_statusBarProgress;
     std::mutex g_statusBarProgressMutex;

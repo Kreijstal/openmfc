@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <cwchar>
 
 // ---------------------------------------------------------------------------
 // Retail layout used by the transcribed bodies below.
@@ -117,6 +118,7 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCVisualManagerWindows7__S
 //   featurepack/toolbar/CMFCToolBarButton.cpp -- the base-class bodies retail calls
 //   non-virtually.  (Several are still stubs there; the lists below are the retail
 //   ones, which is harmless across translation units for extern "C" symbols.)
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void*, const CMFCToolBarButton*);
 extern "C" void MS_ABI impl__ResetImageToDefault_CMFCToolBarButton__UEAAXXZ(void* pThis);
 extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(CMFCToolBarButton* pThis, CWnd* pWndParent);
 extern "C" int MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarButton__UEAAHPEAVCDC__AEBVCRect__H_Z(
@@ -222,7 +224,12 @@ inline int MbMenuImageMargin() {
 // Symbol: ??0CMFCToolBarMenuButton@@QEAA@IPEAUHMENU__@@HPEB_WH@Z
 // Symbol: ?Initialize@CMFCToolBarMenuButton@@IEAAXIPEAUHMENU__@@HPEB_WH@Z
 extern "C" void MS_ABI impl__Initialize_CMFCToolBarMenuButton__IEAAXIPEAUHMENU____HPEB_WH_Z(CMFCToolBarMenuButton* pThis, unsigned int p0, HMENU p1, int p2, const wchar_t* p3, int p4) {
-    pThis->Initialize(p0, p1, (BOOL)p2, p3, (BOOL)p4);
+    if (!pThis) return;
+    pThis->Initialize(p0, p1, FALSE, p3, p4);
+    pThis->m_iImage = p4 ? -1 : p2;
+    pThis->m_iUserImage = p4 ? p2 : -1;
+    pThis->m_bImage = p2 >= 0;
+    pThis->m_bText = p2 < 0 && !pThis->m_strText.IsEmpty();
 }
 // Symbol: ??0CMFCToolBarMenuButton@@QEAA@AEBV0@@Z
 extern "C" void* MS_ABI impl___0CMFCToolBarMenuButton__QEAA_AEBV0__Z(void* pThis, const CMFCToolBarMenuButton* pSrc) {
@@ -259,6 +266,7 @@ CMFCToolBarMenuButton::CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src)
     : CMFCToolBarButton(src.m_nID, src.m_iImage, static_cast<const wchar_t*>(src.m_strText), src.m_bUserButton, src.m_bLocked),
       m_hMenu(src.m_hMenu) {
     memset(_pad, 0, sizeof(_pad));
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &src);
     CopyMenuButtonState(this, &src);
 }
 CMFCToolBarMenuButton::~CMFCToolBarMenuButton() {
@@ -269,6 +277,7 @@ void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDown
     m_hMenu = hMenu;
     m_bUserButton = bUserButton;
     if (lpszText) m_strText = lpszText;
+    m_bText = !m_strText.IsEmpty();
     MenuButtonState& state = g_menuButtonStates[this];
     state.hasDropDownArrow = bHasDropDownArrow != FALSE;
     state.userButton = bUserButton != FALSE;
@@ -280,11 +289,7 @@ HMENU CMFCToolBarMenuButton::CreateMenu() const {
     return m_hMenu ? m_hMenu : ::CreatePopupMenu();
 }
 void CMFCToolBarMenuButton::CopyFrom(const CMFCToolBarButton& src) {
-    m_nID = src.m_nID;
-    m_iImage = src.m_iImage;
-    m_strText = src.m_strText;
-    m_bUserButton = src.m_bUserButton;
-    m_bLocked = src.m_bLocked;
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &src);
     if (src.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
         const CMFCToolBarMenuButton& menuSrc = static_cast<const CMFCToolBarMenuButton&>(src);
         m_hMenu = menuSrc.m_hMenu;
@@ -328,18 +333,205 @@ extern "C" void MS_ABI impl__DrawDocumentIcon_CMFCToolBarMenuButton__IEAAXPEAVCD
                  hIcon, cx, cy, 0, nullptr, DI_NORMAL);
 }
 
-// Retail RVA 0x174180 (mfc140u): the popup-menu item painter (check/radio marks,
-// image or document icon, text + accelerator, sub-menu arrow), almost entirely
-// visual-manager virtual calls (GetInstance()->..., non-exported slots) plus
-// CMFCToolBarImages / CMenuImages drawing.  Not transcribed: the visual manager
-// has no MSVC vtable in OpenMFC and the item text/accelerator state is not modelled.
+namespace {
+constexpr std::size_t kMbDefaultMenuItem = 0xd0;
+constexpr std::size_t kMbHorizontal = 0xd8;
+constexpr std::size_t kMbArrowRect = 0x108;
+constexpr std::size_t kMbButtonRect = 0x118;
+static_assert(kMbButtonRect + sizeof(CRect) == sizeof(CMFCToolBarMenuButton));
+constexpr UINT kMenuChecked = UINT(TBSTATE_CHECKED) << 16;
+constexpr UINT kMenuDisabled = UINT(TBSTATE_ENABLED) << 16;
+constexpr UINT kMenuPressed = UINT(TBSTATE_PRESSED) << 16;
+
+bool MbHasSubmenu(const CMFCToolBarMenuButton& button) {
+    const auto state = g_menuButtonStates.find(&button);
+    return MbGet<BOOL>(&button, kMbDrawDownArrow) ||
+        MbGet<INT_PTR>(&button, kMbListCount) > 0 ||
+        (state != g_menuButtonStates.end() && state->second.hasDropDownArrow) ||
+        (button.m_hMenu && ::GetMenuItemCount(button.m_hMenu) > 0);
+}
+
+int MenuArrowWidth() {
+    return (std::max)(10, ::GetSystemMetrics(SM_CXMENUCHECK));
+}
+
+bool MenuLayoutMirrored(const CMFCToolBarMenuButton& button, HDC dc) {
+    const DWORD layout = dc ? ::GetLayout(dc) : 0;
+    return (layout == GDI_ERROR || !(layout & LAYOUT_RTL)) &&
+        button.m_pWndParent && button.m_pWndParent->GetSafeHwnd() &&
+        (::GetWindowLongPtrW(button.m_pWndParent->GetSafeHwnd(), GWL_EXSTYLE) & WS_EX_LAYOUTRTL);
+}
+
+enum class MenuArrow { Down, Left, Right };
+
+void PaintMenuArrow(HDC dc, const CRect& bounds, MenuArrow direction, COLORREF color) {
+    if (!dc || bounds.IsRectEmpty()) return;
+    const CPoint center = bounds.CenterPoint();
+    const int x = center.x;
+    const int y = center.y;
+    const LONG extent = (std::min)(4, (std::min)(bounds.Width(), bounds.Height()) / 2);
+    if (extent <= 0) return;
+    POINT points[3]{};
+    if (direction == MenuArrow::Down) {
+        points[0] = {x - extent, y - extent / 2};
+        points[1] = {x + extent, y - extent / 2};
+        points[2] = {x, y + extent / 2 + 1};
+    } else {
+        const LONG sign = direction == MenuArrow::Left ? -1 : 1;
+        points[0] = {x - sign * extent / 2, y - extent};
+        points[1] = {x - sign * extent / 2, y + extent};
+        points[2] = {x + sign * (extent / 2 + 1), y};
+    }
+    const HBRUSH brush = ::CreateSolidBrush(color);
+    if (!brush) return;
+    const auto beforeBrush = ::SelectObject(dc, brush);
+    const auto beforePen = ::SelectObject(dc, ::GetStockObject(NULL_PEN));
+    ::Polygon(dc, points, 3);
+    if (beforePen) ::SelectObject(dc, beforePen);
+    if (beforeBrush) ::SelectObject(dc, beforeBrush);
+    ::DeleteObject(brush);
+}
+
+void PaintMenuCheck(HDC dc, CRect bounds, bool radio, COLORREF color) {
+    const CPoint center = bounds.CenterPoint();
+    if (radio) {
+        const HBRUSH brush = ::CreateSolidBrush(color);
+        if (!brush) return;
+        const auto beforeBrush = ::SelectObject(dc, brush);
+        const auto beforePen = ::SelectObject(dc, ::GetStockObject(NULL_PEN));
+        ::Ellipse(dc, center.x - 3, center.y - 3, center.x + 4, center.y + 4);
+        if (beforePen) ::SelectObject(dc, beforePen);
+        if (beforeBrush) ::SelectObject(dc, beforeBrush);
+        ::DeleteObject(brush);
+    } else {
+        const HPEN pen = ::CreatePen(PS_SOLID, 2, color);
+        if (!pen) return;
+        const auto before = ::SelectObject(dc, pen);
+        const POINT check[] = {{center.x - 4, center.y}, {center.x - 1, center.y + 3},
+                               {center.x + 5, center.y - 4}};
+        ::Polyline(dc, check, 3);
+        if (before) ::SelectObject(dc, before);
+        ::DeleteObject(pen);
+    }
+}
+
+CSize MenuCellSize(CMFCToolBarImages* images = nullptr) {
+    CSize size;
+    if (images) size = images->GetImageSize();
+    else impl__GetMenuImageSize_CMFCToolBar__SA_AVCSize__XZ(&size);
+    return CSize(size.cx > 0 ? size.cx : 16, size.cy > 0 ? size.cy : 15);
+}
+} // namespace
+
+void CMFCToolBarMenuButton::DrawMenuItem(CDC* dc, const CRect& bounds, CMFCToolBarImages* images,
+                                        BOOL customize, BOOL hot, BOOL grayDisabled, BOOL contentOnly) {
+    auto& arrow = MbAt<CRect>(this, kMbArrowRect);
+    auto& button = MbAt<CRect>(this, kMbButtonRect);
+    arrow.SetRectEmpty();
+    button.SetRectEmpty();
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || !m_bVisible || m_bIsHidden || bounds.IsRectEmpty()) return;
+    const int saved = ::SaveDC(hdc);
+    if (!saved) return;
+    ::IntersectClipRect(hdc, bounds.left, bounds.top, bounds.right, bounds.bottom);
+    if (m_nStyle & TBSTYLE_SEP) {
+        if (!contentOnly) {
+            const int y = bounds.CenterPoint().y;
+            const CRect line(bounds.left + MenuArrowWidth(), y, bounds.right - 3, y + 1);
+            if (!line.IsRectEmpty()) ::FillRect(hdc, line, ::GetSysColorBrush(COLOR_BTNSHADOW));
+        }
+        ::RestoreDC(hdc, saved);
+        return;
+    }
+
+    const bool disabled = !customize && (m_nStyle & kMenuDisabled);
+    const COLORREF ink = ::GetSysColor(disabled ? COLOR_GRAYTEXT : hot ? COLOR_HIGHLIGHTTEXT : COLOR_MENUTEXT);
+    if (!contentOnly && hot) ::FillRect(hdc, bounds, ::GetSysColorBrush(COLOR_HIGHLIGHT));
+    ::SetBkMode(hdc, TRANSPARENT);
+    ::SetTextColor(hdc, ink);
+    const bool rtl = MenuLayoutMirrored(*this, hdc);
+    button = bounds;
+    if (MbHasSubmenu(*this) || MbHasButton(this)) {
+        arrow = bounds;
+        if (rtl) {
+            arrow.right = (std::min)(bounds.right, bounds.left + MenuArrowWidth());
+            button.left = arrow.right;
+        } else {
+            arrow.left = (std::max)(bounds.left, bounds.right - MenuArrowWidth());
+            button.right = arrow.left;
+        }
+        PaintMenuArrow(hdc, arrow, rtl ? MenuArrow::Left : MenuArrow::Right, ink);
+    }
+
+    CRect text = button;
+    text.DeflateRect(4, 0);
+    const CSize cell = MenuCellSize(images);
+    CRect glyph = text;
+    if (rtl) {
+        glyph.left = (std::max)(glyph.left, glyph.right - cell.cx);
+        text.right = glyph.left - 5;
+    } else {
+        glyph.right = (std::min)(glyph.right, glyph.left + cell.cx);
+        text.left = glyph.right + 5;
+    }
+
+    const int index = GetImage();
+    if (!glyph.IsRectEmpty()) {
+        if (!customize && (m_nStyle & kMenuChecked)) {
+            PaintMenuCheck(hdc, glyph, MbGet<BOOL>(this, kMbIsRadio) != 0, ink);
+        } else if (images && index >= 0 && index < images->GetCount()) {
+            if (disabled && grayDisabled)
+                images->Draw(dc, glyph.left, glyph.top + (std::max)(0, (glyph.Height() - cell.cy) / 2),
+                             index, FALSE, TRUE);
+            else
+                images->DrawEx(dc, glyph, index, 1, 1);
+        }
+    }
+
+    HFONT bold = nullptr;
+    if (MbGet<BOOL>(this, kMbDefaultMenuItem)) {
+        LOGFONTW style{};
+        if (::GetObjectW(::GetCurrentObject(hdc, OBJ_FONT), sizeof(style), &style)) {
+            style.lfWeight = FW_BOLD;
+            bold = ::CreateFontIndirectW(&style);
+            if (bold) ::SelectObject(hdc, bold);
+        }
+    }
+    const auto* caption = static_cast<const wchar_t*>(m_strText);
+    const auto* accelerator = caption ? std::wcschr(caption, L'\t') : nullptr;
+    if (!m_strText.IsEmpty() && !text.IsRectEmpty()) {
+        if (accelerator && accelerator[1]) {
+            SIZE extent{};
+            const int length = static_cast<int>(std::wcslen(accelerator + 1));
+            ::GetTextExtentPoint32W(hdc, accelerator + 1, length, &extent);
+            CRect shortcut = text;
+            if (rtl) {
+                shortcut.right = (std::min)(text.right, text.left + static_cast<int>(extent.cx));
+                text.left = shortcut.right + 9;
+            } else {
+                shortcut.left = (std::max)(text.left, text.right - static_cast<int>(extent.cx));
+                text.right = shortcut.left - 9;
+            }
+            const UINT edge = rtl ? DT_LEFT | DT_RTLREADING : DT_RIGHT;
+            ::DrawTextW(hdc, accelerator + 1, length, shortcut, edge | DT_NOPREFIX | DT_SINGLELINE | DT_VCENTER);
+        }
+        if (!text.IsRectEmpty()) {
+            const int length = accelerator ? static_cast<int>(accelerator - caption) : m_strText.GetLength();
+            const UINT edge = rtl ? DT_RIGHT | DT_RTLREADING : DT_LEFT;
+            const UINT prefix = m_nStyle & TBSTYLE_NOPREFIX ? DT_NOPREFIX : 0;
+            ::DrawTextW(hdc, caption, length, text, edge | prefix | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+        }
+    }
+    ::RestoreDC(hdc, saved);
+    if (bold) ::DeleteObject(bold);
+}
+
 // Symbol: ?DrawMenuItem@CMFCToolBarMenuButton@@IEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHH@Z
 extern "C" void MS_ABI impl__DrawMenuItem_CMFCToolBarMenuButton__IEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHH_Z(
-    CMFCToolBarMenuButton* pThis, CDC* pDC, const CRect* pRect, CMFCToolBarImages* pImages,
-    int bCustomizeMode, int bHighlight, int bGrayDisabledButtons, int bContentOnly)
+    CMFCToolBarMenuButton* button, CDC* dc, const CRect* bounds, CMFCToolBarImages* images,
+    BOOL customize, BOOL hot, BOOL grayDisabled, BOOL contentOnly)
 {
-    (void)pThis; (void)pDC; (void)pRect; (void)pImages;
-    (void)bCustomizeMode; (void)bHighlight; (void)bGrayDisabledButtons; (void)bContentOnly;
+    if (button && bounds) button->DrawMenuItem(dc, *bounds, images, customize, hot, grayDisabled, contentOnly);
 }
 
 // Retail RVA 0x175ea0 (mfc140u), fully transcribed:
@@ -394,27 +586,32 @@ extern "C" int MS_ABI impl__OnBeforeDrag_CMFCToolBarMenuButton__UEBAHXZ(const CM
     return TRUE;
 }
 
-// Retail RVA 0x173560 (mfc140u): stores bHorz to m_bHorz (+0xd8) and returns
-// CSize(0,0) when the button is hidden (!m_bVisible, +0x64).  Otherwise, in menu
-// mode, it strips the "\t..." suffix from m_strText and re-appends "\t" plus the
-// accelerator found by CKeyboardManager::FindDefaultAccelerator; calls
-// CMFCToolBarButton::OnCalculateSize; defers to a CMFCDropDownListBox that owns a
-// CMFCPopupMenuBar parent (owner vslot +0x440, bar vslot +0x6b8); and otherwise
-// widens the result by arrow / image extents, including the visual manager's
-// GetMenuImageMargin (vslot +0x5c8).  Not transcribed: those virtual calls and the
-// keyboard-manager / frame lookups are not available here.  STUB: returns
-// CSize(0,0) through the hidden return slot (RDX, returned in RAX) so a caller
-// never dereferences a null result; m_bHorz is not stored.
+SIZE CMFCToolBarMenuButton::OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal) {
+    MbAt<BOOL>(this, kMbHorizontal) = horizontal;
+    SIZE size = CMFCToolBarButton::OnCalculateSize(dc, defaultSize, horizontal);
+    if (!m_bVisible || m_bIsHidden || (m_nStyle & TBSTYLE_SEP)) return size;
+    if (MbGet<BOOL>(this, kMbMenuMode)) {
+        const CSize cell = MenuCellSize();
+        const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+        CRect label(0, 0, 0, 0);
+        if (hdc && !m_strText.IsEmpty())
+            ::DrawTextW(hdc, m_strText, m_strText.GetLength(), label, DT_CALCRECT | DT_SINGLELINE | DT_EXPANDTABS);
+        size.cx = (std::max)(size.cx, static_cast<LONG>(label.Width() + cell.cx + 18));
+        size.cy = (std::max)(size.cy, static_cast<LONG>((std::max)(label.Height(), cell.cy) + 4));
+    }
+    if (MbHasSubmenu(*this)) {
+        if (horizontal) size.cx += MenuArrowWidth();
+        else size.cy += MenuArrowWidth();
+    }
+    return size;
+}
+
 // Symbol: ?OnCalculateSize@CMFCToolBarMenuButton@@UEAA?AUtagSIZE@@PEAVCDC@@AEBVCSize@@H@Z
 extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarMenuButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(
-    CMFCToolBarMenuButton* pThis, SIZE* pRet, CDC* pDC, const CSize* pSizeDefault, int bHorz)
+    CMFCToolBarMenuButton* button, SIZE* result, CDC* dc, const CSize* defaultSize, BOOL horizontal)
 {
-    (void)pThis; (void)pDC; (void)pSizeDefault; (void)bHorz;
-    if (pRet != nullptr) {
-        pRet->cx = 0;
-        pRet->cy = 0;
-    }
-    return pRet;
+    if (result) *result = button && defaultSize ? button->OnCalculateSize(dc, *defaultSize, horizontal) : SIZE{};
+    return result;
 }
 
 // Retail RVA 0x175820 (mfc140u):
@@ -496,7 +693,8 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarMenuButton__UEAAXPEAVC
     impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(pThis, pWndParent);
     if (pWndParent == nullptr) return;
 
-    const bool bHasCommands = MbGet<INT_PTR>(pThis, kMbListCount) != 0;
+    const bool bHasCommands = MbGet<INT_PTR>(pThis, kMbListCount) != 0 ||
+        (pThis->m_hMenu && ::GetMenuItemCount(pThis->m_hMenu) > 0);
     if (MbIsKindOf(pWndParent, impl__GetThisClass_CMFCMenuBar__SAPEAUCRuntimeClass__XZ())) {
         MbAt<BOOL>(pThis, kMbDrawDownArrow) =
             ((pThis->m_nID != 0 && bHasCommands) || MbGet<BOOL>(pWndParent, kMenuBarForceDownArrows) != 0) ? TRUE : FALSE;
@@ -532,41 +730,69 @@ extern "C" int MS_ABI impl__OnClick_CMFCToolBarMenuButton__UEAAHPEAVCWnd__H_Z(CM
     return FALSE;
 }
 
-// Retail RVA 0x173010 (mfc140u): empties m_rectArrow / m_rectButton (SetRectEmpty
-// on +0x108 / +0x118), then in menu mode (m_bMenuMode, +0xcc) forwards to
-// DrawMenuItem; otherwise draws the button, arrow and highlight with the visual
-// manager (GetInstance() is its next call).  Not transcribed (DrawMenuItem is a stub and the
-// visual-manager slots are not dispatchable here).
-// Symbol: ?OnDraw@CMFCToolBarMenuButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z
-extern "C" void MS_ABI impl__OnDraw_CMFCToolBarMenuButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(
-    CMFCToolBarMenuButton* pThis, CDC* pDC, const CRect* pRect, CMFCToolBarImages* pImages,
-    int bHorz, int bCustomizeMode, int bHighlight, int bDrawBorder, int bGrayDisabledButtons)
-{
-    (void)pThis; (void)pDC; (void)pRect; (void)pImages; (void)bHorz;
-    (void)bCustomizeMode; (void)bHighlight; (void)bDrawBorder; (void)bGrayDisabledButtons;
-}
+void CMFCToolBarMenuButton::OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images,
+                                  BOOL horizontal, BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled) {
+    auto& arrow = MbAt<CRect>(this, kMbArrowRect);
+    auto& button = MbAt<CRect>(this, kMbButtonRect);
+    arrow.SetRectEmpty();
+    button.SetRectEmpty();
+    if (!dc || !dc->GetSafeHdc() || !m_bVisible || m_bIsHidden || bounds.IsRectEmpty()) return;
+    if (MbGet<BOOL>(this, kMbMenuMode)) {
+        DrawMenuItem(dc, bounds, images, customize, hot, grayDisabled, FALSE);
+        return;
+    }
 
-// Retail RVA 0x175d00 (mfc140u), fully transcribed:
-//     CMFCToolBarButton::OnDrawOnCustomizeList(pDC, rect, bSelected);   // result discarded
-//     if (m_nID == 0 || !m_listCommands.IsEmpty() || HasButton())       // HasButton = vslot +0x1f0
-//         CMFCVisualManager::GetInstance()->OnDrawMenuArrowOnCustomizeList(pDC, rect, bSelected);   // vslot +0x288
-//     return rect.Width();
-// DEVIATIONS: HasButton() is MbHasButton() (see above); the manager is the
-// current ?m_pVisManager@ called through its exported thunk, and a NULL manager
-// skips the arrow (retail's GetInstance() would create one), as in
-// CMFCToolBarEditBoxButton.cpp.
-// Symbol: ?OnDrawOnCustomizeList@CMFCToolBarMenuButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z
-extern "C" int MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarMenuButton__UEAAHPEAVCDC__AEBVCRect__H_Z(
-    CMFCToolBarMenuButton* pThis, CDC* pDC, const CRect* pRect, int bSelected)
-{
-    if (pThis == nullptr || pRect == nullptr) return 0;
-    impl__OnDrawOnCustomizeList_CMFCToolBarButton__UEAAHPEAVCDC__AEBVCRect__H_Z(pThis, pDC, pRect, bSelected);
-    if (pThis->m_nID == 0 || MbGet<INT_PTR>(pThis, kMbListCount) != 0 || MbHasButton(pThis)) {
-        if (CMFCVisualManager* pVM = static_cast<CMFCVisualManager*>(impl__m_pVisManager_CMFCVisualManager__1PEAV1_EA)) {
-            impl__OnDrawMenuArrowOnCustomizeList_CMFCVisualManager__UEAAXPEAVCDC__VCRect__H_Z(pVM, pDC, CRect(*pRect), bSelected);
+    button = bounds;
+    if (MbHasSubmenu(*this)) {
+        arrow = bounds;
+        if (!horizontal) {
+            arrow.top = (std::max)(bounds.top, bounds.bottom - MenuArrowWidth());
+            button.bottom = arrow.top;
+        } else if (MenuLayoutMirrored(*this, dc->GetSafeHdc())) {
+            arrow.right = (std::min)(bounds.right, bounds.left + MenuArrowWidth());
+            button.left = arrow.right;
+        } else {
+            arrow.left = (std::max)(bounds.left, bounds.right - MenuArrowWidth());
+            button.right = arrow.left;
         }
     }
-    return pRect->right - pRect->left;
+
+    CMFCToolBarButton::OnDraw(dc, button, images, horizontal, customize, hot, drawBorder, grayDisabled);
+    if (!arrow.IsRectEmpty()) {
+        const bool disabled = !customize && (m_nStyle & kMenuDisabled);
+        if (drawBorder && !disabled && (hot || (m_nStyle & (kMenuPressed | kMenuChecked)))) {
+            RECT frame = *static_cast<const RECT*>(arrow);
+            ::DrawEdge(dc->GetSafeHdc(), &frame, hot ? BDR_RAISEDINNER : BDR_SUNKENOUTER, BF_RECT);
+        }
+        PaintMenuArrow(dc->GetSafeHdc(), arrow, horizontal ? MenuArrow::Down : MenuArrow::Right,
+                       ::GetSysColor(disabled ? COLOR_GRAYTEXT : COLOR_BTNTEXT));
+    }
+}
+
+// Symbol: ?OnDraw@CMFCToolBarMenuButton@@UEAAXPEAVCDC@@AEBVCRect@@PEAVCMFCToolBarImages@@HHHHH@Z
+extern "C" void MS_ABI impl__OnDraw_CMFCToolBarMenuButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(
+    CMFCToolBarMenuButton* button, CDC* dc, const CRect* bounds, CMFCToolBarImages* images,
+    BOOL horizontal, BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled)
+{
+    if (button && bounds) button->OnDraw(dc, *bounds, images, horizontal, customize, hot, drawBorder, grayDisabled);
+}
+
+// Symbol: ?OnDrawOnCustomizeList@CMFCToolBarMenuButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z
+extern "C" int MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarMenuButton__UEAAHPEAVCDC__AEBVCRect__H_Z(
+    CMFCToolBarMenuButton* button, CDC* dc, const CRect* bounds, BOOL selected)
+{
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!button || !hdc || !bounds || bounds->IsRectEmpty()) return 0;
+    const bool hasArrow = !button->m_nID || MbHasSubmenu(*button) || MbHasButton(button);
+    CRect content = *bounds;
+    if (hasArrow) content.right = (std::max)(content.left, content.right - MenuArrowWidth());
+    button->CMFCToolBarButton::OnDrawOnCustomizeList(dc, content, selected);
+    if (hasArrow) {
+        CRect arrow(content.right, bounds->top, bounds->right, bounds->bottom);
+        ::FillRect(hdc, arrow, ::GetSysColorBrush(selected ? COLOR_HIGHLIGHT : COLOR_WINDOW));
+        PaintMenuArrow(hdc, arrow, MenuArrow::Right, ::GetSysColor(selected ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
+    }
+    return bounds->Width();
 }
 
 // Retail RVA 0x1759d0 (mfc140u; slot 53 of the retail vftable): builds the menu

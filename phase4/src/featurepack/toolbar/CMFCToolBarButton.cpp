@@ -418,15 +418,60 @@ extern "C" void MS_ABI impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__
                                                      drawBorder, grayDisabled);
 }
 
-// Stub: retail mfc140u RVA 0x15db10 draws the customization item with theme, font, image, and text paths; not transcribed.
+extern "C" CSize* MS_ABI impl__GetMenuImageSize_CMFCToolBar__SA_AVCSize__XZ(CSize*);
+extern "C" void* impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA;
+extern "C" CMFCToolBarImages impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A;
+extern "C" CMFCToolBarImages impl__m_Images_CMFCToolBar__1VCMFCToolBarImages__A;
+
+int CMFCToolBarButton::OnDrawOnCustomizeList(CDC* dc, const CRect& bounds, BOOL selected) {
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || bounds.IsRectEmpty()) return 0;
+    const int saved = ::SaveDC(hdc);
+    if (!saved) return 0;
+    ::IntersectClipRect(hdc, bounds.left, bounds.top, bounds.right, bounds.bottom);
+    ::FillRect(hdc, bounds, ::GetSysColorBrush(selected ? COLOR_HIGHLIGHT : COLOR_WINDOW));
+
+    const int index = GetImage();
+    auto* images = m_bUserButton ?
+        static_cast<CMFCToolBarImages*>(impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA) :
+        &impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A;
+    if (!m_bUserButton && (index < 0 || index >= images->GetCount()))
+        images = &impl__m_Images_CMFCToolBar__1VCMFCToolBarImages__A;
+    CSize cell;
+    impl__GetMenuImageSize_CMFCToolBar__SA_AVCSize__XZ(&cell);
+    const int width = cell.cx > 0 ? cell.cx : 16;
+    const int height = cell.cy > 0 ? cell.cy : 15;
+    const int imageSpace = width + 6;
+    const int y = bounds.top + (std::max)(0, (bounds.Height() - height) / 2);
+    const CRect glyph(bounds.left + 3, y, bounds.left + 3 + width, y + height);
+    void* tool = nullptr;
+    if (!m_bUserButton && impl__afxUserToolsManager__3PEAVCUserToolsManager__EA)
+        tool = impl__FindTool_CUserToolsManager__QEBAPEAVCUserTool__I_Z(
+            impl__afxUserToolsManager__3PEAVCUserToolsManager__EA, m_nID);
+    if (tool) impl__DrawToolIcon_CUserTool__QEAAXPEAVCDC__AEBVCRect___Z(tool, dc, &glyph);
+    else if (images && index >= 0 && index < images->GetCount())
+        images->DrawEx(dc, glyph, index, 3, 3);
+
+    CRect label = bounds;
+    label.left += imageSpace;
+    int used = imageSpace;
+    if (!m_strText.IsEmpty() && !label.IsRectEmpty()) {
+        ::SetBkMode(hdc, TRANSPARENT);
+        ::SetTextColor(hdc, ::GetSysColor(selected ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
+        const UINT prefix = m_nStyle & TBSTYLE_NOPREFIX ? DT_NOPREFIX : 0;
+        ::DrawTextW(hdc, m_strText, m_strText.GetLength(), label, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | prefix);
+        used += (std::min)(label.Width(), static_cast<int>(ToolbarTextExtent(hdc, ParseToolbarLabel(*this).text).cx));
+    }
+    ::RestoreDC(hdc, saved);
+    return used;
+}
+
 // Symbol: ?OnDrawOnCustomizeList@CMFCToolBarButton@@UEAAHPEAVCDC@@AEBVCRect@@H@Z
 extern "C" int MS_ABI impl__OnDrawOnCustomizeList_CMFCToolBarButton__UEAAHPEAVCDC__AEBVCRect__H_Z(
-    void* pThis, CDC* pDC, const RECT* pRect, int bSelected) {
-    (void)pThis;
-    (void)pDC;
-    (void)pRect;
-    (void)bSelected;
-    return 0;
+    void* self, CDC* dc, const CRect* bounds, BOOL selected)
+{
+    return self && bounds ?
+        static_cast<CMFCToolBarButton*>(self)->OnDrawOnCustomizeList(dc, *bounds, selected) : 0;
 }
 
 // Stub: the mfc140u toolbar-button vtable points to RVA 0x15e070 (mfc140u); its parent/tool-tip virtual dispatch is not reproduced.

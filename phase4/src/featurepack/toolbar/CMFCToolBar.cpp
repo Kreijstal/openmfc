@@ -4571,8 +4571,14 @@ extern "C" int MS_ABI impl__DrawButton_CMFCToolBar__MEAAHPEAVCDC__PEAVCMFCToolBa
         !::RectVisible(dc->GetSafeHdc(), button->m_rect)) return TRUE;
     const BOOL customize = impl__m_bCustomizeMode_CMFCToolBar__1HA &&
         !impl__m_bAltCustomizeMode_CMFCToolBar__1HA && !toolbar->m_bLocked;
-    button->OnDraw(dc, button->m_rect, images, ToolbarIsHorizontal(*toolbar), customize, hot,
-                   toolbar->m_bShowHotBorder, toolbar->m_bGrayDisabledButtons && !dedicatedDisabled);
+    const BOOL horizontal = ToolbarIsHorizontal(*toolbar);
+    const BOOL gray = toolbar->m_bGrayDisabledButtons && !dedicatedDisabled;
+    if (button->IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))) {
+        static_cast<CMFCToolBarMenuButton*>(button)->OnDraw(dc, button->m_rect, images, horizontal, customize,
+                                                          hot, toolbar->m_bShowHotBorder, gray);
+    } else {
+        button->OnDraw(dc, button->m_rect, images, horizontal, customize, hot, toolbar->m_bShowHotBorder, gray);
+    }
     return TRUE;
 }
 

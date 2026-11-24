@@ -141,7 +141,10 @@ void  MS_ABI v25_OnGlobalFontsChanged(void* pThis) {
 BOOL  MS_ABI v26_IsEditable(const CMFCToolBarButton* p) { return p ? !p->m_bLocked : TRUE; }
 BOOL  MS_ABI v27_OnContextHelp(CMFCToolBarButton* p, void*) { return p ? (p->m_nID != 0) : FALSE; }
 BOOL  MS_ABI v28_OnCustomizeMenu(CMFCToolBarButton* p, void*) { return p ? (p->m_nID != 0) : FALSE; }
-int   MS_ABI v29_OnDrawOnCustomizeList(CMFCToolBarButton* p, void*, const void*, BOOL) { return (p && !p->m_bIsHidden) ? 1 : 0; }
+int MS_ABI v29_OnDrawOnCustomizeList(CMFCToolBarButton* button, void* dc, const void* bounds, BOOL selected) {
+    return button && bounds ?
+        button->OnDrawOnCustomizeList(static_cast<CDC*>(dc), *static_cast<const CRect*>(bounds), selected) : 0;
+}
 BOOL  MS_ABI v30_IsDroppedDown(const CMFCToolBarButton* p) { return p ? ((p->m_nStyle & 0x0001) != 0) : FALSE; }
 BOOL  MS_ABI v31_OnBeforeDrag(const CMFCToolBarButton* p) { return (p && !p->m_bLocked) ? TRUE : FALSE; }
 BOOL  MS_ABI v32_OnBeforeDrop(CMFCToolBarButton* p, void*) { return (p && !p->m_bIsHidden) ? TRUE : FALSE; }
