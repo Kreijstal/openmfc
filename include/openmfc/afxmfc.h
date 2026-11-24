@@ -1715,6 +1715,24 @@ protected:
     char _framewndex_padding[128];
 };
 
+class CMDITabInfo {
+public:
+    void Serialize(CArchive& archive);
+
+    CMFCBaseTabCtrl::Location m_tabLocation = CMFCBaseTabCtrl::LOCATION_TOP;
+    CMFCTabCtrl::Style m_style = CMFCTabCtrl::STYLE_FLAT;
+    BOOL m_bTabIcons = FALSE;
+    BOOL m_bTabCloseButton = TRUE;
+    BOOL m_bTabCustomTooltips = FALSE;
+    BOOL m_bAutoColor = FALSE;
+    BOOL m_bDocumentMenu = FALSE;
+    BOOL m_bEnableTabSwap = TRUE;
+    BOOL m_bFlatFrame = TRUE;
+    BOOL m_bActiveTabCloseButton = FALSE;
+    int m_nTabBorderSize = -1;
+    BOOL m_bReuseRemovedTabGroups = FALSE;
+};
+
 class CMDIFrameWndEx : public CMDIFrameWnd {
     DECLARE_DYNAMIC(CMDIFrameWndEx)
 public:
@@ -1729,6 +1747,11 @@ public:
         CMFCBaseTabCtrl::Location location = CMFCBaseTabCtrl::LOCATION_BOTTOM, BOOL closeButton = FALSE,
         CMFCTabCtrl::Style style = CMFCTabCtrl::STYLE_3D_SCROLLED, BOOL customTooltips = FALSE,
         BOOL activeCloseButton = FALSE);
+    void EnableMDITabbedGroups(BOOL enable, const CMDITabInfo& params);
+    void MDITabNewGroup(BOOL vertical = TRUE);
+    void MDITabMoveToNextGroup(BOOL next = TRUE);
+    BOOL IsMDITabbedGroup() const;
+    const CObList& GetMDITabGroups() const;
     BOOL AreMDITabs(int* type = nullptr) const;
     CMFCTabCtrl& GetMDITabs();
     virtual CMDIChildWndEx* ControlBarToTabbedDocument(CDockablePane* pane);

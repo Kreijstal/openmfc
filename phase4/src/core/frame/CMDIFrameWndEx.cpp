@@ -5,7 +5,6 @@
 
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
-#include "detail/CMDITabInfoSupport.h"
 #include "detail/MDIClientSupport.h"
 
 // OpenMFC — CMDIFrameWndEx methods (wave1_other-3, revised; 2026-09-14
@@ -26,8 +25,8 @@
 // a CFrameImpl at this+0x590 and a CMDIClientAreaWnd at this+0x720; OpenMFC's
 // object is 0x268 bytes.  How this file bridges that -- the retail scalars kept
 // in the padding at their retail offsets, m_Impl and m_dockManager built on the
-// heap through their ctor thunks and reached via a per-frame record, the client
-// area not constructed at all -- is documented at S_CMDIFrameWndExTail /
+// heap through their constructor thunks, and the lazily allocated client area
+// is reached via the same per-frame record. See S_CMDIFrameWndExTail and
 // FrameExtra below.  Bodies that still cannot be reproduced are documented
 // stubs: a body that is only `{}` or a bare constant return is a STUB unless
 // its comment shows that the retail body is exactly that, and the comment says
@@ -987,22 +986,36 @@ extern "C" int MS_ABI impl__DockPaneLeftOf_CMDIFrameWndEx__QEAAHPEAVCPane__0_Z(
 extern "C" BOOL MS_ABI impl__EnableAutoHidePanes_CMDIFrameWndEx__QEAAHK_Z(CMDIFrameWndEx* frame, DWORD sides) {
     return frame && impl__EnableAutoHidePanes_CDockingManager__QEAAHK_Z(DockManagerOf(frame), sides);
 }
-// CMDIFrameWndEx::EnableMDITabbedGroups(BOOL, const CMDITabInfo&) — retail entry
-// RVA 0x894f0 (an earlier revision cited 0x88f40, an instruction inside
-// OnClosePopupMenu at 0x88eb0) is a two-instruction tail
-// jump: `rcx = this + 0x720; jmp 0x18007d3f0` =
-// ?EnableMDITabbedGroups@CMDIClientAreaWnd@@QEAAXHAEBVCMDITabInfo@@@Z.
-// The client-area window is not modeled; the CMDITabInfo
-// value struct is also not declared in the headers, so the reference is taken
-// opaquely. Conservative no-op.
+extern "C" void MS_ABI impl__EnableMDITabbedGroups_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(void*, int, const void*);
+extern "C" void MS_ABI impl__MDITabNewGroup_CMDIClientAreaWnd__QEAAXH_Z(void*, int);
+extern "C" void MS_ABI impl__MDITabMoveToNextGroup_CMDIClientAreaWnd__QEAAXH_Z(void*, int);
+
+void CMDIFrameWndEx::EnableMDITabbedGroups(BOOL enable, const CMDITabInfo& params) {
+    impl__EnableMDITabbedGroups_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(ClientAreaOf(this), enable, &params);
+}
+
+void CMDIFrameWndEx::MDITabNewGroup(BOOL vertical) {
+    if (IsMDITabbedGroup()) impl__MDITabNewGroup_CMDIClientAreaWnd__QEAAXH_Z(ClientAreaOf(this), vertical);
+}
+
+void CMDIFrameWndEx::MDITabMoveToNextGroup(BOOL next) {
+    if (IsMDITabbedGroup()) impl__MDITabMoveToNextGroup_CMDIClientAreaWnd__QEAAXH_Z(ClientAreaOf(this), next);
+}
+
+BOOL CMDIFrameWndEx::IsMDITabbedGroup() const {
+    int type = 0;
+    return AreMDITabs(&type) && type == 2;
+}
+
+const CObList& CMDIFrameWndEx::GetMDITabGroups() const {
+    const auto* extra = FindExtra(this);
+    return openmfc::detail::mdi::Groups(extra ? extra->clientArea : nullptr);
+}
+
 // Symbol: ?EnableMDITabbedGroups@CMDIFrameWndEx@@QEAAXHAEBVCMDITabInfo@@@Z
 extern "C" void MS_ABI impl__EnableMDITabbedGroups_CMDIFrameWndEx__QEAAXHAEBVCMDITabInfo___Z(
-    CMDIFrameWndEx* pThis, int bEnable, const void* pParams) {
-    (void)bEnable;
-    (void)pParams;
-    if (!pThis) return;
-    // TODO(clean-room): retail tail-jumps to the embedded CMDIClientAreaWnd at
-    // this+0x720 (EnableMDITabbedGroups); not modeled.
+    CMDIFrameWndEx* pThis, int enable, const CMDITabInfo* params) {
+    if (pThis && params) pThis->EnableMDITabbedGroups(enable, *params);
 }
 // Symbol: ?OnUpdatePaneMenu@CMDIFrameWndEx@@IEAAXPEAVCCmdUI@@@Z
 extern "C" void MS_ABI impl__OnUpdatePaneMenu_CMDIFrameWndEx__IEAAXPEAVCCmdUI___Z(CMDIFrameWndEx*, CCmdUI* ui) {
@@ -1017,7 +1030,7 @@ extern "C" void MS_ABI impl__OnUpdatePaneMenu_CMDIFrameWndEx__IEAAXPEAVCCmdUI___
 // window messages 0x323 / 0x326 through 0x1caa8c.
 // DEVIATIONS: the zero-fill covers the whole 128-byte padding (a superset of
 // retail's); m_dockManager / m_Impl live in FrameExtra (see AttachExtra);
-// m_wndClientArea is not constructed; the CString at +0x1e0 is not modeled;
+// m_wndClientArea is allocated lazily; the CString at +0x1e0 is not modeled;
 // the tail-end global check and message registration were not identified and
 // are not reproduced.
 CMDIFrameWndEx::CMDIFrameWndEx()
@@ -1034,13 +1047,11 @@ CMDIFrameWndEx::~CMDIFrameWndEx() {
     DetachExtra(this);
 }
 CMFCVisualManager* CMDIFrameWndEx::GetVisualManager() const { return m_pVisualManager; }
-extern "C" void* MS_ABI impl___0CMDITabInfo__QEAA_XZ(void*);
 extern "C" void MS_ABI impl__EnableMDITabs_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(void*, int, const void*);
 
 void CMDIFrameWndEx::EnableMDITabs(BOOL enable, BOOL icons, CMFCBaseTabCtrl::Location location,
     BOOL closeButton, CMFCTabCtrl::Style style, BOOL customTooltips, BOOL activeCloseButton) {
-    S_Cmditabinfo params{};
-    impl___0CMDITabInfo__QEAA_XZ(&params);
+    CMDITabInfo params;
     params.m_tabLocation = location;
     params.m_style = style;
     params.m_bTabIcons = icons;

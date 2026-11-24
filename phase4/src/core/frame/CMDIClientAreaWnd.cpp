@@ -120,6 +120,7 @@
 
 #include <algorithm>
 #include <commctrl.h>
+#include <windowsx.h>
 
 #include <cmath>
 #include <cstddef>
@@ -193,7 +194,6 @@ extern "C" void MS_ABI impl___1CImageList__UEAA_XZ(CImageList* pThis);
 extern "C" int MS_ABI impl__DeleteImageList_CImageList__QEAAHXZ(CImageList* pThis);
 extern "C" int MS_ABI impl__Create_CImageList__QEAAHHHIHH_Z(CImageList* pThis, int cx, int cy, unsigned int nFlags, int nInitial, int nGrow);
 // core/frame/CMDITabInfo.cpp, CMDIChildWndEx.cpp
-extern "C" void* MS_ABI impl___0CMDITabInfo__QEAA_XZ(void* pThis);
 extern "C" int MS_ABI impl__IsTaskbarTabsSupportEnabled_CMDIChildWndEx__QEAAHXZ(CMDIChildWndEx* pThis);
 extern "C" void MS_ABI impl__SetTaskbarTabOrder_CMDIChildWndEx__QEAAXPEAV1__Z(CMDIChildWndEx* pThis, CMDIChildWndEx* pWndInsertBefore);
 extern "C" CString* MS_ABI impl__GetFrameText_CMDIChildWndEx__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(const CMDIChildWndEx* pThis, CString* pRet);
@@ -264,23 +264,7 @@ struct RetailMap {
     INT_PTR nBlockSize;
 };
 static_assert(sizeof(RetailMap) == 0x38, "CMap header is 0x38 bytes");
-// CMDITabInfo, field order from afxmdiclientareawnd.h; the same 48-byte layout
-// detail/CMDITabInfoSupport.h pins for core/frame/CMDITabInfo.cpp.
-struct RetailMDITabInfo {
-    int m_tabLocation;             // +0
-    int m_style;                   // +4
-    BOOL m_bTabIcons;              // +8
-    BOOL m_bTabCloseButton;        // +12
-    BOOL m_bTabCustomTooltips;     // +16
-    BOOL m_bAutoColor;             // +20
-    BOOL m_bDocumentMenu;          // +24
-    BOOL m_bEnableTabSwap;         // +28
-    BOOL m_bFlatFrame;             // +32
-    BOOL m_bActiveTabCloseButton;  // +36
-    int m_nTabBorderSize;          // +40
-    BOOL m_bReuseRemovedTabGroups; // +44
-};
-static_assert(sizeof(RetailMDITabInfo) == 0x30, "CMDITabInfo is 0x30 bytes");
+static_assert(sizeof(CMDITabInfo) == 0x30, "CMDITabInfo is 0x30 bytes");
 
 constexpr std::size_t kRetailTabCtrlSize = 0x3d68;   // sizeof(CMFCTabCtrl), retail
 
@@ -293,7 +277,7 @@ struct S_CMDIClientAreaWnd {
     int pad_3e5c;
     unsigned char m_TabIcons[0x10];                 // +0x3e60 CImageList
     RetailMap m_mapIcons;                           // +0x3e70
-    RetailMDITabInfo m_mdiTabParams;                // +0x3ea8
+    CMDITabInfo m_mdiTabParams;                // +0x3ea8
     RetailObList m_lstTabbedGroups;                 // +0x3ed8
     RetailMap m_mapTabIcons;                        // +0x3f10
     BOOL m_bIsMDITabbedGroup;                       // +0x3f48
@@ -357,10 +341,14 @@ struct TabIconEntry {              // one m_mapTabIcons association
 struct DocumentPlacement {
     HWND window;
     WINDOWPLACEMENT placement;
+    LONG_PTR removedStyle = 0;
 };
 
 struct ClientRuntime {
     std::vector<DocumentPlacement> placements;
+    CObList groups;
+    HWND resizingGroup = nullptr;
+    int resizeOffset = 0;
     bool updating = false;
 };
 
@@ -645,39 +633,16 @@ CMDIFrameWndEx* AsFrameEx(CFrameWnd* p) {
                ? static_cast<CMDIFrameWndEx*>(p) : nullptr;
 }
 
-// Retail CMFCTabCtrl vslot +0x368, GetTabsNum, is the inline `m_iTabsNum`
-// (+0x150) and has no export.  OpenMFC's tab controls keep their tabs in a
-// side table that only the thunks can see; AddTab there rejects a NULL window,
-// so the first index whose GetTabWnd is NULL is the count.
 int TabsNum(const void* pTab) {
-    const CMFCBaseTabCtrl* p = static_cast<const CMFCBaseTabCtrl*>(static_cast<const CMFCTabCtrl*>(pTab));
-    int n = 0;
-    while (impl__GetTabWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(p, n) != nullptr) {
-        ++n;
-    }
-    return n;
+    return pTab ? static_cast<const CMFCTabCtrl*>(pTab)->GetTabsCount() : 0;
 }
-// Retail vslot +0x428, GetActiveTab, is the inline `m_iActiveTab` (+0x154):
-// the index of GetActiveWnd()'s window, -1 when there is none.
+
 int ActiveTab(const void* pTab) {
-    const CMFCBaseTabCtrl* p = static_cast<const CMFCBaseTabCtrl*>(static_cast<const CMFCTabCtrl*>(pTab));
-    CWnd* pActive = impl__GetActiveWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__XZ(p);
-    if (pActive == nullptr) {
-        return -1;
-    }
-    for (int i = 0;; ++i) {
-        CWnd* pWnd = impl__GetTabWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(p, i);
-        if (pWnd == nullptr) {
-            return -1;
-        }
-        if (pWnd == pActive) {
-            return i;
-        }
-    }
+    return pTab ? static_cast<const CMFCTabCtrl*>(pTab)->GetActiveTab() : -1;
 }
-CWnd* TabWnd(const void* pTab, int i) {
-    return impl__GetTabWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__H_Z(
-        static_cast<const CMFCBaseTabCtrl*>(static_cast<const CMFCTabCtrl*>(pTab)), i);
+
+CWnd* TabWnd(const void* pTab, int index) {
+    return pTab ? static_cast<const CMFCTabCtrl*>(pTab)->GetTabWnd(index) : nullptr;
 }
 int TabFromHwnd(const void* pTab, HWND hWnd) {
     return impl__GetTabFromHwnd_CMFCBaseTabCtrl__UEBAHPEAUHWND_____Z(
@@ -788,7 +753,7 @@ extern "C" void* MS_ABI impl___0CMDIClientAreaWnd__QEAA_XZ(void* pThis) {
     impl___0CImageList__QEAA_XZ(reinterpret_cast<CImageList*>(self->m_TabIcons));
 
     MapInit(self->m_mapIcons);
-    impl___0CMDITabInfo__QEAA_XZ(&self->m_mdiTabParams);
+    self->m_mdiTabParams = CMDITabInfo{};
     ListInit(self->m_lstTabbedGroups);
     MapInit(self->m_mapTabIcons);
     self->m_bIsMDITabbedGroup = FALSE;
@@ -898,16 +863,30 @@ namespace {
 constexpr UINT_PTR clientSubclassId = 1;
 constexpr UINT_PTR documentSubclassId = 2;
 extern "C" unsigned int impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA;
+extern "C" std::uint32_t impl__m_dwExcludeStyle_CMDIChildWndEx__2KA;
 
 UINT RefreshDocumentTabsMessage() {
     static const UINT message = ::RegisterWindowMessageW(L"OpenMFC.MDI.RefreshDocumentTabs");
     return message;
 }
 
+void PublishGroupList(S_CMDIClientAreaWnd& self) {
+    auto& groups = Record(&self)->runtime->groups;
+    groups.RemoveAll();
+    for (auto* node = self.m_lstTabbedGroups.pNodeHead; node; node = node->pNext)
+        groups.AddTail(static_cast<CMFCTabCtrl*>(node->data));
+}
+
 void RemoveDocumentTab(S_CMDIClientAreaWnd& self, HWND window) {
     auto* tabs = EmbeddedTab(&self);
     const int index = TabFromHwnd(tabs, window);
     if (index >= 0) tabs->RemoveTab(index);
+    int groupIndex = -1;
+    if (auto* group = static_cast<CMFCTabCtrl*>(impl__FindTabWndByChild_CMDIClientAreaWnd__QEAAPEAVCMFCTabCtrl__PEAUHWND____AEAH_Z(
+            &self, window, &groupIndex))) {
+        if (auto* child = AsChildEx(group->GetTabWnd(groupIndex))) SetChildRelatedTabGroup(child, nullptr);
+        group->RemoveTab(groupIndex);
+    }
 }
 
 LRESULT CALLBACK DocumentSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR data) {
@@ -921,7 +900,7 @@ LRESULT CALLBACK DocumentSubclass(HWND window, UINT message, WPARAM wp, LPARAM l
             [window](const DocumentPlacement& placement) { return placement.window == window; }), placements.end());
     }
     const auto result = ::DefSubclassProc(window, message, wp, lp);
-    if (message == WM_SETTEXT || message == WM_SETICON || message == WM_SHOWWINDOW ||
+    if (message == WM_SETTEXT || message == WM_EXITSIZEMOVE || message == WM_SETICON || message == WM_SHOWWINDOW ||
         (message == WM_WINDOWPOSCHANGED &&
             (reinterpret_cast<const WINDOWPOS*>(lp)->flags & (SWP_SHOWWINDOW | SWP_HIDEWINDOW))) ||
         message == WM_NCDESTROY)
@@ -929,32 +908,97 @@ LRESULT CALLBACK DocumentSubclass(HWND window, UINT message, WPARAM wp, LPARAM l
     return result;
 }
 
+void FitTabDocuments(S_CMDIClientAreaWnd& self, CMFCTabCtrl& tabs) {
+    if (!tabs.m_hWnd) return;
+    tabs.RecalcLayout();
+    const HWND client = WndHandle(&self);
+    RECT page = *static_cast<const RECT*>(openmfc::detail::mfccore::EnsureTabCtrlState(&tabs).page);
+    ::MapWindowPoints(tabs.m_hWnd, client, reinterpret_cast<POINT*>(&page), 2);
+    auto& placements = Record(&self)->runtime->placements;
+    for (int index = 0; index < tabs.GetTabsCount(); ++index) {
+        const HWND window = tabs.GetTabWnd(index)->m_hWnd;
+        if (::GetParent(window) != client) continue;
+        auto position = std::find_if(placements.begin(), placements.end(),
+            [window](const DocumentPlacement& saved) { return saved.window == window; });
+        if (position == placements.end()) {
+            DocumentPlacement saved{window, {sizeof(WINDOWPLACEMENT)}};
+            if (!::GetWindowPlacement(window, &saved.placement)) continue;
+            placements.push_back(saved);
+            position = placements.end() - 1;
+        }
+        if (::IsIconic(window) || ::IsZoomed(window))
+            ::SendMessageW(client, WM_MDIRESTORE, reinterpret_cast<WPARAM>(window), 0);
+        UINT flags = SWP_NOACTIVATE | SWP_NOZORDER;
+        if (self.m_bIsMDITabbedGroup) {
+            const LONG_PTR style = ::GetWindowLongPtrW(window, GWL_STYLE);
+            const LONG_PTR excluded = style & (impl__m_dwExcludeStyle_CMDIChildWndEx__2KA | WS_SYSMENU);
+            if (excluded) {
+                position->removedStyle |= excluded;
+                ::SetWindowLongPtrW(window, GWL_STYLE, style & ~excluded);
+                flags |= SWP_FRAMECHANGED;
+            }
+        }
+        ::SetWindowPos(window, nullptr, page.left, page.top, page.right - page.left, page.bottom - page.top, flags);
+    }
+    auto* selected = tabs.GetTabWnd(tabs.GetActiveTab());
+    if (selected && (self.m_bIsMDITabbedGroup ||
+        reinterpret_cast<HWND>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0)) == selected->m_hWnd))
+        ::SetWindowPos(selected->m_hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+}
+
 void LayoutDocumentTabs(S_CMDIClientAreaWnd& self) {
     auto* tabs = EmbeddedTab(&self);
     if (!tabs->m_hWnd) return;
     const HWND client = WndHandle(&self);
-    const bool visible = self.m_bTabIsVisible && tabs->GetTabsCount() > 0;
+    const bool visible = self.m_bTabIsVisible && self.m_bTabIsEnabled && tabs->GetTabsCount() > 0;
     ::ShowWindow(tabs->m_hWnd, visible ? SW_SHOWNOACTIVATE : SW_HIDE);
     if (!visible) return;
     RECT bounds{};
     if (!::GetClientRect(client, &bounds)) return;
     ::SetWindowPos(tabs->m_hWnd, HWND_BOTTOM, 0, 0, bounds.right, bounds.bottom, SWP_NOACTIVATE);
-    tabs->RecalcLayout();
-    const CRect page = openmfc::detail::mfccore::EnsureTabCtrlState(tabs).page;
-    const HWND active = reinterpret_cast<HWND>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0));
-    auto& placements = Record(&self)->runtime->placements;
-    for (int index = 0; index < tabs->GetTabsCount(); ++index) {
-        const HWND window = tabs->GetTabWnd(index)->m_hWnd;
-        if (::GetParent(window) != client) continue;
-        if (std::none_of(placements.begin(), placements.end(),
-                [window](const DocumentPlacement& p) { return p.window == window; })) {
-            DocumentPlacement saved{window, {sizeof(WINDOWPLACEMENT)}};
-            if (::GetWindowPlacement(window, &saved.placement)) placements.push_back(saved);
-        }
-        if (::IsIconic(window) || ::IsZoomed(window))
-            ::SendMessageW(client, WM_MDIRESTORE, reinterpret_cast<WPARAM>(window), 0);
-        ::SetWindowPos(window, window == active ? HWND_TOP : nullptr, page.left, page.top, page.Width(), page.Height(),
-            SWP_NOACTIVATE | (window == active ? 0 : SWP_NOZORDER));
+    FitTabDocuments(self, *tabs);
+}
+
+constexpr int groupGap = 6;
+
+void LayoutDocumentGroups(S_CMDIClientAreaWnd& self) {
+    if (self.m_bInsideDragComplete || !self.m_bIsMDITabbedGroup || !self.m_bTabIsVisible) return;
+    const HWND client = WndHandle(&self);
+    RECT bounds{};
+    if (!::GetClientRect(client, &bounds)) return;
+
+    const bool vertical = self.m_groupAlignment == kGroupVertAlign;
+    const int full = vertical ? bounds.right : bounds.bottom;
+    struct GroupSize { CMFCTabCtrl* tabs; int length; };
+    std::vector<GroupSize> groups;
+    int total = 0;
+    for (auto* node = self.m_lstTabbedGroups.pNodeHead; node; node = node->pNext) {
+        auto* tabs = static_cast<CMFCTabCtrl*>(node->data);
+        RECT rect{};
+        if (!::GetWindowRect(tabs->m_hWnd, &rect)) continue;
+        const int length = vertical ? rect.right - rect.left : rect.bottom - rect.top;
+        groups.push_back({tabs, length});
+        total += length;
+    }
+    const int count = static_cast<int>(groups.size());
+    if (count == 0) return;
+    const int gap = (std::min)(groupGap, full / count);
+    int available = full - (count - 1) * gap;
+    const int minimum = (std::min)(self.m_nResizeMargin, available / count);
+    int offset = 0;
+    for (int i = 0; i < count; ++i) {
+        const auto& group = groups[i];
+        const int remaining = count - i;
+        const int desired = total > 0 ? ::MulDiv(available, group.length, total) : available / remaining;
+        const int length = remaining == 1 ? available :
+            (std::clamp)(desired, minimum, available - minimum * (remaining - 1));
+        ::SetWindowPos(group.tabs->m_hWnd, HWND_BOTTOM, vertical ? offset : 0, vertical ? 0 : offset,
+            vertical ? length : bounds.right, vertical ? bounds.bottom : length,
+            SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        FitTabDocuments(self, *group.tabs);
+        offset += length + gap;
+        available -= length;
+        total -= group.length;
     }
 }
 
@@ -964,17 +1008,157 @@ void RestoreDocumentPlacements(S_CMDIClientAreaWnd& self) {
     const HWND client = WndHandle(&self);
     const WPARAM active = static_cast<WPARAM>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0));
     for (const auto& p : placements) {
-        if (::GetParent(p.window) == client) ::SetWindowPlacement(p.window, &p.placement);
+        if (::GetParent(p.window) != client) continue;
+        if (p.removedStyle) {
+            const LONG_PTR style = ::GetWindowLongPtrW(p.window, GWL_STYLE);
+            ::SetWindowLongPtrW(p.window, GWL_STYLE, style | p.removedStyle);
+            ::SetWindowPos(p.window, nullptr, 0, 0, 0, 0,
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+        }
+        ::SetWindowPlacement(p.window, &p.placement);
     }
     if (active) ::SendMessageW(client, WM_MDIACTIVATE, active, 0);
 }
 
+bool IsVerticalSplit(const S_CMDIClientAreaWnd& self) {
+    return self.m_groupAlignment == kGroupVertAlign;
+}
+
+RECT GroupBounds(const S_CMDIClientAreaWnd& self, const CMFCTabCtrl& tabs) {
+    RECT bounds{};
+    ::GetWindowRect(tabs.m_hWnd, &bounds);
+    ::MapWindowPoints(nullptr, WndHandle(&self), reinterpret_cast<POINT*>(&bounds), 2);
+    return bounds;
+}
+
+CMFCTabCtrl* SplitterAt(S_CMDIClientAreaWnd& self, POINT point) {
+    const bool vertical = IsVerticalSplit(self);
+    for (auto* node = self.m_lstTabbedGroups.pNodeHead; node && node->pNext; node = node->pNext) {
+        auto* tabs = static_cast<CMFCTabCtrl*>(node->data);
+        auto* next = static_cast<CMFCTabCtrl*>(node->pNext->data);
+        auto bounds = GroupBounds(self, *tabs);
+        const auto adjacent = GroupBounds(self, *next);
+        if (vertical) {
+            bounds.left = bounds.right;
+            bounds.right = adjacent.left;
+        } else {
+            bounds.top = bounds.bottom;
+            bounds.bottom = adjacent.top;
+        }
+        if (::PtInRect(&bounds, point)) return tabs;
+    }
+    return nullptr;
+}
+
+bool ResizeAdjacentGroups(S_CMDIClientAreaWnd& self, CMFCTabCtrl& first, int split) {
+    auto* node = ListFind(self.m_lstTabbedGroups, &first);
+    if (!node || !node->pNext) return false;
+    auto* second = static_cast<CMFCTabCtrl*>(node->pNext->data);
+    RECT a = GroupBounds(self, first);
+    RECT b = GroupBounds(self, *second);
+    const bool vertical = IsVerticalSplit(self);
+    const int gap = vertical ? b.left - a.right : b.top - a.bottom;
+    const int start = vertical ? a.left : a.top;
+    const int end = vertical ? b.right : b.bottom;
+    const int minimum = (std::min)(self.m_nResizeMargin, (end - start - gap) / 2);
+    if (minimum <= 0) return false;
+    split = (std::clamp)(split, start + minimum, end - gap - minimum);
+    if (vertical) {
+        a.right = split;
+        b.left = split + gap;
+    } else {
+        a.bottom = split;
+        b.top = split + gap;
+    }
+    self.m_bInsideDragComplete = TRUE;
+    ::SetWindowPos(first.m_hWnd, nullptr, a.left, a.top, a.right - a.left, a.bottom - a.top,
+        SWP_NOACTIVATE | SWP_NOZORDER);
+    ::SetWindowPos(second->m_hWnd, nullptr, b.left, b.top, b.right - b.left, b.bottom - b.top,
+        SWP_NOACTIVATE | SWP_NOZORDER);
+    FitTabDocuments(self, first);
+    FitTabDocuments(self, *second);
+    self.m_bInsideDragComplete = FALSE;
+    return true;
+}
+
+void CancelSplitterDrag(S_CMDIClientAreaWnd& self) {
+    auto& runtime = *Record(&self)->runtime;
+    if (!runtime.resizingGroup) return;
+    runtime.resizingGroup = nullptr;
+    if (::GetCapture() == WndHandle(&self)) ::ReleaseCapture();
+}
+
+bool HandleGroupSplitter(S_CMDIClientAreaWnd& self, HWND window, UINT message, LPARAM lp) {
+    auto& runtime = *Record(&self)->runtime;
+    if (message == WM_CAPTURECHANGED) runtime.resizingGroup = nullptr;
+    if (!self.m_bIsMDITabbedGroup || !self.m_bTabIsVisible) return false;
+    const bool vertical = IsVerticalSplit(self);
+    if (message == WM_SETCURSOR && LOWORD(lp) == HTCLIENT) {
+        POINT point{};
+        ::GetCursorPos(&point);
+        ::ScreenToClient(window, &point);
+        if (runtime.resizingGroup || SplitterAt(self, point)) {
+            ::SetCursor(::LoadCursorW(nullptr, vertical ? IDC_SIZEWE : IDC_SIZENS));
+            return true;
+        }
+    }
+    if (message == WM_LBUTTONDOWN) {
+        const POINT point{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+        if (auto* tabs = SplitterAt(self, point)) {
+            const auto bounds = GroupBounds(self, *tabs);
+            runtime.resizingGroup = tabs->m_hWnd;
+            runtime.resizeOffset = vertical ? point.x - bounds.right : point.y - bounds.bottom;
+            ::SetCapture(window);
+            return true;
+        }
+    }
+    if (!runtime.resizingGroup || (message != WM_MOUSEMOVE && message != WM_LBUTTONUP)) return false;
+    auto* tabs = AsTabCtrl(CWnd::FromHandlePermanent(runtime.resizingGroup));
+    if (tabs) {
+        const int coordinate = vertical ? GET_X_LPARAM(lp) : GET_Y_LPARAM(lp);
+        ResizeAdjacentGroups(self, *tabs, coordinate - runtime.resizeOffset);
+    }
+    if (!tabs || message == WM_LBUTTONUP) CancelSplitterDrag(self);
+    return true;
+}
+
+bool ActivateAdjacentTab(S_CMDIClientAreaWnd& self, HWND window, bool previous) {
+    const HWND client = WndHandle(&self);
+    if (!window) window = reinterpret_cast<HWND>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0));
+    int index = -1;
+    auto* group = impl__FindTabWndByChild_CMDIClientAreaWnd__QEAAPEAVCMFCTabCtrl__PEAUHWND____AEAH_Z(
+        &self, window, &index);
+    auto* node = ListFind(self.m_lstTabbedGroups, group);
+    if (!node) return false;
+
+    auto* tabs = static_cast<CMFCTabCtrl*>(group);
+    index += previous ? -1 : 1;
+    if (index < 0 || index >= tabs->GetTabsCount()) {
+        node = previous ? node->pPrev : node->pNext;
+        if (!node) node = previous ? self.m_lstTabbedGroups.pNodeTail : self.m_lstTabbedGroups.pNodeHead;
+        tabs = static_cast<CMFCTabCtrl*>(node->data);
+        index = previous ? tabs->GetTabsCount() - 1 : 0;
+    }
+    if (auto* next = tabs->GetTabWnd(index)) {
+        ::SendMessageW(client, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(next->m_hWnd), 0);
+        return true;
+    }
+    return false;
+}
+
 LRESULT CALLBACK ClientSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR data) {
     auto* self = reinterpret_cast<S_CMDIClientAreaWnd*>(data);
-    if (message == impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA && reinterpret_cast<CMFCTabCtrl*>(lp) == EmbeddedTab(self)) {
-        if (auto* child = EmbeddedTab(self)->GetTabWnd(static_cast<int>(wp)))
-            ::SendMessageW(window, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(child->m_hWnd), 0);
-        return 0;
+    if (HandleGroupSplitter(*self, window, message, lp)) return 1;
+    if (message == WM_MDINEXT && self->m_bIsMDITabbedGroup && self->m_bTabIsVisible &&
+        ActivateAdjacentTab(*self, reinterpret_cast<HWND>(wp), lp != 0)) return 0;
+    if (message == impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA) {
+        auto* tabs = reinterpret_cast<CMFCTabCtrl*>(lp);
+        if ((self->m_bTabIsEnabled && tabs == EmbeddedTab(self)) ||
+            (self->m_bIsMDITabbedGroup && ListFind(self->m_lstTabbedGroups, tabs))) {
+            if (auto* child = tabs->GetTabWnd(static_cast<int>(wp)))
+                ::SendMessageW(window, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(child->m_hWnd), 0);
+            return 0;
+        }
     }
     if (message == WM_NCDESTROY) {
         ::RemoveWindowSubclass(window, ClientSubclass, clientSubclassId);
@@ -1048,35 +1232,91 @@ CMFCTabCtrl& openmfc::detail::mdi::Tabs(void* area) {
     return *EmbeddedTab(Self(area));
 }
 
+const CObList& openmfc::detail::mdi::Groups(void* area) {
+    if (auto* rec = Record(area)) return rec->runtime->groups;
+    static const CObList empty;
+    return empty;
+}
+
 void openmfc::detail::mdi::SetTabsVisible(void* area, bool visible) {
     auto* self = Self(area);
-    if (!self || !self->m_bTabIsEnabled) return;
+    if (!self || (!self->m_bTabIsEnabled && !self->m_bIsMDITabbedGroup)) return;
     self->m_bTabIsVisible = visible;
-    if (visible) impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(self, FALSE);
-    else {
-        LayoutDocumentTabs(*self);
-        RestoreDocumentPlacements(*self);
+    if (visible) {
+        impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(self, FALSE);
+        return;
+    }
+    CancelSplitterDrag(*self);
+    LayoutDocumentTabs(*self);
+    for (auto* node = self->m_lstTabbedGroups.pNodeHead; node; node = node->pNext)
+        ::ShowWindow(WndHandle(node->data), SW_HIDE);
+    RestoreDocumentPlacements(*self);
+}
+
+namespace {
+class TabUpdate {
+public:
+    explicit TabUpdate(ClientRuntime& state) : m_state(state) { m_state.updating = true; }
+    ~TabUpdate() { m_state.updating = false; }
+private:
+    ClientRuntime& m_state;
+};
+
+std::vector<CMDIChildWndEx*> CollectTabbedDocuments(S_CMDIClientAreaWnd& self) {
+    std::vector<CMDIChildWndEx*> children;
+    for (HWND window = ::GetWindow(WndHandle(&self), GW_CHILD); window; window = ::GetWindow(window, GW_HWNDNEXT)) {
+        auto* child = AsChildEx(static_cast<CWnd*>(CWnd::FromHandlePermanent(window)));
+        if (!child) continue;
+        ::SetWindowSubclass(window, DocumentSubclass, documentSubclassId, reinterpret_cast<DWORD_PTR>(&self));
+        if (impl__CanShowOnMDITabs_CMDIChildWndEx__UEAAHXZ(child)) children.push_back(child);
+    }
+    return children;
+}
+
+void RemoveMissingTabs(CMFCTabCtrl& tabs, const std::vector<CMDIChildWndEx*>& children, bool grouped) {
+    for (int i = tabs.GetTabsCount() - 1; i >= 0; --i) {
+        auto* window = tabs.GetTabWnd(i);
+        if (std::find(children.begin(), children.end(), window) != children.end()) continue;
+        if (grouped) {
+            if (auto* child = AsChildEx(window)) SetChildRelatedTabGroup(child, nullptr);
+        }
+        tabs.RemoveTab(i);
     }
 }
 
+void SyncDocumentTab(const S_CMDIClientAreaWnd& self, CMFCTabCtrl& tabs, CMDIChildWndEx& child) {
+    int index = TabFromHwnd(&tabs, child.m_hWnd);
+    if (index < 0) {
+        tabs.AddTab(&child, nullptr, UINT(-1), self.m_bIsMDITabbedGroup);
+        index = TabFromHwnd(&tabs, child.m_hWnd);
+    }
+    if (index < 0) return;
+    std::wstring label(::GetWindowTextLengthW(child.m_hWnd) + 1, L'\0');
+    label.resize(::GetWindowTextW(child.m_hWnd, label.data(), static_cast<int>(label.size())));
+    HICON icon = nullptr;
+    if (self.m_mdiTabParams.m_bTabIcons) {
+        icon = reinterpret_cast<HICON>(::SendMessageW(child.m_hWnd, WM_GETICON, ICON_SMALL, 0));
+        if (!icon) icon = reinterpret_cast<HICON>(::GetClassLongPtrW(child.m_hWnd, GCLP_HICONSM));
+    }
+    auto& tab = openmfc::detail::mfccore::EnsureTabCtrlState(&tabs).tabs[index];
+    tab.label = std::move(label);
+    tab.windowIcon = icon;
+}
+}
+
 // Symbol: ?UpdateTabs@CMDIClientAreaWnd@@QEAAXH@Z
-extern "C" int MS_ABI impl__CanShowOnMDITabs_CMDIChildWndEx__UEAAHXZ(CMDIChildWndEx*);
-extern "C" void MS_ABI impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(void* pThis, int) {
+extern "C" void MS_ABI impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(void* pThis, int visible) {
     auto* self = Self(pThis);
     if (!self || self->m_bDisableUpdateTabs) return;
     if (self->m_bIsMDITabbedGroup) {
-        impl__UpdateMDITabbedGroups_CMDIClientAreaWnd__QEAAXH_Z(self, TRUE);
+        impl__UpdateMDITabbedGroups_CMDIClientAreaWnd__QEAAXH_Z(self, visible);
         return;
     }
     const HWND client = WndHandle(self);
     if (!client || !self->m_bTabIsEnabled || !self->m_bTabIsVisible) return;
     auto& runtime = *Record(self)->runtime;
     if (runtime.updating) return;
-    struct ResetUpdate {
-        bool& flag;
-        ~ResetUpdate() { flag = false; }
-    } reset{runtime.updating};
-    runtime.updating = true;
+    TabUpdate update(runtime);
 
     auto* tabs = EmbeddedTab(self);
     if (!tabs->m_hWnd) {
@@ -1085,37 +1325,9 @@ extern "C" void MS_ABI impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(void* pThis,
                 params.m_tabLocation, params.m_bTabCloseButton)) return;
         impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(self, tabs);
     }
-    std::vector<CMDIChildWndEx*> children;
-    for (HWND window = ::GetWindow(client, GW_CHILD); window; window = ::GetWindow(window, GW_HWNDNEXT)) {
-        auto* child = AsChildEx(static_cast<CWnd*>(CWnd::FromHandlePermanent(window)));
-        if (!child) continue;
-        ::SetWindowSubclass(window, DocumentSubclass, documentSubclassId, reinterpret_cast<DWORD_PTR>(self));
-        if (impl__CanShowOnMDITabs_CMDIChildWndEx__UEAAHXZ(child)) children.push_back(child);
-    }
-    for (int i = tabs->GetTabsCount() - 1; i >= 0; --i) {
-        if (std::find(children.begin(), children.end(), tabs->GetTabWnd(i)) == children.end())
-            tabs->RemoveTab(i);
-    }
-    auto& state = openmfc::detail::mfccore::EnsureTabCtrlState(tabs);
-    for (auto* child : children) {
-        int index = TabFromHwnd(tabs, child->m_hWnd);
-        if (index < 0) {
-            tabs->AddTab(child, nullptr, UINT(-1), FALSE);
-            index = TabFromHwnd(tabs, child->m_hWnd);
-        } else {
-            std::wstring label(::GetWindowTextLengthW(child->m_hWnd) + 1, L'\0');
-            label.resize(::GetWindowTextW(child->m_hWnd, label.data(), static_cast<int>(label.size())));
-            state.tabs[index].label = std::move(label);
-        }
-        if (index >= 0) {
-            HICON icon = nullptr;
-            if (self->m_mdiTabParams.m_bTabIcons) {
-                icon = reinterpret_cast<HICON>(::SendMessageW(child->m_hWnd, WM_GETICON, ICON_SMALL, 0));
-                if (!icon) icon = reinterpret_cast<HICON>(::GetClassLongPtrW(child->m_hWnd, GCLP_HICONSM));
-            }
-            state.tabs[index].windowIcon = icon;
-        }
-    }
+    auto children = CollectTabbedDocuments(*self);
+    RemoveMissingTabs(*tabs, children, false);
+    for (auto* child : children) SyncDocumentTab(*self, *tabs, *child);
     const HWND active = reinterpret_cast<HWND>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0));
     const int index = TabFromHwnd(tabs, active);
     if (index >= 0 && index != tabs->GetActiveTab()) tabs->SetActiveTab(index);
@@ -1156,25 +1368,11 @@ extern "C" void MS_ABI impl__SetTaskbarTabOrder_CMDIClientAreaWnd__QEAAXXZ(void*
         }
     }
 }
-// CMDIClientAreaWnd::AdjustMDIChildren — retail entry RVA 0x7e060 (mfc140u).
-// Proceeds when ::IsWindowVisible(pTabWnd->m_hWnd) or the global at 0x3b1afc
-// (?m_bDisableSetRedraw@CMDIFrameWndEx@@2HA per the mfc140u export table) is
-// zero; copies pTabWnd->m_rectWndArea (CMFCTabCtrl +0x45c, "child window
-// area"), ::MapWindowPoints(pTabWnd->m_hWnd, m_hWnd, &rect, 2), then for each
-// tab i of pTabWnd (vslots +0x428/+0x368/+0x370): a minimised child
-// (GWL_STYLE bit 29) is ShowWindow(SW_RESTORE)'d, then
-// SetWindowPos(&wndTop, rect, i == active ? SWP_NOACTIVATE : 0x1c) and, for a
-// CMDIChildWndEx with taskbar-tab support, the taskbar thumbnail is refreshed
-// (InvalidateIconicBitmaps 0x840b0, then SetTaskbarTabOrder(NULL) 0x84220 --
-// byte-identical to ?SetTaskbarTabOrder@CMDIChildWndEx@@ at 0x847b0, mfc140)
-// unless AfxGetApp()'s virtual +0x208 object answers TRUE at its +0x70.
-// STUB: every rectangle comes from m_rectWndArea, which OpenMFC's CMFCTabCtrl
-// never computes (its RecalcLayout is a stub); positioning the children from
-// a zero rect would collapse them, which is worse than leaving them alone.
 // Symbol: ?AdjustMDIChildren@CMDIClientAreaWnd@@AEAAXPEAVCMFCTabCtrl@@@Z
 extern "C" void MS_ABI impl__AdjustMDIChildren_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(void* pThis, void* pTabGroup) {
-    (void)pThis;
-    (void)pTabGroup;
+    auto* self = Self(pThis);
+    if (self && self->m_bTabIsVisible && pTabGroup)
+        FitTabDocuments(*self, *static_cast<CMFCTabCtrl*>(pTabGroup));
 }
 
 // CMDIClientAreaWnd::ApplyParams — retail entry RVA 0x7d1b0 (mfc140u), which
@@ -1212,7 +1410,7 @@ extern "C" void MS_ABI impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl
     }
     CMFCTabCtrl* pTab = static_cast<CMFCTabCtrl*>(pTabGroup);
     CMFCBaseTabCtrl* pBase = AsBaseTab(pTabGroup);
-    const RetailMDITabInfo& params = self->m_mdiTabParams;
+    const CMDITabInfo& params = self->m_mdiTabParams;
     impl__ModifyTabStyle_CMFCTabCtrl__QEAAHW4Style_1__Z(pTab, params.m_style);
     impl__SetLocation_CMFCBaseTabCtrl__UEAAXW4Location_1__Z(pBase, params.m_tabLocation);
     impl__EnableTabDocumentsMenu_CMFCTabCtrl__QEAAXH_Z(pTab, params.m_bDocumentMenu);
@@ -1221,11 +1419,10 @@ extern "C" void MS_ABI impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl
     impl__EnableCustomToolTips_CMFCBaseTabCtrl__QEAAHH_Z(pBase, params.m_bTabCustomTooltips);
     impl__HideNoTabs_CMFCTabCtrl__QEAAXH_Z(pTab, TRUE);
     impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(pTab, TRUE);
-    if (pTab == EmbeddedTab(self)) {
-        auto& state = openmfc::detail::mfccore::EnsureTabCtrlState(pTab);
-        state.mdiCloseButton = params.m_bTabCloseButton;
-        state.mdiActiveCloseButton = params.m_bActiveTabCloseButton;
-    }
+    pTab->EnableTabSwap(params.m_bEnableTabSwap);
+    auto& state = openmfc::detail::mfccore::EnsureTabCtrlState(pTab);
+    state.mdiCloseButton = params.m_bTabCloseButton;
+    state.mdiActiveCloseButton = params.m_bActiveTabCloseButton;
 }
 
 // Symbol: ?CalcWindowRect@CMDIClientAreaWnd@@MEAAXPEAUtagRECT@@I@Z
@@ -1236,102 +1433,20 @@ extern "C" void MS_ABI impl__CalcWindowRect_CMDIClientAreaWnd__MEAAXPEAUtagRECT_
     if (HWND client = WndHandle(self)) {
         ::SetWindowPos(client, nullptr, bounds->left, bounds->top, bounds->right - bounds->left,
             bounds->bottom - bounds->top, SWP_NOZORDER | SWP_NOACTIVATE);
-        LayoutDocumentTabs(*self);
+        if (self->m_bIsMDITabbedGroup) LayoutDocumentGroups(*self);
+        else LayoutDocumentTabs(*self);
     }
     SelfWnd(self)->CalcWindowRect(bounds, adjustType);
 }
 
-// CMDIClientAreaWnd::CalcWindowRectForMDITabbedGroups — transcribed from
-// retail entry RVA 0x7dd90 (mfc140u):
-//     if (m_bInsideDragComplete) return;
-//     SetWindowPos(&CWnd::wndBottom, lp->left, lp->top, w, h, SWP_NOACTIVATE);   // 0x2a9a60, 0x3c3460
-//     if (m_lstTabbedGroups.GetCount() == 0) return;
-//     if (GetCount() == 1) {
-//         CMFCTabCtrl* p = DYNAMIC_DOWNCAST(CMFCTabCtrl, head->data);
-//         p->ShowWindow(SW_SHOWNA);  p->SetWindowPos(NULL, 0, 0, w, h, SWP_NOZORDER|SWP_NOACTIVATE);
-//         AdjustMDIChildren(p);  return;
-//     }
-//     int nTotal = 0;
-//     for (each node) { ::GetWindowRect(group->m_hWnd, &rc); nTotal += vert ? rc.Width() : rc.Height(); }
-//     int nFull = vert ? lp->Width() : lp->Height();   // vert == (m_groupAlignment == GROUP_VERT_ALIGN)
-//     int nOffset = 0;  const int nMin = m_nResizeMargin;
-//     for (each node) {
-//         group = DYNAMIC_DOWNCAST(...); if (!group || !group->m_hWnd) continue;
-//         ::GetWindowRect(group->m_hWnd, &rc);  int cur = vert ? rc.Width() : rc.Height();
-//         int nSize = (int)(ceil((double)cur / nTotal * 100.0) * nFull / 100.0);   // ceil = import 0x2c7508
-//         if (this is the last node && nSize - nOffset + nFull != 0) nSize = nFull - nOffset;
-//         if (nSize < nMin) nSize = nMin;
-//         vert ? group->SetWindowPos(NULL, nOffset, 0, nSize, lp->Height(), 0x14)
-//              : group->SetWindowPos(NULL, 0, nOffset, lp->Width(), nSize, 0x14);
-//         AdjustMDIChildren(group);  nOffset += nSize;
-//         ::RedrawWindow(group->m_hWnd, NULL, NULL, RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW);
-//     }
-// (The `nSize - nOffset + nFull != 0` test is retail's, transcribed as is.)
-// Retail reads m_hWnd through a NULL group in the first loop when the
-// downcast fails; that node is skipped here.
 // Symbol: ?CalcWindowRectForMDITabbedGroups@CMDIClientAreaWnd@@QEAAXPEAUtagRECT@@I@Z
-extern "C" void MS_ABI impl__CalcWindowRectForMDITabbedGroups_CMDIClientAreaWnd__QEAAXPEAUtagRECT__I_Z(void* pThis, RECT* lpRect, unsigned int nAdjustType) {
-    (void)nAdjustType;   // not read by retail
-    S_CMDIClientAreaWnd* self = Self(pThis);
-    if (self == nullptr || lpRect == nullptr || self->m_bInsideDragComplete) {
-        return;
-    }
-    const int nWidth = lpRect->right - lpRect->left;
-    const int nHeight = lpRect->bottom - lpRect->top;
-    impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(SelfWnd(self), WndBottom(), lpRect->left, lpRect->top,
-                                                nWidth, nHeight, SWP_NOACTIVATE);
-    if (self->m_lstTabbedGroups.nCount == 0) {
-        return;
-    }
-    if (self->m_lstTabbedGroups.nCount == 1) {
-        CMFCTabCtrl* pGroup = AsTabCtrl(self->m_lstTabbedGroups.pNodeHead->data);
-        if (pGroup == nullptr) {
-            return;   // retail would call ShowWindow through NULL here
-        }
-        impl__ShowWindow_CWnd__QEAAHH_Z(pGroup, SW_SHOWNA);
-        impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(pGroup, nullptr, 0, 0, nWidth, nHeight, SWP_NOZORDER | SWP_NOACTIVATE);
-        impl__AdjustMDIChildren_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(pThis, pGroup);
-        return;
-    }
-    const bool bVert = self->m_groupAlignment == kGroupVertAlign;
-    int nTotal = 0;
-    for (RetailNode* node = self->m_lstTabbedGroups.pNodeHead; node != nullptr; node = node->pNext) {
-        CMFCTabCtrl* pGroup = AsTabCtrl(node->data);
-        if (pGroup == nullptr) {
-            continue;
-        }
-        RECT rc = {};
-        ::GetWindowRect(WndHandle(pGroup), &rc);
-        nTotal += bVert ? (rc.right - rc.left) : (rc.bottom - rc.top);
-    }
-    const int nFull = bVert ? nWidth : nHeight;
-    const int nMin = self->m_nResizeMargin;
-    int nOffset = 0;
-    for (RetailNode* node = self->m_lstTabbedGroups.pNodeHead; node != nullptr; node = node->pNext) {
-        CMFCTabCtrl* pGroup = AsTabCtrl(node->data);
-        if (pGroup == nullptr || WndHandle(pGroup) == nullptr) {
-            continue;
-        }
-        RECT rc = {};
-        ::GetWindowRect(WndHandle(pGroup), &rc);
-        const int nCur = bVert ? (rc.right - rc.left) : (rc.bottom - rc.top);
-        const double dPercent = ceil(static_cast<double>(nCur) / static_cast<double>(nTotal) * 100.0);
-        int nSize = static_cast<int>(dPercent * static_cast<double>(nFull) / 100.0);
-        if (node->pNext == nullptr && (nSize - nOffset + nFull) != 0) {
-            nSize = nFull - nOffset;
-        }
-        if (nSize < nMin) {
-            nSize = nMin;
-        }
-        if (bVert) {
-            impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(pGroup, nullptr, nOffset, 0, nSize, nHeight, SWP_NOZORDER | SWP_NOACTIVATE);
-        } else {
-            impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(pGroup, nullptr, 0, nOffset, nWidth, nSize, SWP_NOZORDER | SWP_NOACTIVATE);
-        }
-        impl__AdjustMDIChildren_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(pThis, pGroup);
-        nOffset += nSize;
-        ::RedrawWindow(WndHandle(pGroup), nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
-    }
+extern "C" void MS_ABI impl__CalcWindowRectForMDITabbedGroups_CMDIClientAreaWnd__QEAAXPEAUtagRECT__I_Z(
+    void* pThis, RECT* bounds, unsigned int) {
+    auto* self = Self(pThis);
+    if (!self || !bounds || !self->m_bIsMDITabbedGroup || self->m_bInsideDragComplete) return;
+    ::SetWindowPos(WndHandle(self), HWND_BOTTOM, bounds->left, bounds->top,
+        bounds->right - bounds->left, bounds->bottom - bounds->top, SWP_NOACTIVATE);
+    LayoutDocumentGroups(*self);
 }
 
 // CMDIClientAreaWnd::CloseAllWindows — transcribed from retail entry RVA
@@ -1426,6 +1541,7 @@ extern "C" void* MS_ABI impl__CreateNewTabGroup_CMDIClientAreaWnd__AEAAPEAVCMFCT
     TabResizeMode(pTabGroup) = nAlign;
     impl__RecalcLayout_CMFCTabCtrl__UEAAXXZ(static_cast<CMFCTabCtrl*>(pTabGroup));
     ListInsertAfter(self->m_lstTabbedGroups, pos, pNew);
+    PublishGroupList(*self);
     if (self->m_lstTabbedGroups.pNodeTail->data != pNew) {
         TabResizeMode(pNew) = nAlign;
         impl__RecalcLayout_CMFCTabCtrl__UEAAXXZ(static_cast<CMFCTabCtrl*>(pNew));
@@ -1491,18 +1607,13 @@ extern "C" void* MS_ABI impl__CreateNewTabGroup_CMDIClientAreaWnd__AEAAPEAVCMFCT
 //     if (!afxGlobalData.m_bInitialized) { Initialize(); m_bInitialized = 1; }           // twice, 0x3c1620
 //     pImages->Create(afxGlobalData.m_sizeSmallIcon.cx, .cy, ILC_COLOR32|ILC_MASK, 0, 1);   // 0x296d10, 0x3c17c0/0x3c17c4
 //     return pNew;
-// In OpenMFC the CMFCTabCtrl::Create thunk (featurepack/tabs/CMFCTabCtrl.cpp)
-// is still a generated placeholder that returns 0, so a fresh group takes the
-// retail "Create failed" path (deleted, NULL returned) until that thunk is
-// implemented.  Retail dereferences a NULL pNew/pImages when operator new
-// fails; those are guarded here.
 // Symbol: ?CreateTabGroup@CMDIClientAreaWnd@@UEAAPEAVCMFCTabCtrl@@PEAV2@@Z
 extern "C" void* MS_ABI impl__CreateTabGroup_CMDIClientAreaWnd__UEAAPEAVCMFCTabCtrl__PEAV2__Z(void* pThis, void* pTabGroup) {
     S_CMDIClientAreaWnd* self = Self(pThis);
     if (self == nullptr) {
         return nullptr;
     }
-    const RetailMDITabInfo& params = self->m_mdiTabParams;
+    const CMDITabInfo& params = self->m_mdiTabParams;
     bool bRecycled = false;
     void* pNew = pTabGroup;
     if (pNew == nullptr) {
@@ -1511,6 +1622,8 @@ extern "C" void* MS_ABI impl__CreateTabGroup_CMDIClientAreaWnd__UEAAPEAVCMFCTabC
             if (p != nullptr && AsTabCtrl(p) != nullptr && ::IsWindow(WndHandle(p))) {
                 pNew = p;
                 bRecycled = true;
+            } else if (p) {
+                DeleteTabCtrlObject(p);
             }
         }
         if (!bRecycled) {
@@ -1628,49 +1741,29 @@ extern "C" void MS_ABI impl__DrawNewGroupRect_CMDIClientAreaWnd__AEAAXPEBUtagREC
     impl___1CWindowDC__UEAA_XZ(pDC);
 }
 
-// CMDIClientAreaWnd::EnableMDITabbedGroups — retail entry RVA 0x7ce60 (mfc140u).
-//     if (m_bTabIsEnabled) EnableMDITabs(FALSE, mdiTabParams);              // 0x7cd20
-//     m_wndTab.ShowWindow(SW_HIDE);
-//     HWND hActive = (HWND)::SendMessage(m_hWnd, WM_MDIGETACTIVE, 0, 0);
-//     if (m_bIsMDITabbedGroup != bEnable) {
-//         m_bIsMDITabbedGroup = bEnable;
-//         if (!bEnable) for (each group) { group->ShowWindow(SW_HIDE);
-//             for (each tab i) group->GetTabWnd(i)->ModifyStyle(0,
-//                                  CMDIChildWndEx::m_dwExcludeStyle | WS_SYSMENU, 0x24); }   // 0x2a96f0
-//     }
-//     m_bTabIsVisible = bEnable;
-//     if (!m_bIsMDITabbedGroup) {
-//         if (!IsKeepClientEdge()) ModifyStyleEx(0, WS_EX_CLIENTEDGE);
-//         collect every MDI child (::GetWindow GW_CHILD/HWNDNEXT, FromHandle) that is a
-//         CMDIChildWndEx passing its virtual +0x3d8 into a local CList (vftable 0x2ed378, 0x7908);
-//         m_bDisableUpdateTabs = TRUE;
-//         for (each collected child) child->SetWindowPos(NULL, -1, -1, -1, -1, 0x27);   // 0x2a9a60
-//         m_bDisableUpdateTabs = FALSE;
-//         UpdateTabs(FALSE);                                                  // 0x7ea10
-//         ~CList (0x83600)
-//     } else {
-//         m_mdiTabParams = mdiTabParams (three 16-byte moves);
-//         if (!IsKeepClientEdge()) ModifyStyleEx(WS_EX_CLIENTEDGE, 0);
-//         for (each group) { group->ShowWindow(SW_SHOWNA); ApplyParams(group); }
-//         UpdateMDITabbedGroups(TRUE);                                        // 0x7f020
-//         for (each group) group->RecalcLayout();                             // vslot +0x318
-//         if (m_bIsMDITabbedGroup) SetActiveTab(hActive);                     // 0x7e540
-//     }
-// (the ModifyStyle at 0x7cf46 ORs bit 19 == WS_SYSMENU (`bts $0x13`) into
-// the dword global at 0x3b1af4, which the mfc140u export table names
-// ?m_dwExcludeStyle@CMDIChildWndEx@@2KA; OpenMFC exports it too, as
-// impl__m_dwExcludeStyle_CMDIChildWndEx__2KA in core/frame/StaticData.cpp.)
-// STUB: both branches end in UpdateTabs / UpdateMDITabbedGroups, which are
-// stubs here, and the enable path's child collection goes through the
-// CMDIChildWndEx virtual +0x3d8 (CanShowOnMDITabs), which OpenMFC can only
-// reach as a non-virtual thunk; toggling the flag without the group/tab
-// bookkeeping those stubs own would leave the frame in a half-converted
-// state.  Not transcribed.
 // Symbol: ?EnableMDITabbedGroups@CMDIClientAreaWnd@@QEAAXHAEBVCMDITabInfo@@@Z
-extern "C" void MS_ABI impl__EnableMDITabbedGroups_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(void* pThis, int bEnable, const void* pParams) {
-    (void)pThis;
-    (void)bEnable;
-    (void)pParams;
+extern "C" void MS_ABI impl__EnableMDITabbedGroups_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(
+    void* pThis, int enable, const void* params) {
+    auto* self = Self(pThis);
+    if (!self || !params) return;
+    if (self->m_bTabIsEnabled) {
+        self->m_bTabIsEnabled = FALSE;
+        LayoutDocumentTabs(*self);
+    }
+    self->m_bTabIsVisible = enable;
+    self->m_bIsMDITabbedGroup = enable;
+    if (enable) {
+        const auto& options = *static_cast<const CMDITabInfo*>(params);
+        if (&options != &self->m_mdiTabParams) self->m_mdiTabParams = options;
+        for (auto* node = self->m_lstTabbedGroups.pNodeHead; node; node = node->pNext)
+            impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(self, node->data);
+        impl__UpdateMDITabbedGroups_CMDIClientAreaWnd__QEAAXH_Z(self, TRUE);
+    } else {
+        CancelSplitterDrag(*self);
+        for (auto* node = self->m_lstTabbedGroups.pNodeHead; node; node = node->pNext)
+            ::ShowWindow(WndHandle(node->data), SW_HIDE);
+        RestoreDocumentPlacements(*self);
+    }
 }
 
 // Symbol: ?EnableMDITabs@CMDIClientAreaWnd@@QEAAXHAEBVCMDITabInfo@@@Z
@@ -1681,7 +1774,8 @@ extern "C" void MS_ABI impl__EnableMDITabs_CMDIClientAreaWnd__QEAAXHAEBVCMDITabI
     if (self->m_bIsMDITabbedGroup)
         impl__EnableMDITabbedGroups_CMDIClientAreaWnd__QEAAXHAEBVCMDITabInfo___Z(pThis, FALSE, params);
     self->m_bTabIsEnabled = enable;
-    memcpy(&self->m_mdiTabParams, params, sizeof(RetailMDITabInfo));
+    const auto& options = *static_cast<const CMDITabInfo*>(params);
+    if (&options != &self->m_mdiTabParams) self->m_mdiTabParams = options;
     impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(self, self->m_wndTab);
     self->m_bTabIsVisible = enable;
     if (enable) impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(pThis, FALSE);
@@ -1905,10 +1999,8 @@ extern "C" unsigned long MS_ABI impl__GetMDITabsContextMenuAllowedItems_CMDIClie
     if (self->m_lstTabbedGroups.pNodeTail == nullptr || self->m_lstTabbedGroups.pNodeTail->data != pActive) {
         dwAllowed |= 8;
     }
-    // The retail downcasts are performed (they have no side effect beyond
-    // IsKindOf) but the 0x10 decision they feed cannot be made here.
-    (void)AsChildEx(impl__GetActiveWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__XZ(AsBaseTab(pActive)));
-    (void)AsFrameEx(impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(SelfWnd(self)));
+    auto* child = AsChildEx(TabWnd(pActive, ActiveTab(pActive)));
+    if (child && child->GetTabbedPane()) dwAllowed |= 0x10;
     return dwAllowed;
 }
 
@@ -2046,7 +2138,7 @@ extern "C" void MS_ABI impl__MDITabNewGroup_CMDIClientAreaWnd__QEAAXH_Z(void* pT
         bVert = FALSE;
     }
     void* pGroup = impl__FindActiveTabWndByActiveChild_CMDIClientAreaWnd__QEAAPEAVCMFCTabCtrl__XZ(pThis);
-    if (pGroup == nullptr) {
+    if (!pGroup || TabsNum(pGroup) < 2) {
         return;
     }
     RECT rc = {};
@@ -2060,70 +2152,29 @@ extern "C" void MS_ABI impl__MDITabNewGroup_CMDIClientAreaWnd__QEAAXH_Z(void* pT
     impl__MoveWindowToTabGroup_CMDIClientAreaWnd__QEAAHPEAVCMFCTabCtrl__0H_Z(pThis, pGroup, pNew, -1);
 }
 
-// CMDIClientAreaWnd::MoveWindowToTabGroup — transcribed from retail entry
-// RVA 0x7ff80 (mfc140u):
-//     HWND hFrom = pFrom ? pFrom->m_hWnd : NULL;  HWND hTo = pTo ? pTo->m_hWnd : NULL;
-//     if (nIdxFrom == -1) { nIdxFrom = pFrom->GetActiveTab(); if (nIdxFrom == -1) return FALSE; }   // vslot +0x428
-//     CMDIChildWndEx* pWnd = DYNAMIC_DOWNCAST(CMDIChildWndEx, pFrom->GetTabWnd(nIdxFrom));       // +0x370
-//     if (!pWnd) return FALSE;
-//     CString strLabel = pWnd->GetFrameText();                                 // vslot +0x3c8, hidden return slot
-//     pFrom->RemoveTab(nIdxFrom, TRUE);                                        // +0x340
-//     pWnd->m_pRelatedTabGroup = pTo;                                          // +0x1e8
-//     pTo->AddTab(pWnd, strLabel, (UINT)-1, TRUE);                             // +0x328, the -1 is hard-coded
-//     if (pFrom->GetTabsNum() == 0) { RemoveTabGroup(pFrom, TRUE); UpdateMDITabbedGroups(TRUE); pTo->RecalcLayout(); }   // 0x80320 / 0x7f020 / +0x318
-//     else AdjustMDIChildren(pFrom);
-//     AdjustMDIChildren(pTo);                                                  // 0x7e060
-//     SetActiveTab(pWnd->m_hWnd);                                              // 0x7e540
-//     if (CMDIFrameWndEx* pFrame = DYNAMIC_DOWNCAST(CMDIFrameWndEx, GetParentFrame()))
-//         ::SendMessage(pFrame->m_hWnd, AFX_WM_ON_MOVETOTABGROUP, (WPARAM)hFrom, (LPARAM)hTo);   // 0x3c18f0
-//     ~strLabel;  return TRUE;
-// Retail dereferences pTo without a check (pTo comes from a downcast that can
-// fail in MDITabMoveToNextGroup); a NULL pTo returns FALSE here after the
-// same early checks.  The CString comes back through the GetFrameText thunk's
-// hidden return slot and is released through the CStringT destructor thunk.
 // Symbol: ?MoveWindowToTabGroup@CMDIClientAreaWnd@@QEAAHPEAVCMFCTabCtrl@@0H@Z
-extern "C" int MS_ABI impl__MoveWindowToTabGroup_CMDIClientAreaWnd__QEAAHPEAVCMFCTabCtrl__0H_Z(void* pThis, void* pFrom, void* pTo, int nIdxFrom) {
-    S_CMDIClientAreaWnd* self = Self(pThis);
-    if (self == nullptr || pFrom == nullptr) {
-        return FALSE;
-    }
-    HWND hFrom = WndHandle(pFrom);
-    HWND hTo = WndHandle(pTo);
-    if (nIdxFrom == -1) {
-        nIdxFrom = ActiveTab(pFrom);
-        if (nIdxFrom == -1) {
-            return FALSE;
-        }
-    }
-    CMDIChildWndEx* pWnd = AsChildEx(TabWnd(pFrom, nIdxFrom));
-    if (pWnd == nullptr || pTo == nullptr) {
-        return FALSE;
-    }
-    alignas(void*) unsigned char strStorage[sizeof(CString)] = {};
-    CString* pLabel = impl__GetFrameText_CMDIChildWndEx__UEBA_AV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__XZ(
-        pWnd, reinterpret_cast<CString*>(strStorage));
-    impl__RemoveTab_CMFCBaseTabCtrl__UEAAHHH_Z(AsBaseTab(pFrom), nIdxFrom, TRUE);
-    SetChildRelatedTabGroup(pWnd, pTo);
-    impl__AddTab_CMFCBaseTabCtrl__UEAAXPEAVCWnd__PEB_WIH_Z(AsBaseTab(pTo), pWnd,
-                                                          pLabel != nullptr ? pLabel->GetString() : nullptr,
-                                                          static_cast<unsigned int>(-1), TRUE);
-    if (TabsNum(pFrom) == 0) {
-        impl__RemoveTabGroup_CMDIClientAreaWnd__QEAAXPEAVCMFCTabCtrl__H_Z(pThis, pFrom, TRUE);
-        impl__UpdateMDITabbedGroups_CMDIClientAreaWnd__QEAAXH_Z(pThis, TRUE);
-        impl__RecalcLayout_CMFCTabCtrl__UEAAXXZ(static_cast<CMFCTabCtrl*>(pTo));
-    } else {
-        impl__AdjustMDIChildren_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(pThis, pFrom);
-    }
-    impl__AdjustMDIChildren_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(pThis, pTo);
-    impl__SetActiveTab_CMDIClientAreaWnd__QEAAXPEAUHWND_____Z(pThis, WndHandle(pWnd));
-    CMDIFrameWndEx* pFrame = AsFrameEx(impl__GetParentFrame_CWnd__QEBAPEAVCFrameWnd__XZ(SelfWnd(self)));
-    if (pFrame != nullptr) {
-        ::SendMessage(WndHandle(pFrame), impl__AFX_WM_ON_MOVETOTABGROUP__3IA,
-                      reinterpret_cast<WPARAM>(hFrom), reinterpret_cast<LPARAM>(hTo));
-    }
-    if (pLabel != nullptr) {
-        impl___1__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__QEAA_XZ(pLabel);
-    }
+extern "C" int MS_ABI impl__MoveWindowToTabGroup_CMDIClientAreaWnd__QEAAHPEAVCMFCTabCtrl__0H_Z(
+    void* pThis, void* pFrom, void* pTo, int index) {
+    auto* self = Self(pThis);
+    if (!self || !pFrom || !pTo || pFrom == pTo || !self->m_bIsMDITabbedGroup ||
+        !ListFind(self->m_lstTabbedGroups, pFrom) || !ListFind(self->m_lstTabbedGroups, pTo)) return FALSE;
+    auto* source = static_cast<CMFCTabCtrl*>(pFrom);
+    auto* target = static_cast<CMFCTabCtrl*>(pTo);
+    if (index == -1) index = source->GetActiveTab();
+    auto* child = AsChildEx(source->GetTabWnd(index));
+    if (!child || !target->InsertTab(child, nullptr, target->GetTabsCount(), UINT(-1), TRUE)) return FALSE;
+
+    const HWND fromWindow = source->m_hWnd;
+    const HWND toWindow = target->m_hWnd;
+    source->RemoveTab(index);
+    SetChildRelatedTabGroup(child, target);
+    if (source->GetTabsCount() == 0)
+        impl__RemoveTabGroup_CMDIClientAreaWnd__QEAAXPEAVCMFCTabCtrl__H_Z(self, source, TRUE);
+    const HWND client = WndHandle(self);
+    ::SendMessageW(client, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(child->m_hWnd), 0);
+    impl__UpdateMDITabbedGroups_CMDIClientAreaWnd__QEAAXH_Z(self, TRUE);
+    ::SendMessageW(::GetParent(client), impl__AFX_WM_ON_MOVETOTABGROUP__3IA,
+        reinterpret_cast<WPARAM>(fromWindow), reinterpret_cast<LPARAM>(toWindow));
     return TRUE;
 }
 
@@ -2192,54 +2243,16 @@ extern "C" __int64 MS_ABI impl__OnCancelTabMove_CMDIClientAreaWnd__IEAA_J_K_J_Z(
     return 0;
 }
 
-// CMDIClientAreaWnd::OnDragComplete — transcribed from retail entry RVA
-// 0x7f800 (mfc140u):
-//     if (!m_bIsMDITabbedGroup || m_lstTabbedGroups.GetCount() == 0) return 0;
-//     CMFCTabCtrl* pNext = GetNextTabWnd((CMFCTabCtrl*)wp, FALSE);  if (!pNext) return 0;   // 0x80890
-//     m_bInsideDragComplete = TRUE;
-//     CRect* pRect = (CRect*)lp;  ScreenToClient(pRect);                     // 0x2a32b0
-//     wp->SetWindowPos(NULL, -1, -1, pRect->Width(), pRect->Height(), SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);   // 0x2a9a60
-//     CRect rcNext; ::GetWindowRect(pNext->m_hWnd, &rcNext); ScreenToClient(&rcNext);
-//     if (m_groupAlignment == GROUP_VERT_ALIGN) rcNext.left = pRect->right; else rcNext.top = pRect->bottom;
-//     pNext->SetWindowPos(NULL, rcNext.left, rcNext.top, rcNext.Width(), rcNext.Height(), SWP_NOZORDER|SWP_NOACTIVATE);
-//     AdjustMDIChildren(wp);  AdjustMDIChildren(pNext);
-//     ::RedrawWindow(wp->m_hWnd, NULL, NULL, 0x105);  ::RedrawWindow(pNext->m_hWnd, NULL, NULL, 0x105);
-//     m_bInsideDragComplete = FALSE;  return 1;
-// (retail passes a NULL wp straight into GetNextTabWnd, which then returns
-// NULL; a NULL lp would be dereferenced -- guarded here.)
 // Symbol: ?OnDragComplete@CMDIClientAreaWnd@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnDragComplete_CMDIClientAreaWnd__IEAA_J_K_J_Z(void* pThis, unsigned __int64 wParam, __int64 lParam) {
-    S_CMDIClientAreaWnd* self = Self(pThis);
-    if (self == nullptr || !self->m_bIsMDITabbedGroup || self->m_lstTabbedGroups.nCount == 0) {
-        return 0;
-    }
-    void* pGroup = reinterpret_cast<void*>(wParam);
-    RECT* pRect = reinterpret_cast<RECT*>(lParam);
-    void* pNext = impl__GetNextTabWnd_CMDIClientAreaWnd__AEAAPEAVCMFCTabCtrl__PEAV2_H_Z(pThis, pGroup, FALSE);
-    if (pNext == nullptr || pRect == nullptr) {
-        return 0;
-    }
-    self->m_bInsideDragComplete = TRUE;
-    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(SelfWnd(self), pRect);
-    impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(AsWnd(pGroup), nullptr, -1, -1, pRect->right - pRect->left,
-                                                pRect->bottom - pRect->top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-    RECT rcNext = {};
-    ::GetWindowRect(WndHandle(pNext), &rcNext);
-    impl__ScreenToClient_CWnd__QEBAXPEAUtagRECT___Z(SelfWnd(self), &rcNext);
-    if (self->m_groupAlignment == kGroupVertAlign) {
-        rcNext.left = pRect->right;
-    } else {
-        rcNext.top = pRect->bottom;
-    }
-    impl__SetWindowPos_CWnd__QEAAHPEBV1_HHHHI_Z(AsWnd(pNext), nullptr, rcNext.left, rcNext.top,
-                                                rcNext.right - rcNext.left, rcNext.bottom - rcNext.top,
-                                                SWP_NOZORDER | SWP_NOACTIVATE);
-    impl__AdjustMDIChildren_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(pThis, pGroup);
-    impl__AdjustMDIChildren_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl___Z(pThis, pNext);
-    ::RedrawWindow(WndHandle(pGroup), nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
-    ::RedrawWindow(WndHandle(pNext), nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
-    self->m_bInsideDragComplete = FALSE;
-    return 1;
+extern "C" __int64 MS_ABI impl__OnDragComplete_CMDIClientAreaWnd__IEAA_J_K_J_Z(
+    void* pThis, unsigned __int64 wParam, __int64 lParam) {
+    auto* self = Self(pThis);
+    auto* group = reinterpret_cast<CMFCTabCtrl*>(wParam);
+    const auto* rect = reinterpret_cast<const RECT*>(lParam);
+    if (!self || !self->m_bIsMDITabbedGroup || !group || !rect) return 0;
+    POINT end{rect->right, rect->bottom};
+    ::ScreenToClient(WndHandle(self), &end);
+    return ResizeAdjacentGroups(*self, *group, IsVerticalSplit(*self) ? end.x : end.y);
 }
 
 // CMDIClientAreaWnd::OnEraseBkgnd — retail entry RVA 0x7d9d0 (mfc140):
@@ -2313,130 +2326,21 @@ extern "C" __int64 MS_ABI impl__OnGetDragBounds_CMDIClientAreaWnd__IEAA_J_K_J_Z(
     return 1;
 }
 
-// CMDIClientAreaWnd::OnMDIDestroy — retail entry RVA 0x7dae0 (mfc140).
-//     CMDIFrameWndEx* pFrame = DYNAMIC_DOWNCAST(CMDIFrameWndEx, GetParentFrame());
-//     CMDIChildWndEx* pChild = DYNAMIC_DOWNCAST(CMDIChildWndEx, pWnd);
-//     if (pFrame->[+0x214] == 0 && !CMDIFrameWndEx::m_bDisableSetRedraw)      // 0x3aaafc (mfc140) is ?m_bDisableSetRedraw@CMDIFrameWndEx@@2HA; pFrame unchecked
-//         ::SendMessage(m_hWnd, WM_SETREDRAW, FALSE, 0);
-//     HWND hActivate = NULL;  BOOL bChanged = FALSE;
-//     if (pChild) {
-//         CMFCTabCtrl* pTab = pChild->m_pRelatedTabGroup;  pChild->m_pRelatedTabGroup = NULL;   // +0x1e8
-//         if (pTab) {
-//             int nBefore = pTab->vslot(+0x308)();  int iTab = pTab->GetTabFromHwnd(pWnd->m_hWnd);
-//             if (iTab >= 0) pChild->[+0x1f0] = TRUE;
-//             BOOL bRecalc = !(AfxGetApp()->vslot(+0x208)() && that->vslot(+0x70)());
-//             pTab->RemoveTab(iTab, bRecalc);
-//             if (pTab->GetTabsNum() == 0) { if (Find(pTab) && count > 1 && pTab->m_bIsActiveInMDITabGroup)
-//                     hActivate = (next-or-head group)->GetTabWnd(max(GetActiveTab(), 0))->m_hWnd;
-//                 RemoveTabGroup(pTab, TRUE); }
-//             else bChanged = nBefore != pTab->vslot(+0x308)();
-//         }
-//     }
-//     if (m_wndTab.m_hWnd) { nBefore = m_wndTab.vslot(+0x308)(); iTab = m_wndTab.GetTabFromHwnd(pWnd->m_hWnd);
-//         if (iTab >= 0) { if (CMDIChildWndEx) child->[+0x1f0] = TRUE; m_wndTab.RemoveTab(iTab, TRUE); }
-//         bChanged = nBefore != m_wndTab.vslot(+0x308)(); }
-//     Default();
-//     if (bChanged) pFrame->RecalcLayout(TRUE);
-//     if (!pFrame->[+0x214]) { if (::IsWindow(hActivate)) SetActiveTab(hActivate);
-//         if (!pFrame->[+0x214] && !CMDIFrameWndEx::m_bDisableSetRedraw) { ::SendMessage(m_hWnd, WM_SETREDRAW, TRUE, 0);
-//             ::RedrawWindow(CWnd::FromHandle(::GetParent(m_hWnd))->m_hWnd, NULL, NULL, 0x185); } }
-// STUB: the body depends on CMDIFrameWndEx +0x214 (a frame BOOL not modelled
-// by OpenMFC) and CMFCTabCtrl vslot +0x308 (no thunk). The CWinApp chain at
-// +0x208 is available through impl__GetDataRecoveryHandler_CWinApp; the
-// returned CDataRecoveryHandler's vslot +0x70 is GetShutdownByRestartManager.
-// The related-tab pointer at CMDIChildWndEx +0x1e8 is initialized to NULL by
-// OpenMFC's constructor's padding zero-fill, so it is not an uninitialized-
-// memory blocker. The missing frame state and tab dispatch still prevent a
-// faithful transcription. (The m_bDisableSetRedraw static itself is
-// available as impl__m_bDisableSetRedraw_CMDIFrameWndEx__2HA in
-// core/frame/StaticData.cpp.)
 // Symbol: ?OnMDIDestroy@CMDIClientAreaWnd@@IEAAXPEAVCWnd@@@Z
 extern "C" void MS_ABI impl__OnMDIDestroy_CMDIClientAreaWnd__IEAAXPEAVCWnd___Z(void* pThis, void* pWnd) {
-    (void)pThis;
-    (void)pWnd;
+    auto* self = Self(pThis);
+    if (!self) return;
+    if (pWnd) RemoveDocumentTab(*self, WndHandle(pWnd));
+    impl__Default_CWnd__IEAA_JXZ(SelfWnd(self));
+    impl__UpdateTabs_CMDIClientAreaWnd__QEAAXH_Z(self, TRUE);
 }
 
-// CMDIClientAreaWnd::OnMDINext — transcribed from retail entry RVA 0x83760
-// (mfc140):
-//     CMFCTabCtrl* pTab;  POSITION pos = NULL;  INT_PTR nGroups = 0;
-//     if (m_bIsMDITabbedGroup) pTab = FindActiveTabWnd();                    // 0x80d40
-//     else if (m_bTabIsEnabled) pTab = &m_wndTab;
-//     else { Default(); return; }                                            // 0x289090
-//     if (m_bIsMDITabbedGroup) { pos = m_lstTabbedGroups.Find(pTab); nGroups = GetCount();
-//                                if (!pos) AfxThrowInvalidArgException(); }   // 0x225b80
-//     int iNext = pTab->GetActiveTab() + (bIsPrev ? -1 : 1);                  // vslot +0x428; `neg/sbb/and -2/+1`
-//     if (iNext < 0) {
-//         if (nGroups > 0) { if (!pos) throw; pos = pos->pPrev;
-//                            pTab = DYNAMIC_DOWNCAST(CMFCTabCtrl, pos ? pos->data : m_lstTabbedGroups.GetTail()); }
-//         if (!pTab) throw;
-//         iNext = pTab->GetTabsNum() - 1;                                    // vslot +0x368; wraps the flat strip too
-//     }
-//     if (iNext >= pTab->GetTabsNum()) {
-//         if (nGroups > 0) { if (!pos) throw; (downcast of pos->data, result unused); pos = pos->pNext;
-//                            pTab = DYNAMIC_DOWNCAST(CMFCTabCtrl, pos ? pos->data : m_lstTabbedGroups.GetHead()); }
-//         if (!pTab) throw;
-//         iNext = 0;
-//     }
-//     CWnd* pNext = pTab->GetTabWnd(iNext);                                   // vslot +0x370
-//     if ((pNext ? pNext->m_hWnd : NULL) != (pWndMDIChild ? pWndMDIChild->m_hWnd : NULL))
-//         SetActiveTab(pNext ? pNext->m_hWnd : NULL);                         // 0x7ead0
-// (retail passes a NULL pTab from FindActiveTabWnd straight into the vslot
-// calls; that case throws here through the same AfxThrowInvalidArgException
-// the surrounding checks use.)
 // Symbol: ?OnMDINext@CMDIClientAreaWnd@@IEAAXPEAVCWnd@@H@Z
-extern "C" void MS_ABI impl__OnMDINext_CMDIClientAreaWnd__IEAAXPEAVCWnd__H_Z(void* pThis, void* pWnd, int bIsPrev) {
-    S_CMDIClientAreaWnd* self = Self(pThis);
-    if (self == nullptr) {
-        return;
-    }
-    void* pTab = nullptr;
-    RetailNode* pos = nullptr;
-    INT_PTR nGroups = 0;
-    if (self->m_bIsMDITabbedGroup) {
-        pTab = impl__FindActiveTabWnd_CMDIClientAreaWnd__QEAAPEAVCMFCTabCtrl__XZ(pThis);
-        pos = ListFind(self->m_lstTabbedGroups, pTab);
-        nGroups = self->m_lstTabbedGroups.nCount;
-        if (pos == nullptr || pTab == nullptr) {
-            impl__AfxThrowInvalidArgException__YAXXZ();
-            return;
-        }
-    } else if (self->m_bTabIsEnabled) {
-        pTab = self->m_wndTab;
-    } else {
-        impl__Default_CWnd__IEAA_JXZ(SelfWnd(self));
-        return;
-    }
-    int iNext = ActiveTab(pTab) + (bIsPrev ? -1 : 1);
-    if (iNext < 0) {
-        if (nGroups > 0) {
-            pos = pos->pPrev;
-            pTab = AsTabCtrl(pos != nullptr ? pos->data : self->m_lstTabbedGroups.pNodeTail->data);
-            if (pTab == nullptr) {
-                impl__AfxThrowInvalidArgException__YAXXZ();
-                return;
-            }
-        }
-        iNext = TabsNum(pTab) - 1;
-    }
-    if (iNext >= TabsNum(pTab)) {
-        if (nGroups > 0) {
-            if (pos == nullptr) {
-                impl__AfxThrowInvalidArgException__YAXXZ();
-                return;
-            }
-            pos = pos->pNext;
-            pTab = AsTabCtrl(pos != nullptr ? pos->data : self->m_lstTabbedGroups.pNodeHead->data);
-            if (pTab == nullptr) {
-                impl__AfxThrowInvalidArgException__YAXXZ();
-                return;
-            }
-        }
-        iNext = 0;
-    }
-    CWnd* pNext = TabWnd(pTab, iNext);
-    if (WndHandle(pNext) != WndHandle(pWnd)) {
-        impl__SetActiveTab_CMDIClientAreaWnd__QEAAXPEAUHWND_____Z(pThis, WndHandle(pNext));
-    }
+extern "C" void MS_ABI impl__OnMDINext_CMDIClientAreaWnd__IEAAXPEAVCWnd__H_Z(void* pThis, void* pWnd, int previous) {
+    auto* self = Self(pThis);
+    if (!self || !WndHandle(self)) return;
+    if (self->m_bIsMDITabbedGroup && ActivateAdjacentTab(*self, WndHandle(pWnd), previous != 0)) return;
+    impl__Default_CWnd__IEAA_JXZ(SelfWnd(self));
 }
 
 // CMDIClientAreaWnd::OnMDIRefreshMenu — retail entry RVA 0x7d930 (mfc140):
@@ -2617,6 +2521,7 @@ extern "C" void MS_ABI impl__RemoveTabGroup_CMDIClientAreaWnd__QEAAXPEAVCMFCTabC
     RetailNode* neighbourNode = (pos == self->m_lstTabbedGroups.pNodeHead) ? pos->pNext : pos->pPrev;
     CMFCTabCtrl* pNeighbour = neighbourNode != nullptr ? AsTabCtrl(neighbourNode->data) : nullptr;
     ListRemoveAt(self->m_lstTabbedGroups, pos);
+    PublishGroupList(*self);
     impl__ShowWindow_CWnd__QEAAHH_Z(AsWnd(pTabGroup), SW_HIDE);
     if (self->m_lstTabbedGroups.nCount > 0) {
         CMFCTabCtrl* pLast = AsTabCtrl(self->m_lstTabbedGroups.pNodeTail->data);
@@ -2815,16 +2720,56 @@ extern "C" void* MS_ABI impl__TabWndFromPoint_CMDIClientAreaWnd__AEAAPEAVCMFCTab
     return nullptr;
 }
 
-// CMDIClientAreaWnd::UpdateMDITabbedGroups — retail entry RVA 0x7f5b0
-// (mfc140; 0x7f020 in mfc140u).  Not on this pass's assignment list.  The
-// tabbed-groups counterpart of UpdateTabs: walks the MDI children, assigns
-// each CMDIChildWndEx to a group (creating the first one with CreateTabGroup
-// when none exists), synchronises labels/icons through the same CMFCTabCtrl
-// virtuals UpdateTabs uses and re-lays the groups out.
-// STUB: blocked on the same CMFCTabCtrl/CMDIChildWndEx virtuals as
-// UpdateTabs; not transcribed.
 // Symbol: ?UpdateMDITabbedGroups@CMDIClientAreaWnd@@QEAAXH@Z
-extern "C" void MS_ABI impl__UpdateMDITabbedGroups_CMDIClientAreaWnd__QEAAXH_Z(void* pThis, int bSetActiveTabVisible) {
-    (void)pThis;
-    (void)bSetActiveTabVisible;
+extern "C" void MS_ABI impl__UpdateMDITabbedGroups_CMDIClientAreaWnd__QEAAXH_Z(void* pThis, int) {
+    auto* self = Self(pThis);
+    const HWND client = WndHandle(self);
+    if (!client || !self->m_bIsMDITabbedGroup || !self->m_bTabIsVisible || self->m_bDisableUpdateTabs) return;
+    auto& runtime = *Record(self)->runtime;
+    if (runtime.updating) return;
+    TabUpdate update(runtime);
+    auto children = CollectTabbedDocuments(*self);
+    auto& groups = self->m_lstTabbedGroups;
+    for (auto* node = groups.pNodeHead; node;) {
+        auto* next = node->pNext;
+        auto* tabs = static_cast<CMFCTabCtrl*>(node->data);
+        RemoveMissingTabs(*tabs, children, true);
+        if (!tabs->GetTabsCount())
+            impl__RemoveTabGroup_CMDIClientAreaWnd__QEAAXPEAVCMFCTabCtrl__H_Z(self, tabs, FALSE);
+        node = next;
+    }
+    if (children.empty()) return;
+    if (!groups.pNodeHead) {
+        auto* tabs = impl__CreateTabGroup_CMDIClientAreaWnd__UEAAPEAVCMFCTabCtrl__PEAV2__Z(self, nullptr);
+        if (!tabs) return;
+        ListAddTail(groups, tabs);
+        PublishGroupList(*self);
+    }
+
+    const HWND active = reinterpret_cast<HWND>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0));
+    int activeIndex = -1;
+    auto* selected = static_cast<CMFCTabCtrl*>(impl__FindTabWndByChild_CMDIClientAreaWnd__QEAAPEAVCMFCTabCtrl__PEAUHWND____AEAH_Z(
+        self, active, &activeIndex));
+    auto* destination = selected;
+    if (!destination) destination = static_cast<CMFCTabCtrl*>(groups.pNodeHead->data);
+    if (auto* previous = static_cast<CMFCTabCtrl*>(impl__FindActiveTabWnd_CMDIClientAreaWnd__QEAAPEAVCMFCTabCtrl__XZ(self));
+        previous && !selected)
+        destination = previous;
+    for (auto* child : children) {
+        int index = -1;
+        auto* tabs = static_cast<CMFCTabCtrl*>(impl__FindTabWndByChild_CMDIClientAreaWnd__QEAAPEAVCMFCTabCtrl__PEAUHWND____AEAH_Z(
+            self, child->m_hWnd, &index));
+        if (!tabs) tabs = destination;
+        SyncDocumentTab(*self, *tabs, *child);
+        SetChildRelatedTabGroup(child, tabs);
+        if (child->m_hWnd == active) {
+            selected = tabs;
+            activeIndex = TabFromHwnd(tabs, active);
+        }
+    }
+    for (auto* node = groups.pNodeHead; node; node = node->pNext)
+        TabActiveInMDIGroup(node->data) = node->data == selected;
+    if (selected && activeIndex >= 0 && selected->GetActiveTab() != activeIndex)
+        selected->SetActiveTab(activeIndex);
+    LayoutDocumentGroups(*self);
 }

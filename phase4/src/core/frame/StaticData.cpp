@@ -4,6 +4,7 @@
 // Feature Pack static data exports with real storage.
 
 #include <cstdint>
+#include <windows.h>
 
 
 
@@ -29,6 +30,6 @@ extern "C" std::int32_t impl__m_bEnableFloatingBars_CMDIChildWndEx__2HA = 0;
 // Symbol: ?m_dwDefaultTaskbarTabPropertyFlags@CMDIChildWndEx@@2KA
 extern "C" std::uint32_t impl__m_dwDefaultTaskbarTabPropertyFlags_CMDIChildWndEx__2KA = 0;
 // Symbol: ?m_dwExcludeStyle@CMDIChildWndEx@@2KA
-extern "C" std::uint32_t impl__m_dwExcludeStyle_CMDIChildWndEx__2KA = 0;
+extern "C" std::uint32_t impl__m_dwExcludeStyle_CMDIChildWndEx__2KA = WS_CAPTION | WS_THICKFRAME;
 // Symbol: ?m_bDisableSetRedraw@CMDIFrameWndEx@@2HA
 extern "C" std::int32_t impl__m_bDisableSetRedraw_CMDIFrameWndEx__2HA = 0;
