@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <new>
+#include <string>
 #include <windowsx.h>
 
 static_assert(sizeof(CPaneFrameWnd) == 0x258);
@@ -37,6 +38,9 @@ extern "C" int MS_ABI impl__GetDockingMode_CBasePane__UEBA_AW4AFX_DOCK_TYPE__XZ(
 extern "C" void* MS_ABI impl__DockPaneStandard_CMultiPaneFrameWnd__MEAAPEAVCDockablePane__AEAH_Z(void*, int*);
 extern "C" void MS_ABI impl__OnDockToRecentPos_CPaneFrameWnd__UEAAXXZ(void*);
 extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCBasePane__H_Z(void*, int);
+extern "C" void* MS_ABI impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(UINT);
+extern "C" void MS_ABI impl__AfxThrowInvalidArgException__YAXXZ();
+extern "C" void* impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA;
 
 // ---------------------------------------------------------------------------
 // Retail decode notes for the handlers added in this file.
@@ -96,7 +100,6 @@ extern "C" void  MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCa
     void* pThis, void* pButton);
 
 extern "C" int   MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___Z(CWnd* pThis, CREATESTRUCTW& cs);
-extern "C" int   MS_ABI impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(CWnd* pThis, MSG* pMsg);
 // Retail static (?m_nRollTimeOut@CPaneFrameWnd@@2IA, .data 0x3aab24) -- the
 // WM_TIMER interval SetRollUpTimer passes to ::SetTimer.  Defined in
 // phase4/src/featurepack/docking/StaticData.cpp.
@@ -124,10 +127,18 @@ constexpr UINT_PTR dockingTimer = 0xec04;
 constexpr UINT_PTR rollupTimer = 0xec05;
 constexpr DWORD autoRollupStyle = 0x10; // AFX_CBRS_AUTO_ROLLUP
 
-BOOL CursorInPaneFrame(HWND window, POINT& cursor) {
+bool IsExposedPaneFrameAt(HWND window, POINT point) {
     RECT bounds{};
-    return window && ::GetCursorPos(&cursor) && ::GetWindowRect(window, &bounds) &&
-        ::PtInRect(&bounds, cursor);
+    if (!::IsWindowVisible(window) || !::IsWindowEnabled(window) ||
+        !::GetWindowRect(window, &bounds) || !::PtInRect(&bounds, point))
+        return false;
+
+    // An owned popup can be omitted by the desktop's point lookup.
+    for (HWND above = ::GetWindow(window, GW_HWNDPREV); above; above = ::GetWindow(above, GW_HWNDPREV)) {
+        if (::IsWindowVisible(above) && ::GetWindowRect(above, &bounds) && ::PtInRect(&bounds, point))
+            return false;
+    }
+    return true;
 }
 
 // Registry behind CPaneFrameWnd::m_mapFloatingBars. Retail mfc140.dll keeps a
@@ -171,6 +182,55 @@ CMFCCaptionButton* HitCaptionButton(const void* frame, CPoint screen) {
 
 CPoint CaptionMessagePoint(LPARAM position) {
     return CPoint(GET_X_LPARAM(position), GET_Y_LPARAM(position));
+}
+
+constexpr UINT kMiniFrameTooltipType = 8;
+
+HWND CaptionTooltipWindow(const void* frame) {
+    std::lock_guard<std::mutex> lock(g_other6Mutex);
+    const auto* state = FindStatePtr(frame);
+    return state && state->toolTip ? state->toolTip->m_hWnd : nullptr;
+}
+
+void DeleteCaptionTooltip(const void* frame) {
+    CToolTipCtrl* tooltip = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (auto* state = FindStatePtr(frame)) tooltip = std::exchange(state->toolTip, nullptr);
+    }
+    CTooltipManager::DeleteToolTip(tooltip);
+}
+
+LRESULT CALLBACK CaptionTooltipSubclass(HWND tooltip, UINT message, WPARAM wParam, LPARAM lParam,
+                                        UINT_PTR, DWORD_PTR owner) {
+    const LRESULT result = ::DefSubclassProc(tooltip, message, wParam, lParam);
+    if (message == TTM_WINDOWFROMPOINT && lParam &&
+        (!result || reinterpret_cast<HWND>(result) == ::GetDesktopWindow()) &&
+        IsExposedPaneFrameAt(reinterpret_cast<HWND>(owner), *reinterpret_cast<const POINT*>(lParam)))
+        return static_cast<LRESULT>(owner);
+    return result;
+}
+
+void CreateCaptionTooltip(CPaneFrameWnd& frame) {
+    if (!frame.m_hWnd) return;
+    INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_WIN95_CLASSES};
+    ::InitCommonControlsEx(&controls);
+    CToolTipCtrl* tooltip = nullptr;
+    if (CTooltipManager::CreateToolTip(tooltip, &frame, kMiniFrameTooltipType)) {
+        ::SetWindowSubclass(tooltip->m_hWnd, CaptionTooltipSubclass, 0, reinterpret_cast<DWORD_PTR>(frame.m_hWnd));
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        GetState(&frame).toolTip = tooltip;
+    }
+}
+
+void RelayCaptionTooltip(const void* frame, const MSG& message) {
+    if (const HWND tooltip = CaptionTooltipWindow(frame))
+        ::SendMessageW(tooltip, TTM_RELAYEVENT, 0, reinterpret_cast<LPARAM>(&message));
+}
+
+void PopCaptionTooltip(const void* frame) {
+    if (const HWND tooltip = CaptionTooltipWindow(frame))
+        ::SendMessageW(tooltip, TTM_POP, 0, 0);
 }
 
 void TrackCaptionButton(void* frame, UINT id) {
@@ -343,19 +403,9 @@ extern "C" void* MS_ABI impl__GetPane_CPaneFrameWnd__UEBAPEAVCWnd__XZ(void* pThi
 extern "C" int MS_ABI impl__IsRollDown_CPaneFrameWnd__UEBAHXZ(void* pThis) {
     const HWND window = HwndOf(pThis);
     POINT cursor{};
-    if (!CursorInPaneFrame(window, cursor)) return FALSE;
+    if (!window || !::GetCursorPos(&cursor)) return FALSE;
     const HWND hit = ::WindowFromPoint(cursor);
-    if (hit == window) return TRUE;
-    if (hit != ::GetDesktopWindow() || !::IsWindowVisible(window) || !::IsWindowEnabled(window)) return FALSE;
-
-    // A visible owned popup can be omitted by the desktop's point lookup.
-    // Check its sibling order before treating the frame as exposed at the cursor.
-    for (HWND above = ::GetWindow(window, GW_HWNDPREV); above; above = ::GetWindow(above, GW_HWNDPREV)) {
-        RECT bounds{};
-        if (::IsWindowVisible(above) && ::GetWindowRect(above, &bounds) && ::PtInRect(&bounds, cursor))
-            return FALSE;
-    }
-    return TRUE;
+    return hit == window || (hit == ::GetDesktopWindow() && IsExposedPaneFrameAt(window, cursor));
 }
 // Symbol: ?IsRollUp@CPaneFrameWnd@@UEBAHXZ
 extern "C" int MS_ABI impl__IsRollUp_CPaneFrameWnd__UEBAHXZ(void* pThis) {
@@ -411,16 +461,40 @@ extern "C" void MS_ABI impl__StoreRecentTabRelatedInfo_CPaneFrameWnd__UEAAXPEAVC
     AddUniquePane(state, pTabSibling);
 }
 // Symbol: ?UpdateTooltips@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140.dll entry RVA 0xb1870 returns if m_pToolTip (+0x1b8) or its
-// HWND is null; otherwise it gets the frame's client rect, walks the caption
-// buttons, queries TTM_GETTOOLCOUNT, and updates tool rectangles. The SendMessageA
-// import slot 0x1802c5378 is USER32!SendMessageA (UNICODE twin: SendMessageW).
-// STUB: side slots now exist for a tooltip pointer, semantic button rectangles,
-// and tooltip records, but this code has no initialized native tooltip control
-// or tool-registration lifecycle to update. The body intentionally touches
-// nothing, matching the retail null-tooltip early return when no control exists.
+// Caption buttons are positioned relative to the window. The control expects client coordinates.
 extern "C" void MS_ABI impl__UpdateTooltips_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    const HWND tooltip = CaptionTooltipWindow(pThis);
+    if (!tooltip) return;
+    const HWND frame = HwndOf(pThis);
+    RECT bounds{};
+    if (!::GetWindowRect(frame, &bounds)) return;
+    ::MapWindowPoints(HWND_DESKTOP, frame, reinterpret_cast<POINT*>(&bounds), 2);
+
+    std::vector<RECT> regions;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(pThis);
+        if (!state) return;
+        regions.reserve(state->captionButtons.size());
+        for (const auto& button : state->captionButtons) {
+            RECT rect{};
+            if (!button->m_bHidden) {
+                const CRect buttonRect = button->GetRect();
+                rect = *static_cast<const RECT*>(buttonRect);
+                ::OffsetRect(&rect, bounds.left, bounds.top);
+            }
+            regions.push_back(rect);
+        }
+    }
+
+    impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(pThis);
+    TOOLINFOW tool{sizeof(tool)};
+    tool.hwnd = frame;
+    for (const auto& rect : regions) {
+        ++tool.uId;
+        tool.rect = rect;
+        ::SendMessageW(tooltip, TTM_NEWTOOLRECTW, 0, reinterpret_cast<LPARAM>(&tool));
+    }
 }
 BOOL CPaneFrameWnd::Create(const wchar_t* lpszClassName, DWORD dwStyle, const RECT& rect,
                            CWnd* pParentWnd, CCreateContext* pContext) {
@@ -729,16 +803,9 @@ extern "C" void MS_ABI impl__OnContextMenu_CPaneFrameWnd__IEAAXPEAVCWnd__VCPoint
     if (pThis == nullptr) return;
 }
 // Symbol: ?OnCreate@CPaneFrameWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z
-// Retail: Default(); if that returns -1 propagate it; otherwise register the
-// frame and create the caption tooltip (CTooltipManager::CreateToolTip,
-// internal) and return 0.
-// TODO(clean-room): transcribed partially (tooltip creation skipped).
 extern "C" int MS_ABI impl__OnCreate_CPaneFrameWnd__IEAAHPEAUtagCREATESTRUCTW___Z(
-    void* pThis, CREATESTRUCTW* /*lpCreateStruct*/) {
-    if (pThis == nullptr) return -1;
-    __int64 result = impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
-    if (static_cast<int>(result) == -1) return -1;
-    return 0;
+    void* pThis, CREATESTRUCTW* create) {
+    return pThis ? static_cast<CPaneFrameWnd*>(pThis)->OnCreate(create) : -1;
 }
 // Symbol: ?OnDestroy@CPaneFrameWnd@@IEAAXXZ
 extern "C" void MS_ABI impl__OnDestroy_CPaneFrameWnd__IEAAXXZ(void* pThis) {
@@ -934,6 +1001,7 @@ void CPaneFrameWnd::DestroyPaneFrameWindow() {
 
 CPaneFrameWnd::~CPaneFrameWnd() {
     DestroyPaneFrameWindow();
+    DeleteCaptionTooltip(this);
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         const auto it = g_other6State.find(this);
@@ -1030,7 +1098,14 @@ void CPaneFrameWnd::OnClose() {
     impl__CloseMiniFrame_CPaneFrameWnd__MEAAXXZ(this);
 }
 
+int CPaneFrameWnd::OnCreate(CREATESTRUCTW*) {
+    if (Default() == -1) return -1;
+    CreateCaptionTooltip(*this);
+    return 0;
+}
+
 void CPaneFrameWnd::OnDestroy() {
+    DeleteCaptionTooltip(this);
     openmfc::detail::ClearPaneFrameDockPreview(*this);
     CDockingManager* manager = nullptr;
     bool dragging = false;
@@ -1153,10 +1228,15 @@ extern "C" int MS_ABI impl__AddRemovePaneFromGlobalList_CPaneFrameWnd__SAHPEAVCB
 // mfc140u 0xb13d0 lays out the list from tail to head with four pixels between buttons.
 extern "C" void MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     if (!pThis) return;
+    bool haveButtons = false;
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         const auto* state = FindStatePtr(pThis);
-        if (!state || state->captionButtons.empty()) return;
+        haveButtons = state && !state->captionButtons.empty();
+    }
+    if (!haveButtons) {
+        impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(pThis);
+        return;
     }
     CRect caption;
     static_cast<CPaneFrameWnd*>(pThis)->GetCaptionRect(caption);
@@ -1472,6 +1552,7 @@ void CPaneFrameWnd::OnLButtonUp(UINT, CPoint clientPoint) {
 }
 
 LRESULT CPaneFrameWnd::OnCaptionButtonDown(WPARAM hit, LPARAM position) {
+    PopCaptionTooltip(this);
     if (auto* button = HitCaptionButton(this, CaptionMessagePoint(position))) {
         if (button->m_nHit == hit) {
             if (!button->m_bEnabled) return 0;
@@ -1505,8 +1586,14 @@ LRESULT CPaneFrameWnd::OnCaptionHitTest(WPARAM, LPARAM position) {
 }
 
 LRESULT CPaneFrameWnd::OnCaptionMouseMove(WPARAM, LPARAM position) {
-    const auto* button = HitCaptionButton(this, CaptionMessagePoint(position));
+    const CPoint screen = CaptionMessagePoint(position);
+    const auto* button = HitCaptionButton(this, screen);
     TrackCaptionButton(this, button && button->m_bEnabled ? button->m_nHit : 0);
+    POINT client = screen;
+    ::MapWindowPoints(HWND_DESKTOP, m_hWnd, &client, 1);
+    MSG motion{m_hWnd, WM_MOUSEMOVE, 0, MAKELPARAM(client.x, client.y),
+               static_cast<DWORD>(::GetMessageTime()), screen};
+    RelayCaptionTooltip(this, motion);
     TRACKMOUSEEVENT tracking{sizeof(tracking), TME_NONCLIENT | TME_LEAVE, m_hWnd, 0};
     ::TrackMouseEvent(&tracking);
     return button ? 0 : Default();
@@ -1514,6 +1601,7 @@ LRESULT CPaneFrameWnd::OnCaptionMouseMove(WPARAM, LPARAM position) {
 
 LRESULT CPaneFrameWnd::OnCaptionMouseLeave(WPARAM, LPARAM) {
     TrackCaptionButton(this, 0);
+    PopCaptionTooltip(this);
     return Default();
 }
 
@@ -2035,20 +2123,70 @@ extern "C" void MS_ABI impl__OnNcPaint_CPaneFrameWnd__IEAAXXZ(void* pThis) {
 }
 
 // Symbol: ?OnNeedTipText@CPaneFrameWnd@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb4120 throws on null pNMHDR. It
-// returns FALSE for a mismatched tooltip HWND, an active popup, or an out-of-range
-// idFrom; otherwise IDs 8/9, 0x14, and 0x19 select resources 0x3ea1, 0x3ee9,
-// and 0x4279 respectively; loaded text is stored in NMTTDISPINFO +0x18. The UINT id argument
-// is not used. STUB: tooltip/button side slots now exist, but no initialized
-// native tooltip tool-ID mapping or resource-string ownership path is available;
-// this body also does not reproduce retail's exception paths.
 extern "C" int MS_ABI impl__OnNeedTipText_CPaneFrameWnd__IEAAHIPEAUtagNMHDR__PEA_J_Z(
-    void* pThis, unsigned int id, NMHDR* pNMHDR, __int64* pResult) {
-    (void)pThis;
-    (void)id;
-    (void)pNMHDR;
-    (void)pResult;
-    return FALSE;
+    void* pThis, unsigned int, NMHDR* header, LRESULT* result) {
+    if (!header) {
+        impl__AfxThrowInvalidArgException__YAXXZ();
+        return FALSE;
+    }
+    if (impl__m_pActivePopupMenu_CMFCPopupMenu__1PEAV1_EA || !header->idFrom) return FALSE;
+    UINT hit = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(pThis);
+        if (!state || !state->toolTip || !state->toolTip->m_hWnd ||
+            state->toolTip->m_hWnd != header->hwndFrom || header->idFrom > state->captionButtons.size())
+            return FALSE;
+        hit = state->captionButtons[header->idFrom - 1]->m_nHit;
+    }
+
+    UINT resource = 0;
+    const wchar_t* fallback = nullptr;
+    switch (hit) {
+    case HTMINBUTTON:
+    case HTMAXBUTTON:
+        resource = 0x3ea1;
+        fallback = L"Auto Hide";
+        break;
+    case HTCLOSE:
+        resource = 0x3ee9;
+        fallback = L"Close";
+        break;
+    case 0x19:
+        resource = 0x4279;
+        fallback = L"Toolbar Options";
+        break;
+    default:
+        return FALSE;
+    }
+    const auto module = static_cast<HINSTANCE>(impl__AfxFindStringResourceHandle__YAPEAUHINSTANCE____I_Z(resource));
+    const wchar_t* image = nullptr;
+    const int length = module ? ::LoadStringW(module, resource, reinterpret_cast<LPWSTR>(&image), 0) : 0;
+    // The control uses the supplied pointer after the notification returns.
+    thread_local std::wstring text;
+    if (length > 0) text.assign(image, length);
+    else text.assign(fallback);
+    if (header->code == static_cast<UINT>(TTN_GETDISPINFOA)) {
+        thread_local std::string ansiText;
+        const int bytes = ::WideCharToMultiByte(CP_ACP, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        if (!bytes) return FALSE;
+        ansiText.resize(bytes);
+        ::WideCharToMultiByte(CP_ACP, 0, text.c_str(), -1, ansiText.data(), bytes, nullptr, nullptr);
+        reinterpret_cast<NMTTDISPINFOA*>(header)->lpszText = ansiText.data();
+    } else {
+        reinterpret_cast<NMTTDISPINFOW*>(header)->lpszText = text.data();
+    }
+    if (result) *result = 0;
+    return TRUE;
+}
+
+BOOL CPaneFrameWnd::OnNotify(WPARAM id, LPARAM notification, LRESULT* result) {
+    auto* header = reinterpret_cast<NMHDR*>(notification);
+    if (header && (header->code == static_cast<UINT>(TTN_GETDISPINFOW) ||
+                   header->code == static_cast<UINT>(TTN_GETDISPINFOA)) &&
+        impl__OnNeedTipText_CPaneFrameWnd__IEAAHIPEAUtagNMHDR__PEA_J_Z(this, static_cast<UINT>(id), header, result))
+        return TRUE;
+    return CWnd::OnNotify(id, notification, result);
 }
 
 // Symbol: ?OnPaneRecalcLayout@CPaneFrameWnd@@UEAAXXZ
@@ -2313,23 +2451,16 @@ extern "C" void MS_ABI impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint__
 }
 
 // Symbol: ?OnUpdateToolTips@CPaneFrameWnd@@IEAA_J_K_J@Z
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb4a00, transcribed:
-//     if (wParam & 8) {
-//         CTooltipManager::CreateToolTip(m_pToolTip /*0x1b8*/, this, 8);
-//         SetCaptionButtonsToolTips();     // direct call to 0xb4300
-//         UpdateTooltips();                // direct call to 0xb1870
-//     }
-//     return 0;
-// TODO(clean-room): the tooltip pointer slot exists, but no initialized native
-// tooltip control is available, so CTooltipManager::CreateToolTip is skipped;
-// the two helper calls are reproduced and remain no-ops. OpenMFC also returns
-// 0 for null pThis, while retail dereferences the object.
-extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CPaneFrameWnd__IEAA_J_K_J_Z(
-    void* pThis, unsigned __int64 wParam, __int64 /*lParam*/) {
-    if (pThis == nullptr) return 0;
-    if ((wParam & 8) != 0) {
-        impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(pThis);
-        impl__UpdateTooltips_CPaneFrameWnd__IEAAXXZ(pThis);
+extern "C" LRESULT MS_ABI impl__OnUpdateToolTips_CPaneFrameWnd__IEAA_J_K_J_Z(
+    void* pThis, WPARAM types, LPARAM param) {
+    return pThis ? static_cast<CPaneFrameWnd*>(pThis)->OnUpdateToolTips(types, param) : 0;
+}
+
+LRESULT CPaneFrameWnd::OnUpdateToolTips(WPARAM types, LPARAM) {
+    if (types & kMiniFrameTooltipType) {
+        DeleteCaptionTooltip(this);
+        CreateCaptionTooltip(*this);
+        impl__UpdateTooltips_CPaneFrameWnd__IEAAXXZ(this);
     }
     return 0;
 }
@@ -2436,29 +2567,26 @@ extern "C" int MS_ABI impl__PreCreateWindow_CPaneFrameWnd__MEAAHAEAUtagCREATESTR
 }
 
 // Symbol: ?PreTranslateMessage@CPaneFrameWnd@@UEAAHPEAUtagMSG@@@Z
-// Retail (0xb4250), transcribed.  The switch at 0xb425a..0xb42b8 selects on
-// pMsg->message and every arm lands on the same block:
-//     case WM_NCLBUTTONDOWN(0xa1): case WM_NCLBUTTONUP(0xa2):
-//     case WM_NCRBUTTONDOWN(0xa4): case WM_NCRBUTTONUP(0xa5):
-//     case WM_NCMBUTTONDOWN(0xa7): case WM_NCMBUTTONUP(0xa8):
-//     case WM_KEYDOWN(0x100):      case WM_SYSKEYDOWN(0x104):
-//     case WM_MOUSEMOVE(0x200):    case WM_LBUTTONDOWN(0x201):
-//     case WM_LBUTTONUP(0x202):    case WM_RBUTTONDOWN(0x204):
-//     case WM_RBUTTONUP(0x205):    case WM_MBUTTONDOWN(0x207):
-//     case WM_MBUTTONUP(0x208):
-//         if (m_pToolTip /*0x1b8*/ != NULL && m_pToolTip->m_hWnd != NULL)
-//             ::SendMessage(m_pToolTip->m_hWnd, TTM_RELAYEVENT /*0x407*/,
-//                           0, (LPARAM)pMsg);
-//         break;
-//     return CWnd::PreTranslateMessage(pMsg);     // 0x28a080, tail jump
-// TODO(clean-room): the tooltip pointer slot exists, but no initialized native
-// tooltip control/tool-registration lifecycle is available; the relay is skipped
-// and only the CWnd::PreTranslateMessage tail call runs. This matches retail's
-// null-m_pToolTip path.
 extern "C" int MS_ABI impl__PreTranslateMessage_CPaneFrameWnd__UEAAHPEAUtagMSG___Z(
-    void* pThis, MSG* pMsg) {
-    if (pThis == nullptr) return FALSE;
-    return impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(AsCwnd(pThis), pMsg);
+    void* pThis, MSG* message) {
+    return pThis ? static_cast<CPaneFrameWnd*>(pThis)->CPaneFrameWnd::PreTranslateMessage(message) : FALSE;
+}
+
+BOOL CPaneFrameWnd::PreTranslateMessage(MSG* message) {
+    if (!message) return FALSE;
+    switch (message->message) {
+    case WM_NCLBUTTONDOWN: case WM_NCLBUTTONUP:
+    case WM_NCRBUTTONDOWN: case WM_NCRBUTTONUP:
+    case WM_NCMBUTTONDOWN: case WM_NCMBUTTONUP:
+    case WM_KEYDOWN: case WM_SYSKEYDOWN:
+    case WM_MOUSEMOVE:
+    case WM_LBUTTONDOWN: case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN: case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN: case WM_MBUTTONUP:
+        RelayCaptionTooltip(this, *message);
+        break;
+    }
+    return CWnd::PreTranslateMessage(message);
 }
 
 // Symbol: ?RecalcCaptionHeight@CPaneFrameWnd@@MEAAXXZ
@@ -2524,11 +2652,14 @@ extern "C" void MS_ABI impl__RedrawCaptionButton_CPaneFrameWnd__IEAAXPEAVCMFCCap
 extern "C" void MS_ABI impl__RemoveAllCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis) {
     if (!pThis) return;
     impl__StopCaptionButtonsTracking_CPaneFrameWnd__MEAAXXZ(pThis);
-    std::lock_guard<std::mutex> lock(g_other6Mutex);
-    auto& state = GetState(pThis);
-    state.captionButtonsConfigured = true;
-    state.rollupFlags = 0;
-    state.captionButtons.clear();
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        auto& state = GetState(pThis);
+        state.captionButtonsConfigured = true;
+        state.rollupFlags = 0;
+        state.captionButtons.clear();
+    }
+    impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(pThis);
 }
 
 // Symbol: ?RemoveButton@CPaneFrameWnd@@IEAAXI@Z
@@ -2826,20 +2957,34 @@ extern "C" void MS_ABI impl__SetCaptionButtons_CPaneFrameWnd__UEAAXK_Z(
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         GetState(pThis).rollupFlags = static_cast<int>(dwButtons);
     }
-    impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(pThis);
     impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(pThis);
     HWND hwnd = HwndOf(pThis);
     if (hwnd) ::SendMessage(hwnd, WM_NCPAINT, 0, 0);
 }
 
 // Symbol: ?SetCaptionButtonsToolTips@CPaneFrameWnd@@IEAAXXZ
-// Retail mfc140.dll (ANSI twin) entry RVA 0xb4300 drives its tooltip control
-// at +0x1b8: it queries TTM_GETTOOLCOUNT (SendMessageA import slot 0x1802c5378),
-// compares with the caption-button count, then creates/deletes tools through
-// CTooltipManager. STUB: semantic button and tooltip records now exist, but no
-// initialized native tooltip control or actual tool-registration lifecycle does.
 extern "C" void MS_ABI impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(void* pThis) {
-    (void)pThis;
+    const HWND tooltip = CaptionTooltipWindow(pThis);
+    if (!tooltip) return;
+    std::size_t count = 0;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        const auto* state = FindStatePtr(pThis);
+        if (!state) return;
+        count = state->captionButtons.size();
+    }
+    TOOLINFOW tool{sizeof(tool)};
+    tool.hwnd = HwndOf(pThis);
+    tool.lpszText = LPSTR_TEXTCALLBACKW;
+    auto registered = static_cast<UINT_PTR>(::SendMessageW(tooltip, TTM_GETTOOLCOUNT, 0, 0));
+    while (registered > count) {
+        tool.uId = registered--;
+        ::SendMessageW(tooltip, TTM_DELTOOLW, 0, reinterpret_cast<LPARAM>(&tool));
+    }
+    while (registered < count) {
+        tool.uId = ++registered;
+        if (!::SendMessageW(tooltip, TTM_ADDTOOLW, 0, reinterpret_cast<LPARAM>(&tool))) break;
+    }
 }
 
 // Symbol: ?SetDockingTimer@CPaneFrameWnd@@QEAAXI@Z

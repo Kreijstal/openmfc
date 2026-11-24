@@ -85,8 +85,6 @@ struct PaneFrameState {
     std::vector<std::unique_ptr<CMFCCaptionButton>> captionButtons; // m_lstCaptionButtons +0x180
     CToolTipCtrl* toolTip = nullptr;         // m_pToolTip +0x1b8
     CDockablePane* preDockPane = nullptr;    // m_pPreDockBar +0x1c0
-    openmfc::docking_state::DockingTooltipState* toolTips = nullptr;
-    std::size_t toolTipCount = 0;
     CDockingManager* dockManager = nullptr;  // m_pDockManager +0x248
     int preDockState = 0;                   // m_preDockStateCurr +0x250
 };

@@ -2,6 +2,7 @@
 #include "detail/MultiPaneFrameSupport.h"
 
 extern "C" UINT impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA;
+extern "C" UINT impl__AFX_WM_UPDATETOOLTIPS__3IA;
 
 const AFX_MSGMAP* AFXAPI gbm_CMultiPaneFrameWnd() { return &classCPaneFrameWnd_msgmap; }
 namespace openmfc { namespace detail { namespace pane16msgmap {
@@ -54,6 +55,7 @@ const AFX_MSGMAP_ENTRY dividerEntries[] = {
 namespace frame_map {
 using ThisClass = CPaneFrameWnd;
 const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
+    ON_WM_CREATE()
     ON_WM_CLOSE()
     ON_WM_DESTROY()
     ON_WM_SIZE()
@@ -74,6 +76,7 @@ const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
     ON_MESSAGE(WM_CAPTURECHANGED, &ThisClass::OnCaptureChanged)
     ON_MESSAGE(WM_CANCELMODE, &ThisClass::OnCancelPaneDrag)
     ON_REGISTERED_MESSAGE(impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, &ThisClass::OnCheckEmptyState)
+    ON_REGISTERED_MESSAGE(impl__AFX_WM_UPDATETOOLTIPS__3IA, &ThisClass::OnUpdateToolTips)
     OPENMFC_MAP_ENTRY(WM_NCLBUTTONDBLCLK, 0, 0, 0, AfxSig_l_w_l, &ThisClass::OnCaptionDoubleClick)
     {0, 0, 0, 0, AfxSig_end, nullptr}
 };

@@ -1595,6 +1595,7 @@ public:
     virtual CWnd* GetPane() const;
     virtual BOOL IsRollDown() const;
     virtual BOOL IsRollUp() const;
+    BOOL PreTranslateMessage(MSG* message) override;
 
     BOOL CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD style, const RECT& rect,
                      CWnd* owner, CCreateContext* context);
@@ -1615,16 +1616,19 @@ public:
     LRESULT OnCaptureChanged(WPARAM, LPARAM);
     LRESULT OnCancelPaneDrag(WPARAM, LPARAM);
     void OnClose();
+    int OnCreate(CREATESTRUCTW* create);
     void OnDestroy();
     void OnSize(UINT type, int width, int height);
     void OnTimer(UINT_PTR timer);
     LRESULT OnCheckEmptyState(WPARAM, LPARAM);
+    LRESULT OnUpdateToolTips(WPARAM types, LPARAM);
     LRESULT OnCaptionDoubleClick(WPARAM hit, LPARAM);
 
 protected:
     char _paneFrameState[0x170]{};
 
     void DestroyPaneFrameWindow();
+    BOOL OnNotify(WPARAM id, LPARAM notification, LRESULT* result) override;
     void PostNcDestroy() override;
     DECLARE_MESSAGE_MAP()
 
