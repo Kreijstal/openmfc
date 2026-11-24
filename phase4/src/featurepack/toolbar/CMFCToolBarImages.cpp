@@ -24,7 +24,7 @@ CMFCToolBarImages::CMFCToolBarImages(BOOL bReadOnly) {
 // Symbol: ??1CMFCToolBarImages@@UEAA@XZ
 CMFCToolBarImages::~CMFCToolBarImages() {
     ReleaseImageWell();
-    RemoveToolBarImagesState(this);
+    g_toolbarResourceOffsets.erase(this);
 }
 namespace {
 extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(const wchar_t*, const wchar_t*);
@@ -51,36 +51,128 @@ OwnedBitmap LoadImageResource(const wchar_t* name, HINSTANCE module, BOOL autoCh
     return bitmap;
 }
 
-OwnedBitmap JoinStrips(HBITMAP first, const BITMAP& firstInfo, HBITMAP last, const BITMAP& lastInfo) {
-    OwnedBitmap result(nullptr, &::DeleteObject);
-    if (firstInfo.bmWidth > INT_MAX - lastInfo.bmWidth || firstInfo.bmHeight != lastInfo.bmHeight ||
-        firstInfo.bmBitsPixel != lastInfo.bmBitsPixel) return result;
-    MemoryDC src(::CreateCompatibleDC(nullptr), &::DeleteDC);
-    MemoryDC dst(::CreateCompatibleDC(nullptr), &::DeleteDC);
-    if (!src || !dst || !::SelectObject(src.get(), first)) return result;
-    const LONG width = firstInfo.bmWidth + lastInfo.bmWidth;
-    if (firstInfo.bmBitsPixel == 32) {
-        BITMAPINFO info{};
-        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        info.bmiHeader.biWidth = width;
-        info.bmiHeader.biHeight = firstInfo.bmHeight;
-        info.bmiHeader.biPlanes = 1;
-        info.bmiHeader.biBitCount = 32;
-        void* pixels = nullptr;
-        result.reset(::CreateDIBSection(dst.get(), &info, DIB_RGB_COLORS, &pixels, nullptr, 0));
-    } else {
-        result.reset(::CreateCompatibleBitmap(src.get(), width, firstInfo.bmHeight));
+OwnedBitmap CreateImageBitmap(int width, int height, WORD bits, void** pixels) {
+    BITMAPINFO info{};
+    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    info.bmiHeader.biWidth = width;
+    info.bmiHeader.biHeight = -height;
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = bits;
+    return {::CreateDIBSection(nullptr, &info, DIB_RGB_COLORS, pixels, nullptr, 0), &::DeleteObject};
+}
+
+DWORD DibColor(COLORREF color) {
+    return (DWORD(GetRValue(color)) << 16) | (DWORD(GetGValue(color)) << 8) | GetBValue(color);
+}
+
+void ApplyColorKey(DWORD* pixels, int stride, int left, int width, int height, COLORREF key) {
+    ::GdiFlush();
+    const DWORD transparent = DibColor(key);
+    for (int y = 0; y < height; ++y) {
+        auto* row = pixels + static_cast<size_t>(y) * stride + left;
+        for (int x = 0; x < width; ++x) {
+            const DWORD color = row[x] & 0xffffff;
+            row[x] = key != CLR_INVALID && color == transparent ? 0 : color | 0xff000000;
+        }
     }
+}
+
+OwnedBitmap JoinStrips(HBITMAP first, const BITMAP& firstInfo, HBITMAP last, const BITMAP& lastInfo,
+                       COLORREF key) {
+    OwnedBitmap result(nullptr, &::DeleteObject);
+    if (firstInfo.bmWidth > INT_MAX - lastInfo.bmWidth || firstInfo.bmHeight != lastInfo.bmHeight)
+        return result;
+    const bool firstHasAlpha = firstInfo.bmBitsPixel == 32;
+    const bool lastHasAlpha = lastInfo.bmBitsPixel == 32;
+    const bool alpha = firstHasAlpha || lastHasAlpha;
+    const int width = firstInfo.bmWidth + lastInfo.bmWidth;
+    const int height = firstInfo.bmHeight;
+    void* pixels = nullptr;
+    result = CreateImageBitmap(width, height, alpha ? 32 : 24, &pixels);
     if (!result) return result;
 
+    MemoryDC src(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    MemoryDC dst(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    if (!src || !dst) return {nullptr, &::DeleteObject};
     const auto oldDst = ::SelectObject(dst.get(), result.get());
-    BOOL copied = oldDst &&
-        ::BitBlt(dst.get(), 0, 0, firstInfo.bmWidth, firstInfo.bmHeight, src.get(), 0, 0, SRCCOPY) &&
+    const bool copied = oldDst && ::SelectObject(src.get(), first) &&
+        ::BitBlt(dst.get(), 0, 0, firstInfo.bmWidth, height, src.get(), 0, 0, SRCCOPY) &&
         ::SelectObject(src.get(), last) &&
-        ::BitBlt(dst.get(), firstInfo.bmWidth, 0, lastInfo.bmWidth, lastInfo.bmHeight, src.get(), 0, 0, SRCCOPY);
+        ::BitBlt(dst.get(), firstInfo.bmWidth, 0, lastInfo.bmWidth, height, src.get(), 0, 0, SRCCOPY);
     if (oldDst) ::SelectObject(dst.get(), oldDst);
-    if (!copied) result.reset();
+    if (!copied) return {nullptr, &::DeleteObject};
+
+    if (alpha && !firstHasAlpha)
+        ApplyColorKey(static_cast<DWORD*>(pixels), width, 0, firstInfo.bmWidth, height, key);
+    if (alpha && !lastHasAlpha)
+        ApplyColorKey(static_cast<DWORD*>(pixels), width, firstInfo.bmWidth, lastInfo.bmWidth, height, key);
     return result;
+}
+
+OwnedBitmap CopyCell(HBITMAP well, CSize size, int index, bool useAlpha, bool applyKey, COLORREF key) {
+    void* pixels = nullptr;
+    auto image = CreateImageBitmap(size.cx, size.cy, useAlpha ? 32 : 24, &pixels);
+    if (!image) return image;
+
+    const MemoryDC src(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    const MemoryDC dst(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    if (!src || !dst) return {nullptr, &::DeleteObject};
+
+    const auto old = ::SelectObject(dst.get(), image.get());
+    const bool copied = old && ::SelectObject(src.get(), well) &&
+        ::BitBlt(dst.get(), 0, 0, size.cx, size.cy, src.get(), index * size.cx, 0, SRCCOPY);
+    if (old) ::SelectObject(dst.get(), old);
+    if (!copied) return {nullptr, &::DeleteObject};
+    if (applyKey) ApplyColorKey(static_cast<DWORD*>(pixels), size.cx, 0, size.cx, size.cy, key);
+    return image;
+}
+
+OwnedBitmap RasterizeIcon(HICON icon, CSize size, bool alpha, COLORREF key) {
+    if (size.cx <= 0 || size.cy <= 0 || size.cx > INT_MAX / 2) return {nullptr, &::DeleteObject};
+    // The difference between the white and black composites recovers the
+    // opacity of both per-pixel alpha and monochrome-mask icons.
+    const int scratchWidth = alpha ? size.cx * 2 : size.cx;
+    void* pixels = nullptr;
+    auto scratch = CreateImageBitmap(scratchWidth, size.cy, alpha ? 32 : 24, &pixels);
+    const MemoryDC canvas(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    if (!scratch || !canvas) return {nullptr, &::DeleteObject};
+
+    const auto old = ::SelectObject(canvas.get(), scratch.get());
+    if (!old) return {nullptr, &::DeleteObject};
+    BOOL drawn;
+    if (alpha) {
+        drawn = ::PatBlt(canvas.get(), 0, 0, size.cx, size.cy, BLACKNESS) &&
+            ::PatBlt(canvas.get(), size.cx, 0, size.cx, size.cy, WHITENESS) &&
+            ::DrawIconEx(canvas.get(), 0, 0, icon, size.cx, size.cy, 0, nullptr, DI_NORMAL) &&
+            ::DrawIconEx(canvas.get(), size.cx, 0, icon, size.cx, size.cy, 0, nullptr, DI_NORMAL);
+    } else {
+        const RECT bounds{0, 0, size.cx, size.cy};
+        const auto brush = ::CreateSolidBrush(key == CLR_INVALID ? ::GetSysColor(COLOR_BTNFACE) : key);
+        drawn = brush && ::FillRect(canvas.get(), &bounds, brush) &&
+            (!icon || ::DrawIconEx(canvas.get(), 0, 0, icon, size.cx, size.cy, 0, nullptr, DI_NORMAL));
+        if (brush) ::DeleteObject(brush);
+    }
+    ::SelectObject(canvas.get(), old);
+    if (!drawn) return {nullptr, &::DeleteObject};
+    if (!alpha) return scratch;
+
+    void* output = nullptr;
+    auto image = CreateImageBitmap(size.cx, size.cy, 32, &output);
+    if (!image) return image;
+
+    ::GdiFlush();
+    const auto* input = static_cast<const DWORD*>(pixels);
+    auto* result = static_cast<DWORD*>(output);
+    for (int y = 0; y < size.cy; ++y) {
+        const auto* black = input + static_cast<size_t>(y) * scratchWidth;
+        const auto* white = black + size.cx;
+        for (int x = 0; x < size.cx; ++x) {
+            const int difference = static_cast<int>(white[x] & 0xff) - static_cast<int>(black[x] & 0xff);
+            const DWORD opacity = 255 - (std::max)(0, difference);
+            *result++ = (black[x] & 0xffffff) | (opacity << 24);
+        }
+    }
+    return image;
 }
 } // namespace
 
@@ -95,15 +187,15 @@ void CMFCToolBarImages::ReleaseImageWell() {
     m_nBitsPerPixel = 0;
 }
 
-int CMFCToolBarImages::StoreImageStrip(HBITMAP bitmap, BOOL append) {
+int CMFCToolBarImages::StoreImageStrip(HBITMAP bitmap, BOOL append, const CSize* cellSize) {
     BITMAP info{};
     if (m_bIsTemporary || !bitmap || !::GetObjectW(bitmap, sizeof(info), &info) ||
         info.bmWidth <= 0 || info.bmHeight <= 0) return -1;
 
     // Resource strips are a single row of cells. When no size has been set,
     // keep the default cell width for a strip and accept a custom single icon.
-    CSize size = m_sizeImage;
-    if (!m_hbmImageWell && size.cx == 16 && size.cy == 15 && info.bmHeight != size.cy) {
+    CSize size = cellSize ? *cellSize : m_sizeImage;
+    if (!cellSize && !m_hbmImageWell && size.cx == 16 && size.cy == 15 && info.bmHeight != size.cy) {
         size = CSize(info.bmWidth < size.cx ? info.bmWidth : size.cx, info.bmHeight);
     }
     if (size.cx <= 0 || size.cy <= 0 || info.bmWidth < size.cx || info.bmHeight != size.cy) return -1;
@@ -115,16 +207,17 @@ int CMFCToolBarImages::StoreImageStrip(HBITMAP bitmap, BOOL append) {
         if (!::GetObjectW(m_hbmImageWell, sizeof(oldInfo), &oldInfo) ||
             oldInfo.bmWidth % size.cx != 0 || info.bmWidth % size.cx != 0) return -1;
         first = oldInfo.bmWidth / size.cx;
-        stored = JoinStrips(m_hbmImageWell, oldInfo, bitmap, info);
+        stored = JoinStrips(m_hbmImageWell, oldInfo, bitmap, info, m_clrTransparent);
     } else {
         stored.reset(static_cast<HBITMAP>(::CopyImage(bitmap, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION)));
     }
-    if (!stored) return -1;
+    BITMAP storedInfo{};
+    if (!stored || !::GetObjectW(stored.get(), sizeof(storedInfo), &storedInfo)) return -1;
     ReleaseImageWell();
     m_hbmImageWell = stored.release();
     m_sizeImage = size;
     m_iCount = first + info.bmWidth / size.cx;
-    m_nBitsPerPixel = info.bmBitsPixel;
+    m_nBitsPerPixel = storedInfo.bmBitsPixel;
     return first;
 }
 
@@ -144,7 +237,7 @@ BOOL CMFCToolBarImages::Load(const wchar_t* file, DWORD maxFileSize) {
                                                             LR_LOADFROMFILE | LR_CREATEDIBSECTION)), &::DeleteObject);
     if (!bitmap || StoreImageStrip(bitmap.get(), FALSE) < 0) return FALSE;
     impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP____H_Z(m_hbmImageWell, m_bAutoCheckPremlt);
-    ClearToolBarImagesState(this, TRUE);
+    g_toolbarResourceOffsets.erase(this);
     m_bUserImagesList = TRUE;
     m_bModified = FALSE;
     m_strUDLPath = file;
@@ -153,10 +246,15 @@ BOOL CMFCToolBarImages::Load(const wchar_t* file, DWORD maxFileSize) {
 
 // Symbol: ?LoadStr@CMFCToolBarImages@@QEAAHPEB_WPEAUHINSTANCE__@@H@Z
 BOOL CMFCToolBarImages::LoadStr(const wchar_t* name, HINSTANCE module, BOOL append) {
-    if (m_bIsTemporary) return FALSE;
+    if (m_bIsTemporary || !name) return FALSE;
+    const UINT id = IS_INTRESOURCE(name) ? static_cast<UINT>(reinterpret_cast<UINT_PTR>(name)) : 0;
+    if (append && id && GetResourceOffset(id) >= 0) return TRUE;
+
     const auto bitmap = LoadImageResource(name, module, m_bAutoCheckPremlt);
-    if (!bitmap || StoreImageStrip(bitmap.get(), append) < 0) return FALSE;
-    ClearToolBarImagesState(this, TRUE);
+    const int first = StoreImageStrip(bitmap.get(), append);
+    if (first < 0) return FALSE;
+    if (!append) g_toolbarResourceOffsets.erase(this);
+    if (id) g_toolbarResourceOffsets[this][id] = first;
     m_bUserImagesList = FALSE;
     m_bModified = FALSE;
     m_strUDLPath.Empty();
@@ -173,57 +271,57 @@ int CMFCToolBarImages::AddImage(HBITMAP hBitmap, BOOL) {
     return first;
 }
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHAEBV1@H@Z
-int CMFCToolBarImages::AddImage(const CMFCToolBarImages& images, BOOL) {
-    const int addCount = images.GetCount();
-    if (addCount <= 0) return -1;
-    ToolBarImagesState& state = EnsureToolBarImagesState(this);
-    const int index = state.count;
-    state.count += addCount;
-    state.isValid = TRUE;
+int CMFCToolBarImages::AddImage(const CMFCToolBarImages& images, int sourceIndex) {
+    const CSize size = images.m_sizeImage;
+    if (m_bIsTemporary || !images.m_hbmImageWell || sourceIndex < 0 ||
+        sourceIndex >= images.m_iCount || size.cx <= 0 || size.cy <= 0) return -1;
+    if (m_hbmImageWell && (m_sizeImage.cx != size.cx || m_sizeImage.cy != size.cy)) return -1;
+
+    const bool wasEmpty = !m_hbmImageWell;
+    const bool sourceAlpha = images.m_nBitsPerPixel == 32;
+    const bool convertKey = !wasEmpty && !sourceAlpha && m_clrTransparent != images.m_clrTransparent;
+    const auto cell = CopyCell(images.m_hbmImageWell, size, sourceIndex, sourceAlpha || convertKey,
+                               convertKey, images.m_clrTransparent);
+    const int index = StoreImageStrip(cell.get(), TRUE, &size);
+    if (index < 0) return -1;
+    if (wasEmpty) {
+        m_clrTransparent = images.m_clrTransparent;
+        m_clrImageShadow = images.m_clrImageShadow;
+    }
+    if (m_bUserImagesList) m_bModified = TRUE;
     return index;
 }
 // Symbol: ?AddIcon@CMFCToolBarImages@@QEAAHPEAUHICON__@@H@Z
-int CMFCToolBarImages::AddIcon(HICON hIcon, BOOL bAutoDestroy) {
-    if (!hIcon) return -1;
-    ToolBarImagesState& state = EnsureToolBarImagesState(this);
-    const int index = state.count;
-    ++state.count;
-    state.isValid = TRUE;
-    if (bAutoDestroy) {
-        state.ownedIcons.push_back(hIcon);
-    }
-    return index;
+int CMFCToolBarImages::AddIcon(HICON icon, BOOL alphaBlend) {
+    if (m_bIsTemporary) return -1;
+    const auto bitmap = RasterizeIcon(icon, m_sizeImage, icon && alphaBlend, m_clrTransparent);
+    return AddImage(bitmap.get(), TRUE);
 }
 // Symbol: ?Clear@CMFCToolBarImages@@QEAAXXZ
 void CMFCToolBarImages::Clear() {
     ReleaseImageWell();
     m_strUDLPath.Empty();
     InitMembers();
-    ClearToolBarImagesState(this, TRUE);
+    g_toolbarResourceOffsets.erase(this);
 }
 // Symbol: ?Initialize@CMFCToolBarImages@@QEAAXXZ
 void CMFCToolBarImages::Initialize() {
     CommonInit(TRUE);
 }
 // Symbol: ?CommonInit@CMFCToolBarImages@@QEAAXH@Z
-void CMFCToolBarImages::CommonInit(BOOL bFreeImageList) {
+void CMFCToolBarImages::CommonInit(BOOL) {
     m_bIsRTL = FALSE;                 // statics: reset the shared defaults
     m_nDisabledImageAlpha = 127;
     m_nFadedImageAlpha = 127;
     ReleaseImageWell();
     m_strUDLPath.Empty();
     InitMembers();
-    ClearToolBarImagesState(this, bFreeImageList);
+    g_toolbarResourceOffsets.erase(this);
 }
 // Symbol: ?CleanUp@CMFCToolBarImages@@SAXXZ
 // (static)
 void CMFCToolBarImages__CleanUp() {
-    for (auto& entry : g_toolbarImagesState) {
-        for (HICON hIcon : entry.second.ownedIcons) {
-            if (hIcon) ::DestroyIcon(hIcon);
-        }
-    }
-    g_toolbarImagesState.clear();
+    g_toolbarResourceOffsets.clear();
 }
 // Symbol: ??0CMFCToolBarImages@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CMFCToolBarImages__QEAA_XZ(void* pThis) {
@@ -258,12 +356,12 @@ extern "C" int MS_ABI impl__AddImage_CMFCToolBarImages__QEAAHPEAUHBITMAP____H_Z(
     return pThis->AddImage(hBmp, (BOOL)bSet);
 }
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHAEBV1@H@Z
-extern "C" int MS_ABI impl__AddImage_CMFCToolBarImages__QEAAHAEBV1_H_Z(CMFCToolBarImages* pThis, const CMFCToolBarImages* pImages, int bSet) {
-    return pThis->AddImage(*pImages, (BOOL)bSet);
+extern "C" int MS_ABI impl__AddImage_CMFCToolBarImages__QEAAHAEBV1_H_Z(CMFCToolBarImages* pThis, const CMFCToolBarImages* pImages, int index) {
+    return pThis && pImages ? pThis->AddImage(*pImages, index) : -1;
 }
 // Symbol: ?AddIcon@CMFCToolBarImages@@QEAAHPEAUHICON__@@H@Z
-extern "C" int MS_ABI impl__AddIcon_CMFCToolBarImages__QEAAHPEAUHICON____H_Z(CMFCToolBarImages* pThis, HICON hIcon, int bAutoDestroy) {
-    return pThis->AddIcon(hIcon, (BOOL)bAutoDestroy);
+extern "C" int MS_ABI impl__AddIcon_CMFCToolBarImages__QEAAHPEAUHICON____H_Z(CMFCToolBarImages* pThis, HICON hIcon, int alphaBlend) {
+    return pThis ? pThis->AddIcon(hIcon, alphaBlend) : -1;
 }
 // Symbol: ?Clear@CMFCToolBarImages@@QEAAXXZ
 extern "C" void MS_ABI impl__Clear_CMFCToolBarImages__QEAAXXZ(CMFCToolBarImages* pThis) {
@@ -308,15 +406,55 @@ void CMFCToolBarImages::InitMembers() {
     p->m_clrImageShadow = RGB(128, 128, 128);
 }
 int CMFCToolBarImages::GetCount() const {
-    if (m_hbmImageWell) return m_iCount;
-    const ToolBarImagesState* state = FindToolBarImagesState(this);
-    return state ? state->count : 0;
+    return m_iCount;
 }
 BOOL CMFCToolBarImages::IsValid() const {
-    if (m_hbmImageWell) return TRUE;
-    const ToolBarImagesState* state = FindToolBarImagesState(this);
-    return state ? state->isValid : FALSE;
+    return m_hbmImageWell != nullptr;
 }
+
+int CMFCToolBarImages::GetResourceOffset(UINT id) const {
+    const auto images = g_toolbarResourceOffsets.find(this);
+    if (images == g_toolbarResourceOffsets.end()) return -1;
+    const auto resource = images->second.find(id);
+    return resource != images->second.end() ? resource->second : -1;
+}
+
+BOOL CMFCToolBarImages::CopyTo(CMFCToolBarImages& destination) const {
+    if (destination.m_bIsTemporary) return FALSE;
+    if (this == &destination) return TRUE;
+
+    OwnedBitmap well(nullptr, &::DeleteObject);
+    if (m_hbmImageWell) {
+        well.reset(static_cast<HBITMAP>(::CopyImage(m_hbmImageWell, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION)));
+        if (!well) return FALSE;
+    }
+    const auto offsets = g_toolbarResourceOffsets.find(this);
+    if (offsets != g_toolbarResourceOffsets.end()) {
+        auto copy = offsets->second;
+        g_toolbarResourceOffsets[&destination] = std::move(copy);
+    } else {
+        g_toolbarResourceOffsets.erase(&destination);
+    }
+
+    destination.ReleaseImageWell();
+    destination.m_hbmImageWell = well.release();
+    destination.m_iCount = m_iCount;
+    destination.m_nBitsPerPixel = m_nBitsPerPixel;
+    destination.m_bUserImagesList = m_bUserImagesList;
+    destination.m_bModified = m_bModified;
+    destination.m_bReadOnly = m_bReadOnly;
+    destination.m_bFadeInactive = m_bFadeInactive;
+    destination.m_sizeImage = m_sizeImage;
+    destination.m_sizeImageOriginal = m_sizeImageOriginal;
+    destination.m_sizeImageDest = m_sizeImageDest;
+    destination.m_clrTransparent = m_clrTransparent;
+    destination.m_clrTransparentOriginal = m_clrTransparentOriginal;
+    destination.m_clrImageShadow = m_clrImageShadow;
+    destination.m_dblScale = m_dblScale;
+    destination.m_strUDLPath = m_strUDLPath;
+    return TRUE;
+}
+
 // Retail (0x180170c10) is a single 4-byte store to the m_bIsRTL static.
 // Symbol: ?EnableRTL@CMFCToolBarImages@@SAXH@Z
 extern "C" void MS_ABI impl__EnableRTL_CMFCToolBarImages__SAXH_Z(int bEnable)
@@ -451,18 +589,11 @@ extern "C" void MS_ABI impl__CopyTemp_CMFCToolBarImages__IEAAXAEAV1__Z(
 #undef TI_OFF_BOOL
 #undef TI_OFF_INT
 #undef TI_OFF_PTR
-// Retail (0x18016f2f0) deep-copies the image well through a DIB pipeline and
-// resizes it; unmodeled (see Copy below for the plain HBITMAP copy helper).
 // Symbol: ?CopyTo@CMFCToolBarImages@@QEAAHAEAV1@@Z
 extern "C" int MS_ABI impl__CopyTo_CMFCToolBarImages__QEAAHAEAV1__Z(
-    CMFCToolBarImages* pThis, CMFCToolBarImages* pDst)
+    CMFCToolBarImages* source, CMFCToolBarImages* destination)
 {
-    (void)pDst;
-    if (!pThis) return 0;
-    // TODO(clean-room): transcribed partially -- retail copies the bitmap
-    // well into pDst through the DIB conversion helpers (0x18016aee0,
-    // 0x18016ab40); not modeled.
-    return 0;
+    return source && destination && source->CopyTo(*destination);
 }
 // Retail (0x180171890): standard compatible-bitmap copy.  Create a compatible
 // DC, select the source, GetObject for its size, CreateCompatibleBitmap, then

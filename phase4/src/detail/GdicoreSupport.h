@@ -497,33 +497,10 @@ asm(".globl \"?classCMetaFileDC@CMetaFileDC@@2UCRuntimeClass@@A\"\n"
 // CMFCToolBarImages
 //=============================================================================
 
-namespace openmfc { namespace detail { namespace gdicore {
-struct ToolBarImagesState {
-    int count = 0;
-    BOOL isValid = FALSE;
-    std::vector<HICON> ownedIcons;
-};
-} } }
-
-namespace openmfc { namespace detail { namespace gdicore {
-extern thread_local std::unordered_map<const CMFCToolBarImages*, ToolBarImagesState> g_toolbarImagesState;
-} } }
-
-namespace openmfc { namespace detail { namespace gdicore {
-ToolBarImagesState& EnsureToolBarImagesState(const CMFCToolBarImages* pImages);
-} } }
-
-namespace openmfc { namespace detail { namespace gdicore {
-const ToolBarImagesState* FindToolBarImagesState(const CMFCToolBarImages* pImages);
-} } }
-
-namespace openmfc { namespace detail { namespace gdicore {
-void ClearToolBarImagesState(CMFCToolBarImages* pImages, BOOL bDestroyIcons);
-} } }
-
-namespace openmfc { namespace detail { namespace gdicore {
-void RemoveToolBarImagesState(CMFCToolBarImages* pImages);
-} } }
+namespace openmfc::detail::gdicore {
+using ToolBarResourceOffsets = std::unordered_map<UINT, int>;
+extern thread_local std::unordered_map<const CMFCToolBarImages*, ToolBarResourceOffsets> g_toolbarResourceOffsets;
+}
 
 // Static member definitions - provided without // Symbol: comments so typed_stubs
 // handles the MSVC-named exports. We define them here for C++ completeness but

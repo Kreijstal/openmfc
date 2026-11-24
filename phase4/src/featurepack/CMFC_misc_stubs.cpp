@@ -2926,10 +2926,7 @@ extern "C" void MS_ABI impl__ControlBarCleanUp__YAXXZ() {
     // to the shared control-bar globals goes away. Release the two pieces of
     // module-wide control-bar state this codebase actually owns.
     //
-    // 1. The toolbar image cache: CMFCToolBarImages::CleanUp
-    //    (featurepack/toolbar/CMFCToolBarImages.cpp) DestroyIcon()s every
-    //    icon the module created and clears g_toolbarImagesState. This is
-    //    the only module-wide GDI cache in the control-bar code.
+    // 1. CMFCToolBarImages::CleanUp clears the toolbar resource offsets.
     impl__CleanUp_CMFCToolBarImages__SAXXZ();
     // 2. The process-wide visual-manager singleton (g_pVisualManager), which
     //    owns the control-bar drawing state; DestroyInstance deletes it and

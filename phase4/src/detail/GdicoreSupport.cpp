@@ -222,36 +222,7 @@ extern "C" int MS_ABI impl__LoadBitmapW_CBitmap__QEAAHI_Z(CBitmap* pThis, UINT n
     pThis->m_hObject = ::LoadBitmapW(hInst, MAKEINTRESOURCEW(nIDResource));
     return pThis->m_hObject != nullptr;
 }
-thread_local std::unordered_map<const CMFCToolBarImages*, ToolBarImagesState> g_toolbarImagesState;
-ToolBarImagesState& EnsureToolBarImagesState(const CMFCToolBarImages* pImages) {
-    return g_toolbarImagesState[pImages];
-}
-const ToolBarImagesState* FindToolBarImagesState(const CMFCToolBarImages* pImages) {
-    auto it = g_toolbarImagesState.find(pImages);
-    return (it != g_toolbarImagesState.end()) ? &it->second : nullptr;
-}
-void ClearToolBarImagesState(CMFCToolBarImages* pImages, BOOL bDestroyIcons) {
-    if (!pImages) return;
-    auto it = g_toolbarImagesState.find(pImages);
-    if (it == g_toolbarImagesState.end()) return;
-    if (bDestroyIcons) {
-        for (HICON hIcon : it->second.ownedIcons) {
-            if (hIcon) ::DestroyIcon(hIcon);
-        }
-    }
-    it->second.ownedIcons.clear();
-    it->second.count = 0;
-    it->second.isValid = FALSE;
-}
-void RemoveToolBarImagesState(CMFCToolBarImages* pImages) {
-    if (!pImages) return;
-    auto it = g_toolbarImagesState.find(pImages);
-    if (it == g_toolbarImagesState.end()) return;
-    for (HICON hIcon : it->second.ownedIcons) {
-        if (hIcon) ::DestroyIcon(hIcon);
-    }
-    g_toolbarImagesState.erase(it);
-}
+thread_local std::unordered_map<const CMFCToolBarImages*, ToolBarResourceOffsets> g_toolbarResourceOffsets;
 CD2DPointF* InitCD2DPointF(CD2DPointF* pThis, float xValue, float yValue) {
     if (!pThis) return nullptr;
     pThis->x = xValue;

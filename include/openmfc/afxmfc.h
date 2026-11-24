@@ -740,8 +740,8 @@ public:
     BOOL Save(const wchar_t* lpszBitmapFileName = nullptr);
 
     int AddImage(HBITMAP hbmp, BOOL bSetBitmapSize = FALSE);
-    int AddImage(const CMFCToolBarImages& images, BOOL bSetBitmapSize = FALSE);
-    int AddIcon(HICON hIcon, BOOL bAutoDestroy = FALSE);
+    int AddImage(const CMFCToolBarImages& images, int sourceIndex);
+    int AddIcon(HICON hIcon, BOOL alphaBlend = FALSE);
 
     void Clear();
     void Initialize();
@@ -750,12 +750,14 @@ public:
     int GetCount() const;
     BOOL IsValid() const;
     CSize GetImageSize() const { return m_sizeImage; }
+    int GetResourceOffset(UINT resourceID) const;
+    BOOL CopyTo(CMFCToolBarImages& destination) const;
     BOOL DrawEx(CDC* dc, CRect bounds, int index, int horizontal = 0, int vertical = 0,
                 CRect source = CRect(0, 0, 0, 0), BYTE alpha = 255);
 
 private:
     void ReleaseImageWell();
-    int StoreImageStrip(HBITMAP bitmap, BOOL append);
+    int StoreImageStrip(HBITMAP bitmap, BOOL append, const CSize* cellSize = nullptr);
 
 protected:
     // Zeroes the retail member block and applies retail's non-zero defaults;
