@@ -22,6 +22,7 @@ using ThisClass = CMFCTabCtrl;
 const AFX_MSGMAP_ENTRY tabCtrlEntries[] = {
     ON_WM_PAINT()
     ON_WM_LBUTTONDOWN()
+    ON_WM_LBUTTONDBLCLK()
     ON_WM_SIZE()
     {0, 0, 0, 0, AfxSig_end, nullptr}
 };

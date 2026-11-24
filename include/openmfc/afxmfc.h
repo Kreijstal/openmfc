@@ -1277,6 +1277,8 @@ protected:
 //=============================================================================
 // CMFCBaseTabCtrl - Base tab control
 //=============================================================================
+namespace openmfc { namespace detail { class TabLabelEditor; } }
+
 class CMFCBaseTabCtrl : public CWnd {
     DECLARE_DYNAMIC(CMFCBaseTabCtrl)
 public:
@@ -1303,6 +1305,24 @@ public:
     void SetLocation(int location);
     void HideSingleTab(BOOL hide);
     void RefreshTabs();
+    virtual BOOL SetTabLabel(int index, const CString& label);
+    virtual BOOL StartRenameTab(int index);
+    virtual BOOL RenameTab();
+    virtual BOOL OnRenameTab(int index, CString& name);
+    virtual void EnableInPlaceEdit(BOOL enable);
+    BOOL PreTranslateMessage(MSG* message) override;
+    LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+    void OnCancelMode();
+    void OnLButtonDblClk(UINT flags, CPoint point);
+
+protected:
+    void PositionTabEditor();
+
+private:
+    friend class openmfc::detail::TabLabelEditor;
+    int FindEditedTab() const;
+    void CloseTabEditor(bool restoreFocus);
+    bool HandleTabEditKey(UINT message, WPARAM key);
 
 protected:
     char _baseTabCtrlPrefix[0x10]{};
@@ -1314,7 +1334,11 @@ protected:
     BOOL m_bHideSingleTab = FALSE;
     char _baseTabCtrlFlags[8]{};
     BOOL m_bIsMDITab = FALSE;
-    char _baseTabCtrlTail[0x1bc]{};
+    char _baseTabCtrlEditPrefix[0x1c]{};
+    int m_iEditedTab = -1;
+    CEdit* m_pInPlaceEdit = nullptr;
+    BOOL m_bIsInPlaceEdit = FALSE;
+    char _baseTabCtrlTail[0x18c]{};
 };
 
 //=============================================================================
@@ -1409,6 +1433,7 @@ public:
     CMFCTabCtrl();
     virtual ~CMFCTabCtrl();
 
+    void EnableInPlaceEdit(BOOL enable) override;
     void EnableTabDocumentsMenu(BOOL enable = TRUE);
     static HICON GetDocumentIcon(UINT command);
     virtual void OnShowTabDocumentsMenu(CPoint point);
@@ -1425,6 +1450,7 @@ public:
     void DrawTabs(CDC* dc);
     void OnPaint();
     void OnLButtonDown(UINT flags, CPoint point);
+    void OnLButtonDblClk(UINT flags, CPoint point);
     void OnSize(UINT type, int width, int height);
 
 protected:

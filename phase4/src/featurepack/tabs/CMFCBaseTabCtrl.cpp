@@ -32,6 +32,7 @@
 #include "openmfc/afxmfc.h"
 
 #include <windows.h>
+#include <windowsx.h>
 #include <oleacc.h>
 
 #include <cstdint>
@@ -41,6 +42,8 @@
 #else
   #define MS_ABI
 #endif
+
+extern "C" UINT impl__AFX_WM_ON_RENAME_TAB__3IA;
 
 //---------------------------------------------------------------------------
 // Cross-file impl helpers, plus forward declarations of exports defined
@@ -1187,25 +1190,12 @@ extern "C" int MS_ABI impl__SetTabIconOnly_CMFCBaseTabCtrl__UEAAHHHH_Z(
     pThis->RedrawWindow(nullptr, nullptr, 0x505);
     return TRUE;
 }
-// Retail (0x180016920): bounds-checks (failing on an uninitialized label
-// CString too), stores the label into the tab record (+0x8), refreshes the
-// tooltip helper (+0x1b8/+0x1c8), mirrors the text into the tab window
-// (CWnd::SetWindowTextW on record+0x30) and runs the vslot-0x318 relayout,
-// then updates the frame when iTab is the active tab; returns 1 on success,
-// 0 on failure. The record/tooltip are unmodeled; the tab-window text update,
-// the bounds gate and the relayout redraw are kept.
 // Symbol: ?SetTabLabel@CMFCBaseTabCtrl@@UEAAHHAEBV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@@Z
 extern "C" int MS_ABI
 impl__SetTabLabel_CMFCBaseTabCtrl__UEAAHHAEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-    CMFCBaseTabCtrl* pThis, int iTab, const CString& strLabel)
+    CMFCBaseTabCtrl* pThis, int index, const CString& label)
 {
-    if (!TabAt(pThis, iTab)) return FALSE;
-    auto& tab = EnsureTabCtrlState(pThis).tabs[iTab];
-    tab.label = strLabel.GetString();
-    const HWND window = tab.window ? tab.window->GetSafeHwnd() : nullptr;
-    if (window) ::SetWindowTextW(window, strLabel.GetString());
-    pThis->RefreshTabs();
-    return TRUE;
+    return pThis && pThis->CMFCBaseTabCtrl::SetTabLabel(index, label);
 }
 // Retail (0x180019ad0): bounds-checks and stores the color at +0x40 of the
 // tab record; returns 1 when applied, 0 when out of bounds.
@@ -1237,22 +1227,10 @@ extern "C" int MS_ABI impl__ShowTab_CMFCBaseTabCtrl__UEAAHHHHH_Z(
 {
     return pThis && pThis->ShowTab(iTab, bShow, bDontShowActive, bChangeActiveTab);
 }
-// Retail (0x1800194a0): returns 0 when the +0x230 in-place-edit flag is clear,
-// when iTab is out of bounds or when the tab rect (+0x20) is empty; otherwise
-// it creates the in-place CEdit editor at +0x228 (style 0x50800080, parent
-// this, with WM_* setup) and returns 1. The flag/rect/editor are unmodeled
-// (the flag defaults clear), so 0 -- the retail terminal for the flag-clear
-// state -- is returned for every call.
 // Symbol: ?StartRenameTab@CMFCBaseTabCtrl@@UEAAHH@Z
-extern "C" int MS_ABI impl__StartRenameTab_CMFCBaseTabCtrl__UEAAHH_Z(
-    CMFCBaseTabCtrl* pThis, int iTab)
+extern "C" int MS_ABI impl__StartRenameTab_CMFCBaseTabCtrl__UEAAHH_Z(CMFCBaseTabCtrl* pThis, int index)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- retail also gates on the
-    // +0x230 in-place-edit flag and the tab rect (+0x20, IsRectEmpty) and
-    // creates the CEdit editor at +0x228; none are modeled.
-    return FALSE;
+    return pThis && pThis->CMFCBaseTabCtrl::StartRenameTab(index);
 }
 // Symbol: ?SwapTabs@CMFCBaseTabCtrl@@UEAAXHH@Z
 extern "C" void MS_ABI impl__SwapTabs_CMFCBaseTabCtrl__UEAAXHH_Z(
@@ -1555,23 +1533,10 @@ extern "C" void MS_ABI impl__MoveTab_CMFCBaseTabCtrl__UEAAXHH_Z(
 {
     if (pThis) pThis->MoveTab(from, to);
 }
-// Retail (0x180018190): calls CWnd::Default, then when the drag flags
-// (+0x348/+0x344) are set resets them and posts WM_PAINT, then releases the
-// capture when a tab drag is active (+0x1dc >= 0) and tears the in-place edit
-// window down (+0x228/+0x220/+0x234). The conservative version keeps the
-// base delegation and the capture release.
 // Symbol: ?OnCancelMode@CMFCBaseTabCtrl@@IEAAXXZ
-extern "C" void MS_ABI impl__OnCancelMode_CMFCBaseTabCtrl__IEAAXXZ(
-    CMFCBaseTabCtrl* pThis)
+extern "C" void MS_ABI impl__OnCancelMode_CMFCBaseTabCtrl__IEAAXXZ(CMFCBaseTabCtrl* pThis)
 {
-    if (!pThis) return;
-    (void)impl__Default_CWnd__IEAA_JXZ(pThis);
-    // TODO(clean-room): partially transcribed -- the drag-cancel resets
-    // (+0x344/+0x348, WM_PAINT post) and the edit-window teardown
-    // (+0x220/+0x228/+0x234) are not modeled.
-    if (::GetCapture() == pThis->GetSafeHwnd()) {
-        ::ReleaseCapture();
-    }
+    if (pThis) pThis->OnCancelMode();
 }
 // Retail (0x180019ff0): calls CWnd::Default first (-1 aborts), resolves the
 // parent frame (AFXGetParentFrame, stored at +0xe8) and, when the thread
@@ -1600,18 +1565,11 @@ extern "C" void MS_ABI impl__OnDestroy_CMFCBaseTabCtrl__IEAAXXZ(
     // vslot-0x588 virtual (internal handler-list cleanup); not modeled.
     impl__OnDestroy_CWnd__IEAAXXZ(pThis);
 }
-// Retail (0x180017a30): calls CWnd::Default, then, when the in-place edit
-// flag (+0x230) is set, hit-tests the tab (vslot 0x440/0x428) and routes
-// WM_LBUTTONDBLCLK to the child tab window (vslot 0x400). The edit flag and
-// tab geometry are unmodeled; the base handler call is kept.
 // Symbol: ?OnLButtonDblClk@CMFCBaseTabCtrl@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCBaseTabCtrl__IEAAXIVCPoint___Z(
-    CMFCBaseTabCtrl* pThis, unsigned int /*nFlags*/, CPoint /*point*/)
+    CMFCBaseTabCtrl* pThis, UINT flags, CPoint point)
 {
-    if (!pThis) return;
-    (void)impl__Default_CWnd__IEAA_JXZ(pThis);
-    // TODO(clean-room): not transcribed -- needs the +0x230 in-place-edit
-    // flag and the tab hit-test/routing virtuals (vslot 0x440/0x428/0x400).
+    if (pThis) pThis->OnLButtonDblClk(flags, point);
 }
 // Retail (0x180017660): calls CWnd::Default after clearing +0x340, then
 // either starts a capture-drag when the point hits the +0x34c rect (posts
@@ -1723,19 +1681,11 @@ extern "C" void MS_ABI impl__OnWindowPosChanged_CMFCBaseTabCtrl__IEAAXPEAUtagWIN
     // TODO(clean-room): partially transcribed -- retail also stores 1 at +0x340
     // (layout-dirty flag); that member is not declared.
 }
-// Retail (0x1800196d0): while the in-place edit window (+0x228) is open it
-// filters its keys (VK_RETURN/VK_ESCAPE destroy the editor), otherwise every
-// message falls through to CWnd::PreTranslateMessage (0x18028bc00). The edit
-// window is unmodeled, so the base handler is the faithful conservative path.
 // Symbol: ?PreTranslateMessage@CMFCBaseTabCtrl@@UEAAHPEAUtagMSG@@@Z
 extern "C" int MS_ABI impl__PreTranslateMessage_CMFCBaseTabCtrl__UEAAHPEAUtagMSG___Z(
-    CMFCBaseTabCtrl* pThis, MSG* pMsg)
+    CMFCBaseTabCtrl* pThis, MSG* message)
 {
-    if (!pThis) return FALSE;
-    // TODO(clean-room): partially transcribed -- retail intercepts
-    // VK_RETURN/VK_ESCAPE while the in-place edit window (+0x228) exists and
-    // routes other keys through it (vslot 0x408); that window is not modeled.
-    return impl__PreTranslateMessage_CWnd__UEAAHPEAUtagMSG___Z(pThis, pMsg);
+    return pThis && pThis->CMFCBaseTabCtrl::PreTranslateMessage(message);
 }
 // Retail (0x180016450): sets the active tab (+0x154) to -1, walks the tab
 // array from the end deleting every CMFCBaseTabInfo record (DelTool on the
@@ -1758,20 +1708,10 @@ extern "C" void MS_ABI impl__RemoveAllTabs_CMFCBaseTabCtrl__UEAAXXZ(
     // emptied through the public RemoveTab path instead.
     pThis->RedrawWindow(nullptr, nullptr, 0x505);
 }
-// Retail (0x180019870): early-returns 0 when no in-place edit window (+0x228)
-// exists; otherwise it reads the editor text (CWnd::GetWindowTextW,
-// 0x18028be00) into a CString and hands it to the vslot-0x410 virtual. Since
-// the edit window is never present in OpenMFC, 0 is the faithful terminal
-// value for every call.
 // Symbol: ?RenameTab@CMFCBaseTabCtrl@@UEAAHXZ
-extern "C" int MS_ABI impl__RenameTab_CMFCBaseTabCtrl__UEAAHXZ(
-    CMFCBaseTabCtrl* pThis)
+extern "C" int MS_ABI impl__RenameTab_CMFCBaseTabCtrl__UEAAHXZ(CMFCBaseTabCtrl* pThis)
 {
-    if (!pThis) return FALSE;
-    // TODO(clean-room): partially transcribed -- retail returns 0 when the
-    // in-place edit window (+0x228) is absent (always the case here) and
-    // otherwise renames the tab via the vslot-0x410 virtual.
-    return FALSE;
+    return pThis && pThis->CMFCBaseTabCtrl::RenameTab();
 }
 // Retail (0x180019de0): calls the vslot-0x2f8 virtual, nulls the stored image
 // list handle (+0x170) and tail-calls CMapPtrToPtr::RemoveAll (0x18001ba40)
@@ -1988,14 +1928,262 @@ CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
     static_assert(offsetof(CMFCBaseTabCtrl, m_iActiveTab) == 0x154);
     static_assert(offsetof(CMFCBaseTabCtrl, m_bHideSingleTab) == 0x1f4);
     static_assert(offsetof(CMFCBaseTabCtrl, m_bIsMDITab) == 0x200);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_iEditedTab) == 0x220);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_pInPlaceEdit) == 0x228);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_bIsInPlaceEdit) == 0x230);
 }
 
 CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {
+    CloseTabEditor(false);
     RemoveTabCtrlState(this);
 }
 
 BOOL CMFCBaseTabCtrl::Create(DWORD style, const RECT& rect, CWnd* parent, UINT id) {
     return parent && CWnd::Create(L"STATIC", L"", style | WS_CHILD | WS_CLIPCHILDREN, rect, parent, id);
+}
+
+namespace openmfc { namespace detail {
+class TabLabelEditor final : public CEdit {
+public:
+    TabLabelEditor(CMFCBaseTabCtrl& owner, int id)
+        : tabId(id), previousFocus(::GetFocus()), owner_(&owner), ownerWindow_(owner.m_hWnd) {}
+
+    int tabId;
+    HWND previousFocus;
+    bool selfOwned = false;
+    bool committing = false;
+
+protected:
+    LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override {
+        const HWND window = m_hWnd;
+        auto* owner = CurrentOwner();
+        if (owner && owner->HandleTabEditKey(message, wParam)) return 0;
+        if (message == WM_GETDLGCODE)
+            return CEdit::WindowProc(message, wParam, lParam) | DLGC_WANTALLKEYS;
+        const HWND ownerWindow = ownerWindow_;
+        const auto result = CEdit::WindowProc(message, wParam, lParam);
+        if (message == WM_KILLFOCUS || message == WM_CANCELMODE || message == WM_LBUTTONUP) {
+            if (!owner || CWnd::FromHandlePermanent(ownerWindow) != owner ||
+                CWnd::FromHandlePermanent(window) != this || owner->m_pInPlaceEdit != this) return result;
+            if (message == WM_LBUTTONUP) {
+                if (!::GetCapture()) ::SetCapture(ownerWindow);
+            } else {
+                owner->CloseTabEditor(false);
+            }
+        }
+        return result;
+    }
+
+    void PostNcDestroy() override {
+        if (auto* owner = CurrentOwner()) {
+            owner->m_pInPlaceEdit = nullptr;
+            owner->m_iEditedTab = -1;
+            if (::GetCapture() == ownerWindow_) ::ReleaseCapture();
+        }
+        if (selfOwned) delete this;
+    }
+
+private:
+    CMFCBaseTabCtrl* CurrentOwner() const {
+        return CWnd::FromHandlePermanent(ownerWindow_) == owner_ && owner_->m_pInPlaceEdit == this
+            ? owner_ : nullptr;
+    }
+
+    CMFCBaseTabCtrl* owner_;
+    HWND ownerWindow_;
+};
+} }
+
+void CMFCBaseTabCtrl::EnableInPlaceEdit(BOOL enable) {
+    m_bIsInPlaceEdit = enable;
+    if (!enable) CloseTabEditor(true);
+}
+
+int CMFCBaseTabCtrl::FindEditedTab() const {
+    const auto* state = FindTabCtrlState(this);
+    if (!m_pInPlaceEdit || !state) return -1;
+    const int id = static_cast<const openmfc::detail::TabLabelEditor*>(m_pInPlaceEdit)->tabId;
+    const auto entry = std::find_if(state->tabs.begin(), state->tabs.end(),
+        [id](const TabEntry& tab) { return tab.id == id; });
+    return entry == state->tabs.end() ? -1 : static_cast<int>(entry - state->tabs.begin());
+}
+
+BOOL CMFCBaseTabCtrl::StartRenameTab(int index) {
+    if (!m_hWnd) AfxThrowInvalidArgException();
+    const auto* tab = TabAt(this, index);
+    if (!m_bIsInPlaceEdit || !tab || !tab->visible || tab->temporary || tab->rect.IsRectEmpty()) return FALSE;
+    if (m_pInPlaceEdit) AfxThrowInvalidArgException();
+    const HWND control = m_hWnd;
+    const RECT rect = *static_cast<const RECT*>(tab->rect);
+    const std::wstring label = tab->label;
+    auto editor = std::make_unique<openmfc::detail::TabLabelEditor>(*this, tab->id);
+    if (!editor->Create(WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, rect, this, 1)) return FALSE;
+    if (CWnd::FromHandlePermanent(control) != this || m_pInPlaceEdit || !m_bIsInPlaceEdit) return FALSE;
+
+    const HWND window = editor->m_hWnd;
+    m_iEditedTab = index;
+    m_pInPlaceEdit = editor.get();
+    editor->selfOwned = true;
+    editor.release();
+    PositionTabEditor();
+    if (CWnd::FromHandlePermanent(control) != this || !m_pInPlaceEdit || m_pInPlaceEdit->m_hWnd != window)
+        return FALSE;
+
+    ::SetWindowTextW(window, label.c_str());
+    if (::IsWindow(window)) ::SendMessageW(window, WM_SETFONT,
+        reinterpret_cast<WPARAM>(::GetStockObject(DEFAULT_GUI_FONT)), TRUE);
+    if (::IsWindow(window)) ::SendMessageW(window, EM_SETSEL, 0, -1);
+    if (::IsWindow(window)) ::SetFocus(window);
+    if (CWnd::FromHandlePermanent(control) != this || !m_pInPlaceEdit || m_pInPlaceEdit->m_hWnd != window)
+        return FALSE;
+    ::SetCapture(control);
+    return TRUE;
+}
+
+void CMFCBaseTabCtrl::CloseTabEditor(bool restoreFocus) {
+    if (!m_pInPlaceEdit) return;
+    auto* editor = static_cast<openmfc::detail::TabLabelEditor*>(m_pInPlaceEdit);
+    const HWND window = editor->m_hWnd;
+    const HWND priorFocus = editor->previousFocus;
+    const HWND control = m_hWnd;
+    const bool restore = restoreFocus && ::GetFocus() == window;
+    m_pInPlaceEdit = nullptr;
+    m_iEditedTab = -1;
+    if (::GetCapture() == control || ::GetCapture() == window) ::ReleaseCapture();
+    if (::IsWindow(window)) ::DestroyWindow(window);
+    if (restore && CWnd::FromHandlePermanent(control) == this) {
+        if (::IsWindow(priorFocus)) ::SetFocus(priorFocus);
+        else ::SetFocus(control);
+    }
+}
+
+void CMFCBaseTabCtrl::PositionTabEditor() {
+    if (!m_pInPlaceEdit) return;
+    const int index = FindEditedTab();
+    const auto* tab = TabAt(this, index);
+    if (!tab || !tab->visible || tab->rect.IsRectEmpty()) {
+        CloseTabEditor(false);
+        return;
+    }
+    m_iEditedTab = index;
+    ::SetWindowPos(m_pInPlaceEdit->m_hWnd, HWND_TOP, tab->rect.left, tab->rect.top,
+        tab->rect.Width(), tab->rect.Height(), SWP_NOACTIVATE);
+}
+
+BOOL CMFCBaseTabCtrl::OnRenameTab(int, CString&) {
+    return TRUE;
+}
+
+BOOL CMFCBaseTabCtrl::RenameTab() {
+    int index = FindEditedTab();
+    if (index < 0) return FALSE;
+    auto* editor = static_cast<openmfc::detail::TabLabelEditor*>(m_pInPlaceEdit);
+    const HWND control = m_hWnd;
+    const HWND window = editor->m_hWnd;
+    if (!window || editor->committing) return FALSE;
+
+    std::wstring text(static_cast<size_t>(::GetWindowTextLengthW(window)) + 1, L'\0');
+    const int length = ::GetWindowTextW(window, text.data(), static_cast<int>(text.size()));
+    if (!length) return FALSE;
+    CString label(text.data(), length);
+    editor->committing = true;
+    struct ResetCommit {
+        HWND window;
+        openmfc::detail::TabLabelEditor* editor;
+        ~ResetCommit() {
+            if (CWnd::FromHandlePermanent(window) == editor) editor->committing = false;
+        }
+    } reset{window, editor};
+    auto currentIndex = [&] {
+        return CWnd::FromHandlePermanent(control) == this && CWnd::FromHandlePermanent(window) == editor &&
+            m_pInPlaceEdit == editor ? FindEditedTab() : -1;
+    };
+    if (!OnRenameTab(index, label) || label.IsEmpty()) return FALSE;
+    index = currentIndex();
+    if (index < 0) return FALSE;
+    const HWND parent = ::GetParent(control);
+    if (parent && ::SendMessageW(parent, impl__AFX_WM_ON_RENAME_TAB__3IA,
+            static_cast<WPARAM>(index), reinterpret_cast<LPARAM>(label.GetString()))) return FALSE;
+    index = currentIndex();
+    return index >= 0 && SetTabLabel(index, label);
+}
+
+BOOL CMFCBaseTabCtrl::SetTabLabel(int index, const CString& label) {
+    if (!TabAt(this, index)) return FALSE;
+    auto& tab = EnsureTabCtrlState(this).tabs[index];
+    tab.label = label.GetString();
+    const HWND control = m_hWnd;
+    const HWND window = tab.window ? tab.window->m_hWnd : nullptr;
+    if (window) ::SetWindowTextW(window, label.GetString());
+    if (!control || CWnd::FromHandlePermanent(control) == this) RefreshTabs();
+    return TRUE;
+}
+
+bool CMFCBaseTabCtrl::HandleTabEditKey(UINT message, WPARAM key) {
+    if (!m_pInPlaceEdit || (key != VK_ESCAPE && key != VK_RETURN)) return false;
+    if (message == WM_CHAR || message == WM_KEYUP) return true;
+    if (message != WM_KEYDOWN) return false;
+    const HWND control = m_hWnd;
+    const HWND editor = m_pInPlaceEdit->m_hWnd;
+    const bool close = key == VK_ESCAPE || RenameTab();
+    if (CWnd::FromHandlePermanent(control) == this && m_pInPlaceEdit && m_pInPlaceEdit->m_hWnd == editor) {
+        if (close) CloseTabEditor(true);
+        else ::MessageBeep(UINT(-1));
+    }
+    return true;
+}
+
+BOOL CMFCBaseTabCtrl::PreTranslateMessage(MSG* message) {
+    if (!message) return FALSE;
+    if (HandleTabEditKey(message->message, message->wParam)) return TRUE;
+    return m_pInPlaceEdit ? FALSE : CWnd::PreTranslateMessage(message);
+}
+
+LRESULT CMFCBaseTabCtrl::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_NCHITTEST) {
+        // The tab strip is interactive even though the underlying STATIC
+        // control returns HTTRANSPARENT for the rest of the window.
+        const auto* state = FindTabCtrlState(this);
+        if (state && state->liveLayout) {
+            POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            if (::ScreenToClient(m_hWnd, &point) && ::PtInRect(state->strip, point)) return HTCLIENT;
+        }
+    }
+    if (!m_pInPlaceEdit) return CWnd::WindowProc(message, wParam, lParam);
+    const HWND control = m_hWnd;
+    const HWND editor = m_pInPlaceEdit->m_hWnd;
+    if (HandleTabEditKey(message, wParam)) return 0;
+    if (message == WM_CANCELMODE || message == WM_NCDESTROY ||
+        (message == WM_CAPTURECHANGED && reinterpret_cast<HWND>(lParam) != editor)) {
+        CloseTabEditor(false);
+    } else if (::GetCapture() == control && message >= WM_MOUSEMOVE && message <= WM_XBUTTONDBLCLK &&
+        message != WM_MOUSEWHEEL) {
+        POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        ::MapWindowPoints(control, editor, &point, 1);
+        RECT bounds{};
+        if (::GetClientRect(editor, &bounds) && ::PtInRect(&bounds, point))
+            return ::SendMessageW(editor, message, wParam, MAKELPARAM(point.x, point.y));
+        if (message != WM_MOUSEMOVE) CloseTabEditor(true);
+        return 0;
+    }
+    return CWnd::FromHandlePermanent(control) == this ? CWnd::WindowProc(message, wParam, lParam) : 0;
+}
+
+void CMFCBaseTabCtrl::OnCancelMode() {
+    const HWND control = m_hWnd;
+    CloseTabEditor(false);
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    Default();
+    if (::GetCapture() == control) ::ReleaseCapture();
+}
+
+void CMFCBaseTabCtrl::OnLButtonDblClk(UINT, CPoint point) {
+    const HWND control = m_hWnd;
+    Default();
+    if (CWnd::FromHandlePermanent(control) != this || !m_bIsInPlaceEdit) return;
+    const int active = GetActiveTab();
+    const auto* tab = TabAt(this, active);
+    if (tab && ::PtInRect(tab->rect, point)) StartRenameTab(active);
 }
 
 int CMFCBaseTabCtrl::GetTabsCount() const {

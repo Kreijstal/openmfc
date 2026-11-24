@@ -227,16 +227,10 @@ extern "C" void MS_ABI impl__EnableActiveTabCloseButton_CMFCTabCtrl__QEAAXH_Z(
     // flag (retail +0x3fc) has no declared member, so it is not stored.
     pThis->RedrawWindow(nullptr, nullptr, 0x505);
 }
-// Retail (0x18013c140) is a pure flag write: `if (style flag +0x3c0 != 0)
-// { flag +0x230 = bEnable; }`. Neither offset is a declared member.
 // Symbol: ?EnableInPlaceEdit@CMFCTabCtrl@@UEAAXH@Z
-extern "C" void MS_ABI impl__EnableInPlaceEdit_CMFCTabCtrl__UEAAXH_Z(
-    CMFCTabCtrl* pThis, int bEnable)
+extern "C" void MS_ABI impl__EnableInPlaceEdit_CMFCTabCtrl__UEAAXH_Z(CMFCTabCtrl* pThis, BOOL enable)
 {
-    (void)bEnable;
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- retail stores bEnable at
-    // +0x230 when the +0x3c0 style flag is set; neither member is declared.
+    if (pThis) pThis->CMFCTabCtrl::EnableInPlaceEdit(enable);
 }
 // Symbol: ?EnableTabDocumentsMenu@CMFCTabCtrl@@QEAAXH@Z
 extern "C" void MS_ABI impl__EnableTabDocumentsMenu_CMFCTabCtrl__QEAAXH_Z(
@@ -249,21 +243,17 @@ extern "C" int MS_ABI impl__EnsureVisible_CMFCTabCtrl__UEAAHH_Z(CMFCTabCtrl* pTh
 {
     return pThis && pThis->EnsureVisible(index);
 }
-// Retail (0x18013a270): if point.y < tab-header bottom (+0x1d8) or the point
-// lies over a non-detachable tab (per-tab flag at +0x48) it returns NULL;
-// otherwise it returns CWnd::FromHandlePermanent(m_hWnd) i.e. `this`. The
-// header bound and per-tab geometry are unmodeled; for a live control the
-// FromHandlePermanent answer is the object itself.
 // Symbol: ?FindTargetWnd@CMFCTabCtrl@@MEAAPEAVCWnd@@AEBVCPoint@@@Z
 extern "C" CWnd* MS_ABI impl__FindTargetWnd_CMFCTabCtrl__MEAAPEAVCWnd__AEBVCPoint___Z(
     CMFCTabCtrl* pThis, const CPoint& point)
 {
-    (void)point;
-    if (!pThis) return nullptr;
-    // TODO(clean-room): partially transcribed -- retail returns NULL when the
-    // point is above the tab-header bottom (+0x1d8) or over a tab whose
-    // +0x48 flag is set; the header bound and tab rects are not modeled.
-    return pThis;
+    const auto* state = pThis ? FindTabCtrlState(pThis) : nullptr;
+    if (!state || !pThis->m_hWnd || point.y < state->strip.Height()) return nullptr;
+    if (std::any_of(state->tabs.begin(), state->tabs.end(),
+            [&point](const TabEntry& tab) { return tab.visible && ::PtInRect(tab.rect, point); }))
+        return nullptr;
+    const HWND parent = ::GetParent(pThis->m_hWnd);
+    return parent ? CWnd::FromHandle(parent) : nullptr;
 }
 // Retail (0x18013c510): returns -1 when the point is outside the tab-area
 // rect (+0x44c), otherwise it scans the tab rect array (+0x108/+0x110, active
@@ -396,21 +386,10 @@ extern "C" void MS_ABI impl__MoveTab_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis, 
 {
     if (pThis) pThis->MoveTab(from, to);
 }
-// Retail (0x18013b390): when this control is the capture owner and its
-// vslot-0x5f0 drag query is active it posts a registered message to the
-// parent window (0x1803c24c0), then runs internal resets and, if the
-// +0x3dc flag is set, releases the mouse capture. The conservative version
-// keeps the capture release.
 // Symbol: ?OnCancelMode@CMFCTabCtrl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnCancelMode_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
 {
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the registered cancel
-    // message to the parent and the internal drag-state resets (+0x3dc/+0x40c)
-    // are not modeled.
-    if (::GetCapture() == pThis->GetSafeHwnd()) {
-        ::ReleaseCapture();
-    }
+    if (pThis) pThis->OnCancelMode();
 }
 // Retail (0x18013ba70) first handles commands from its internal scrollbar
 // (+0x588) and documents-menu button (+0x10a8) by recomputing the scroll
@@ -517,17 +496,11 @@ extern "C" void MS_ABI impl__OnHScroll_CMFCTabCtrl__IEAAXIIPEAVCScrollBar___Z(
     // only the base-handler branch is kept.
     impl__OnHScroll_CWnd__IEAAXIIPEAVCScrollBar___Z(pThis, nSBCode, nPos, pScrollBar);
 }
-// Retail (0x180139650) walks the documents-menu list (+0x3d38), hit-tests the
-// close-button rects and the tabs, sends WM_LBUTTONDBLCLK/WM_LBUTTONDOWN to
-// the child tab window and, for a double click on a tab, activates it. Needs
-// the tab geometry and the internal lists; not modeled.
 // Symbol: ?OnLButtonDblClk@CMFCTabCtrl@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCTabCtrl__IEAAXIVCPoint___Z(
-    CMFCTabCtrl* pThis, unsigned int /*nFlags*/, CPoint /*point*/)
+    CMFCTabCtrl* pThis, UINT flags, CPoint point)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the tab-rect geometry, the
-    // documents-menu list (+0x3d38) and the vslot-0x4a8 hit test.
+    if (pThis) pThis->OnLButtonDblClk(flags, point);
 }
 // Retail (0x180139430): when the point is inside the strip rect (+0x42c) it
 // sets the +0x3dc capture flag and calls SetCapture, then handles the
@@ -800,7 +773,10 @@ void CMFCTabCtrl::RecalcLayout() {
         ::SetWindowPos(window, nullptr, page.left, page.top, page.Width(), page.Height(),
             SWP_NOACTIVATE | SWP_NOZORDER | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
     }
-    ::InvalidateRect(control, nullptr, FALSE);
+    if (CWnd::FromHandlePermanent(control) == this) {
+        ::InvalidateRect(control, nullptr, FALSE);
+        PositionTabEditor();
+    }
 }
 
 BOOL CMFCTabCtrl::ActivateTab(int index) {
@@ -988,6 +964,26 @@ void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
     const int index = impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(this, point);
     if (index >= 0) SelectTabAndFocus(*this, index);
     else Default();
+}
+
+void CMFCTabCtrl::EnableInPlaceEdit(BOOL enable) {
+    if (TabControlFlag(*this, flatTabOffset)) CMFCBaseTabCtrl::EnableInPlaceEdit(enable);
+}
+
+void CMFCTabCtrl::OnLButtonDblClk(UINT flags, CPoint point) {
+    if (const auto* state = FindTabCtrlState(this)) {
+        const RECT documents = DocumentsButtonBounds(*state);
+        const RECT close = TabCloseButtonBounds(*state);
+        if (::PtInRect(&documents, point) || ::PtInRect(&close, point) ||
+            ::PtInRect(state->scrollLeft, point) || ::PtInRect(state->scrollRight, point)) return;
+    }
+    if (auto* target = impl__FindTargetWnd_CMFCTabCtrl__MEAAPEAVCWnd__AEBVCPoint___Z(this, point)) {
+        POINT mapped{point.x, point.y};
+        ::MapWindowPoints(m_hWnd, target->m_hWnd, &mapped, 1);
+        ::SendMessageW(target->m_hWnd, WM_LBUTTONDBLCLK, flags, MAKELPARAM(mapped.x, mapped.y));
+        return;
+    }
+    CMFCBaseTabCtrl::OnLButtonDblClk(flags, point);
 }
 
 void CMFCTabCtrl::OnSize(UINT, int, int) {
