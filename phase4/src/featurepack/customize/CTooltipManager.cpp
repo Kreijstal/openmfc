@@ -5,11 +5,13 @@
 
 #include "detail/MfccoreSupport.h"
 
+#include <cstring>
+#include <utility>
+
 // Symbol: ?CreateToolTipObject@CTooltipManager@@IEAAHAEAPEAVCToolTipCtrl@@I@Z
 extern "C" int MS_ABI impl__CreateToolTipObject_CTooltipManager__IEAAHAEAPEAVCToolTipCtrl__I_Z(
     CTooltipManager* pThis, CToolTipCtrl** ppToolTip, unsigned int nType) {
-    (void)pThis;
-    return ppToolTip ? CTooltipManager::CreateToolTip(*ppToolTip, nullptr, nType) : FALSE;
+    return pThis && ppToolTip && pThis->CreateToolTipObject(*ppToolTip, nType);
 }
 // Symbol: ??0CTooltipManager@@QEAA@XZ
 extern "C" void* MS_ABI impl___0CTooltipManager__QEAA_XZ(void* pThis) { return new (pThis) CTooltipManager(); }
@@ -43,41 +45,127 @@ extern "C" void MS_ABI impl__SetTooltipText_CTooltipManager__SAXPEAUtagTOOLINFOW
         ::SendMessageW(toolTip->GetSafeHwnd(), TTM_UPDATETIPTEXTW, 0, reinterpret_cast<LPARAM>(&localInfo));
     }
 }
-CTooltipManager::CTooltipManager() { memset(_tooltipmanager_padding, 0, sizeof(_tooltipmanager_padding)); }
-CTooltipManager::~CTooltipManager() { g_tooltipManagerStates.erase(this); }
-BOOL CTooltipManager::CreateToolTip(CToolTipCtrl*& pToolTip, CWnd* pWndParent, UINT nType) {
-    const bool allocated = pToolTip == nullptr;
-    if (allocated) pToolTip = new CToolTipCtrl();
-    BOOL created = pToolTip->Create(pWndParent, nType);
-    if (!created && allocated) {
-        delete pToolTip;
-        pToolTip = nullptr;
-    }
-    return created;
-}
-void CTooltipManager::DeleteToolTip(CToolTipCtrl*& pToolTip) {
-    if (pToolTip) {
-        pToolTip->DestroyWindow();
-        delete pToolTip;
-        pToolTip = nullptr;
-    }
-}
-void CTooltipManager::SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC, CMFCToolTipInfo* pParams) {
-    TooltipManagerState& state = g_tooltipManagerStates[this];
-    state.types = nTypes; state.runtimeClass = pRTC; state.params = pParams;
-}
-void CTooltipManager::UpdateTooltips() {
-    TooltipManagerState& state = g_tooltipManagerStates[this];
-    for (size_t i = 0; i < state.tooltips.size();) {
-        CToolTipCtrl* pTip = state.tooltips[i];
-        if (!pTip || !pTip->GetSafeHwnd()) {
-            state.tooltips.erase(state.tooltips.begin() + static_cast<std::ptrdiff_t>(i));
+extern "C" UINT impl__AFX_WM_UPDATETOOLTIPS__3IA;
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolTipCtrl__SAPEAUCRuntimeClass__XZ();
+extern "C" void MS_ABI impl__SetParams_CMFCToolTipCtrl__QEAAXPEAVCMFCToolTipInfo___Z(void*, const void*);
+
+namespace {
+constexpr UINT tooltipTypeCount = 11;
+constexpr UINT allTooltipTypes = 0xffff;
+constexpr wchar_t tooltipOwnerProperty[] = L"OpenMFC.TooltipOwner";
+thread_local CTooltipManager* tooltipManager = nullptr;
+
+void BroadcastTooltipUpdate(const CTooltipManager* manager, UINT types) {
+    const auto found = g_tooltipManagerStates.find(manager);
+    if (found == g_tooltipManagerStates.end()) return;
+    auto& entries = found->second.tooltipOwners;
+    std::vector<HWND> owners;
+    for (auto it = entries.begin(); it != entries.end();) {
+        const auto [tooltip, owner] = *it;
+        if (!::IsWindow(owner) || ::GetPropW(tooltip, tooltipOwnerProperty) != owner) {
+            it = entries.erase(it);
             continue;
         }
-        pTip->Activate(TRUE);
-        if (state.params) {
-            pTip->SetMaxTipWidth(400);
-        }
-        ++i;
+        if (std::find(owners.begin(), owners.end(), owner) == owners.end()) owners.push_back(owner);
+        ++it;
     }
+    // Handlers can add or remove owners while rebuilding their tooltips.
+    for (HWND owner : owners) {
+        if (g_tooltipManagerStates.find(manager) == g_tooltipManagerStates.end()) break;
+        if (::IsWindow(owner)) ::SendMessageW(owner, impl__AFX_WM_UPDATETOOLTIPS__3IA, types, 0);
+    }
+}
+}
+
+static_assert(sizeof(CMFCToolTipInfo) == 0x34);
+static_assert(sizeof(CTooltipManager) == 0x2d8);
+
+CTooltipManager::CTooltipManager() {
+    static_assert(offsetof(CTooltipManager, m_tooltipParams) == 0x08);
+    static_assert(offsetof(CTooltipManager, m_tooltipClasses) == 0x248);
+    if (tooltipManager) AfxThrowInvalidArgException();
+    tooltipManager = this;
+}
+
+CTooltipManager::~CTooltipManager() {
+    if (tooltipManager == this) tooltipManager = nullptr;
+    g_tooltipManagerStates.erase(this);
+}
+
+BOOL CTooltipManager::CreateToolTipObject(CToolTipCtrl*& tooltip, UINT index) {
+    if (index >= tooltipTypeCount) return FALSE;
+    auto* runtime = m_tooltipClasses[index];
+    if (!runtime) {
+        tooltip = new CToolTipCtrl();
+        return TRUE;
+    }
+    if (!runtime->IsDerivedFrom(impl__GetThisClass_CToolTipCtrl__SAPEAUCRuntimeClass__XZ())) return FALSE;
+    tooltip = static_cast<CToolTipCtrl*>(runtime->CreateObject());
+    if (!tooltip) return FALSE;
+    for (const auto* type = runtime; type; type = type->BaseClass()) {
+        if (type->m_lpszClassName && std::strcmp(type->m_lpszClassName, "CMFCToolTipCtrl") == 0) {
+            impl__SetParams_CMFCToolTipCtrl__QEAAXPEAVCMFCToolTipInfo___Z(tooltip, &m_tooltipParams[index]);
+            break;
+        }
+    }
+    return TRUE;
+}
+
+BOOL CTooltipManager::CreateToolTip(CToolTipCtrl*& tooltip, CWnd* parent, UINT type) {
+    if (!parent || !parent->GetSafeHwnd()) return FALSE;
+    if (!type) type = 1;
+    UINT index = 0;
+    while (index < tooltipTypeCount && (1u << index) != type) ++index;
+    if (index == tooltipTypeCount) return FALSE;
+
+    DeleteToolTip(tooltip);
+    const HWND owner = parent->GetSafeHwnd();
+    auto* manager = tooltipManager;
+    const CMFCToolTipInfo params = manager ? manager->m_tooltipParams[index] : CMFCToolTipInfo{};
+    if (manager) {
+        if (!manager->CreateToolTipObject(tooltip, index)) return FALSE;
+    } else {
+        tooltip = new CToolTipCtrl();
+    }
+    if (!tooltip->Create(parent, params.m_bBalloonTooltip ? TTS_BALLOON : 0)) {
+        DeleteToolTip(tooltip);
+        return FALSE;
+    }
+    const HWND window = tooltip->GetSafeHwnd();
+    if (manager && tooltipManager == manager && ::SetPropW(window, tooltipOwnerProperty, owner))
+        g_tooltipManagerStates[manager].tooltipOwners[window] = owner;
+    if (params.m_clrFill != COLORREF(-1)) ::SendMessageW(window, TTM_SETTIPBKCOLOR, params.m_clrFill, 0);
+    if (params.m_clrText != COLORREF(-1)) ::SendMessageW(window, TTM_SETTIPTEXTCOLOR, params.m_clrText, 0);
+    if (params.m_nMaxDescrWidth != CMFCToolTipInfo{}.m_nMaxDescrWidth)
+        tooltip->SetMaxTipWidth(params.m_nMaxDescrWidth);
+    return TRUE;
+}
+
+void CTooltipManager::DeleteToolTip(CToolTipCtrl*& tooltip) {
+    auto* old = std::exchange(tooltip, nullptr);
+    if (!old) return;
+    const HWND window = old->GetSafeHwnd();
+    if (auto it = g_tooltipManagerStates.find(tooltipManager); it != g_tooltipManagerStates.end())
+        it->second.tooltipOwners.erase(window);
+    if (::IsWindow(window)) {
+        ::RemovePropW(window, tooltipOwnerProperty);
+        ::DestroyWindow(window);
+    }
+    old->m_hWnd = nullptr;
+    delete old;
+}
+
+void CTooltipManager::SetTooltipParams(UINT types, CRuntimeClass* runtime, CMFCToolTipInfo* params) {
+    if (runtime && !runtime->IsDerivedFrom(impl__GetThisClass_CToolTipCtrl__SAPEAUCRuntimeClass__XZ()))
+        AfxThrowInvalidArgException();
+    for (UINT index = 0; index < tooltipTypeCount; ++index) {
+        if (!(types & (1u << index))) continue;
+        m_tooltipClasses[index] = runtime;
+        m_tooltipParams[index] = params ? *params : CMFCToolTipInfo{};
+    }
+    BroadcastTooltipUpdate(this, types);
+}
+
+void CTooltipManager::UpdateTooltips() {
+    BroadcastTooltipUpdate(this, allTooltipTypes);
 }

@@ -74,6 +74,7 @@ extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z
 extern "C" UINT impl__AFX_WM_CHANGING_ACTIVE_TAB__3IA;
 extern "C" UINT impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA;
 extern "C" UINT impl__AFX_WM_ON_HSCROLL__3IA;
+extern "C" UINT impl__AFX_WM_UPDATETOOLTIPS__3IA;
 extern "C" UINT impl__AFX_WM_GETDRAGBOUNDS__3IA;
 extern "C" UINT impl__AFX_WM_ON_DRAGCOMPLETE__3IA;
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ();
@@ -299,6 +300,7 @@ extern "C" int MS_ABI impl__IsPtInTabArea_CMFCTabCtrl__UEBAHVCPoint___Z(
     return state && ::PtInRect(state->strip, point);
 }
 namespace {
+constexpr UINT tabTooltipType = 0x0004;
 constexpr size_t flatTabOffset = 0x3c0;
 constexpr size_t sharedScrollbarOffset = 0x3d0;
 constexpr size_t sharedScrollbarWidthOffset = 0x424;
@@ -820,7 +822,19 @@ BOOL CMFCTabCtrl::SetResizeCursor() {
     return TRUE;
 }
 
+LRESULT CMFCTabCtrl::OnUpdateToolTips(WPARAM types, LPARAM) {
+    if (types & tabTooltipType) {
+        const HWND control = m_hWnd;
+        DestroyTabTooltips();
+        if (CWnd::FromHandlePermanent(control) == this) RefreshTabs();
+    }
+    return 0;
+}
+
 LRESULT CMFCTabCtrl::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message && message == impl__AFX_WM_UPDATETOOLTIPS__3IA)
+        return OnUpdateToolTips(wParam, lParam);
+
     if (message == WM_NCHITTEST) {
         POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
         if (::ScreenToClient(m_hWnd, &point) && ::PtInRect(m_resizeGrip, point)) return HTCLIENT;
@@ -954,7 +968,20 @@ UINT_PTR TabTooltipId(const TabEntry& tab) {
     return static_cast<UINT_PTR>(tab.id) + 1;
 }
 
-void UpdateLabelTooltips(CMFCTabCtrl& tabs, TabCtrlState& state, const std::vector<int>& fullWidths) {
+bool CreateTabTooltip(CMFCTabCtrl& tabs, CToolTipCtrl*& target) {
+    const HWND owner = tabs.m_hWnd;
+    CToolTipCtrl* created = nullptr;
+    if (!CTooltipManager::CreateToolTip(created, &tabs, tabTooltipType)) return false;
+    if (CWnd::FromHandlePermanent(owner) != &tabs) {
+        CTooltipManager::DeleteToolTip(created);
+        return false;
+    }
+    target = created;
+    return true;
+}
+
+void UpdateLabelTooltips(CMFCTabCtrl& tabs, TabCtrlState& state, const std::vector<int>& fullWidths,
+                         CToolTipCtrl*& labelTooltip) {
     const HWND owner = tabs.m_hWnd;
     std::vector<UINT_PTR> updated;
     for (size_t i = 0; i < state.tabs.size(); ++i) {
@@ -962,24 +989,24 @@ void UpdateLabelTooltips(CMFCTabCtrl& tabs, TabCtrlState& state, const std::vect
         if (!tab.visible || tab.rect.IsRectEmpty()) continue;
         if (!tabs.UsesCustomToolTips() && (tab.label.empty() ||
             (!tab.iconOnly && !tab.tooltipAlways && tab.rect.Width() >= fullWidths[i]))) continue;
-        if (!state.labelTooltips) {
-            const HWND tooltip = ::CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr,
-                WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX, CW_USEDEFAULT, CW_USEDEFAULT,
-                CW_USEDEFAULT, CW_USEDEFAULT, owner, nullptr, AfxGetInstanceHandle(), nullptr);
-            if (CWnd::FromHandlePermanent(owner) != &tabs) {
-                if (tooltip) ::DestroyWindow(tooltip);
-                return;
-            }
-            if (!tooltip) return;
-            state.labelTooltips = tooltip;
-            ::SendMessageW(tooltip, TTM_SETMAXTIPWIDTH, 0, 600);
+        CRect bounds = tab.rect;
+        if (static_cast<int>(i) == state.activeTab) {
+            const auto close = tabs.GetTabCloseButton();
+            if (!close.IsRectEmpty()) bounds.right = close.left;
+        }
+        if (bounds.IsRectEmpty()) continue;
+        if (!labelTooltip) {
+            if (!CreateTabTooltip(tabs, labelTooltip)) return;
+            state.labelTooltips = labelTooltip->GetSafeHwnd();
+            if (::SendMessageW(state.labelTooltips, TTM_GETMAXTIPWIDTH, 0, 0) < 0)
+                labelTooltip->SetMaxTipWidth(600);
         }
         TOOLINFOW tool{sizeof(TOOLINFOW)};
         tool.hwnd = owner;
         tool.uId = TabTooltipId(tab);
         tool.uFlags = TTF_SUBCLASS;
         tool.lpszText = LPSTR_TEXTCALLBACKW;
-        tool.rect = *static_cast<const RECT*>(tab.rect);
+        tool.rect = *static_cast<const RECT*>(bounds);
         const bool existing = std::find(state.labelTooltipIds.begin(), state.labelTooltipIds.end(),
             tool.uId) != state.labelTooltipIds.end();
         const UINT message = existing ? TTM_NEWTOOLRECTW : TTM_ADDTOOLW;
@@ -995,6 +1022,22 @@ void UpdateLabelTooltips(CMFCTabCtrl& tabs, TabCtrlState& state, const std::vect
         ::SendMessageW(state.labelTooltips, TTM_DELTOOLW, 0, reinterpret_cast<LPARAM>(&tool));
     }
     state.labelTooltipIds = std::move(updated);
+}
+
+void UpdateCloseTooltip(CMFCTabCtrl& tabs, CToolTipCtrl*& closeTooltip) {
+    const CRect bounds = tabs.GetTabCloseButton();
+    if (!closeTooltip && (bounds.IsRectEmpty() || !CreateTabTooltip(tabs, closeTooltip))) return;
+    TOOLINFOW tool{sizeof(TOOLINFOW)};
+    tool.hwnd = tabs.m_hWnd;
+    tool.uId = 1;
+    tool.rect = *static_cast<const RECT*>(bounds);
+    tool.uFlags = TTF_SUBCLASS;
+    tool.lpszText = LPSTR_TEXTCALLBACKW;
+    const HWND tooltip = closeTooltip->GetSafeHwnd();
+    const bool exists = ::SendMessageW(tooltip, TTM_GETTOOLCOUNT, 0, 0) != 0;
+    if (bounds.IsRectEmpty() && !exists) return;
+    const UINT message = bounds.IsRectEmpty() ? TTM_DELTOOLW : exists ? TTM_NEWTOOLRECTW : TTM_ADDTOOLW;
+    ::SendMessageW(tooltip, message, 0, reinterpret_cast<LPARAM>(&tool));
 }
 
 RECT TabCloseBounds(const CRect& strip, const CRect& area) {
@@ -1230,7 +1273,9 @@ void CMFCTabCtrl::RecalcLayout() {
 
     TabControlFlag(*this, firstVisibleTabOffset) = (std::max)(0, firstDrawn);
     TabControlFlag(*this, hiddenDocumentsOffset) = documentsMenu && HasOverflowedDocuments(state);
-    UpdateLabelTooltips(*this, state, fullWidths);
+    UpdateLabelTooltips(*this, state, fullWidths, m_labelTooltip);
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    UpdateCloseTooltip(*this, m_closeTooltip);
     for (const auto& [window, show] : windows) {
         if (CWnd::FromHandlePermanent(control) != this) return;
         if (::GetParent(window) != control) continue;
@@ -1876,15 +1921,11 @@ extern "C" void MS_ABI impl__OnSysColorChange_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* 
     // state, which are not declared.
 }
 
-// STUB: Retail RVA 0x13dba0 (mfc140 ANSI twin) rebuilds tooltip entries only
-// when wParam has bit 0x4 set, using tooltip helpers and per-tab labels/IDs;
-// those structures are not modeled. It returns zero on both paths.
 // Symbol: ?OnUpdateToolTips@CMFCTabCtrl@@IEAA_J_K_J@Z
-extern "C" __int64 MS_ABI impl__OnUpdateToolTips_CMFCTabCtrl__IEAA_J_K_J_Z(
-    CMFCTabCtrl* pThis, unsigned __int64 wParam, __int64 lParam)
+extern "C" LRESULT MS_ABI impl__OnUpdateToolTips_CMFCTabCtrl__IEAA_J_K_J_Z(
+    CMFCTabCtrl* pThis, WPARAM types, LPARAM param)
 {
-    (void)pThis; (void)wParam; (void)lParam;
-    return 0;
+    return pThis ? pThis->OnUpdateToolTips(types, param) : 0;
 }
 
 // Retail RVA 0x13d980 (mfc140 ANSI twin) calls CWnd::Default, sets a layout

@@ -291,10 +291,8 @@ struct ContextMenuState {
 
 namespace openmfc { namespace detail { namespace mfccore {
 struct TooltipManagerState {
-    UINT types = 0;
-    CRuntimeClass* runtimeClass = nullptr;
-    CMFCToolTipInfo* params = nullptr;
-    std::vector<CToolTipCtrl*> tooltips;
+    // Use HWNDs so closing a window cannot leave a dangling C++ object pointer.
+    std::unordered_map<HWND, HWND> tooltipOwners;
 };
 } } }
 

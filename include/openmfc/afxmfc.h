@@ -1346,6 +1346,7 @@ public:
 
 protected:
     void PositionTabEditor();
+    void DestroyTabTooltips();
 
 private:
     friend class openmfc::detail::TabLabelEditor;
@@ -1363,7 +1364,9 @@ protected:
     CImageList m_Images;
     HIMAGELIST m_hImageList = nullptr;
     CSize m_sizeImage{0, 0};
-    char _baseTabCtrlOptions[0x48]{};
+    char _baseTabCtrlOptions[0x38]{};
+    CToolTipCtrl* m_labelTooltip = nullptr;
+    CToolTipCtrl* m_closeTooltip = nullptr;
     BOOL m_customToolTips = FALSE;
     char _baseTabCtrlOptionsTail[0x28]{};
     BOOL m_bHideSingleTab = FALSE;
@@ -1499,6 +1502,7 @@ public:
     void OnHScroll(UINT code, UINT position, CScrollBar* source);
     LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
     BOOL OnNotify(WPARAM id, LPARAM notification, LRESULT* result) override;
+    LRESULT OnUpdateToolTips(WPARAM types, LPARAM);
     void EnableInPlaceEdit(BOOL enable) override;
     void EnableTabDocumentsMenu(BOOL enable = TRUE);
     static HICON GetDocumentIcon(UINT command);
@@ -2091,8 +2095,19 @@ protected:
 
 class CMFCToolTipInfo {
 public:
-    CMFCToolTipInfo() { memset(_pad, 0, sizeof(_pad)); }
-    char _pad[96];
+    BOOL m_bBalloonTooltip = FALSE;
+    BOOL m_bDrawIcon = TRUE;
+    BOOL m_bDrawDescription = TRUE;
+    BOOL m_bRoundedCorners = FALSE;
+    BOOL m_bBoldLabel = TRUE;
+    BOOL m_bDrawSeparator = TRUE;
+    BOOL m_bVislManagerTheme = FALSE;
+    int m_nMaxDescrWidth = 200;
+    int m_nGradientAngle = -1;
+    COLORREF m_clrFill = COLORREF(-1);
+    COLORREF m_clrFillGradient = COLORREF(-1);
+    COLORREF m_clrText = COLORREF(-1);
+    COLORREF m_clrBorder = COLORREF(-1);
 };
 
 class CTagManager : public CObject {
@@ -2137,9 +2152,12 @@ public:
     static void DeleteToolTip(CToolTipCtrl*& pToolTip);
     void SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC = nullptr, CMFCToolTipInfo* pParams = nullptr);
     void UpdateTooltips();
+    BOOL CreateToolTipObject(CToolTipCtrl*& tooltip, UINT index);
 
 protected:
-    char _tooltipmanager_padding[64];
+    CMFCToolTipInfo m_tooltipParams[11];
+    CRuntimeClass* m_tooltipClasses[11]{};
+    char _tooltipOwnerList[0x38]{};
 };
 
 class CMenuHash : public CObject {

@@ -36,6 +36,7 @@
 #include <oleacc.h>
 
 #include <cstdint>
+#include <utility>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -349,6 +350,7 @@ extern "C" unsigned long MS_ABI impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(
 #include "openmfc/afxmfc.h"
 
 #include <cstdint>
+#include <utility>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -1801,6 +1803,8 @@ CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
     static_assert(offsetof(CMFCBaseTabCtrl, m_Images) == 0x160);
     static_assert(offsetof(CMFCBaseTabCtrl, m_hImageList) == 0x170);
     static_assert(offsetof(CMFCBaseTabCtrl, m_sizeImage) == 0x178);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_labelTooltip) == 0x1b8);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_closeTooltip) == 0x1c0);
     static_assert(offsetof(CMFCBaseTabCtrl, m_customToolTips) == 0x1c8);
     static_assert(offsetof(CMFCBaseTabCtrl, m_activeTabColor) == 0x204);
     static_assert(offsetof(CMFCBaseTabCtrl, m_activeTabTextColor) == 0x208);
@@ -1816,6 +1820,7 @@ CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
 
 CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {
     CloseTabEditor(false);
+    DestroyTabTooltips();
     RemoveTabCtrlState(this);
 }
 
@@ -2021,6 +2026,12 @@ BOOL CMFCBaseTabCtrl::PreTranslateMessage(MSG* message) {
 }
 
 LRESULT CMFCBaseTabCtrl::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_DESTROY) {
+        const HWND control = m_hWnd;
+        DestroyTabTooltips();
+        if (CWnd::FromHandlePermanent(control) != this) return 0;
+    }
+
     if (message == WM_NCHITTEST) {
         // The tab strip is interactive even though the underlying STATIC
         // control returns HTTRANSPARENT for the rest of the window.
@@ -2197,6 +2208,18 @@ void CMFCBaseTabCtrl::RefreshTabs() {
 extern "C" UINT impl__AFX_WM_ON_GET_TAB_TOOLTIP__3IA;
 extern "C" void* impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA;
 
+void CMFCBaseTabCtrl::DestroyTabTooltips() {
+    if (FindTabCtrlState(this)) {
+        auto& state = EnsureTabCtrlState(this);
+        state.labelTooltips = nullptr;
+        state.labelTooltipIds.clear();
+    }
+    auto* label = std::exchange(m_labelTooltip, nullptr);
+    auto* close = std::exchange(m_closeTooltip, nullptr);
+    CTooltipManager::DeleteToolTip(label);
+    CTooltipManager::DeleteToolTip(close);
+}
+
 BOOL CMFCBaseTabCtrl::EnableCustomToolTips(BOOL enable) {
     if (m_customToolTips == enable) return TRUE;
     m_customToolTips = enable;
@@ -2208,9 +2231,18 @@ BOOL CMFCBaseTabCtrl::EnableCustomToolTips(BOOL enable) {
 }
 
 BOOL CMFCBaseTabCtrl::OnNeedTipText(UINT, NMHDR* header, LRESULT* result) {
+    if (!header || header->code != static_cast<UINT>(TTN_GETDISPINFOW)) return FALSE;
+    if (m_closeTooltip && header->hwndFrom == m_closeTooltip->GetSafeHwnd()) {
+        constexpr UINT closeResource = 0x3ea0;
+        CString label;
+        auto& text = EnsureTabCtrlState(this).tooltipText;
+        text = label.LoadString(closeResource) ? label.GetString() : L"Close";
+        reinterpret_cast<NMTTDISPINFOW*>(header)->lpszText = text.data();
+        if (result) *result = 0;
+        return TRUE;
+    }
     const auto* state = FindTabCtrlState(this);
-    if (!header || !state || !state->labelTooltips || header->hwndFrom != state->labelTooltips ||
-        header->code != static_cast<UINT>(TTN_GETDISPINFOW)) return FALSE;
+    if (!state || !state->labelTooltips || header->hwndFrom != state->labelTooltips) return FALSE;
 
     const auto entry = std::find_if(state->tabs.begin(), state->tabs.end(), [header](const auto& tab) {
         return static_cast<UINT_PTR>(tab.id) + 1 == header->idFrom;
