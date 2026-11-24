@@ -1279,6 +1279,12 @@ protected:
 //=============================================================================
 namespace openmfc { namespace detail { class TabLabelEditor; } }
 
+struct CMFCTabToolTipInfo {
+    CString m_strText;
+    CMFCBaseTabCtrl* m_pTabWnd;
+    int m_nTabIndex;
+};
+
 class CMFCBaseTabCtrl : public CWnd {
     DECLARE_DYNAMIC(CMFCBaseTabCtrl)
 public:
@@ -1305,6 +1311,9 @@ public:
     void SetLocation(int location);
     void HideSingleTab(BOOL hide);
     void RefreshTabs();
+    BOOL EnableCustomToolTips(BOOL enable = TRUE);
+    BOOL UsesCustomToolTips() const { return m_customToolTips; }
+    BOOL OnNeedTipText(UINT id, NMHDR* header, LRESULT* result);
     BOOL SetImageList(UINT resource, int width = 15, COLORREF transparent = RGB(255, 0, 255));
     BOOL SetImageList(HIMAGELIST images);
     void ClearImageList();
@@ -1351,7 +1360,9 @@ protected:
     CImageList m_Images;
     HIMAGELIST m_hImageList = nullptr;
     CSize m_sizeImage{0, 0};
-    char _baseTabCtrlOptions[0x74]{};
+    char _baseTabCtrlOptions[0x48]{};
+    BOOL m_customToolTips = FALSE;
+    char _baseTabCtrlOptionsTail[0x28]{};
     BOOL m_bHideSingleTab = FALSE;
     char _baseTabCtrlFlags[8]{};
     BOOL m_bIsMDITab = FALSE;
@@ -1458,6 +1469,12 @@ public:
 
     void SetTabMaxWidth(int width);
     void SetActiveTabBoldFont(BOOL bold);
+    CScrollBar* GetScrollBar();
+    BOOL SynchronizeScrollBar(SCROLLINFO* info = nullptr);
+    void HideActiveWindowHorzScrollBar();
+    void AdjustWndScroll();
+    void OnHScroll(UINT code, UINT position, CScrollBar* source);
+    LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
     BOOL OnNotify(WPARAM id, LPARAM notification, LRESULT* result) override;
     void EnableInPlaceEdit(BOOL enable) override;
     void EnableTabDocumentsMenu(BOOL enable = TRUE);
@@ -1480,7 +1497,9 @@ public:
     void OnSize(UINT type, int width, int height);
 
 protected:
-    char _mfctabctrl_padding[0x39a8]{};
+    char _mfctabctrl_scroll_prefix[0xe0]{};
+    CScrollBar m_wndScrollWnd;
+    char _mfctabctrl_padding[0x37e0]{};
     DECLARE_MESSAGE_MAP()
 };
 

@@ -668,21 +668,11 @@ extern "C" void MS_ABI impl__EnableAutoColor_CMFCBaseTabCtrl__QEAAXH_Z(
     if (enable && state.autoColors.empty()) impl__InitAutoColors_CMFCBaseTabCtrl__MEAAXXZ(pThis);
     if (pThis->m_hWnd) ::RedrawWindow(pThis->m_hWnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
 }
-// Retail (0x18001a9d0): when bEnable differs from the +0x1c8 flag it stores
-// it and, if the tooltip helper (+0x1b8) and its tooltip window (+0x40) exist,
-// reinstalls the per-tab tooltips (a range of CToolTipCtrl calls through the
-// tab array) and triggers the vslot-0x318 relayout. Returns 1 always. The
-// flag and helper are unmodeled; the constant return value is kept.
 // Symbol: ?EnableCustomToolTips@CMFCBaseTabCtrl@@QEAAHH@Z
 extern "C" int MS_ABI impl__EnableCustomToolTips_CMFCBaseTabCtrl__QEAAHH_Z(
-    CMFCBaseTabCtrl* pThis, int /*bEnable*/)
+    CMFCBaseTabCtrl* pThis, int enable)
 {
-    if (!pThis) return FALSE;
-    // TODO(clean-room): partially transcribed -- the m_bCustomToolTips flag
-    // (+0x1c8) and the tooltip helper (+0x1b8) are not modeled, so the change
-    // detection, the per-tab tooltip (re)install and the vslot-0x318 relayout
-    // are skipped.
-    return TRUE;
+    return pThis && pThis->EnableCustomToolTips(enable);
 }
 // Symbol: ?EnableTabDetach@CMFCBaseTabCtrl@@UEAAHHH@Z
 extern "C" int MS_ABI impl__EnableTabDetach_CMFCBaseTabCtrl__UEAAHHH_Z(
@@ -1554,21 +1544,11 @@ extern "C" void MS_ABI impl__OnMouseMove_CMFCBaseTabCtrl__IEAAXIVCPoint___Z(
     // TODO(clean-room): not transcribed -- needs the +0x344/+0x34c rect state
     // and the +0x1dc/+0x1e0/+0x234 drag flags; not modeled.
 }
-// Retail (0x18001ab10): when the notify hwnd matches one of the tooltip
-// helpers (+0x1c0/+0x1b8) it loads the "Tab" string resource 0x3ea0 into the
-// shared tooltip buffer (0x1803c1448) and copies it into the NMHDR-derived
-// text buffer (third param); returns 0 for unmatched windows. The tooltip
-// helpers and shared buffer are unmodeled.
 // Symbol: ?OnNeedTipText@CMFCBaseTabCtrl@@IEAAHIPEAUtagNMHDR@@PEA_J@Z
 extern "C" int MS_ABI impl__OnNeedTipText_CMFCBaseTabCtrl__IEAAHIPEAUtagNMHDR__PEA_J_Z(
-    CMFCBaseTabCtrl* pThis, unsigned int /*id*/, NMHDR* /*pNMHDR*/,
-    __int64* /*pText*/)
+    CMFCBaseTabCtrl* pThis, UINT id, NMHDR* header, LRESULT* result)
 {
-    if (!pThis) return FALSE;
-    // TODO(clean-room): not transcribed -- needs the tooltip helpers
-    // (+0x1c0/+0x1b8), the shared tooltip text buffer (0x1803c1448) and the
-    // "Tab" string resource; none are modeled.
-    return FALSE;
+    return pThis && pThis->OnNeedTipText(id, header, result);
 }
 // Retail (0x180017880): calls CWnd::Default, then, when the +0xf4 flag is
 // set, hit-tests the tab (vslot 0x440), updates +0x338/+0x33c and pops the
@@ -1821,6 +1801,7 @@ CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
     static_assert(offsetof(CMFCBaseTabCtrl, m_Images) == 0x160);
     static_assert(offsetof(CMFCBaseTabCtrl, m_hImageList) == 0x170);
     static_assert(offsetof(CMFCBaseTabCtrl, m_sizeImage) == 0x178);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_customToolTips) == 0x1c8);
     static_assert(offsetof(CMFCBaseTabCtrl, m_activeTabColor) == 0x204);
     static_assert(offsetof(CMFCBaseTabCtrl, m_activeTabTextColor) == 0x208);
     static_assert(offsetof(CMFCBaseTabCtrl, m_bHideSingleTab) == 0x1f4);
@@ -2208,6 +2189,51 @@ int CMFCBaseTabCtrl::GetTabsCount() const {
 void CMFCBaseTabCtrl::RefreshTabs() {
     const auto* state = FindTabCtrlState(this);
     if (state && state->liveLayout && m_hWnd) static_cast<CMFCTabCtrl*>(this)->RecalcLayout();
+}
+
+extern "C" UINT impl__AFX_WM_ON_GET_TAB_TOOLTIP__3IA;
+extern "C" void* impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA;
+
+BOOL CMFCBaseTabCtrl::EnableCustomToolTips(BOOL enable) {
+    if (m_customToolTips == enable) return TRUE;
+    m_customToolTips = enable;
+    const HWND control = m_hWnd;
+    if (const auto* state = FindTabCtrlState(this); state && state->labelTooltips)
+        ::SendMessageW(state->labelTooltips, TTM_POP, 0, 0);
+    if (control && CWnd::FromHandlePermanent(control) == this) RefreshTabs();
+    return TRUE;
+}
+
+BOOL CMFCBaseTabCtrl::OnNeedTipText(UINT, NMHDR* header, LRESULT* result) {
+    const auto* state = FindTabCtrlState(this);
+    if (!header || !state || !state->labelTooltips || header->hwndFrom != state->labelTooltips ||
+        header->code != static_cast<UINT>(TTN_GETDISPINFOW)) return FALSE;
+
+    const auto entry = std::find_if(state->tabs.begin(), state->tabs.end(), [header](const auto& tab) {
+        return static_cast<UINT_PTR>(tab.id) + 1 == header->idFrom;
+    });
+    std::wstring text;
+    if (entry != state->tabs.end() && m_customToolTips) {
+        const HWND control = m_hWnd;
+        const HWND parent = ::GetParent(control);
+        auto* frame = static_cast<CFrameWnd*>(impl__g_pTopLevelFrame__3PEAVCFrameWnd__EA);
+        if (!frame) frame = GetTopLevelFrame();
+        const HWND top = frame ? frame->GetSafeHwnd() : nullptr;
+        const UINT message = impl__AFX_WM_ON_GET_TAB_TOOLTIP__3IA;
+        CMFCTabToolTipInfo info{CString(), this, static_cast<int>(entry - state->tabs.begin())};
+        if (parent) ::SendMessageW(parent, message, 0, reinterpret_cast<LPARAM>(&info));
+        if (CWnd::FromHandlePermanent(control) != this) return TRUE;
+        if (top && top != parent) ::SendMessageW(top, message, 0, reinterpret_cast<LPARAM>(&info));
+        if (CWnd::FromHandlePermanent(control) != this) return TRUE;
+        text.assign(info.m_strText.GetString(), info.m_strText.GetLength());
+    } else if (entry != state->tabs.end()) {
+        text = entry->label;
+    }
+    auto& tooltipText = EnsureTabCtrlState(this).tooltipText;
+    tooltipText = std::move(text);
+    reinterpret_cast<NMTTDISPINFOW*>(header)->lpszText = tooltipText.data();
+    if (result) *result = 0;
+    return TRUE;
 }
 
 void CMFCBaseTabCtrl::HideSingleTab(BOOL hide) {

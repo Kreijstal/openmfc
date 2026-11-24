@@ -371,6 +371,11 @@ struct TabCtrlState {
     HWND labelTooltips = nullptr;
     std::vector<UINT_PTR> labelTooltipIds;
     std::wstring tooltipText;
+    CRect sharedScrollbarBounds{};
+    CRect sharedScrollSplitter{};
+    int sharedScrollDragOffset = 0;
+    bool resizingSharedScrollbar = false;
+    bool forwardingSharedScroll = false;
 };
 } } }
 

@@ -4,6 +4,7 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/MfccoreSupport.h"
+#include <windowsx.h>
 #include "detail/Mfc07MsgmapSupport.h"
 
 // CMFCTabCtrl exports, wave "mfc-feature-8".
@@ -29,7 +30,6 @@
 //   impl__OnCommand_CWnd__MEAAH_K_J_Z
 //   impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z
 //   impl__OnDestroy_CWnd__IEAAXXZ
-//   impl__OnHScroll_CWnd__IEAAXIIPEAVCScrollBar___Z
 //
 // Kept in a global_*.cpp file so the build's AUTO_EXCLUDES pass (scan of
 // `// Symbol:` comments) drops the generated stubs for these ordinals.
@@ -55,8 +55,6 @@ extern "C" int MS_ABI impl__OnCommand_CWnd__MEAAH_K_J_Z(CWnd* pThis, WPARAM wPar
 extern "C" int MS_ABI impl__OnNotify_CWnd__MEAAH_K_JPEA_J_Z(
     CWnd* pThis, WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 extern "C" void MS_ABI impl__OnDestroy_CWnd__IEAAXXZ(CWnd* pThis);
-extern "C" void MS_ABI impl__OnHScroll_CWnd__IEAAXIIPEAVCScrollBar___Z(
-    CWnd* pThis, unsigned int p0, unsigned int p1, CScrollBar* p2);
 extern "C" void MS_ABI impl__OnSetFocus_CWnd__IEAAXPEAV1__Z(CWnd* pThis, void* pOldWnd);
 extern "C" CWnd* MS_ABI impl__SetFocus_CWnd__QEAAPEAV1_XZ(CWnd* pThis);
 extern "C" CWnd* MS_ABI impl__GetActiveWnd_CMFCBaseTabCtrl__UEBAPEAVCWnd__XZ(
@@ -75,6 +73,7 @@ extern "C" int MS_ABI impl__SetImageList_CMFCBaseTabCtrl__UEAAHPEAU_IMAGELIST___
 extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(const CMFCBaseTabCtrl*, CPoint&);
 extern "C" UINT impl__AFX_WM_CHANGING_ACTIVE_TAB__3IA;
 extern "C" UINT impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA;
+extern "C" UINT impl__AFX_WM_ON_HSCROLL__3IA;
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ();
 
 
@@ -266,23 +265,10 @@ extern "C" int MS_ABI impl__GetTabFromPoint_CMFCTabCtrl__UEBAHAEAVCPoint___Z(
 {
     return impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z(pThis, point);
 }
-// Retail (0x18013b5f0): resolves the active tab window (vslot 0x430) and, when
-// the flag at +0x3d0 is set, calls ShowScrollBar(hwnd, SB_HORZ, FALSE) and
-// resets the scroll range/page via SetScrollInfo. The +0x3d0 flag is
-// unmodeled; the scroll-bar hiding for the active tab is kept.
 // Symbol: ?HideActiveWindowHorzScrollBar@CMFCTabCtrl@@QEAAXXZ
-extern "C" void MS_ABI impl__HideActiveWindowHorzScrollBar_CMFCTabCtrl__QEAAXXZ(
-    CMFCTabCtrl* pThis)
+extern "C" void MS_ABI impl__HideActiveWindowHorzScrollBar_CMFCTabCtrl__QEAAXXZ(CMFCTabCtrl* pThis)
 {
-    if (!pThis) return;
-    CWnd* pActive = pThis->GetTabWnd(pThis->GetActiveTab());
-    if (!pActive) return;
-    HWND hWnd = pActive->GetSafeHwnd();
-    if (!hWnd) return;
-    // TODO(clean-room): partially transcribed -- retail gates on the flag at
-    // +0x3d0 (not declared) and afterwards also resets the scroll info
-    // (0x1802a96f0) so the bar stays hidden; only ShowScrollBar is kept.
-    ::ShowScrollBar(hWnd, SB_HORZ, FALSE);
+    if (pThis) pThis->HideActiveWindowHorzScrollBar();
 }
 // Retail (0x18013ba30): early-returns when the flag at +0x3f4 already equals
 // bHide; otherwise stores it and, when m_hWnd is valid, triggers a relayout/
@@ -335,6 +321,9 @@ extern "C" int MS_ABI impl__IsPtInTabArea_CMFCTabCtrl__UEBAHVCPoint___Z(
 }
 namespace {
 constexpr size_t flatTabOffset = 0x3c0;
+constexpr size_t sharedScrollbarOffset = 0x3d0;
+constexpr size_t sharedScrollbarWidthOffset = 0x424;
+constexpr int sharedScrollbarSplitterWidth = 5;
 constexpr size_t tabScrollOffset = 0x3d4;
 constexpr size_t documentsMenuOffset = 0x400;
 constexpr size_t hiddenDocumentsOffset = 0x404;
@@ -367,7 +356,7 @@ void SetTabStyleFlags(CMFCTabCtrl& tabs, int style, bool creating) {
     TabControlFlag(tabs, 0x3cc) = style == CMFCTabCtrl::STYLE_3D_ROUNDED || style == CMFCTabCtrl::STYLE_3D_ROUNDED_SCROLL;
     TabControlFlag(tabs, 0xf0) = oneNote;
     if (creating) {
-        TabControlFlag(tabs, 0x3d0) = sharedScroll;
+        TabControlFlag(tabs, sharedScrollbarOffset) = sharedScroll;
         TabControlFlag(tabs, tabScrollOffset) = flat || oneNote || style == CMFCTabCtrl::STYLE_3D_VS2005 ||
             style == CMFCTabCtrl::STYLE_3D_SCROLLED || style == CMFCTabCtrl::STYLE_3D_ROUNDED_SCROLL;
     }
@@ -484,19 +473,11 @@ extern "C" int MS_ABI impl__OnEraseBkgnd_CMFCTabCtrl__IEAAHPEAVCDC___Z(
     // global brush at 0x1803c16d0 and the +0x3e8 flag; neither is modeled.
     return TRUE;
 }
-// Retail (0x18013a0f0): when the scrollbar style flag (+0x3c0) is clear it
-// forwards to the base CWnd::OnHScroll (0x18028ac80); when set it recomputes
-// the strip scroll offset from the active tab geometry. The style flag is
-// unmodeled, so the base handler is the faithful conservative path.
 // Symbol: ?OnHScroll@CMFCTabCtrl@@IEAAXIIPEAVCScrollBar@@@Z
 extern "C" void MS_ABI impl__OnHScroll_CMFCTabCtrl__IEAAXIIPEAVCScrollBar___Z(
-    CMFCTabCtrl* pThis, unsigned int nSBCode, unsigned int nPos, CScrollBar* pScrollBar)
+    CMFCTabCtrl* pThis, UINT code, UINT position, CScrollBar* source)
 {
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- retail's custom branch (style
-    // flag +0x3c0 set) scrolls the tab strip via the active-tab geometry;
-    // only the base-handler branch is kept.
-    impl__OnHScroll_CWnd__IEAAXIIPEAVCScrollBar___Z(pThis, nSBCode, nPos, pScrollBar);
+    if (pThis) pThis->OnHScroll(code, position, source);
 }
 // Symbol: ?OnLButtonDblClk@CMFCTabCtrl@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCTabCtrl__IEAAXIVCPoint___Z(
@@ -555,7 +536,9 @@ extern "C" void MS_ABI impl__OnPaint_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
 }
 static_assert(sizeof(CMFCTabCtrl) == 0x3d68);
 
-CMFCTabCtrl::CMFCTabCtrl() = default;
+CMFCTabCtrl::CMFCTabCtrl() {
+    static_assert(offsetof(CMFCTabCtrl, m_wndScrollWnd) == 0x4a0);
+}
 
 CMFCTabCtrl::~CMFCTabCtrl() {
     if (m_hWnd) DestroyWindow();
@@ -574,9 +557,149 @@ BOOL CMFCTabCtrl::CreateTabs(int style, const RECT& rect, CWnd* parent, UINT id,
     SetLocation(location);
     if (!CMFCBaseTabCtrl::Create(WS_VISIBLE | WS_CLIPSIBLINGS, rect, parent, id)) return FALSE;
     SetTabStyleFlags(*this, style, true);
+    if (auto* scrollbar = GetScrollBar()) {
+        const RECT empty{};
+        if (!scrollbar->Create(WS_CHILD | SBS_HORZ, empty, this, 0)) {
+            DestroyWindow();
+            return FALSE;
+        }
+    }
     EnsureTabCtrlState(this).liveLayout = true;
     RecalcLayout();
     return TRUE;
+}
+
+CScrollBar* CMFCTabCtrl::GetScrollBar() {
+    return TabControlFlag(*this, sharedScrollbarOffset) ? &m_wndScrollWnd : nullptr;
+}
+
+void CMFCTabCtrl::HideActiveWindowHorzScrollBar() {
+    if (!GetScrollBar()) return;
+    const auto* active = GetTabWnd(GetActiveTab());
+    const HWND window = active ? active->GetSafeHwnd() : nullptr;
+    if (!window) return;
+    ::ShowScrollBar(window, SB_HORZ, FALSE);
+    if (::IsWindow(window)) CWnd::ModifyStyle(window, WS_HSCROLL, 0, SWP_FRAMECHANGED);
+}
+
+BOOL CMFCTabCtrl::SynchronizeScrollBar(SCROLLINFO* info) {
+    auto* scrollbar = GetScrollBar();
+    if (!scrollbar) return FALSE;
+    const HWND bar = scrollbar->GetSafeHwnd();
+    if (!bar) return TRUE;
+    const HWND control = m_hWnd;
+    auto* active = GetTabWnd(GetActiveTab());
+    SCROLLINFO scroll{sizeof(scroll), SIF_ALL};
+    if (info) {
+        scroll = *info;
+        scroll.cbSize = sizeof(scroll);
+    } else if (!active || !active->GetSafeHwnd() ||
+        !active->GetScrollInfo(SB_HORZ, &scroll, SIF_ALL) ||
+        LONGLONG(scroll.nMin) + scroll.nPage >= scroll.nMax) {
+        if (CWnd::FromHandlePermanent(control) == this)
+            ::EnableScrollBar(bar, SB_CTL, ESB_DISABLE_BOTH);
+        return TRUE;
+    }
+    if (CWnd::FromHandlePermanent(control) != this) return TRUE;
+    ::EnableScrollBar(bar, SB_CTL, ESB_ENABLE_BOTH);
+    ::SetScrollInfo(bar, SB_CTL, &scroll, TRUE);
+    if (CWnd::FromHandlePermanent(control) == this) HideActiveWindowHorzScrollBar();
+    return TRUE;
+}
+
+void CMFCTabCtrl::AdjustWndScroll() {
+    const auto* scrollbar = GetScrollBar();
+    const auto* state = FindTabCtrlState(this);
+    if (!scrollbar || !scrollbar->GetSafeHwnd() || !state) return;
+    const CRect bounds = state->sharedScrollbarBounds;
+    ::SetWindowPos(scrollbar->GetSafeHwnd(), nullptr, bounds.left, bounds.top, bounds.Width(), bounds.Height(),
+        SWP_NOACTIVATE | SWP_NOZORDER | (bounds.IsRectEmpty() ? SWP_HIDEWINDOW : SWP_SHOWWINDOW));
+}
+
+void CMFCTabCtrl::OnHScroll(UINT code, UINT position, CScrollBar* source) {
+    const auto* scrollbar = GetScrollBar();
+    if (!scrollbar || !source || !source->GetSafeHwnd() ||
+        source->GetSafeHwnd() != scrollbar->GetSafeHwnd()) {
+        if (!source || !source->SendChildNotifyLastMsg(nullptr)) Default();
+        return;
+    }
+    const HWND control = m_hWnd;
+    const HWND bar = scrollbar->GetSafeHwnd();
+    auto* active = GetTabWnd(GetActiveTab());
+    const HWND window = active ? active->GetSafeHwnd() : nullptr;
+    if (!window) return;
+    auto& state = EnsureTabCtrlState(this);
+    if (state.forwardingSharedScroll) return;
+    state.forwardingSharedScroll = true;
+    if (code == SB_THUMBPOSITION || code == SB_THUMBTRACK) {
+        wchar_t className[32]{};
+        if (::GetClassNameW(window, className, ARRAYSIZE(className)) && _wcsicmp(className, WC_LISTVIEWW) == 0) {
+            const int current = active->GetScrollPos(SB_HORZ);
+            if (CWnd::FromHandlePermanent(control) != this) return;
+            ::SendMessageW(window, LVM_SCROLL, static_cast<int>(position) - current, 0);
+        }
+    }
+    const WPARAM params = MAKEWPARAM(code, position);
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    if (::IsWindow(window)) ::SendMessageW(window, WM_HSCROLL, params, 0);
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    state.forwardingSharedScroll = false;
+    if (active == GetTabWnd(GetActiveTab()) && ::IsWindow(window)) {
+        const int current = active->GetScrollPos(SB_HORZ);
+        if (CWnd::FromHandlePermanent(control) != this) return;
+        ::SetScrollPos(bar, SB_CTL, current, TRUE);
+        HideActiveWindowHorzScrollBar();
+    }
+    if (CWnd::FromHandlePermanent(control) == this) {
+        const HWND parent = ::GetParent(control);
+        if (parent) ::SendMessageW(parent, impl__AFX_WM_ON_HSCROLL__3IA, params, 0);
+    }
+}
+
+LRESULT CMFCTabCtrl::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (auto* scrollbar = GetScrollBar()) {
+        if (message == WM_HSCROLL && lParam && reinterpret_cast<HWND>(lParam) == scrollbar->GetSafeHwnd()) {
+            OnHScroll(LOWORD(wParam), HIWORD(wParam), scrollbar);
+            return 0;
+        }
+        if (FindTabCtrlState(this)) {
+            auto& state = EnsureTabCtrlState(this);
+            if (message == WM_LBUTTONDOWN && !m_pInPlaceEdit) {
+                const POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                if (::PtInRect(state.sharedScrollSplitter, point)) {
+                    state.sharedScrollDragOffset = state.sharedScrollSplitter.right - point.x;
+                    state.resizingSharedScrollbar = true;
+                    ::SetCapture(m_hWnd);
+                    return 0;
+                }
+            } else if (message == WM_MOUSEMOVE && state.resizingSharedScrollbar) {
+                if (!state.sharedScrollSplitter.IsRectEmpty()) {
+                    const int width = state.sharedScrollbarBounds.right - GET_X_LPARAM(lParam) -
+                        state.sharedScrollDragOffset;
+                    TabControlFlag(*this, sharedScrollbarWidthOffset) = (std::max)(1, width);
+                    RecalcLayout();
+                }
+                return 0;
+            } else if (message == WM_NCHITTEST || message == WM_SETCURSOR) {
+                POINT cursor{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                if (message == WM_SETCURSOR) ::GetCursorPos(&cursor);
+                if (::ScreenToClient(m_hWnd, &cursor) && ::PtInRect(state.sharedScrollSplitter, cursor)) {
+                    if (message == WM_NCHITTEST) return HTCLIENT;
+                    ::SetCursor(::LoadCursorW(nullptr, IDC_SIZEWE));
+                    return TRUE;
+                }
+            }
+            if (message == WM_NCDESTROY) state.forwardingSharedScroll = false;
+            if (state.resizingSharedScrollbar && (message == WM_LBUTTONUP || message == WM_CANCELMODE ||
+                    message == WM_CAPTURECHANGED || message == WM_NCDESTROY)) {
+                state.resizingSharedScrollbar = false;
+                const HWND control = m_hWnd;
+                if (message != WM_CAPTURECHANGED && ::GetCapture() == control) ::ReleaseCapture();
+                if (message == WM_LBUTTONUP || CWnd::FromHandlePermanent(control) != this) return 0;
+            }
+        }
+    }
+    return CMFCBaseTabCtrl::WindowProc(message, wParam, lParam);
 }
 
 namespace {
@@ -637,8 +760,9 @@ void UpdateLabelTooltips(CMFCTabCtrl& tabs, TabCtrlState& state, const std::vect
     std::vector<UINT_PTR> updated;
     for (size_t i = 0; i < state.tabs.size(); ++i) {
         const auto& tab = state.tabs[i];
-        if (!tab.visible || tab.rect.IsRectEmpty() || tab.label.empty() ||
-            (!tab.iconOnly && !tab.tooltipAlways && tab.rect.Width() >= fullWidths[i])) continue;
+        if (!tab.visible || tab.rect.IsRectEmpty()) continue;
+        if (!tabs.UsesCustomToolTips() && (tab.label.empty() ||
+            (!tab.iconOnly && !tab.tooltipAlways && tab.rect.Width() >= fullWidths[i]))) continue;
         if (!state.labelTooltips) {
             const HWND tooltip = ::CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr,
                 WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX, CW_USEDEFAULT, CW_USEDEFAULT,
@@ -730,7 +854,8 @@ void CMFCTabCtrl::RecalcLayout() {
         }
     }
     height = (std::min)(height, static_cast<int>(client.bottom - client.top));
-    if ((state.hideNoTabs && count == 0) || (state.hideSingleTab && count <= 1)) height = 0;
+    const bool hideLabels = (state.hideNoTabs && count == 0) || (state.hideSingleTab && count <= 1);
+    if (hideLabels && !GetScrollBar()) height = 0;
 
     state.page = CRect(client);
     state.strip = CRect(client);
@@ -740,6 +865,29 @@ void CMFCTabCtrl::RecalcLayout() {
     } else {
         state.page.bottom -= height;
         state.strip.top = state.page.bottom;
+    }
+    state.sharedScrollbarBounds.SetRectEmpty();
+    state.sharedScrollSplitter.SetRectEmpty();
+    if (GetScrollBar() && height > 3) {
+        const int minWidth = 2 * ::GetSystemMetrics(SM_CXHSCROLL);
+        const int maxWidth = state.strip.Width() - sharedScrollbarSplitterWidth - 32;
+        auto& width = TabControlFlag(*this, sharedScrollbarWidthOffset);
+        if (hideLabels || count == 0) {
+            state.sharedScrollbarBounds = state.strip;
+            state.strip.right = state.strip.left;
+        } else if (maxWidth >= minWidth) {
+            if (width == 0) width = (std::max)(minWidth, state.strip.Width() / 2);
+            state.sharedScrollbarBounds = state.strip;
+            state.sharedScrollbarBounds.left = state.strip.right - (std::clamp)(width, minWidth, maxWidth);
+            state.sharedScrollSplitter = state.sharedScrollbarBounds;
+            state.sharedScrollSplitter.right = state.sharedScrollbarBounds.left;
+            state.sharedScrollSplitter.left = state.sharedScrollSplitter.right - sharedScrollbarSplitterWidth;
+            state.strip.right = state.sharedScrollSplitter.left;
+        }
+        if (!state.sharedScrollbarBounds.IsRectEmpty()) {
+            ++state.sharedScrollbarBounds.top;
+            state.sharedScrollbarBounds.bottom -= 2;
+        }
     }
     const CRect page = state.page;
     const HWND control = m_hWnd;
@@ -758,7 +906,7 @@ void CMFCTabCtrl::RecalcLayout() {
     LONGLONG totalWidth = 0;
     for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
         const auto& tab = state.tabs[i];
-        if (!tab.visible || height <= 0) continue;
+        if (!tab.visible || hideLabels || height <= 0) continue;
         SIZE text{};
         if (dc && !tab.iconOnly) {
             if (boldFont) ::SelectObject(dc, i == state.activeTab ? boldFont.get() : regularFont);
@@ -863,13 +1011,17 @@ void CMFCTabCtrl::RecalcLayout() {
     }
     TabControlFlag(*this, firstVisibleTabOffset) = (std::max)(0, firstDrawn);
     TabControlFlag(*this, hiddenDocumentsOffset) = documentsMenu && HasOverflowedDocuments(state);
+    UpdateLabelTooltips(*this, state, fullWidths);
     for (const auto& [window, show] : windows) {
         if (CWnd::FromHandlePermanent(control) != this) return;
         if (::GetParent(window) != control) continue;
         ::SetWindowPos(window, nullptr, page.left, page.top, page.Width(), page.Height(),
             SWP_NOACTIVATE | SWP_NOZORDER | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
     }
-    if (CWnd::FromHandlePermanent(control) == this) UpdateLabelTooltips(*this, state, fullWidths);
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    AdjustWndScroll();
+    if (CWnd::FromHandlePermanent(control) != this) return;
+    SynchronizeScrollBar();
     if (CWnd::FromHandlePermanent(control) == this) {
         ::InvalidateRect(control, nullptr, FALSE);
         PositionTabEditor();
@@ -1014,6 +1166,10 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
             ::FillRect(handle, &overflow, ::GetSysColorBrush(COLOR_BTNTEXT));
         }
     }
+    if (!state->sharedScrollSplitter.IsRectEmpty()) {
+        RECT splitter = *static_cast<const RECT*>(state->sharedScrollSplitter);
+        ::DrawEdge(handle, &splitter, EDGE_ETCHED, BF_RIGHT);
+    }
     if (saved) ::RestoreDC(handle, saved);
 }
 
@@ -1090,21 +1246,9 @@ void CMFCTabCtrl::SetActiveTabBoldFont(BOOL bold) {
 }
 
 BOOL CMFCTabCtrl::OnNotify(WPARAM id, LPARAM notification, LRESULT* result) {
-    auto* header = reinterpret_cast<NMHDR*>(notification);
-    const auto* state = FindTabCtrlState(this);
-    if (!header || !state || header->hwndFrom != state->labelTooltips ||
-        header->code != static_cast<UINT>(TTN_GETDISPINFOW))
-        return CWnd::OnNotify(id, notification, result);
-
-    const auto entry = std::find_if(state->tabs.begin(), state->tabs.end(), [header](const auto& tab) {
-        return TabTooltipId(tab) == header->idFrom;
-    });
-    auto& text = EnsureTabCtrlState(this).tooltipText;
-    text = entry == state->tabs.end() ? L"" : entry->label;
-    auto* display = reinterpret_cast<NMTTDISPINFOW*>(header);
-    display->lpszText = text.data();
-    if (result) *result = 0;
-    return TRUE;
+    if (OnNeedTipText(static_cast<UINT>(id), reinterpret_cast<NMHDR*>(notification), result))
+        return TRUE;
+    return CWnd::OnNotify(id, notification, result);
 }
 
 void CMFCTabCtrl::EnableInPlaceEdit(BOOL enable) {
@@ -1168,16 +1312,11 @@ extern "C" void MS_ABI impl__AdjustTabsScroll_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* 
     (void)pThis;
 }
 
-// STUB: Retail RVA 0x13b750 (mfc140 ANSI twin) adjusts the active child
-// window's scroll/placement from unmodeled tab-control geometry.
 // Symbol: ?AdjustWndScroll@CMFCTabCtrl@@MEAAXXZ
 extern "C" void MS_ABI impl__AdjustWndScroll_CMFCTabCtrl__MEAAXXZ(CMFCTabCtrl* pThis)
 {
-    (void)pThis;
+    if (pThis) pThis->AdjustWndScroll();
 }
-
-// STUB: Retail RVA 0x137d40 (mfc140 ANSI twin) writes style/location state
-// and creates the internal scroll bar; those fields and child objects are absent.
 // Symbol: ?Create@CMFCTabCtrl@@QEAAHW4Style@1@AEBUtagRECT@@PEAVCWnd@@IW4Location@CMFCBaseTabCtrl@@H@Z
 extern "C" int MS_ABI impl__Create_CMFCTabCtrl__QEAAHW4Style_1_AEBUtagRECT__PEAVCWnd__IW4Location_CMFCBaseTabCtrl__H_Z(
     CMFCTabCtrl* pThis, int style, const RECT* pRect, CWnd* pParentWnd,
@@ -1654,16 +1793,12 @@ extern "C" void MS_ABI impl__SwapTabs_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis,
     if (pThis) pThis->SwapTabs(first, second);
 }
 
-// STUB: Retail RVA 0x13c150 (mfc140 ANSI twin) uses MDI scroll state, the
-// active window, and a scrollbar handle to synchronize position; those fields are absent.
 // Symbol: ?SynchronizeScrollBar@CMFCTabCtrl@@QEAAHPEAUtagSCROLLINFO@@@Z
 extern "C" int MS_ABI impl__SynchronizeScrollBar_CMFCTabCtrl__QEAAHPEAUtagSCROLLINFO___Z(
-    CMFCTabCtrl* pThis, SCROLLINFO* pScrollInfo)
+    CMFCTabCtrl* pThis, SCROLLINFO* info)
 {
-    (void)pThis; (void)pScrollInfo;
-    return FALSE;
+    return pThis && pThis->SynchronizeScrollBar(info);
 }
-
 // STUB: Retail RVA 0x13ce50 (mfc140 ANSI twin) updates the internal scroll
 // and documents buttons from tab/style state and child controls not modeled.
 // Symbol: ?UpdateScrollButtonsState@CMFCTabCtrl@@IEAAXXZ
