@@ -42,6 +42,7 @@ using namespace openmfc::detail::cpaneframewnd;
 
 namespace openmfc { namespace detail { namespace cpaneframewnd {
 struct PaneFrameState {
+    HWND frameWindow = nullptr;
     bool destroyWithWindow = false;
     bool blockMove = false;                 // m_bBlockMove +0x0e8
     HWND exitSizeMoveHwnd = nullptr;        // m_hLastFocusWnd +0x140

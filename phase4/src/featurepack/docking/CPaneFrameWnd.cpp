@@ -144,7 +144,8 @@ CMFCCaptionButton* FindCaptionButton(const PaneFrameState& state, UINT id) {
 CMFCCaptionButton* HitCaptionButton(const void* frame, CPoint screen) {
     const HWND window = HwndOf(const_cast<void*>(frame));
     RECT bounds{};
-    if (!::GetWindowRect(window, &bounds)) return nullptr;
+    if ((::GetWindowLongPtrW(window, GWL_STYLE) & WS_CAPTION) != WS_CAPTION ||
+        !::GetWindowRect(window, &bounds)) return nullptr;
     CPoint point(screen.x - bounds.left, screen.y - bounds.top);
     if (::GetWindowLongPtrW(window, GWL_EXSTYLE) & WS_EX_LAYOUTRTL)
         point.x = bounds.right - bounds.left - 1 - point.x;
@@ -907,6 +908,7 @@ BOOL CPaneFrameWnd::CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         auto& state = GetState(this);
+        state.frameWindow = m_hWnd;
         state.ownerHwnd = owner ? owner->m_hWnd : nullptr;
         state.dockManager = manager;
         state.recentFloatingRect = *static_cast<const RECT*>(bounds);
@@ -964,6 +966,7 @@ void CPaneFrameWnd::OnDestroy() {
     {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         if (auto* state = FindStatePtr(this)) {
+            state->frameWindow = nullptr;
             manager = state->dockManager;
             state->dockManager = nullptr;
             dragging = state->dragging;
@@ -2390,17 +2393,20 @@ extern "C" void MS_ABI impl__RecalcCaptionHeight_CPaneFrameWnd__MEAAXXZ(void* pT
 }
 
 // Symbol: ?RedrawAll@CPaneFrameWnd@@SAXXZ
-// Retail mfc140.dll entry RVA 0xb3620 walks a private list of live mini-frame
-// HWNDs whose head is at data RVA 0x3aadd0 (mfc140.dll; node layout pNext +0,
-// HWND +0x10), and for each entry that FromHandlePermanent resolves, calls
-//     ::RedrawWindow(hwnd, NULL, NULL, 0x585)
-// (mfc140.dll USER32 import slot VA 0x1802c5388 resolves to RedrawWindow.) Flags are
-// RDW_INVALIDATE|RDW_ERASE|RDW_ALLCHILDREN|RDW_UPDATENOW|RDW_FRAME.
-// STUB: OpenMFC keeps no list of live CPaneFrameWnd HWNDs. The side-state map
-// is keyed by object pointer and is pruned on destruction, but it does not store
-// the frame's own HWND; recovering it from an object pointer after global-list
-// traversal would risk dereferencing an already-freed frame.
-extern "C" void MS_ABI impl__RedrawAll_CPaneFrameWnd__SAXXZ() {}
+// mfc140u 0xb3060 repaints every live mini-frame and its children.
+extern "C" void MS_ABI impl__RedrawAll_CPaneFrameWnd__SAXXZ() {
+    std::vector<HWND> frames;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        for (const auto& item : g_other6State) {
+            if (item.second.frameWindow) frames.push_back(item.second.frameWindow);
+        }
+    }
+    constexpr UINT flags = RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW | RDW_FRAME;
+    for (HWND frame : frames) {
+        if (CWnd::FromHandlePermanent(frame)) ::RedrawWindow(frame, nullptr, nullptr, flags);
+    }
+}
 
 // Symbol: ?RedrawCaptionButton@CPaneFrameWnd@@IEAAXPEAVCMFCCaptionButton@@@Z
 // Retail (0xb1a80), transcribed in full:
@@ -2697,6 +2703,7 @@ void CPaneFrameWnd::Serialize(CArchive& archive) {
     std::lock_guard<std::mutex> lock(g_other6Mutex);
     auto& state = GetState(this);
     state.restoredEmbeddedBarID = paneId;
+    state.captionButtonsConfigured = true;
     state.rollupFlags = static_cast<int>(buttons);
     state.pinned = pinned != FALSE;
     state.restoredFrameVisible = visible != FALSE;
