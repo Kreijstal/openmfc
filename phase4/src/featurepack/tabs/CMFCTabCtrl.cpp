@@ -40,6 +40,7 @@
 #include "openmfc/afxmfc.h"
 
 #include <cstdint>
+#include <limits>
 
 #ifdef __GNUC__
   #define MS_ABI __attribute__((ms_abi))
@@ -243,21 +244,10 @@ extern "C" void MS_ABI impl__EnableTabDocumentsMenu_CMFCTabCtrl__QEAAXH_Z(
 {
     if (pThis) pThis->EnableTabDocumentsMenu(enable);
 }
-// Retail (0x18013b730): bounds-check `0 <= iTab < tabs count (+0x150)`; when
-// out of bounds return FALSE (0x18013b944: xor eax,eax). Otherwise scroll the
-// tab into view and return TRUE. The scroll geometry (header rect +0x44c,
-// tab array +0x108/+0x110, scroll offset +0x414) is unmodeled, so only the
-// bounds gate and the terminal value are kept.
 // Symbol: ?EnsureVisible@CMFCTabCtrl@@UEAAHH@Z
-extern "C" int MS_ABI impl__EnsureVisible_CMFCTabCtrl__UEAAHH_Z(
-    CMFCTabCtrl* pThis, int iTab)
+extern "C" int MS_ABI impl__EnsureVisible_CMFCTabCtrl__UEAAHH_Z(CMFCTabCtrl* pThis, int index)
 {
-    if (!pThis) return FALSE;
-    if (iTab < 0 || iTab >= pThis->GetTabsCount()) return FALSE;
-    // TODO(clean-room): partially transcribed -- retail scrolls the tab strip
-    // (header rect +0x44c, tab rect array +0x108, scroll offset +0x414) so
-    // that iTab becomes visible; that geometry is not modeled.
-    return TRUE;
+    return pThis && pThis->EnsureVisible(index);
 }
 // Retail (0x18013a270): if point.y < tab-header bottom (+0x1d8) or the point
 // lies over a non-detachable tab (per-tab flag at +0x48) it returns NULL;
@@ -358,9 +348,21 @@ constexpr size_t flatTabOffset = 0x3c0;
 constexpr size_t tabScrollOffset = 0x3d4;
 constexpr size_t documentsMenuOffset = 0x400;
 constexpr size_t hiddenDocumentsOffset = 0x404;
+constexpr size_t tabScrollPositionOffset = 0x414;
+constexpr size_t firstVisibleTabOffset = 0x420;
 
 BOOL& TabControlFlag(CMFCTabCtrl& tabs, size_t offset) {
     return *reinterpret_cast<BOOL*>(reinterpret_cast<BYTE*>(&tabs) + offset);
+}
+
+bool HasRoundedTabStyle(CMFCTabCtrl& tabs) {
+    return TabControlFlag(tabs, 0x3c4) || TabControlFlag(tabs, 0x3c8) || TabControlFlag(tabs, 0x3cc);
+}
+
+void ResetRoundedTabScroll(CMFCTabCtrl& tabs) {
+    if (!HasRoundedTabStyle(tabs)) return;
+    TabControlFlag(tabs, tabScrollPositionOffset) = 0;
+    TabControlFlag(tabs, firstVisibleTabOffset) = 0;
 }
 
 void SetTabStyleFlags(CMFCTabCtrl& tabs, int style, bool creating) {
@@ -389,17 +391,10 @@ extern "C" int MS_ABI impl__ModifyTabStyle_CMFCTabCtrl__QEAAHW4Style_1__Z(
     pThis->RefreshTabs();
     return TRUE;
 }
-// Retail (0x18013c750): scrolls the strip (0x180018ec0), and when any of the
-// style flags (+0x3c4/+0x3c8/+0x3cc) is set it moves the tab in the internal
-// array (+0x108/+0x110), resets the scroll offsets (+0x414/+0x420) and
-// triggers a redraw (vslot 0x458). The tab array and flags are unmodeled.
 // Symbol: ?MoveTab@CMFCTabCtrl@@UEAAXHH@Z
-extern "C" void MS_ABI impl__MoveTab_CMFCTabCtrl__UEAAXHH_Z(
-    CMFCTabCtrl* pThis, int /*i1*/, int /*i2*/)
+extern "C" void MS_ABI impl__MoveTab_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis, int from, int to)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the internal tab array
-    // (+0x108/+0x110) and the style flags; not modeled.
+    if (pThis) pThis->MoveTab(from, to);
 }
 // Retail (0x18013b390): when this control is the capture owner and its
 // vslot-0x5f0 drag query is active it posts a registered message to the
@@ -694,57 +689,110 @@ void CMFCTabCtrl::RecalcLayout() {
     const auto font = dc ? ::SelectObject(dc, ::GetStockObject(DEFAULT_GUI_FONT)) : nullptr;
     const RECT documentsButton = DocumentsButtonBounds(state);
     const bool documentsMenu = !::IsRectEmpty(&documentsButton);
-    const int lastX = documentsMenu ? documentsButton.left - 2 : TabStripEnd(state);
-    std::vector<int> widths(state.tabs.size());
+    int lastX = documentsMenu ? documentsButton.left - 2 : TabStripEnd(state);
+    auto& widths = state.tabNaturalWidths;
+    widths.assign(state.tabs.size(), 0);
+    LONGLONG totalWidth = 0;
     for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
         const auto& tab = state.tabs[i];
         if (!tab.visible || height <= 0) continue;
         SIZE text{};
         if (dc) ::GetTextExtentPoint32W(dc, tab.label.c_str(), static_cast<int>(tab.label.size()), &text);
         const int closeWidth = state.mdiActiveCloseButton && i == state.activeTab ? 19 : 0;
-        widths[i] = (std::max)(32, static_cast<int>(text.cx) + 20 + TabIconWidth(tab) + closeWidth);
+        widths[i] = static_cast<int>((std::clamp)(
+            LONGLONG(text.cx) + 20 + TabIconWidth(tab) + closeWidth,
+            32LL, LONGLONG((std::numeric_limits<int>::max)())));
+        totalWidth += widths[i];
     }
     if (dc) {
         if (font) ::SelectObject(dc, font);
         ::ReleaseDC(control, dc);
     }
 
+    const auto displayed = DisplayedTabIndices(state);
+    int anchor = -1;
+    int active = -1;
     int first = 0;
-    if (documentsMenu && state.activeTab >= 0) {
-        int space = lastX - state.strip.left;
-        for (int i = state.activeTab; i >= 0; --i) {
-            space -= widths[i];
+    const bool scroll = TabControlFlag(*this, tabScrollOffset) && !documentsMenu;
+    state.scrollLeft.SetRectEmpty();
+    state.scrollRight.SetRectEmpty();
+    if (scroll && totalWidth > lastX - state.strip.left) {
+        CRect buttons = state.strip;
+        buttons.right = lastX;
+        const RECT right = TabCloseBounds(state.strip, buttons);
+        buttons.right = right.left;
+        const RECT left = TabCloseBounds(state.strip, buttons);
+        if (!::IsRectEmpty(&left) && left.left > state.strip.left + 3) {
+            state.scrollLeft = CRect(left);
+            state.scrollRight = CRect(right);
+            lastX = left.left - 2;
+        }
+    }
+    const int available = (std::max)(0, lastX - state.strip.left);
+    state.maxTabScroll = scroll ? static_cast<int>((std::clamp)(
+        totalWidth - available, 0LL, LONGLONG((std::numeric_limits<int>::max)()))) : 0;
+    for (int position = 0; position < static_cast<int>(displayed.size()); ++position) {
+        const int index = displayed[position];
+        if (index == state.activeTab) active = position;
+        if (state.tabs[index].id == state.revealTabId && widths[index]) anchor = position;
+        state.tabs[index].rect.SetRectEmpty();
+    }
+    if (anchor == -1 && documentsMenu) anchor = active;
+
+    auto& offset = TabControlFlag(*this, tabScrollPositionOffset);
+    if (documentsMenu && anchor >= 0) {
+        LONGLONG space = available;
+        for (int position = anchor; position >= 0; --position) {
+            space -= widths[displayed[position]];
             if (space < 0) {
-                first = (std::min)(i + 1, state.activeTab);
+                first = (std::min)(position + 1, anchor);
                 break;
             }
         }
+        offset = 0;
+    } else if (scroll) {
+        LONGLONG targetOffset = offset;
+        if (anchor >= 0) {
+            LONGLONG anchorLeft = 0;
+            for (int position = 0; position < anchor; ++position) anchorLeft += widths[displayed[position]];
+            const auto anchorRight = anchorLeft + widths[displayed[anchor]];
+            if (anchorLeft < offset || widths[displayed[anchor]] > available) targetOffset = anchorLeft;
+            else if (anchorRight > LONGLONG(offset) + available) targetOffset = anchorRight - available;
+        }
+        offset = static_cast<int>((std::clamp)(targetOffset, 0LL, LONGLONG(state.maxTabScroll)));
+    } else {
+        offset = 0;
     }
-    int x = state.strip.left;
+
+    LONGLONG x = LONGLONG(state.strip.left) - offset;
     int remaining = count;
+    int firstDrawn = -1;
     std::vector<std::pair<HWND, BOOL>> windows;
-    for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) {
-        auto& tab = state.tabs[i];
-        tab.rect.SetRectEmpty();
-        if (widths[i] && i >= first) {
-            const int space = (std::max)(0, lastX - x);
+    for (int position = 0; position < static_cast<int>(displayed.size()); ++position) {
+        const int index = displayed[position];
+        auto& tab = state.tabs[index];
+        if (widths[index] && position >= first) {
+            const int space = scroll ? 0 : static_cast<int>((std::max)(0LL, lastX - x));
+            int width = widths[index];
             if (documentsMenu) {
-                // Other documents may overflow, but the selected tab keeps a place on the strip.
-                if (space >= 32 || i == state.activeTab || (state.activeTab < 0 && x == state.strip.left)) {
-                    const int width = (std::min)(widths[i], space);
-                    tab.rect.SetRect(x, state.strip.top, x + width, state.strip.bottom);
-                    x += width;
-                }
-            } else {
-                const int width = (std::min)(widths[i], space - (std::min)(space / 2, remaining - 1));
-                tab.rect.SetRect(x, state.strip.top, x + width, state.strip.bottom);
-                x += width;
-                --remaining;
+                const bool display = space >= 32 || position == anchor || (anchor < 0 && x == state.strip.left);
+                width = display ? (std::min)(width, space) : 0;
+            } else if (!scroll) {
+                width = (std::min)(width, space - (std::min)(space / 2, remaining - 1));
             }
+            const auto left = (std::max)(x, LONGLONG(state.strip.left));
+            const auto right = (std::min)(x + width, LONGLONG(lastX));
+            if (right > left) {
+                tab.rect.SetRect(static_cast<int>(left), state.strip.top, static_cast<int>(right), state.strip.bottom);
+                if (firstDrawn < 0) firstDrawn = position;
+            }
+            x += width;
+            --remaining;
         }
         if (tab.window && tab.window->GetSafeHwnd())
-            windows.emplace_back(tab.window->GetSafeHwnd(), tab.visible && state.activeTab == i);
+            windows.emplace_back(tab.window->GetSafeHwnd(), tab.visible && state.activeTab == index);
     }
+    TabControlFlag(*this, firstVisibleTabOffset) = (std::max)(0, firstDrawn);
     TabControlFlag(*this, hiddenDocumentsOffset) = documentsMenu && HasOverflowedDocuments(state);
     for (const auto& [window, show] : windows) {
         if (CWnd::FromHandlePermanent(control) != this) return;
@@ -773,6 +821,46 @@ BOOL CMFCTabCtrl::ActivateTab(int index) {
     if (parent && CWnd::FromHandlePermanent(control) == this)
         ::SendMessageW(parent, impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA, index, reinterpret_cast<LPARAM>(this));
     return TRUE;
+}
+
+void CMFCTabCtrl::ActivateMDITab(int index) {
+    if (index == -1) index = GetActiveTab();
+    const auto* page = GetTabWnd(index);
+    const HWND child = page ? page->GetSafeHwnd() : nullptr;
+    const HWND client = ::GetParent(child);
+    auto* frame = client ? static_cast<CWnd*>(CWnd::FromHandlePermanent(::GetParent(client))) : nullptr;
+    if (!m_hWnd || !child || !frame || !frame->IsKindOf(RUNTIME_CLASS(CMDIFrameWnd)) ||
+        static_cast<CMDIFrameWnd*>(frame)->m_hWndMDIClient != client) return;
+    const HWND control = m_hWnd;
+    if (!ActivateTab(index) || CWnd::FromHandlePermanent(control) != this ||
+        ::GetParent(child) != client || GetTabWnd(GetActiveTab()) != CWnd::FromHandlePermanent(child)) return;
+    if (reinterpret_cast<HWND>(::SendMessageW(client, WM_MDIGETACTIVE, 0, 0)) != child)
+        ::SendMessageW(client, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(child), 0);
+    if (::GetParent(child) == client) ::SetFocus(child);
+}
+
+BOOL CMFCTabCtrl::EnsureVisible(int index) {
+    auto& state = EnsureTabCtrlState(this);
+    if (index < 0 || index >= static_cast<int>(state.tabs.size())) return FALSE;
+    if (!m_hWnd || !state.tabs[index].visible || !TabControlFlag(*this, tabScrollOffset)) return TRUE;
+    const auto& tab = state.tabs[index];
+    if (!tab.rect.IsRectEmpty() && index < static_cast<int>(state.tabNaturalWidths.size()) &&
+        tab.rect.Width() >= state.tabNaturalWidths[index]) return TRUE;
+
+    state.revealTabId = tab.id;
+    if (state.documentsMenu) CMFCBaseTabCtrl::MoveTab(index, 0);
+    else RecalcLayout();
+    return TRUE;
+}
+
+void CMFCTabCtrl::MoveTab(int from, int to) {
+    ResetRoundedTabScroll(*this);
+    CMFCBaseTabCtrl::MoveTab(from, to);
+}
+
+void CMFCTabCtrl::SwapTabs(int first, int second) {
+    ResetRoundedTabScroll(*this);
+    CMFCBaseTabCtrl::SwapTabs(first, second);
 }
 
 extern "C" COLORREF MS_ABI impl__GetTabBkColor_CMFCBaseTabCtrl__UEBAKH_Z(const CMFCBaseTabCtrl*, int);
@@ -821,6 +909,15 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
     }
     RECT close = TabCloseButtonBounds(*state);
     if (!::IsRectEmpty(&close)) ::DrawFrameControl(handle, &close, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
+    RECT left = *static_cast<const RECT*>(state->scrollLeft);
+    RECT right = *static_cast<const RECT*>(state->scrollRight);
+    if (!::IsRectEmpty(&left)) {
+        const int offset = TabControlFlag(*this, tabScrollPositionOffset);
+        ::DrawFrameControl(handle, &left, DFC_SCROLL,
+            DFCS_SCROLLLEFT | DFCS_FLAT | (offset == 0 ? DFCS_INACTIVE : 0));
+        ::DrawFrameControl(handle, &right, DFC_SCROLL,
+            DFCS_SCROLLRIGHT | DFCS_FLAT | (offset == state->maxTabScroll ? DFCS_INACTIVE : 0));
+    }
     RECT documents = DocumentsButtonBounds(*state);
     if (!::IsRectEmpty(&documents)) {
         ::DrawFrameControl(handle, &documents, DFC_SCROLL, DFCS_SCROLLCOMBOBOX | DFCS_FLAT);
@@ -838,6 +935,32 @@ void CMFCTabCtrl::OnPaint() {
 }
 
 namespace {
+bool ScrollTabStrip(CMFCTabCtrl& tabs, const TabCtrlState& state, CPoint point) {
+    const bool left = ::PtInRect(state.scrollLeft, point);
+    if (!left && !::PtInRect(state.scrollRight, point)) return false;
+    auto& offset = TabControlFlag(tabs, tabScrollPositionOffset);
+    if (left ? offset == 0 : offset == state.maxTabScroll) return true;
+
+    LONGLONG target = LONGLONG(offset) + (left ? -20 : 20);
+    if (HasRoundedTabStyle(tabs)) {
+        const auto displayed = DisplayedTabIndices(state);
+        LONGLONG boundary = 0;
+        for (int index : displayed) {
+            if (!state.tabNaturalWidths[index]) continue;
+            const auto next = boundary + state.tabNaturalWidths[index];
+            if (left ? next >= offset : next > offset) {
+                target = left ? boundary : next;
+                break;
+            }
+            boundary = next;
+        }
+    }
+    offset = static_cast<int>((std::clamp)(target, 0LL, LONGLONG(state.maxTabScroll)));
+    EnsureTabCtrlState(&tabs).revealTabId = -1;
+    tabs.RecalcLayout();
+    return true;
+}
+
 void SelectTabAndFocus(CMFCTabCtrl& tabs, int index) {
     const HWND control = tabs.m_hWnd;
     if (!tabs.ActivateTab(index) || CWnd::FromHandlePermanent(control) != &tabs) return;
@@ -848,6 +971,7 @@ void SelectTabAndFocus(CMFCTabCtrl& tabs, int index) {
 
 void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
     if (const auto* state = FindTabCtrlState(this)) {
+        if (ScrollTabStrip(*this, *state, point)) return;
         const RECT documents = DocumentsButtonBounds(*state);
         if (::PtInRect(&documents, point)) {
             POINT anchor{documents.left, documents.bottom};
@@ -885,13 +1009,10 @@ void CMFCTabCtrl::SetTabsHeight(int nTabHeight) {
     RefreshTabs();
 }
 
-// STUB: Retail RVA 0x13db10 (mfc140 ANSI twin) resolves the selected tab's
-// MDI/window state and dispatches activation; the required state is unmodeled.
 // Symbol: ?ActivateMDITab@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__ActivateMDITab_CMFCTabCtrl__QEAAXH_Z(
-    CMFCTabCtrl* pThis, int iTab)
+extern "C" void MS_ABI impl__ActivateMDITab_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, int index)
 {
-    (void)pThis; (void)iTab;
+    if (pThis) pThis->ActivateMDITab(index);
 }
 
 // STUB: Retail RVA 0x1394a0 (mfc140 ANSI twin) lays out per-tab rectangles,
@@ -1405,13 +1526,10 @@ extern "C" void MS_ABI impl__StopResize_CMFCTabCtrl__QEAAXH_Z(
     (void)pThis; (void)bCancel;
 }
 
-// STUB: Retail RVA 0x13d390 (mfc140 ANSI twin) calls the base tab swap and
-// conditionally resets scroll offsets at +0x414/+0x420, which are unmodeled.
 // Symbol: ?SwapTabs@CMFCTabCtrl@@UEAAXHH@Z
-extern "C" void MS_ABI impl__SwapTabs_CMFCTabCtrl__UEAAXHH_Z(
-    CMFCTabCtrl* pThis, int iTab1, int iTab2)
+extern "C" void MS_ABI impl__SwapTabs_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis, int first, int second)
 {
-    (void)pThis; (void)iTab1; (void)iTab2;
+    if (pThis) pThis->SwapTabs(first, second);
 }
 
 // STUB: Retail RVA 0x13c150 (mfc140 ANSI twin) uses MDI scroll state, the

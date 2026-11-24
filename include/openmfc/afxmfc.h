@@ -1294,6 +1294,12 @@ public:
     int GetActiveTab() const;
     CWnd* GetTabWnd(int nIndex) const;
     BOOL IsTabDetachable(int nIndex) const;
+    void MoveTab(int from, int to);
+    void SwapTabs(int first, int second);
+    BOOL SetTabsOrder(const CArray<int, int>& order);
+    void SetMDITab(BOOL mdi);
+    BOOL IsMDITab() const { return m_bIsMDITab; }
+    void ReorderTabRecords(int from, int to);
     void SetLocation(int location);
     void HideSingleTab(BOOL hide);
     void RefreshTabs();
@@ -1306,7 +1312,9 @@ protected:
     int m_iActiveTab = -1;
     char _baseTabCtrlOptions[0x9c]{};
     BOOL m_bHideSingleTab = FALSE;
-    char _baseTabCtrlTail[0x1c8]{};
+    char _baseTabCtrlFlags[8]{};
+    BOOL m_bIsMDITab = FALSE;
+    char _baseTabCtrlTail[0x1bc]{};
 };
 
 //=============================================================================
@@ -1410,6 +1418,10 @@ public:
     BOOL CreateTabs(int style, const RECT& rect, CWnd* parent, UINT id, int location, BOOL closeButton);
     void RecalcLayout();
     BOOL ActivateTab(int index);
+    void ActivateMDITab(int index = -1);
+    BOOL EnsureVisible(int index);
+    void MoveTab(int from, int to);
+    void SwapTabs(int first, int second);
     void DrawTabs(CDC* dc);
     void OnPaint();
     void OnLButtonDown(UINT flags, CPoint point);

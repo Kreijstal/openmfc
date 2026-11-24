@@ -359,6 +359,12 @@ struct TabCtrlState {
     BOOL autoColor = FALSE;
     BOOL documentsMenu = FALSE;
     std::vector<COLORREF> autoColors;
+    std::vector<int> displayTabIds;
+    int revealTabId = -1;
+    std::vector<int> tabNaturalWidths;
+    CRect scrollLeft{};
+    CRect scrollRight{};
+    int maxTabScroll = 0;
 };
 } } }
 
@@ -489,6 +495,7 @@ TabCtrlState& EnsureTabCtrlState(const CMFCBaseTabCtrl* pCtrl);
 
 namespace openmfc { namespace detail { namespace mfccore {
 const TabCtrlState* FindTabCtrlState(const CMFCBaseTabCtrl* pCtrl);
+std::vector<int> DisplayedTabIndices(const TabCtrlState& state);
 RECT TabCloseButtonBounds(const TabCtrlState& state);
 } } }
 

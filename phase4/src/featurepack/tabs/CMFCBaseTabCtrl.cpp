@@ -589,6 +589,7 @@ extern "C" void MS_ABI impl__ApplyRestoredTabInfo_CMFCBaseTabCtrl__UEAAXH_Z(
         for (size_t i = 0; i < state.tabs.size(); ++i)
             if (!matched[i]) reordered.push_back(std::move(state.tabs[i]));
         state.tabs = std::move(reordered);
+        state.displayTabIds.clear();
     }
     if (active < 0) active = FirstVisibleTab(state, 0);
     control->SetActiveTab(active);
@@ -1217,22 +1218,11 @@ extern "C" int MS_ABI impl__SetTabTextColor_CMFCBaseTabCtrl__UEAAHHK_Z(
     if (pThis->m_hWnd) ::InvalidateRect(pThis->m_hWnd, nullptr, FALSE);
     return TRUE;
 }
-// Retail (0x180019170): returns 0 when the tab count (+0x150) differs from
-// tabsOrder.GetSize() (CArray m_nSize at +0x10); otherwise it copies the
-// tab-record pointers into a temporary CArray, clears the internal tab array
-// (+0x100/+0x108/+0x110) and re-appends the records in the caller's order,
-// tracking the active tab (+0x154); returns 1. The records/array are
-// unmodeled; the size gate and the terminal values are kept.
 // Symbol: ?SetTabsOrder@CMFCBaseTabCtrl@@QEAAHAEBV?$CArray@HH@@@Z
 extern "C" int MS_ABI impl__SetTabsOrder_CMFCBaseTabCtrl__QEAAHAEBV__CArray_HH___Z(
-    CMFCBaseTabCtrl* pThis, const CArray<int, int>& tabsOrder)
+    CMFCBaseTabCtrl* pThis, const CArray<int, int>& order)
 {
-    if (!pThis) return FALSE;
-    if (pThis->GetTabsCount() != tabsOrder.GetSize()) return FALSE;
-    // TODO(clean-room): partially transcribed -- the internal tab array
-    // (+0x100/+0x108/+0x110) and the active tab (+0x154) are not modeled, so
-    // the reordering cannot be applied.
-    return TRUE;
+    return pThis && pThis->SetTabsOrder(order);
 }
 // Retail (0x1800165d0): bounds-checks and early-returns TRUE when the per-tab
 // visible flag (+0x48) already equals bShow; otherwise it stores bShow,
@@ -1264,20 +1254,11 @@ extern "C" int MS_ABI impl__StartRenameTab_CMFCBaseTabCtrl__UEAAHH_Z(
     // creates the CEdit editor at +0x228; none are modeled.
     return FALSE;
 }
-// Retail (0x180018e60): validates both indices against the tab array
-// (+0x110) and swaps the two CMFCBaseTabInfo record pointers. The array is
-// unmodeled; the bounds gate is kept and the swap itself cannot be applied.
 // Symbol: ?SwapTabs@CMFCBaseTabCtrl@@UEAAXHH@Z
 extern "C" void MS_ABI impl__SwapTabs_CMFCBaseTabCtrl__UEAAXHH_Z(
-    CMFCBaseTabCtrl* pThis, int iTab1, int iTab2)
+    CMFCBaseTabCtrl* pThis, int first, int second)
 {
-    if (!pThis) return;
-    const int nCount = pThis->GetTabsCount();
-    if (iTab1 < 0 || iTab2 < 0) return;
-    if (iTab1 >= nCount || iTab2 >= nCount) return;
-    // TODO(clean-room): not transcribed -- retail swaps the tab-record
-    // pointers in the internal array (+0x108/+0x110); the records are not
-    // modeled.
+    if (pThis) pThis->SwapTabs(first, second);
 }
 // Retail (0x18001b050): rejects a non-VT_I4 child id with E_INVALIDARG,
 // otherwise walks the visible tabs (record +0x48 flag set, +0x20 rect
@@ -1568,18 +1549,11 @@ extern "C" int MS_ABI impl__IsTabVisible_CMFCBaseTabCtrl__UEBAHH_Z(
     const auto* tab = TabAt(pThis, iTab);
     return tab && tab->visible;
 }
-// Retail (0x180018ec0): validates both indices against the tab array
-// (+0x100/+0x110) and the active tab (+0x154), then reorders the per-tab
-// records (a CMFCBaseTabInfo array at +0x108) honoring the +0x200 swap flag.
-// The array and flags are unmodeled.
 // Symbol: ?MoveTab@CMFCBaseTabCtrl@@UEAAXHH@Z
 extern "C" void MS_ABI impl__MoveTab_CMFCBaseTabCtrl__UEAAXHH_Z(
-    CMFCBaseTabCtrl* pThis, int /*i1*/, int /*i2*/)
+    CMFCBaseTabCtrl* pThis, int from, int to)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the internal tab array
-    // (+0x108/+0x110), the active tab (+0x154) and the +0x200 swap flag;
-    // not modeled.
+    if (pThis) pThis->MoveTab(from, to);
 }
 // Retail (0x180018190): calls CWnd::Default, then when the drag flags
 // (+0x348/+0x344) are set resets them and posts WM_PAINT, then releases the
@@ -2013,6 +1987,7 @@ CMFCBaseTabCtrl::CMFCBaseTabCtrl() {
     static_assert(offsetof(CMFCBaseTabCtrl, m_iTabsNum) == 0x150);
     static_assert(offsetof(CMFCBaseTabCtrl, m_iActiveTab) == 0x154);
     static_assert(offsetof(CMFCBaseTabCtrl, m_bHideSingleTab) == 0x1f4);
+    static_assert(offsetof(CMFCBaseTabCtrl, m_bIsMDITab) == 0x200);
 }
 
 CMFCBaseTabCtrl::~CMFCBaseTabCtrl() {
@@ -2069,7 +2044,10 @@ BOOL CMFCBaseTabCtrl::InsertTab(CWnd* window, const wchar_t* label, int index, U
         entry.label.resize(::GetWindowTextW(hwnd, entry.label.data(), static_cast<int>(entry.label.size())));
     }
     entry.id = state.nextTabId++;
+    if (!state.displayTabIds.empty()) state.displayTabIds.reserve(count + 1);
     state.tabs.insert(state.tabs.begin() + index, std::move(entry));
+    if (!state.displayTabIds.empty())
+        state.displayTabIds.insert(state.displayTabIds.begin() + index, state.tabs[index].id);
     if (state.activeTab < 0) state.activeTab = index;
     else if (state.activeTab >= index) ++state.activeTab;
     m_iTabsNum = count + 1;
@@ -2084,9 +2062,17 @@ int CMFCBaseTabCtrl::RemoveTab(int index, int) {
     CWnd* page = state.tabs[index].window;
     if (state.liveLayout && m_hWnd && page && ::GetParent(page->GetSafeHwnd()) == m_hWnd)
         ::ShowWindow(page->GetSafeHwnd(), SW_HIDE);
+    if (!state.displayTabIds.empty()) {
+        const auto ordered = std::find(state.displayTabIds.begin(), state.displayTabIds.end(), state.tabs[index].id);
+        if (ordered != state.displayTabIds.end()) state.displayTabIds.erase(ordered);
+    }
     state.tabs.erase(state.tabs.begin() + index);
-    if (state.activeTab == index) state.activeTab = FirstVisibleTab(state, index > 0 ? index - 1 : 0);
-    else if (state.activeTab > index) --state.activeTab;
+    if (state.activeTab == index) {
+        state.activeTab = FirstVisibleTab(state, index > 0 ? index - 1 : 0);
+        state.revealTabId = state.activeTab < 0 ? -1 : state.tabs[state.activeTab].id;
+    } else if (state.activeTab > index) {
+        --state.activeTab;
+    }
     m_iTabsNum = static_cast<int>(state.tabs.size());
     m_iActiveTab = state.activeTab;
     RefreshTabs();
@@ -2097,10 +2083,13 @@ BOOL CMFCBaseTabCtrl::ShowTab(int index, BOOL show, BOOL keepActive, BOOL activa
     TabCtrlState& state = EnsureTabCtrlState(this);
     if (index < 0 || index >= static_cast<int>(state.tabs.size())) return FALSE;
     state.tabs[index].visible = show;
+    const int previous = state.activeTab;
     if (!show && state.activeTab == index)
         state.activeTab = FirstVisibleTab(state, index);
     else if (show && (state.activeTab < 0 || (activate && !keepActive)))
         state.activeTab = index;
+    if (previous != state.activeTab)
+        state.revealTabId = state.activeTab < 0 ? -1 : state.tabs[state.activeTab].id;
     m_iActiveTab = state.activeTab;
     RefreshTabs();
     return TRUE;
@@ -2109,9 +2098,115 @@ BOOL CMFCBaseTabCtrl::ShowTab(int index, BOOL show, BOOL keepActive, BOOL activa
 void CMFCBaseTabCtrl::SetActiveTab(int index) {
     TabCtrlState& state = EnsureTabCtrlState(this);
     const auto* tab = TabAt(this, index);
-    state.activeTab = tab && tab->visible ? index : -1;
+    const int next = tab && tab->visible ? index : -1;
+    if (next != state.activeTab) {
+        state.revealTabId = next == -1 ? -1 : tab->id;
+    }
+    state.activeTab = next;
+    m_iActiveTab = next;
+    RefreshTabs();
+}
+
+namespace {
+template <class Item>
+void MoveTabEntry(std::vector<Item>& entries, int from, int to) {
+    const auto first = entries.begin();
+    if (from < to) std::rotate(first + from, first + from + 1, first + to + 1);
+    else if (from > to) std::rotate(first + to, first + from, first + from + 1);
+}
+}
+
+std::vector<int> openmfc::detail::mfccore::DisplayedTabIndices(const TabCtrlState& state) {
+    std::vector<int> result;
+    result.reserve(state.tabs.size());
+    if (state.displayTabIds.empty()) {
+        for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) result.push_back(i);
+        return result;
+    }
+    std::unordered_map<int, int> indices;
+    indices.reserve(state.tabs.size());
+    for (int i = 0; i < static_cast<int>(state.tabs.size()); ++i) indices.emplace(state.tabs[i].id, i);
+    for (int id : state.displayTabIds) {
+        const auto index = indices.find(id);
+        if (index != indices.end()) result.push_back(index->second);
+    }
+    return result;
+}
+
+void CMFCBaseTabCtrl::SetMDITab(BOOL mdi) {
+    m_bIsMDITab = mdi;
+    if (!mdi) EnsureTabCtrlState(this).displayTabIds.clear();
+}
+
+void CMFCBaseTabCtrl::ReorderTabRecords(int from, int to) {
+    auto& state = EnsureTabCtrlState(this);
+    const int count = static_cast<int>(state.tabs.size());
+    if (from < 0 || from >= count || to < 0 || to >= count) return;
+    const int active = state.activeTab;
+    MoveTabEntry(state.tabs, from, to);
+    if (active == from) state.activeTab = to;
+    else if (from < active && active <= to) --state.activeTab;
+    else if (to <= active && active < from) ++state.activeTab;
     m_iActiveTab = state.activeTab;
     RefreshTabs();
+}
+
+void CMFCBaseTabCtrl::MoveTab(int from, int to) {
+    auto& state = EnsureTabCtrlState(this);
+    const int count = static_cast<int>(state.tabs.size());
+    if (to == -1) to = count - 1;
+    if (from < 0 || from >= count || to < 0 || to >= count) return;
+    if (!m_bIsMDITab) {
+        ReorderTabRecords(from, to);
+        return;
+    }
+    if (state.displayTabIds.empty()) {
+        state.displayTabIds.reserve(count);
+        for (const auto& tab : state.tabs) state.displayTabIds.push_back(tab.id);
+    }
+    const auto position = std::find(state.displayTabIds.begin(), state.displayTabIds.end(), state.tabs[from].id);
+    if (position == state.displayTabIds.end()) return;
+    MoveTabEntry(state.displayTabIds, static_cast<int>(position - state.displayTabIds.begin()), to);
+    RefreshTabs();
+}
+
+void CMFCBaseTabCtrl::SwapTabs(int first, int second) {
+    auto& state = EnsureTabCtrlState(this);
+    const int count = static_cast<int>(state.tabs.size());
+    if (first >= count || second >= count) return;
+    if (first < 0 || second < 0) AfxThrowInvalidArgException();
+    if (first == second) return;
+    const int firstId = state.tabs[first].id;
+    const int secondId = state.tabs[second].id;
+    for (int& id : state.displayTabIds) {
+        if (id == firstId) id = secondId;
+        else if (id == secondId) id = firstId;
+    }
+    std::swap(state.tabs[first], state.tabs[second]);
+    RefreshTabs();
+}
+
+BOOL CMFCBaseTabCtrl::SetTabsOrder(const CArray<int, int>& order) {
+    auto& state = EnsureTabCtrlState(this);
+    const int count = static_cast<int>(state.tabs.size());
+    if (order.GetSize() != count) return FALSE;
+    std::vector<bool> used(count);
+    std::vector<TabEntry> reordered;
+    reordered.reserve(count);
+    int active = -1;
+    for (int i = 0; i < count; ++i) {
+        const int index = order[i];
+        if (index < 0 || index >= count) AfxThrowInvalidArgException();
+        if (used[index]) return FALSE;
+        used[index] = true;
+        if (index == state.activeTab) active = i;
+        reordered.push_back(state.tabs[index]);
+    }
+    state.tabs = std::move(reordered);
+    state.displayTabIds.clear();
+    state.activeTab = m_iActiveTab = active;
+    RefreshTabs();
+    return TRUE;
 }
 
 int CMFCBaseTabCtrl::GetActiveTab() const {

@@ -1158,19 +1158,31 @@ bool ActivateAdjacentTab(S_CMDIClientAreaWnd& self, HWND window, bool previous) 
     auto* node = ListFind(self.m_lstTabbedGroups, group);
     if (!node) return false;
 
+    using namespace openmfc::detail::mfccore;
+    const int step = previous ? -1 : 1;
+    auto* firstGroup = node;
     auto* tabs = static_cast<CMFCTabCtrl*>(group);
-    index += previous ? -1 : 1;
-    if (index < 0 || index >= tabs->GetTabsCount()) {
+    const auto* state = FindTabCtrlState(tabs);
+    if (!state) return false;
+    auto order = DisplayedTabIndices(*state);
+    int position = static_cast<int>(std::find(order.begin(), order.end(), index) - order.begin());
+    bool wrapped = false;
+    for (;;) {
+        for (position += step; position >= 0 && position < static_cast<int>(order.size()); position += step) {
+            const auto& entry = state->tabs[order[position]];
+            if (!entry.visible || !entry.window || !entry.window->m_hWnd) continue;
+            ::SendMessageW(client, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(entry.window->m_hWnd), 0);
+            return true;
+        }
+        if (wrapped) return false;
         node = previous ? node->pPrev : node->pNext;
         if (!node) node = previous ? self.m_lstTabbedGroups.pNodeTail : self.m_lstTabbedGroups.pNodeHead;
+        wrapped = node == firstGroup;
         tabs = static_cast<CMFCTabCtrl*>(node->data);
-        index = previous ? tabs->GetTabsCount() - 1 : 0;
+        state = FindTabCtrlState(tabs);
+        order = state ? DisplayedTabIndices(*state) : std::vector<int>{};
+        position = previous ? static_cast<int>(order.size()) : -1;
     }
-    if (auto* next = tabs->GetTabWnd(index)) {
-        ::SendMessageW(client, WM_MDIACTIVATE, reinterpret_cast<WPARAM>(next->m_hWnd), 0);
-        return true;
-    }
-    return false;
 }
 
 enum class TabDropAction { none, reorder, join, split };
@@ -1210,7 +1222,7 @@ TabDrop FindTabDrop(S_CMDIClientAreaWnd& client, CMFCTabCtrl& source, int source
         const int index = FindTabAt(*state, cursor);
         if (!state->tabSwapEnabled || index < 0 || index == sourceIndex) return {};
         RECT marker = *static_cast<const RECT*>(state->tabs[index].rect);
-        if (index > sourceIndex) marker.left = marker.right - 4;
+        if (marker.left > state->tabs[sourceIndex].rect.left) marker.left = marker.right - 4;
         else marker.right = marker.left + 4;
         ::MapWindowPoints(target->m_hWnd, nullptr, reinterpret_cast<POINT*>(&marker), 2);
         return {TabDropAction::reorder, target, marker, index};
@@ -1256,14 +1268,14 @@ void CancelTabDrag(S_CMDIClientAreaWnd& self, bool restoreFocus) {
 }
 
 void ReorderGroupTab(CMFCTabCtrl& tabs, int from, int to) {
-    auto& state = openmfc::detail::mfccore::EnsureTabCtrlState(&tabs);
-    const auto* active = tabs.GetTabWnd(tabs.GetActiveTab());
-    auto first = state.tabs.begin();
-    if (from < to) std::rotate(first + from, first + from + 1, first + to + 1);
-    else std::rotate(first + to, first + from, first + from + 1);
-    const auto selected = std::find_if(state.tabs.begin(), state.tabs.end(),
-        [active](const auto& tab) { return tab.window == active; });
-    tabs.SetActiveTab(selected == state.tabs.end() ? -1 : static_cast<int>(selected - first));
+    const auto* state = openmfc::detail::mfccore::FindTabCtrlState(&tabs);
+    if (!state || state->displayTabIds.empty()) {
+        tabs.ReorderTabRecords(from, to);
+        return;
+    }
+    const auto position = std::find(state->displayTabIds.begin(), state->displayTabIds.end(), state->tabs[to].id);
+    if (position != state->displayTabIds.end())
+        tabs.MoveTab(from, static_cast<int>(position - state->displayTabIds.begin()));
 }
 
 LRESULT CALLBACK GroupTabSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR data) {
@@ -1619,6 +1631,7 @@ extern "C" void MS_ABI impl__ApplyParams_CMDIClientAreaWnd__AEAAXPEAVCMFCTabCtrl
     impl__EnableCustomToolTips_CMFCBaseTabCtrl__QEAAHH_Z(pBase, params.m_bTabCustomTooltips);
     impl__HideNoTabs_CMFCTabCtrl__QEAAXH_Z(pTab, TRUE);
     impl__SetActiveTabBoldFont_CMFCTabCtrl__QEAAXH_Z(pTab, TRUE);
+    pTab->SetMDITab(TRUE);
     pTab->EnableTabSwap(params.m_bEnableTabSwap);
     auto& state = openmfc::detail::mfccore::EnsureTabCtrlState(pTab);
     state.mdiCloseButton = params.m_bTabCloseButton;
@@ -2885,7 +2898,8 @@ void WriteSessionGroup(CArchive& ar, S_CMDIClientAreaWnd& self, CMFCTabCtrl& tab
     const auto* state = openmfc::detail::mfccore::FindTabCtrlState(&tabs);
     std::vector<SessionDocument> documents;
     int selected = -1;
-    for (int i = 0; state && i < tabs.GetTabsCount(); ++i) {
+    const auto order = state ? openmfc::detail::mfccore::DisplayedTabIndices(*state) : std::vector<int>{};
+    for (int i : order) {
         auto* child = AsChildEx(tabs.GetTabWnd(i));
         if (!child || state->tabs[i].temporary) continue;
         if (tabs.GetActiveTab() == i) selected = static_cast<int>(documents.size());
