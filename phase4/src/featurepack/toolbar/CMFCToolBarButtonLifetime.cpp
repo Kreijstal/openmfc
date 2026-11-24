@@ -1,6 +1,6 @@
 #define OPENMFC_APPCORE_IMPL
 #include "openmfc/afxmfc.h"
-IMPLEMENT_DYNAMIC(CMFCToolBarButton,CObject)
+IMPLEMENT_SERIAL(CMFCToolBarButton, CObject, VERSIONABLE_SCHEMA | 1)
 IMPLEMENT_DYNAMIC(CMFCToolBarComboBoxButton,CMFCToolBarButton)
 void OpenMFC_InitToolBarButton(CMFCToolBarButton* b) {
     b->m_bUserButton = FALSE;

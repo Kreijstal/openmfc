@@ -319,6 +319,7 @@ struct MenuButtonState {
     bool userButton = false;
     MENUITEMINFOW menuItem{};
     std::shared_ptr<std::remove_pointer_t<HMENU>> ownedMenu;
+    std::vector<std::shared_ptr<CMFCToolBarButton>> archivedCommands;
 };
 } } }
 
@@ -591,6 +592,7 @@ std::wstring CurrentAppExSection(CWinAppEx* app);
 namespace openmfc { namespace detail { namespace mfccore {
 openmfc::detail::TearOffMenuHandle ClonePopupMenu(HMENU menu);
 openmfc::detail::TearOffMenuHandle ExportPopupMenuItems(const std::vector<CMFCToolBarMenuButton*>& items);
+bool AppendPopupMenuButton(HMENU menu, const CMFCToolBarButton& button);
 CString GetMenuItemText(HMENU hMenu, int index);
 } } }
 

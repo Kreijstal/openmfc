@@ -34,6 +34,12 @@ void CArchive::WriteObject(const CObject* object) {
         const_cast<CObject*>(object)->Serialize(*this);
     }
 }
+void CArchive::WriteObjectValue(CObject& object) {
+    WriteClass(object.GetRuntimeClass());
+    CheckCount();
+    ++m_nMapCount;
+    object.Serialize(*this);
+}
 // Symbol: ?WriteClass@CArchive@@QEAAXPEBUCRuntimeClass@@@Z
 extern "C" void impl__WriteClass_CArchive__QEAAXPEBUCRuntimeClass___Z(CArchive* archive,const CRuntimeClass* type) {archive->WriteClass(type);}
 // Symbol: ?WriteObject@CArchive@@QEAAXPEBVCObject@@@Z

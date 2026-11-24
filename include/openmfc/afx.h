@@ -555,6 +555,9 @@ public:
     OPENMFC_ARCHIVE_API CRuntimeClass* ReadClass(const CRuntimeClass* expected=nullptr,
                                                 UINT* schema=nullptr,DWORD* tag=nullptr);
     OPENMFC_ARCHIVE_API CObject* ReadObject(const CRuntimeClass* expected);
+    // Value records use native object tags. Their owner controls their lifetime.
+    void WriteObjectValue(CObject& object);
+    CObject* ReadObjectValue(const CRuntimeClass* expected);
     OPENMFC_ARCHIVE_API void SerializeClass(const CRuntimeClass* type);
     OPENMFC_ARCHIVE_API void EnsureSchemaMapExists(CArray<LoadArrayObjType,const LoadArrayObjType&>** types=nullptr);
     void SetStoreParams(UINT hashSize=2053,UINT blockSize=128) {m_nHashSize=hashSize;m_nGrowSize=blockSize;}
@@ -576,6 +579,7 @@ protected:
     UINT m_nHashSize;
     friend class CArchiveAccess;
 private:
+    CObject* ReadObjectRecord(const CRuntimeClass* expected, bool value);
     template<class Char,bool IsMFCDLL>
     CArchive& StoreString(const ATL::CSimpleStringT<Char,IsMFCDLL>& text) {
         AfxWriteStringLength(*this,text.GetLength(),sizeof(Char)==sizeof(wchar_t));

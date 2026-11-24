@@ -56,9 +56,12 @@ CString CMFCToolBarButton::m_strClipboardFormatName;
 BOOL CMFCToolBarButton::m_bWrapText = TRUE;
 BOOL CMFCToolBarButton::m_bUpdateImages = FALSE;
 // ---- named exports: real bodies (flip the weak null stubs to real behavior) ----
+void CMFCToolBarButton::Serialize(CArchive& archive) {
+    tbb_Serialize(this, &archive);
+}
 // Symbol: ?Serialize@CMFCToolBarButton@@UEAAXAEAVCArchive@@@Z
 extern "C" void MS_ABI impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar) {
-    tbb_Serialize((CMFCToolBarButton*)pThis, ar);
+    if (pThis && ar) static_cast<CMFCToolBarButton*>(pThis)->CMFCToolBarButton::Serialize(*ar);
 }
 // Symbol: ?CopyFrom@CMFCToolBarButton@@UEAAXAEBV1@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void* pThis, const CMFCToolBarButton* src) {

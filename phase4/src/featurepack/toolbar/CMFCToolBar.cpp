@@ -6788,56 +6788,134 @@ extern "C" int MS_ABI impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(
     return impl__SaveState_CPane__UEAAHPEB_WHI_Z(pThis, lpszProfileName, nIndex, uiID);
 }
 
-// Retail (RVA 0x153070, mfc140u), decoded but NOT implemented:
-//     CBasePane::Serialize(ar);                                              // 0xc2e0
-//     if (m_bLocked) return;                                                 // +0x10b8
-//     if (ar.IsLoading()) {                                                  // ar.m_nMode & 1 (+0x20)
-//         CMFCToolBarButton* pCustomize = NULL;
-//         if (m_pCustomizeBtn) {                                             // +0x1300
-//             pCustomize = m_pCustomizeBtn->GetRuntimeClass()->CreateObject();   // vslot 0, 0x234d60
-//             if (!pCustomize || !pCustomize->IsKindOf(RUNTIME_CLASS(CMFCCustomizeButton))) pCustomize = NULL;   // 0x3b1148
-//             pCustomize->CopyFrom(*m_pCustomizeBtn);                        // button vslot 0x38 (no NULL check in retail)
-//         }
-//         RemoveAllButtons();                                                // vslot 0x6b0
-//         m_Buttons.Serialize(ar);                                           // CObList vslot 0x10 -> CArchive object I/O
-//         for (node = m_Buttons.head; node; node = next) {
-//             if (node->data == NULL) {                                      // an unresolvable element: give up
-//                 m_Buttons.RemoveAll();                                     // 0x8350
-//                 if (CanBeRestored()) RestoreOriginalState();               // vslots 0x718 / 0x720
-//                 AdjustLocations();                                         // vslot 0x7d8
-//                 return;
-//             }
-//             node->data->m_nStyle &= ~(TBBS_PRESSED | TBBS_CHECKED);       // +0x28 &= 0xfffcffff
-//             node->data->OnChangeParentWnd(this);                           // button vslot 0x60
-//         }
-//         ar >> m_bTextLabels (via FillBuffer/+0x38 buffer read);           // gated by vslot 0x700 (0x3a60 -> TRUE)
-//         if (pCustomize) { m_iSelected = InsertButton(pCustomize, -1);  m_pCustomizeBtn = pCustomize; }   // vslot 0x690
-//         AdjustLocations();                                                 // vslot 0x7d8
-//         ar >> strName (0x1b5e4);  if (::IsWindow(m_hWnd)) SetWindowText(strName);   // 0x2a9790
-//         for (node = m_lstUnpermittedCommands.head; node; node = node->next)   // 0x3b2060 = ?m_lstUnpermittedCommands@ (0x3b2058) + 8,
-//             { i = CommandToIndex(node->data); if (i >= 0) RemoveButton(i); }  //   i.e. its m_pNodeHead; 0x14eed0, vslot 0x6a8
-//         ar >> m_nMRUWidth;                                                 // +0x1dc (CPane)
-//     } else {
-//         CObList lst;                                                       // vftable 0x32a6f8
-//         for (node = m_Buttons.head; node; node = next)
-//             if (node->data && node->data->IsKindOf(RUNTIME_CLASS(CMFCToolBarButton)) &&   // 0x3b1628
-//                 node->data->CanBeStored())                                 // button vslot 0xb0
-//                 lst.AddTail(node->data);
-//         lst.Serialize(ar);                                                 // 0x232170
-//         ar << m_bTextLabels;  ar << (IsWindow ? GetWindowText() : L"") (0x1b818);  ar << m_nMRUWidth;
-//         lst.RemoveAll();
-//     }
-// Left a stub: the whole body is CArchive object serialisation of the
-// m_Buttons CObList (CObList::Serialize -> CArchive::ReadObject/WriteObject
-// with CRuntimeClass lookup and per-button Serialize overrides), and OpenMFC's
-// live buttons are not in m_Buttons at all but in the mfccore.cpp side table,
-// so neither direction can be reproduced faithfully today.  The loading path
-// additionally needs InsertButton/AdjustLocations (the latter a stub here).
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCCustomizeButton__SAPEAUCRuntimeClass__XZ();
+extern "C" void MS_ABI impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(CBasePane* pane, CArchive& archive);
+
+namespace {
+bool ButtonCanBeStored(CMFCToolBarButton* button) {
+    return !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+               button, impl__GetThisClass_CMFCToolBarSystemMenuButton__SAPEAUCRuntimeClass__XZ()) &&
+           !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+               button, impl__GetThisClass_CMFCCustomizeButton__SAPEAUCRuntimeClass__XZ()) &&
+           !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
+               button, impl__GetThisClass_CMFCToolBarMenuButtonsButton__SAPEAUCRuntimeClass__XZ());
+}
+
+void RestoreNativeToolbarButtons(CMFCToolBar& toolbar) {
+    const HWND window = toolbar.GetSafeHwnd();
+    if (!window) return;
+    while (::SendMessageW(window, TB_BUTTONCOUNT, 0, 0) > 0) {
+        if (!::SendMessageW(window, TB_DELETEBUTTON, 0, 0)) break;
+    }
+    for (int i = 0; i < toolbar.GetCount(); ++i) {
+        const auto* button = toolbar.GetButton(i);
+        const bool separator = button->m_nID == 0 || (button->m_nStyle & TBSTYLE_SEP) != 0;
+        TBBUTTON native{};
+        native.idCommand = static_cast<int>(button->m_nID);
+        native.iBitmap = button->m_bImage && button->GetImage() >= 0 ? button->GetImage() : I_IMAGENONE;
+        if (separator) native.iBitmap = (std::max)(button->GetImage(), 0);
+        native.fsStyle = separator ? BTNS_SEP : static_cast<BYTE>(button->m_nStyle);
+        if (!(button->m_nStyle & (UINT(TBSTATE_ENABLED) << 16))) native.fsState |= TBSTATE_ENABLED;
+        if (!button->m_bVisible || button->m_bIsHidden) native.fsState |= TBSTATE_HIDDEN;
+        native.iString = -1;
+        if (!separator && button->m_bText && !button->m_strText.IsEmpty()) {
+            std::wstring labels(button->m_strText.GetString(), button->m_strText.GetLength());
+            labels.push_back(L'\0');
+            native.iString = ::SendMessageW(window, TB_ADDSTRINGW, 0, reinterpret_cast<LPARAM>(labels.c_str()));
+            native.fsStyle |= BTNS_AUTOSIZE;
+        }
+        ::SendMessageW(window, TB_ADDBUTTONSW, 1, reinterpret_cast<LPARAM>(&native));
+    }
+    toolbar.AdjustLayout();
+    for (int i = 0; i < toolbar.GetCount(); ++i) {
+        RECT bounds{};
+        ::SendMessageW(window, TB_GETITEMRECT, i, reinterpret_cast<LPARAM>(&bounds));
+        toolbar.GetButton(i)->m_rect = CRect(bounds);
+    }
+}
+}
+
+// The base pane and native CObList records are followed by the text-label flag,
+// caption and MRU width. Load the whole record before replacing the buttons.
+void CMFCToolBar::Serialize(CArchive& archive) {
+    impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(this, archive);
+    if (m_bLocked) return;
+
+    CString caption;
+    if (archive.IsStoring()) {
+        std::vector<CMFCToolBarButton*> buttons;
+        for (int i = 0; i < GetCount(); ++i) {
+            auto* button = GetButton(i);
+            if (button && ButtonCanBeStored(button)) buttons.push_back(button);
+        }
+        archive.WriteCount(buttons.size());
+        for (auto* button : buttons) archive.WriteObjectValue(*button);
+        if (::IsWindow(m_hWnd))
+            impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+                this, &caption);
+        archive << static_cast<int>(m_bTextLabels) << caption << static_cast<int>(m_nMRUWidth);
+        return;
+    }
+
+    const auto count = archive.ReadCount();
+    if (count > 65535) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    std::vector<std::unique_ptr<CMFCToolBarButton>> loaded;
+    loaded.reserve(static_cast<size_t>(count));
+    for (ULONGLONG i = 0; i < count; ++i) {
+        std::unique_ptr<CMFCToolBarButton> button(static_cast<CMFCToolBarButton*>(
+            archive.ReadObjectValue(RUNTIME_CLASS(CMFCToolBarButton))));
+        if (!button) {
+            if (impl__CanBeRestored_CMFCToolBar__UEBAHXZ(this))
+                impl__RestoreOriginalState_CMFCToolBar__UEAAHXZ(this);
+            return;
+        }
+        button->m_nStyle &= 0xfffcffffu; // Clear transient checked and pressed states.
+        loaded.push_back(std::move(button));
+    }
+    int textLabels = 0;
+    int mruWidth = 0;
+    archive >> textLabels >> caption >> mruWidth;
+
+    auto& state = g_toolBarStates[this];
+    auto* customize = m_pCustomizeBtn;
+    const bool retainInList = customize && ContainsPtr(state.buttons, customize);
+    const bool ownsCustomize = customize && state.ownedButtons.find(customize) != state.ownedButtons.end();
+    ToolBarState restored;
+    restored.buttons.reserve(loaded.size() + retainInList);
+    restored.ownedButtons.reserve(loaded.size() + ownsCustomize);
+    const auto& unpermitted = impl__m_lstUnpermittedCommands_CMFCToolBar__1V__CList_II__A;
+    for (auto& button : loaded) {
+        auto* node = unpermitted.m_pNodeHead;
+        while (node && node->data != button->m_nID) node = node->pNext;
+        if (node) {
+            button.reset();
+            continue;
+        }
+        ButtonChangeParentWnd(button.get(), this);
+        restored.buttons.push_back(button.get());
+        restored.ownedButtons.insert(button.get());
+    }
+    if (retainInList) restored.buttons.push_back(customize);
+    if (ownsCustomize) restored.ownedButtons.insert(customize);
+    for (auto& button : loaded) button.release();
+
+    if (ownsCustomize) state.ownedButtons.erase(customize);
+    state.buttons.swap(restored.buttons);
+    state.ownedButtons.swap(restored.ownedButtons);
+    ClearToolBarButtons(restored);
+    m_iButtonCapture = -1;
+    m_iHighlighted = -1;
+    m_iSelected = -1;
+    m_bTextLabels = textLabels;
+    m_nMRUWidth = mruWidth;
+    if (::IsWindow(m_hWnd)) ::SetWindowTextW(m_hWnd, caption.GetString());
+    RestoreNativeToolbarButtons(*this);
+}
+
 // Symbol: ?Serialize@CMFCToolBar@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CMFCToolBar__UEAAXAEAVCArchive___Z(CMFCToolBar* pThis, CArchive* ar)
+extern "C" void MS_ABI impl__Serialize_CMFCToolBar__UEAAXAEAVCArchive___Z(CMFCToolBar* toolbar, CArchive* archive)
 {
-    (void)pThis; (void)ar;
-    // TODO(clean-room): not transcribed -- see above.
+    if (toolbar && archive) toolbar->CMFCToolBar::Serialize(*archive);
 }
 
 // Retail (RVA 0x156f50, mfc140u), fully transcribed -- see the UIntListAssignFrom

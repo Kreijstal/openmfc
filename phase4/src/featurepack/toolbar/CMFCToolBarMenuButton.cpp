@@ -252,6 +252,8 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarMenuButton__UEAAXAEBVCMFCToolBa
 extern "C" int MS_ABI impl__CompareWith_CMFCToolBarMenuButton__UEBAHAEBVCMFCToolBarButton___Z(const CMFCToolBarMenuButton* pThis, const CMFCToolBarButton* pOther) {
     return (pThis && pOther) ? pThis->CompareWith(*pOther) : 0;
 }
+IMPLEMENT_SERIAL(CMFCToolBarMenuButton, CMFCToolBarButton, VERSIONABLE_SCHEMA | 1)
+
 CMFCToolBarMenuButton::CMFCToolBarMenuButton() : m_hMenu(nullptr) { memset(_pad, 0, sizeof(_pad)); }
 CMFCToolBarMenuButton::CMFCToolBarMenuButton(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton)
     : CMFCToolBarMenuButton() {
@@ -263,12 +265,14 @@ CMFCToolBarMenuButton::CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src)
     memset(_pad, 0, sizeof(_pad));
     impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &src);
     CopyMenuButtonState(this, &src);
+    MbAt<BOOL>(this, kMbMenuPaletteMode) = MbGet<BOOL>(&src, kMbMenuPaletteMode);
+    MbAt<int>(this, kMbPaletteRows) = MbGet<int>(&src, kMbPaletteRows);
     SetTearOff(src.GetTearOff());
 }
 CMFCToolBarMenuButton::~CMFCToolBarMenuButton() {
     if (auto* popup = GetOpenPopup()) popup->CloseMenu();
     SetTearOff(0);
-    g_menuButtonStates.erase(this);
+    g_menuButtonStates.extract(this);
 }
 void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText, BOOL bUserButton) {
     m_nID = uiID;
@@ -277,7 +281,10 @@ void CMFCToolBarMenuButton::Initialize(UINT uiID, HMENU hMenu, BOOL bHasDropDown
     if (lpszText) m_strText = lpszText;
     m_bText = !m_strText.IsEmpty();
     auto& state = g_menuButtonStates[this];
-    if (state.ownedMenu.get() != hMenu) state.ownedMenu.reset();
+    if (state.ownedMenu.get() != hMenu) {
+        state.ownedMenu.reset();
+        state.archivedCommands.clear();
+    }
     state.menuItem = {};
     state.hasDropDownArrow = bHasDropDownArrow != FALSE;
     state.userButton = bUserButton != FALSE;
@@ -290,6 +297,7 @@ void CMFCToolBarMenuButton::CreateFromMenu(HMENU hMenu) {
     }
     auto& state = g_menuButtonStates[this];
     state.ownedMenu = std::move(copy);
+    state.archivedCommands.clear();
     m_hMenu = state.ownedMenu.get();
 }
 HMENU CMFCToolBarMenuButton::CreateMenu() const {
@@ -302,6 +310,8 @@ void CMFCToolBarMenuButton::CopyFrom(const CMFCToolBarButton& src) {
         const CMFCToolBarMenuButton& menuSrc = static_cast<const CMFCToolBarMenuButton&>(src);
         m_hMenu = menuSrc.m_hMenu;
         CopyMenuButtonState(this, &menuSrc);
+        MbAt<BOOL>(this, kMbMenuPaletteMode) = MbGet<BOOL>(&menuSrc, kMbMenuPaletteMode);
+        MbAt<int>(this, kMbPaletteRows) = MbGet<int>(&menuSrc, kMbPaletteRows);
         SetTearOff(menuSrc.GetTearOff());
     }
 }
@@ -852,18 +862,77 @@ extern "C" void MS_ABI impl__SaveBarState_CMFCToolBarMenuButton__UEAAXXZ(CMFCToo
     impl__SaveState_CMFCPopupMenu__UEAAXXZ(pMenu);
 }
 
-// Retail RVA 0x172dd0 (mfc140u; slot 2 of the retail vftable): CMFCToolBarButton::Serialize(ar), then on load
-// deletes every command in m_listCommands (RemoveHead + deleting dtor), reads
-// m_uiTearOffBarID and applies it through SetTearOff (vslot +0x200), then
-// m_bMenuPaletteMode (+0xe8) and m_nPaletteRows (+0xf8); on store writes those
-// three; finally m_listCommands.Serialize(ar) through the CObList vtable at +0x88.
-// Not transcribed: OpenMFC's layout puts m_hMenu where the embedded CObList's
-// vptr lives and never constructs the list, so the list half cannot run (see the
-// layout note at the top of the file).
+namespace {
+void WriteMenuCommands(const CMFCToolBarMenuButton& button, CArchive& archive) {
+    const auto state = g_menuButtonStates.find(&button);
+    if (state != g_menuButtonStates.end() && state->second.ownedMenu.get() == button.m_hMenu &&
+        !state->second.archivedCommands.empty()) {
+        const auto& commands = state->second.archivedCommands;
+        archive.WriteCount(commands.size());
+        for (const auto& command : commands) archive.WriteObjectValue(*command);
+        return;
+    }
+    const int count = button.m_hMenu ? ::GetMenuItemCount(button.m_hMenu) : 0;
+    if (count < 0) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    archive.WriteCount(count);
+    for (int i = 0; i < count; ++i) {
+        std::unique_ptr<CMFCToolBarMenuButton> command(CreateMenuButtonFromMenu(button.m_hMenu, i));
+        if (command->m_hMenu) command->m_nID = UINT(-1);
+        archive.WriteObjectValue(*command);
+    }
+}
+}
+
+// The retail stream stores the base button, three scalar menu attributes,
+// then a CObList of command objects. Reconstruct the HMENU from those objects.
+void CMFCToolBarMenuButton::Serialize(CArchive& archive) {
+    if (archive.IsStoring()) {
+        CMFCToolBarButton::Serialize(archive);
+        archive << GetTearOff() << MbGet<BOOL>(this, kMbMenuPaletteMode) << MbGet<int>(this, kMbPaletteRows);
+        WriteMenuCommands(*this, archive);
+        return;
+    }
+
+    CMFCToolBarButton base;
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(&base, this);
+    base.Serialize(archive);
+    UINT tearOff = 0;
+    BOOL palette = FALSE;
+    int paletteRows = 0;
+    archive >> tearOff >> palette >> paletteRows;
+
+    const auto count = archive.ReadCount();
+    if (count > 65535) AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+    std::vector<std::shared_ptr<CMFCToolBarButton>> commands;
+    commands.reserve(static_cast<size_t>(count));
+    openmfc::detail::TearOffMenuHandle menu;
+    if (count || base.m_nID == UINT(-1)) {
+        menu.reset(::CreatePopupMenu());
+        if (!menu) AfxThrowMemoryException();
+    }
+    for (ULONGLONG i = 0; i < count; ++i) {
+        std::unique_ptr<CMFCToolBarButton> command(
+            static_cast<CMFCToolBarButton*>(archive.ReadObjectValue(RUNTIME_CLASS(CMFCToolBarButton))));
+        if (!command || !AppendPopupMenuButton(menu.get(), *command))
+            AfxThrowArchiveException(CArchiveException::badIndex, nullptr);
+        commands.push_back(std::move(command));
+    }
+
+    auto& state = g_menuButtonStates[this];
+    state.ownedMenu = std::move(menu);
+    state.archivedCommands = std::move(commands);
+    m_hMenu = state.ownedMenu.get();
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &base);
+    SetTearOff(tearOff);
+    MbAt<BOOL>(this, kMbMenuPaletteMode) = palette;
+    MbAt<int>(this, kMbPaletteRows) = paletteRows;
+}
+
 // Symbol: ?Serialize@CMFCToolBarMenuButton@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CMFCToolBarMenuButton__UEAAXAEAVCArchive___Z(CMFCToolBarMenuButton* pThis, CArchive* pAr)
+extern "C" void MS_ABI impl__Serialize_CMFCToolBarMenuButton__UEAAXAEAVCArchive___Z(
+    CMFCToolBarMenuButton* button, CArchive* archive)
 {
-    (void)pThis; (void)pAr;
+    if (button && archive) button->CMFCToolBarMenuButton::Serialize(*archive);
 }
 
 // Retail RVA 0x176100 (mfc140u; slot 48 of the retail CMFCToolBarMenuButton

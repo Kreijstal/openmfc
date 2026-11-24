@@ -73,7 +73,6 @@ IMPLEMENT_DYNAMIC(CFrameWndEx, CFrameWnd)
 IMPLEMENT_DYNAMIC(CMDIFrameWndEx, CMDIFrameWnd)
 IMPLEMENT_DYNAMIC(CMDIChildWndEx, CMDIChildWnd)
 IMPLEMENT_DYNAMIC(CMFCToolBarEditBoxButton, CMFCToolBarButton)
-IMPLEMENT_DYNAMIC(CMFCToolBarMenuButton, CMFCToolBarButton)
 IMPLEMENT_DYNAMIC(CMFCToolBarMenuButtonsButton, CMFCToolBarMenuButton)
 IMPLEMENT_DYNAMIC(CContextMenuManager, CObject)
 IMPLEMENT_DYNAMIC(CKeyboardManager, CObject)
@@ -325,13 +324,13 @@ void CopyToolBarButtonBaseFields(CMFCToolBarButton* dst, const CMFCToolBarButton
 void CopyMenuButtonState(CMFCToolBarMenuButton* dst, const CMFCToolBarMenuButton* src) {
     if (!dst) return;
     if (!src) {
-        g_menuButtonStates.erase(dst);
+        g_menuButtonStates.extract(dst);
         return;
     }
 
     auto stateIt = g_menuButtonStates.find(src);
     if (stateIt == g_menuButtonStates.end()) {
-        g_menuButtonStates.erase(dst);
+        g_menuButtonStates.extract(dst);
         return;
     }
 
@@ -428,39 +427,47 @@ openmfc::detail::TearOffMenuHandle ClonePopupMenu(HMENU menu) {
     return copy;
 }
 
+bool AppendPopupMenuButton(HMENU menu, const CMFCToolBarButton& button) {
+    const auto* menuButton = button.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButton))
+        ? static_cast<const CMFCToolBarMenuButton*>(&button) : nullptr;
+    MENUITEMINFOW item{sizeof(item), menuItemFields};
+    if (menuButton) {
+        const auto state = g_menuButtonStates.find(menuButton);
+        if (state != g_menuButtonStates.end() && state->second.menuItem.cbSize)
+            item = state->second.menuItem;
+    }
+    item.wID = button.m_nID;
+    item.fType &= ~MFT_SEPARATOR;
+    if ((button.m_nStyle & TBSTYLE_SEP) || (button.m_nID == 0 && (!menuButton || !menuButton->m_hMenu)))
+        item.fType |= MFT_SEPARATOR;
+    item.fState &= ~(MFS_CHECKED | MFS_DISABLED);
+    if (button.m_nStyle & (UINT(TBSTATE_CHECKED) << 16)) item.fState |= MFS_CHECKED;
+    if (button.m_nStyle & (UINT(TBSTATE_ENABLED) << 16)) item.fState |= MFS_DISABLED;
+
+    CString text = button.m_strText;
+    openmfc::detail::TearOffMenuHandle child;
+    if (menuButton && menuButton->m_hMenu && !(item.fType & MFT_SEPARATOR)) {
+        child = ClonePopupMenu(menuButton->m_hMenu);
+        if (!child) return false;
+        item.hSubMenu = child.get();
+        if (const auto tearOff = menuButton->GetTearOff())
+            text = openmfc::detail::EncodeTearOffTitle(tearOff, text);
+    }
+
+    item.dwTypeData = text.GetBuffer();
+    const auto index = static_cast<UINT>(::GetMenuItemCount(menu));
+    const BOOL added = ::InsertMenuItemW(menu, index, TRUE, &item);
+    text.ReleaseBuffer();
+    if (!added) return false;
+    child.release();
+    return true;
+}
+
 openmfc::detail::TearOffMenuHandle ExportPopupMenuItems(const std::vector<CMFCToolBarMenuButton*>& items) {
     openmfc::detail::TearOffMenuHandle menu(::CreatePopupMenu());
     if (!menu) return {};
     for (const auto* button : items) {
-        if (!button) continue;
-        MENUITEMINFOW item{sizeof(item), menuItemFields};
-        if (const auto state = g_menuButtonStates.find(button);
-            state != g_menuButtonStates.end() && state->second.menuItem.cbSize) {
-            item = state->second.menuItem;
-        }
-        item.wID = button->m_nID;
-        item.fType &= ~MFT_SEPARATOR;
-        if (button->m_nStyle & TBSTYLE_SEP) item.fType |= MFT_SEPARATOR;
-        item.fState &= ~(MFS_CHECKED | MFS_DISABLED);
-        if (button->m_nStyle & (UINT(TBSTATE_CHECKED) << 16)) item.fState |= MFS_CHECKED;
-        if (button->m_nStyle & (UINT(TBSTATE_ENABLED) << 16)) item.fState |= MFS_DISABLED;
-
-        CString text = button->m_strText;
-        openmfc::detail::TearOffMenuHandle child;
-        if (button->m_hMenu && !(item.fType & MFT_SEPARATOR)) {
-            child = ClonePopupMenu(button->m_hMenu);
-            if (!child) return {};
-            item.hSubMenu = child.get();
-            if (const auto tearOff = button->GetTearOff())
-                text = openmfc::detail::EncodeTearOffTitle(tearOff, text);
-        }
-
-        item.dwTypeData = text.GetBuffer();
-        const auto index = static_cast<UINT>(::GetMenuItemCount(menu.get()));
-        const BOOL added = ::InsertMenuItemW(menu.get(), index, TRUE, &item);
-        text.ReleaseBuffer();
-        if (!added) return {};
-        child.release();
+        if (button && !AppendPopupMenuButton(menu.get(), *button)) return {};
     }
     return menu;
 }

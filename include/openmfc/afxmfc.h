@@ -673,11 +673,12 @@ protected:
 // CMFCToolBarButton
 //=============================================================================
 class CMFCToolBarButton : public CObject {
-    DECLARE_DYNAMIC(CMFCToolBarButton)
+    DECLARE_SERIAL(CMFCToolBarButton)
 public:
     CMFCToolBarButton();
     CMFCToolBarButton(UINT uiCmdID, int iImage, const wchar_t* lpszText = nullptr, BOOL bUserButton = FALSE, BOOL bLocked = FALSE);
     virtual ~CMFCToolBarButton();
+    void Serialize(CArchive& archive) override;
 
     static void SetClipboardFormatName(const wchar_t* lpszClipboardFormatName);
     int OnDrawOnCustomizeList(CDC* dc, const CRect& bounds, BOOL selected);
@@ -855,6 +856,7 @@ class CMFCToolBar : public CMFCBaseToolBar {
 public:
     CMFCToolBar();
     virtual ~CMFCToolBar();
+    void Serialize(CArchive& archive) override;
 
     virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, UINT nID = AFX_IDW_TOOLBAR);
     virtual BOOL CreateEx(CWnd* pParentWnd, DWORD dwCtrlStyle, DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP, CRect rcBorders = CRect(0,0,0,0), UINT nID = AFX_IDW_TOOLBAR);
@@ -2088,12 +2090,13 @@ public:
 };
 
 class CMFCToolBarMenuButton : public CMFCToolBarButton {
-    DECLARE_DYNAMIC(CMFCToolBarMenuButton)
+    DECLARE_SERIAL(CMFCToolBarMenuButton)
 public:
     CMFCToolBarMenuButton();
     CMFCToolBarMenuButton(UINT uiID, HMENU hMenu, BOOL bHasDropDownArrow, const wchar_t* lpszText = nullptr, BOOL bUserButton = FALSE);
     CMFCToolBarMenuButton(const CMFCToolBarMenuButton& src);
     virtual ~CMFCToolBarMenuButton();
+    void Serialize(CArchive& archive) override;
 
     SIZE OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal);
     void OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL horizontal,

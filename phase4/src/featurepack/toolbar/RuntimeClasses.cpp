@@ -58,28 +58,28 @@ MFC_TOOLBARS_DESC(CMFCTasksPaneToolBar, 4960, 0x00000001, &classCMFCToolBar);
     static CRuntimeClass* AFXAPI _openmfc_gb_##Cls() { return (BaseDesc); } \
     CRuntimeClass class##Cls = { #Cls, (Size), (Schema), nullptr, &_openmfc_gb_##Cls, nullptr, nullptr }
 TOOLBAR_BUTTONS_DESC(CMFCToolBarButton, 136, 0x80000001, &CObject::classCObject);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarComboBoxButton, 336, 0x00000001, &classCMFCToolBarButton);
+TOOLBAR_BUTTONS_DESC(CMFCToolBarComboBoxButton, 336, 0x00000001, CMFCToolBarButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CHelpComboBoxButton, 344, 0x80000001, &classCMFCToolBarComboBoxButton);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarMenuButton, 296, 0x80000001, &classCMFCToolBarButton);
-TOOLBAR_BUTTONS_DESC(CMFCColorMenuButton, 416, 0x80000001, &classCMFCToolBarMenuButton);
-TOOLBAR_BUTTONS_DESC(CMFCCustomizeButton, 408, 0x80000001, &classCMFCToolBarMenuButton);
-TOOLBAR_BUTTONS_DESC(CMFCCustomizeMenuButton, 328, 0xFFFF, &classCMFCToolBarMenuButton);
-TOOLBAR_BUTTONS_DESC(CMFCDropDownToolbarButton, 176, 0x80000001, &classCMFCToolBarButton);
-TOOLBAR_BUTTONS_DESC(CMFCOutlookBarPaneButton, 160, 0x00000001, &classCMFCToolBarButton);
-TOOLBAR_BUTTONS_DESC(CMFCRibbonGalleryMenuButton, 1568, 0xFFFF, &classCMFCToolBarMenuButton);
-TOOLBAR_BUTTONS_DESC(CMFCShowAllButton, 296, 0xFFFF, &classCMFCToolBarMenuButton);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarColorButton, 176, 0x00000001, &classCMFCToolBarButton);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarDateTimeCtrl, 168, 0x00000001, &classCMFCToolBarButton);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarEditBoxButton, 176, 0x00000001, &classCMFCToolBarButton);
+TOOLBAR_BUTTONS_DESC(CMFCToolBarMenuButton, 296, 0x80000001, CMFCToolBarButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCColorMenuButton, 416, 0x80000001, CMFCToolBarMenuButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCCustomizeButton, 408, 0x80000001, CMFCToolBarMenuButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCCustomizeMenuButton, 328, 0xFFFF, CMFCToolBarMenuButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCDropDownToolbarButton, 176, 0x80000001, CMFCToolBarButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCOutlookBarPaneButton, 160, 0x00000001, CMFCToolBarButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCRibbonGalleryMenuButton, 1568, 0xFFFF, CMFCToolBarMenuButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCShowAllButton, 296, 0xFFFF, CMFCToolBarMenuButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCToolBarColorButton, 176, 0x00000001, CMFCToolBarButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCToolBarDateTimeCtrl, 168, 0x00000001, CMFCToolBarButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CMFCToolBarEditBoxButton, 176, 0x00000001, CMFCToolBarButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarFontComboBox, 352, 0x00000001, &classCMFCToolBarComboBoxButton);
 TOOLBAR_BUTTONS_DESC(CMFCToolBarFontSizeComboBox, 344, 0x00000001, &classCMFCToolBarComboBoxButton);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarMenuButtonsButton, 144, 0xFFFF, &classCMFCToolBarButton);
+TOOLBAR_BUTTONS_DESC(CMFCToolBarMenuButtonsButton, 144, 0xFFFF, CMFCToolBarButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(CMFCToolBarSpinEditBoxButton, 440, 0x00000001, &classCMFCToolBarEditBoxButton);
-TOOLBAR_BUTTONS_DESC(CMFCToolBarSystemMenuButton, 312, 0x80000001, &classCMFCToolBarMenuButton);
+TOOLBAR_BUTTONS_DESC(CMFCToolBarSystemMenuButton, 312, 0x80000001, CMFCToolBarMenuButton::GetThisClass());
 TOOLBAR_BUTTONS_DESC(COutlookCustomizeButton, 408, 0xFFFF, &classCMFCCustomizeButton);
-TOOLBAR_BUTTONS_DESC(CTasksPaneHistoryButton, 360, 0x00000001, &classCMFCToolBarMenuButton);
-TOOLBAR_BUTTONS_DESC(CTasksPaneMenuButton, 304, 0x00000001, &classCMFCToolBarMenuButton);
-TOOLBAR_BUTTONS_DESC(CTasksPaneNavigateButton, 136, 0x00000001, &classCMFCToolBarButton);
+TOOLBAR_BUTTONS_DESC(CTasksPaneHistoryButton, 360, 0x00000001, CMFCToolBarMenuButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CTasksPaneMenuButton, 304, 0x00000001, CMFCToolBarMenuButton::GetThisClass());
+TOOLBAR_BUTTONS_DESC(CTasksPaneNavigateButton, 136, 0x00000001, CMFCToolBarButton::GetThisClass());
 #undef TOOLBAR_BUTTONS_DESC
 
 #define TOOLBAR_BUTTONS_GETTERS(Cls, GetThisSym, GetRtSym) \
@@ -115,9 +115,12 @@ MFC_TOOLBARS_GETTERS(CMFCPrintPreviewToolBar,
     extern "C" CRuntimeClass* MS_ABI GetRtSym(const void*) { return &class##Cls; }
 // Symbol: ?GetThisClass@CMFCToolBarButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarButton@@UEBAPEAUCRuntimeClass@@XZ
-TOOLBAR_BUTTONS_GETTERS(CMFCToolBarButton,
-           impl__GetThisClass_CMFCToolBarButton__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCToolBarButton__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarButton__SAPEAUCRuntimeClass__XZ() {
+    return CMFCToolBarButton::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarButton__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCToolBarButton::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCToolBarComboBoxButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarComboBoxButton@@UEBAPEAUCRuntimeClass@@XZ
 TOOLBAR_BUTTONS_GETTERS(CMFCToolBarComboBoxButton,
@@ -130,9 +133,12 @@ TOOLBAR_BUTTONS_GETTERS(CHelpComboBoxButton,
            impl__GetRuntimeClass_CHelpComboBoxButton__UEBAPEAUCRuntimeClass__XZ)
 // Symbol: ?GetThisClass@CMFCToolBarMenuButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarMenuButton@@UEBAPEAUCRuntimeClass@@XZ
-TOOLBAR_BUTTONS_GETTERS(CMFCToolBarMenuButton,
-           impl__GetThisClass_CMFCToolBarMenuButton__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCToolBarMenuButton__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarMenuButton__SAPEAUCRuntimeClass__XZ() {
+    return CMFCToolBarMenuButton::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarMenuButton__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCToolBarMenuButton::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCDropDownToolbarButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCDropDownToolbarButton@@UEBAPEAUCRuntimeClass@@XZ
 TOOLBAR_BUTTONS_GETTERS(CMFCDropDownToolbarButton,

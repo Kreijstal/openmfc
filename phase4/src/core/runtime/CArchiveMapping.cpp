@@ -105,11 +105,20 @@ CRuntimeClass* CArchive::ReadClass(const CRuntimeClass* expected,UINT* schemaOut
 }
 
 CObject* CArchive::ReadObject(const CRuntimeClass* expected) {
+    return ReadObjectRecord(expected, false);
+}
+
+CObject* CArchive::ReadObjectValue(const CRuntimeClass* expected) {
+    return ReadObjectRecord(expected, true);
+}
+
+CObject* CArchive::ReadObjectRecord(const CRuntimeClass* expected, bool value) {
     if(!IsLoading())LoadError(*this,CArchiveException::writeOnly);
     UINT schema;
     DWORD tag;
     CRuntimeClass* type=ReadClass(expected,&schema,&tag);
     if(!type) {
+        if(value && tag)LoadError(*this,CArchiveException::badIndex);
         if(tag>DWORD(m_pLoadArray->GetSize())-1)LoadError(*this,CArchiveException::badIndex);
         void* stored=nullptr;
         if(m_pSchemaMap->Lookup(ReservedTypes(),stored)) {
@@ -119,20 +128,25 @@ CObject* CArchive::ReadObject(const CRuntimeClass* expected) {
                 LoadError(*this,CArchiveException::badIndex);
         }
         auto* object=static_cast<CObject*>(m_pLoadArray->GetAt(tag));
+        if(tag && !object)LoadError(*this,CArchiveException::badIndex);
         if(object && expected && !object->IsKindOf(expected))LoadError(*this,CArchiveException::badClass);
         return object;
     }
 
     CObject* object=nullptr;
+    const UINT index=m_nMapCount;
+    const UINT previousSchema=m_nObjectSchema;
     try {
         object=type->CreateObject();
         if(!object)AfxThrowMemoryException();
         AddLoadedEntry(object,typeCObject);
-        const UINT previousSchema=m_nObjectSchema;
         m_nObjectSchema=schema;
         object->Serialize(*this);
         m_nObjectSchema=previousSchema;
-    } catch(CException*) {
+        if(value)m_pLoadArray->SetAt(index,nullptr);
+    } catch(...) {
+        m_nObjectSchema=previousSchema;
+        if(index<m_nMapCount)m_pLoadArray->SetAt(index,nullptr);
         delete object;
         throw;
     }
