@@ -37,6 +37,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/ToolBarControlArchive.h"
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
 
@@ -79,25 +80,10 @@ extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const C
 extern "C" void* MS_ABI impl___0CObList__QEAA__J_Z(void* pThis, long long nBlockSize);
 extern "C" void MS_ABI impl___1CObList__UEAA_XZ(void* pThis);
 extern "C" CObList::POSITION MS_ABI impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(const CObList* pThis, long long nIndex);
-//   core/collections/CStringList.cpp : ctor / dtor / AddTail / Serialize / FindIndex
-extern "C" void* MS_ABI impl___0CStringList__QEAA__J_Z(CStringList* pThis, long long nBlockSize);
-extern "C" void MS_ABI impl___1CStringList__UEAA_XZ(CStringList* pThis);
-extern "C" CStringList::POSITION MS_ABI impl__AddTail_CStringList__QEAAPEAU__POSITION__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
-    CStringList* pThis, const CString& value);
-extern "C" void MS_ABI impl__Serialize_CStringList__UEAAXAEAVCArchive___Z(CStringList* pThis, CArchive& ar);
-extern "C" CStringList::POSITION MS_ABI impl__FindIndex_CStringList__QEBAPEAU__POSITION____J_Z(const CStringList* pThis, long long nIndex);
-//   core/runtime/Thunks.cpp : CArchive::Read / Write
-extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* pBuf, unsigned int nMax);
-extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* pBuf, unsigned int nMax);
-//   featurepack/toolbar/CMFCToolBarButton.cpp : the base-class overrides.
-//   CopyFrom and Serialize are real bodies (tbb_CopyFrom / tbb_Serialize);
-//   OnCalculateSize, OnChangeParentWnd, OnDraw, OnDrawOnCustomizeList and
-//   SetACCData are still null stubs there (with placeholder parameter lists --
-//   harmless across translation units for extern "C" symbols).  The lists
+// Base-button thunks use the retail calling convention. The signatures
 //   below are the retail ones: SIZE is returned through a hidden pointer in
 //   RDX (the retail body writes the result to [rdx] and returns rdx in rax).
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void* pThis, const CMFCToolBarButton* pSrc);
-extern "C" void MS_ABI impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar);
 extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(
     CMFCToolBarButton* pThis, SIZE* pRet, CDC* pDC, const SIZE* pSizeDefault, int bHorz);
 extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(CMFCToolBarButton* pThis, CWnd* pWndParent);
@@ -417,64 +403,6 @@ private:
 inline bool IsComboButton(const CObject* p) {
     return p != nullptr &&
            impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(p, impl__GetThisClass_CMFCToolBarComboBoxButton__SAPEAUCRuntimeClass__XZ()) != 0;
-}
-
-// The same for a CStringList (used by Serialize so the item list goes through
-// OpenMFC's own ?Serialize@CStringList@@ and therefore its own on-disk format).
-struct StrNode {
-    StrNode* pNext;
-    StrNode* pPrev;
-    CString  data;
-};
-static_assert(sizeof(CStringList::POSITION) == sizeof(void*), "POSITION is one pointer");
-inline StrNode* StrNodeFromPos(CStringList::POSITION pos) {
-    StrNode* p = nullptr;
-    std::memcpy(&p, &pos, sizeof(p));
-    return p;
-}
-class ScratchStringList {
-public:
-    ScratchStringList() {
-        std::memset(m_buf, 0, sizeof(m_buf));
-        impl___0CStringList__QEAA__J_Z(List(), 10);
-    }
-    ~ScratchStringList() { impl___1CStringList__UEAA_XZ(List()); }
-    CStringList* List() const { return reinterpret_cast<CStringList*>(const_cast<unsigned char*>(m_buf)); }
-    void AddTail(const CString& s) {
-        impl__AddTail_CStringList__QEAAPEAU__POSITION__AEBV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(List(), s);
-    }
-    StrNode* First() const { return StrNodeFromPos(impl__FindIndex_CStringList__QEBAPEAU__POSITION____J_Z(List(), 0)); }
-    ScratchStringList(const ScratchStringList&) = delete;
-    ScratchStringList& operator=(const ScratchStringList&) = delete;
-private:
-    alignas(8) unsigned char m_buf[sizeof(CStringList)];
-};
-
-// CArchive scalar / CString I/O through the exported Read / Write, in exactly
-// the byte layout OpenMFC's own C++ CArchive::operator<< / >> use
-// (core/runtime/CArchive.cpp: 4-byte int; CString = 4-byte length + UTF-16
-// characters).  Retail inlines the int case as direct buffer stores and
-// the CString case as ?AfxWriteStringLength@@ + characters; OpenMFC's archive
-// format is the one its base-class Serialize (tbb_Serialize) already writes,
-// so this file matches it rather than retail's wire format.
-inline void ArWriteInt(CArchive* ar, int v) { impl__Write_CArchive__QEAAXPEBXI_Z(ar, &v, sizeof v); }
-inline int ArReadInt(CArchive* ar) { int v = 0; impl__Read_CArchive__QEAAIPEAXI_Z(ar, &v, sizeof v); return v; }
-inline void ArWriteString(CArchive* ar, const CString& s) {
-    const unsigned nLen = static_cast<unsigned>(s.GetLength());
-    impl__Write_CArchive__QEAAXPEBXI_Z(ar, &nLen, sizeof nLen);
-    if (nLen > 0) impl__Write_CArchive__QEAAXPEBXI_Z(ar, static_cast<const wchar_t*>(s), nLen * sizeof(wchar_t));
-}
-inline void ArReadString(CArchive* ar, CString& s) {
-    unsigned nLen = 0;
-    impl__Read_CArchive__QEAAIPEAXI_Z(ar, &nLen, sizeof nLen);
-    if (nLen > 0 && nLen < 0x10000000u) {
-        wchar_t* pBuf = s.GetBuffer(static_cast<int>(nLen) + 1);
-        impl__Read_CArchive__QEAAIPEAXI_Z(ar, pBuf, nLen * sizeof(wchar_t));
-        pBuf[nLen] = L'\0';
-        s.ReleaseBuffer(static_cast<int>(nLen));
-    } else {
-        s.Empty();
-    }
 }
 
 // The window objects this button owns.  Retail tears one down with
@@ -1244,6 +1172,32 @@ extern "C" CEdit* MS_ABI impl__CreateEdit_CMFCToolBarComboBoxButton__UEAAPEAVCMF
     return nullptr;
 }
 
+namespace {
+void ApplyComboItemsToWindow(CMFCToolBarComboBoxButton* button, const ComboButtonState& state, CComboBox* combo) {
+    const HWND window = combo->m_hWnd;
+    ::SendMessageW(window, CB_RESETCONTENT, 0, 0);
+    int selected = CB_ERR;
+    for (size_t i = 0; i < state.items.size(); ++i) {
+        const auto& item = state.items[i];
+        const int index = static_cast<int>(::SendMessageW(window, CB_ADDSTRING, 0,
+            reinterpret_cast<LPARAM>(item.first.GetString())));
+        if (index < 0) continue;
+        ::SendMessageW(window, CB_SETITEMDATA, index, static_cast<LPARAM>(item.second));
+        if (static_cast<int>(i) == SelIndex(button)) {
+            selected = index;
+            if (StrEdit(button).IsEmpty()) StrEdit(button) = item.first;
+        } else if (selected != CB_ERR && index <= selected) {
+            ++selected;
+        }
+    }
+    ::SendMessageW(window, CB_SETCURSEL, selected, 0);
+    if (selected == CB_ERR && (Style(button) & 3) != CBS_DROPDOWNLIST)
+        ::SetWindowTextW(window, StrEdit(button).GetString());
+    if (auto* edit = WndEdit(button); HasWindow(edit))
+        ::SetWindowTextW(edit->m_hWnd, StrEdit(button).GetString());
+}
+}
+
 // Retail (RVA 0x162240, mfc140u), fully transcribed:
 //     CMFCToolBarButton::OnChangeParentWnd(pWndParent);                       // 0x15e570
 //     if (m_pWndCombo->GetSafeHwnd() != NULL) {
@@ -1350,14 +1304,8 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXP
         }
         SelIndex(pThis) = static_cast<int>(::SendMessage(pCombo->m_hWnd, kCbGetCurSel, 0, 0));
     } else {
-        ::SendMessage(pCombo->m_hWnd, kCbResetContent, 0, 0);
-        for (const auto& item : state.items) {
-            const int iIndex = static_cast<int>(::SendMessage(pCombo->m_hWnd, kCbAddString, 0,
-                                                              reinterpret_cast<LPARAM>(static_cast<const wchar_t*>(item.first))));
-            ::SendMessage(pCombo->m_hWnd, kCbSetItemData, static_cast<WPARAM>(iIndex), static_cast<LPARAM>(item.second));
-        }
-        if (SelIndex(pThis) == -1) return;
-        ::SendMessage(pCombo->m_hWnd, kCbSetCurSel, static_cast<WPARAM>(SelIndex(pThis)), 0);
+        ApplyComboItemsToWindow(pThis, state, pCombo);
+        return;
     }
     if (SelIndex(pThis) == -1) return;
     if (SelIndex(pThis) >= static_cast<int>(::SendMessage(pCombo->m_hWnd, kCbGetCount, 0, 0))) return;
@@ -1885,12 +1833,10 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCTo
     if (!pThis || !pSrc) return;
     impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(pThis, pSrc);
     const CMFCToolBarComboBoxButton* pSrcCombo = static_cast<const CMFCToolBarComboBoxButton*>(pSrc);
-    RegisterComboButton(pThis);
-    ComboButtonState& state = EnsureComboState(pThis);
-    state.items.clear();
-    if (const ComboButtonState* pSrcState = FindComboState(pSrcCombo)) {
-        state.items = pSrcState->items;
-    }
+    if (pThis == pSrcCombo) return;
+    EnsureComboState(pThis).items.clear();
+    OpenMFC_CopyComboButtonState(pThis, pSrcCombo);
+    StrEdit(pThis) = StrEdit(pSrcCombo);
     Style(pThis) = Style(pSrcCombo);
     Width(pThis) = Width(pSrcCombo);
     SelIndex(pThis) = SelIndex(pSrcCombo);
@@ -1899,81 +1845,85 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCTo
     IsRibbon(pThis) = IsRibbon(pSrcCombo);
 }
 
-// Retail (RVA 0x1619a0, mfc140u), fully transcribed.  The int reads / writes
-// are CArchive's inline buffer accesses (FillBuffer 0x1d1cc0 / Flush 0x1d1be0
-// on a short buffer), the CString ones the outlined CStringT archive operators
-// at 0x1b5e4 (operator>>: AfxReadStringLength + characters) and 0x1b818
-// (operator<<: AfxWriteStringLength + characters), not exported:
-//     CMFCToolBarButton::Serialize(ar);                                              // 0x15c240
-//     if (ar.IsLoading()) {
-//         ar >> m_iWidth;  m_rect.right = m_rect.left + m_iWidth;
-//         ar >> m_dwStyle;  ar >> m_iSelIndex;  ar >> m_strEdit;  ar >> m_nDropDownHeight;  ar >> m_uiMenuResID;
-//         m_lstItems.Serialize(ar);                                                   // CStringList vslot 2
-//         ClearData();  m_lstItemData.RemoveAll();                                    // vslot 0x1d8 (59)
-//         for (i = 0; i < m_lstItems.GetCount(); i++) { int d; ar >> d; m_lstItemData.AddTail((DWORD_PTR)d); }
-//         DuplicateData();                                                            // vslot 0x1d0 (58)
-//         SelectItem(m_iSelIndex, TRUE);                                              // 0x163b80
-//     } else {
-//         ar << m_iWidth;  ar << m_dwStyle;  ar << m_iSelIndex;  ar << m_strEdit;  ar << m_nDropDownHeight;  ar << m_uiMenuResID;
-//         if (m_pWndCombo != NULL) {          // refresh the lists from the live control first
-//             m_lstItems.RemoveAll();  ClearData();  m_lstItemData.RemoveAll();
-//             for (i = 0; i < CB_GETCOUNT; i++) { GetLBText(i, s); m_lstItems.AddTail(s); m_lstItemData.AddTail(CB_GETITEMDATA(i)); }
-//         }
-//         m_lstItems.Serialize(ar);
-//         for each d in m_lstItemData: ar << (int)d;
-//     }
-// The scalars use OpenMFC's own archive byte layout (see ArWriteInt /
-// ArWriteString); the item strings go through ?Serialize@CStringList@@ on a
-// scratch CStringList so that they use OpenMFC's CStringList format.
-// Symbol: ?Serialize@CMFCToolBarComboBoxButton@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CMFCToolBarComboBoxButton__UEAAXAEAVCArchive___Z(CMFCToolBarComboBoxButton* pThis, CArchive* ar) {
-    if (!pThis || !ar) return;
-    impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(pThis, ar);
-    RegisterComboButton(pThis);
-    ComboButtonState& state = EnsureComboState(pThis);
-
-    if (ar->IsLoading()) {
-        Width(pThis) = ArReadInt(ar);
-        pThis->m_rect.right = pThis->m_rect.left + Width(pThis);
-        Style(pThis) = static_cast<DWORD>(ArReadInt(ar));
-        SelIndex(pThis) = ArReadInt(ar);
-        ArReadString(ar, StrEdit(pThis));
-        DropDownHeight(pThis) = ArReadInt(ar);
-        MenuResID(pThis) = static_cast<unsigned>(ArReadInt(ar));
-
-        ScratchStringList lstItems;
-        impl__Serialize_CStringList__UEAAXAEAVCArchive___Z(lstItems.List(), *ar);
-        state.items.clear();
-        for (StrNode* pNode = lstItems.First(); pNode != nullptr; pNode = pNode->pNext) {
-            state.items.emplace_back(pNode->data, static_cast<DWORD_PTR>(0));
+// Retail mfc140u RVA 0x1619a0. CStringList stores its count and strings,
+// followed here by one signed 32-bit item-data value per string.
+void CMFCToolBarComboBoxButton::Serialize(CArchive& archive) {
+    if (archive.IsStoring()) {
+        CMFCToolBarButton::Serialize(archive);
+        auto* combo = WndCombo(this);
+        const auto* state = FindComboState(this);
+        const int count = HasWindow(combo)
+            ? static_cast<int>(::SendMessageW(combo->m_hWnd, CB_GETCOUNT, 0, 0)) : CB_ERR;
+        CString editText = StrEdit(this);
+        int selection = SelIndex(this);
+        if (count != CB_ERR) {
+            selection = static_cast<int>(::SendMessageW(combo->m_hWnd, CB_GETCURSEL, 0, 0));
+            CWnd* textWindow = HasWindow(WndEdit(this)) ? static_cast<CWnd*>(WndEdit(this)) : combo;
+            impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
+                textWindow, &editText);
         }
-        for (auto& item : state.items) {
-            item.second = static_cast<DWORD_PTR>(static_cast<long long>(ArReadInt(ar)));
-        }
-        pThis->SelectItem(SelIndex(pThis), TRUE);
-    } else {
-        ArWriteInt(ar, Width(pThis));
-        ArWriteInt(ar, static_cast<int>(Style(pThis)));
-        ArWriteInt(ar, SelIndex(pThis));
-        ArWriteString(ar, StrEdit(pThis));
-        ArWriteInt(ar, DropDownHeight(pThis));
-        ArWriteInt(ar, static_cast<int>(MenuResID(pThis)));
-
-        if (CComboBox* pCombo = WndCombo(pThis)) {
-            state.items.clear();
-            const HWND hwnd = pCombo->m_hWnd;
-            const int nCount = static_cast<int>(::SendMessage(hwnd, kCbGetCount, 0, 0));
-            for (int i = 0; i < nCount; ++i) {
-                CString str;
-                impl__GetLBText_CComboBox__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(pCombo, i, &str);
-                state.items.emplace_back(str, static_cast<DWORD_PTR>(::SendMessage(hwnd, kCbGetItemData, static_cast<WPARAM>(i), 0)));
+        archive << Width(this) << Style(this) << selection << editText << DropDownHeight(this) << MenuResID(this);
+        if (count != CB_ERR) {
+            archive.WriteCount(count);
+            for (int i = 0; i < count; ++i) {
+                CString text;
+                impl__GetLBText_CComboBox__QEBAXHAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(combo, i, &text);
+                archive << text;
+            }
+            for (int i = 0; i < count; ++i)
+                archive << static_cast<int>(::SendMessageW(combo->m_hWnd, CB_GETITEMDATA, i, 0));
+        } else {
+            archive.WriteCount(state ? state->items.size() : 0);
+            if (state) {
+                for (const auto& item : state->items) archive << item.first;
+                for (const auto& item : state->items) archive << static_cast<int>(item.second);
             }
         }
-        ScratchStringList lstItems;
-        for (const auto& item : state.items) lstItems.AddTail(item.first);
-        impl__Serialize_CStringList__UEAAXAEAVCArchive___Z(lstItems.List(), *ar);
-        for (const auto& item : state.items) ArWriteInt(ar, static_cast<int>(item.second));
+        return;
     }
+
+    CMFCToolBarButton base;
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(&base, this);
+    base.Serialize(archive);
+    int width = 0, selection = -1, height = 0;
+    DWORD style = 0;
+    UINT menu = 0;
+    CString editText;
+    archive >> width >> style >> selection;
+    openmfc::detail::ReadToolBarControlText(archive, editText);
+    archive >> height >> menu;
+
+    decltype(ComboButtonState::items) items;
+    const auto count = archive.ReadCount();
+    for (ULONGLONG i = 0; i < count; ++i) {
+        CString text;
+        archive >> text;
+        items.emplace_back(std::move(text), 0);
+    }
+    for (auto& item : items) {
+        int data = 0;
+        archive >> data;
+        item.second = static_cast<DWORD_PTR>(static_cast<INT_PTR>(data));
+    }
+
+    if (m_nID != base.m_nID) UnregisterComboButton(this);
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &base);
+    RegisterComboButton(this);
+    auto& state = EnsureComboState(this);
+    state.items = std::move(items);
+    Style(this) = style;
+    SelIndex(this) = selection >= 0 && static_cast<size_t>(selection) < state.items.size() ? selection : -1;
+    StrEdit(this) = editText;
+    DropDownHeight(this) = height;
+    MenuResID(this) = menu;
+    impl__OnSize_CMFCToolBarComboBoxButton__UEAAXH_Z(this, width);
+    if (CComboBox* combo = WndCombo(this); HasWindow(combo))
+        ApplyComboItemsToWindow(this, state, combo);
+}
+
+// Symbol: ?Serialize@CMFCToolBarComboBoxButton@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMFCToolBarComboBoxButton__UEAAXAEAVCArchive___Z(CMFCToolBarComboBoxButton* button, CArchive* archive) {
+    if (button && archive) button->CMFCToolBarComboBoxButton::Serialize(*archive);
 }
 
 // Retail (RVA 0x163440, mfc140u), fully transcribed:

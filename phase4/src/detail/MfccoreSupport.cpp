@@ -72,7 +72,6 @@ IMPLEMENT_DYNAMIC(CDockingManager, CObject)
 IMPLEMENT_DYNAMIC(CFrameWndEx, CFrameWnd)
 IMPLEMENT_DYNAMIC(CMDIFrameWndEx, CMDIFrameWnd)
 IMPLEMENT_DYNAMIC(CMDIChildWndEx, CMDIChildWnd)
-IMPLEMENT_DYNAMIC(CMFCToolBarEditBoxButton, CMFCToolBarButton)
 IMPLEMENT_DYNAMIC(CMFCToolBarMenuButtonsButton, CMFCToolBarMenuButton)
 IMPLEMENT_DYNAMIC(CContextMenuManager, CObject)
 IMPLEMENT_DYNAMIC(CKeyboardManager, CObject)
@@ -336,6 +335,11 @@ void CopyMenuButtonState(CMFCToolBarMenuButton* dst, const CMFCToolBarMenuButton
 
     g_menuButtonStates[dst] = stateIt->second;
 }
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCToolBarButton___Z(
+    CMFCToolBarComboBoxButton*, const CMFCToolBarButton*);
+extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToolBarButton___Z(
+    CMFCToolBarEditBoxButton*, const CMFCToolBarButton*);
+
 CMFCToolBarButton* CloneToolBarButton(const CMFCToolBarButton& button) {
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarMenuButtonsButton))) {
         auto* cloned = new (std::nothrow) CMFCToolBarMenuButtonsButton();
@@ -358,22 +362,14 @@ CMFCToolBarButton* CloneToolBarButton(const CMFCToolBarButton& button) {
     }
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {
         auto* cloned = new (std::nothrow) CMFCToolBarComboBoxButton();
-        if (cloned) {
-            CopyToolBarButtonBaseFields(cloned, button);
-            const auto& combo = static_cast<const CMFCToolBarComboBoxButton&>(button);
-            cloned->m_bFlat = combo.m_bFlat;
-            cloned->m_bCenterVert = combo.m_bCenterVert;
-            OpenMFC_CopyComboButtonState(cloned, &combo);
-        }
+        if (cloned) impl__CopyFrom_CMFCToolBarComboBoxButton__UEAAXAEBVCMFCToolBarButton___Z(cloned, &button);
         return cloned;
     }
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton))) {
         auto* cloned = new (std::nothrow) CMFCToolBarEditBoxButton();
         if (cloned) {
-            CopyToolBarButtonBaseFields(cloned, button);
-            const auto& edit = static_cast<const CMFCToolBarEditBoxButton&>(button);
-            cloned->m_bFlat = edit.m_bFlat;
-            OpenMFC_CopyEditButtonState(cloned, &edit);
+            impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToolBarButton___Z(cloned, &button);
+            OpenMFC_CopyEditButtonState(cloned, static_cast<const CMFCToolBarEditBoxButton*>(&button));
         }
         return cloned;
     }

@@ -62,6 +62,7 @@
 
 #define OPENMFC_APPCORE_IMPL
 
+#include "detail/ToolBarControlArchive.h"
 #include "detail/CbarcoreSupport.h"
 #include "detail/MfccoreSupport.h"
 
@@ -99,9 +100,6 @@ extern "C" int MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(const C
 extern "C" void* MS_ABI impl___0CObList__QEAA__J_Z(void* pThis, long long nBlockSize);
 extern "C" void MS_ABI impl___1CObList__UEAA_XZ(void* pThis);
 extern "C" CObList::POSITION MS_ABI impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(const CObList* pThis, long long nIndex);
-//   core/runtime/Thunks.cpp : CArchive::Read / Write
-extern "C" unsigned int MS_ABI impl__Read_CArchive__QEAAIPEAXI_Z(CArchive* pThis, void* pBuf, unsigned int nMax);
-extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const void* pBuf, unsigned int nMax);
 //   featurepack/toolbar/CMFCToolBarButton.cpp : the base-class overrides.
 //   CopyFrom and Serialize are real bodies (tbb_CopyFrom / tbb_Serialize);
 //   OnCalculateSize, OnChangeParentWnd, OnDraw, OnDrawOnCustomizeList and
@@ -110,7 +108,6 @@ extern "C" void MS_ABI impl__Write_CArchive__QEAAXPEBXI_Z(CArchive* pThis, const
 //   below are the retail ones: SIZE is returned through a hidden pointer in
 //   RDX (the retail body writes the result to [rdx] and returns rdx in rax).
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void* pThis, const CMFCToolBarButton* pSrc);
-extern "C" void MS_ABI impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar);
 extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(
     CMFCToolBarButton* pThis, SIZE* pRet, CDC* pDC, const SIZE* pSizeDefault, int bHorz);
 extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(CMFCToolBarButton* pThis, CWnd* pWndParent);
@@ -156,6 +153,7 @@ extern "C" void MS_ABI impl__Initialize_CMFCToolBarEditBoxButton__IEAAXXZ(CMFCTo
 extern "C" void MS_ABI impl__OnMove_CMFCToolBarEditBoxButton__UEAAXXZ(CMFCToolBarEditBoxButton* pThis);
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToolBarButton___Z(
     CMFCToolBarEditBoxButton* pThis, const CMFCToolBarButton* pSrc);
+extern "C" void MS_ABI impl__OnSize_CMFCToolBarEditBoxButton__UEAAXH_Z(CMFCToolBarEditBoxButton*, int);
 extern "C" CEdit* MS_ABI impl__CreateEdit_CMFCToolBarEditBoxButton__UEAAPEAVCEdit__PEAVCWnd__AEBVCRect___Z(
     CMFCToolBarEditBoxButton* pThis, CWnd* pWndParent, const RECT* pRect);
 extern "C" void MS_ABI impl__GetEditBorder_CMFCToolBarEditBoxButton__UEAAXAEAVCRect___Z(
@@ -405,35 +403,6 @@ inline bool IsEditBoxButton(const CObject* p) {
            impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(p, impl__GetThisClass_CMFCToolBarEditBoxButton__SAPEAUCRuntimeClass__XZ()) != 0;
 }
 
-// CArchive scalar / CString I/O through the exported Read / Write, in exactly
-// the byte layout OpenMFC's own C++ CArchive::operator<< / >> use
-// (core/runtime/CArchive.cpp: 4-byte int; CString = 4-byte length + UTF-16
-// characters).  Retail inlines the int case as direct buffer stores
-// (FillBuffer 0x1d1cc0 / Flush 0x1d1be0 on a short buffer) and the CString
-// case as the outlined CStringT archive operators at 0x1b5e4 (>>) and 0x1b818
-// (<<), which are not exported; OpenMFC's archive format is the one its
-// base-class Serialize (tbb_Serialize) already writes, so this file matches it
-// rather than retail's wire format.
-inline void ArWriteInt(CArchive* ar, int v) { impl__Write_CArchive__QEAAXPEBXI_Z(ar, &v, sizeof v); }
-inline int ArReadInt(CArchive* ar) { int v = 0; impl__Read_CArchive__QEAAIPEAXI_Z(ar, &v, sizeof v); return v; }
-inline void ArWriteString(CArchive* ar, const CString& s) {
-    const unsigned nLen = static_cast<unsigned>(s.GetLength());
-    impl__Write_CArchive__QEAAXPEBXI_Z(ar, &nLen, sizeof nLen);
-    if (nLen > 0) impl__Write_CArchive__QEAAXPEBXI_Z(ar, static_cast<const wchar_t*>(s), nLen * sizeof(wchar_t));
-}
-inline void ArReadString(CArchive* ar, CString& s) {
-    unsigned nLen = 0;
-    impl__Read_CArchive__QEAAIPEAXI_Z(ar, &nLen, sizeof nLen);
-    if (nLen > 0 && nLen < 0x10000000u) {
-        wchar_t* pBuf = s.GetBuffer(static_cast<int>(nLen) + 1);
-        impl__Read_CArchive__QEAAIPEAXI_Z(ar, pBuf, nLen * sizeof(wchar_t));
-        pBuf[nLen] = L'\0';
-        s.ReleaseBuffer(static_cast<int>(nLen));
-    } else {
-        s.Empty();
-    }
-}
-
 // The window object this button owns.  Retail tears it down with
 //     pWnd->DestroyWindow();          // vftable +0xd0 (slot 26)
 //     pWnd->`scalar deleting dtor`(1) // vftable +0x08 (slot 1)
@@ -488,13 +457,9 @@ inline CWnd* ParentOf(const CWnd* pWnd) {
 //     m_iWidth  = 150;                                           // +0x88
 //     m_pWndEdit = NULL;  m_bHorz = TRUE;  m_bChangingText = FALSE;   // +0x90, +0xa4, +0xa0
 //     m_bIsHotEdit = FALSE;  m_uiMenuResID = 0;                  // +0xa8 / +0xac (one 8-byte store)
-// (the same stores ?Initialize@ makes, inlined; here they go through the
-// Initialize thunk).  The (UINT, int, DWORD, int) constructor (RVA 0x167760)
-// differs only in `CMFCToolBarButton(uiID, iImage, NULL, FALSE, FALSE)`
-// (0x15bf40), `m_dwStyle = dwStyle | 0x50000000` and `m_iWidth = iWidth ?
-// iWidth : 150`; it is declared inline in include/openmfc/afxmfc.h as a
-// delegation to this constructor that DROPS all four arguments (see
-// headerRequests).  The vfptr is left as mingw builds it.
+// The parameterized constructor supplies the command, image, style and width.
+IMPLEMENT_SERIAL(CMFCToolBarEditBoxButton, CMFCToolBarButton, 1)
+
 CMFCToolBarEditBoxButton::CMFCToolBarEditBoxButton() {
     memset(_pad, 0, sizeof(_pad));
     m_bFlat = 0;          // the header's alias of m_iWidth
@@ -503,6 +468,15 @@ CMFCToolBarEditBoxButton::CMFCToolBarEditBoxButton() {
     Width(this) = kDefaultWidth;
     impl__Initialize_CMFCToolBarEditBoxButton__IEAAXXZ(this);
 }
+CMFCToolBarEditBoxButton::CMFCToolBarEditBoxButton(UINT id, int image, ULONG style, int width)
+    : CMFCToolBarEditBoxButton()
+{
+    m_nID = id;
+    m_iImage = image;
+    Style(this) = style | WS_CHILD | WS_VISIBLE;
+    Width(this) = width ? width : kDefaultWidth;
+}
+
 // Retail ??1CMFCToolBarEditBoxButton@@UEAA@XZ (RVA 0x167840, mfc140u):
 //     if (m_pWndEdit) { m_pWndEdit->DestroyWindow(); if (m_pWndEdit) delete m_pWndEdit; }   // vslots 0xd0, 0x08(1)
 //     m_strContents.~CString();
@@ -673,41 +647,43 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToo
     MenuResID(pThis) = MenuResID(pSrcEdit);
 }
 
-// Retail (vftable slot 2, RVA 0x167930, mfc140u), fully transcribed.  The int
-// reads / writes are CArchive's inline buffer accesses, the CString ones the
-// outlined CStringT archive operators (see ArWriteInt / ArWriteString):
-//     CMFCToolBarButton::Serialize(ar);                          // 0x15c240
-//     if (ar.IsLoading()) {
-//         ar >> m_iWidth;  m_rect.right = m_rect.left + m_iWidth;
-//         ar >> m_dwStyle;  ar >> m_strContents;  ar >> m_uiMenuResID;
-//     } else {
-//         ar << m_iWidth;  ar << m_dwStyle;
-//         if (m_pWndEdit != NULL) m_pWndEdit->GetWindowText(m_strContents);   // 0x28be00
-//         else                    m_strContents.Empty();                       // 0x33b0
-//         ar << m_strContents;  ar << m_uiMenuResID;
-//     }
-// The scalars and the string use OpenMFC's own archive byte layout.
-// Symbol: ?Serialize@CMFCToolBarEditBoxButton@@UEAAXAEAVCArchive@@@Z
-extern "C" void MS_ABI impl__Serialize_CMFCToolBarEditBoxButton__UEAAXAEAVCArchive___Z(CMFCToolBarEditBoxButton* pThis, CArchive* ar) {
-    if (!pThis || !ar) return;
-    impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(pThis, ar);
-    if (ar->IsLoading()) {
-        Width(pThis) = ArReadInt(ar);
-        pThis->m_rect.right = pThis->m_rect.left + Width(pThis);
-        Style(pThis) = static_cast<DWORD>(ArReadInt(ar));
-        ArReadString(ar, StrContents(pThis));
-        MenuResID(pThis) = static_cast<unsigned>(ArReadInt(ar));
-    } else {
-        ArWriteInt(ar, Width(pThis));
-        ArWriteInt(ar, static_cast<int>(Style(pThis)));
-        if (CEdit* pEdit = WndEdit(pThis)) {
-            impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(pEdit, &StrContents(pThis));
-        } else {
-            StrContents(pThis).Empty();
-        }
-        ArWriteString(ar, StrContents(pThis));
-        ArWriteInt(ar, static_cast<int>(MenuResID(pThis)));
+// Retail mfc140u RVA 0x167930. The derived record follows the base button.
+void CMFCToolBarEditBoxButton::Serialize(CArchive& archive) {
+    if (archive.IsStoring()) {
+        CMFCToolBarButton::Serialize(archive);
+        CString contents = StrContents(this);
+        if (CEdit* edit = WndEdit(this); HasWindow(edit))
+            impl__GetWindowTextW_CWnd__QEBAXAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(edit, &contents);
+        archive << Width(this) << Style(this) << contents << MenuResID(this);
+        return;
     }
+
+    CMFCToolBarButton base;
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(&base, this);
+    base.Serialize(archive);
+    int width = 0;
+    DWORD style = 0;
+    CString contents;
+    UINT menu = 0;
+    archive >> width >> style;
+    openmfc::detail::ReadToolBarControlText(archive, contents);
+    archive >> menu;
+
+    impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(this, &base);
+    Style(this) = style;
+    MenuResID(this) = menu;
+    StrContents(this) = contents;
+    if (auto* edit = WndEdit(this); HasWindow(edit)) {
+        ChangingText(this) = TRUE;
+        ::SetWindowTextW(edit->m_hWnd, contents.GetString());
+        ChangingText(this) = FALSE;
+    }
+    impl__OnSize_CMFCToolBarEditBoxButton__UEAAXH_Z(this, width);
+}
+
+// Symbol: ?Serialize@CMFCToolBarEditBoxButton@@UEAAXAEAVCArchive@@@Z
+extern "C" void MS_ABI impl__Serialize_CMFCToolBarEditBoxButton__UEAAXAEAVCArchive___Z(CMFCToolBarEditBoxButton* button, CArchive* archive) {
+    if (button && archive) button->CMFCToolBarEditBoxButton::Serialize(*archive);
 }
 
 // Retail (vftable slot 19, RVA 0x163440, mfc140u -- the body is byte-identical

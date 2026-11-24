@@ -123,9 +123,12 @@ extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarButton__UEBAPE
 }
 // Symbol: ?GetThisClass@CMFCToolBarComboBoxButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarComboBoxButton@@UEBAPEAUCRuntimeClass@@XZ
-TOOLBAR_BUTTONS_GETTERS(CMFCToolBarComboBoxButton,
-           impl__GetThisClass_CMFCToolBarComboBoxButton__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCToolBarComboBoxButton__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarComboBoxButton__SAPEAUCRuntimeClass__XZ() {
+    return CMFCToolBarComboBoxButton::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarComboBoxButton__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCToolBarComboBoxButton::GetThisClass();
+}
 // Symbol: ?GetThisClass@CHelpComboBoxButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CHelpComboBoxButton@@UEBAPEAUCRuntimeClass@@XZ
 TOOLBAR_BUTTONS_GETTERS(CHelpComboBoxButton,
@@ -156,9 +159,12 @@ TOOLBAR_BUTTONS_GETTERS(CMFCToolBarDateTimeCtrl,
            impl__GetRuntimeClass_CMFCToolBarDateTimeCtrl__UEBAPEAUCRuntimeClass__XZ)
 // Symbol: ?GetThisClass@CMFCToolBarEditBoxButton@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarEditBoxButton@@UEBAPEAUCRuntimeClass@@XZ
-TOOLBAR_BUTTONS_GETTERS(CMFCToolBarEditBoxButton,
-           impl__GetThisClass_CMFCToolBarEditBoxButton__SAPEAUCRuntimeClass__XZ,
-           impl__GetRuntimeClass_CMFCToolBarEditBoxButton__UEBAPEAUCRuntimeClass__XZ)
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCToolBarEditBoxButton__SAPEAUCRuntimeClass__XZ() {
+    return CMFCToolBarEditBoxButton::GetThisClass();
+}
+extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CMFCToolBarEditBoxButton__UEBAPEAUCRuntimeClass__XZ(const void*) {
+    return CMFCToolBarEditBoxButton::GetThisClass();
+}
 // Symbol: ?GetThisClass@CMFCToolBarFontComboBox@@SAPEAUCRuntimeClass@@XZ
 // Symbol: ?GetRuntimeClass@CMFCToolBarFontComboBox@@UEBAPEAUCRuntimeClass@@XZ
 TOOLBAR_BUTTONS_GETTERS(CMFCToolBarFontComboBox,

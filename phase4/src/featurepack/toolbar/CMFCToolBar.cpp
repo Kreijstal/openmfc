@@ -6791,6 +6791,11 @@ extern "C" int MS_ABI impl__SaveState_CMFCToolBar__UEAAHPEB_WHI_Z(
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCCustomizeButton__SAPEAUCRuntimeClass__XZ();
 extern "C" void MS_ABI impl__Serialize_CBasePane__UEAAXAEAVCArchive___Z(CBasePane* pane, CArchive& archive);
 
+extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXPEAVCWnd___Z(CMFCToolBarComboBoxButton*, CWnd*);
+extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarEditBoxButton__UEAAXPEAVCWnd___Z(CMFCToolBarEditBoxButton*, CWnd*);
+extern "C" void MS_ABI impl__OnShow_CMFCToolBarComboBoxButton__UEAAXH_Z(CMFCToolBarComboBoxButton*, int);
+extern "C" void MS_ABI impl__OnShow_CMFCToolBarEditBoxButton__UEAAXH_Z(CMFCToolBarEditBoxButton*, int);
+
 namespace {
 bool ButtonCanBeStored(CMFCToolBarButton* button) {
     return !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
@@ -6801,6 +6806,24 @@ bool ButtonCanBeStored(CMFCToolBarButton* button) {
                button, impl__GetThisClass_CMFCToolBarMenuButtonsButton__SAPEAUCRuntimeClass__XZ());
 }
 
+bool IsEmbeddedToolbarControl(const CMFCToolBarButton& button) {
+    return button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton)) ||
+           button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton));
+}
+
+void RestoreToolbarControl(CMFCToolBar& toolbar, CMFCToolBarButton& button) {
+    const int show = button.m_bVisible && !button.m_bIsHidden;
+    if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {
+        auto* combo = static_cast<CMFCToolBarComboBoxButton*>(&button);
+        impl__OnChangeParentWnd_CMFCToolBarComboBoxButton__UEAAXPEAVCWnd___Z(combo, &toolbar);
+        if (!show) impl__OnShow_CMFCToolBarComboBoxButton__UEAAXH_Z(combo, show);
+    } else if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton))) {
+        auto* edit = static_cast<CMFCToolBarEditBoxButton*>(&button);
+        impl__OnChangeParentWnd_CMFCToolBarEditBoxButton__UEAAXPEAVCWnd___Z(edit, &toolbar);
+        if (!show) impl__OnShow_CMFCToolBarEditBoxButton__UEAAXH_Z(edit, show);
+    }
+}
+
 void RestoreNativeToolbarButtons(CMFCToolBar& toolbar) {
     const HWND window = toolbar.GetSafeHwnd();
     if (!window) return;
@@ -6809,28 +6832,36 @@ void RestoreNativeToolbarButtons(CMFCToolBar& toolbar) {
     }
     for (int i = 0; i < toolbar.GetCount(); ++i) {
         const auto* button = toolbar.GetButton(i);
+        const bool embedded = IsEmbeddedToolbarControl(*button);
         const bool separator = button->m_nID == 0 || (button->m_nStyle & TBSTYLE_SEP) != 0;
         TBBUTTON native{};
         native.idCommand = static_cast<int>(button->m_nID);
-        native.iBitmap = button->m_bImage && button->GetImage() >= 0 ? button->GetImage() : I_IMAGENONE;
+        native.iBitmap = !embedded && button->m_bImage && button->GetImage() >= 0 ? button->GetImage() : I_IMAGENONE;
         if (separator) native.iBitmap = (std::max)(button->GetImage(), 0);
         native.fsStyle = separator ? BTNS_SEP : static_cast<BYTE>(button->m_nStyle);
         if (!(button->m_nStyle & (UINT(TBSTATE_ENABLED) << 16))) native.fsState |= TBSTATE_ENABLED;
         if (!button->m_bVisible || button->m_bIsHidden) native.fsState |= TBSTATE_HIDDEN;
         native.iString = -1;
-        if (!separator && button->m_bText && !button->m_strText.IsEmpty()) {
+        if (!embedded && !separator && button->m_bText && !button->m_strText.IsEmpty()) {
             std::wstring labels(button->m_strText.GetString(), button->m_strText.GetLength());
             labels.push_back(L'\0');
             native.iString = ::SendMessageW(window, TB_ADDSTRINGW, 0, reinterpret_cast<LPARAM>(labels.c_str()));
             native.fsStyle |= BTNS_AUTOSIZE;
         }
         ::SendMessageW(window, TB_ADDBUTTONSW, 1, reinterpret_cast<LPARAM>(&native));
+        if (embedded && button->m_rect.Width() > 0) {
+            TBBUTTONINFOW sizing{sizeof(sizing), TBIF_BYINDEX | TBIF_SIZE};
+            sizing.cx = static_cast<WORD>((std::min)(button->m_rect.Width(), int(MAXWORD)));
+            ::SendMessageW(window, TB_SETBUTTONINFOW, i, reinterpret_cast<LPARAM>(&sizing));
+        }
     }
     toolbar.AdjustLayout();
     for (int i = 0; i < toolbar.GetCount(); ++i) {
         RECT bounds{};
         ::SendMessageW(window, TB_GETITEMRECT, i, reinterpret_cast<LPARAM>(&bounds));
-        toolbar.GetButton(i)->m_rect = CRect(bounds);
+        auto* button = toolbar.GetButton(i);
+        if (!::IsRectEmpty(&bounds)) button->m_rect = CRect(bounds);
+        RestoreToolbarControl(toolbar, *button);
     }
 }
 }

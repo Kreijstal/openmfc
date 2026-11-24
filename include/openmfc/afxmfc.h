@@ -2034,11 +2034,12 @@ public:
 };
 
 class CMFCToolBarComboBoxButton : public CMFCToolBarButton {
-    DECLARE_DYNAMIC(CMFCToolBarComboBoxButton)
+    DECLARE_SERIAL(CMFCToolBarComboBoxButton)
 public:
     CMFCToolBarComboBoxButton();
     CMFCToolBarComboBoxButton(UINT uiID, int iImage, ULONG dwStyle = CBS_DROPDOWNLIST, int iWidth = 0);
     virtual ~CMFCToolBarComboBoxButton();
+    void Serialize(CArchive& archive) override;
 
     virtual INT_PTR AddItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
     virtual INT_PTR AddSortedItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
@@ -2072,11 +2073,12 @@ public:
 };
 
 class CMFCToolBarEditBoxButton : public CMFCToolBarButton {
-    DECLARE_DYNAMIC(CMFCToolBarEditBoxButton)
+    DECLARE_SERIAL(CMFCToolBarEditBoxButton)
 public:
     CMFCToolBarEditBoxButton();
-    CMFCToolBarEditBoxButton(UINT uiID, int iImage, ULONG dwStyle = ES_AUTOHSCROLL, int iWidth = 0) : CMFCToolBarEditBoxButton() {}
+    CMFCToolBarEditBoxButton(UINT uiID, int iImage, ULONG dwStyle = ES_AUTOHSCROLL, int iWidth = 0);
     virtual ~CMFCToolBarEditBoxButton();
+    void Serialize(CArchive& archive) override;
 
     virtual void SetContents(const CString& sContents);
 
