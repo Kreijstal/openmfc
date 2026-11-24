@@ -78,6 +78,7 @@
 //      what it does instead.
 
 #include "detail/ManualSmallStubImplementationsSupport.h"
+#include "detail/CMFCFontCatalog.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -428,6 +429,32 @@ extern "C" void MS_ABI impl___1CMFCToolBarFontComboBox__UEAA_XZ(void* pThis) {
         impl__ClearFonts_CMFCToolBarFontComboBox__KAXXZ();
     }
     impl___1CMFCToolBarComboBoxButton__UEAA_XZ(pThis);
+}
+
+std::vector<CMFCFontInfo> openmfc::detail::CollectFontCatalog(int fontTypes, BYTE charSet, BYTE pitchAndFamily) {
+    struct Catalog {
+        CObList fonts;
+        alignas(void*) unsigned char toolbar[kOffOwn + sizeof(FontComboOwn)]{};
+        bool constructed = false;
+        ~Catalog() {
+            if (constructed) impl___1CMFCToolBarFontComboBox__UEAA_XZ(toolbar);
+            for (auto* node = ListHead(&fonts); node; node = ListHead(&fonts)) {
+                auto* font = impl__RemoveHead_CObList__QEAAPEAVCObject__XZ(&fonts);
+                if (font) FontInfo_ScalarDeletingDtor(font, 1);
+            }
+        }
+    } catalog;
+    impl___0CMFCToolBarFontComboBox__IEAA_PEAVCObList__HEE_Z(catalog.toolbar, &catalog.fonts, fontTypes,
+                                                          charSet, pitchAndFamily);
+    catalog.constructed = true;
+
+    std::vector<CMFCFontInfo> result;
+    for (auto* node = ListHead(&catalog.fonts); node; node = node->pNext) {
+        const auto* font = reinterpret_cast<const FontInfo*>(node->data);
+        result.emplace_back(font->m_strName, font->m_strScript, font->m_nCharSet,
+                            font->m_nPitchAndFamily, font->m_nType);
+    }
+    return result;
 }
 
 // Retail (RVA 0x168fb0, mfc140u), fully transcribed:

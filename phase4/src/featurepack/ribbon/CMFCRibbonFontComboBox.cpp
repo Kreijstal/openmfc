@@ -1,215 +1,288 @@
-// CMFCRibbonFontComboBox — OpenMFC implementation.
-// Sources: manual_small_stub_implementations.cpp
+// CMFCRibbonFontComboBox — font catalog, selection, and drop-down rendering.
 
+#define OPENMFC_APPCORE_IMPL
+
+#include "detail/CMFCFontCatalog.h"
 #include "detail/ManualSmallStubImplementationsSupport.h"
-#include "openmfc/afxtoolbarfontcombobox.h"
 
-#include <cstddef>
-#include <cstdint>
+#include <commctrl.h>
+#include <algorithm>
 #include <cstring>
 #include <cwchar>
+#include <memory>
+#include <new>
 
-extern "C" CObList::POSITION MS_ABI impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(
-    const CObList* pThis, long long nIndex);
-extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long sc);
+extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CMFCRibbonFontComboBox__SAPEAUCRuntimeClass__XZ();
+extern "C" BOOL impl__m_bDrawUsingFont_CMFCRibbonFontComboBox__2HA;
+extern "C" void MS_ABI impl__AfxThrowOleException__YAXJ_Z(long);
+
+static_assert(sizeof(CMFCRibbonFontComboBox) == 0x348);
+static_assert(offsetof(CMFCRibbonFontComboBox, m_fontTypes) == 0x330);
+static_assert(offsetof(CMFCRibbonFontComboBox, m_charSet) == 0x334);
+static_assert(offsetof(CMFCRibbonFontComboBox, m_pitchAndFamily) == 0x335);
+static_assert(offsetof(CMFCRibbonFontComboBox, m_fontImages) == 0x338);
 
 namespace {
-// CMFCRibbonFontComboBox is not declared in include/openmfc. Retail's ctor
-// initializes derived fields at +0x330/+0x334/+0x335 and its image-list member
-// at +0x338/+0x340 (RVA 0xf6d30 (mfc140u)); CreateObject allocates 0x348
-// bytes (RVA 0xf6c00 (mfc140u)).
-struct RibbonFontComboBoxOwnLayout {
-    int fontType;
-    BYTE charSet;
-    BYTE pitchAndFamily;
-    BYTE padding[2];
-    void* images[2];
-};
-constexpr std::size_t kRibbonFontComboBoxOwnOffset = 0x330;
-static_assert(offsetof(RibbonFontComboBoxOwnLayout, fontType) == 0x00, "font type @+0x330");
-static_assert(offsetof(RibbonFontComboBoxOwnLayout, charSet) == 0x04, "charset @+0x334");
-static_assert(offsetof(RibbonFontComboBoxOwnLayout, pitchAndFamily) == 0x05, "pitch/family @+0x335");
-static_assert(offsetof(RibbonFontComboBoxOwnLayout, images) == 0x08, "image list @+0x338");
-static_assert(kRibbonFontComboBoxOwnOffset + sizeof(RibbonFontComboBoxOwnLayout) == 0x348,
-              "retail CMFCRibbonFontComboBox size is 0x348");
+constexpr int kFontGlyphSize = 16;
+constexpr int kFontTextInset = 22;
+constexpr UINT kFontGlyphBitmap = 0x4268;
 
-// OpenMFC CObList POSITION points at a side-table node with this CList shape.
-// This mirrors the node representation used by the CObList implementation.
-struct RibbonFontObNode {
-    RibbonFontObNode* pNext;
-    RibbonFontObNode* pPrev;
-    CObject* data;
-};
-static_assert(offsetof(RibbonFontObNode, data) == 0x10, "CObList node data @+0x10");
-static_assert(sizeof(CObList::POSITION) == sizeof(void*), "CObList POSITION is one pointer");
-
-// CMFCFontInfo has a CObject vptr followed by m_strName (retail GetFontsCount
-// reads the CString at +0x08); retain a local layout assertion for this access.
-struct RibbonFontInfoNameLayout {
-    void* vfptr;
-    CString name;
-};
-static_assert(offsetof(RibbonFontInfoNameLayout, name) == 0x08, "CMFCFontInfo::m_strName @+0x08");
-static_assert(sizeof(CMFCFontInfo) == 0x20, "CMFCFontInfo size from openmfc/afxtoolbarfontcombobox.h");
-
-RibbonFontObNode* RibbonNodeFromPosition(CObList::POSITION position) {
-    RibbonFontObNode* node = nullptr;
-    std::memcpy(&node, &position, sizeof(node));
-    return node;
+bool MatchesFont(const CMFCFontInfo& font, const wchar_t* name, BYTE charSet, BOOL exact) {
+    const CString fullName = font.GetFullName();
+    const bool matchesCharSet = charSet == DEFAULT_CHARSET || font.m_nCharSet == charSet;
+    if (exact) {
+        return fullName.CompareNoCase(name) == 0 ||
+               (matchesCharSet && font.m_strName.CompareNoCase(name) == 0);
+    }
+    return matchesCharSet && _wcsnicmp(fullName, name, std::wcslen(name)) == 0;
 }
-} // namespace
+
+void DrawFontGlyph(HDC dc, const CRect& row, HIMAGELIST images, int type, COLORREF color) {
+    if (!(type & (DEVICE_FONTTYPE | TRUETYPE_FONTTYPE))) return;
+    const bool device = (type & DEVICE_FONTTYPE) != 0;
+    const int y = row.CenterPoint().y - kFontGlyphSize / 2;
+    if (images && ::ImageList_Draw(images, device ? 0 : 1, dc, row.left, y, ILD_NORMAL)) return;
+    if (device) {
+        for (const CRect& part : {CRect(row.left + 4, y + 1, row.left + 12, y + 4),
+                                 CRect(row.left + 2, y + 5, row.left + 14, y + 10),
+                                 CRect(row.left + 4, y + 11, row.left + 12, y + 14)}) {
+            ::ExtTextOutW(dc, 0, 0, ETO_OPAQUE, part, nullptr, 0, nullptr);
+        }
+    } else {
+        CRect bounds(row.left, y, row.left + kFontGlyphSize, y + kFontGlyphSize);
+        ::SetTextColor(dc, color);
+        ::DrawTextW(dc, L"TT", 2, bounds, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    }
+}
+
+HFONT CreatePreviewFont(HDC dc, const CMFCFontInfo& font) {
+    LOGFONTW metrics{};
+    const HGDIOBJ selected = ::GetCurrentObject(dc, OBJ_FONT);
+    if (!selected || !::GetObjectW(selected, sizeof(metrics), &metrics)) return nullptr;
+    wcsncpy_s(metrics.lfFaceName, font.m_strName.GetString(), _TRUNCATE);
+    if (font.m_nCharSet != DEFAULT_CHARSET) metrics.lfCharSet = font.m_nCharSet;
+    metrics.lfHeight += metrics.lfHeight < 0 ? -4 : 4;
+    return ::CreateFontIndirectW(&metrics);
+}
+}
+
+BOOL& CMFCRibbonFontComboBox::m_bDrawUsingFont = impl__m_bDrawUsingFont_CMFCRibbonFontComboBox__2HA;
+
+CMFCRibbonFontComboBox::CMFCRibbonFontComboBox() : CMFCRibbonComboBox(0, FALSE) {}
+
+CMFCRibbonFontComboBox::CMFCRibbonFontComboBox(UINT id, int types, BYTE charSet, BYTE pitch, int width)
+    : CMFCRibbonComboBox(id, TRUE, width) {
+    BuildFonts(types, charSet, pitch);
+}
+
+CMFCRibbonFontComboBox::~CMFCRibbonFontComboBox() {
+    ClearFontData();
+}
+
+CRuntimeClass* PASCAL CMFCRibbonFontComboBox::GetThisClass() {
+    return impl__GetThisClass_CMFCRibbonFontComboBox__SAPEAUCRuntimeClass__XZ();
+}
+CRuntimeClass* CMFCRibbonFontComboBox::GetRuntimeClass() const { return GetThisClass(); }
+
+void CMFCRibbonFontComboBox::BuildFonts(int types, BYTE charSet, BYTE pitch) {
+    if (GetCount() && GetFontDesc(0) && m_fontTypes == types && m_charSet == charSet && m_pitchAndFamily == pitch) return;
+    const int previousTypes = m_fontTypes;
+    const BYTE previousCharSet = m_charSet;
+    const BYTE previousPitch = m_pitchAndFamily;
+    m_fontTypes = types;
+    m_charSet = charSet;
+    m_pitchAndFamily = pitch;
+    try {
+        RebuildFonts();
+    } catch (...) {
+        m_fontTypes = previousTypes;
+        m_charSet = previousCharSet;
+        m_pitchAndFamily = previousPitch;
+        throw;
+    }
+}
+
+void CMFCRibbonFontComboBox::RebuildFonts() {
+    const auto fonts = openmfc::detail::CollectFontCatalog(m_fontTypes, m_charSet, m_pitchAndFamily);
+    RemoveAllItems();
+    try {
+        for (const auto& font : fonts) {
+            if (!(font.m_nType & m_fontTypes)) continue;
+            // The toolbar catalog is sorted by full name and normally collapses equal face names.
+            const auto count = std::count_if(fonts.begin(), fonts.end(), [&](const CMFCFontInfo& other) {
+                return other.m_strName == font.m_strName;
+            });
+            const CString text = count > 1 ? font.GetFullName() : font.m_strName;
+            if (FindItem(text) >= 0) continue;
+            auto owned = std::make_unique<CMFCFontInfo>(font);
+            AddItem(text, reinterpret_cast<DWORD_PTR>(owned.get()));
+            owned.release();
+        }
+    } catch (...) {
+        RemoveAllItems();
+        throw;
+    }
+}
+
+CMFCFontInfo* CMFCRibbonFontComboBox::GetFontDesc(int index) const {
+    return reinterpret_cast<CMFCFontInfo*>(GetItemData(index));
+}
+
+BOOL CMFCRibbonFontComboBox::SetFont(const wchar_t* name, BYTE charSet, BOOL exact) {
+    if (!name) return FALSE;
+    if (const auto* current = GetFontDesc(); current && MatchesFont(*current, name, charSet, exact)) return TRUE;
+    for (int i = 0; i < GetCount(); ++i) {
+        const auto* font = GetFontDesc(i);
+        if (font && MatchesFont(*font, name, charSet, exact)) return SelectItem(i);
+    }
+    return FALSE;
+}
+
+void CMFCRibbonFontComboBox::ClearFontData() {
+    CloseDropDown();
+    ClearItemValues();
+}
+
+void CMFCRibbonFontComboBox::ReleaseItemValue(DWORD_PTR value) {
+    delete reinterpret_cast<CMFCFontInfo*>(value);
+}
+
+DWORD_PTR CMFCRibbonFontComboBox::CopyItemValue(const CMFCRibbonComboBox& source, DWORD_PTR value) const {
+    if (!value || !source.IsKindOf(GetThisClass())) return 0;
+    return reinterpret_cast<DWORD_PTR>(new CMFCFontInfo(*reinterpret_cast<const CMFCFontInfo*>(value)));
+}
+
+void CMFCRibbonFontComboBox::CopyFrom(const CMFCRibbonComboBox& source) {
+    if (this == &source || !source.IsKindOf(GetThisClass())) return;
+    const auto& fontSource = static_cast<const CMFCRibbonFontComboBox&>(source);
+    CMFCRibbonComboBox::CopyFrom(source);
+    m_fontTypes = fontSource.m_fontTypes;
+    m_charSet = fontSource.m_charSet;
+    m_pitchAndFamily = fontSource.m_pitchAndFamily;
+}
+
+void CMFCRibbonFontComboBox::DropDownList() {
+    BuildFonts(m_fontTypes, m_charSet, m_pitchAndFamily);
+    CMFCRibbonComboBox::DropDownList();
+}
+
+BOOL CMFCRibbonFontComboBox::OnDrawDropListItem(CDC* dc, int index, CMFCToolBarMenuButton* item, BOOL hot) {
+    const auto* font = GetFontDesc(index);
+    const auto* text = GetItem(index);
+    const HDC hdc = dc ? dc->GetSafeHdc() : nullptr;
+    if (!hdc || !item || !font || !text || item->m_rect.IsRectEmpty()) return FALSE;
+    if (!m_fontImages.GetSafeHandle()) {
+        m_fontImages.Create(kFontGlyphBitmap, kFontGlyphSize, 0, RGB(255, 255, 255));
+    }
+    const int saved = ::SaveDC(hdc);
+    if (!saved) return FALSE;
+    const COLORREF color = ::GetSysColor(hot ? COLOR_HIGHLIGHTTEXT : COLOR_MENUTEXT);
+    ::SetTextColor(hdc, color);
+    ::SetBkColor(hdc, color);
+    ::SetBkMode(hdc, TRANSPARENT);
+    CRect bounds = item->m_rect;
+    bounds.left += 3;
+    ::IntersectClipRect(hdc, bounds.left, bounds.top, bounds.right, bounds.bottom);
+    DrawFontGlyph(hdc, bounds, m_fontImages.GetSafeHandle(), font->m_nType, color);
+    bounds.left += kFontTextInset;
+    const HFONT preview = m_bDrawUsingFont && font->m_nCharSet != SYMBOL_CHARSET ? CreatePreviewFont(hdc, *font) : nullptr;
+    if (preview) ::SelectObject(hdc, preview);
+    ::DrawTextW(hdc, text, -1, bounds, DT_SINGLELINE | DT_VCENTER);
+    ::RestoreDC(hdc, saved);
+    if (preview) ::DeleteObject(preview);
+    return TRUE;
+}
+
+CSize CMFCRibbonFontComboBox::OnGetDropListItemSize(CDC*, int, CMFCToolBarMenuButton*, CSize sizeDefault) {
+    sizeDefault.cx += kFontTextInset;
+    return sizeDefault;
+}
 
 // Symbol: ??0CMFCRibbonFontComboBox@@IEAA@XZ
-// Stub: RVA 0xf6d30 (mfc140u) calls the ribbon-combo base constructor, installs
-// the derived vftable, and initializes its image-list member and font filters.
-// This thunk still cannot establish that base/MSVC-layout state safely.
-extern "C" void* MS_ABI impl___0CMFCRibbonFontComboBox__IEAA_XZ(void* pThis) {
-    return pThis;
+extern "C" void* MS_ABI impl___0CMFCRibbonFontComboBox__IEAA_XZ(void* storage) {
+    return storage ? new (storage) CMFCRibbonFontComboBox() : nullptr;
 }
+
 // Symbol: ??0CMFCRibbonFontComboBox@@QEAA@IHEEH@Z
-// Stub: RVA 0xf6c40 (mfc140u) constructs the base, initializes the derived
-// image-list/filter state, and calls BuildFonts; that base and its native
-// object layout are not available for a safe constructor transcription here.
 extern "C" void* MS_ABI impl___0CMFCRibbonFontComboBox__QEAA_IHEEH_Z(
-    void* pThis, unsigned int arg0, int arg1, unsigned char arg2,
-    unsigned char arg3, int arg4) {
-    (void)arg0;
-    (void)arg1;
-    (void)arg2;
-    (void)arg3;
-    (void)arg4;
-    return pThis;
+    void* storage, UINT id, int types, BYTE charSet, BYTE pitch, int width) {
+    return storage ? new (storage) CMFCRibbonFontComboBox(id, types, charSet, pitch, width) : nullptr;
 }
+
 // Symbol: ??1CMFCRibbonFontComboBox@@UEAA@XZ
-// Stub: RVA 0xf6d80 (mfc140u) calls ClearData, destroys the image-list member,
-// and then the CMFCRibbonComboBox base; ClearData and the base dtor are stubs here.
-extern "C" void MS_ABI impl___1CMFCRibbonFontComboBox__UEAA_XZ(void* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl___1CMFCRibbonFontComboBox__UEAA_XZ(CMFCRibbonFontComboBox* combo) {
+    if (combo) combo->~CMFCRibbonFontComboBox();
 }
 
 // Symbol: ?BuildFonts@CMFCRibbonFontComboBox@@QEAAXHEE@Z
-// Stub: RVA 0xf6e40 (mfc140u) updates the filters and calls RebuildFonts
-// unless the existing font list and all three filters already match. The
-// rebuild requires inherited ribbon item-list/AddItem behavior not implemented
-// by the current base combo thunk.
 extern "C" void MS_ABI impl__BuildFonts_CMFCRibbonFontComboBox__QEAAXHEE_Z(
-    void* pThis, int nFontType, unsigned char nCharSet, unsigned char nPitchAndFamily) {
-    (void)pThis;
-    (void)nFontType;
-    (void)nCharSet;
-    (void)nPitchAndFamily;
+    CMFCRibbonFontComboBox* combo, int types, BYTE charSet, BYTE pitch) {
+    if (combo) combo->BuildFonts(types, charSet, pitch);
 }
 
 // Symbol: ?ClearData@CMFCRibbonFontComboBox@@MEAAXXZ
-// Stub: RVA 0xf7110 (mfc140u) skips cleanup when inherited +0xe8 is non-null;
-// otherwise it walks the item-data nodes at +0x2f0 and deletes non-null entries.
-// That base list has no usable shadow layout in the current support code.
-extern "C" void MS_ABI impl__ClearData_CMFCRibbonFontComboBox__MEAAXXZ(void* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl__ClearData_CMFCRibbonFontComboBox__MEAAXXZ(CMFCRibbonFontComboBox* combo) {
+    if (combo) combo->ClearFontData();
 }
 
 // Symbol: ?CopyFrom@CMFCRibbonFontComboBox@@MEAAXAEBVCMFCRibbonBaseElement@@@Z
-// Stub: RVA 0xf6dc0 (mfc140u) first calls CMFCRibbonComboBox::CopyFrom
-// (RVA 0xf6400 (mfc140u)), which is still an empty thunk in CMFCRibbonComboBox.cpp;
-// copying only these derived fields would leave the base element state incomplete.
 extern "C" void MS_ABI impl__CopyFrom_CMFCRibbonFontComboBox__MEAAXAEBVCMFCRibbonBaseElement___Z(
-    void* pThis, const void* pSrc) {
-    (void)pThis;
-    (void)pSrc;
+    CMFCRibbonFontComboBox* combo, const CMFCRibbonBaseElement* source) {
+    if (combo && source && source->IsKindOf(CMFCRibbonFontComboBox::GetThisClass())) {
+        combo->CopyFrom(*static_cast<const CMFCRibbonFontComboBox*>(source));
+    }
 }
 
 // Symbol: ?CreateObject@CMFCRibbonFontComboBox@@SAPEAVCObject@@XZ
-// Stub: RVA 0xf6c00 (mfc140u) allocates 0x348 bytes and invokes the default
-// constructor; that constructor thunk in this file currently only returns pThis.
-extern "C" void* MS_ABI impl__CreateObject_CMFCRibbonFontComboBox__SAPEAVCObject__XZ() {
-    return nullptr;
+extern "C" CObject* MS_ABI impl__CreateObject_CMFCRibbonFontComboBox__SAPEAVCObject__XZ() {
+    return new CMFCRibbonFontComboBox();
 }
 
 // Symbol: ?DropDownList@CMFCRibbonFontComboBox@@MEAAXXZ
-// Stub: RVA 0xf6e10 (mfc140u) calls BuildFonts and then the base combo
-// DropDownList implementation, which remains a stub in CMFCRibbonComboBox.cpp.
-extern "C" void MS_ABI impl__DropDownList_CMFCRibbonFontComboBox__MEAAXXZ(void* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl__DropDownList_CMFCRibbonFontComboBox__MEAAXXZ(CMFCRibbonFontComboBox* combo) {
+    if (combo) combo->DropDownList();
 }
 
 // Symbol: ?GetFontsCount@CMFCRibbonFontComboBox@@IEAAHPEB_WAEBVCObList@@@Z
-// Retail (RVA 0xf70a0 (mfc140u)) counts exact, case-sensitive name matches in
-// the supplied list (IAT slot 0x1802c7770 resolves to wcscmp). OpenMFC reaches
-// its side-table-backed nodes through FindIndex rather than reading a retail
-// list head inline. Retail raises AfxThrowOleException(E_FAIL) for a NULL name
-// when the list is nonempty.
 extern "C" int MS_ABI impl__GetFontsCount_CMFCRibbonFontComboBox__IEAAHPEB_WAEBVCObList___Z(
-    void* pThis, const wchar_t* lpszName, const CObList* pFonts) {
-    (void)pThis;
+    void*, const wchar_t* name, const CObList* fonts) {
+    if (!fonts) return 0;
+    if (!name && !fonts->IsEmpty()) {
+        impl__AfxThrowOleException__YAXJ_Z(E_FAIL);
+        return 0;
+    }
     int count = 0;
-    CObList::POSITION position =
-        impl__FindIndex_CObList__QEBAPEAU__POSITION____J_Z(pFonts, 0);
-    for (RibbonFontObNode* node = RibbonNodeFromPosition(position);
-         node != nullptr; node = node->pNext) {
-        if (lpszName == nullptr) {
-            impl__AfxThrowOleException__YAXJ_Z(E_FAIL);
-            return count;
-        }
-        const auto* font = static_cast<const CMFCFontInfo*>(node->data);
-        if (std::wcscmp(font->m_strName.GetString(), lpszName) == 0) {
-            ++count;
-        }
+    for (auto pos = fonts->GetHeadPosition(); pos != CObList::POSITION(nullptr);) {
+        const auto* font = static_cast<const CMFCFontInfo*>(fonts->GetNext(pos));
+        if (font && std::wcscmp(font->m_strName, name) == 0) ++count;
     }
     return count;
 }
 
 // Symbol: ?OnDrawDropListItem@CMFCRibbonFontComboBox@@MEAAHPEAVCDC@@HPEAVCMFCToolBarMenuButton@@H@Z
-// Stub: RVA 0xf7390 (mfc140u) performs font-specific rendering through ribbon,
-// image-list, and visual-manager state not represented by this file's shadows.
-extern "C" int MS_ABI impl__OnDrawDropListItem_CMFCRibbonFontComboBox__MEAAHPEAVCDC__HPEAVCMFCToolBarMenuButton__H_Z(
-    void* pThis, void* pDC, int nIndex, void* pItem, int bHighlight) {
-    (void)pThis;
-    (void)pDC;
-    (void)nIndex;
-    (void)pItem;
-    (void)bHighlight;
-    return 0;
+extern "C" BOOL MS_ABI impl__OnDrawDropListItem_CMFCRibbonFontComboBox__MEAAHPEAVCDC__HPEAVCMFCToolBarMenuButton__H_Z(
+    CMFCRibbonFontComboBox* combo, CDC* dc, int index, CMFCToolBarMenuButton* item, BOOL hot) {
+    return combo && combo->OnDrawDropListItem(dc, index, item, hot);
 }
 
 // Symbol: ?OnGetDropListItemSize@CMFCRibbonFontComboBox@@MEAA?AVCSize@@PEAVCDC@@HPEAVCMFCToolBarMenuButton@@V2@@Z
-// Retail (RVA 0xf75f0 (mfc140u)) copies the by-value CSize to its hidden
-// result buffer and adds 0x16 to cx. Under the MS ABI, this thunk receives the
-// result buffer in RDX and the two 8-byte aggregate values are modeled as
-// long long; the returned RAX is the result-buffer pointer.
-extern "C" void* MS_ABI impl__OnGetDropListItemSize_CMFCRibbonFontComboBox__MEAA_AVCSize__PEAVCDC__HPEAVCMFCToolBarMenuButton__V2__Z(
-    void* pThis, void* pResult, void* pDC, int nIndex, void* pItem, long long sizeDefault) {
-    (void)pThis;
-    (void)pDC;
-    (void)nIndex;
-    (void)pItem;
-    std::memcpy(pResult, &sizeDefault, sizeof(sizeDefault));
-    std::uint32_t cx;
-    std::memcpy(&cx, pResult, sizeof(cx));
-    cx += 0x16u;
-    std::memcpy(pResult, &cx, sizeof(cx));
-    return pResult;
+extern "C" CSize* MS_ABI impl__OnGetDropListItemSize_CMFCRibbonFontComboBox__MEAA_AVCSize__PEAVCDC__HPEAVCMFCToolBarMenuButton__V2__Z(
+    CMFCRibbonFontComboBox* combo, CSize* result, CDC* dc, int index, CMFCToolBarMenuButton* item, long long packed) {
+    if (!result) return nullptr;
+    CSize fallback;
+    static_assert(sizeof(fallback) == sizeof(packed));
+    std::memcpy(&fallback, &packed, sizeof(fallback));
+    *result = combo ? combo->OnGetDropListItemSize(dc, index, item, fallback) : CSize(fallback.cx + kFontTextInset, fallback.cy);
+    return result;
 }
 
 // Symbol: ?RebuildFonts@CMFCRibbonFontComboBox@@QEAAXXZ
-// Stub: RVA 0xf6e90 (mfc140u) constructs a temporary toolbar font combo to
-// enumerate fonts, then transfers eligible entries through the ribbon combo's
-// inherited item-list virtual. Font enumeration exists in the toolbar subsystem,
-// but the inherited ribbon list/AddItem behavior this routine needs is stubbed.
-extern "C" void MS_ABI impl__RebuildFonts_CMFCRibbonFontComboBox__QEAAXXZ(void* pThis) {
-    (void)pThis;
+extern "C" void MS_ABI impl__RebuildFonts_CMFCRibbonFontComboBox__QEAAXXZ(CMFCRibbonFontComboBox* combo) {
+    if (combo) combo->RebuildFonts();
 }
 
 // Symbol: ?SetFont@CMFCRibbonFontComboBox@@QEAAHPEB_WEH@Z
-// Stub: RVA 0xf7240 (mfc140u) lowercases the requested name and scans the
-// inherited item-data nodes at +0x2f0, then selects the matching font. The
-// ribbon combo item-list and selection behavior needed to reproduce that path
-// is not implemented by its current base thunks.
-extern "C" int MS_ABI impl__SetFont_CMFCRibbonFontComboBox__QEAAHPEB_WEH_Z(
-    void* pThis, const wchar_t* lpszName, unsigned char nCharSet, int bExact) {
-    (void)pThis;
-    (void)lpszName;
-    (void)nCharSet;
-    (void)bExact;
-    return 0;
+extern "C" BOOL MS_ABI impl__SetFont_CMFCRibbonFontComboBox__QEAAHPEB_WEH_Z(
+    CMFCRibbonFontComboBox* combo, const wchar_t* name, BYTE charSet, BOOL exact) {
+    return combo && combo->SetFont(name, charSet, exact);
 }
-

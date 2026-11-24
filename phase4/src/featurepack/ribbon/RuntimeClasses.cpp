@@ -146,7 +146,12 @@ CRuntimeClass classCMFCRibbonComboBox = {
 };
 RIBBON_ELEMENTS_DESC(CMFCRibbonContextCaption, 640, 0xFFFF, &classCMFCRibbonButton);
 RIBBON_ELEMENTS_DESC(CMFCRibbonDefaultPanelButton, 640, 0xFFFF, &classCMFCRibbonButton);
-RIBBON_ELEMENTS_DESC(CMFCRibbonFontComboBox, 840, 0xFFFF, &classCMFCRibbonComboBox);
+static CRuntimeClass* AFXAPI _openmfc_gb_CMFCRibbonFontComboBox() { return &classCMFCRibbonComboBox; }
+static CObject* AFXAPI CreateRibbonFontCombo() { return new CMFCRibbonFontComboBox(); }
+CRuntimeClass classCMFCRibbonFontComboBox = {
+    "CMFCRibbonFontComboBox", sizeof(CMFCRibbonFontComboBox), 0xFFFF, CreateRibbonFontCombo,
+    &_openmfc_gb_CMFCRibbonFontComboBox, nullptr, nullptr
+};
 RIBBON_ELEMENTS_DESC(CMFCRibbonGalleryIcon, 656, 0xFFFF, &classCMFCRibbonButton);
 RIBBON_ELEMENTS_DESC(CMFCRibbonLabel, 624, 0xFFFF, &classCMFCRibbonButton);
 RIBBON_ELEMENTS_DESC(CMFCRibbonLaunchButton, 632, 0xFFFF, &classCMFCRibbonButton);

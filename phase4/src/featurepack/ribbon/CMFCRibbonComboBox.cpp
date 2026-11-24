@@ -93,8 +93,18 @@ public:
     explicit RibbonComboList(CMFCRibbonComboBox& combo) : m_combo(combo) {}
     ~RibbonComboList() override { m_combo.OnListClosed(this); }
     void OnChangeHot(int) override { if (m_combo.m_openList == this) m_combo.OnListHighlight(selection); }
-    void OnChooseItem(UINT command) override { m_combo.OnSelectItem(static_cast<int>(0xffffff38u - command)); }
+    void OnChooseItem(UINT command) override { m_combo.OnSelectItem(ItemIndex(command)); }
+    void OnDrawItem(CDC* dc, CMFCToolBarMenuButton* item, BOOL hot) override {
+        if (!m_combo.OnDrawDropListItem(dc, ItemIndex(item->m_nID), item, hot)) {
+            DropDownListBox::OnDrawItem(dc, item, hot);
+        }
+    }
+    CSize OnGetItemSize(CDC* dc, CMFCToolBarMenuButton* item, CSize sizeDefault) override {
+        const CSize size = m_combo.OnGetDropListItemSize(dc, ItemIndex(item->m_nID), item, sizeDefault);
+        return size.cx && size.cy ? size : sizeDefault;
+    }
 private:
+    static int ItemIndex(UINT command) { return static_cast<int>(0xffffff38u - command); }
     CMFCRibbonComboBox& m_combo;
 };
 
@@ -225,8 +235,9 @@ BOOL CMFCRibbonComboBox::DeleteItem(int index) {
     else list.head = item->next;
     if (item->next) item->next->prev = item->prev;
     else list.tail = item->prev;
-    delete item;
     m_nativeStringCount = --list.count;
+    ReleaseItemValue(item->value);
+    delete item;
     if (index == m_selectedIndex) SelectItem((std::min)(index, static_cast<int>(list.count) - 1));
     else if (index < m_selectedIndex) --m_selectedIndex;
     return TRUE;
@@ -235,10 +246,32 @@ BOOL CMFCRibbonComboBox::DeleteItem(int index) {
 void CMFCRibbonComboBox::RemoveAllItems() {
     CloseDropDown();
     m_itemStrings.RemoveAll();
+    ClearItemValues();
     ClearItemData(*this);
     m_nativeStringCount = 0;
     m_selectedIndex = -1;
     SetEditText(nullptr);
+}
+
+void CMFCRibbonComboBox::ReleaseItemValue(DWORD_PTR) {}
+
+DWORD_PTR CMFCRibbonComboBox::CopyItemValue(const CMFCRibbonComboBox&, DWORD_PTR value) const {
+    return value;
+}
+
+void CMFCRibbonComboBox::ClearItemValues() {
+    for (auto* item = DataList(*this).head; item; item = item->next) {
+        ReleaseItemValue(item->value);
+        item->value = 0;
+    }
+}
+
+BOOL CMFCRibbonComboBox::OnDrawDropListItem(CDC*, int, CMFCToolBarMenuButton*, BOOL) {
+    return FALSE;
+}
+
+CSize CMFCRibbonComboBox::OnGetDropListItemSize(CDC*, int, CMFCToolBarMenuButton*, CSize) {
+    return CSize(0, 0);
 }
 
 void CMFCRibbonComboBox::SetEditText(const wchar_t* text) {
@@ -442,7 +475,14 @@ void CMFCRibbonComboBox::CopyFrom(const CMFCRibbonComboBox& source) {
     m_resizeDropDownList = source.m_resizeDropDownList;
     auto* data = DataList(const_cast<CMFCRibbonComboBox&>(source)).head;
     for (auto pos = source.m_itemStrings.GetHeadPosition(); pos != CStringList::POSITION(nullptr);) {
-        AddItem(source.m_itemStrings.GetNext(pos), data ? data->value : 0);
+        const auto text = source.m_itemStrings.GetNext(pos);
+        const DWORD_PTR value = CopyItemValue(source, data ? data->value : 0);
+        try {
+            AddItem(text, value);
+        } catch (...) {
+            ReleaseItemValue(value);
+            throw;
+        }
         if (data) data = data->next;
     }
     m_selectedIndex = source.m_selectedIndex;

@@ -2516,12 +2516,14 @@ public:
     CSize GetIntermediateSize(CDC* dc) const;
     void OnDraw(CDC* dc) const;
     void OnLButtonDown(CPoint point);
-    void DropDownList();
+    virtual void DropDownList();
     void CloseDropDown();
     void OnListClosed(const CMFCPopupMenu* popup);
     void OnSelectItem(int index);
     void OnListHighlight(int index);
-    void CopyFrom(const CMFCRibbonComboBox& source);
+    virtual void CopyFrom(const CMFCRibbonComboBox& source);
+    virtual BOOL OnDrawDropListItem(CDC* dc, int index, CMFCToolBarMenuButton* item, BOOL hot);
+    virtual CSize OnGetDropListItemSize(CDC* dc, int index, CMFCToolBarMenuButton* item, CSize sizeDefault);
 
     // Keep the slots used by SDK inline accessors in the ribbon combo layout.
     unsigned char m_beforeRect[0xc8 - sizeof(CMFCRibbonEdit)]{};
@@ -2550,11 +2552,49 @@ public:
     BOOL m_hasEditBox = TRUE;
     BOOL m_resizeDropDownList = TRUE;
 
+protected:
+    virtual void ReleaseItemValue(DWORD_PTR value);
+    virtual DWORD_PTR CopyItemValue(const CMFCRibbonComboBox& source, DWORD_PTR value) const;
+    void ClearItemValues();
+
 private:
     BOOL ApplySelection(int index);
     void UpdateEditWindow();
     void DestroyEditWindow();
     HWND CommandWindow() const;
+};
+
+class CMFCFontInfo;
+
+class CMFCRibbonFontComboBox : public CMFCRibbonComboBox {
+public:
+    CMFCRibbonFontComboBox();
+    CMFCRibbonFontComboBox(UINT id, int types = DEVICE_FONTTYPE | RASTER_FONTTYPE | TRUETYPE_FONTTYPE,
+                          BYTE charSet = DEFAULT_CHARSET, BYTE pitch = DEFAULT_PITCH, int width = -1);
+    ~CMFCRibbonFontComboBox() override;
+    static CRuntimeClass* PASCAL GetThisClass();
+    CRuntimeClass* GetRuntimeClass() const override;
+
+    void BuildFonts(int types = DEVICE_FONTTYPE | RASTER_FONTTYPE | TRUETYPE_FONTTYPE,
+                    BYTE charSet = DEFAULT_CHARSET, BYTE pitch = DEFAULT_PITCH);
+    void RebuildFonts();
+    BOOL SetFont(const wchar_t* name, BYTE charSet = DEFAULT_CHARSET, BOOL exact = FALSE);
+    CMFCFontInfo* GetFontDesc(int index = -1) const;
+    void ClearFontData();
+    void CopyFrom(const CMFCRibbonComboBox& source) override;
+    void DropDownList() override;
+    BOOL OnDrawDropListItem(CDC* dc, int index, CMFCToolBarMenuButton* item, BOOL hot) override;
+    CSize OnGetDropListItemSize(CDC* dc, int index, CMFCToolBarMenuButton* item, CSize sizeDefault) override;
+
+    static BOOL& m_bDrawUsingFont;
+    int m_fontTypes = DEVICE_FONTTYPE | RASTER_FONTTYPE | TRUETYPE_FONTTYPE;
+    BYTE m_charSet = DEFAULT_CHARSET;
+    BYTE m_pitchAndFamily = DEFAULT_PITCH;
+    CImageList m_fontImages;
+
+protected:
+    void ReleaseItemValue(DWORD_PTR value) override;
+    DWORD_PTR CopyItemValue(const CMFCRibbonComboBox& source, DWORD_PTR value) const override;
 };
 
 class CMFCRibbonGallery : public CMFCRibbonBaseElement { DECLARE_DYNAMIC(CMFCRibbonGallery) public: CMFCRibbonGallery(); CMFCRibbonGallery(UINT nID, const wchar_t* lpszText, int, int, UINT, int) : CMFCRibbonGallery() { SetID(nID); SetText(lpszText); } virtual ~CMFCRibbonGallery(); char _pad[32]; };
