@@ -2110,6 +2110,60 @@ public:
     COLORREF m_clrBorder = COLORREF(-1);
 };
 
+class CMFCToolTipCtrl : public CToolTipCtrl {
+    DECLARE_DYNCREATE(CMFCToolTipCtrl)
+public:
+    explicit CMFCToolTipCtrl(CMFCToolTipInfo* params = nullptr);
+    ~CMFCToolTipCtrl() override;
+    BOOL Create(CWnd* parent, DWORD style = 0) override;
+    void SetParams(CMFCToolTipInfo* params);
+    const CMFCToolTipInfo& GetParams() const { return m_Params; }
+    void SetLocation(CPoint location) { m_ptLocation = location; }
+    void SetHotRibbonButton(CMFCRibbonButton* button) { m_pRibbonButton = button; }
+    void SetFixedWidth(int regular, int largeImage) {
+        m_nFixedWidthRegular = regular;
+        m_nFixedWidthWithImage = largeImage;
+    }
+
+    virtual void SetDescription(const CString description);
+    virtual CSize GetIconSize();
+    virtual void OnFillBackground(CDC* dc, CRect rect, COLORREF& text, COLORREF& line);
+    virtual void OnDrawBorder(CDC* dc, CRect rect, COLORREF line);
+    virtual BOOL OnDrawIcon(CDC* dc, CRect rect);
+    virtual CSize OnDrawLabel(CDC* dc, CRect rect, BOOL calculateOnly);
+    virtual CSize OnDrawDescription(CDC* dc, CRect rect, BOOL calculateOnly);
+    virtual void OnDrawSeparator(CDC* dc, int x1, int x2, int y);
+
+    int OnCreate(CREATESTRUCTW* create);
+    void OnPaint();
+    int GetFixedWidth();
+    void GetHotButton();
+    BOOL OnEraseBkgnd(CDC* dc);
+    void OnShow(NMHDR* notification, LRESULT* result);
+    void OnPop(NMHDR* notification, LRESULT* result);
+
+protected:
+    CMFCToolBar* m_pToolBar = nullptr;
+    CMFCToolBarImages* m_pToolBarImages = nullptr;
+    CMFCToolBarButton* m_pHotButton = nullptr;
+    CMFCRibbonButton* m_pRibbonButton = nullptr;
+    CMFCToolTipInfo m_Params;
+    int m_nRibbonImageType = 0;
+    CString m_strDescription;
+    CSize m_sizeImage{0, 0};
+    CSize m_sizeCornerRadius{0, 0};
+    CPoint m_ptMargin;
+    CPoint m_ptLocation{-1, -1};
+    int m_nFixedWidthRegular = 0;
+    int m_nFixedWidthWithImage = 0;
+
+private:
+    void DrawTooltip(CDC& dc);
+    void SetOwner(CWnd* owner);
+    static LRESULT CALLBACK TooltipWindowSubclass(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
+    static LRESULT CALLBACK TooltipOwnerSubclass(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
+};
+
 class CTagManager : public CObject {
     DECLARE_DYNAMIC(CTagManager)
 public:
@@ -2150,7 +2204,10 @@ public:
 
     static BOOL CreateToolTip(CToolTipCtrl*& pToolTip, CWnd* pWndParent, UINT nType = 0);
     static void DeleteToolTip(CToolTipCtrl*& pToolTip);
-    void SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC = nullptr, CMFCToolTipInfo* pParams = nullptr);
+    void SetTooltipParams(UINT nTypes, CRuntimeClass* pRTC = RUNTIME_CLASS(CMFCToolTipCtrl),
+                          CMFCToolTipInfo* pParams = nullptr);
+    static void SetTooltipText(TOOLINFOW* info, CToolTipCtrl* tooltip, UINT type,
+                               const CString& text, const wchar_t* description = nullptr);
     void UpdateTooltips();
     BOOL CreateToolTipObject(CToolTipCtrl*& tooltip, UINT index);
 

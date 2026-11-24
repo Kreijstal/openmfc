@@ -313,11 +313,6 @@ TOOLBAR_BUTTONS_DESC(CTasksPaneNavigateButton, 136, 0x00000001, &classCMFCToolBa
 DEF_GETTERS(CMFCHeaderCtrl,
             impl__GetThisClass_CMFCHeaderCtrl__SAPEAUCRuntimeClass__XZ,
             impl__GetRuntimeClass_CMFCHeaderCtrl__UEBAPEAUCRuntimeClass__XZ)
-// Symbol: ?GetThisClass@CMFCToolTipCtrl@@SAPEAUCRuntimeClass@@XZ
-// Symbol: ?GetRuntimeClass@CMFCToolTipCtrl@@UEBAPEAUCRuntimeClass@@XZ
-DEF_GETTERS(CMFCToolTipCtrl,
-            impl__GetThisClass_CMFCToolTipCtrl__SAPEAUCRuntimeClass__XZ,
-            impl__GetRuntimeClass_CMFCToolTipCtrl__UEBAPEAUCRuntimeClass__XZ)
 #undef DEF_GETTERS
 #undef DEF_GETTERS
 #define MFC_DIALOGS_CTRLS_GETTERS(Cls, GetThisSym, GetRtSym) \

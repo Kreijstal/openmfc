@@ -5,7 +5,7 @@
 
 #include "detail/MfccoreSupport.h"
 
-#include <cstring>
+#include <cwchar>
 #include <utility>
 
 // Symbol: ?CreateToolTipObject@CTooltipManager@@IEAAHAEAPEAVCToolTipCtrl@@I@Z
@@ -27,27 +27,14 @@ extern "C" void MS_ABI impl__UpdateTooltips_CTooltipManager__QEAAXXZ(CTooltipMan
 extern "C" void MS_ABI impl__SetTooltipParams_CTooltipManager__QEAAXIPEAUCRuntimeClass__PEAVCMFCToolTipInfo___Z(CTooltipManager* pThis, unsigned int types, CRuntimeClass* rtc, CMFCToolTipInfo* params) { if (pThis) pThis->SetTooltipParams(types, rtc, params); }
 // Symbol: ?SetTooltipText@CTooltipManager@@SAXPEAUtagTOOLINFOW@@PEAVCToolTipCtrl@@IV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@PEB_W@Z
 extern "C" void MS_ABI impl__SetTooltipText_CTooltipManager__SAXPEAUtagTOOLINFOW__PEAVCToolTipCtrl__IV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
-    TOOLINFOW* toolInfo, CToolTipCtrl* toolTip, unsigned int id, const CString* text, const wchar_t* description) {
-    const wchar_t* resolved = text ? text->GetString() : nullptr;
-    if (!resolved || !*resolved) resolved = description ? description : L"";
-
-    TOOLINFOW localInfo = toolInfo ? *toolInfo : TOOLINFOW{};
-    localInfo.cbSize = sizeof(TOOLINFOW);
-    localInfo.uId = id ? id : localInfo.uId;
-    localInfo.lpszText = const_cast<wchar_t*>(resolved);
-
-    if (toolInfo) {
-        toolInfo->cbSize = localInfo.cbSize;
-        toolInfo->uId = localInfo.uId;
-        toolInfo->lpszText = localInfo.lpszText;
-    }
-    if (toolTip && toolTip->GetSafeHwnd()) {
-        ::SendMessageW(toolTip->GetSafeHwnd(), TTM_UPDATETIPTEXTW, 0, reinterpret_cast<LPARAM>(&localInfo));
-    }
+    TOOLINFOW* info, CToolTipCtrl* tooltip, UINT type, CString* text, const wchar_t* description) {
+    if (!text) return;
+    const CString copy = *text;
+    text->~CString();
+    CTooltipManager::SetTooltipText(info, tooltip, type, copy, description);
 }
 extern "C" UINT impl__AFX_WM_UPDATETOOLTIPS__3IA;
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CToolTipCtrl__SAPEAUCRuntimeClass__XZ();
-extern "C" void MS_ABI impl__SetParams_CMFCToolTipCtrl__QEAAXPEAVCMFCToolTipInfo___Z(void*, const void*);
 
 namespace {
 constexpr UINT tooltipTypeCount = 11;
@@ -102,12 +89,8 @@ BOOL CTooltipManager::CreateToolTipObject(CToolTipCtrl*& tooltip, UINT index) {
     if (!runtime->IsDerivedFrom(impl__GetThisClass_CToolTipCtrl__SAPEAUCRuntimeClass__XZ())) return FALSE;
     tooltip = static_cast<CToolTipCtrl*>(runtime->CreateObject());
     if (!tooltip) return FALSE;
-    for (const auto* type = runtime; type; type = type->BaseClass()) {
-        if (type->m_lpszClassName && std::strcmp(type->m_lpszClassName, "CMFCToolTipCtrl") == 0) {
-            impl__SetParams_CMFCToolTipCtrl__QEAAXPEAVCMFCToolTipInfo___Z(tooltip, &m_tooltipParams[index]);
-            break;
-        }
-    }
+    if (runtime->IsDerivedFrom(RUNTIME_CLASS(CMFCToolTipCtrl)))
+        static_cast<CMFCToolTipCtrl*>(tooltip)->SetParams(&m_tooltipParams[index]);
     return TRUE;
 }
 
@@ -164,6 +147,25 @@ void CTooltipManager::SetTooltipParams(UINT types, CRuntimeClass* runtime, CMFCT
         m_tooltipParams[index] = params ? *params : CMFCToolTipInfo{};
     }
     BroadcastTooltipUpdate(this, types);
+}
+
+void CTooltipManager::SetTooltipText(TOOLINFOW* info, CToolTipCtrl* tooltip, UINT type,
+                                     const CString& text, const wchar_t* description) {
+    if (!info || !tooltip) return;
+    UINT index = 0;
+    while (index < tooltipTypeCount && (1u << index) != type) ++index;
+    if (index == tooltipTypeCount) return;
+
+    const wchar_t* label = text.GetString();
+    const HWND window = tooltip->GetSafeHwnd();
+    if (window && tooltipManager && tooltipManager->m_tooltipParams[index].m_bBalloonTooltip) {
+        const bool hasDescription = description && *description;
+        ::SendMessageW(window, TTM_SETTITLEW, TTI_INFO, reinterpret_cast<LPARAM>(hasDescription ? label : L""));
+        if (hasDescription) label = description;
+    }
+    info->lpszText = ::_wcsdup(label);
+    if (tooltip->IsKindOf(RUNTIME_CLASS(CMFCToolTipCtrl)))
+        static_cast<CMFCToolTipCtrl*>(tooltip)->SetDescription(CString(description ? description : L""));
 }
 
 void CTooltipManager::UpdateTooltips() {

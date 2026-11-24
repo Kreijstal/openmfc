@@ -179,7 +179,9 @@ class CToolTipCtrl : public CWnd {
 public:
     CToolTipCtrl() {}
     virtual ~CToolTipCtrl() {}
-    BOOL Create(CWnd* pParentWnd, DWORD dwStyle = 0);
+    static CRuntimeClass* GetThisClass();
+    CRuntimeClass* GetRuntimeClass() const override { return GetThisClass(); }
+    virtual BOOL Create(CWnd* pParentWnd, DWORD dwStyle = 0);
     BOOL AddTool(CWnd* pWnd, const wchar_t* pszText, LPCRECT lpRectTool = nullptr, UINT_PTR nIDTool = 0);
     void UpdateTipText(const wchar_t* pszText, CWnd* pWnd, UINT_PTR nIDTool = 0);
     void Activate(BOOL bActivate = TRUE);

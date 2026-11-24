@@ -353,8 +353,7 @@ extern "C" int MS_ABI impl__InvokeCommand_CMFCCustomizeButton__UEAAHPEAVCMFCPopu
 extern "C" int MS_ABI impl__InvokeTool_CUserToolsManager__QEAAHI_Z(void* pThis, unsigned int uiCmdId);
 extern "C" void MS_ABI impl__AddCmd_CMFCCmdUsageCount__QEAAXI_Z(void* pThis, unsigned int uiCmd);
 extern "C" void MS_ABI impl__EnableMenuItemImage_CCommandManager__QEAAXIHH_Z(void* pThis, unsigned int uiCmd, int bEnable, int nUserImage);
-extern "C" void MS_ABI impl__SetTooltipText_CTooltipManager__SAXPEAUtagTOOLINFOW__PEAVCToolTipCtrl__IV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
-    TOOLINFOW* pTI, CToolTipCtrl* pToolTip, unsigned int nType, const CString* pText, const wchar_t* lpszDescr);
+
 extern "C" void MS_ABI impl__SetDroppedDown_CMFCRibbonBaseElement__IEAAXPEAVCMFCPopupMenu___Z(void* pThis, void* pPopupMenu);
 extern "C" void MS_ABI impl__PostMenuCommand_CMFCRibbonBaseElement__QEAAXI_Z(void* pThis, unsigned int uiCmdId);
 extern "C" void MS_ABI impl__OnDrawSeparator_CMFCVisualManager__UEAAXPEAVCDC__PEAVCBasePane__VCRect__H_Z(
@@ -2299,8 +2298,8 @@ extern "C" __int64 MS_ABI impl__OnToolHitTest_CMFCPopupMenuBar__MEBA_JVCPoint__P
             impl__GetMessageString_CFrameWnd__UEBAXIAEAV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL___Z(
                 pFrame, pButton->m_nID, &strDescr);                                        // frame vslot 0x2f8
         }
-        impl__SetTooltipText_CTooltipManager__SAXPEAUtagTOOLINFOW__PEAVCToolTipCtrl__IV__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__PEB_W_Z(
-            pTI, reinterpret_cast<CToolTipCtrl*>(pBar->m_pToolTip), 2 /*AFX_TOOLTIP_TYPE_TOOLBAR*/, &strTipText, static_cast<const wchar_t*>(strDescr));
+        CTooltipManager::SetTooltipText(pTI, reinterpret_cast<CToolTipCtrl*>(pBar->m_pToolTip),
+            2 /* AFX_TOOLTIP_TYPE_TOOLBAR */, strTipText, strDescr.GetString());
     }
     return iHit;
 }

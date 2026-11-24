@@ -206,6 +206,10 @@ extern "C" const AFX_MSGMAP* MS_ABI impl__GetMessageMap_CToolTipCtrl__MEBAPEBUAF
     (void)pThis;
     return CWnd::GetThisMessageMap();
 }
+CRuntimeClass* CToolTipCtrl::GetThisClass() {
+    return &g_classCToolTipCtrl;
+}
+
 // Symbol: ?GetRuntimeClass@CToolTipCtrl@@UEBAPEAUCRuntimeClass@@XZ
 extern "C" CRuntimeClass* MS_ABI impl__GetRuntimeClass_CToolTipCtrl__UEBAPEAUCRuntimeClass__XZ(
     const CToolTipCtrl* pThis) {
