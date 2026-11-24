@@ -884,6 +884,10 @@ extern "C" unsigned int impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA;
 extern "C" unsigned int impl__AFX_WM_ON_CANCELTABMOVE__3IA;
 extern "C" unsigned int impl__AFX_WM_ON_TABGROUPMOUSEMOVE__3IA;
 extern "C" unsigned int impl__AFX_WM_ON_MOVETABCOMPLETE__3IA;
+extern "C" UINT impl__AFX_WM_GETDRAGBOUNDS__3IA;
+extern "C" UINT impl__AFX_WM_ON_DRAGCOMPLETE__3IA;
+extern "C" LRESULT MS_ABI impl__OnGetDragBounds_CMDIClientAreaWnd__IEAA_J_K_J_Z(void*, WPARAM, LPARAM);
+extern "C" LRESULT MS_ABI impl__OnDragComplete_CMDIClientAreaWnd__IEAA_J_K_J_Z(void*, WPARAM, LPARAM);
 extern "C" __int64 MS_ABI impl__OnCancelTabMove_CMDIClientAreaWnd__IEAA_J_K_J_Z(void*, unsigned __int64, __int64);
 extern "C" __int64 MS_ABI impl__OnTabGroupMouseMove_CMDIClientAreaWnd__IEAA_J_K_J_Z(void*, unsigned __int64, __int64);
 extern "C" __int64 MS_ABI impl__OnMoveTabComplete_CMDIClientAreaWnd__IEAA_J_K_J_Z(void*, unsigned __int64, __int64);
@@ -1349,6 +1353,10 @@ LRESULT CALLBACK GroupTabSubclass(HWND window, UINT message, WPARAM wp, LPARAM l
 
 LRESULT CALLBACK ClientSubclass(HWND window, UINT message, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR data) {
     auto* self = reinterpret_cast<S_CMDIClientAreaWnd*>(data);
+    if (message == impl__AFX_WM_GETDRAGBOUNDS__3IA)
+        return impl__OnGetDragBounds_CMDIClientAreaWnd__IEAA_J_K_J_Z(self, wp, lp);
+    if (message == impl__AFX_WM_ON_DRAGCOMPLETE__3IA)
+        return impl__OnDragComplete_CMDIClientAreaWnd__IEAA_J_K_J_Z(self, wp, lp);
     if (message == impl__AFX_WM_ON_TABGROUPMOUSEMOVE__3IA)
         return impl__OnTabGroupMouseMove_CMDIClientAreaWnd__IEAA_J_K_J_Z(self, wp, lp);
     if (message == impl__AFX_WM_ON_MOVETABCOMPLETE__3IA)
@@ -2436,7 +2444,8 @@ extern "C" __int64 MS_ABI impl__OnDragComplete_CMDIClientAreaWnd__IEAA_J_K_J_Z(
     auto* self = Self(pThis);
     auto* group = reinterpret_cast<CMFCTabCtrl*>(wParam);
     const auto* rect = reinterpret_cast<const RECT*>(lParam);
-    if (!self || !self->m_bIsMDITabbedGroup || !group || !rect) return 0;
+    if (!self || !self->m_bIsMDITabbedGroup || !group || !rect ||
+        !ListFind(self->m_lstTabbedGroups, group)) return 0;
     POINT end{rect->right, rect->bottom};
     ::ScreenToClient(WndHandle(self), &end);
     return ResizeAdjacentGroups(*self, *group, IsVerticalSplit(*self) ? end.x : end.y);

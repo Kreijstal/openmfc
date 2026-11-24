@@ -74,6 +74,8 @@ extern "C" int MS_ABI impl__GetTabFromPoint_CMFCBaseTabCtrl__UEBAHAEAVCPoint___Z
 extern "C" UINT impl__AFX_WM_CHANGING_ACTIVE_TAB__3IA;
 extern "C" UINT impl__AFX_WM_CHANGE_ACTIVE_TAB__3IA;
 extern "C" UINT impl__AFX_WM_ON_HSCROLL__3IA;
+extern "C" UINT impl__AFX_WM_GETDRAGBOUNDS__3IA;
+extern "C" UINT impl__AFX_WM_ON_DRAGCOMPLETE__3IA;
 extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeClass__XZ();
 
 
@@ -196,21 +198,11 @@ extern "C" CRuntimeClass* MS_ABI impl__GetThisClass_CWinAppEx__SAPEAUCRuntimeCla
 //=============================================================================
 // CMFCTabCtrl::OnPaint
 //=============================================================================
-// Retail (0x18013cd90) wraps a stack CRectTracker (ctor 0x1802a3c20 /
-// dtor 0x1802a3ce0), computes a drag-grid step from the header rects
-// (0x484-0x47c or 0x488-0x480, halved and incremented) and calls
-// CRectTracker::DrawDragRect (0x1802a5720) for the two rectangles. Requires
-// the header-rect geometry members and the CRectTracker type, neither of
-// which is modeled.
 // Symbol: ?DrawResizeDragRect@CMFCTabCtrl@@MEAAXAEAVCRect@@0@Z
 extern "C" void MS_ABI impl__DrawResizeDragRect_CMFCTabCtrl__MEAAXAEAVCRect__0_Z(
-    CMFCTabCtrl* pThis, CRect& rectNew, CRect& rectLast)
+    CMFCTabCtrl* pThis, CRect& next, CRect& previous)
 {
-    (void)rectNew; (void)rectLast;
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- retail draws through a stack
-    // CRectTracker whose step size comes from the header-rect members at
-    // 0x47c/0x484/0x480/0x488; neither the tracker nor the rects are modeled.
+    if (pThis) pThis->DrawResizeDragRect(next, previous);
 }
 // Retail (0x18013c8e0) stores the flag at +0x3fc, then triggers a relayout/
 // redraw (vslot 0x318) unconditionally and a second redraw (vslot 0x458) when
@@ -307,17 +299,12 @@ extern "C" int MS_ABI impl__IsMDITabGroup_CMFCTabCtrl__UEBAHXZ(
     // FALSE.
     return FALSE;
 }
-// Retail (0x18013c130) is a single tail-call: `CRect* (+0x44c).PtInRect(point)`.
-// The tab-area rect member (+0x44c) is not declared.
 // Symbol: ?IsPtInTabArea@CMFCTabCtrl@@UEBAHVCPoint@@@Z
 extern "C" int MS_ABI impl__IsPtInTabArea_CMFCTabCtrl__UEBAHVCPoint___Z(
     const CMFCTabCtrl* pThis, CPoint point)
 {
-    (void)point;
-    if (!pThis) return FALSE;
-    // TODO(clean-room): partially transcribed -- retail hit-tests the tab-area
-    // rect at +0x44c; that member is not declared, so no point can match.
-    return FALSE;
+    const auto* state = pThis ? FindTabCtrlState(pThis) : nullptr;
+    return state && ::PtInRect(state->strip, point);
 }
 namespace {
 constexpr size_t flatTabOffset = 0x3c0;
@@ -380,7 +367,10 @@ extern "C" void MS_ABI impl__MoveTab_CMFCTabCtrl__UEAAXHH_Z(CMFCTabCtrl* pThis, 
 // Symbol: ?OnCancelMode@CMFCTabCtrl@@IEAAXXZ
 extern "C" void MS_ABI impl__OnCancelMode_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
 {
-    if (pThis) pThis->OnCancelMode();
+    if (!pThis) return;
+    const HWND control = pThis->GetSafeHwnd();
+    pThis->StopResize(TRUE);
+    if (control && CWnd::FromHandlePermanent(control) == pThis) pThis->OnCancelMode();
 }
 // Retail (0x18013ba70) first handles commands from its internal scrollbar
 // (+0x588) and documents-menu button (+0x10a8) by recomputing the scroll
@@ -495,33 +485,17 @@ extern "C" void MS_ABI impl__OnLButtonDown_CMFCTabCtrl__IEAAXIVCPoint___Z(
 {
     if (pThis) pThis->OnLButtonDown(flags, point);
 }
-// Retail (0x18013ad40) resets the capture flags (+0x3dc/+0x40c) and releases
-// the mouse capture when a capture or drag is active, then runs the
-// drag-cancel / drop logic. The flags are unmodeled; the capture release is
-// the visible side effect that is kept.
 // Symbol: ?OnLButtonUp@CMFCTabCtrl@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonUp_CMFCTabCtrl__IEAAXIVCPoint___Z(
-    CMFCTabCtrl* pThis, unsigned int /*nFlags*/, CPoint /*point*/)
+    CMFCTabCtrl* pThis, UINT flags, CPoint point)
 {
-    if (!pThis) return;
-    // TODO(clean-room): partially transcribed -- the drag-state flags
-    // (+0x3dc/+0x40c) and the internal drop/cancel logic (0x18013aea0) are
-    // not modeled.
-    if (::GetCapture() == pThis->GetSafeHwnd()) {
-        ::ReleaseCapture();
-    }
+    if (pThis) pThis->OnLButtonUp(flags, point);
 }
-// Retail (0x18013afd0) only acts while a drag is active (+0x40c): it clamps
-// the drag rectangle (+0x47c..+0x494) against the strip bounds and redraws
-// the resize drag rect according to the +0x3d28 style. All those members are
-// unmodeled.
 // Symbol: ?OnMouseMove@CMFCTabCtrl@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CMFCTabCtrl__IEAAXIVCPoint___Z(
-    CMFCTabCtrl* pThis, unsigned int /*nFlags*/, CPoint /*point*/)
+    CMFCTabCtrl* pThis, UINT flags, CPoint point)
 {
-    if (!pThis) return;
-    // TODO(clean-room): not transcribed -- needs the +0x40c drag flag, the
-    // drag rects (+0x47c..+0x494) and the +0x3d28 style.
+    if (pThis) pThis->OnMouseMove(flags, point);
 }
 // Symbol: ?OnNotify@CMFCTabCtrl@@MEAAH_K_JPEA_J@Z
 extern "C" int MS_ABI impl__OnNotify_CMFCTabCtrl__MEAAH_K_JPEA_J_Z(
@@ -537,7 +511,12 @@ extern "C" void MS_ABI impl__OnPaint_CMFCTabCtrl__IEAAXXZ(CMFCTabCtrl* pThis)
 static_assert(sizeof(CMFCTabCtrl) == 0x3d68);
 
 CMFCTabCtrl::CMFCTabCtrl() {
+    static_assert(offsetof(CMFCTabCtrl, m_resizing) == 0x40c);
+    static_assert(offsetof(CMFCTabCtrl, m_resizeGrip) == 0x46c);
+    static_assert(offsetof(CMFCTabCtrl, m_resizeDrag) == 0x47c);
+    static_assert(offsetof(CMFCTabCtrl, m_resizeBounds) == 0x48c);
     static_assert(offsetof(CMFCTabCtrl, m_wndScrollWnd) == 0x4a0);
+    static_assert(offsetof(CMFCTabCtrl, m_resizeMode) == 0x3d28);
 }
 
 CMFCTabCtrl::~CMFCTabCtrl() {
@@ -656,7 +635,123 @@ void CMFCTabCtrl::OnHScroll(UINT code, UINT position, CScrollBar* source) {
     }
 }
 
+void CMFCTabCtrl::SetResizeMode(ResizeMode mode) {
+    const HWND control = m_hWnd;
+    if (m_resizeMode != mode && m_resizing) {
+        StopResize(TRUE);
+        if (CWnd::FromHandlePermanent(control) != this) return;
+    }
+    m_resizeMode = mode;
+    RefreshTabs();
+}
+
+void CMFCTabCtrl::DrawResizeDragRect(const CRect& next, const CRect& previous) {
+    if (::EqualRect(next, previous)) return;
+    const HDC screen = ::GetDC(nullptr);
+    if (!screen) return;
+    // Drawing the same focus rectangle twice erases it without repainting the pane.
+    if (!previous.IsRectEmpty()) ::DrawFocusRect(screen, previous);
+    if (!next.IsRectEmpty()) ::DrawFocusRect(screen, next);
+    ::ReleaseDC(nullptr, screen);
+}
+
+bool CMFCTabCtrl::StartResize(CPoint point) {
+    if (!::PtInRect(m_resizeGrip, point)) return false;
+    const HWND control = m_hWnd;
+    const HWND parent = ::GetParent(control);
+    const ResizeMode mode = m_resizeMode;
+    CRect bounds{};
+    const auto accepted = parent && ::SendMessageW(parent, impl__AFX_WM_GETDRAGBOUNDS__3IA,
+        reinterpret_cast<WPARAM>(this), reinterpret_cast<LPARAM>(static_cast<RECT*>(bounds)));
+    if (CWnd::FromHandlePermanent(control) != this) return true;
+    if (!accepted || bounds.IsRectEmpty() || m_resizeMode != mode ||
+        !::PtInRect(m_resizeGrip, point)) return false;
+
+    CRect drag = m_resizeGrip;
+    ::MapWindowPoints(control, nullptr, reinterpret_cast<POINT*>(static_cast<RECT*>(drag)), 2);
+    if (mode == RESIZE_VERT ? bounds.Width() < drag.Width() : bounds.Height() < drag.Height())
+        return false;
+    ::SetCapture(control);
+    if (CWnd::FromHandlePermanent(control) != this || ::GetCapture() != control) return true;
+    m_resizeBounds = bounds;
+    m_resizeDrag = drag;
+    m_resizing = TRUE;
+    DrawResizeDragRect(drag, CRect{});
+    return true;
+}
+
+void CMFCTabCtrl::OnMouseMove(UINT, CPoint point) {
+    POINT screen = point;
+    if (!m_resizing || !::ClientToScreen(m_hWnd, &screen)) return;
+    CRect next = m_resizeDrag;
+    if (m_resizeMode == RESIZE_VERT) {
+        const int width = next.Width();
+        next.left = (std::clamp)(static_cast<int>(screen.x) - width / 2, m_resizeBounds.left, m_resizeBounds.right - width);
+        next.right = next.left + width;
+    } else {
+        const int height = next.Height();
+        next.top = (std::clamp)(static_cast<int>(screen.y) - height / 2, m_resizeBounds.top, m_resizeBounds.bottom - height);
+        next.bottom = next.top + height;
+    }
+    DrawResizeDragRect(next, m_resizeDrag);
+    m_resizeDrag = next;
+}
+
+void CMFCTabCtrl::OnLButtonUp(UINT, CPoint) {
+    StopResize(FALSE);
+}
+
+void CMFCTabCtrl::StopResize(BOOL cancel) {
+    if (!m_resizing) return;
+    const HWND control = m_hWnd;
+    RECT proposed{};
+    const BOOL notify = !cancel && ::GetWindowRect(control, &proposed);
+    if (m_resizeMode == RESIZE_VERT) proposed.right = m_resizeDrag.right;
+    else proposed.bottom = m_resizeDrag.bottom;
+    DrawResizeDragRect(CRect{}, m_resizeDrag);
+    m_resizing = FALSE;
+    m_resizeDrag.SetRectEmpty();
+    m_resizeBounds.SetRectEmpty();
+    if (::GetCapture() == control) ::ReleaseCapture();
+
+    if (notify && CWnd::FromHandlePermanent(control) == this) {
+        if (const HWND parent = ::GetParent(control))
+            ::SendMessageW(parent, impl__AFX_WM_ON_DRAGCOMPLETE__3IA,
+                reinterpret_cast<WPARAM>(this), reinterpret_cast<LPARAM>(&proposed));
+    }
+}
+
+BOOL CMFCTabCtrl::SetResizeCursor() {
+    if (!m_resizing) {
+        POINT cursor{};
+        if (!::GetCursorPos(&cursor) || !::ScreenToClient(m_hWnd, &cursor) ||
+            !::PtInRect(m_resizeGrip, cursor)) return FALSE;
+    }
+    ::SetCursor(::LoadCursorW(nullptr, m_resizeMode == RESIZE_VERT ? IDC_SIZEWE : IDC_SIZENS));
+    return TRUE;
+}
+
 LRESULT CMFCTabCtrl::WindowProc(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_NCHITTEST) {
+        POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        if (::ScreenToClient(m_hWnd, &point) && ::PtInRect(m_resizeGrip, point)) return HTCLIENT;
+    } else if (message == WM_SETCURSOR && SetResizeCursor()) {
+        return TRUE;
+    }
+    if (m_resizing) {
+        if (message == WM_MOUSEMOVE || message == WM_LBUTTONUP) {
+            const CPoint point(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            if (message == WM_MOUSEMOVE) OnMouseMove(static_cast<UINT>(wParam), point);
+            else OnLButtonUp(static_cast<UINT>(wParam), point);
+            return 0;
+        }
+        const bool escape = message == WM_KEYDOWN && wParam == VK_ESCAPE;
+        if (escape || message == WM_CANCELMODE || message == WM_CAPTURECHANGED || message == WM_NCDESTROY) {
+            const HWND control = m_hWnd;
+            StopResize(TRUE);
+            if (escape || CWnd::FromHandlePermanent(control) != this) return 0;
+        }
+    }
     if (auto* scrollbar = GetScrollBar()) {
         if (message == WM_HSCROLL && lParam && reinterpret_cast<HWND>(lParam) == scrollbar->GetSafeHwnd()) {
             OnHScroll(LOWORD(wParam), HIWORD(wParam), scrollbar);
@@ -840,6 +935,18 @@ void CMFCTabCtrl::RecalcLayout() {
     auto& state = EnsureTabCtrlState(this);
     RECT client{};
     if (!::GetClientRect(m_hWnd, &client)) return;
+
+    m_resizeGrip.SetRectEmpty();
+    constexpr LONG resizeSpace = 6;
+    if (m_resizeMode == RESIZE_VERT) {
+        const LONG edge = client.right;
+        client.right = (std::max)(client.left, edge - resizeSpace);
+        m_resizeGrip.SetRect(client.right + 1, client.top, edge, client.bottom);
+    } else if (m_resizeMode == RESIZE_HORIZ) {
+        const LONG edge = client.bottom;
+        client.bottom = (std::max)(client.top, edge - resizeSpace);
+        m_resizeGrip.SetRect(client.left, client.bottom + 1, client.right, edge);
+    }
 
     const int inset = (std::clamp)(state.tabBorderSize, 0,
         static_cast<int>((std::min)(client.right, client.bottom)) / 2);
@@ -1097,6 +1204,12 @@ void CMFCTabCtrl::DrawTabs(CDC* dc) {
     RECT client{};
     ::GetClientRect(m_hWnd, &client);
     ::FillRect(handle, &client, ::GetSysColorBrush(COLOR_BTNFACE));
+    if (!m_resizeGrip.IsRectEmpty()) {
+        RECT edge = *static_cast<const RECT*>(m_resizeGrip);
+        if (m_resizeMode == RESIZE_VERT) edge.right = edge.left + 1;
+        else edge.bottom = edge.top + 1;
+        ::FillRect(handle, &edge, ::GetSysColorBrush(COLOR_BTNSHADOW));
+    }
     auto* visualManager = CMFCVisualManager::GetInstance();
     const int saved = ::SaveDC(handle);
     if (!saved) return;
@@ -1214,6 +1327,7 @@ void SelectTabAndFocus(CMFCTabCtrl& tabs, int index) {
 }
 
 void CMFCTabCtrl::OnLButtonDown(UINT, CPoint point) {
+    if (StartResize(point)) return;
     if (const auto* state = FindTabCtrlState(this)) {
         if (ScrollTabStrip(*this, *state, point)) return;
         const RECT documents = DocumentsButtonBounds(*state);
@@ -1256,6 +1370,7 @@ void CMFCTabCtrl::EnableInPlaceEdit(BOOL enable) {
 }
 
 void CMFCTabCtrl::OnLButtonDblClk(UINT flags, CPoint point) {
+    if (::PtInRect(m_resizeGrip, point)) return;
     if (const auto* state = FindTabCtrlState(this)) {
         const RECT documents = DocumentsButtonBounds(*state);
         const RECT close = TabCloseButtonBounds(*state);
@@ -1343,17 +1458,11 @@ extern "C" void MS_ABI impl__DrawFlatTab_CMFCTabCtrl__MEAAXPEAVCDC__PEAVCMFCTabI
     (void)pThis; (void)pDC; (void)pTabInfo; (void)nTab;
 }
 
-// Retail RVA 0x13b890 (mfc140 ANSI twin) hit-tests the strip and resize
-// rectangles and selects cursors from global cursor data. Those rectangles
-// are unmodeled, so use the CWnd default path as a conservative fallback.
 // Symbol: ?OnSetCursor@CMFCTabCtrl@@IEAAHPEAVCWnd@@II@Z
 extern "C" int MS_ABI impl__OnSetCursor_CMFCTabCtrl__IEAAHPEAVCWnd__II_Z(
-    CMFCTabCtrl* pThis, CWnd* pWnd, unsigned int nHitTest, unsigned int message)
+    CMFCTabCtrl* pThis, CWnd*, UINT, UINT)
 {
-    (void)pWnd; (void)nHitTest; (void)message;
-    if (!pThis) return FALSE;
-    return static_cast<int>(impl__Default_CWnd__IEAA_JXZ(
-        static_cast<CWnd*>(pThis)));
+    return pThis && (pThis->SetResizeCursor() || impl__Default_CWnd__IEAA_JXZ(pThis));
 }
 
 // Retail RVA 0x13cbe0 (mfc140 ANSI twin) calls CWnd::OnSetFocus (entry RVA
@@ -1755,13 +1864,11 @@ extern "C" int MS_ABI impl__SetImageList_CMFCTabCtrl__UEAAHPEAU_IMAGELIST___Z(
         static_cast<CMFCBaseTabCtrl*>(pThis), hImageList);
 }
 
-// STUB: Retail RVA 0x13d960 (mfc140 ANSI twin) stores resize mode at +0x3d28
-// and relayouts through vtable byte offset 0x318 (slot 99); neither is modeled.
 // Symbol: ?SetResizeMode@CMFCTabCtrl@@QEAAXW4ResizeMode@1@@Z
 extern "C" void MS_ABI impl__SetResizeMode_CMFCTabCtrl__QEAAXW4ResizeMode_1__Z(
-    CMFCTabCtrl* pThis, int resizeMode)
+    CMFCTabCtrl* pThis, int mode)
 {
-    (void)pThis; (void)resizeMode;
+    if (pThis) pThis->SetResizeMode(static_cast<CMFCTabCtrl::ResizeMode>(mode));
 }
 
 // STUB: Retail RVA 0x13d080 (mfc140 ANSI twin) configures the internal scroll
@@ -1778,13 +1885,10 @@ extern "C" void MS_ABI impl__SetTabMaxWidth_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* p
     if (pThis) pThis->SetTabMaxWidth(width);
 }
 
-// STUB: Retail RVA 0x13bb20 (mfc140 ANSI twin) exits resize-drag state,
-// redraws rectangles, and may send a message using unmodeled drag/window state.
 // Symbol: ?StopResize@CMFCTabCtrl@@QEAAXH@Z
-extern "C" void MS_ABI impl__StopResize_CMFCTabCtrl__QEAAXH_Z(
-    CMFCTabCtrl* pThis, int bCancel)
+extern "C" void MS_ABI impl__StopResize_CMFCTabCtrl__QEAAXH_Z(CMFCTabCtrl* pThis, BOOL cancel)
 {
-    (void)pThis; (void)bCancel;
+    if (pThis) pThis->StopResize(cancel);
 }
 
 // Symbol: ?SwapTabs@CMFCTabCtrl@@UEAAXHH@Z

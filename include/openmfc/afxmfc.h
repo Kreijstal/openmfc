@@ -1464,6 +1464,7 @@ public:
         STYLE_3D_SCROLLED = 3, STYLE_3D_ONENOTE = 4, STYLE_3D_VS2005 = 5,
         STYLE_3D_ROUNDED = 6, STYLE_3D_ROUNDED_SCROLL = 7
     };
+    enum ResizeMode : int { RESIZE_NO = 0, RESIZE_VERT = 1, RESIZE_HORIZ = 2 };
     CMFCTabCtrl();
     virtual ~CMFCTabCtrl();
 
@@ -1473,6 +1474,13 @@ public:
     BOOL SynchronizeScrollBar(SCROLLINFO* info = nullptr);
     void HideActiveWindowHorzScrollBar();
     void AdjustWndScroll();
+    void SetResizeMode(ResizeMode mode);
+    ResizeMode GetResizeMode() const { return m_resizeMode; }
+    void StopResize(BOOL cancel);
+    void DrawResizeDragRect(const CRect& next, const CRect& previous);
+    BOOL SetResizeCursor();
+    void OnMouseMove(UINT flags, CPoint point);
+    void OnLButtonUp(UINT flags, CPoint point);
     void OnHScroll(UINT code, UINT position, CScrollBar* source);
     LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
     BOOL OnNotify(WPARAM id, LPARAM notification, LRESULT* result) override;
@@ -1497,9 +1505,21 @@ public:
     void OnSize(UINT type, int width, int height);
 
 protected:
-    char _mfctabctrl_scroll_prefix[0xe0]{};
+    char _mfctabctrl_scroll_prefix[0x4c]{};
+    BOOL m_resizing = FALSE;
+    char _mfctabctrl_resize_prefix[0x5c]{};
+    CRect m_resizeGrip{};
+    CRect m_resizeDrag{};
+    CRect m_resizeBounds{};
     CScrollBar m_wndScrollWnd;
-    char _mfctabctrl_padding[0x37e0]{};
+    char _mfctabctrl_padding[0x37a0]{};
+    ResizeMode m_resizeMode = RESIZE_NO;
+    char _mfctabctrl_tail[0x3c]{};
+
+private:
+    bool StartResize(CPoint point);
+
+protected:
     DECLARE_MESSAGE_MAP()
 };
 
