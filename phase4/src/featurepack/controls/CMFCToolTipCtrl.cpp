@@ -89,23 +89,9 @@ extern "C" const unsigned char impl__wndTop_CWnd__2V1_B[];                      
 extern "C" int   MS_ABI impl__GetToolTipInfo_CMFCVisualManager__UEAAHAEAVCMFCToolTipInfo__I_Z(CMFCVisualManager* pThis, CMFCToolTipInfo& params, unsigned int nType); // visualmanager/CMFCVisualManager.cpp:327
 extern "C" void  MS_ABI impl__OnFillToolTip_CMFCVisualManager__UEAAXPEAVCDC__PEAVCMFCToolTipCtrl__VCRect__AEAK3_Z(CMFCVisualManager* pThis, CDC* pDC, void* pToolTip, CRect rect, unsigned long& clrText, unsigned long& clrLine); // visualmanager/CMFCVisualManager.cpp:1797
 extern "C" int   MS_ABI impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(CMFCToolBar* pThis, CPoint point);                       // toolbar/CMFCToolBar.cpp:5087
-extern "C" CMFCToolBarButton* MS_ABI impl__GetButton_CMFCToolBar__QEBAPEAVCMFCToolBarButton__H_Z(const CMFCToolBar* pThis, int nIndex); // toolbar/Thunks.cpp:1193
 extern "C" void* impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA;                 // toolbar/CMFCToolBar.cpp:3672; 0x3be370 (mfc140u)
 extern "C" CMFCToolBarImages impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A;           // toolbar/CMFCToolBar.cpp:2874; 0x3c28e0 (mfc140u)
 extern "C" CMFCToolBarImages impl__m_Images_CMFCToolBar__1VCMFCToolBarImages__A;               // toolbar/CMFCToolBar.cpp:2860; 0x3c25a0 (mfc140u)
-extern "C" std::int32_t impl__m_bLargeIcons_CMFCToolBar__1HA;                                  // toolbar/StaticData.cpp:42; 0x3be368 (mfc140u)
-// CMFCToolBarImages::PrepareDrawImage is still a placeholder that returns 0
-// (toolbar/CMFCToolBarImages.cpp:930; retail ignores its result here anyway),
-// EndDrawImage is real (toolbar/CMFCToolBarImages.cpp:447).  The declaration
-// is the one controls/CMFCReBar.cpp:205 uses (CSize by value = one 8-byte
-// register).
-extern "C" int   MS_ABI impl__PrepareDrawImage_CMFCToolBarImages__QEAAHAEAUtagAFXDrawState__VCSize__H_Z(CMFCToolBarImages* pThis, void* pDS, long long sizeImageDest, int bFadeInactive);
-extern "C" void  MS_ABI impl__EndDrawImage_CMFCToolBarImages__QEAAXAEAUtagAFXDrawState___Z(CMFCToolBarImages* pThis, void* pDS);
-// CMFCToolBarButton::OnDraw(CDC*, const CRect&, CMFCToolBarImages*, BOOL bHorz,
-// BOOL bCustomizeMode, BOOL bHighlight, BOOL bDrawBorder, BOOL bGrayDisabledButtons)
-// is still an EMPTY placeholder (toolbar/CMFCToolBarButton.cpp:105), so the
-// toolbar arm of OnDrawIcon below paints nothing until it is implemented.
-extern "C" void  MS_ABI impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(CMFCToolBarButton* pThis, CDC* pDC, const CRect* pRect, CMFCToolBarImages* pImages, int bHorz, int bCustomizeMode, int bHighlight, int bDrawBorder, int bGrayDisabledButtons);
 namespace {
 
 static_assert(sizeof(CString) == 8, "CString must be a single m_pszData pointer");
@@ -118,42 +104,8 @@ static_assert(sizeof(CMFCToolBar) == 0x1350, "CMFCToolBar retail size (afxmfc.h 
 static_assert(sizeof(CMFCToolBarImages) == 0x198, "CMFCToolBarImages retail size (afxmfc.h harvested layout)");
 static_assert(sizeof(CMFCToolBarButton) >= 0x50, "the CMFCToolBarButton members read below sit inside the afxmfc.h layout");
 
-inline CWnd* AsWnd(void* p) { return static_cast<CWnd*>(p); }
-
-// CMFCToolBar / CMFCToolBarButton / CMFCToolBarImages members the retail
-// bodies read directly.  afxmfc.h declares the three classes with the
-// harvested retail layout; the CMFCToolBar and CMFCToolBarButton members are
-// accessible there and are pinned below, the two CMFCToolBarImages members are
-// protected and are reached by offset (the offsets afxmfc.h's layout comment
-// carries, the same ones controls/CMFCReBar.cpp uses):
-constexpr std::size_t kTbOffImagesLocked     = 0x3f8;    // CMFCToolBar::m_ImagesLocked      (CMFCToolBarImages)
-constexpr std::size_t kTbOffMenuImagesLocked = 0xd88;    // CMFCToolBar::m_MenuImagesLocked  (CMFCToolBarImages)
-constexpr std::size_t kTbOffLocked           = 0x10b8;   // CMFCToolBar::m_bLocked           (BOOL)
-constexpr std::size_t kTbbOffUserButton      = 0x08;     // CMFCToolBarButton::m_bUserButton
-constexpr std::size_t kTbbOffText            = 0x0c;     // CMFCToolBarButton::m_bText
-constexpr std::size_t kTbbOffImage           = 0x10;     // CMFCToolBarButton::m_bImage
-constexpr std::size_t kTbbOffStyle           = 0x28;     // CMFCToolBarButton::m_nStyle
-constexpr std::size_t kTbbOffImageIndex      = 0x48;     // CMFCToolBarButton::m_iImage
-constexpr std::size_t kTbbOffUserImageIndex  = 0x4c;     // CMFCToolBarButton::m_iUserImage
-constexpr std::size_t kTiOffCount            = 0x08;     // CMFCToolBarImages::m_iCount
-constexpr std::size_t kTiOffSizeImage        = 0x68;     // CMFCToolBarImages::m_sizeImage (CSize)
-static_assert(offsetof(CMFCToolBar, m_ImagesLocked) == kTbOffImagesLocked, "CMFCToolBar::m_ImagesLocked @0x3f8");
-static_assert(offsetof(CMFCToolBar, m_MenuImagesLocked) == kTbOffMenuImagesLocked, "CMFCToolBar::m_MenuImagesLocked @0xd88");
-static_assert(offsetof(CMFCToolBar, m_bLocked) == kTbOffLocked, "CMFCToolBar::m_bLocked @0x10b8");
-static_assert(offsetof(CMFCToolBarButton, m_bUserButton) == kTbbOffUserButton, "CMFCToolBarButton::m_bUserButton @0x8");
-static_assert(offsetof(CMFCToolBarButton, m_bText) == kTbbOffText, "CMFCToolBarButton::m_bText @0xc");
-static_assert(offsetof(CMFCToolBarButton, m_bImage) == kTbbOffImage, "CMFCToolBarButton::m_bImage @0x10");
-static_assert(offsetof(CMFCToolBarButton, m_nStyle) == kTbbOffStyle, "CMFCToolBarButton::m_nStyle @0x28");
-static_assert(offsetof(CMFCToolBarButton, m_iImage) == kTbbOffImageIndex, "CMFCToolBarButton::m_iImage @0x48");
-static_assert(offsetof(CMFCToolBarButton, m_iUserImage) == kTbbOffUserImageIndex, "CMFCToolBarButton::m_iUserImage @0x4c");
-
-inline int  RdInt(const void* p, std::size_t off) { int v; std::memcpy(&v, static_cast<const unsigned char*>(p) + off, sizeof v); return v; }
+inline int RdInt(const void* p, std::size_t off) { int v; std::memcpy(&v, static_cast<const unsigned char*>(p) + off, sizeof v); return v; }
 inline void WrInt(void* p, std::size_t off, int v) { std::memcpy(static_cast<unsigned char*>(p) + off, &v, sizeof v); }
-inline CSize RdSize(const void* p, std::size_t off) { CSize s; std::memcpy(&s, static_cast<const unsigned char*>(p) + off, sizeof s); return s; }
-inline CMFCToolBarImages* TbImagesAt(CMFCToolBar* pBar, std::size_t off) { return reinterpret_cast<CMFCToolBarImages*>(reinterpret_cast<unsigned char*>(pBar) + off); }
-// CMFCToolBarButton::GetImage() as retail inlines it (the neg/sbb/and $4 at
-// 0x18180c in GetIconSize): m_bUserButton ? m_iUserImage : m_iImage.
-inline int TbbImage(const CMFCToolBarButton* pBtn) { return RdInt(pBtn, RdInt(pBtn, kTbbOffUserButton) != 0 ? kTbbOffUserImageIndex : kTbbOffImageIndex); }
 
 // ---- afxGlobalData (deviation (4)) ----------------------------------------
 constexpr std::size_t kGdOffInitGate           = 0x000;
@@ -388,24 +340,21 @@ void CMFCToolTipCtrl::GetHotButton() {
 
     POINT pt = { 0, 0 };
     ::GetCursorPos(&pt);
-    ::ScreenToClient(AsWnd(pBar)->m_hWnd, &pt);
+    ::ScreenToClient(pBar->GetSafeHwnd(), &pt);
     const int nHit = impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(pBar, CPoint(pt.x, pt.y));
-    m_pHotButton = impl__GetButton_CMFCToolBar__QEBAPEAVCMFCToolBarButton__H_Z(pBar, nHit);
+    m_pHotButton = pBar->GetButton(nHit);
     if (m_pHotButton == nullptr) return;
 
-    if (RdInt(pBar, kTbOffLocked) != 0) {
-        CMFCToolBarImages* pMenuLocked = TbImagesAt(pBar, kTbOffMenuImagesLocked);
-        if (RdInt(pMenuLocked, kTiOffCount) > 0) {
-            m_pToolBarImages = pMenuLocked;
-        } else {
-            CMFCToolBarImages* pLocked = TbImagesAt(pBar, kTbOffImagesLocked);
-            m_pToolBarImages = RdInt(pLocked, kTiOffCount) > 0 ? pLocked : nullptr;
-        }
-    } else if (RdInt(m_pHotButton, kTbbOffUserButton) != 0) {
+    if (pBar->m_bLocked) {
+        if (pBar->m_MenuImagesLocked.GetCount() > 0)
+            m_pToolBarImages = &pBar->m_MenuImagesLocked;
+        else if (pBar->m_ImagesLocked.GetCount() > 0)
+            m_pToolBarImages = &pBar->m_ImagesLocked;
+    } else if (m_pHotButton->m_bUserButton) {
         m_pToolBarImages = static_cast<CMFCToolBarImages*>(impl__m_pUserImages_CMFCToolBar__1PEAVCMFCToolBarImages__EA);
     } else {
         m_pToolBarImages = &impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A;
-        if (RdInt(&impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A, kTiOffCount) <= 0) {
+        if (impl__m_MenuImages_CMFCToolBar__1VCMFCToolBarImages__A.GetCount() <= 0) {
             m_pToolBarImages = &impl__m_Images_CMFCToolBar__1VCMFCToolBarImages__A;
         }
     }
@@ -432,12 +381,6 @@ extern "C" int MS_ABI impl__GetFixedWidth_CMFCToolTipCtrl__IEAAHXZ(CMFCToolTipCt
     return tooltip ? tooltip->GetFixedWidth() : 0;
 }
 
-// CMFCToolTipCtrl::GetIconSize() -- RVA 0x1816d0 (mfc140u).  The toolbar arm is
-// transcribed:
-//     if (m_pHotButton == NULL || m_pToolBarImages == NULL) return CSize(0,0);   // +0x130 / +0x128
-//     if (m_pToolBarImages->m_iCount == 0) return CSize(0,0);                    // +0x8
-//     if (m_pHotButton->GetImage() < 0) return CSize(0,0);                       // inline: +0x48 or +0x4c by m_bUserButton
-//     return m_pToolBarImages->m_sizeImage;                                       // +0x68
 CSize CMFCToolTipCtrl::GetIconSize() {
     CSize size(0, 0);
     if (m_pRibbonButton != nullptr) {
@@ -455,10 +398,8 @@ CSize CMFCToolTipCtrl::GetIconSize() {
         return size;
     }
     if (m_pHotButton == nullptr || m_pToolBarImages == nullptr) return size;
-    if (RdInt(m_pToolBarImages, kTiOffCount) == 0) return size;
-    if (TbbImage(m_pHotButton) < 0) return size;
-    size = RdSize(m_pToolBarImages, kTiOffSizeImage);
-    return size;
+    const int index = m_pHotButton->GetImage();
+    return index >= 0 && index < m_pToolBarImages->GetCount() ? m_pToolBarImages->GetImageSize() : size;
 }
 
 // Symbol: ?GetIconSize@CMFCToolTipCtrl@@UEAA?AVCSize@@XZ
@@ -596,17 +537,6 @@ extern "C" void MS_ABI impl__OnDrawBorder_CMFCToolTipCtrl__UEAAXPEAVCDC__VCRect_
     if (tooltip) tooltip->CMFCToolTipCtrl::OnDrawBorder(dc, rect, line);
 }
 
-// CMFCToolTipCtrl::OnDrawIcon(CDC* pDC, CRect rectImage) -- RVA 0x181980
-// (mfc140u).  The toolbar arm is transcribed:
-//     if (m_pHotButton == NULL || m_pToolBarImages == NULL) return FALSE;      // +0x130 / +0x128
-//     CAfxDrawState ds; m_pToolBarImages->PrepareDrawImage(ds, CSize(0,0), FALSE);   // 0x16c060 (result ignored)
-//     BOOL  bLargeIcons = CMFCToolBar::m_bLargeIcons;   UINT nStyle = m_pHotButton->m_nStyle;   // 0x3be368, +0x28
-//     BOOL  bText = m_pHotButton->m_bText;              BOOL bImage = m_pHotButton->m_bImage;   // +0xc, +0x10
-//     CMFCToolBar::m_bLargeIcons = FALSE; m_pHotButton->m_bText = FALSE; m_pHotButton->m_bImage = TRUE; m_pHotButton->m_nStyle = 0;
-//     m_pHotButton->CMFCToolBarButton::OnDraw(pDC, rectImage, m_pToolBarImages, TRUE, FALSE, FALSE, TRUE, TRUE);   // DIRECT call 0x15c910 (not virtual)
-//     m_pHotButton->m_nStyle = nStyle; m_pHotButton->m_bText = bText; m_pHotButton->m_bImage = bImage; CMFCToolBar::m_bLargeIcons = bLargeIcons;
-//     m_pToolBarImages->EndDrawImage(ds);                                       // 0x16c270
-//     return TRUE;
 BOOL CMFCToolTipCtrl::OnDrawIcon(CDC* pDC, CRect rectImage) {
     if (m_pRibbonButton != nullptr) {
         if (!pDC || !pDC->m_hDC || rectImage.IsRectEmpty()) return FALSE;
@@ -616,30 +546,8 @@ BOOL CMFCToolTipCtrl::OnDrawIcon(CDC* pDC, CRect rectImage) {
             static_cast<CMFCRibbonBaseElement::RibbonImageType>(m_nRibbonImageType), rectImage);
         return TRUE;
     }
-    if (m_pHotButton == nullptr || m_pToolBarImages == nullptr) return FALSE;
-
-    HBITMAP ds[3] = { nullptr, nullptr, nullptr };   // CAfxDrawState { hbmMono, hbmMonoOld, hbmOldGlyphs } (as controls/CMFCReBar.cpp models it)
-    impl__PrepareDrawImage_CMFCToolBarImages__QEAAHAEAUtagAFXDrawState__VCSize__H_Z(m_pToolBarImages, ds, 0, FALSE);
-
-    CMFCToolBarButton* pBtn = m_pHotButton;
-    const int bLargeIcons = impl__m_bLargeIcons_CMFCToolBar__1HA;
-    const int nStyle = RdInt(pBtn, kTbbOffStyle);
-    const int bText  = RdInt(pBtn, kTbbOffText);
-    const int bImage = RdInt(pBtn, kTbbOffImage);
-    impl__m_bLargeIcons_CMFCToolBar__1HA = 0;
-    WrInt(pBtn, kTbbOffText, 0);
-    WrInt(pBtn, kTbbOffImage, 1);
-    WrInt(pBtn, kTbbOffStyle, 0);
-
-    impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(
-        pBtn, pDC, &rectImage, m_pToolBarImages, TRUE, FALSE, FALSE, TRUE, TRUE);
-
-    WrInt(pBtn, kTbbOffStyle, nStyle);
-    WrInt(pBtn, kTbbOffText, bText);
-    WrInt(pBtn, kTbbOffImage, bImage);
-    impl__m_bLargeIcons_CMFCToolBar__1HA = bLargeIcons;
-    impl__EndDrawImage_CMFCToolBarImages__QEAAXAEAUtagAFXDrawState___Z(m_pToolBarImages, ds);
-    return TRUE;
+    return m_pHotButton && m_pToolBarImages &&
+        m_pToolBarImages->DrawEx(pDC, rectImage, m_pHotButton->GetImage());
 }
 
 // Symbol: ?OnDrawIcon@CMFCToolTipCtrl@@UEAAHPEAVCDC@@VCRect@@@Z

@@ -6,6 +6,10 @@
 #include "detail/GdicoreSupport.h"
 #include "detail/CMFCToolBarImagesSupport.h"
 
+#include <climits>
+#include <memory>
+#include <type_traits>
+
 #define InitImagesMembers() InitMembers()
 // Symbol: ??0CMFCToolBarImages@@QEAA@XZ
 CMFCToolBarImages::CMFCToolBarImages() {
@@ -19,39 +23,143 @@ CMFCToolBarImages::CMFCToolBarImages(BOOL bReadOnly) {
 #undef InitImagesMembers
 // Symbol: ??1CMFCToolBarImages@@UEAA@XZ
 CMFCToolBarImages::~CMFCToolBarImages() {
+    ReleaseImageWell();
     RemoveToolBarImagesState(this);
 }
+namespace {
+extern "C" HINSTANCE MS_ABI impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(const wchar_t*, const wchar_t*);
+extern "C" BOOL MS_ABI impl__Load_CPngImage__QEAAHPEB_WPEAUHINSTANCE_____Z(void*, const wchar_t*, HINSTANCE);
+extern "C" BOOL MS_ABI impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP____H_Z(HBITMAP, int);
+
+using OwnedBitmap = std::unique_ptr<std::remove_pointer_t<HBITMAP>, decltype(&::DeleteObject)>;
+using MemoryDC = std::unique_ptr<std::remove_pointer_t<HDC>, decltype(&::DeleteDC)>;
+
+OwnedBitmap LoadImageResource(const wchar_t* name, HINSTANCE module, BOOL autoCheckAlpha) {
+    if (!name) return {nullptr, &::DeleteObject};
+    const auto pngModule = module ? module :
+        impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, L"PNG");
+    CBitmap png;
+    if (pngModule && impl__Load_CPngImage__QEAAHPEB_WPEAUHINSTANCE_____Z(&png, name, pngModule))
+        return {static_cast<HBITMAP>(png.Detach()), &::DeleteObject};
+
+    const auto bitmapModule = module ? module :
+        impl__AfxFindResourceHandle__YAPEAUHINSTANCE____PEB_W0_Z(name, RT_BITMAP);
+    OwnedBitmap bitmap(static_cast<HBITMAP>(::LoadImageW(bitmapModule, name, IMAGE_BITMAP,
+                                                        0, 0, LR_CREATEDIBSECTION)), &::DeleteObject);
+    if (bitmap)
+        impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP____H_Z(bitmap.get(), autoCheckAlpha);
+    return bitmap;
+}
+
+OwnedBitmap JoinStrips(HBITMAP first, const BITMAP& firstInfo, HBITMAP last, const BITMAP& lastInfo) {
+    OwnedBitmap result(nullptr, &::DeleteObject);
+    if (firstInfo.bmWidth > INT_MAX - lastInfo.bmWidth || firstInfo.bmHeight != lastInfo.bmHeight ||
+        firstInfo.bmBitsPixel != lastInfo.bmBitsPixel) return result;
+    MemoryDC src(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    MemoryDC dst(::CreateCompatibleDC(nullptr), &::DeleteDC);
+    if (!src || !dst || !::SelectObject(src.get(), first)) return result;
+    const LONG width = firstInfo.bmWidth + lastInfo.bmWidth;
+    if (firstInfo.bmBitsPixel == 32) {
+        BITMAPINFO info{};
+        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth = width;
+        info.bmiHeader.biHeight = firstInfo.bmHeight;
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        void* pixels = nullptr;
+        result.reset(::CreateDIBSection(dst.get(), &info, DIB_RGB_COLORS, &pixels, nullptr, 0));
+    } else {
+        result.reset(::CreateCompatibleBitmap(src.get(), width, firstInfo.bmHeight));
+    }
+    if (!result) return result;
+
+    const auto oldDst = ::SelectObject(dst.get(), result.get());
+    BOOL copied = oldDst &&
+        ::BitBlt(dst.get(), 0, 0, firstInfo.bmWidth, firstInfo.bmHeight, src.get(), 0, 0, SRCCOPY) &&
+        ::SelectObject(src.get(), last) &&
+        ::BitBlt(dst.get(), firstInfo.bmWidth, 0, lastInfo.bmWidth, lastInfo.bmHeight, src.get(), 0, 0, SRCCOPY);
+    if (oldDst) ::SelectObject(dst.get(), oldDst);
+    if (!copied) result.reset();
+    return result;
+}
+} // namespace
+
+void CMFCToolBarImages::ReleaseImageWell() {
+    if (!m_bIsTemporary) {
+        if (m_hbmImageWell) ::DeleteObject(m_hbmImageWell);
+        if (m_hbmImageLight) ::DeleteObject(m_hbmImageLight);
+        if (m_hbmImageShadow) ::DeleteObject(m_hbmImageShadow);
+    }
+    m_hbmImageWell = m_hbmImageLight = m_hbmImageShadow = nullptr;
+    m_iCount = 0;
+    m_nBitsPerPixel = 0;
+}
+
+int CMFCToolBarImages::StoreImageStrip(HBITMAP bitmap, BOOL append) {
+    BITMAP info{};
+    if (m_bIsTemporary || !bitmap || !::GetObjectW(bitmap, sizeof(info), &info) ||
+        info.bmWidth <= 0 || info.bmHeight <= 0) return -1;
+
+    // Resource strips are a single row of cells. When no size has been set,
+    // keep the default cell width for a strip and accept a custom single icon.
+    CSize size = m_sizeImage;
+    if (!m_hbmImageWell && size.cx == 16 && size.cy == 15 && info.bmHeight != size.cy) {
+        size = CSize(info.bmWidth < size.cx ? info.bmWidth : size.cx, info.bmHeight);
+    }
+    if (size.cx <= 0 || size.cy <= 0 || info.bmWidth < size.cx || info.bmHeight != size.cy) return -1;
+
+    OwnedBitmap stored(nullptr, &::DeleteObject);
+    int first = 0;
+    if (append && m_hbmImageWell) {
+        BITMAP oldInfo{};
+        if (!::GetObjectW(m_hbmImageWell, sizeof(oldInfo), &oldInfo) ||
+            oldInfo.bmWidth % size.cx != 0 || info.bmWidth % size.cx != 0) return -1;
+        first = oldInfo.bmWidth / size.cx;
+        stored = JoinStrips(m_hbmImageWell, oldInfo, bitmap, info);
+    } else {
+        stored.reset(static_cast<HBITMAP>(::CopyImage(bitmap, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION)));
+    }
+    if (!stored) return -1;
+    ReleaseImageWell();
+    m_hbmImageWell = stored.release();
+    m_sizeImage = size;
+    m_iCount = first + info.bmWidth / size.cx;
+    m_nBitsPerPixel = info.bmBitsPixel;
+    return first;
+}
+
 // Symbol: ?Load@CMFCToolBarImages@@QEAAHIPEAUHINSTANCE__@@H@Z
 BOOL CMFCToolBarImages::Load(UINT nIDResource, HINSTANCE hInstRes, BOOL bAdd) {
-    if (!hInstRes) hInstRes = AfxGetInstanceHandle();
-    HBITMAP hbm = ::LoadBitmapW(hInstRes, MAKEINTRESOURCEW(nIDResource));
-    if (!hbm) return FALSE;
-    ::DeleteObject(hbm);
-    ToolBarImagesState& state = EnsureToolBarImagesState(this);
-    if (!bAdd) state.count = 0;
-    ++state.count;
-    state.isValid = TRUE;
-    return TRUE;
+    return nIDResource && nIDResource <= 0xffff && LoadStr(MAKEINTRESOURCEW(nIDResource), hInstRes, bAdd);
 }
+
 // Symbol: ?Load@CMFCToolBarImages@@QEAAHPEB_WK@Z
-BOOL CMFCToolBarImages::Load(const wchar_t* lpszBitmapFileName, DWORD) {
-    if (!lpszBitmapFileName || lpszBitmapFileName[0] == 0) return FALSE;
-    ToolBarImagesState& state = EnsureToolBarImagesState(this);
-    state.count = 1;
-    state.isValid = TRUE;
+BOOL CMFCToolBarImages::Load(const wchar_t* file, DWORD maxFileSize) {
+    if (m_bIsTemporary || !file || !*file) return FALSE;
+    WIN32_FILE_ATTRIBUTE_DATA attributes{};
+    if (!::GetFileAttributesExW(file, GetFileExInfoStandard, &attributes) ||
+        (attributes.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ||
+        (maxFileSize && (attributes.nFileSizeHigh || attributes.nFileSizeLow > maxFileSize))) return FALSE;
+    const OwnedBitmap bitmap(static_cast<HBITMAP>(::LoadImageW(nullptr, file, IMAGE_BITMAP, 0, 0,
+                                                            LR_LOADFROMFILE | LR_CREATEDIBSECTION)), &::DeleteObject);
+    if (!bitmap || StoreImageStrip(bitmap.get(), FALSE) < 0) return FALSE;
+    impl__PreMultiplyAlpha_CMFCToolBarImages__SAHPEAUHBITMAP____H_Z(m_hbmImageWell, m_bAutoCheckPremlt);
+    ClearToolBarImagesState(this, TRUE);
+    m_bUserImagesList = TRUE;
+    m_bModified = FALSE;
+    m_strUDLPath = file;
     return TRUE;
 }
+
 // Symbol: ?LoadStr@CMFCToolBarImages@@QEAAHPEB_WPEAUHINSTANCE__@@H@Z
-BOOL CMFCToolBarImages::LoadStr(const wchar_t* lpszResourceName, HINSTANCE hInstRes, BOOL bAdd) {
-    if (!lpszResourceName) return FALSE;
-    if (!hInstRes) hInstRes = AfxGetInstanceHandle();
-    HBITMAP hbm = ::LoadBitmapW(hInstRes, lpszResourceName);
-    if (!hbm) return FALSE;
-    ::DeleteObject(hbm);
-    ToolBarImagesState& state = EnsureToolBarImagesState(this);
-    if (!bAdd) state.count = 0;
-    ++state.count;
-    state.isValid = TRUE;
+BOOL CMFCToolBarImages::LoadStr(const wchar_t* name, HINSTANCE module, BOOL append) {
+    if (m_bIsTemporary) return FALSE;
+    const auto bitmap = LoadImageResource(name, module, m_bAutoCheckPremlt);
+    if (!bitmap || StoreImageStrip(bitmap.get(), append) < 0) return FALSE;
+    ClearToolBarImagesState(this, TRUE);
+    m_bUserImagesList = FALSE;
+    m_bModified = FALSE;
+    m_strUDLPath.Empty();
     return TRUE;
 }
 // Symbol: ?Save@CMFCToolBarImages@@QEAAHPEB_W@Z
@@ -60,12 +168,9 @@ BOOL CMFCToolBarImages::Save(const wchar_t*) {
 }
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHPEAUHBITMAP__@@H@Z
 int CMFCToolBarImages::AddImage(HBITMAP hBitmap, BOOL) {
-    if (!hBitmap) return -1;
-    ToolBarImagesState& state = EnsureToolBarImagesState(this);
-    const int index = state.count;
-    ++state.count;
-    state.isValid = TRUE;
-    return index;
+    const int first = StoreImageStrip(hBitmap, TRUE);
+    if (first >= 0 && m_bUserImagesList) m_bModified = TRUE;
+    return first;
 }
 // Symbol: ?AddImage@CMFCToolBarImages@@QEAAHAEBV1@H@Z
 int CMFCToolBarImages::AddImage(const CMFCToolBarImages& images, BOOL) {
@@ -91,6 +196,8 @@ int CMFCToolBarImages::AddIcon(HICON hIcon, BOOL bAutoDestroy) {
 }
 // Symbol: ?Clear@CMFCToolBarImages@@QEAAXXZ
 void CMFCToolBarImages::Clear() {
+    ReleaseImageWell();
+    m_strUDLPath.Empty();
     InitMembers();
     ClearToolBarImagesState(this, TRUE);
 }
@@ -103,6 +210,8 @@ void CMFCToolBarImages::CommonInit(BOOL bFreeImageList) {
     m_bIsRTL = FALSE;                 // statics: reset the shared defaults
     m_nDisabledImageAlpha = 127;
     m_nFadedImageAlpha = 127;
+    ReleaseImageWell();
+    m_strUDLPath.Empty();
     InitMembers();
     ClearToolBarImagesState(this, bFreeImageList);
 }
@@ -192,16 +301,19 @@ void CMFCToolBarImages::InitMembers() {
     p->m_nBitsPerPixel = 0;
     p->m_nGrayImageLuminancePercentage = 0;
     p->m_nLightPercentage = 0;
+    p->m_sizeImage = CSize(16, 15);
     p->m_dblScale = 1.0;
     p->m_clrTransparent = RGB(192, 192, 192);
     p->m_clrTransparentOriginal = p->m_clrTransparent;
     p->m_clrImageShadow = RGB(128, 128, 128);
 }
 int CMFCToolBarImages::GetCount() const {
+    if (m_hbmImageWell) return m_iCount;
     const ToolBarImagesState* state = FindToolBarImagesState(this);
     return state ? state->count : 0;
 }
 BOOL CMFCToolBarImages::IsValid() const {
+    if (m_hbmImageWell) return TRUE;
     const ToolBarImagesState* state = FindToolBarImagesState(this);
     return state ? state->isValid : FALSE;
 }
@@ -417,19 +529,74 @@ extern "C" int MS_ABI impl__Draw_CMFCToolBarImages__QEAAHPEAVCDC__HHHHHHHHE_Z(
     // (0x18016c6d0) is not modeled.
     return 0;
 }
-// Retail (0x18016d0b0, ~400 bytes) draws the image aligned inside rect using
-// the rectSrc sub-image and the alpha pipeline; not modeled.
+namespace {
+void AlignImageAxis(int boundStart, int boundEnd, int& destStart, int& destEnd,
+                    int& sourceStart, int& sourceEnd, int align) {
+    if (align == 3) return;
+    const int extent = sourceEnd - sourceStart;
+    const int available = boundEnd - boundStart;
+    const int unused = available - extent;
+    const int anchor = boundStart + (align == 1 ? unused / 2 : align == 2 ? unused : 0);
+    destStart = (std::max)(boundStart, anchor);
+    destEnd = (std::min)(boundEnd, anchor + extent);
+    sourceStart += destStart - anchor;
+    sourceEnd = sourceStart + destEnd - destStart;
+}
+
+BOOL PaintImage(HDC dest, const CRect& rect, HDC src, const CRect& source,
+                bool perPixelAlpha, COLORREF key, BYTE alpha) {
+    static const auto blend = [] {
+        using AlphaBlendFunction = decltype(&::AlphaBlend);
+        const HMODULE msimg = ::LoadLibraryW(L"msimg32.dll");
+        return msimg ? reinterpret_cast<AlphaBlendFunction>(::GetProcAddress(msimg, "AlphaBlend")) : nullptr;
+    }();
+    if (perPixelAlpha) {
+        const BLENDFUNCTION function{AC_SRC_OVER, 0, alpha, AC_SRC_ALPHA};
+        return blend && blend(dest, rect.left, rect.top, rect.Width(), rect.Height(), src,
+            source.left, source.top, source.Width(), source.Height(), function);
+    }
+    if (key != CLR_INVALID) {
+        static const auto transparent = [] {
+            using TransparentBltFunction = decltype(&::TransparentBlt);
+            const HMODULE msimg = ::GetModuleHandleW(L"msimg32.dll");
+            return msimg ? reinterpret_cast<TransparentBltFunction>(::GetProcAddress(msimg, "TransparentBlt")) : nullptr;
+        }();
+        return transparent && transparent(dest, rect.left, rect.top, rect.Width(), rect.Height(), src,
+            source.left, source.top, source.Width(), source.Height(), key);
+    }
+    return ::StretchBlt(dest, rect.left, rect.top, rect.Width(), rect.Height(), src,
+        source.left, source.top, source.Width(), source.Height(), SRCCOPY);
+}
+} // namespace
+
+BOOL CMFCToolBarImages::DrawEx(CDC* dc, CRect bounds, int index, int horizontal, int vertical,
+                              CRect source, BYTE alpha) {
+    const HDC dest = dc ? dc->GetSafeHdc() : nullptr;
+    if (!dest || !m_hbmImageWell || bounds.IsRectEmpty() || index < 0 || index >= m_iCount ||
+        horizontal < 0 || horizontal > 3 || vertical < 0 || vertical > 3) return FALSE;
+
+    const CRect cell(0, 0, m_sizeImage.cx, m_sizeImage.cy);
+    if (source.IsRectEmpty()) source = cell;
+    if (!source.IntersectRect(source, cell)) return FALSE;
+    CRect rect = bounds;
+    AlignImageAxis(bounds.left, bounds.right, rect.left, rect.right, source.left, source.right, horizontal);
+    AlignImageAxis(bounds.top, bounds.bottom, rect.top, rect.bottom, source.top, source.bottom, vertical);
+    source.OffsetRect(index * m_sizeImage.cx, 0);
+    const MemoryDC src(::CreateCompatibleDC(dest), &::DeleteDC);
+    if (!src) return FALSE;
+    const auto old = ::SelectObject(src.get(), m_hbmImageWell);
+    if (!old) return FALSE;
+    const BOOL result = PaintImage(dest, rect, src.get(), source, m_nBitsPerPixel == 32, m_clrTransparent, alpha);
+    ::SelectObject(src.get(), old);
+    return result;
+}
+
 // Symbol: ?DrawEx@CMFCToolBarImages@@QEAAHPEAVCDC@@VCRect@@HW4ImageAlignHorz@1@W4ImageAlignVert@1@1E@Z
 extern "C" int MS_ABI impl__DrawEx_CMFCToolBarImages__QEAAHPEAVCDC__VCRect__HW4ImageAlignHorz_1_W4ImageAlignVert_1_1E_Z(
-    CMFCToolBarImages* pThis, CDC* pDC, CRect rect, int iImageIndex,
-    int horzAlign, int vertAlign, CRect rectSrc, unsigned char alphaSrc)
+    CMFCToolBarImages* images, CDC* dc, CRect bounds, int index, int horizontal, int vertical,
+    CRect source, BYTE alpha)
 {
-    (void)pDC; (void)rect; (void)iImageIndex; (void)horzAlign; (void)vertAlign;
-    (void)rectSrc; (void)alphaSrc;
-    if (!pThis) return 0;
-    // TODO(clean-room): transcribed partially -- the retail alignment draw
-    // (0x18016d0b0) is not modeled.
-    return 0;
+    return images && images->DrawEx(dc, bounds, index, horizontal, vertical, source, alpha);
 }
 #define TI_OFF_8(p, off)    (*reinterpret_cast<unsigned long long*>(reinterpret_cast<char*>(p) + (off)))
 #define TI_OFF_BOOL(p, off) (*reinterpret_cast<BOOL*>(reinterpret_cast<char*>(p) + (off)))
