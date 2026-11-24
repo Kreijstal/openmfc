@@ -86,7 +86,6 @@ extern "C" std::int32_t impl__m_bHandleMinSize_CPane__2HA;
 extern "C" void MS_ABI impl__SizeToContent_CPaneFrameWnd__UEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__OnTrackCaptionButtons_CPaneFrameWnd__MEAAXVCPoint___Z(void* pThis, CPoint point);
-extern "C" void  MS_ABI impl__RecalcCaptionHeight_CPaneFrameWnd__MEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__SetCaptionButtonsToolTips_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" int   MS_ABI impl__GetDockingMode_CPaneFrameWnd__UEBA_AW4AFX_DOCK_TYPE__XZ(const void* pThis);
 extern "C" void  MS_ABI impl__SetRollUpTimer_CPaneFrameWnd__IEAAXXZ(void* pThis);
@@ -104,8 +103,8 @@ extern "C" int   MS_ABI impl__PreCreateWindow_CWnd__UEAAHAEAUtagCREATESTRUCTW___
 // WM_TIMER interval SetRollUpTimer passes to ::SetTimer.  Defined in
 // phase4/src/featurepack/docking/StaticData.cpp.
 extern "C" unsigned int impl__m_nRollTimeOut_CPaneFrameWnd__2IA;
+extern "C" int MS_ABI impl__GetCaptionButtonTotalWidth_CPaneFrameWnd__IEBAHXZ(const void*);
 
-extern "C" void  MS_ABI impl__OnSettingChange_CWnd__IEAAXIPEB_W_Z(CWnd* pThis, unsigned int uFlags, const wchar_t* lpszSection);
 extern "C" void  MS_ABI impl__OnSetFocus_CWnd__IEAAXPEAV1__Z(CWnd* pThis, CWnd* pOldWnd);
 extern "C" void  MS_ABI impl__OnNcDestroy_CWnd__IEAAXXZ(CWnd* pThis);
 extern "C" void* MS_ABI impl__GetTopLevelParent_CWnd__QEBAPEAV1_XZ(const CWnd* pThis);
@@ -139,6 +138,16 @@ bool IsExposedPaneFrameAt(HWND window, POINT point) {
             return false;
     }
     return true;
+}
+
+CPane* EmbeddedPane(const void* frame) {
+    HWND pane = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_other6Mutex);
+        if (const auto* state = FindStatePtr(frame)) pane = state->paneHwnd;
+    }
+    auto* window = static_cast<CWnd*>(CWnd::FromHandlePermanent(pane));
+    return window && window->IsKindOf(RUNTIME_CLASS(CPane)) ? static_cast<CPane*>(window) : nullptr;
 }
 
 // Registry behind CPaneFrameWnd::m_mapFloatingBars. Retail mfc140.dll keeps a
@@ -325,6 +334,7 @@ extern "C" void MS_ABI impl__RemovePane_CPaneFrameWnd__UEAAXPEAVCBasePane__HH_Z(
 // Symbol: ?AdjustLayout@CPaneFrameWnd@@UEAAXXZ
 extern "C" void MS_ABI impl__AdjustLayout_CPaneFrameWnd__UEAAXXZ(void* pThis) {
     if (pThis == nullptr) return;
+    const int captionHeight = static_cast<CPaneFrameWnd*>(pThis)->GetCaptionHeight();
     std::lock_guard<std::mutex> lock(g_wave2Mutex);
     PaneState& state = g_framePanes[pThis];
     if (state.recentRect.Width() <= 0 || state.recentRect.Height() <= 0) {
@@ -333,16 +343,16 @@ extern "C" void MS_ABI impl__AdjustLayout_CPaneFrameWnd__UEAAXXZ(void* pThis) {
     if (state.minSize.cx <= 0) state.minSize.cx = kPaneFrameDefaultMinWidth;
     if (state.minSize.cy <= 0) state.minSize.cy = kPaneFrameDefaultMinHeight;
     if (state.rollUp) {
-        state.recentRect.bottom = state.recentRect.top + kPaneFrameCaptionHeight + kPaneFrameBorder;
+        state.recentRect.bottom = state.recentRect.top + captionHeight + kPaneFrameBorder;
     } else {
         if (state.recentRect.Width() < state.minSize.cx) {
             state.recentRect.right = state.recentRect.left + state.minSize.cx;
         }
-        if (state.recentRect.Height() < state.minSize.cy + kPaneFrameCaptionHeight) {
-            state.recentRect.bottom = state.recentRect.top + state.minSize.cy + kPaneFrameCaptionHeight;
+        if (state.recentRect.Height() < state.minSize.cy + captionHeight) {
+            state.recentRect.bottom = state.recentRect.top + state.minSize.cy + captionHeight;
         }
     }
-    state.rollUp = state.recentRect.Height() <= (kPaneFrameCaptionHeight + kPaneFrameBorder);
+    state.rollUp = state.recentRect.Height() <= (captionHeight + kPaneFrameBorder);
 }
 // Symbol: ?CalcBorderSize@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
 extern "C" void MS_ABI impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(void* pThis, CRect* pRect) {
@@ -353,25 +363,23 @@ extern "C" void MS_ABI impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(vo
     pRect->SetRect(border, border, border, border);
 }
 // Symbol: ?CalcMinSize@CPaneFrameWnd@@MEAAXAEAVCSize@@PEAUtagMINMAXINFO@@@Z
-extern "C" void MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(void* pThis, CSize* pSize, MINMAXINFO*) {
-    if (!pSize) return;
-    std::lock_guard<std::mutex> lock(g_wave2Mutex);
-    const PaneState& state = g_framePanes[pThis];
-    const int border = state.panes.empty() ? kPaneFrameBorder : kPaneFrameWideBorder;
-    pSize->cx = std::max(80, state.minSize.cx) + border;
-    pSize->cy = std::max(40, state.minSize.cy) + kPaneFrameCaptionHeight + border;
+extern "C" void MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(
+    void* pThis, CSize* size, MINMAXINFO* limits) {
+    if (pThis && size) static_cast<CPaneFrameWnd*>(pThis)->CPaneFrameWnd::CalcMinSize(*size, limits);
 }
 // Symbol: ?GetCaptionRect@CPaneFrameWnd@@UEBAXAEAVCRect@@@Z
 extern "C" void MS_ABI impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(void* pThis, CRect* rect) {
     if (!rect) return;
     WINDOWINFO info{sizeof(info)};
-    const HWND window = pThis ? HwndOf(pThis) : nullptr;
+    const auto* frame = static_cast<const CPaneFrameWnd*>(pThis);
+    const HWND window = frame ? frame->m_hWnd : nullptr;
     if (!::GetWindowInfo(window, &info) || (info.dwStyle & WS_CAPTION) != WS_CAPTION) {
         rect->SetRectEmpty();
         return;
     }
-    rect->SetRect(info.rcClient.left - info.rcWindow.left, info.cyWindowBorders,
-                  info.rcClient.right - info.rcWindow.left, info.rcClient.top - info.rcWindow.top);
+    const int bottom = info.rcClient.top - info.rcWindow.top;
+    rect->SetRect(info.rcClient.left - info.rcWindow.left, bottom - frame->GetCaptionHeight(),
+                  info.rcClient.right - info.rcWindow.left, bottom);
 }
 
 // Symbol: ?GetCaptionText@CPaneFrameWnd@@UEAA?AV?$CStringT@_WV?$StrTraitMFC_DLL@_WV?$ChTraitsCRT@_W@ATL@@@@@ATL@@XZ
@@ -508,7 +516,12 @@ void CPaneFrameWnd::CalcBorderSize(CRect& rect) const {
     impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(const_cast<CPaneFrameWnd*>(this), &rect);
 }
 void CPaneFrameWnd::CalcMinSize(CSize& size, MINMAXINFO* pMMI) {
-    impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(this, &size, pMMI);
+    if (!pMMI) return;
+    CRect borders(0, 0, 0, 0);
+    CalcBorderSize(borders);
+    const int buttonWidth = impl__GetCaptionButtonTotalWidth_CPaneFrameWnd__IEBAHXZ(this);
+    pMMI->ptMinTrackSize.x = (std::max)(m_sizeMinSize.cx, (std::max)(size.cx, buttonWidth) + borders.left + borders.right);
+    pMMI->ptMinTrackSize.y = (std::max)(m_sizeMinSize.cy, size.cy + GetCaptionHeight() + borders.top + borders.bottom);
 }
 void CPaneFrameWnd::GetCaptionRect(CRect& rect) const {
     impl__GetCaptionRect_CPaneFrameWnd__UEBAXAEAVCRect___Z(const_cast<CPaneFrameWnd*>(this), &rect);
@@ -557,15 +570,10 @@ extern "C" __int64 MS_ABI impl__HitTest_CPaneFrameWnd__UEAA_JVCPoint__H_Z(
     ::ClientToScreen(hwnd, reinterpret_cast<LPPOINT>(&clientRect.right));  // (right, bottom)
     if (clientRect.PtInRect(point)) return 1;    // inside client area
 
-    // Non-client strip: retail computes a caption rect from the border-size
-    // virtual (vtable 0x388) plus caption height (retail 0x114). Use the same
-    // shape with conservative constants.
-    const int borderX = 2;
-    const int borderY = 2;
-    const int captionHeight = 22;
-    CRect captionRect(winRect.left + borderX, winRect.top + borderY,
-                      winRect.right - borderX, winRect.top + borderY + captionHeight);
-    if (captionRect.PtInRect(point) && nIndex != 0) return 2;  // HTCAPTION-ish
+    CRect captionRect;
+    static_cast<CPaneFrameWnd*>(pThis)->GetCaptionRect(captionRect);
+    captionRect.OffsetRect(winRect.left, winRect.top);
+    if (captionRect.PtInRect(point) && nIndex != 0) return HTCAPTION;
     return 1;
 }
 // Symbol: ?IsCustModeAndNotFloatingToolbar@CPaneFrameWnd@@IEBAHXZ
@@ -905,14 +913,18 @@ extern "C" __int64 MS_ABI impl__OnFloatStatus_CPaneFrameWnd__IEAA_J_K_J_Z(
     return result;
 }
 // Symbol: ?OnGetMinMaxInfo@CPaneFrameWnd@@IEAAXPEAUtagMINMAXINFO@@@Z
-// Retail folds the hosted pane's min size into lpMMI via CDockablePane virtuals
-// (0x4f0/0x488) then tail-calls CWnd::OnGetMinMaxInfo -> Default(). Only the
-// Default() tail is reproducible here.
-// TODO(clean-room): transcribed partially.
 extern "C" void MS_ABI impl__OnGetMinMaxInfo_CPaneFrameWnd__IEAAXPEAUtagMINMAXINFO___Z(
-    void* pThis, MINMAXINFO* /*lpMMI*/) {
-    if (pThis == nullptr) return;
-    impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
+    void* pThis, MINMAXINFO* limits) {
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnGetMinMaxInfo(limits);
+}
+
+void CPaneFrameWnd::OnGetMinMaxInfo(MINMAXINFO* limits) {
+    if (auto* pane = EmbeddedPane(this); pane && limits) {
+        CSize size;
+        pane->GetMinSize(size);
+        CalcMinSize(size, limits);
+    }
+    Default();
 }
 // Symbol: ?OnIdleUpdateCmdUI@CPaneFrameWnd@@IEAA_J_K_J@Z
 // Retail (0xb37d0), transcribed: recompute whether the frame (or a child) owns
@@ -989,7 +1001,11 @@ extern "C" void MS_ABI impl__OnLButtonUp_CPaneFrameWnd__IEAAXIVCPoint___Z(
     void* pThis, unsigned int flags, CPoint point) {
     if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnLButtonUp(flags, point);
 }
-CPaneFrameWnd::CPaneFrameWnd() = default;
+CPaneFrameWnd::CPaneFrameWnd() {
+    static_assert(offsetof(CPaneFrameWnd, m_nCaptionHeight) == 0x114);
+    static_assert(offsetof(CPaneFrameWnd, m_sizeMinSize) == 0x160);
+    RecalcCaptionHeight();
+}
 
 void CPaneFrameWnd::DestroyPaneFrameWindow() {
     {
@@ -1576,8 +1592,24 @@ LRESULT CPaneFrameWnd::OnCaptionButtonDown(WPARAM hit, LPARAM position) {
 }
 
 LRESULT CPaneFrameWnd::OnCaptionHitTest(WPARAM, LPARAM position) {
-    if (const auto* button = HitCaptionButton(this, CaptionMessagePoint(position))) return button->m_nHit;
+    const CPoint screen = CaptionMessagePoint(position);
+    if (const auto* button = HitCaptionButton(this, screen)) return button->m_nHit;
     const LRESULT result = Default();
+    if (result == HTCLIENT || result == HTNOWHERE) {
+        CRect caption;
+        GetCaptionRect(caption);
+        RECT bounds{};
+        if (!caption.IsRectEmpty() && ::GetWindowRect(m_hWnd, &bounds)) {
+            caption.OffsetRect(bounds.left, bounds.top);
+            if (caption.PtInRect(screen)) return HTCAPTION;
+        }
+    }
+    if (result == HTCAPTION || result == HTCLOSE) {
+        POINT point = screen;
+        ::MapWindowPoints(HWND_DESKTOP, m_hWnd, &point, 1);
+        RECT client{};
+        if (::GetClientRect(m_hWnd, &client) && ::PtInRect(&client, point)) return HTCLIENT;
+    }
     if (result == HTCLOSE) {
         std::lock_guard<std::mutex> lock(g_other6Mutex);
         if (const auto* state = FindStatePtr(this); state && state->captionButtonsConfigured) return HTCAPTION;
@@ -1940,29 +1972,22 @@ extern "C" int MS_ABI impl__OnNcActivate_CPaneFrameWnd__IEAAHH_Z(void* pThis, in
 }
 
 // Symbol: ?OnNcCalcSize@CPaneFrameWnd@@IEAAXHPEAUtagNCCALCSIZE_PARAMS@@@Z
-// Retail (0xaf950), transcribed in full:
-//     CRect rectBorder(0,0,0,0);
-//     CalcBorderSize(rectBorder);                 // vtable 0x388
-//     lpncsp->rgrc[0].top    += m_nCaptionHeight /*0x114*/ + rectBorder.top;
-//     lpncsp->rgrc[0].bottom -= rectBorder.bottom;
-//     lpncsp->rgrc[0].left   += rectBorder.left;
-//     lpncsp->rgrc[0].right  -= rectBorder.right;
-//     CWnd::Default();
-// Deviation: m_nCaptionHeight has a PaneFrameState side slot, but RecalcCaptionHeight
-// cannot populate it without the unexported AFX_GLOBAL_DATA virtual at +0x298;
-// this handler therefore continues to use kPaneFrameCaptionHeight.
 extern "C" void MS_ABI impl__OnNcCalcSize_CPaneFrameWnd__IEAAXHPEAUtagNCCALCSIZE_PARAMS___Z(
-    void* pThis, int /*bCalcValidRects*/, NCCALCSIZE_PARAMS* lpncsp) {
-    if (pThis == nullptr) return;
-    if (lpncsp != nullptr) {
-        CRect rectBorder(0, 0, 0, 0);
-        impl__CalcBorderSize_CPaneFrameWnd__UEBAXAEAVCRect___Z(pThis, &rectBorder);
-        lpncsp->rgrc[0].top += kPaneFrameCaptionHeight + rectBorder.top;
-        lpncsp->rgrc[0].bottom -= rectBorder.bottom;
-        lpncsp->rgrc[0].left += rectBorder.left;
-        lpncsp->rgrc[0].right -= rectBorder.right;
-    }
-    impl__Default_CWnd__IEAA_JXZ(AsCwnd(pThis));
+    void* pThis, BOOL calcValidRects, NCCALCSIZE_PARAMS* params) {
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnCaptionNcCalcSize(calcValidRects, reinterpret_cast<LPARAM>(params));
+}
+
+LRESULT CPaneFrameWnd::OnCaptionNcCalcSize(WPARAM calcValidRects, LPARAM params) {
+    const LRESULT result = Default();
+    if (!params || (::GetWindowLongPtrW(m_hWnd, GWL_STYLE) & WS_CAPTION) != WS_CAPTION) return result;
+
+    // DefWindowProc has already accounted for the system frame and caption.
+    const bool toolWindow = (::GetWindowLongPtrW(m_hWnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) != 0;
+    const int systemHeight = ::GetSystemMetrics(toolWindow ? SM_CYSMCAPTION : SM_CYCAPTION);
+    RECT& client = calcValidRects ? reinterpret_cast<NCCALCSIZE_PARAMS*>(params)->rgrc[0]
+                                 : *reinterpret_cast<RECT*>(params);
+    client.top = (std::min)(client.bottom, client.top + GetCaptionHeight() - systemHeight);
+    return result;
 }
 
 // Symbol: ?OnNcCreate@CPaneFrameWnd@@IEAAHPEAUtagCREATESTRUCTW@@@Z
@@ -2199,45 +2224,24 @@ BOOL CPaneFrameWnd::OnNotify(WPARAM id, LPARAM notification, LRESULT* result) {
 // frame's SizeToContent virtual (+0x378) only if the minimum-size expansion
 // occurred. The mfc140u symbol map does not resolve this export, but the ANSI
 // twin body is disassembled and the function bodies are byte-identical.
-// OpenMFC uses PaneFrameState::paneHwnd, now synchronized by AddPane/RemovePane;
-// it reads the verified CPane::m_sizeMin field because the +0x4f0 inline has no
-// thunk, and calls the exported SetWindowPos thunk (which virtual-dispatches
-// through CBasePane). The final SizeToContent thunk remains a no-op in this
-// build; its direct thunk call also bypasses further-derived overrides. A null
-// frame HWND is guarded here.
-static_assert(offsetof(CPane, m_sizeMin) == 0x200,
-              "OnPaneRecalcLayout reads the verified CPane minimum-size field");
+// The embedded pane handle is synchronized by AddPane and RemovePane.
 extern "C" void MS_ABI impl__OnPaneRecalcLayout_CPaneFrameWnd__UEAAXXZ(void* pThis) {
-    if (pThis == nullptr) return;
-
-    HWND frameHwnd = HwndOf(pThis);
-    if (frameHwnd == nullptr) return;
-    RECT clientRect = {};
-    ::GetClientRect(frameHwnd, &clientRect);
-
-    HWND paneHwnd = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(g_other6Mutex);
-        const PaneFrameState* state = FindStatePtr(pThis);
-        if (state != nullptr) paneHwnd = state->paneHwnd;
-    }
-    CWnd* paneWnd = impl__FromHandlePermanent_CWnd__SAPEAV1_PEAUHWND_____Z(paneHwnd);
-    if (paneWnd == nullptr) return;
-    CRuntimeClass* paneClass = impl__GetThisClass_CPane__SAPEAUCRuntimeClass__XZ();
-    if (paneClass == nullptr ||
-        !impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(paneWnd, paneClass)) {
-        return;
-    }
-    CPane* pane = static_cast<CPane*>(paneWnd);
+    const auto* frame = static_cast<const CPaneFrameWnd*>(pThis);
+    RECT clientRect{};
+    if (!frame || !::GetClientRect(frame->m_hWnd, &clientRect)) return;
+    auto* pane = EmbeddedPane(frame);
+    if (!pane) return;
 
     bool expanded = false;
     if (impl__m_bHandleMinSize_CPane__2HA != 0) {
-        if (clientRect.right - clientRect.left < pane->m_sizeMin.cx) {
-            clientRect.right = clientRect.left + pane->m_sizeMin.cx;
+        CSize minimum;
+        pane->GetMinSize(minimum);
+        if (clientRect.right - clientRect.left < minimum.cx) {
+            clientRect.right = clientRect.left + minimum.cx;
             expanded = true;
         }
-        if (clientRect.bottom - clientRect.top < pane->m_sizeMin.cy) {
-            clientRect.bottom = clientRect.top + pane->m_sizeMin.cy;
+        if (clientRect.bottom - clientRect.top < minimum.cy) {
+            clientRect.bottom = clientRect.top + minimum.cy;
             expanded = true;
         }
     }
@@ -2246,7 +2250,7 @@ extern "C" void MS_ABI impl__OnPaneRecalcLayout_CPaneFrameWnd__UEAAXXZ(void* pTh
         static_cast<CBasePane*>(pane), nullptr, clientRect.left, clientRect.top,
         clientRect.right - clientRect.left, clientRect.bottom - clientRect.top,
         0x34, nullptr);
-    ::RedrawWindow(paneHwnd, nullptr, nullptr, 0x105);
+    ::RedrawWindow(pane->m_hWnd, nullptr, nullptr, 0x105);
     if (expanded) impl__SizeToContent_CPaneFrameWnd__UEAAXXZ(pThis);
 }
 
@@ -2376,17 +2380,20 @@ extern "C" void MS_ABI impl__OnSetRollUpTimer_CPaneFrameWnd__UEAAXXZ(void* pThis
 }
 
 // Symbol: ?OnSettingChange@CPaneFrameWnd@@IEAAXIPEB_W@Z
-// Retail (0xb4090 -- the ANSI twin's ?OnSettingChange@CPaneFrameWnd@@IEAAXIPEBD@Z),
-// transcribed in full: CWnd::OnSettingChange(uFlags, lpszSection), then a tail
-// call to vtable +0x498, which the mfc140.dll CPaneFrameWnd vtable at VA 0x1802f5ad8 shows is
-// CPaneFrameWnd::RecalcCaptionHeight (0xb40c0).
-// Deviation: RecalcCaptionHeight is called directly rather than through the
-// vtable, so a further-derived override is not reached.
 extern "C" void MS_ABI impl__OnSettingChange_CPaneFrameWnd__IEAAXIPEB_W_Z(
-    void* pThis, unsigned int uFlags, const wchar_t* lpszSection) {
-    if (pThis == nullptr) return;
-    impl__OnSettingChange_CWnd__IEAAXIPEB_W_Z(AsCwnd(pThis), uFlags, lpszSection);
-    impl__RecalcCaptionHeight_CPaneFrameWnd__MEAAXXZ(pThis);
+    void* pThis, UINT flags, const wchar_t* section) {
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->OnSettingChange(flags, section);
+}
+
+void CPaneFrameWnd::OnSettingChange(UINT, const wchar_t*) {
+    Default();
+    const int previousHeight = GetCaptionHeight();
+    RecalcCaptionHeight();
+    if (m_hWnd && GetCaptionHeight() != previousHeight) {
+        ::SetWindowPos(m_hWnd, nullptr, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(this);
+    }
 }
 
 // Symbol: ?OnSize@CPaneFrameWnd@@IEAAXIHH@Z
@@ -2484,8 +2491,6 @@ LRESULT CPaneFrameWnd::OnUpdateToolTips(WPARAM types, LPARAM) {
 //         lpwndpos->x = rect.left; lpwndpos->y = rect.top;
 //     }
 //     CWnd::Default();
-// Deviation: the caption-height side slot exists, but the unexported global-data
-// sizing virtual is not available, so this handler uses kPaneFrameCaptionHeight.
 extern "C" void MS_ABI impl__OnWindowPosChanging_CPaneFrameWnd__IEAAXPEAUtagWINDOWPOS___Z(
     void* pThis, WINDOWPOS* lpwndpos) {
     if (pThis == nullptr) return;
@@ -2504,8 +2509,8 @@ extern "C" void MS_ABI impl__OnWindowPosChanging_CPaneFrameWnd__IEAAXPEAUtagWIND
                 rect.SetRect(lpwndpos->x, lpwndpos->y,
                              lpwndpos->x + lpwndpos->cx, lpwndpos->y + lpwndpos->cy);
             }
-            CRect rectDelta(kPaneFrameCaptionHeight, kPaneFrameCaptionHeight,
-                            kPaneFrameCaptionHeight, kPaneFrameCaptionHeight);
+            const int captionHeight = static_cast<CPaneFrameWnd*>(pThis)->GetCaptionHeight();
+            CRect rectDelta(captionHeight, captionHeight, captionHeight, captionHeight);
             impl__AdjustRectToWorkArea_CGlobalUtils__QEAAXAEAVCRect__PEAV2__Z(
                 impl__afxGlobalUtils__3VCGlobalUtils__A, &rect, &rectDelta);
             lpwndpos->x = rect.left;
@@ -2590,19 +2595,15 @@ BOOL CPaneFrameWnd::PreTranslateMessage(MSG* message) {
 }
 
 // Symbol: ?RecalcCaptionHeight@CPaneFrameWnd@@MEAAXXZ
-// Retail mfc140.dll entry RVA 0xb40c0, transcribed:
-//     CSize sz = afxGlobalData.<unexported virtual, vtable +0x298>();
-//     m_nCaptionHeight /*0x114*/ = sz.cy + ::GetSystemMetrics(SM_CYSMCAPTION);
-//     m_?? /*0x160*/ = m_?? /*0x164*/ = m_nCaptionHeight + 15;
-// (afxGlobalData is the lazily-constructed singleton returned by the getter at
-// RVA 0x97f4 (mfc140.dll); its virtual at +0x298 returns CSize by value, and
-// only .cy -- the second int, read at instruction 0xb40ef inside RecalcCaptionHeight -- is used.)
-// STUB: captionHeight and minSize fields now exist in PaneFrameState, but the
-// required AFX_GLOBAL_DATA virtual at vtable +0x298 is unexported and the local
-// global-data blob has no verified callable slot for it. Substituting another
-// metric would invent behavior; GetCaptionRect/OnNcCalcSize still use a constant.
 extern "C" void MS_ABI impl__RecalcCaptionHeight_CPaneFrameWnd__MEAAXXZ(void* pThis) {
-    (void)pThis;
+    if (pThis) static_cast<CPaneFrameWnd*>(pThis)->CPaneFrameWnd::RecalcCaptionHeight();
+}
+
+void CPaneFrameWnd::RecalcCaptionHeight() {
+    const auto* manager = CMFCVisualManager::GetInstance();
+    const int extra = manager ? manager->GetCaptionButtonExtraBorder().cy : 0;
+    m_nCaptionHeight = ::GetSystemMetrics(SM_CYSMCAPTION) + extra;
+    m_sizeMinSize.SetSize(m_nCaptionHeight + 15, m_nCaptionHeight + 15);
 }
 
 // Symbol: ?RedrawAll@CPaneFrameWnd@@SAXXZ

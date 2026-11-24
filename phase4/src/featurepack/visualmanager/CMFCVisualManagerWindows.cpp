@@ -339,16 +339,16 @@ extern "C" CSize* MS_ABI impl__GetButtonExtraBorder_CMFCVisualManagerWindows__UE
     return pRet;
 }
 
-// CMFCVisualManagerWindows::GetCaptionButtonExtraBorder (retail 0x1b9090) is
-// the same shape one pixel smaller:
-//     xor %eax,%eax ; cmp %rax,0x8(%rcx) ; setne %al
-//     mov %eax,(%rdx) ; mov %eax,0x4(%rdx) ; mov %rdx,%rax
-// -- CSize(1,1) when the +0x08 theme handle is non-NULL, CSize(0,0) otherwise.
+CSize CMFCVisualManagerWindows::GetCaptionButtonExtraBorder() const {
+    const int border = VMW_ThemeHandle(this, kVMW_hThemeWindow) ? 1 : 0;
+    return CSize(border, border);
+}
+
 // Symbol: ?GetCaptionButtonExtraBorder@CMFCVisualManagerWindows@@UEBA?AVCSize@@XZ
 extern "C" CSize* MS_ABI impl__GetCaptionButtonExtraBorder_CMFCVisualManagerWindows__UEBA_AVCSize__XZ(
-    const CMFCVisualManagerWindows* /*pThis*/, CSize* pRet)
+    const CMFCVisualManagerWindows* pThis, CSize* pRet)
 {
-    if (pRet != nullptr) { pRet->cx = 0; pRet->cy = 0; }
+    if (pRet) *pRet = pThis ? pThis->CMFCVisualManagerWindows::GetCaptionButtonExtraBorder() : CSize();
     return pRet;
 }
 

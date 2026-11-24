@@ -31,6 +31,7 @@ using ThisClass = CMultiPaneFrameWnd;
 const AFX_MSGMAP_ENTRY entries[] = {
     ON_WM_CREATE()
     ON_WM_CLOSE()
+    ON_WM_GETMINMAXINFO()
     ON_WM_SIZE()
     OPENMFC_MAP_ENTRY(WM_NCLBUTTONDBLCLK, 0, 0, 0, AfxSig_l_w_l, &ThisClass::OnCaptionDoubleClick)
     {0, 0, 0, 0, AfxSig_end, nullptr}
@@ -58,6 +59,7 @@ const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
     ON_WM_CREATE()
     ON_WM_CLOSE()
     ON_WM_DESTROY()
+    ON_WM_GETMINMAXINFO()
     ON_WM_SIZE()
     ON_WM_TIMER()
     ON_WM_MOVING()
@@ -66,6 +68,7 @@ const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
     ON_MESSAGE(WM_ENTERSIZEMOVE, &ThisClass::OnEnterSizeMove)
     ON_MESSAGE(WM_EXITSIZEMOVE, &ThisClass::OnExitSizeMove)
     ON_MESSAGE(WM_NCLBUTTONDOWN, &ThisClass::OnCaptionButtonDown)
+    ON_MESSAGE(WM_NCCALCSIZE, &ThisClass::OnCaptionNcCalcSize)
     ON_MESSAGE(WM_NCHITTEST, &ThisClass::OnCaptionHitTest)
     ON_MESSAGE(WM_NCMOUSEMOVE, &ThisClass::OnCaptionMouseMove)
     ON_MESSAGE(WM_NCMOUSELEAVE, &ThisClass::OnCaptionMouseLeave)
@@ -75,6 +78,7 @@ const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
     ON_MESSAGE(WM_KEYUP, &ThisClass::OnPaneDragKey)
     ON_MESSAGE(WM_CAPTURECHANGED, &ThisClass::OnCaptureChanged)
     ON_MESSAGE(WM_CANCELMODE, &ThisClass::OnCancelPaneDrag)
+    OPENMFC_MAP_ENTRY(WM_SETTINGCHANGE, 0, 0, 0, AfxSig_v_u_cs, &ThisClass::OnSettingChange)
     ON_REGISTERED_MESSAGE(impl__AFX_WM_CHECKEMPTYMINIFRAME__3IA, &ThisClass::OnCheckEmptyState)
     ON_REGISTERED_MESSAGE(impl__AFX_WM_UPDATETOOLTIPS__3IA, &ThisClass::OnUpdateToolTips)
     OPENMFC_MAP_ENTRY(WM_NCLBUTTONDBLCLK, 0, 0, 0, AfxSig_l_w_l, &ThisClass::OnCaptionDoubleClick)

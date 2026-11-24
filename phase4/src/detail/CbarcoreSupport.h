@@ -886,16 +886,10 @@ namespace openmfc { namespace detail { namespace cbarcore {
 static constexpr int kPaneFrameDefaultMinHeight = 80;
 } } }
 namespace openmfc { namespace detail { namespace cbarcore {
-static constexpr int kPaneFrameCaptionHeight = 22;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
 static constexpr int kPaneFrameThinBorder = 1;
 } } }
 namespace openmfc { namespace detail { namespace cbarcore {
 static constexpr int kPaneFrameBorder = 2;
-} } }
-namespace openmfc { namespace detail { namespace cbarcore {
-static constexpr int kPaneFrameWideBorder = 4;
 } } }
 namespace openmfc { namespace detail { namespace cbarcore {
 static constexpr int kPaneDividerThickness = 8;

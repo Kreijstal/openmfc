@@ -80,7 +80,6 @@ extern "C" int   MS_ABI impl__OnCloseMiniFrame_CPaneFrameWnd__MEAAHXZ(void* pThi
 extern "C" void  MS_ABI impl__ArrangeCaptionButtons_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__SetRollUpTimer_CPaneFrameWnd__IEAAXXZ(void* pThis);
 extern "C" void  MS_ABI impl__KillRollupTimer_CPaneFrameWnd__IEAAXXZ(void* pThis);
-extern "C" void  MS_ABI impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(void* pThis, CSize* pSize, MINMAXINFO* pMMI);
 extern "C" void  MS_ABI impl__SaveRecentFloatingState_CPaneFrameWnd__MEAAXXZ(void* pThis);
 // docking/CPaneFrameWnd.cpp:2099 -- a documented stub (retail 0xb2d20 not reproduced).
 extern "C" void  MS_ABI impl__Serialize_CPaneFrameWnd__UEAAXAEAVCArchive___Z(void* pThis, CArchive& archive);
@@ -1069,19 +1068,16 @@ extern "C" void MS_ABI impl__OnDockToRecentPos_CMultiPaneFrameWnd__UEAAXXZ(void*
 }
 
 // Symbol: ?OnGetMinMaxInfo@CMultiPaneFrameWnd@@IEAAXPEAUtagMINMAXINFO@@@Z
-// Decoded from retail entry RVA 0x94390:
-//     CSize size(0, 0);
-//     m_barContainerManager.GetMinSize(size);     // mgr slot 0xb0
-//     CalcMinSize(size, lpMMI);                   // slot 0x488 -> CPaneFrameWnd::CalcMinSize (0xb2480)
-//     CWnd::Default();                            // call 0x289090
-// Static dispatch on both slots.
-// Signature corrected: the generated list dropped `this`.
-extern "C" void MS_ABI impl__OnGetMinMaxInfo_CMultiPaneFrameWnd__IEAAXPEAUtagMINMAXINFO___Z(void* pThis, MINMAXINFO* lpMMI) {
-    if (pThis == nullptr) return;
-    CSize size(0, 0);
-    impl__GetMinSize_CPaneContainerManager__UEAAXAEAVCSize___Z(Mgr(pThis), size);
-    impl__CalcMinSize_CPaneFrameWnd__MEAAXAEAVCSize__PEAUtagMINMAXINFO___Z(pThis, &size, lpMMI);
-    impl__Default_CWnd__IEAA_JXZ(AsWnd(pThis));
+extern "C" void MS_ABI impl__OnGetMinMaxInfo_CMultiPaneFrameWnd__IEAAXPEAUtagMINMAXINFO___Z(
+    void* pThis, MINMAXINFO* limits) {
+    if (pThis) static_cast<CMultiPaneFrameWnd*>(pThis)->OnGetMinMaxInfo(limits);
+}
+
+void CMultiPaneFrameWnd::OnGetMinMaxInfo(MINMAXINFO* limits) {
+    CSize size;
+    impl__GetMinSize_CPaneContainerManager__UEAAXAEAVCSize___Z(GetContainerManager(), size);
+    CalcMinSize(size, limits);
+    Default();
 }
 
 // Symbol: ?OnIdleUpdateCmdUI@CMultiPaneFrameWnd@@IEAA_J_K_J@Z

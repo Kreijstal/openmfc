@@ -69,7 +69,6 @@ struct PaneFrameState {
     POINT dragStartPoint{};
 
     UINT heightBeforeRollUp = 0;             // m_nHeightBeforeRollUp +0x110
-    UINT captionHeight = 0;                  // m_nCaptionHeight +0x114
 
     UINT hitButtonID = 0;                   // m_nHit +0x118
     UINT hotButtonID = 0;                   // m_nHot +0x11c
@@ -77,7 +76,6 @@ struct PaneFrameState {
     HWND ownerHwnd = nullptr;               // m_hParentWnd +0x130
     HWND destroyOnReleaseHwnd = nullptr;    // m_hWndToDestroyOnRelease +0x138
     RECT recentFloatingRect{};              // m_rectRecentFloatingRect +0x150
-    SIZE minSize{};                         // m_sizeMinSize +0x160
     RECT redrawRect{};                      // m_rectRedraw +0x168
     POINT captionButtonHotPoint{};          // m_ptHot +0x178
     bool captionButtonsConfigured = false;

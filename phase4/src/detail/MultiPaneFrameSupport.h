@@ -21,6 +21,7 @@ public:
     const void* GetContainerManager() const { return m_containerManager; }
     int OnCreate(CREATESTRUCTW* create);
     void OnClose();
+    void OnGetMinMaxInfo(MINMAXINFO* limits);
     void OnSize(UINT type, int width, int height);
     LRESULT OnCaptionDoubleClick(WPARAM hit, LPARAM);
 

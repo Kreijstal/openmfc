@@ -251,6 +251,7 @@ public:
     virtual COLORREF GetToolbarDisabledTextColor();
     virtual COLORREF GetToolbarHighlightColor();
     virtual int GetShowAllMenuItemsHeight(CDC* pDC, const CSize& sizeDefault);
+    virtual CSize GetCaptionButtonExtraBorder() const { return CSize(0, 0); }
 
     COLORREF GetHighlightedColor(UINT nColorIndex) const;
     static COLORREF GetThemeColor(COLORREF clrBase, int nIntensity);
@@ -315,6 +316,7 @@ public:
     CMFCVisualManagerWindows();
     CMFCVisualManagerWindows(int) : CMFCVisualManagerWindows() {}
     virtual ~CMFCVisualManagerWindows();
+    CSize GetCaptionButtonExtraBorder() const override;
     static CObject* AFXAPI CreateObject();
 protected:
     char _pad[64];
@@ -552,6 +554,7 @@ public:
     virtual BOOL CanBeDocked() const override;
     virtual BOOL CanFloat() const override;
     virtual void RecalcLayout() override;
+    virtual void GetMinSize(CSize& size) const { size = m_sizeMin; }
 
     BOOL FloatPaneWindow(const RECT& bounds, int dockMethod, bool show, CDockingManager* manager = nullptr);
     BOOL DockToRecentPosition();
@@ -1595,6 +1598,8 @@ public:
     virtual CWnd* GetPane() const;
     virtual BOOL IsRollDown() const;
     virtual BOOL IsRollUp() const;
+    virtual int GetCaptionHeight() const { return m_nCaptionHeight; }
+    virtual void RecalcCaptionHeight();
     BOOL PreTranslateMessage(MSG* message) override;
 
     BOOL CreatePopup(DWORD extendedStyle, const wchar_t* title, DWORD style, const RECT& rect,
@@ -1618,6 +1623,9 @@ public:
     void OnClose();
     int OnCreate(CREATESTRUCTW* create);
     void OnDestroy();
+    LRESULT OnCaptionNcCalcSize(WPARAM calcValidRects, LPARAM params);
+    void OnGetMinMaxInfo(MINMAXINFO* limits);
+    void OnSettingChange(UINT flags, const wchar_t* section);
     void OnSize(UINT type, int width, int height);
     void OnTimer(UINT_PTR timer);
     LRESULT OnCheckEmptyState(WPARAM, LPARAM);
@@ -1625,7 +1633,11 @@ public:
     LRESULT OnCaptionDoubleClick(WPARAM hit, LPARAM);
 
 protected:
-    char _paneFrameState[0x170]{};
+    char _paneFrameBeforeCaptionHeight[0x2c]{};
+    UINT m_nCaptionHeight = 0;               // 0x114
+    char _paneFrameBeforeMinSize[0x48]{};
+    CSize m_sizeMinSize;                     // 0x160
+    char _paneFrameAfterMinSize[0xf0]{};
 
     void DestroyPaneFrameWindow();
     BOOL OnNotify(WPARAM id, LPARAM notification, LRESULT* result) override;
