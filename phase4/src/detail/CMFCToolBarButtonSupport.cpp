@@ -66,8 +66,12 @@ void  MS_ABI v04_Dump(const void* pThis, void*) {
     if (!pThis) return;
     static_cast<const CObject*>(pThis)->CObject::Dump();
 }
-BOOL  MS_ABI v05_PrepareDrag(CMFCToolBarButton* p, void*) {
-    return (p && p->m_bVisible && !p->m_bIsHidden && !p->m_bLocked) ? TRUE : FALSE;
+extern "C" BOOL MS_ABI impl__PrepareDrag_CMFCToolBarButton__UEAAHAEAVCOleDataSource___Z(
+    CMFCToolBarButton*, COleDataSource*);
+
+BOOL MS_ABI v05_PrepareDrag(CMFCToolBarButton* button, void* source) {
+    return impl__PrepareDrag_CMFCToolBarButton__UEAAHAEAVCOleDataSource___Z(
+        button, static_cast<COleDataSource*>(source));
 }
 BOOL  MS_ABI v06_CanBeDropped(CMFCToolBarButton* p, void*) {
     return (p && p->m_nID != 0 && !p->m_bLocked) ? TRUE : FALSE;
@@ -123,7 +127,7 @@ HBRUSH MS_ABI v20_OnCtlColor(void*, void*, UINT nCtlType) {
     return nCtlType == WM_CTLCOLOREDIT ? (HBRUSH)::GetSysColorBrush(COLOR_WINDOW) : (HBRUSH)::GetSysColorBrush(COLOR_3DFACE);
 }
 void  MS_ABI v21_OnDblClk(void* pThis, void*) { if (pThis) v10_OnClick(static_cast<CMFCToolBarButton*>(pThis), nullptr, TRUE); }
-BOOL  MS_ABI v22_CanBeStored(CMFCToolBarButton* p) { return (p && p->m_nID != 0) ? TRUE : FALSE; }
+BOOL MS_ABI v22_CanBeStored(CMFCToolBarButton*) { return TRUE; }
 BOOL  MS_ABI v23_HaveHotBorder(const CMFCToolBarButton* p) { return p ? !p->m_bDisableFill : TRUE; }
 void  MS_ABI v24_OnCancelMode(void* pThis) {
     if (!pThis) return;

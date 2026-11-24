@@ -4,9 +4,11 @@
 #define OPENMFC_APPCORE_IMPL
 
 #include "detail/CbarcoreSupport.h"
+#include "detail/CSharedFileSupport.h"
 #include "detail/CMFCToolBarButtonSupport.h"
 #include "detail/MfccoreSupport.h"
 
+#include <memory>
 #include <string>
 
 static_assert(sizeof(CMFCToolBarButton) == 0x88, "retail CMFCToolBarButton size");
@@ -30,6 +32,8 @@ static_assert(offsetof(CMFCToolBarButton, m_rect) == 0x68, "m_rect @0x68");
 static_assert(offsetof(CMFCToolBarButton, m_sizeText) == 0x78, "m_sizeText @0x78");
 static_assert(offsetof(CMFCToolBarButton, m_pWndParent) == 0x80, "m_pWndParent @0x80");
 
+extern "C" CLIPFORMAT impl__m_cFormat_CMFCToolBarButton__2GA;
+
 // Definitions are in core/runtime/CObjectTypeChecks.cpp and
 // featurepack/toolbar/RuntimeClasses.cpp, respectively.
 extern "C" BOOL MS_ABI impl__IsKindOf_CObject__QEBAHPEBUCRuntimeClass___Z(
@@ -44,13 +48,9 @@ extern "C" CString MS_ABI impl__m_strClipboardFormatName_CMFCToolBarButton__2V__
 
 // Symbol: ?SetClipboardFormatName@CMFCToolBarButton@@SAXPEB_W@Z
 void CMFCToolBarButton::SetClipboardFormatName(const wchar_t* lpszName) {
-    if (lpszName && *lpszName) {
-        m_strClipboardFormatName = lpszName;
-        impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = lpszName;
-    } else {
-        m_strClipboardFormatName.Empty();
-        impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A.Empty();
-    }
+    if (!lpszName || impl__m_cFormat_CMFCToolBarButton__2GA) AfxThrowInvalidArgException();
+    m_strClipboardFormatName = lpszName;
+    impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A = lpszName;
 }
 CString CMFCToolBarButton::m_strClipboardFormatName;
 BOOL CMFCToolBarButton::m_bWrapText = TRUE;
@@ -63,6 +63,10 @@ void CMFCToolBarButton::Serialize(CArchive& archive) {
 extern "C" void MS_ABI impl__Serialize_CMFCToolBarButton__UEAAXAEAVCArchive___Z(void* pThis, CArchive* ar) {
     if (pThis && ar) static_cast<CMFCToolBarButton*>(pThis)->CMFCToolBarButton::Serialize(*ar);
 }
+void CMFCToolBarButton::CopyFrom(const CMFCToolBarButton& source) {
+    tbb_CopyFrom(this, &source);
+}
+
 // Symbol: ?CopyFrom@CMFCToolBarButton@@UEAAXAEBV1@@Z
 extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarButton__UEAAXAEBV1__Z(void* pThis, const CMFCToolBarButton* src) {
     tbb_CopyFrom((CMFCToolBarButton*)pThis, src);
@@ -83,12 +87,36 @@ extern "C" void MS_ABI impl__ResetImageToDefault_CMFCToolBarButton__UEAAXXZ(void
 // Symbol: ?m_lstProtectedCommands@CMFCToolBarButton@@1V?$CList@II@@A
 extern "C" void* MS_ABI impl__m_lstProtectedCommands_CMFCToolBarButton__1V__CList_II__A = {};
 
-// Stub: retail mfc140u RVA 0x15c790 performs OLE clipboard retrieval and format decoding, which is not modeled here.
+// The OLE archive stores a runtime class followed by the button's Serialize data.
+CMFCToolBarButton* CMFCToolBarButton::CreateFromOleData(COleDataObject* pDataObject) {
+    if (!pDataObject) AfxThrowInvalidArgException();
+    const CLIPFORMAT format = GetClipboardFormat();
+    if (!pDataObject->IsDataAvailable(format)) AfxThrowInvalidArgException();
+
+    try {
+        std::unique_ptr<CFile> file(pDataObject->GetFileData(format));
+        if (!file) return nullptr;
+
+        CArchive archive(file.get(), CArchive::load | CArchive::bNoFlushOnDelete);
+        CRuntimeClass* type = archive.ReadClass(RUNTIME_CLASS(CMFCToolBarButton));
+        std::unique_ptr<CMFCToolBarButton> button(static_cast<CMFCToolBarButton*>(type->CreateObject()));
+        if (!button) return nullptr;
+
+        button->Serialize(archive);
+        archive.Close();
+        return button.release();
+    } catch (CException* error) {
+        error->Delete();
+        return nullptr;
+    } catch (const std::bad_alloc&) {
+        return nullptr;
+    }
+}
+
 // Symbol: ?CreateFromOleData@CMFCToolBarButton@@SAPEAV1@PEAVCOleDataObject@@@Z
 extern "C" CMFCToolBarButton* MS_ABI impl__CreateFromOleData_CMFCToolBarButton__SAPEAV1_PEAVCOleDataObject___Z(
-    COleDataObject* pDataObject) {
-    (void)pDataObject;
-    return nullptr;
+    COleDataObject* dataObject) {
+    return CMFCToolBarButton::CreateFromOleData(dataObject);
 }
 
 // Stub: retail mfc140u RVA 0x15e140 can edit the destination text after command/string lookup; that path is not transcribed.
@@ -213,6 +241,10 @@ extern "C" void MS_ABI impl__FillInterior_CMFCToolBarButton__IEAAXPEAVCDC__AEBVC
     }
 }
 
+BOOL CMFCToolBarButton::ExportToMenuButton(CMFCToolBarMenuButton& button) const {
+    return impl__ExportToMenuButton_CMFCToolBarButton__UEBAHAEAVCMFCToolBarMenuButton___Z(this, &button);
+}
+
 // Retail mfc140u RVA 0x15eab0 returns zero unless the button is visible and
 // has a nonempty rect, then returns the inverse of style bit 0.
 // Symbol: ?GetAccCount@CMFCToolBarButton@@UEAAHXZ
@@ -222,10 +254,22 @@ extern "C" int MS_ABI impl__GetAccCount_CMFCToolBarButton__UEAAHXZ(void* pThis) 
     return (pButton->m_nStyle & 1u) == 0 ? 1 : 0;
 }
 
-// Stub: retail mfc140u RVA 0x15c6c0 registers and caches the clipboard format through the static name and MFC global data.
+CLIPFORMAT CMFCToolBarButton::GetClipboardFormat() {
+    auto& format = impl__m_cFormat_CMFCToolBarButton__2GA;
+    if (format == 0) {
+        CString name = impl__m_strClipboardFormatName_CMFCToolBarButton__2V__CStringT__WV__StrTraitMFC_DLL__WV__ChTraitsCRT__W_ATL_____ATL__A;
+        if (name.IsEmpty()) {
+            name.Format(L"ToolbarButton%p", static_cast<void*>(AfxGetMainWnd()));
+        }
+        format = static_cast<CLIPFORMAT>(::RegisterClipboardFormatW(name));
+        if (format == 0) AfxThrowInvalidArgException();
+    }
+    return format;
+}
+
 // Symbol: ?GetClipboardFormat@CMFCToolBarButton@@SAGXZ
-extern "C" unsigned short MS_ABI impl__GetClipboardFormat_CMFCToolBarButton__SAGXZ() {
-    return 0;
+extern "C" CLIPFORMAT MS_ABI impl__GetClipboardFormat_CMFCToolBarButton__SAGXZ() {
+    return CMFCToolBarButton::GetClipboardFormat();
 }
 
 // Retail mfc140u RVA 0x15c0c0 clears m_bUserButton/m_bText at +0x08, stores
@@ -305,7 +349,7 @@ extern "C" SIZE* MS_ABI impl__OnCalculateSize_CMFCToolBarButton__UEAA_AUtagSIZE_
     void* self, SIZE* result, CDC* dc, const SIZE* defaultSize, BOOL horizontal)
 {
     if (result) {
-        *result = self && defaultSize ? static_cast<CMFCToolBarButton*>(self)->OnCalculateSize(
+        *result = self && defaultSize ? static_cast<CMFCToolBarButton*>(self)->CMFCToolBarButton::OnCalculateSize(
             dc, CSize(defaultSize->cx, defaultSize->cy), horizontal) : SIZE{};
     }
     return result;
@@ -326,6 +370,10 @@ extern "C" void MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd_
             pWndParent, impl__GetThisClass_CMFCToolBar__SAPEAUCRuntimeClass__XZ())) {
         pButton->m_bExtraSize = TRUE;
     }
+}
+
+void CMFCToolBarButton::OnChangeParentWnd(CWnd* parent) {
+    impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(this, parent);
 }
 
 void CMFCToolBarButton::OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images,
@@ -417,7 +465,7 @@ extern "C" void MS_ABI impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__
     BOOL horizontal, BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled)
 {
     if (self && bounds)
-        static_cast<CMFCToolBarButton*>(self)->OnDraw(dc, *bounds, images, horizontal, customize, hot,
+        static_cast<CMFCToolBarButton*>(self)->CMFCToolBarButton::OnDraw(dc, *bounds, images, horizontal, customize, hot,
                                                      drawBorder, grayDisabled);
 }
 
@@ -487,13 +535,34 @@ extern "C" int MS_ABI impl__OnToolHitTest_CMFCToolBarButton__UEAAHPEBVCWnd__PEAU
     return 0;
 }
 
-// Stub: the mfc140u toolbar-button vtable points to RVA 0x15d900 (mfc140u); its OLE data-object publication path is not reproduced.
+BOOL CMFCToolBarButton::PrepareDrag(COleDataSource& source) {
+    if (!CanBeStored()) return TRUE;
+
+    try {
+        CSharedFile file(GMEM_MOVEABLE | GMEM_ZEROINIT);
+        CArchive archive(&file, CArchive::store | CArchive::bNoFlushOnDelete);
+        archive.WriteClass(GetRuntimeClass());
+        Serialize(archive);
+        archive.Close();
+
+        const CLIPFORMAT format = GetClipboardFormat();
+        std::unique_ptr<void, decltype(&::GlobalFree)> data(file.Detach(), ::GlobalFree);
+        if (!data) return FALSE;
+        source.CacheGlobalData(format, data.get());
+        data.release();
+        return TRUE;
+    } catch (CException* error) {
+        error->Delete();
+        return FALSE;
+    } catch (const std::bad_alloc&) {
+        return FALSE;
+    }
+}
+
 // Symbol: ?PrepareDrag@CMFCToolBarButton@@UEAAHAEAVCOleDataSource@@@Z
-extern "C" int MS_ABI impl__PrepareDrag_CMFCToolBarButton__UEAAHAEAVCOleDataSource___Z(
-    void* pThis, COleDataSource* pSource) {
-    (void)pThis;
-    (void)pSource;
-    return 0;
+extern "C" BOOL MS_ABI impl__PrepareDrag_CMFCToolBarButton__UEAAHAEAVCOleDataSource___Z(
+    CMFCToolBarButton* button, COleDataSource* source) {
+    return button && source && button->CMFCToolBarButton::PrepareDrag(*source);
 }
 
 // Stub: retail mfc140u RVA 0x15e730 builds accessibility data from the parent, command, strings, and image; that path is not reproduced.

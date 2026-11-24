@@ -10,6 +10,8 @@
 #include "detail/MfccoreSupport.h"
 #include "detail/ToolBarComboSupport.h"
 
+#include <memory>
+
 // CMFCToolBar Feature Pack exports, wave 4 ("mfc-feature-4").
 //
 // Each function is transcribed from the retail mfc140u export
@@ -4537,14 +4539,17 @@ extern "C" int MS_ABI impl__CommandToIndex_CMFCToolBar__QEBAHIH_Z(
 // (0x15adf0) to rebuild a button from the drag-and-drop payload, then, if that
 // button carries text, splits m_strText at the first TAB and keeps only the
 // part before it as the label.
-// Not implemented: OpenMFC models neither COleDataObject clipboard extraction
-// nor CMFCToolBarButton::CreateFromOleData (itself a stub), so there is nothing
-// to build a button from.
 // Symbol: ?CreateDroppedButton@CMFCToolBar@@MEAAPEAVCMFCToolBarButton@@PEAVCOleDataObject@@@Z
 extern "C" CMFCToolBarButton* MS_ABI impl__CreateDroppedButton_CMFCToolBar__MEAAPEAVCMFCToolBarButton__PEAVCOleDataObject___Z(
     CMFCToolBar* pThis, COleDataObject* pDataObject) {
-    (void)pThis; (void)pDataObject;
-    return nullptr;
+    (void)pThis;
+    std::unique_ptr<CMFCToolBarButton> button(
+        impl__CreateFromOleData_CMFCToolBarButton__SAPEAV1_PEAVCOleDataObject___Z(pDataObject));
+    if (button) {
+        const int tab = button->m_strText.Find(L'\t');
+        if (tab >= 0) button->m_strText = button->m_strText.Left(tab);
+    }
+    return button.release();
 }
 
 // Retail (mfc140.dll RVA 0x156620), transcribed instruction for instruction:
@@ -5578,25 +5583,16 @@ extern "C" void MS_ABI impl__OnDragLeave_CMFCToolBar__MEAAXXZ(CMFCToolBar* pThis
 //     return m_bIsDragCopy ? DROPEFFECT_COPY : DROPEFFECT_MOVE; // neg/sbb +2
 // The second InflateRect really is on a copy that is then never used -- the
 // invalidate at 0x15248b passes rdi (&m_rectDrag).  Reproduced as-is.
-// Deviations: CanBeDropped is not dispatched (base TRUE is assumed -- a
-// derived override returning FALSE is not honoured), and FindDropIndex /
-// HitTest / OnChangeHot are this file's exports.  CreateFromOleData is a stub
-// that returns NULL in OpenMFC, so today this always takes the second early
-// return; the rest is in place for when it is implemented.
+// FindDropIndex, HitTest and OnChangeHot use their toolbar base implementations.
 // Symbol: ?OnDragOver@CMFCToolBar@@MEAAKPEAVCOleDataObject@@KVCPoint@@@Z
 extern "C" unsigned long MS_ABI impl__OnDragOver_CMFCToolBar__MEAAKPEAVCOleDataObject__KVCPoint___Z(
     CMFCToolBar* pThis, COleDataObject* pDataObject, unsigned long dwKeyState, CPoint point) {
     if (!pThis) return DROPEFFECT_NONE;
     if (pThis->m_bLocked || pThis->m_bDisableCustomize) return DROPEFFECT_NONE;
 
-    CMFCToolBarButton* pProbe =
-        impl__CreateFromOleData_CMFCToolBarButton__SAPEAV1_PEAVCOleDataObject___Z(pDataObject);
-    if (!pProbe) return DROPEFFECT_NONE;
-    // TODO(clean-room): pProbe->CanBeDropped(this) (vslot 0x30) is not
-    // dispatched; the base body returns TRUE.
-    const int bAllowDrop = TRUE;
-    delete pProbe;
-    if (!bAllowDrop) return DROPEFFECT_NONE;
+    std::unique_ptr<CMFCToolBarButton> probe(CMFCToolBarButton::CreateFromOleData(pDataObject));
+    if (!probe || !probe->CanBeDropped(pThis)) return DROPEFFECT_NONE;
+    probe.reset();
 
     // Retail stores the masked word itself (`and $0x8,%ebp; mov %ebp,0x10e0`),
     // so a client reading m_bIsDragCopy sees 8, not 1.
@@ -5684,10 +5680,7 @@ extern "C" unsigned long MS_ABI impl__OnDragOver_CMFCToolBar__MEAAKPEAVCOleDataO
 // grandparent's RecalcLayout goes through ?RecalcLayout@CPane@@UEAAXXZ in
 // featurepack/docking/Thunks.cpp, which dispatches virtually on the C++
 // object (retail slot 0x430 of the CMFCToolBar vftable is CPane::RecalcLayout
-// itself, 0x9fde0 -- CMFCToolBar does not override it).  CreateDroppedButton
-// is a stub that returns NULL in OpenMFC, so
-// today every drop ends at that `return FALSE`; the remainder is in place for
-// when it is implemented.  Note the pre-existing split described under
+// itself, 0x9fde0). The button storage split is described under
 // InsertButton: RemoveButton works on the m_Buttons CObList while
 // InsertButton / GetCount work on the side table, so the move branch's
 // RemoveButton would not find a side-table button.

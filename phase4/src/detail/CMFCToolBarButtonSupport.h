@@ -27,8 +27,7 @@ using namespace openmfc::detail::cmfctoolbarbutton;
 //                       equal) -> return m_nID==other.m_nID.
 //   CopyFrom(src): full data-member copy (not the runtime m_rect/m_sizeText/m_pWndParent).
 //   SetStyle / GetInvalidateRect / IsExtraSize: inline bodies from the SDK header.
-// GUI/OLE slots (OnDraw, PrepareDrag, hit-test, ACC, group-position, ...) keep faithful
-// signatures and honest minimal returns; we do not fabricate pixel/drag behavior.
+// Preparation of drag data uses the same archive writer as the exported method.
 //
 // vptr is installed by OpenMFC_PatchToolBarButtonVtable, called from the exported ctors
 // (thunks.cpp) right after the C++ ctor sets the mingw vptr. Named global_* so

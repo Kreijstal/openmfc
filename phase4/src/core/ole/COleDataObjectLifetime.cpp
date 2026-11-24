@@ -21,7 +21,7 @@ void COleDataObject::EnsureClipboardObject(){
 
 BOOL COleDataObject::IsDataAvailable(CLIPFORMAT format,FORMATETC* details){
     if(m_bClipboard)return ::IsClipboardFormatAvailable(format);
-    if(!format && !details)return FALSE;
+    if(!m_lpDataObject || (!format && !details))return FALSE;
     FORMATETC generated;
     if(!details){generated.cfFormat=format;generated.ptd=nullptr;generated.dwAspect=DVASPECT_CONTENT;generated.lindex=-1;generated.tymed=DWORD(-1);details=&generated;}
     return m_lpDataObject->QueryGetData(details)==S_OK;

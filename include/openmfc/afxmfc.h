@@ -680,11 +680,32 @@ public:
     virtual ~CMFCToolBarButton();
     void Serialize(CArchive& archive) override;
 
+    static CLIPFORMAT GetClipboardFormat();
+    static CMFCToolBarButton* CreateFromOleData(COleDataObject* dataObject);
     static void SetClipboardFormatName(const wchar_t* lpszClipboardFormatName);
+
+    // Keep the leading toolbar-button virtuals in retail MFC order.
+    virtual BOOL PrepareDrag(COleDataSource& source);
+    virtual BOOL CanBeDropped(CMFCToolBar*) { return TRUE; }
+    virtual void CopyFrom(const CMFCToolBarButton& source);
+    virtual void OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL horizontal,
+                        BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled);
+    virtual SIZE OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal);
+    virtual BOOL OnClick(CWnd*, BOOL = TRUE) { return FALSE; }
+    virtual BOOL OnClickUp() { return FALSE; }
+    virtual void OnChangeParentWnd(CWnd* parent);
+    virtual BOOL ExportToMenuButton(CMFCToolBarMenuButton& menuButton) const;
+    virtual void OnMove() {}
+    virtual void OnSize(int) {}
+    virtual HWND GetHwnd() { return nullptr; }
+    virtual BOOL CanBeStretched() const { return FALSE; }
+    virtual BOOL NotifyCommand(int) { return FALSE; }
+    virtual void OnAddToCustomizePage() {}
+    virtual HBRUSH OnCtlColor(CDC*, UINT) { return nullptr; }
+    virtual void OnDblClk(CWnd*) {}
+    virtual BOOL CanBeStored() const { return TRUE; }
+
     int OnDrawOnCustomizeList(CDC* dc, const CRect& bounds, BOOL selected);
-    SIZE OnCalculateSize(CDC* dc, const CSize& defaultSize, BOOL horizontal);
-    void OnDraw(CDC* dc, const CRect& bounds, CMFCToolBarImages* images, BOOL horizontal,
-                BOOL customize, BOOL hot, BOOL drawBorder, BOOL grayDisabled);
 
     int GetImage() const { return m_bUserButton ? m_iUserImage : m_iImage; }
     BOOL IsLocked() const { return m_bLocked; }
@@ -2185,6 +2206,7 @@ public:
     CMFCToolBarMenuButtonsButton();
     explicit CMFCToolBarMenuButtonsButton(UINT uiSystemCommand);
     virtual ~CMFCToolBarMenuButtonsButton();
+    BOOL CanBeStored() const override { return FALSE; }
 
     UINT m_uiSystemCommand;
     char _padButtons[32];

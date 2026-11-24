@@ -124,24 +124,14 @@ extern "C" int      MS_ABI impl__PrepareDrawImage_CMFCToolBarImages__QEAAHAEAUta
     CMFCToolBarImages* pThis, void* pDS, long long sizeImageDest, int bFadeInactive);
 extern "C" void     MS_ABI impl__EndDrawImage_CMFCToolBarImages__QEAAXAEAUtagAFXDrawState___Z(CMFCToolBarImages* pThis, void* pDS);
 
-// CMFCToolBarButton base-class virtuals.  The definitions of OnChangeParentWnd,
-// PrepareDrag and OnCalculateSize in featurepack/toolbar/CMFCToolBarButton.cpp
-// are still auto-generated placeholders whose parameter lists do not match the
-// mangled name (they have no `this`); these are the lists the mangled names
-// describe, and they are what featurepack/toolbar/CMFCToolBar.cpp and
-// CMFCToolBarComboBoxButton.cpp already declare.  Reported as header requests.
+// Named exports for the base button layout and drawing methods.
 extern "C" void     MS_ABI impl__OnChangeParentWnd_CMFCToolBarButton__UEAAXPEAVCWnd___Z(CMFCToolBarButton* pThis, CWnd* pWndParent);
-extern "C" int      MS_ABI impl__PrepareDrag_CMFCToolBarButton__UEAAHAEAVCOleDataSource___Z(CMFCToolBarButton* pThis, COleDataSource* pSrcItem);
 extern "C" SIZE*    MS_ABI impl__OnCalculateSize_CMFCToolBarButton__UEAA_AUtagSIZE__PEAVCDC__AEBVCSize__H_Z(
     CMFCToolBarButton* pThis, SIZE* pRet, CDC* pDC, const SIZE* pSizeDefault, int bHorz);
 extern "C" void     MS_ABI impl__OnDraw_CMFCToolBarButton__UEAAXPEAVCDC__AEBVCRect__PEAVCMFCToolBarImages__HHHHH_Z(
     CMFCToolBarButton* pThis, CDC* pDC, const RECT* pRect, CMFCToolBarImages* pImages,
     int bHorz, int bCustomizeMode, int bHighlight, int bDrawBorder, int bGrayDisabledButtons);
 
-extern "C" void*    MS_ABI impl___0COleDataSource__QEAA_XZ(void* pThis);
-extern "C" void     MS_ABI impl___1COleDataSource__UEAA_XZ(void* pThis);
-extern "C" unsigned long MS_ABI impl__DoDragDrop_COleDataSource__QEAAKKPEBUtagRECT__PEAVCOleDropSource___Z(
-    COleDataSource* pThis, unsigned long dwEffects, const RECT* lpRectStartDrag, COleDropSource* pDropSource);
 
 extern "C" void*    MS_ABI impl___0CMFCToolBarComboBoxButton__QEAA_XZ(void* pThis);        // toolbar/Thunks.cpp
 extern "C" void     MS_ABI impl___1CMFCToolBarComboBoxButton__UEAA_XZ(void* pThis);        // toolbar/Thunks.cpp
@@ -1011,10 +1001,7 @@ extern "C" void MS_ABI impl__OnVScroll_CMFCToolBarButtonsListButton__IEAAXIIPEAV
 //     pButton->m_bDragFromCollection = TRUE;                    // stored again
 //     srcItem.DoDragDrop(DROPEFFECT_COPY|DROPEFFECT_MOVE|DROPEFFECT_LINK, NULL, NULL); // 0x259710
 //     // ~COleDataSource                                        // 0x252090
-// CPoint is an 8-byte aggregate passed by value in R8, so it is modelled as a
-// long long.  DEVIATION: PrepareDrag goes to the exported base thunk -- whose
-// definition in toolbar/CMFCToolBarButton.cpp is still a `return 0` placeholder
-// with a mismatched parameter list -- so no drag data is actually offered.
+// The packed CPoint occupies a single register.
 extern "C" void MS_ABI impl__OnLButtonDown_CMFCToolBarButtonsListButton__IEAAXIVCPoint___Z(
     void* pThis, unsigned int nFlags, long long ptPacked) {
     (void)nFlags;
@@ -1027,16 +1014,11 @@ extern "C" void MS_ABI impl__OnLButtonDown_CMFCToolBarButtonsListButton__IEAAXIV
     impl__SelectButton_CMFCToolBarButtonsListButton__IEAAXPEAVCMFCToolBarButton___Z(pThis, pButton);
     if (!p->m_bEnableDragFromList) return;
 
-    alignas(8) unsigned char srcBuf[sizeof(COleDataSource)];
-    std::memset(srcBuf, 0, sizeof srcBuf);
-    impl___0COleDataSource__QEAA_XZ(srcBuf);
-    COleDataSource* pSrc = reinterpret_cast<COleDataSource*>(srcBuf);
+    COleDataSource source;
     pButton->m_bDragFromCollection = TRUE;
-    impl__PrepareDrag_CMFCToolBarButton__UEAAHAEAVCOleDataSource___Z(pButton, pSrc);
+    if (!pButton->PrepareDrag(source)) return;
     pButton->m_bDragFromCollection = TRUE;
-    impl__DoDragDrop_COleDataSource__QEAAKKPEBUtagRECT__PEAVCOleDropSource___Z(
-        pSrc, DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK, nullptr, nullptr);
-    impl___1COleDataSource__UEAA_XZ(srcBuf);
+    source.DoDragDrop(DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK);
 }
 
 // Symbol: ?OnCtlColor@CMFCToolBarButtonsListButton@@IEAAPEAUHBRUSH__@@PEAVCDC@@PEAVCWnd@@I@Z
