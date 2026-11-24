@@ -1617,6 +1617,7 @@ public:
     void OnClose();
     void OnDestroy();
     void OnSize(UINT type, int width, int height);
+    void OnTimer(UINT_PTR timer);
     LRESULT OnCheckEmptyState(WPARAM, LPARAM);
     LRESULT OnCaptionDoubleClick(WPARAM hit, LPARAM);
 

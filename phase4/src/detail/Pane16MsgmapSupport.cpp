@@ -57,6 +57,7 @@ const AFX_MSGMAP_ENTRY paneFrameEntries[] = {
     ON_WM_CLOSE()
     ON_WM_DESTROY()
     ON_WM_SIZE()
+    ON_WM_TIMER()
     ON_WM_MOVING()
     ON_WM_MOUSEMOVE()
     ON_WM_LBUTTONUP()

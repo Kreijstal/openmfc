@@ -61,6 +61,7 @@ struct PaneFrameState {
     bool restoredFrameVisible = true;
     bool tabDragRectDisplayed = false;       // m_bTabDragRectDisplayed +0x10c
     bool dragging = false;                  // m_bCaptured +0x10d
+    bool paneCaptureActive = false;
     bool dragOutlineOnly = false;
     bool systemMoveStarted = false;
     bool movedBySystem = false;
