@@ -40,6 +40,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <utility>
 #include <vector>
 
 #ifdef __GNUC__
@@ -276,11 +277,20 @@ extern "C" void  MS_ABI impl__RecalcLayout_CPane__UEAAXXZ(CPane* pThis);
 extern "C" void MS_ABI impl__SetHelpMode_CMFCToolBar__SAXH_Z(int bOn);
 extern "C" CMFCToolBarDropSource impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A;
 extern "C" BOOL impl__m_bAltCustomization_CMFCToolBar__1HA;
+extern "C" void MS_ABI impl__OnLButtonUp_CMFCToolBar__IEAAXIVCPoint___Z(CMFCToolBar*, unsigned int, CPoint);
+extern "C" void MS_ABI impl__OnMouseMove_CMFCToolBar__IEAAXIVCPoint___Z(CMFCToolBar*, unsigned int, CPoint);
+extern "C" void MS_ABI impl__DrawDragRect_CDC__QEAAXPEBUtagRECT__UtagSIZE__01PEAVCBrush__2_Z(
+    CDC*, const RECT*, SIZE, const RECT*, SIZE, CBrush*, CBrush*);
 
 namespace {
 void RestoreNativeToolbarButtons(CMFCToolBar& toolbar);
+bool IsEmbeddedToolbarControl(const CMFCToolBarButton& button);
+void EnableToolbarButtonControl(CMFCToolBarButton& button, BOOL enabled);
 bool TryStartToolbarButtonDrag(CMFCToolBar& toolbar, CPoint point);
 bool ToolbarIsHorizontal(const CMFCToolBar& toolbar);
+bool SetToolbarStretchCursor(CMFCToolBar& toolbar);
+void EndToolbarStretch(CMFCToolBar& toolbar, bool restoreCapture = true);
+void SetNativeToolbarButtonWidth(HWND window, int index, int width);
 
 void SetDropSourceDeleteOnDrop(BOOL value) {
     impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A.m_bDeleteOnDrop = value;
@@ -290,7 +300,7 @@ void SetDropSourceDeleteOnDrop(BOOL value) {
 // .bss 0x3c3728).  Written only by OnMouseMove (0x150ce0, at 0x150f9b when it
 // arms TrackMouseEvent) and compared against `this` only by OnMouseLeave
 // (0x1567a0) -- those are the only two references in the whole image.  The
-// name is OpenMFC's.  OnMouseMove is still a stub here, so it is never set.
+// name is OpenMFC's.  The hot-tracking branch of OnMouseMove is pending.
 CMFCToolBar* g_pTrackedToolBar = nullptr;
 
 // afxGlobalData slots read by the handlers below (see the block above for the
@@ -1554,13 +1564,7 @@ extern "C" void MS_ABI impl__OnCancelMode_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThi
 {
     if (!pThis) return;
 
-    if (pThis->m_bStretchButton) {
-        pThis->m_bStretchButton = FALSE;
-        pThis->m_pDragButton = nullptr;
-        pThis->m_rectTrack.SetRectEmpty();
-        if (pThis->GetSafeHwnd()) ::ReleaseCapture();
-        pThis->m_pWndLastCapture = nullptr;
-    }
+    if (pThis->m_bStretchButton) EndToolbarStretch(*pThis);
 
     if (pThis->m_iButtonCapture >= 0) {
         CMFCToolBarButton* pButton = pThis->GetButton(pThis->m_iButtonCapture);
@@ -1818,12 +1822,12 @@ extern "C" HBRUSH MS_ABI impl__OnCtlColor_CMFCToolBar__IEAAPEAUHBRUSH____PEAVCDC
 //         if ((pButton->m_nStyle & 0x40000) == 0)
 //             pButton->vslot0x140 (pButton, bCustomize == 0);
 //     }
-// The per-button virtuals are not modeled; the state reset is kept.
 // Symbol: ?OnCustomizeMode@CMFCToolBar@@MEAAXH@Z
 extern "C" void MS_ABI impl__OnCustomizeMode_CMFCToolBar__MEAAXH_Z(CMFCToolBar* pThis, int bCustomize)
 {
     if (!pThis) return;
 
+    if (!bCustomize && pThis->m_bStretchButton) EndToolbarStretch(*pThis);
     pThis->m_iButtonCapture = -1;
     pThis->m_iHighlighted = -1;
     pThis->m_iSelected = -1;
@@ -1832,11 +1836,8 @@ extern "C" void MS_ABI impl__OnCustomizeMode_CMFCToolBar__MEAAXH_Z(CMFCToolBar* 
     for (int i = 0; i < nCount; ++i) {
         CMFCToolBarButton* pButton = pThis->GetButton(i);
         if (!pButton) continue;
-        if ((pButton->m_nStyle & 0x40000) == 0) {
-            // TODO(clean-room): vslot0xc0 / vslot0x140 per-button customize-mode
-            // calls not modeled; bCustomize is deliberately unused.
-            (void)bCustomize;
-        }
+        pButton->OnCancelMode();
+        if ((pButton->m_nStyle & 0x40000) == 0) EnableToolbarButtonControl(*pButton, !bCustomize);
     }
 }
 // Retail (0x180152fd0): destroys m_penDrag (0x12c0), deletes m_pToolTip
@@ -2628,6 +2629,7 @@ bool RemoveLiveToolbarButton(CMFCToolBar& toolbar, ToolBarState& state, int inde
 
     const auto eraseAt = [&](int position) {
         auto* button = state.buttons[position];
+        if (toolbar.m_bStretchButton && toolbar.m_pDragButton == button) EndToolbarStretch(toolbar);
         state.buttons.erase(state.buttons.begin() + position);
         if (toolbar.m_pDragButton == button) toolbar.m_pDragButton = nullptr;
         for (int* current : {&toolbar.m_iSelected, &toolbar.m_iButtonCapture, &toolbar.m_iHighlighted}) {
@@ -3558,6 +3560,17 @@ void PaintToolbarDragMarker(const CMFCToolBar& toolbar, HDC dc) {
     ::SelectObject(dc, previous);
 }
 
+void PaintToolbarDragFeedback(const CMFCToolBar& toolbar, HDC hdc) {
+    PaintToolbarDragMarker(toolbar, hdc);
+    if (!toolbar.m_bStretchButton || toolbar.m_rectTrack.IsRectEmpty()) return;
+
+    CDC dc;
+    dc.m_hDC = hdc;
+    impl__DrawDragRect_CDC__QEAAXPEBUtagRECT__UtagSIZE__01PEAVCBrush__2_Z(
+        &dc, toolbar.m_rectTrack, {2, 2}, nullptr, {}, nullptr, nullptr);
+    dc.m_hDC = nullptr;
+}
+
 void PaintToolbarClient(CMFCToolBar& toolbar, HDC hdc, const RECT& update) {
     if (!hdc) return;
     ::FillRect(hdc, &update, ::GetSysColorBrush(COLOR_BTNFACE));
@@ -3567,7 +3580,7 @@ void PaintToolbarClient(CMFCToolBar& toolbar, HDC hdc, const RECT& update) {
     CDC dc;
     dc.m_hDC = hdc;
     toolbar.DoPaint(&dc);
-    PaintToolbarDragMarker(toolbar, hdc);
+    PaintToolbarDragFeedback(toolbar, hdc);
     dc.m_hDC = nullptr;
     if (previous) ::SelectObject(hdc, previous);
 }
@@ -3613,6 +3626,7 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
     if (g_toolBarStates.find(toolbar) == g_toolBarStates.end() || toolbar->GetSafeHwnd() != window) {
         ::RemoveWindowSubclass(window, FeatureToolbarPaintSubclass, id);
     } else if (message == WM_DESTROY) {
+        if (toolbar->m_bStretchButton) EndToolbarStretch(*toolbar, false);
         toolbar->m_DropTarget.Revoke();
     } else if (message == WM_NCDESTROY) {
         CloseToolbarMenus(*toolbar);
@@ -3625,6 +3639,21 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
     } else if (message == WM_DRAWITEM && lp &&
                DrawToolbarFontItem(*toolbar, *reinterpret_cast<DRAWITEMSTRUCT*>(lp))) {
         return TRUE;
+    } else if (message == WM_SETCURSOR && LOWORD(lp) == HTCLIENT && SetToolbarStretchCursor(*toolbar)) {
+        return TRUE;
+    } else if (message == WM_MOUSEMOVE && toolbar->m_bStretchButton) {
+        const CPoint point(static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp)));
+        impl__OnMouseMove_CMFCToolBar__IEAAXIVCPoint___Z(toolbar, static_cast<UINT>(wp), point);
+        return 0;
+    } else if (message == WM_LBUTTONUP && toolbar->m_bStretchButton) {
+        const CPoint point(static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp)));
+        impl__OnLButtonUp_CMFCToolBar__IEAAXIVCPoint___Z(toolbar, static_cast<UINT>(wp), point);
+        return 0;
+    } else if (message == WM_KEYDOWN && wp == VK_ESCAPE && toolbar->m_bStretchButton) {
+        EndToolbarStretch(*toolbar);
+        return 0;
+    } else if (message == WM_CAPTURECHANGED && toolbar->m_bStretchButton) {
+        EndToolbarStretch(*toolbar, false);
     } else if (message == WM_LBUTTONDOWN) {
         const POINT point{static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp))};
         if (TryStartToolbarButtonDrag(*toolbar, CPoint(point))) return 0;
@@ -3637,6 +3666,7 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
             break;
         }
     } else if (message == WM_CANCELMODE) {
+        if (toolbar->m_bStretchButton) EndToolbarStretch(*toolbar);
         CloseToolbarMenus(*toolbar);
     } else if ((message == WM_PAINT || message == WM_PRINTCLIENT) && HasToolbarPaintContent(*toolbar)) {
         if (message == WM_PRINTCLIENT) {
@@ -3649,12 +3679,13 @@ LRESULT CALLBACK FeatureToolbarPaintSubclass(HWND window, UINT message, WPARAM w
             ::EndPaint(window, &paint);
         }
         return 0;
-    } else if ((message == WM_PAINT || message == WM_PRINTCLIENT) && !toolbar->m_rectDrag.IsRectEmpty()) {
+    } else if ((message == WM_PAINT || message == WM_PRINTCLIENT) &&
+               (!toolbar->m_rectDrag.IsRectEmpty() || toolbar->m_bStretchButton)) {
         const LRESULT result = ::DefSubclassProc(window, message, wp, lp);
         if (message == WM_PRINTCLIENT) {
-            PaintToolbarDragMarker(*toolbar, reinterpret_cast<HDC>(wp));
+            PaintToolbarDragFeedback(*toolbar, reinterpret_cast<HDC>(wp));
         } else if (HDC dc = ::GetDC(window)) {
-            PaintToolbarDragMarker(*toolbar, dc);
+            PaintToolbarDragFeedback(*toolbar, dc);
             ::ReleaseDC(window, dc);
         }
         return result;
@@ -3691,6 +3722,7 @@ CMFCToolBar::CMFCToolBar() {
     m_bShowHotBorder = TRUE;
 }
 CMFCToolBar::~CMFCToolBar() {
+    if (m_bStretchButton) EndToolbarStretch(*this, false);
     if (impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA == this) impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA = nullptr;
     m_DropTarget.Revoke();
     if (m_hWnd) CloseToolbarMenus(*this);
@@ -3728,6 +3760,7 @@ BOOL CMFCToolBar::LoadBitmap(UINT) { return TRUE; }
 BOOL CMFCToolBar::SetButtons(const UINT* lpIDArray, int nIDCount, BOOL bImages) {
     if (nIDCount < 0 || (nIDCount > 0 && lpIDArray == nullptr)) return FALSE;
 
+    if (m_bStretchButton) EndToolbarStretch(*this);
     ToolBarState& state = g_toolBarStates[this];
     ClearToolBarButtons(state);
 
@@ -3774,13 +3807,14 @@ BOOL CMFCToolBar::ReplaceButton(UINT nID, const CMFCToolBarButton& button, BOOL)
         CMFCToolBarButton* replacement = CloneToolBarButton(button);
         if (!replacement) return FALSE;
 
+        if (m_bStretchButton && m_pDragButton == current) EndToolbarStretch(*this);
         if (state.ownedButtons.erase(current) != 0) {
             delete current;
         }
         state.buttons[i] = replacement;
         state.ownedButtons.insert(replacement);
 
-        if (m_hWnd && (AsComboButton(replacement) || AsDateTimeButton(replacement))) {
+        if (m_hWnd && IsEmbeddedToolbarControl(*replacement)) {
             ButtonChangeParentWnd(replacement, this);
             RestoreNativeToolbarButtons(*this);
         } else if (m_hWnd) {
@@ -5469,7 +5503,7 @@ extern "C" int MS_ABI impl__InsertButton_CMFCToolBar__MEAAHPEAVCMFCToolBarButton
     const int nCount = static_cast<int>(state.buttons.size());
     const auto attach = [pThis, pButton](int index) {
         ButtonChangeParentWnd(pButton, pThis);
-        if (AsComboButton(pButton) || AsDateTimeButton(pButton)) RestoreNativeToolbarButtons(*pThis);
+        if (IsEmbeddedToolbarControl(*pButton)) RestoreNativeToolbarButtons(*pThis);
         return index;
     };
 
@@ -6078,6 +6112,81 @@ extern "C" void MS_ABI impl__OnLButtonDblClk_CMFCToolBar__IEAAXIVCPoint___Z(
 }
 
 namespace {
+constexpr int kToolbarStretchGrip = 6;
+constexpr int kToolbarStretchMinimum = 5;
+
+bool IsToolbarStretchGrip(const CMFCToolBar& toolbar, CMFCToolBarButton& button,
+                          int index, CPoint point) {
+    const CRect bounds = DropButtonRect(toolbar, button, index);
+    return button.CanBeStretched() && std::abs(point.x - bounds.right) <= kToolbarStretchGrip;
+}
+
+bool SetToolbarStretchCursor(CMFCToolBar& toolbar) {
+    if (!toolbar.m_bStretchButton) {
+        const int index = toolbar.m_iSelected;
+        if (!impl__m_bCustomizeMode_CMFCToolBar__1HA || toolbar.m_bLocked ||
+            toolbar.m_bDisableCustomize || index < 0) return false;
+
+        POINT cursor{};
+        if (!::GetCursorPos(&cursor) || !::ScreenToClient(toolbar.GetSafeHwnd(), &cursor)) return false;
+        auto* button = toolbar.GetButton(index);
+        if (!button || impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(&toolbar, CPoint(cursor)) != index ||
+            !IsToolbarStretchGrip(toolbar, *button, index, CPoint(cursor))) return false;
+    }
+
+    EnsureGlobalDataInitialized();
+    auto cursor = static_cast<HCURSOR>(GlobalDataPtr(kGlobalDataCursorStretch));
+    if (!cursor) cursor = ::LoadCursorW(nullptr, IDC_SIZEWE);
+    if (!cursor) return false;
+    ::SetCursor(cursor);
+    return true;
+}
+
+void EndToolbarStretch(CMFCToolBar& toolbar, bool restoreCapture) {
+    const HWND window = toolbar.GetSafeHwnd();
+    const auto state = g_toolBarStates.find(&toolbar);
+    HWND previousCapture = nullptr;
+    HWND previousFocus = nullptr;
+    if (state != g_toolBarStates.end()) {
+        previousCapture = std::exchange(state->second.stretchPreviousCapture, nullptr);
+        previousFocus = std::exchange(state->second.stretchPreviousFocus, nullptr);
+    }
+
+    toolbar.m_bStretchButton = FALSE;
+    toolbar.m_pDragButton = nullptr;
+    toolbar.m_rectTrack.SetRectEmpty();
+    toolbar.m_pWndLastCapture = nullptr;
+    if (window && ::GetCapture() == window) {
+        ::ReleaseCapture();
+        if (restoreCapture && previousCapture != window && ::IsWindow(previousCapture) && !::GetCapture())
+            ::SetCapture(previousCapture);
+    }
+    if (::GetFocus() == window && ::IsWindow(previousFocus) && previousFocus != window)
+        ::SetFocus(previousFocus);
+    if (::IsWindow(window))
+        ::RedrawWindow(window, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+}
+
+void StartToolbarStretch(CMFCToolBar& toolbar, CMFCToolBarButton& button, int index) {
+    const HWND window = toolbar.GetSafeHwnd();
+    auto& state = g_toolBarStates[&toolbar];
+    state.stretchPreviousCapture = ::GetCapture();
+    state.stretchPreviousFocus = ::GetFocus();
+    toolbar.m_pDragButton = &button;
+    toolbar.m_bStretchButton = TRUE;
+    toolbar.m_rectTrack = DropButtonRect(toolbar, button, index);
+    if (button.GetHwnd()) toolbar.m_rectTrack.InflateRect(2, 2);
+    ::SetCapture(window);
+    if (CWnd::FromHandlePermanent(window) != &toolbar || !toolbar.m_bStretchButton) return;
+    if (::GetCapture() != window) {
+        EndToolbarStretch(toolbar, false);
+        return;
+    }
+    ::SetFocus(window);
+    if (CWnd::FromHandlePermanent(window) == &toolbar && toolbar.m_bStretchButton)
+        SetToolbarStretchCursor(toolbar);
+}
+
 bool TryStartToolbarButtonDrag(CMFCToolBar& toolbar, CPoint point) {
     const bool alternate = !impl__m_bCustomizeMode_CMFCToolBar__1HA &&
         impl__m_bAltCustomization_CMFCToolBar__1HA && (::GetKeyState(VK_MENU) < 0);
@@ -6095,6 +6204,12 @@ bool TryStartToolbarButtonDrag(CMFCToolBar& toolbar, CPoint point) {
     if (toolbar.m_pDragButton || !button->IsEditable()) return true;
     toolbar.m_iSelected = index;
     impl__m_pSelToolbar_CMFCToolBar__1PEAV1_EA = &toolbar;
+
+    if (!alternate && !impl__m_bAltCustomizeMode_CMFCToolBar__1HA &&
+        IsToolbarStretchGrip(toolbar, *button, index, point)) {
+        StartToolbarStretch(toolbar, *button, index);
+        return true;
+    }
 
     if (!button->CanBeStored() || !button->OnBeforeDrag()) return true;
     auto& source = impl__m_DropSource_CMFCToolBar__1VCMFCToolBarDropSource__A;
@@ -6157,22 +6272,36 @@ extern "C" void MS_ABI impl__OnLButtonDown_CMFCToolBar__IEAAXIVCPoint___Z(
 }
 
 // Retail (RVA 0x151260, mfc140u; the WM_LBUTTONUP entry of the message map)
-// is ~200 instructions.  Decoded structure, NOT implemented: it releases the
-// capture (m_pWndLastCapture), calls HitTest (vslot 0x730) up to three times,
-// finishes a stretch drag (m_bStretchButton: SetButtonStyle vslot 0x6f8,
-// AdjustLayout 0x428, vslot 0x5b8) or a customize drag, and otherwise
-// clears the 0x20000 pressed bit on m_iButtonCapture's button, invalidates
-// it (0x14fe50) and dispatches pButton->OnClickUp() (vslot 0x58) followed by
-// the command through 0x183ee0 / vslot 0x7e0 (NotifyControlCommand) and
-// CPane::OnLButtonUp (0x9fa80); the help-mode hook (0x3be360),
-// m_bCustomizeMode (0x3be35c) and m_UsageCount (0x3b1fd0) are consulted.
-// Left a stub for the same reason as OnLButtonDown: the button virtuals
-// (OnClickUp, IsDroppedDown, CanBeStretched) cannot be dispatched.
+// On release, commit only a width of at least five pixels and a change
+// outside the six-pixel grip. The common control still routes ordinary clicks.
 // Symbol: ?OnLButtonUp@CMFCToolBar@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnLButtonUp_CMFCToolBar__IEAAXIVCPoint___Z(
-    CMFCToolBar* pThis, unsigned int nFlags, CPoint point) {
-    (void)pThis; (void)nFlags; (void)point;
-    // TODO(clean-room): not transcribed -- see the decoding above.
+    CMFCToolBar* toolbar, unsigned int, CPoint point) {
+    if (!toolbar || !toolbar->m_bStretchButton) return;
+
+    auto* button = toolbar->m_pDragButton;
+    const HWND window = toolbar->GetSafeHwnd();
+    const int index = impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(toolbar, button);
+    const CRect bounds = index >= 0 ? DropButtonRect(*toolbar, *button, index) : CRect(0, 0, 0, 0);
+    EndToolbarStretch(*toolbar);
+    const int width = point.x - bounds.left;
+    if (index < 0 || width < kToolbarStretchMinimum || std::abs(point.x - bounds.right) <= kToolbarStretchGrip ||
+        CWnd::FromHandlePermanent(window) != toolbar) return;
+
+    const int buttonIndex = impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(toolbar, button);
+    if (buttonIndex < 0) return;
+    button->OnSize(width);
+    SetNativeToolbarButtonWidth(window, buttonIndex, width);
+    toolbar->AdjustLayout();
+    for (int i = 0; i < toolbar->GetCount(); ++i) {
+        RECT item{};
+        if (!::SendMessageW(window, TB_GETITEMRECT, i, reinterpret_cast<LPARAM>(&item)) || ::IsRectEmpty(&item))
+            continue;
+        auto* sibling = toolbar->GetButton(i);
+        if (::EqualRect(sibling->m_rect, &item)) continue;
+        sibling->m_rect = CRect(item);
+        sibling->OnMove();
+    }
 }
 
 // Retail (RVA 0x1567a0, mfc140u; the WM_MOUSELEAVE entry of the message
@@ -6206,8 +6335,8 @@ extern "C" void MS_ABI impl__OnLButtonUp_CMFCToolBar__IEAAXIVCPoint___Z(
 // (vslot 0xf0) cannot be dispatched -- slot 30 of the button vftable at
 // 0x316048 is 0x71e0, `xor eax,eax`, so the base FALSE is assumed and a
 // dropped-down menu button (derived override) would still get the idle
-// message; the tracked-toolbar static is never set because OnMouseMove is a
-// stub, so the two branches that compare against it are dead today; and the
+// message; the hot-tracking branch of OnMouseMove is pending, so the
+// tracked-toolbar branches are inactive; and the
 // GetOwner() lookup takes the ::GetParent branch unconditionally (same
 // deviation as Deactivate).
 // Symbol: ?OnMouseLeave@CMFCToolBar@@IEAAXXZ
@@ -6264,24 +6393,25 @@ extern "C" void MS_ABI impl__OnMouseLeave_CMFCToolBar__IEAAXXZ(CMFCToolBar* pThi
 }
 
 // Retail (RVA 0x150ce0, mfc140u; the WM_MOUSEMOVE entry of the message map)
-// is ~330 instructions.  Decoded structure, NOT implemented: it bails while
-// the help-mode hook (0x3be360) is set, forwards to the dropped-down menu
-// (0x157f30) in menu mode, arms TrackMouseEvent (0x1802c7310) the first time
-// (setting m_bTracked and the tracked-toolbar static at 0x3c3728), runs the
-// customize-mode stretch drag (m_bStretchButton: SetButtonStyle vslot 0x6f8,
-// AdjustLayout, CClientDC 0x2a3b20 + DrawDragCursor), otherwise hit-tests
-// (vslot 0x730 x3) to move m_iHighlighted / m_iAccHotItem, calls OnChangeHot
-// (vslot 0x770), ShowCommandMessageString (vslot 0x840), the button's
-// vslot 0x78 / 0x7e8, SetTimer(0xec07, 500ms) for the accessibility hot item,
-// afxGlobalData+0x278 and +0x158, and finally CPane::OnMouseMove (0x9fce0).
-// Left a stub: the customize drag and the per-button virtuals cannot be
-// modelled, and the hot-tracking half alone would leave m_iHighlighted
-// moving without the visual feedback that DrawButton (a stub) provides.
+// Only the stretch branch is handled here. Ordinary pointer messages go
+// to the common control through the toolbar subclass.
 // Symbol: ?OnMouseMove@CMFCToolBar@@IEAAXIVCPoint@@@Z
 extern "C" void MS_ABI impl__OnMouseMove_CMFCToolBar__IEAAXIVCPoint___Z(
-    CMFCToolBar* pThis, unsigned int nFlags, CPoint point) {
-    (void)pThis; (void)nFlags; (void)point;
-    // TODO(clean-room): not transcribed -- see the decoding above.
+    CMFCToolBar* toolbar, unsigned int, CPoint point) {
+    if (!toolbar || !toolbar->m_bStretchButton) return;
+
+    auto* button = toolbar->m_pDragButton;
+    const int index = impl__ButtonToIndex_CMFCToolBar__QEBAHPEBVCMFCToolBarButton___Z(toolbar, button);
+    if (index < 0) {
+        EndToolbarStretch(*toolbar);
+        return;
+    }
+    const CRect bounds = DropButtonRect(*toolbar, *button, index);
+    if (point.x - bounds.left >= kToolbarStretchMinimum && point.x != toolbar->m_rectTrack.right) {
+        toolbar->m_rectTrack.right = point.x;
+        ::RedrawWindow(toolbar->GetSafeHwnd(), nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+    }
+    SetToolbarStretchCursor(*toolbar);
 }
 
 // Retail (RVA 0x156fd0, mfc140u; the WM_NCCALCSIZE entry of the message map)
@@ -6496,7 +6626,7 @@ extern "C" int MS_ABI impl__OnSetAccData_CMFCToolBar__UEAAHJ_Z(CMFCToolBar* pThi
 //         gate afxGlobalData; ::SetCursor(afxGlobalData.<+0x158>); return TRUE;
 //     }
 //     if (m_bCustomizeMode && m_iSelected != -1 && !m_bLocked) {  // 0x3be35c, 0x113c, 0x10b8
-//         ::ScreenToClient(m_hWnd, &pt);           // NB: converts pt in place
+//         ::ScreenToClient(m_hWnd, &pt);
 //         if (HitTest(pt) == m_iSelected) {                        // vslot 0x730
 //             p = GetButton(m_iSelected);                          // 0x14fe00
 //             if (p->CanBeStretched() &&                           // vslot 0x88
@@ -6505,23 +6635,15 @@ extern "C" int MS_ABI impl__OnSetAccData_CMFCToolBar__UEAAHJ_Z(CMFCToolBar* pThi
 //             }
 //         }
 //     }
-//     CPoint pt2 = pt; ::ScreenToClient(m_hWnd, &pt2);   // a second conversion
-//                                        // on the customize path above -- retail
-//     CRect rectGripper(0,0,0,0);        // quirk, reproduced
+//     CPoint pt2 = pt; ::ScreenToClient(m_hWnd, &pt2);
+//     CRect rectGripper(0,0,0,0);
 //     m_Impl.GetGripperRect(rectGripper, TRUE);                    // 0x31a40, this+0x1120
 //     if (::PtInRect(&rectGripper, pt2) && CMFCPopupMenu::m_pActivePopupMenu == NULL) {  // 0x3be288
 //         gate afxGlobalData; ::SetCursor(afxGlobalData.<+0x170>); return TRUE;
 //     }
 //     return (BOOL)CWnd::Default();                                // 0x28ac80
-// pWnd / nHitTest / message are not read.  Deviations: CanBeStretched is not
-// dispatched -- slot 17 of the button vftable at 0x316048 is 0x71e0,
-// `xor eax,eax`, so the base FALSE is assumed and the stretch-handle test is
-// skipped (a derived button that can be stretched does not get the stretch
-// cursor here; the customize path keeps its ScreenToClient/HitTest side
-// effects); the two cursor
-// slots read NULL until AFX_GLOBAL_DATA::Initialize is real, and a NULL is
-// not handed to ::SetCursor (that would hide the cursor) -- the function
-// falls through to Default() instead.
+// Keep a separate client point for the gripper test. Use the system horizontal
+// resize cursor when the MFC cursor resource is unavailable.
 // Symbol: ?OnSetCursor@CMFCToolBar@@IEAAHPEAVCWnd@@II@Z
 extern "C" int MS_ABI impl__OnSetCursor_CMFCToolBar__IEAAHPEAVCWnd__II_Z(
     CMFCToolBar* pThis, CWnd* pWnd, unsigned int nHitTest, unsigned int message) {
@@ -6531,27 +6653,7 @@ extern "C" int MS_ABI impl__OnSetCursor_CMFCToolBar__IEAAHPEAVCWnd__II_Z(
     POINT pt = { 0, 0 };
     ::GetCursorPos(&pt);
 
-    if (pThis->m_bStretchButton) {
-        EnsureGlobalDataInitialized();
-        if (void* hCur = GlobalDataPtr(kGlobalDataCursorStretch)) {
-            ::SetCursor(static_cast<HCURSOR>(hCur));
-            return TRUE;
-        }
-        return static_cast<int>(impl__Default_CWnd__IEAA_JXZ(pThis));
-    }
-
-    if (impl__m_bCustomizeMode_CMFCToolBar__1HA != 0 && pThis->m_iSelected != -1 && !pThis->m_bLocked) {
-        ::ScreenToClient(pThis->m_hWnd, &pt);
-        const int iSel = pThis->m_iSelected;
-        if (impl__HitTest_CMFCToolBar__UEAAHVCPoint___Z(pThis, CPoint(pt.x, pt.y)) == iSel) {
-            CMFCToolBarButton* pButton = pThis->GetButton(iSel);
-            (void)pButton;
-            // TODO(clean-room): pButton->CanBeStretched() (vslot 0x88) is not
-            // dispatched; the base body returns FALSE, so the
-            // `labs(pt.x - m_rect.right) <= 6` stretch cursor is never
-            // selected here.
-        }
-    }
+    if (SetToolbarStretchCursor(*pThis)) return TRUE;
 
     POINT pt2 = pt;
     ::ScreenToClient(pThis->m_hWnd, &pt2);
@@ -6975,6 +7077,14 @@ bool IsEmbeddedToolbarControl(const CMFCToolBarButton& button) {
            button.IsKindOf(RUNTIME_CLASS(CMFCToolBarDateTimeCtrl));
 }
 
+void EnableToolbarButtonControl(CMFCToolBarButton& button, BOOL enabled) {
+    if (auto* combo = AsComboButton(&button)) {
+        openmfc::detail::SetToolBarComboEnabled(*combo, enabled);
+    } else if (HWND window = button.GetHwnd()) {
+        ::EnableWindow(window, enabled);
+    }
+}
+
 void RestoreToolbarControl(CMFCToolBar& toolbar, CMFCToolBarButton& button) {
     const int show = button.m_bVisible && !button.m_bIsHidden;
     if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarComboBoxButton))) {
@@ -6984,11 +7094,19 @@ void RestoreToolbarControl(CMFCToolBar& toolbar, CMFCToolBarButton& button) {
     } else if (button.IsKindOf(RUNTIME_CLASS(CMFCToolBarEditBoxButton))) {
         auto* edit = static_cast<CMFCToolBarEditBoxButton*>(&button);
         impl__OnChangeParentWnd_CMFCToolBarEditBoxButton__UEAAXPEAVCWnd___Z(edit, &toolbar);
-        if (!show) impl__OnShow_CMFCToolBarEditBoxButton__UEAAXH_Z(edit, show);
+        impl__OnShow_CMFCToolBarEditBoxButton__UEAAXH_Z(edit, show);
     } else if (auto* dateTime = AsDateTimeButton(&button)) {
         impl__OnChangeParentWnd_CMFCToolBarDateTimeCtrl__UEAAXPEAVCWnd___Z(dateTime, &toolbar);
         impl__OnShow_CMFCToolBarDateTimeCtrl__UEAAXH_Z(dateTime, show);
     }
+    if (impl__m_bCustomizeMode_CMFCToolBar__1HA && !impl__m_bAltCustomizeMode_CMFCToolBar__1HA)
+        EnableToolbarButtonControl(button, FALSE);
+}
+
+void SetNativeToolbarButtonWidth(HWND window, int index, int width) {
+    TBBUTTONINFOW sizing{sizeof(sizing), TBIF_BYINDEX | TBIF_SIZE};
+    sizing.cx = static_cast<WORD>((std::min)(width, int(MAXWORD)));
+    ::SendMessageW(window, TB_SETBUTTONINFOW, index, reinterpret_cast<LPARAM>(&sizing));
 }
 
 void RestoreNativeToolbarButtons(CMFCToolBar& toolbar) {
@@ -7016,11 +7134,8 @@ void RestoreNativeToolbarButtons(CMFCToolBar& toolbar) {
             native.fsStyle |= BTNS_AUTOSIZE;
         }
         ::SendMessageW(window, TB_ADDBUTTONSW, 1, reinterpret_cast<LPARAM>(&native));
-        if (embedded && button->m_rect.Width() > 0) {
-            TBBUTTONINFOW sizing{sizeof(sizing), TBIF_BYINDEX | TBIF_SIZE};
-            sizing.cx = static_cast<WORD>((std::min)(button->m_rect.Width(), int(MAXWORD)));
-            ::SendMessageW(window, TB_SETBUTTONINFOW, i, reinterpret_cast<LPARAM>(&sizing));
-        }
+        if (embedded && button->m_rect.Width() > 0)
+            SetNativeToolbarButtonWidth(window, i, button->m_rect.Width());
     }
     toolbar.AdjustLayout();
     for (int i = 0; i < toolbar.GetCount(); ++i) {
@@ -7097,6 +7212,7 @@ void CMFCToolBar::Serialize(CArchive& archive) {
     if (ownsCustomize) restored.ownedButtons.insert(customize);
     for (auto& button : loaded) button.release();
 
+    if (m_bStretchButton) EndToolbarStretch(*this);
     if (ownsCustomize) state.ownedButtons.erase(customize);
     state.buttons.swap(restored.buttons);
     state.ownedButtons.swap(restored.ownedButtons);

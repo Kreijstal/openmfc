@@ -12,6 +12,7 @@ void ReleaseToolBarComboWindows(CMFCToolBarComboBoxButton& button);
 bool DrawToolBarFontComboItem(CMFCToolBarComboBoxButton& button, DRAWITEMSTRUCT& item);
 bool IsFlatToolBarCombo(const CMFCToolBarComboBoxButton& button);
 bool HitToolBarComboArrow(const CMFCToolBarComboBoxButton& button, POINT point);
+void SetToolBarComboEnabled(CMFCToolBarComboBoxButton& button, BOOL enabled);
 bool HandleToolBarComboCommand(CMFCToolBarComboBoxButton& button, HWND source, int code);
 
 }  // namespace openmfc::detail

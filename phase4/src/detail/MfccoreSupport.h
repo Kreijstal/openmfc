@@ -300,6 +300,8 @@ struct ToolBarState {
     std::vector<CMFCToolBarButton*> buttons;
     std::unordered_set<CMFCToolBarButton*> ownedButtons;
     std::unique_ptr<CMFCToolBarButton> customizeButton;
+    HWND stretchPreviousCapture = nullptr;
+    HWND stretchPreviousFocus = nullptr;
 };
 } } }
 

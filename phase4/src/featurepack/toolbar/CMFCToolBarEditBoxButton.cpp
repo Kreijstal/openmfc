@@ -643,6 +643,7 @@ extern "C" void MS_ABI impl__CopyFrom_CMFCToolBarEditBoxButton__UEAAXAEBVCMFCToo
     const CMFCToolBarEditBoxButton* pSrcEdit = static_cast<const CMFCToolBarEditBoxButton*>(pSrc);
     Style(pThis) = Style(pSrcEdit);
     Width(pThis) = Width(pSrcEdit);
+    pThis->m_rect.right = pThis->m_rect.left + Width(pThis);
     StrContents(pThis) = StrContents(pSrcEdit);
     MenuResID(pThis) = MenuResID(pSrcEdit);
 }
@@ -813,6 +814,19 @@ extern "C" void MS_ABI impl__OnSize_CMFCToolBarEditBoxButton__UEAAXH_Z(CMFCToolB
     Width(pThis) = iSize;
     pThis->m_rect.right = pThis->m_rect.left + iSize;
     impl__OnMove_CMFCToolBarEditBoxButton__UEAAXXZ(pThis);
+}
+
+void CMFCToolBarEditBoxButton::OnMove() {
+    impl__OnMove_CMFCToolBarEditBoxButton__UEAAXXZ(this);
+}
+
+void CMFCToolBarEditBoxButton::OnSize(int width) {
+    impl__OnSize_CMFCToolBarEditBoxButton__UEAAXH_Z(this, width);
+}
+
+HWND CMFCToolBarEditBoxButton::GetHwnd() {
+    const auto* control = WndEdit(this);
+    return control ? control->GetSafeHwnd() : nullptr;
 }
 
 // Retail (vftable slot 35, RVA 0x168620, mfc140u), fully transcribed:

@@ -1012,6 +1012,19 @@ extern "C" void MS_ABI impl__OnSize_CMFCToolBarComboBoxButton__UEAAXH_Z(CMFCTool
     if (HasWindow(WndCombo(pThis))) impl__AdjustRect_CMFCToolBarComboBoxButton__IEAAXXZ(pThis);
 }
 
+void CMFCToolBarComboBoxButton::OnMove() {
+    impl__OnMove_CMFCToolBarComboBoxButton__UEAAXXZ(this);
+}
+
+void CMFCToolBarComboBoxButton::OnSize(int width) {
+    impl__OnSize_CMFCToolBarComboBoxButton__UEAAXH_Z(this, width);
+}
+
+HWND CMFCToolBarComboBoxButton::GetHwnd() {
+    const auto* control = WndCombo(this);
+    return control ? control->GetSafeHwnd() : nullptr;
+}
+
 // Retail (RVA 0x164420, mfc140u), fully transcribed:
 //     if (m_nDropDownHeight != nHeight) { m_nDropDownHeight = nHeight; OnMove(); }   // vslot 0x70 (14)
 // OnMove is reached through this file's thunk rather than the vftable.
@@ -1368,13 +1381,14 @@ extern "C" void MS_ABI impl__SetStyle_CMFCToolBarComboBoxButton__UEAAXI_Z(CMFCTo
     pThis->m_nStyle = nStyle;
     const int bEnable = (impl__m_bCustomizeMode_CMFCToolBar__1HA == 0 && IsEditableInline(pThis) &&
                          (pThis->m_nStyle & kTbbsDisabled) == 0) ? 1 : 0;
-    if (CComboBox* pCombo = WndCombo(pThis); HasWindow(pCombo)) {
-        impl__EnableWindow_CWnd__QEAAHH_Z(pCombo, bEnable);
-        ::RedrawWindow(pCombo->m_hWnd, nullptr, nullptr, kRdwInvalidateEraseUpdate);
-    }
-    if (CEdit* pEdit = WndEdit(pThis); HasWindow(pEdit)) {
-        impl__EnableWindow_CWnd__QEAAHH_Z(pEdit, bEnable);
-        ::RedrawWindow(pEdit->m_hWnd, nullptr, nullptr, kRdwInvalidateEraseUpdate);
+    openmfc::detail::SetToolBarComboEnabled(*pThis, bEnable);
+}
+
+void openmfc::detail::SetToolBarComboEnabled(CMFCToolBarComboBoxButton& button, BOOL enabled) {
+    for (auto* control : {static_cast<CWnd*>(WndCombo(&button)), static_cast<CWnd*>(WndEdit(&button))}) {
+        if (!HasWindow(control)) continue;
+        impl__EnableWindow_CWnd__QEAAHH_Z(control, enabled);
+        ::RedrawWindow(control->m_hWnd, nullptr, nullptr, kRdwInvalidateEraseUpdate);
     }
 }
 

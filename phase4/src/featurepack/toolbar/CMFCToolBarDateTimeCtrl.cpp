@@ -653,6 +653,19 @@ extern "C" void MS_ABI impl__OnSize_CMFCToolBarDateTimeCtrl__UEAAXH_Z(void* pThi
     impl__AdjustRect_CMFCToolBarDateTimeCtrl__IEAAXXZ(pThis);
 }
 
+void CMFCToolBarDateTimeCtrl::OnMove() {
+    impl__OnMove_CMFCToolBarDateTimeCtrl__UEAAXXZ(this);
+}
+
+void CMFCToolBarDateTimeCtrl::OnSize(int width) {
+    impl__OnSize_CMFCToolBarDateTimeCtrl__UEAAXH_Z(this, width);
+}
+
+HWND CMFCToolBarDateTimeCtrl::GetHwnd() {
+    const auto* control = m_pWndDateTime;
+    return control ? control->GetSafeHwnd() : nullptr;
+}
+
 // Retail (RVA 0x165f70, mfc140u), fully transcribed.  SIZE comes back through
 // the hidden pointer in RDX (pDC in R8, sizeDefault in R9, bHorz on the stack):
 //     if (!m_bVisible) return CSize(0, 0);                            // +0x64

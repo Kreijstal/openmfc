@@ -2106,6 +2106,10 @@ public:
     CMFCToolBarComboBoxButton(UINT uiID, int iImage, ULONG dwStyle = CBS_DROPDOWNLIST, int iWidth = 0);
     virtual ~CMFCToolBarComboBoxButton();
     void Serialize(CArchive& archive) override;
+    void OnMove() override;
+    void OnSize(int width) override;
+    HWND GetHwnd() override;
+    BOOL CanBeStretched() const override { return TRUE; }
 
     virtual INT_PTR AddItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
     virtual INT_PTR AddSortedItem(const wchar_t* lpszItem, DWORD_PTR dwData = 0);
@@ -2182,6 +2186,10 @@ public:
     CMFCToolBarEditBoxButton(UINT uiID, int iImage, ULONG dwStyle = ES_AUTOHSCROLL, int iWidth = 0);
     virtual ~CMFCToolBarEditBoxButton();
     void Serialize(CArchive& archive) override;
+    void OnMove() override;
+    void OnSize(int width) override;
+    HWND GetHwnd() override;
+    BOOL CanBeStretched() const override { return TRUE; }
 
     virtual void SetContents(const CString& sContents);
 
@@ -2201,6 +2209,10 @@ public:
     CMFCToolBarDateTimeCtrl(UINT id, int image, DWORD style = 0, int width = 0);
     ~CMFCToolBarDateTimeCtrl() override;
     void Serialize(CArchive& archive) override;
+    void OnMove() override;
+    void OnSize(int width) override;
+    HWND GetHwnd() override;
+    BOOL CanBeStretched() const override { return TRUE; }
 
     CWnd* GetDateTimeCtrl() const { return m_pWndDateTime; }
     BOOL SetTime(SYSTEMTIME* time = nullptr);
